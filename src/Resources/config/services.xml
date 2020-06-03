@@ -2,6 +2,20 @@
 
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <!-- Put your services here -->
+        <service
+            id="sylius.plugin.pay_pal.gateway_factory_builder"
+            class="Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder"
+        >
+            <argument>Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory</argument>
+            <tag name="payum.gateway_factory_builder" factory="sylius_pay_pal" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
+            <tag name="sylius.gateway_configuration_type" type="sylius_pay_pal" label="sylius.pay_pal.label" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
+            <tag name="payum.action" factory="sylius_pay_pal" alias="payum.action.capture" />
+        </service>
     </services>
 </container>
