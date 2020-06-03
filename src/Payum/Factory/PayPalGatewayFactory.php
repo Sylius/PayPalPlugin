@@ -20,7 +20,7 @@ use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class PayPalGatewayFactory extends GatewayFactory
 {
-    protected function populateConfig(ArrayObject $config)
+    protected function populateConfig(ArrayObject $config): void
     {
         $config->defaults([
             'payum.factory_name' => 'pay_pal',
@@ -28,8 +28,11 @@ final class PayPalGatewayFactory extends GatewayFactory
             'payum.action.status' => new StatusAction(),
         ]);
 
-        $config['payum.api'] = function (ArrayObject $config) {
-            return new PayPalApi($config['api_key']);
+        $config['payum.api'] = function (ArrayObject $config): PayPalApi {
+            /** @var string $apiKey */
+            $apiKey = $config['api_key'];
+
+            return new PayPalApi($apiKey);
         };
     }
 }

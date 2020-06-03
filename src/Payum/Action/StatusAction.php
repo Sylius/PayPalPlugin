@@ -14,11 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
-use Payum\Core\Request\GetStatusInterface;
+use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface;
 
 final class StatusAction implements ActionInterface
 {
+    /** @param GetStatus $request */
     public function execute($request): void
     {
         $request->markCaptured();
@@ -27,7 +28,7 @@ final class StatusAction implements ActionInterface
     public function supports($request): bool
     {
         return
-            $request instanceof GetStatusInterface &&
+            $request instanceof GetStatus &&
             $request->getFirstModel() instanceof PaymentInterface
         ;
     }

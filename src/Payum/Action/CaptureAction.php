@@ -25,6 +25,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface
     /** @var PayPalApi */
     private $api;
 
+    /** @param Capture $request */
     public function execute($request): void
     {
         /** @var PaymentInterface $payment */
