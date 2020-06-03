@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Payum\Factory;
 
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
+use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class PayPalGatewayFactory extends GatewayFactory
@@ -24,6 +25,7 @@ final class PayPalGatewayFactory extends GatewayFactory
         $config->defaults([
             'payum.factory_name' => 'pay_pal',
             'payum.factory_title' => 'Pay Pal',
+            'payum.action.status' => new StatusAction(),
         ]);
 
         $config['payum.api'] = function (ArrayObject $config) {

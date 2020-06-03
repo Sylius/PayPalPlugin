@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit;
 
 use Payum\Core\Bridge\Spl\ArrayObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory;
 use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
@@ -29,6 +30,7 @@ final class PayPalGatewayFactoryTest extends TestCase
 
         $this->assertEquals('Pay Pal', $config['payum.factory_title']);
         $this->assertEquals('pay_pal', $config['payum.factory_name']);
+        $this->assertEquals(new StatusAction(), $config['payum.action.status']);
 
         $this->assertTrue($config['payum.api'] instanceof \Closure);
 
