@@ -1,0 +1,4 @@
+suites:
+    main:
+        namespace: Sylius\PayPalPlugin
+        psr4_prefix: Sylius\PayPalPlugin

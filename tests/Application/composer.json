@@ -1,0 +1,5 @@
+{
+    "name": "sylius/paypal-plugin",
+    "description": "PayPal plugin for Sylius",
+    "license": "MIT"
+}
