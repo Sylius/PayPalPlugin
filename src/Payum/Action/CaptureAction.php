@@ -23,7 +23,7 @@ use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class CaptureAction implements ActionInterface, ApiAwareInterface
 {
-    /** @var PayPalApi */
+    /** @var PayPalApi|null */
     private $api;
 
     /** @param Capture $request */

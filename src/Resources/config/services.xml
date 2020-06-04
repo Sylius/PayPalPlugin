@@ -18,8 +18,12 @@
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
+        <service class="Sylius\PayPalPlugin\DummyOnboardingInitator" id="Sylius\PayPalPlugin\OnboardingInitatorInterface">
             <argument type="service" id="router" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
+            <argument type="service" id="Sylius\PayPalPlugin\OnboardingInitatorInterface" />
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
 

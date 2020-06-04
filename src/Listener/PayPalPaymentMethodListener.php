@@ -6,18 +6,18 @@ namespace Sylius\PayPalPlugin\Listener;
 
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\OnboardingInitiatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
 final class PayPalPaymentMethodListener
 {
-    /** @var UrlGeneratorInterface */
-    private $urlGenerator;
+    /** @var OnboardingInitiatorInterface */
+    private $onboardingInitiator;
 
-    public function __construct(UrlGeneratorInterface $urlGenerator)
+    public function __construct(OnboardingInitiatorInterface $onboardingInitiator)
     {
-        $this->urlGenerator = $urlGenerator;
+        $this->onboardingInitiator = $onboardingInitiator;
     }
 
     public function initializeCreate(ResourceControllerEvent $event): void
@@ -27,27 +27,10 @@ final class PayPalPaymentMethodListener
         /** @var PaymentMethodInterface $paymentMethod */
         Assert::isInstanceOf($paymentMethod, PaymentMethodInterface::class);
 
-        $factoryName = $paymentMethod->getGatewayConfig()->getFactoryName();
-
-        if ($factoryName !== 'sylius.pay_pal') {
+        if (!$this->onboardingInitiator->supports($paymentMethod)) {
             return;
         }
 
-        $gatewayConfig = $paymentMethod->getGatewayConfig()->getConfig();
-
-        if (isset($gatewayConfig['merchant_id'])) {
-            return;
-        }
-
-        // TODO: POST partner referrals, redirect to PayPal, use the link below as a redirection url
-
-        $event->setResponse(new RedirectResponse($this->urlGenerator->generate(
-            'sylius_admin_payment_method_create',
-            [
-                'factory' => $factoryName,
-                'merchantId' => 'MERCHANT-ID',
-                'merchantIdInPayPal' => 'MERCHANT-ID-PAYPAL',
-            ]
-        )));
+        $event->setResponse(new RedirectResponse($this->onboardingInitiator->initiate($paymentMethod)));
     }
 }

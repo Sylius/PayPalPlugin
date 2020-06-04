@@ -9,15 +9,20 @@ use Sylius\Bundle\ResourceBundle\Controller\RequestConfiguration;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\Component\Resource\Model\ResourceInterface;
+use Sylius\PayPalPlugin\OnboardingProcessorInterface;
 
 final class PayPalPaymentMethodNewResourceFactory implements NewResourceFactoryInterface
 {
     /** @var NewResourceFactoryInterface */
     private $newResourceFactory;
 
-    public function __construct(NewResourceFactoryInterface $newResourceFactory)
+    /** @var OnboardingProcessorInterface */
+    private $onboardingProcessor;
+
+    public function __construct(NewResourceFactoryInterface $newResourceFactory, OnboardingProcessorInterface $onboardingProcessor)
     {
         $this->newResourceFactory = $newResourceFactory;
+        $this->onboardingProcessor = $onboardingProcessor;
     }
 
     public function create(RequestConfiguration $requestConfiguration, FactoryInterface $factory): ResourceInterface
@@ -28,20 +33,11 @@ final class PayPalPaymentMethodNewResourceFactory implements NewResourceFactoryI
             return $resource;
         }
 
-        if ($resource->getGatewayConfig()->getFactoryName() !== 'sylius.pay_pal') {
-            return $resource;
-        }
-
         $request = $requestConfiguration->getRequest();
 
-        if (!$request->query->has('merchantId')) {
-            return $resource;
+        if ($this->onboardingProcessor->supports($resource, $request)) {
+            return $this->onboardingProcessor->process($resource, $request);
         }
-
-        $resource->getGatewayConfig()->setConfig([
-            'merchant_id' => $request->query->get('merchantId'),
-            'merchant_id_in_paypal' => $request->query->get('merchantIdInPayPal'),
-        ]);
 
         return $resource;
     }
