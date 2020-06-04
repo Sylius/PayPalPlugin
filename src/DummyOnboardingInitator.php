@@ -7,6 +7,9 @@ namespace Sylius\PayPalPlugin;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/**
+ * TODO: Decide whether we still need this class
+ */
 final class DummyOnboardingInitator implements OnboardingInitiatorInterface
 {
     /** @var UrlGeneratorInterface */

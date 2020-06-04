@@ -29,10 +29,7 @@ final class BasicOnbordingProcessorSpec extends ObjectBehavior
         $request->query->set('merchantId', 'MERCHANT-ID');
         $request->query->set('merchantIdInPayPal', 'MERCHANT-ID-PAYPAL');
 
-        $this->process($paymentMethod, $request)->getGatewayConfig()->getConfig()->shouldReturn([
-            'merchant_id' => 'MERCHANT-ID',
-            'merchant_id_in_paypal' => 'MERCHANT-ID-PAYPAL',
-        ]);
+        $this->process($paymentMethod, $request)->getGatewayConfig()->getConfig()->shouldHaveKeyWithValue('merchant_id', 'MERCHANT-ID');
     }
 
     function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(): void
