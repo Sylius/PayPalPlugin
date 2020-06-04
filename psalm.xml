@@ -12,4 +12,17 @@
             <directory name="vendor" />
         </ignoreFiles>
     </projectFiles>
+
+    <issueHandlers>
+        <MissingConstructor>
+            <errorLevel type="info">
+                <file name="src/Payum/Action/CaptureAction.php" />
+            </errorLevel>
+        </MissingConstructor>
+        <MoreSpecificImplementedParamType>
+            <errorLevel type="info">
+                <directory name="src/Payum/Action/"/>
+            </errorLevel>
+        </MoreSpecificImplementedParamType>
+    </issueHandlers>
 </psalm>

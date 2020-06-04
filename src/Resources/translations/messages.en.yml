@@ -1,0 +1,3 @@
+sylius:
+    pay_pal:
+        label: 'PayPal'
