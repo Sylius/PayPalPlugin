@@ -12,6 +12,10 @@ final class PayPalConfigurationType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder->add('api_key', TextType::class);
+        $builder
+            ->add('api_key', TextType::class)
+            ->add('merchant_id', TextType::class)
+            ->add('merchant_id_in_paypal', TextType::class)
+        ;
     }
 }
