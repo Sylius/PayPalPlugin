@@ -12,9 +12,7 @@ use Sylius\Component\Resource\Model\ResourceInterface;
 
 final class PayPalPaymentMethodNewResourceFactory implements NewResourceFactoryInterface
 {
-    /**
-     * @var NewResourceFactoryInterface
-     */
+    /** @var NewResourceFactoryInterface */
     private $newResourceFactory;
 
     public function __construct(NewResourceFactoryInterface $newResourceFactory)

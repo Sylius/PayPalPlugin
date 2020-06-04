@@ -10,11 +10,9 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
-final class InitializeCreatePayPalPaymentMethodListener
+final class PayPalPaymentMethodListener
 {
-    /**
-     * @var UrlGeneratorInterface
-     */
+    /** @var UrlGeneratorInterface */
     private $urlGenerator;
 
     public function __construct(UrlGeneratorInterface $urlGenerator)
@@ -22,7 +20,7 @@ final class InitializeCreatePayPalPaymentMethodListener
         $this->urlGenerator = $urlGenerator;
     }
 
-    public function __invoke(ResourceControllerEvent $event): void
+    public function initializeCreate(ResourceControllerEvent $event): void
     {
         $paymentMethod = $event->getSubject();
 
@@ -31,19 +29,25 @@ final class InitializeCreatePayPalPaymentMethodListener
 
         $factoryName = $paymentMethod->getGatewayConfig()->getFactoryName();
 
-        $gatewayConfig = $paymentMethod->getGatewayConfig()->getConfig();
-        
-        if ($factoryName === 'sylius.pay_pal' && !isset($gatewayConfig['merchant_id'])) {
-            // redirect to PayPal
-
-            $event->setResponse(new RedirectResponse($this->urlGenerator->generate(
-                'sylius_admin_payment_method_create',
-                [
-                    'factory' => $factoryName,
-                    'merchantId' => 'MERCHANT-ID',
-                    'merchantIdInPayPal' => 'MERCHANT-ID-PAYPAL',
-                ]
-            )));
+        if ($factoryName !== 'sylius.pay_pal') {
+            return;
         }
+
+        $gatewayConfig = $paymentMethod->getGatewayConfig()->getConfig();
+
+        if (isset($gatewayConfig['merchant_id'])) {
+            return;
+        }
+
+        // TODO: POST partner referrals, redirect to PayPal, use the link below as a redirection url
+
+        $event->setResponse(new RedirectResponse($this->urlGenerator->generate(
+            'sylius_admin_payment_method_create',
+            [
+                'factory' => $factoryName,
+                'merchantId' => 'MERCHANT-ID',
+                'merchantIdInPayPal' => 'MERCHANT-ID-PAYPAL',
+            ]
+        )));
     }
 }

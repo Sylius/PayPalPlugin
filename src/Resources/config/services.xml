@@ -18,9 +18,9 @@
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Listener\InitializeCreatePayPalPaymentMethodListener">
+        <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
             <argument type="service" id="router" />
-            <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" />
+            <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
