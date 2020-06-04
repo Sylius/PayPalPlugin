@@ -15,6 +15,7 @@ namespace spec\Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
@@ -40,6 +41,14 @@ final class CaptureActionSpec extends ObjectBehavior
         $payment->setDetails(['status' => 200])->shouldBeCalled();
 
         $this->execute($request);
+    }
+
+    function it_throws_an_exception_if_request_type_is_invalid(GetStatus $request): void
+    {
+        $this
+            ->shouldThrow(RequestNotSupportedException::class)
+            ->during('execute', [$request])
+        ;
     }
 
     function it_supports_capture_request_with_payment_as_first_model(

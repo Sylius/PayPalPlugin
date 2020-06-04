@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -28,6 +29,8 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface
     /** @param Capture $request */
     public function execute($request): void
     {
+        RequestNotSupportedException::assertSupports($this, $request);
+
         /** @var PaymentInterface $payment */
         $payment = $request->getModel();
 

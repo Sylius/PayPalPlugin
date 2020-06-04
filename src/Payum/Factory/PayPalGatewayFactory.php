@@ -28,7 +28,7 @@ final class PayPalGatewayFactory extends GatewayFactory
             'payum.action.status' => new StatusAction(),
         ]);
 
-        $config['payum.api'] = function (ArrayObject $config): PayPalApi {
+        $config['payum.api'] = static function (ArrayObject $config): PayPalApi {
             /** @var string $apiKey */
             $apiKey = $config['api_key'];
 

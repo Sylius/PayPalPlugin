@@ -7,15 +7,15 @@
             class="Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder"
         >
             <argument>Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory</argument>
-            <tag name="payum.gateway_factory_builder" factory="sylius_pay_pal" />
+            <tag name="payum.gateway_factory_builder" factory="sylius.pay_pal" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
-            <tag name="sylius.gateway_configuration_type" type="sylius_pay_pal" label="sylius.pay_pal.label" />
+            <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
-            <tag name="payum.action" factory="sylius_pay_pal" alias="payum.action.capture" />
+            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
     </services>
 </container>

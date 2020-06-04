@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace spec\Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
+use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
@@ -26,11 +27,20 @@ final class StatusActionSpec extends ObjectBehavior
         $this->shouldImplement(ActionInterface::class);
     }
 
-    function it_always_marks_request_as_captured(GetStatus $request): void
+    function it_always_marks_request_as_captured(GetStatus $request, PaymentInterface $payment): void
     {
         $request->markCaptured()->shouldBeCalled();
+        $request->getFirstModel()->willReturn($payment);
 
         $this->execute($request);
+    }
+
+    function it_throws_an_exception_if(Capture $request): void
+    {
+        $this
+            ->shouldThrow(RequestNotSupportedException::class)
+            ->during('execute', [$request])
+        ;
     }
 
     function it_supports_get_status_request_with_payment_as_first_model(
