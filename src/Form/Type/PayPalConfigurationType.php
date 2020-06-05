@@ -13,8 +13,8 @@ final class PayPalConfigurationType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('client_id', TextType::class, ['label' => 'sylius.pay_pal.client_id'])
-            ->add('client_secret', TextType::class, ['label' => 'sylius.pay_pal.client_secret'])
+            ->add('client_id', TextType::class, ['label' => 'sylius.pay_pal.client_id', 'disabled' => 'disabled'])
+            ->add('client_secret', TextType::class, ['label' => 'sylius.pay_pal.client_secret', 'disabled' => 'disabled'])
         ;
     }
 }
