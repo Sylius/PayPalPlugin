@@ -8,7 +8,7 @@ use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\OnboardingInitiatorInterface;
+use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 final class PayPalPaymentMethodListenerSpec extends ObjectBehavior

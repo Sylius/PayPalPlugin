@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin;
+namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Webmozart\Assert\Assert;
 
-final class BasicOnbordingProcessor implements OnboardingProcessorInterface
+final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
     public function process(PaymentMethodInterface $paymentMethod, Request $request): PaymentMethodInterface
     {

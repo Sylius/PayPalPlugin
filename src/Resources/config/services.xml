@@ -18,7 +18,10 @@
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
 
-        <service class="Sylius\PayPalPlugin\SandboxOnboardingInitiator" id="Sylius\PayPalPlugin\OnboardingInitatorInterface">
+        <service
+            id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface"
+            class="Sylius\PayPalPlugin\Onboarding\Initiator\SandboxOnboardingInitiator"
+        >
             <argument type="service" id="router" />
             <argument type="service" id="http_client" />
             <argument type="service" id="monolog.logger" />
@@ -32,11 +35,14 @@
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
 
-        <service class="Sylius\PayPalPlugin\BasicOnbordingProcessor" id="Sylius\PayPalPlugin\OnboardingProcessorInterface" />
+        <service
+            id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
+            class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
+        />
 
         <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
             <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
-            <argument type="service" id="Sylius\PayPalPlugin\OnboardingProcessorInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
         </service>
     </services>
 </container>

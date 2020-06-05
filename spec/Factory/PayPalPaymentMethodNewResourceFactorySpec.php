@@ -10,7 +10,7 @@ use Sylius\Bundle\ResourceBundle\Controller\RequestConfiguration;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\Component\Resource\Model\ResourceInterface;
-use Sylius\PayPalPlugin\OnboardingProcessorInterface;
+use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior

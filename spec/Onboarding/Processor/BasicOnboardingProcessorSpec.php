@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace spec\Sylius\PayPalPlugin;
+namespace spec\Sylius\PayPalPlugin\Onboarding\Processor;
 
 use Payum\Core\Model\GatewayConfig;
 use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\PaymentMethod;
-use Sylius\PayPalPlugin\OnboardingProcessorInterface;
+use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
 use Symfony\Component\HttpFoundation\Request;
 
-final class BasicOnbordingProcessorSpec extends ObjectBehavior
+final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
     function it_is_an_onboarding_processor(): void
     {

@@ -6,7 +6,7 @@ namespace Sylius\PayPalPlugin\Listener;
 
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\OnboardingInitiatorInterface;
+use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Webmozart\Assert\Assert;
 
