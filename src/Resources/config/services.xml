@@ -37,7 +37,7 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
-            <argument type="service" id="Sylius\PayPalPlugin\OnboardingInitatorInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" />
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
 

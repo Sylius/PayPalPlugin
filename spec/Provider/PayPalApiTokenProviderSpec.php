@@ -43,7 +43,7 @@ final class PayPalApiTokenProviderSpec extends ObjectBehavior
         $response->getStatusCode()->willReturn(200);
         $response->toArray()->willReturn([
             'token_type' => 'Bearer',
-            'access_token' => '123123IAMTOKEN!@#!@#'
+            'access_token' => '123123IAMTOKEN!@#!@#',
         ]);
 
         $this->getToken()->shouldReturn('123123IAMTOKEN!@#!@#');

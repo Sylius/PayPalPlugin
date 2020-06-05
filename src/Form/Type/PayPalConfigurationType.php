@@ -15,14 +15,14 @@ final class PayPalConfigurationType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('api_key', TextType::class)
-            ->add('merchant_id_in_paypal', TextType::class)
-            ->add('permissions_granted', CheckboxType::class)
-            ->add('account_status', TextType::class)
-            ->add('consent_status', CheckboxType::class)
-            ->add('product_intent_id', TextType::class)
-            ->add('email_confirmed', CheckboxType::class)
-            ->add('return_message', TextareaType::class)
+            ->add('account_status', TextType::class, ['label' => 'sylius.pay_pal.account_status'])
+            ->add('api_key', TextType::class, ['label' => 'sylius.pay_pal.api_key'])
+            ->add('consent_status', CheckboxType::class, ['label' => 'sylius.pay_pal.consent_status'])
+            ->add('email_confirmed', CheckboxType::class, ['label' => 'sylius.pay_pal.email_confirmed'])
+            ->add('merchant_id_in_paypal', TextType::class, ['label' => 'sylius.pay_pal.merchant_id_in_paypal'])
+            ->add('permissions_granted', CheckboxType::class, ['label' => 'sylius.pay_pal.permissions_granted'])
+            ->add('product_intent_id', TextType::class, ['label' => 'sylius.pay_pal.product_intent_id'])
+            ->add('return_message', TextareaType::class, ['label' => 'sylius.pay_pal.return_message'])
         ;
     }
 }

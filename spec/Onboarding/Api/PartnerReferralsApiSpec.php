@@ -52,7 +52,7 @@ final class PartnerReferralsApiSpec extends ObjectBehavior
                     ['operation' => 'API_INTEGRATION'],
                 ],
                 'products' => ['PPCP'],
-            ]
+            ],
         ])->willReturn($response);
 
         $response->getContent(false)->willReturn('{"links": [{"rel": "action_url", "href": "http://sylius.paypal/redirect-url"}]}');
@@ -92,7 +92,7 @@ final class PartnerReferralsApiSpec extends ObjectBehavior
                     ['operation' => 'API_INTEGRATION'],
                 ],
                 'products' => ['PPCP'],
-            ]
+            ],
         ])->willReturn($response);
 
         $response->getContent(false)->willReturn('{"links": [{"rel": "some_other_url", "href": "http://sylius.paypal/redirect-url"}]}');
