@@ -5,23 +5,16 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Onboarding\Initiator;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Onboarding\Api\PartnerReferralsApiInterface;
-use Sylius\PayPalPlugin\Provider\ApiTokenProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-final class SandboxOnboardingInitiator implements OnboardingInitiatorInterface
+final class DummyOnboardingInitiator implements OnboardingInitiatorInterface
 {
-    /** @var ApiTokenProviderInterface */
-    private $payPayApiTokenProvider;
+    /** @var UrlGeneratorInterface */
+    private $urlGenerator;
 
-    /** @var PartnerReferralsApiInterface */
-    private $partnerReferralsApi;
-
-    public function __construct(
-        ApiTokenProviderInterface $payPayApiTokenProvider,
-        PartnerReferralsApiInterface $partnerReferralsApi
-    ) {
-        $this->payPayApiTokenProvider = $payPayApiTokenProvider;
-        $this->partnerReferralsApi = $partnerReferralsApi;
+    public function __construct(UrlGeneratorInterface $urlGenerator)
+    {
+        $this->urlGenerator = $urlGenerator;
     }
 
     public function initiate(PaymentMethodInterface $paymentMethod): string
@@ -30,9 +23,15 @@ final class SandboxOnboardingInitiator implements OnboardingInitiatorInterface
             throw new \DomainException('not supported'); // TODO: Lol, improve this message
         }
 
-        $accessToken = $this->payPayApiTokenProvider->getToken();
-
-        return $this->partnerReferralsApi->create($accessToken);
+        return $this->urlGenerator->generate(
+            'sylius_admin_payment_method_create',
+            [
+                'factory' => 'sylius.pay_pal',
+                'clientId' => 'CLIENT-ID',
+                'clientSecret' => 'CLIENT-SECRET',
+            ],
+            UrlGeneratorInterface::ABSOLUTE_URL
+        );
     }
 
     public function supports(PaymentMethodInterface $paymentMethod): bool // TODO: Design smell - it looks like this function will be the same no matter the implementation
@@ -47,7 +46,7 @@ final class SandboxOnboardingInitiator implements OnboardingInitiatorInterface
             return false;
         }
 
-        if (isset($gatewayConfig->getConfig()['merchant_id'])) {
+        if (isset($gatewayConfig->getConfig()['client_id'])) {
             return false;
         }
 

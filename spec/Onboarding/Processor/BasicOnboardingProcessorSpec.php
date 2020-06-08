@@ -26,10 +26,12 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $request = new Request();
-        $request->query->set('merchantId', 'MERCHANT-ID');
-        $request->query->set('merchantIdInPayPal', 'MERCHANT-ID-PAYPAL');
+        $request->query->set('clientId', 'CLIENT-ID');
+        $request->query->set('clientSecret', 'CLIENT-SECRET');
 
-        $this->process($paymentMethod, $request)->getGatewayConfig()->getConfig()->shouldHaveKeyWithValue('merchant_id', 'MERCHANT-ID');
+        $config = $this->process($paymentMethod, $request)->getGatewayConfig()->getConfig();
+        $config->shouldHaveKeyWithValue('client_id', 'CLIENT-ID');
+        $config->shouldHaveKeyWithValue('client_secret', 'CLIENT-SECRET');
     }
 
     function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(): void
@@ -37,7 +39,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $this->shouldThrow(\DomainException::class)->during('process', [new PaymentMethod(), new Request()]);
     }
 
-    function it_supports_paypal_payment_method_with_request_containing_merchant_id(): void
+    function it_supports_paypal_payment_method_with_request_containing_client_id_and_secret(): void
     {
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setFactoryName('sylius.pay_pal');
@@ -46,7 +48,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $request = new Request();
-        $request->query->set('merchantId', 'MERCHANT-ID');
+        $request->query->set('clientId', 'CLIENT-ID');
+        $request->query->set('clientSecret', 'CLIENT-SECRET');
 
         $this->supports($paymentMethod, $request)->shouldReturn(true);
     }
@@ -67,7 +70,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $this->supports($paymentMethod, new Request())->shouldReturn(false);
     }
 
-    function it_does_not_support_payment_method_that_has_merchant_id_is_not_set_on_request(): void
+    function it_does_not_support_payment_method_that_has_client_id_is_not_set_on_request(): void
     {
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setFactoryName('sylius.pay_pal');
