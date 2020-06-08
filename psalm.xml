@@ -14,11 +14,12 @@
     </projectFiles>
 
     <issueHandlers>
-        <MissingConstructor>
+        <DeprecatedMethod>
             <errorLevel type="info">
-                <file name="src/Payum/Action/CaptureAction.php" />
+                <referencedMethod name="Payum\Core\Model\GatewayConfigInterface::getFactoryName" />
             </errorLevel>
-        </MissingConstructor>
+        </DeprecatedMethod>
+
         <MoreSpecificImplementedParamType>
             <errorLevel type="info">
                 <directory name="src/Payum/Action/"/>

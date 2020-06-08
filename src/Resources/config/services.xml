@@ -17,5 +17,47 @@
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Onboarding\Api\PartnerReferralsApiInterface"
+            class="Sylius\PayPalPlugin\Onboarding\Api\PartnerReferralsApi"
+        >
+            <argument type="service" id="http_client" />
+            <argument type="service" id="router" />
+            <argument type="service" id="monolog.logger" />
+            <argument>%env(PAYPAL_TRACKING_ID)%</argument> <!-- TODO: Extract this env to a parameter -->
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface"
+            class="Sylius\PayPalPlugin\Onboarding\Initiator\SandboxOnboardingInitiator"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\ApiTokenProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Api\PartnerReferralsApiInterface" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
+            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" />
+            <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
+            class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
+        />
+
+        <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
+            <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
+            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\ApiTokenProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\PayPalApiTokenProvider"
+        >
+            <argument type="service" id="http_client" />
+            <argument>%env(resolve:PAYPAL_CLIENT_ID)%</argument> <!-- TODO: Extract this env to a parameter -->
+            <argument>%env(resolve:PAYPAL_SECRET)%</argument> <!-- TODO: Extract this env to a parameter -->
+        </service>
     </services>
 </container>

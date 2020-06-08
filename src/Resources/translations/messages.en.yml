@@ -1,3 +1,11 @@
 sylius:
     pay_pal:
+        account_status: 'Account status'
+        api_key: 'API key'
+        consent_status: 'Consent status'
+        email_confirmed: 'Email confirmed'
         label: 'PayPal'
+        merchant_id_in_paypal: 'Merchant ID in PayPal'
+        permissions_granted: 'Permissions granted'
+        product_intent_id: 'Product intent ID'
+        return_message: 'Return message'
