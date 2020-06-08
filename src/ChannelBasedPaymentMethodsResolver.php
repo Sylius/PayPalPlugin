@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin;
 
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
@@ -37,8 +39,15 @@ final class ChannelBasedPaymentMethodsResolver implements PaymentMethodsResolver
         /** @var PaymentInterface $payment */
         Assert::isInstanceOf($payment, PaymentInterface::class);
         Assert::true($this->supports($payment), 'This payment method is not support by resolver');
+
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
+        /** @var ChannelInterface $channel */
+        $channel = $order->getChannel();
+
         return $this->sortPayments(
-            $this->paymentMethodRepository->findEnabledForChannel($payment->getOrder()->getChannel()),
+            $this->paymentMethodRepository->findEnabledForChannel($channel),
             'sylius.pay_pal'
         );
     }
@@ -56,14 +65,17 @@ final class ChannelBasedPaymentMethodsResolver implements PaymentMethodsResolver
 
     private function sortPayments(array $payments, string $first_payment): array
     {
+        /** @var array $sorted_payments */
         $sorted_payments = [];
 
-        foreach($payments as $payment){
-            if($payment->getGatewayConfig()->getFactoryName() === $first_payment)
+        foreach ($payments as $payment) {
+            if ($payment->getGatewayConfig()->getFactoryName() === $first_payment) {
                 array_unshift($sorted_payments, $payment);
-            else
+            } else {
                 $sorted_payments[] = $payment;
+            }
         }
+
         return $sorted_payments;
     }
 }
