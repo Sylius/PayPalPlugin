@@ -3,6 +3,19 @@
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <defaults public="true" />
-        <!-- Put your Behat services here -->
+        <service id="sylius.behat.context.setup.payment_pay_pal" class="Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext">
+            <argument type="service" id="sylius.behat.shared_storage" />
+            <argument type="service" id="sylius.repository.payment_method" />
+            <argument type="service" id="sylius.fixture.example_factory.payment_method" />
+            <argument type="service" id="sylius.factory.payment_method_translation" />
+            <argument type="service" id="sylius.manager.payment_method" />
+            <argument type="collection">
+                <argument key="offline">Offline</argument>
+                <argument key="paypal_express_checkout">Paypal Express Checkout</argument>
+                <argument key="stripe_checkout">Stripe Checkout</argument>
+                <argument key="sylius.pay_pal">Sylius PayPal</argument>
+            </argument>
+        </service>
+
     </services>
 </container>
