@@ -57,23 +57,13 @@ final class PaymentPayPalContext implements Context
         $this->gatewayFactories = $gatewayFactories;
     }
 
-    /**
-     * @param string $name
-     * @param string $code
-     * @param string $gatewayFactory
-     * @param string $description
-     * @param bool $addForCurrentChannel
-     * @param int|null $position
-     *
-     * @return PaymentMethodInterface
-     */
     private function createPaymentMethod(
-        $name,
-        $code,
-        $gatewayFactory = 'Offline',
-        $description = '',
-        $addForCurrentChannel = true,
-        $position = null
+        string $name,
+        string $code,
+        string $gatewayFactory = 'Offline',
+        string $description = '',
+        bool $addForCurrentChannel = true,
+        ?int $position = null
     ) {
         $gatewayFactory = array_search($gatewayFactory, $this->gatewayFactories);
 
@@ -101,7 +91,7 @@ final class PaymentPayPalContext implements Context
     /**
      * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/
      */
-    public function theStoreAllowsPayingWithWithFactoryNameAtPosition($paymentMethodName, $gatewayFactory = null, $position = null)
+    public function theStoreAllowsPayingWithWithFactoryNameAtPosition($paymentMethodName, $gatewayFactory, int $position)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', true, $position);
     }

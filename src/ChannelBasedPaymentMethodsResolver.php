@@ -63,19 +63,19 @@ final class ChannelBasedPaymentMethodsResolver implements PaymentMethodsResolver
             ;
     }
 
-    private function sortPayments(array $payments, string $first_payment): array
+    private function sortPayments(array $payments, string $firstPaymentFactoryName): array
     {
-        /** @var array $sorted_payments */
-        $sorted_payments = [];
+        /** @var PaymentInterface[] $sortedPayments */
+        $sortedPayments = [];
 
         foreach ($payments as $payment) {
-            if ($payment->getGatewayConfig()->getFactoryName() === $first_payment) {
-                array_unshift($sorted_payments, $payment);
+            if ($payment->getGatewayConfig()->getFactoryName() === $firstPaymentFactoryName) {
+                array_unshift($sortedPayments, $payment);
             } else {
-                $sorted_payments[] = $payment;
+                $sortedPayments[] = $payment;
             }
         }
 
-        return $sorted_payments;
+        return $sortedPayments;
     }
 }
