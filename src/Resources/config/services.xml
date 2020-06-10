@@ -14,9 +14,8 @@
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
 
-        <service id="sylius.payment_methods_resolver.channel_based" class="Sylius\PayPalPlugin\ChannelBasedPaymentMethodsResolver">
-            <argument type="service" id="sylius.repository.payment_method" />
-            <tag name="sylius.payment_method_resolver" type="channel_based" label="sylius.payment_methods_resolver.channel_based" priority="1" />
+        <service id="Sylius\PayPalPlugin\PayPalPrioritisingPaymentMethodsResolver" decorates="sylius.payment_methods_resolver">
+            <argument type="service" id="Sylius\PayPalPlugin\PayPalPrioritisingPaymentMethodsResolver.inner" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">

@@ -44,7 +44,7 @@ default:
                 - sylius.behat.context.setup.taxation
                 - sylius.behat.context.setup.user
                 - sylius.behat.context.setup.zone
-                - sylius.behat.context.setup.payment_pay_pal
+                - Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext
 
                 - sylius.behat.context.ui.admin.managing_orders
                 - sylius.behat.context.ui.channel

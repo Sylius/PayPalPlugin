@@ -20,6 +20,7 @@ use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PaymentPayPalContext implements Context
 {
@@ -41,13 +42,17 @@ final class PaymentPayPalContext implements Context
     /** @var array */
     private $gatewayFactories;
 
+    /** @var TranslatorInterface */
+    private $translator;
+
     public function __construct(
         SharedStorageInterface $sharedStorage,
         PaymentMethodRepositoryInterface $paymentMethodRepository,
         ExampleFactoryInterface $paymentMethodExampleFactory,
         FactoryInterface $paymentMethodTranslationFactory,
         ObjectManager $paymentMethodManager,
-        array $gatewayFactories
+        array $gatewayFactories,
+        TranslatorInterface $translator
     ) {
         $this->sharedStorage = $sharedStorage;
         $this->paymentMethodRepository = $paymentMethodRepository;
@@ -55,17 +60,25 @@ final class PaymentPayPalContext implements Context
         $this->paymentMethodTranslationFactory = $paymentMethodTranslationFactory;
         $this->paymentMethodManager = $paymentMethodManager;
         $this->gatewayFactories = $gatewayFactories;
+        $this->translator = $translator;
+    }
+
+    /**
+     * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/
+     */
+    public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, int $position)
+    {
+        $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
     }
 
     private function createPaymentMethod(
         string $name,
         string $code,
-        string $gatewayFactory = 'Offline',
-        string $description = '',
-        bool $addForCurrentChannel = true,
-        ?int $position = null
-    ) {
-        $gatewayFactory = array_search($gatewayFactory, $this->gatewayFactories);
+        string $gatewayFactory,
+        string $description,
+        int $position
+    ): void {
+        $gatewayFactory = $this->findGatewayNameByTranslation($gatewayFactory, $this->gatewayFactories);
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $this->paymentMethodExampleFactory->create([
@@ -75,24 +88,23 @@ final class PaymentPayPalContext implements Context
             'gatewayName' => $gatewayFactory,
             'gatewayFactory' => $gatewayFactory,
             'enabled' => true,
-            'channels' => ($addForCurrentChannel && $this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
+            'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
 
-        if (null !== $position) {
-            $paymentMethod->setPosition((int) $position);
-        }
+        $paymentMethod->setPosition((int) $position);
 
         $this->sharedStorage->set('payment_method', $paymentMethod);
         $this->paymentMethodRepository->add($paymentMethod);
-
-        return $paymentMethod;
     }
 
-    /**
-     * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/
-     */
-    public function theStoreAllowsPayingWithWithFactoryNameAtPosition($paymentMethodName, $gatewayFactory, int $position)
+    private function findGatewayNameByTranslation($translation, $gateways): ?string
     {
-        $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', true, $position);
+        foreach ($gateways as $key => $value) {
+            if ($this->translator->trans($value) === $translation) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 }
