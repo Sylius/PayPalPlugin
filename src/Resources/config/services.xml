@@ -14,6 +14,10 @@
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\PayPalPrioritisingPaymentMethodsResolver" decorates="sylius.payment_methods_resolver">
+            <argument type="service" id="Sylius\PayPalPlugin\PayPalPrioritisingPaymentMethodsResolver.inner" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
