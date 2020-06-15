@@ -4,17 +4,27 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Initiator;
 
+use Sylius\Component\Core\Model\AdminUser;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Security;
 
-final class DummyOnboardingInitiator implements OnboardingInitiatorInterface
+final class OnboardingInitiator implements OnboardingInitiatorInterface
 {
     /** @var UrlGeneratorInterface */
     private $urlGenerator;
 
-    public function __construct(UrlGeneratorInterface $urlGenerator)
+    /** @var string */
+    private $facilitatorUrl;
+
+    /** @var Security */
+    private $security;
+
+    public function __construct(UrlGeneratorInterface $urlGenerator, Security $security, string $facilitatorUrl)
     {
         $this->urlGenerator = $urlGenerator;
+        $this->security = $security;
+        $this->facilitatorUrl = $facilitatorUrl;
     }
 
     public function initiate(PaymentMethodInterface $paymentMethod): string
@@ -23,14 +33,18 @@ final class DummyOnboardingInitiator implements OnboardingInitiatorInterface
             throw new \DomainException('not supported'); // TODO: Lol, improve this message
         }
 
-        return $this->urlGenerator->generate(
-            'sylius_admin_payment_method_create',
-            [
-                'factory' => 'sylius.pay_pal',
-                'clientId' => 'CLIENT-ID',
-                'clientSecret' => 'CLIENT-SECRET',
-            ],
-            UrlGeneratorInterface::ABSOLUTE_URL
+        /** @var AdminUser $user */
+        $user = $this->security->getUser();
+
+        return append_query_string(
+            $this->facilitatorUrl,
+            http_build_query([
+                'email' => $user->getEmail(),
+                'return_url' => $this->urlGenerator->generate('sylius_admin_payment_method_create', [
+                    'factory' => 'sylius.pay_pal',
+                ]),
+            ]),
+            APPEND_QUERY_STRING_REPLACE_DUPLICATE
         );
     }
 

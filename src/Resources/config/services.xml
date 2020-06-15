@@ -24,9 +24,11 @@
 
         <service
             id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface"
-            class="Sylius\PayPalPlugin\Onboarding\Initiator\DummyOnboardingInitiator"
+            class="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiator"
         >
             <argument type="service" id="router" />
+            <argument type="service" id="security.helper" />
+            <argument type="string" id="facilitator_url">%env(PAYPAL_FACILITATOR)%</argument>
         </service>
 
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">

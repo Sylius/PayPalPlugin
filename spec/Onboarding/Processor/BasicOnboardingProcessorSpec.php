@@ -26,8 +26,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $request = new Request();
-        $request->query->set('clientId', 'CLIENT-ID');
-        $request->query->set('clientSecret', 'CLIENT-SECRET');
+        $request->query->set('client_id', 'CLIENT-ID');
+        $request->query->set('client_secret', 'CLIENT-SECRET');
 
         $config = $this->process($paymentMethod, $request)->getGatewayConfig()->getConfig();
         $config->shouldHaveKeyWithValue('client_id', 'CLIENT-ID');
@@ -48,8 +48,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $request = new Request();
-        $request->query->set('clientId', 'CLIENT-ID');
-        $request->query->set('clientSecret', 'CLIENT-SECRET');
+        $request->query->set('client_id', 'CLIENT-ID');
+        $request->query->set('client_secret', 'CLIENT-SECRET');
 
         $this->supports($paymentMethod, $request)->shouldReturn(true);
     }
