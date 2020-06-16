@@ -1,0 +1,11 @@
+---------------------------------------------------------------------------
+
+by pamil at 2020-06-10T12:36:39Z
+
+I'm wondering whether we should merge it now though - we still have a naive implementation for the onboarding process and need to paste client id and client secret in order to start accepting payments.
+
+---------------------------------------------------------------------------
+
+by pamil at 2020-06-16T09:10:50Z
+
+Thanks, @SirDomin! :tada:
