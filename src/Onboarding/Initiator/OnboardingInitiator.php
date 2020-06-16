@@ -42,7 +42,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
                 'email' => $user->getEmail(),
                 'return_url' => $this->urlGenerator->generate('sylius_admin_payment_method_create', [
                     'factory' => 'sylius.pay_pal',
-                ]),
+                ], UrlGeneratorInterface::ABSOLUTE_URL),
             ]),
             APPEND_QUERY_STRING_REPLACE_DUPLICATE
         );
