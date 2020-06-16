@@ -91,7 +91,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
         $adminUser->getEmail()->willReturn('sylius@sylius.com');
 
         $urlGenerator
-            ->generate('sylius_admin_payment_method_create', ['factory' => 'sylius.pay_pal'])
+            ->generate('sylius_admin_payment_method_create', ['factory' => 'sylius.pay_pal'], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('/admin/payment-methods/new/sylius.pay_pal')
         ;
 
