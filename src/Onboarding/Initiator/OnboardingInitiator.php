@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Initiator;
 
-use Sylius\Component\Core\Model\AdminUser;
+use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Security;
@@ -33,7 +33,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
             throw new \DomainException('not supported'); // TODO: Lol, improve this message
         }
 
-        /** @var AdminUser $user */
+        /** @var AdminUserInterface $user */
         $user = $this->security->getUser();
 
         return append_query_string(

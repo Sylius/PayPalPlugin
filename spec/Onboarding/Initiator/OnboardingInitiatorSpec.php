@@ -6,7 +6,7 @@ namespace spec\Sylius\PayPalPlugin\Onboarding\Initiator;
 
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
-use Sylius\Component\Core\Model\AdminUser;
+use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -16,7 +16,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
 {
     function let(UrlGeneratorInterface $urlGenerator, Security $security): void
     {
-        $this->beConstructedWith($urlGenerator, $security, 'https://paypal.sylius.com/partner-referrals/create');
+        $this->beConstructedWith($urlGenerator, $security, 'https://paypal-url/partner-referrals-create');
     }
 
     function it_implements_onboarding_initiator_interface(): void
@@ -79,22 +79,24 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         Security $security,
-        AdminUser $adminUser,
+        AdminUserInterface $adminUser,
         UrlGeneratorInterface $urlGenerator
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
-        $gatewayConfig->getConfig()->willReturn(['some_parameter' => 'test']);
+        $gatewayConfig->getConfig()->willReturn([]);
 
         $security->getUser()->willReturn($adminUser);
         $adminUser->getEmail()->willReturn('sylius@sylius.com');
 
-        $urlGenerator->generate('sylius_admin_payment_method_create', ['factory' => 'sylius.pay_pal'])
-            ->willReturn('/admin/payment-methods/new/sylius.pay_pal');
+        $urlGenerator
+            ->generate('sylius_admin_payment_method_create', ['factory' => 'sylius.pay_pal'])
+            ->willReturn('/admin/payment-methods/new/sylius.pay_pal')
+        ;
 
         $this->initiate($paymentMethod)->shouldReturn(
-            'https://paypal.sylius.com/partner-referrals/create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal'
+            'https://paypal-url/partner-referrals-create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal'
         );
     }
 }
