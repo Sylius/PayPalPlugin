@@ -23,8 +23,8 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         Assert::notNull($gatewayConfig);
 
         $gatewayConfig->setConfig([
-            'client_id' => $request->query->get('clientId'),
-            'client_secret' => $request->query->get('clientSecret'),
+            'client_id' => $request->query->get('client_id'),
+            'client_secret' => $request->query->get('client_secret'),
         ]);
 
         return $paymentMethod;
@@ -42,6 +42,6 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             return false;
         }
 
-        return $request->query->has('clientId') && $request->query->has('clientSecret');
+        return $request->query->has('client_id') && $request->query->has('client_secret');
     }
 }

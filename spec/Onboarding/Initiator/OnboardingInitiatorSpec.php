@@ -6,15 +6,17 @@ namespace spec\Sylius\PayPalPlugin\Onboarding\Initiator;
 
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
+use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Security;
 
-final class DummyOnboardingInitiatorSpec extends ObjectBehavior
+final class OnboardingInitiatorSpec extends ObjectBehavior
 {
-    function let(UrlGeneratorInterface $urlGenerator): void
+    function let(UrlGeneratorInterface $urlGenerator, Security $security): void
     {
-        $this->beConstructedWith($urlGenerator);
+        $this->beConstructedWith($urlGenerator, $security, 'https://paypal-url/partner-referrals-create');
     }
 
     function it_implements_onboarding_initiator_interface(): void
@@ -71,5 +73,30 @@ final class DummyOnboardingInitiatorSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn(null);
 
         $this->supports($paymentMethod)->shouldReturn(false);
+    }
+
+    function it_returns_url_when_payment_is_valid(
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        Security $security,
+        AdminUserInterface $adminUser,
+        UrlGeneratorInterface $urlGenerator
+    ): void {
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn([]);
+
+        $security->getUser()->willReturn($adminUser);
+        $adminUser->getEmail()->willReturn('sylius@sylius.com');
+
+        $urlGenerator
+            ->generate('sylius_admin_payment_method_create', ['factory' => 'sylius.pay_pal'])
+            ->willReturn('/admin/payment-methods/new/sylius.pay_pal')
+        ;
+
+        $this->initiate($paymentMethod)->shouldReturn(
+            'https://paypal-url/partner-referrals-create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal'
+        );
     }
 }
