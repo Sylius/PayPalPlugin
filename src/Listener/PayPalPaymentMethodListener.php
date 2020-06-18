@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Listener;
 
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
@@ -28,6 +29,15 @@ final class PayPalPaymentMethodListener
         Assert::isInstanceOf($paymentMethod, PaymentMethodInterface::class);
 
         if (!$this->onboardingInitiator->supports($paymentMethod)) {
+            return;
+        }
+
+        /** @var GatewayConfig $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        if (isset($gatewayConfig->getConfig()['request_method']) &&
+            $gatewayConfig->getConfig()['request_method'] === 'POST' &&
+            $event->getErrorCode() != '200') {
             return;
         }
 

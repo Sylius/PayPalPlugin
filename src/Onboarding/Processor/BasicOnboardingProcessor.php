@@ -25,7 +25,10 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         $gatewayConfig->setConfig([
             'client_id' => $request->query->get('client_id'),
             'client_secret' => $request->query->get('client_secret'),
+            'request_method' => $request->getMethod(),
         ]);
+
+        $paymentMethod->setGatewayConfig($gatewayConfig);
 
         return $paymentMethod;
     }
