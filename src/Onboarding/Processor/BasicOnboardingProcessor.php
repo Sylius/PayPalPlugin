@@ -28,8 +28,6 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             'request_method' => $request->getMethod(),
         ]);
 
-        $paymentMethod->setGatewayConfig($gatewayConfig);
-
         return $paymentMethod;
     }
 

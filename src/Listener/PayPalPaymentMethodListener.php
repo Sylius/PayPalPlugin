@@ -9,6 +9,7 @@ use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Webmozart\Assert\Assert;
 
 final class PayPalPaymentMethodListener
@@ -35,9 +36,11 @@ final class PayPalPaymentMethodListener
         /** @var GatewayConfig $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        if (isset($gatewayConfig->getConfig()['request_method']) &&
+        if (
+            isset($gatewayConfig->getConfig()['request_method']) &&
             $gatewayConfig->getConfig()['request_method'] === 'POST' &&
-            $event->getErrorCode() != '200') {
+            $event->getErrorCode() !== Response::HTTP_OK
+        ) {
             return;
         }
 
