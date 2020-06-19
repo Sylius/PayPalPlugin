@@ -15,12 +15,15 @@ namespace Tests\Sylius\PayPalPlugin\Behat\Context\Setup;
 
 use Behat\Behat\Context\Context;
 use Doctrine\Common\Persistence\ObjectManager;
+use Sylius\Behat\Page\Shop\Checkout\CompletePageInterface;
+use Sylius\Behat\Page\Shop\Checkout\SelectPaymentPageInterface;
 use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Webmozart\Assert\Assert;
 
 final class PaymentPayPalContext implements Context
 {
@@ -69,6 +72,20 @@ final class PaymentPayPalContext implements Context
     public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, int $position)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
+    }
+
+    /**
+     * @Given /^I should have "([^"]*)" payment method selected$/
+     */
+    public function iShouldHavePaymentMethodSelected($paymentMethodName)
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $this->sharedStorage->get('payment_method');
+
+        /** @var string $selectedPaymentMethod */
+        $selectedPaymentMethod = $paymentMethod->getName();
+
+        Assert::same($selectedPaymentMethod, $paymentMethodName);
     }
 
     private function createPaymentMethod(
