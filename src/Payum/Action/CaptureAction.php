@@ -24,7 +24,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-final class CaptureAction implements ActionInterface, ApiAwareInterface
+final class CaptureAction implements ActionInterface
 {
     /** @var PayPalApi|null */
     private $api;
@@ -73,14 +73,5 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface
             $request instanceof Capture &&
             $request->getModel() instanceof PaymentInterface
         ;
-    }
-
-    public function setApi($api): void
-    {
-        if (!$api instanceof PayPalApi) {
-            throw new UnsupportedApiException('Not supported');
-        }
-
-        $this->api = $api;
     }
 }
