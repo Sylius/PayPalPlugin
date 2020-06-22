@@ -13,18 +13,29 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Payum\Action;
 
+use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
+use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
+    function let(ClientInterface $httpClient): void
+    {
+        $this->beConstructedWith($httpClient);
+    }
+
     function it_implements_action_interface(): void
     {
         $this->shouldImplement(ActionInterface::class);
@@ -35,10 +46,49 @@ final class CaptureActionSpec extends ObjectBehavior
         $this->shouldImplement(ApiAwareInterface::class);
     }
 
-    function it_set_payment_details_during_request_execution(Capture $request, PaymentInterface $payment): void
-    {
+    function it_sends_create_order_request_and_sets_order_response_data_on_payment(
+        ClientInterface $httpClient,
+        Capture $request,
+        PaymentInterface $payment,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        OrderInterface $order,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
         $request->getModel()->willReturn($payment);
-        $payment->setDetails(['status' => 200])->shouldBeCalled();
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+        $gatewayConfig->getConfig()->willReturn([
+            'client_id' => 'CLIENT_ID',
+            'client_secret' => 'SEC$ET',
+        ]);
+
+        $payment->getOrder()->willReturn($order);
+        $order->getCurrencyCode()->willReturn('GBP');
+        $payment->getAmount()->willReturn(1000);
+
+        $httpClient->request(
+            'POST',
+            'https://sylius.local:8001/create-order',
+            [
+                'verify' => false,
+                'json' => [
+                    'clientId' => 'CLIENT_ID',
+                    'clientSecret' => 'SEC$ET',
+                    'currencyCode' => 'GBP',
+                    'amount' => '10.00',
+                ]
+            ]
+        )->willReturn($response);
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"status": "CREATED", "id": "123123"}');
+
+        $payment
+            ->setDetails(['status' => 'CREATED', 'order_id' => '123123'])
+            ->shouldBeCalled()
+        ;
 
         $this->execute($request);
     }

@@ -13,18 +13,29 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Payum\Action;
 
+use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class CaptureAction implements ActionInterface, ApiAwareInterface
 {
     /** @var PayPalApi|null */
     private $api;
+
+    /** @var ClientInterface */
+    private $httpClient;
+
+    public function __construct(ClientInterface $httpClient)
+    {
+        $this->httpClient = $httpClient;
+    }
 
     /** @param Capture $request */
     public function execute($request): void
@@ -33,8 +44,27 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface
 
         /** @var PaymentInterface $payment */
         $payment = $request->getModel();
+        /** @var PaymentMethodInterface $method */
+        $method = $payment->getMethod();
+        $gatewayConfig = $method->getGatewayConfig();
+        $config = $gatewayConfig->getConfig();
 
-        $payment->setDetails(['status' => 200]);
+        $response = $this->httpClient->request(
+            'POST',
+            'https://sylius.local:8001/create-order',
+            [
+                'verify' => false,
+                'json' => [
+                    'clientId' => $config['client_id'],
+                    'clientSecret' => $config['client_secret'],
+                    'currencyCode' => $payment->getOrder()->getCurrencyCode(),
+                    'amount' => (string) ($payment->getAmount()/100),
+                ]
+            ]
+        );
+
+        $content = json_decode($response->getBody()->getContents(), true);
+        $payment->setDetails(['status' => $content['status'], 'order_id' => $content['id']]);
     }
 
     public function supports($request): bool
