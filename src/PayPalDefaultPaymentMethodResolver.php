@@ -13,9 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin;
 
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface as CorePaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Exception\UnresolvedDefaultPaymentMethodException;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
@@ -23,10 +25,10 @@ use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Resolver\DefaultPaymentMethodResolverInterface;
 use Webmozart\Assert\Assert;
 
-class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodResolverInterface
+final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodResolverInterface
 {
     /** @var PaymentMethodRepositoryInterface */
-    protected $paymentMethodRepository;
+    private $paymentMethodRepository;
 
     /** @var DefaultPaymentMethodResolverInterface */
     private $decoratedDefaultPaymentMethodResolver;
@@ -39,12 +41,7 @@ class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodResolver
         $this->paymentMethodRepository = $paymentMethodRepository;
     }
 
-    /**
-     * {@inheritdoc}
-     *
-     * @throws UnresolvedDefaultPaymentMethodException
-     */
-    public function getDefaultPaymentMethod(BasePaymentInterface $subject): PaymentMethodInterface
+    public function getDefaultPaymentMethod(BasePaymentInterface $subject, string $prioritisedPayment = 'sylius.pay_pal'): PaymentMethodInterface
     {
         /** @var PaymentInterface $subject */
         Assert::isInstanceOf($subject, PaymentInterface::class);
@@ -55,21 +52,24 @@ class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodResolver
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        return $this->getFirstPrioritisedPaymentForChannel($channel, 'PayPal');
+        return $this->getFirstPrioritisedPaymentForChannel($channel, $prioritisedPayment);
     }
 
     private function getFirstPrioritisedPaymentForChannel(ChannelInterface $channel, string $prioritisedPayment): PaymentMethodInterface
     {
-        /** @var array<PaymentMethodInterface> $paymentMethods */
+        /** @var array<CorePaymentMethodInterface> $paymentMethods */
         $paymentMethods = $this->paymentMethodRepository->findEnabledForChannel($channel);
 
         if (empty($paymentMethods)) {
             throw new UnresolvedDefaultPaymentMethodException();
         }
 
-        foreach ($paymentMethods as $payment) {
-            if ($payment->getName() === $prioritisedPayment) {
-                return $payment;
+        foreach ($paymentMethods as $paymentMethod) {
+            /** @var GatewayConfig $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+            if ($gatewayConfig->getFactoryName() === $prioritisedPayment) {
+                return $paymentMethod;
             }
         }
 

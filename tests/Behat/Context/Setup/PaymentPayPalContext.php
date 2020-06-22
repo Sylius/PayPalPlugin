@@ -77,7 +77,7 @@ final class PaymentPayPalContext implements Context
     /**
      * @Given /^I should have "([^"]*)" payment method selected$/
      */
-    public function iShouldHavePaymentMethodSelected($paymentMethodName)
+    public function iShouldHavePaymentMethodSelected(string $paymentMethodName): void
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $this->sharedStorage->get('payment_method');
