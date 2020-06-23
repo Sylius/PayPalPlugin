@@ -23,3 +23,4 @@ Feature: Prioritising PayPal payment method during checkout
         And I select "Aardvark Stagecoach" shipping method
         And I complete the shipping step
         Then I should have "PayPal" payment method available as the first choice
+        And I should have "PayPal" payment method selected

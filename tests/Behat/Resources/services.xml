@@ -7,10 +7,10 @@
             <argument type="service" id="sylius.behat.shared_storage" />
             <argument type="service" id="sylius.repository.payment_method" />
             <argument type="service" id="sylius.fixture.example_factory.payment_method" />
-            <argument type="service" id="sylius.factory.payment_method_translation" />
-            <argument type="service" id="sylius.manager.payment_method" />
             <argument>%sylius.gateway_factories%</argument>
             <argument type="service" id="translator"/>
+            <argument type="service" id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage"/>
         </service>
+        <service id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage" parent="sylius.behat.page.shop.checkout.select_payment" public="false"/>
     </services>
 </container>

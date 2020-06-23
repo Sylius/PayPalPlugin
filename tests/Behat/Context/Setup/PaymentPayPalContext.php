@@ -14,13 +14,13 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Setup;
 
 use Behat\Behat\Context\Context;
-use Doctrine\Common\Persistence\ObjectManager;
 use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
-use Sylius\Component\Resource\Factory\FactoryInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPageInterface;
+use Webmozart\Assert\Assert;
 
 final class PaymentPayPalContext implements Context
 {
@@ -33,34 +33,29 @@ final class PaymentPayPalContext implements Context
     /** @var ExampleFactoryInterface */
     private $paymentMethodExampleFactory;
 
-    /** @var FactoryInterface */
-    private $paymentMethodTranslationFactory;
-
-    /** @var ObjectManager */
-    private $paymentMethodManager;
-
     /** @var array */
     private $gatewayFactories;
 
     /** @var TranslatorInterface */
     private $translator;
 
+    /** @var PayPalSelectPaymentPageInterface */
+    private $paymentPage;
+
     public function __construct(
         SharedStorageInterface $sharedStorage,
         PaymentMethodRepositoryInterface $paymentMethodRepository,
         ExampleFactoryInterface $paymentMethodExampleFactory,
-        FactoryInterface $paymentMethodTranslationFactory,
-        ObjectManager $paymentMethodManager,
         array $gatewayFactories,
-        TranslatorInterface $translator
+        TranslatorInterface $translator,
+        PayPalSelectPaymentPageInterface $paymentPage
     ) {
         $this->sharedStorage = $sharedStorage;
         $this->paymentMethodRepository = $paymentMethodRepository;
         $this->paymentMethodExampleFactory = $paymentMethodExampleFactory;
-        $this->paymentMethodTranslationFactory = $paymentMethodTranslationFactory;
-        $this->paymentMethodManager = $paymentMethodManager;
         $this->gatewayFactories = $gatewayFactories;
         $this->translator = $translator;
+        $this->paymentPage = $paymentPage;
     }
 
     /**
@@ -69,6 +64,14 @@ final class PaymentPayPalContext implements Context
     public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, int $position)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
+    }
+
+    /**
+     * @Given /^I should have "([^"]*)" payment method selected$/
+     */
+    public function iShouldHavePaymentMethodSelected(string $paymentMethodName): void
+    {
+        Assert::true($this->paymentPage->hasPaymentMethodSelected($paymentMethodName));
     }
 
     private function createPaymentMethod(
