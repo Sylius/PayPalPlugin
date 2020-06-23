@@ -11,6 +11,7 @@
             <argument type="service" id="translator"/>
             <argument type="service" id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage"/>
         </service>
+
         <service id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage" parent="sylius.behat.page.shop.checkout.select_payment" public="false"/>
     </services>
 </container>

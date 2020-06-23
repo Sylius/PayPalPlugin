@@ -11,6 +11,7 @@ class PayPalSelectPaymentPage extends SelectPaymentPage implements PayPalSelectP
     public function hasPaymentMethodSelected(string $paymentMethodName): bool
     {
         $paymentMethodOptionElement = $this->getElement('payment_method_option', ['%payment_method%' => $paymentMethodName]);
+
         return $paymentMethodOptionElement->getAttribute('checked') === 'checked';
     }
 }

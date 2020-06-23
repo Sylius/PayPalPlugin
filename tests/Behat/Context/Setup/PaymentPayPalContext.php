@@ -40,7 +40,7 @@ final class PaymentPayPalContext implements Context
     private $translator;
 
     /** @var PayPalSelectPaymentPageInterface */
-    private $paymentPage;
+    private $selectPaymentPage;
 
     public function __construct(
         SharedStorageInterface $sharedStorage,
@@ -48,14 +48,14 @@ final class PaymentPayPalContext implements Context
         ExampleFactoryInterface $paymentMethodExampleFactory,
         array $gatewayFactories,
         TranslatorInterface $translator,
-        PayPalSelectPaymentPageInterface $paymentPage
+        PayPalSelectPaymentPageInterface $selectPaymentPage
     ) {
         $this->sharedStorage = $sharedStorage;
         $this->paymentMethodRepository = $paymentMethodRepository;
         $this->paymentMethodExampleFactory = $paymentMethodExampleFactory;
         $this->gatewayFactories = $gatewayFactories;
         $this->translator = $translator;
-        $this->paymentPage = $paymentPage;
+        $this->selectPaymentPage = $selectPaymentPage;
     }
 
     /**
@@ -71,7 +71,7 @@ final class PaymentPayPalContext implements Context
      */
     public function iShouldHavePaymentMethodSelected(string $paymentMethodName): void
     {
-        Assert::true($this->paymentPage->hasPaymentMethodSelected($paymentMethodName));
+        Assert::true($this->selectPaymentPage->hasPaymentMethodSelected($paymentMethodName));
     }
 
     private function createPaymentMethod(
