@@ -22,7 +22,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Exception\UnresolvedDefaultPaymentMethodException;
 use Sylius\Component\Payment\Resolver\DefaultPaymentMethodResolverInterface;
-use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 
 final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
 {
