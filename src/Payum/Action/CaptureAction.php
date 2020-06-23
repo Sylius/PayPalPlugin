@@ -15,26 +15,23 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 
 use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
-use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class CaptureAction implements ActionInterface
 {
-    /** @var PayPalApi|null */
-    private $api;
-
     /** @var ClientInterface */
     private $httpClient;
 
-    public function __construct(ClientInterface $httpClient)
+    /** @var string */
+    private $facilitatorUrl;
+
+    public function __construct(ClientInterface $httpClient, string $facilitatorUrl)
     {
         $this->httpClient = $httpClient;
+        $this->facilitatorUrl = $facilitatorUrl;
     }
 
     /** @param Capture $request */
@@ -51,7 +48,7 @@ final class CaptureAction implements ActionInterface
 
         $response = $this->httpClient->request(
             'POST',
-            'https://sylius.local:8001/create-order',
+            $this->facilitatorUrl.'/create-order',
             [
                 'verify' => false,
                 'json' => [

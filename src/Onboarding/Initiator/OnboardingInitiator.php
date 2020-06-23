@@ -37,7 +37,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
         $user = $this->security->getUser();
 
         return append_query_string(
-            $this->facilitatorUrl,
+            $this->facilitatorUrl.'/partner-referrals/create',
             http_build_query([
                 'email' => $user->getEmail(),
                 'return_url' => $this->urlGenerator->generate('sylius_admin_payment_method_create', [

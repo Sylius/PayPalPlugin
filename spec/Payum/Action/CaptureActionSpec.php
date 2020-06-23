@@ -25,13 +25,12 @@ use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
     function let(ClientInterface $httpClient): void
     {
-        $this->beConstructedWith($httpClient);
+        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com/');
     }
 
     function it_implements_action_interface(): void
@@ -63,7 +62,7 @@ final class CaptureActionSpec extends ObjectBehavior
 
         $httpClient->request(
             'POST',
-            'https://sylius.local:8001/create-order',
+            'https://paypal.facilitator.com/create-order',
             [
                 'verify' => false,
                 'json' => [
