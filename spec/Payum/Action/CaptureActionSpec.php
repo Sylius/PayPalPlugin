@@ -30,7 +30,7 @@ final class CaptureActionSpec extends ObjectBehavior
 {
     function let(ClientInterface $httpClient): void
     {
-        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com/');
+        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com');
     }
 
     function it_implements_action_interface(): void

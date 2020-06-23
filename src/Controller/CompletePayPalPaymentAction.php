@@ -14,6 +14,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
+use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,11 +32,8 @@ final class CompletePayPalPaymentAction
     /** @var ResolveNextRouteFactoryInterface */
     private $resolveNextRouteRequestFactory;
 
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
-
-    /** @var ObjectManager */
-    private $paymentManager;
+    /** @var PaymentStateManagerInterface */
+    private $paymentStateManager;
 
     /** @var UrlGeneratorInterface */
     private $router;
@@ -44,15 +42,13 @@ final class CompletePayPalPaymentAction
         Payum $payum,
         PaymentRepositoryInterface $paymentRepository,
         ResolveNextRouteFactoryInterface $resolveNextRouteRequestFactory,
-        FactoryInterface $stateMachineFactory,
-        ObjectManager $paymentManager,
+        PaymentStateManagerInterface $paymentStateManager,
         UrlGeneratorInterface $router
     ) {
         $this->payum = $payum;
         $this->paymentRepository = $paymentRepository;
         $this->resolveNextRouteRequestFactory = $resolveNextRouteRequestFactory;
-        $this->stateMachineFactory = $stateMachineFactory;
-        $this->paymentManager = $paymentManager;
+        $this->paymentStateManager = $paymentStateManager;
         $this->router = $router;
     }
 
@@ -64,15 +60,7 @@ final class CompletePayPalPaymentAction
         $paymentMethod = $payment->getMethod();
 
         $status = $request->query->get('status');
-
-        /** @var StateMachineInterface $stateMachine */
-        $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        $transition = $stateMachine->getTransitionToState(strtolower($status));
-
-        if ($transition !== null) {
-            $stateMachine->apply($transition);
-            $this->paymentManager->flush();
-        }
+        $this->paymentStateManager->changeState($payment, $status);
 
         $resolveNextRoute = $this->resolveNextRouteRequestFactory->createNewWithModel($payment);
         $this->payum->getGateway($paymentMethod->getGatewayConfig()->getGatewayName())->execute($resolveNextRoute);

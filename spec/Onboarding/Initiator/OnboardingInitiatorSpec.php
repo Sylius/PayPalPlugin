@@ -16,7 +16,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
 {
     function let(UrlGeneratorInterface $urlGenerator, Security $security): void
     {
-        $this->beConstructedWith($urlGenerator, $security, 'https://paypal-url/partner-referrals-create');
+        $this->beConstructedWith($urlGenerator, $security, 'https://paypal-url');
     }
 
     function it_implements_onboarding_initiator_interface(): void
@@ -96,7 +96,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
         ;
 
         $this->initiate($paymentMethod)->shouldReturn(
-            'https://paypal-url/partner-referrals-create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal'
+            'https://paypal-url/partner-referrals/create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal'
         );
     }
 }
