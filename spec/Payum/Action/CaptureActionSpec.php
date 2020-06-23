@@ -75,7 +75,7 @@ final class CaptureActionSpec extends ObjectBehavior
         )->willReturn($response);
 
         $response->getBody()->willReturn($body);
-        $body->getContents()->willReturn('{"status": "CREATED", "id": "123123"}');
+        $body->getContents()->willReturn('{"status": "CREATED", "order_id": "123123"}');
 
         $payment
             ->setDetails(['status' => 'CREATED', 'order_id' => '123123'])

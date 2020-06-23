@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <title>Pay with PayPal</title>
+    </head>
+    <body>
+        <div id="paypal-button-container"></div>
+    </body>
+    <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}"></script>
+    <script>
+        var amount = "{{ amount }}";
+        var completeUrl = "{{ complete_url }}";
+        var currencyCode = "{{ currency_code }}";
+
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: amount,
+                            currency_code: currencyCode
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                // Capture the funds from the transaction
+                return actions.order.capture().then(function(details) {
+                    window.location.href = completeUrl+'?status='+details.status;
+                });
+            }
+        }).render('#paypal-button-container');
+    </script>
+</html>

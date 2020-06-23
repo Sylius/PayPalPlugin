@@ -61,7 +61,7 @@ final class CaptureAction implements ActionInterface
         );
 
         $content = json_decode($response->getBody()->getContents(), true);
-        $payment->setDetails(['status' => $content['status'], 'order_id' => $content['id']]);
+        $payment->setDetails(['status' => $content['status'], 'order_id' => $content['order_id']]);
     }
 
     public function supports($request): bool
