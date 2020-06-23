@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -65,7 +65,7 @@ final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodRe
         }
 
         foreach ($paymentMethods as $paymentMethod) {
-            /** @var GatewayConfig $gatewayConfig */
+            /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $paymentMethod->getGatewayConfig();
 
             if ($gatewayConfig->getFactoryName() === $prioritisedPayment) {
