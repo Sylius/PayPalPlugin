@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
@@ -39,15 +41,26 @@ final class PayWithPayPalFormAction
         $payment = $this->paymentRepository->find($request->attributes->get('id'));
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $clientId = $paymentMethod->getGatewayConfig()->getConfig()['client_id'];
+
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        /** @var string $clientId */
+        $clientId = $gatewayConfig->getConfig()['client_id'];
+
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        /** @var int $amount */
+        $amount = $payment->getAmount();
+        /** @var string $currencyCode */
+        $currencyCode = $order->getCurrencyCode();
 
         return new Response($this->twig->render('@SyliusPayPalPlugin/payWithPaypal.html.twig', [
-            'amount' => $payment->getAmount()/100,
-            'currency_code' => $payment->getOrder()->getCurrencyCode(),
+            'amount' => $amount / 100,
+            'currency_code' => $currencyCode,
             'client_id' => $clientId,
             'complete_url' => $this->router->generate(
-                'sylius_paypal_plugin_complete_pay_pal_payment', ['id' => $payment->getId()]
-            )
+                'sylius_paypal_plugin_complete_paypal_payment', ['id' => $payment->getId()]
+            ),
         ]));
     }
 }

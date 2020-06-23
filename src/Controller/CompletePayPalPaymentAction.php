@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
-use Doctrine\Persistence\ObjectManager;
-use FOS\RestBundle\View\View;
 use Payum\Core\Payum;
-use SM\Factory\FactoryInterface;
 use Sylius\Bundle\PayumBundle\Factory\ResolveNextRouteFactoryInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\Component\Resource\StateMachine\StateMachineInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,22 +52,30 @@ final class CompletePayPalPaymentAction
     {
         /** @var PaymentInterface $payment */
         $payment = $this->paymentRepository->find($request->attributes->get('id'));
+
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
+        /** @var string $status */
         $status = $request->query->get('status');
         $this->paymentStateManager->changeState($payment, $status);
 
         $resolveNextRoute = $this->resolveNextRouteRequestFactory->createNewWithModel($payment);
-        $this->payum->getGateway($paymentMethod->getGatewayConfig()->getGatewayName())->execute($resolveNextRoute);
+
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $this->payum->getGateway($gatewayConfig->getGatewayName())->execute($resolveNextRoute);
 
         /** @var FlashBagInterface $flashBag */
         $flashBag = $request->getSession()->getBag('flashes');
         $flashBag->clear();
         $flashBag->add('success', 'sylius.payment.completed');
 
+        /** @var string $routeName */
+        $routeName = $resolveNextRoute->getRouteName();
+
         return new RedirectResponse(
-            $this->router->generate($resolveNextRoute->getRouteName(), $resolveNextRoute->getRouteParameters())
+            $this->router->generate($routeName, $resolveNextRoute->getRouteParameters())
         );
     }
 }

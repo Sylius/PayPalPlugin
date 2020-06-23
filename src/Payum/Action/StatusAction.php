@@ -24,14 +24,16 @@ final class StatusAction implements ActionInterface
     public function execute($request): void
     {
         RequestNotSupportedException::assertSupports($this, $request);
+        /** @var array $model */
+        $model = $request->getModel();
 
-        if ($request->getModel()['status'] === 'CREATED') {
+        if ($model['status'] === 'CREATED') {
             $request->markPending();
 
             return;
         }
 
-        if ($request->getModel()['status'] === 'COMPLETED') {
+        if ($model['status'] === 'COMPLETED') {
             $request->markCaptured();
 
             return;

@@ -70,7 +70,7 @@ final class CaptureActionSpec extends ObjectBehavior
                     'clientSecret' => 'SEC$ET',
                     'currencyCode' => 'GBP',
                     'amount' => '10.00',
-                ]
+                ],
             ]
         )->willReturn($response);
 

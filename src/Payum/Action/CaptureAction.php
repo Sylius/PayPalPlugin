@@ -17,6 +17,8 @@ use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 
@@ -43,23 +45,31 @@ final class CaptureAction implements ActionInterface
         $payment = $request->getModel();
         /** @var PaymentMethodInterface $method */
         $method = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $method->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        /** @var string $currencyCode */
+        $currencyCode = $order->getCurrencyCode();
+        /** @var int $amount */
+        $amount = $payment->getAmount();
 
         $response = $this->httpClient->request(
             'POST',
-            $this->facilitatorUrl.'/create-order',
+            $this->facilitatorUrl . '/create-order',
             [
                 'verify' => false,
                 'json' => [
                     'clientId' => $config['client_id'],
                     'clientSecret' => $config['client_secret'],
-                    'currencyCode' => $payment->getOrder()->getCurrencyCode(),
-                    'amount' => (string) ($payment->getAmount()/100),
-                ]
+                    'currencyCode' => $order->getCurrencyCode(),
+                    'amount' => (string) ($amount / 100),
+                ],
             ]
         );
 
+        /** @var array $content */
         $content = json_decode($response->getBody()->getContents(), true);
         $payment->setDetails(['status' => $content['status'], 'order_id' => $content['order_id']]);
     }

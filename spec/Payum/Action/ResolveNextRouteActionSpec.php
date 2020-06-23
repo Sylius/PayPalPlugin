@@ -49,6 +49,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
 
         $payment->getState()->willReturn(PaymentInterface::STATE_FAILED);
         $payment->getOrder()->willReturn($order);
+
         $order->getTokenValue()->willReturn('TOKEN_VALUE');
 
         $request->setRouteName('sylius_shop_order_show')->shouldBeCalled();

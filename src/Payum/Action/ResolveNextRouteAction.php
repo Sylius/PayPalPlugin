@@ -6,12 +6,13 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Sylius\Bundle\PayumBundle\Request\ResolveNextRoute;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 
 final class ResolveNextRouteAction implements ActionInterface
 {
-    /** @param ResolveNextRoute $request*/
-    public function execute($request)
+    /** @param ResolveNextRoute $request */
+    public function execute($request): void
     {
         /** @var PaymentInterface $payment */
         $payment = $request->getFirstModel();
@@ -29,8 +30,11 @@ final class ResolveNextRouteAction implements ActionInterface
             return;
         }
 
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
         $request->setRouteName('sylius_shop_order_show');
-        $request->setRouteParameters(['tokenValue' => $payment->getOrder()->getTokenValue()]);
+        $request->setRouteParameters(['tokenValue' => $order->getTokenValue()]);
     }
 
     public function supports($request)

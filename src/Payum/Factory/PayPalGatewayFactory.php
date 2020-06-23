@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Payum\Factory;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
-use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class PayPalGatewayFactory extends GatewayFactory
 {
