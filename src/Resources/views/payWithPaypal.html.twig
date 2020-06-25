@@ -12,6 +12,7 @@
         var currencyCode = "{{ currency_code }}";
 
         paypal.Buttons({
+            partnerAttributionID: "sylius-ppcp4p-bn-code",
             createOrder: function(data, actions) {
                 return actions.order.create({
                     purchase_units: [{
