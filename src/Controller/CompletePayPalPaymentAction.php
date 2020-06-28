@@ -55,10 +55,7 @@ final class CompletePayPalPaymentAction
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-
-        /** @var string $status */
-        $status = $request->query->get('status');
-        $this->paymentStateManager->changeState($payment, $status);
+        $this->paymentStateManager->complete($payment);
 
         $resolveNextRoute = $this->resolveNextRouteRequestFactory->createNewWithModel($payment);
 

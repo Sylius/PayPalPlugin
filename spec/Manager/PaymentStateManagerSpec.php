@@ -24,32 +24,16 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         $this->shouldImplement(PaymentStateManagerInterface::class);
     }
 
-    function it_changes_state_of_payment(
+    function it_completes_payment(
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
         PaymentInterface $payment,
         StateMachineInterface $stateMachine
     ): void {
         $stateMachineFactory->get($payment, PaymentTransitions::GRAPH)->willReturn($stateMachine);
-        $stateMachine->getTransitionToState('completed')->willReturn('complete');
-
-        $stateMachine->apply('complete')->shouldBeCalled();
+        $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE)->shouldBeCalled();
         $paymentManager->flush()->shouldBeCalled();
 
-        $this->changeState($payment, 'COMPLETED');
-    }
-
-    function it_throws_an_exception_if_transition_is_not_possible(
-        FactoryInterface $stateMachineFactory,
-        PaymentInterface $payment,
-        StateMachineInterface $stateMachine
-    ): void {
-        $stateMachineFactory->get($payment, PaymentTransitions::GRAPH)->willReturn($stateMachine);
-        $stateMachine->getTransitionToState('invalid')->willReturn(null);
-
-        $this
-            ->shouldThrow(\InvalidArgumentException::class)
-            ->during('changeState', [$payment, 'invalid'])
-        ;
+        $this->complete($payment);
     }
 }

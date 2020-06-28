@@ -9,7 +9,6 @@ use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
-use Webmozart\Assert\Assert;
 
 final class PaymentStateManager implements PaymentStateManagerInterface
 {
@@ -25,15 +24,12 @@ final class PaymentStateManager implements PaymentStateManagerInterface
         $this->paymentManager = $paymentManager;
     }
 
-    public function changeState(PaymentInterface $payment, string $targetState): void
+    public function complete(PaymentInterface $payment): void
     {
         /** @var StateMachineInterface $stateMachine */
         $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        $transition = $stateMachine->getTransitionToState(strtolower($targetState));
 
-        Assert::notNull($transition);
-
-        $stateMachine->apply($transition);
+        $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE);
         $this->paymentManager->flush();
     }
 }
