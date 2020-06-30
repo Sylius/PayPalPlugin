@@ -10,6 +10,7 @@
         var amount = "{{ amount }}";
         var completeUrl = "{{ complete_url }}";
         var currencyCode = "{{ currency_code }}";
+        var targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
 
         paypal.Buttons({
             createOrder: function(data, actions) {
@@ -25,7 +26,7 @@
             onApprove: function(data, actions) {
                 // Capture the funds from the transaction
                 return actions.order.capture().then(function(details) {
-                    if (details.status == "COMPLETED") {
+                    if (details.status == targetStatus) {
                         window.location.href = completeUrl;
 
                         return;

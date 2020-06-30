@@ -28,7 +28,7 @@ final class CaptureAction implements ActionInterface
         /** @var PaymentInterface $payment */
         $payment = $request->getModel();
 
-        $payment->setDetails(['status' => 'CREATED']);
+        $payment->setDetails(['status' => StatusAction::STATUS_CREATED]);
     }
 
     public function supports($request): bool
