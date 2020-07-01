@@ -20,12 +20,30 @@ use Sylius\Component\Core\Model\PaymentInterface;
 
 final class StatusAction implements ActionInterface
 {
+    public const STATUS_CREATED = 'CREATED';
+
+    public const STATUS_COMPLETED = 'COMPLETED';
+
     /** @param GetStatus $request */
     public function execute($request): void
     {
         RequestNotSupportedException::assertSupports($this, $request);
+        /** @var array $model */
+        $model = $request->getModel();
 
-        $request->markCaptured();
+        if ($model['status'] === self::STATUS_CREATED) {
+            $request->markPending();
+
+            return;
+        }
+
+        if ($model['status'] === self::STATUS_COMPLETED) {
+            $request->markCaptured();
+
+            return;
+        }
+
+        $request->markFailed();
     }
 
     public function supports($request): bool

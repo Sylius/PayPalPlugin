@@ -14,18 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
-use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
-final class CaptureAction implements ActionInterface, ApiAwareInterface
+final class CaptureAction implements ActionInterface
 {
-    /** @var PayPalApi|null */
-    private $api;
-
     /** @param Capture $request */
     public function execute($request): void
     {
@@ -34,7 +28,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface
         /** @var PaymentInterface $payment */
         $payment = $request->getModel();
 
-        $payment->setDetails(['status' => 200]);
+        $payment->setDetails(['status' => StatusAction::STATUS_CREATED]);
     }
 
     public function supports($request): bool
@@ -43,14 +37,5 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface
             $request instanceof Capture &&
             $request->getModel() instanceof PaymentInterface
         ;
-    }
-
-    public function setApi($api): void
-    {
-        if (!$api instanceof PayPalApi) {
-            throw new UnsupportedApiException('Not supported');
-        }
-
-        $this->api = $api;
     }
 }

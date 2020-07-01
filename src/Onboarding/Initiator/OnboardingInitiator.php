@@ -15,7 +15,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
     private $urlGenerator;
 
     /** @var string */
-    private $facilitatorUrl;
+    private $createPartnerReferralsUrl;
 
     /** @var Security */
     private $security;
@@ -24,7 +24,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
     {
         $this->urlGenerator = $urlGenerator;
         $this->security = $security;
-        $this->facilitatorUrl = $facilitatorUrl;
+        $this->createPartnerReferralsUrl = $facilitatorUrl . '/partner-referrals/create';
     }
 
     public function initiate(PaymentMethodInterface $paymentMethod): string
@@ -37,7 +37,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
         $user = $this->security->getUser();
 
         return append_query_string(
-            $this->facilitatorUrl,
+            $this->createPartnerReferralsUrl,
             http_build_query([
                 'email' => $user->getEmail(),
                 'return_url' => $this->urlGenerator->generate('sylius_admin_payment_method_create', [

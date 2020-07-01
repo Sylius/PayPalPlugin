@@ -27,15 +27,27 @@ final class StatusActionSpec extends ObjectBehavior
         $this->shouldImplement(ActionInterface::class);
     }
 
-    function it_always_marks_request_as_captured(GetStatus $request, PaymentInterface $payment): void
+    function it_marks_request_as_pending(GetStatus $request, PaymentInterface $payment): void
     {
-        $request->markCaptured()->shouldBeCalled();
         $request->getFirstModel()->willReturn($payment);
+
+        $request->getModel()->willReturn(['status' => 'CREATED']);
+        $request->markPending()->shouldBeCalled();
 
         $this->execute($request);
     }
 
-    function it_throws_an_exception_if(Capture $request): void
+    function it_marks_request_as_captured(GetStatus $request, PaymentInterface $payment): void
+    {
+        $request->getFirstModel()->willReturn($payment);
+
+        $request->getModel()->willReturn(['status' => 'COMPLETED']);
+        $request->markCaptured()->shouldBeCalled();
+
+        $this->execute($request);
+    }
+
+    function it_throws_an_exception_if_request_is_not_supported(Capture $request): void
     {
         $this
             ->shouldThrow(RequestNotSupportedException::class)

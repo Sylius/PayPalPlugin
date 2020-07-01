@@ -14,14 +14,11 @@ declare(strict_types=1);
 namespace spec\Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
-use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
@@ -30,15 +27,12 @@ final class CaptureActionSpec extends ObjectBehavior
         $this->shouldImplement(ActionInterface::class);
     }
 
-    function it_implements_api_aware_interface(): void
-    {
-        $this->shouldImplement(ApiAwareInterface::class);
-    }
-
-    function it_set_payment_details_during_request_execution(Capture $request, PaymentInterface $payment): void
-    {
+    function it_sends_create_order_request_and_sets_order_response_data_on_payment(
+        Capture $request,
+        PaymentInterface $payment
+    ): void {
         $request->getModel()->willReturn($payment);
-        $payment->setDetails(['status' => 200])->shouldBeCalled();
+        $payment->setDetails(['status' => 'CREATED'])->shouldBeCalled();
 
         $this->execute($request);
     }
@@ -70,21 +64,5 @@ final class CaptureActionSpec extends ObjectBehavior
         $request->getModel()->willReturn('badObject');
 
         $this->supports($request)->shouldReturn(false);
-    }
-
-    function it_does_not_throw_an_exception_if_set_api_is_pay_pal_api(): void
-    {
-        $this
-            ->shouldNotThrow(UnsupportedApiException::class)
-            ->during('setApi', [new PayPalApi('TOKEN')])
-        ;
-    }
-
-    function it_throws_an_exception_if_set_api_is_not_pay_pal_api(): void
-    {
-        $this
-            ->shouldThrow(UnsupportedApiException::class)
-            ->during('setApi', [new \stdClass()])
-        ;
     }
 }

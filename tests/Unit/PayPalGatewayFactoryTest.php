@@ -26,16 +26,10 @@ final class PayPalGatewayFactoryTest extends TestCase
     {
         $factory = new PayPalGatewayFactory();
 
-        $config = $factory->createConfig(['api_key' => 'KEY']);
+        $config = $factory->createConfig();
 
         $this->assertEquals('Pay Pal', $config['payum.factory_title']);
         $this->assertEquals('pay_pal', $config['payum.factory_name']);
         $this->assertEquals(new StatusAction(), $config['payum.action.status']);
-
-        $this->assertTrue($config['payum.api'] instanceof \Closure);
-
-        $api = $config['payum.api'](new ArrayObject($config));
-        $this->assertTrue($api instanceof PayPalApi);
-        $this->assertSame($api->token(), 'KEY');
     }
 }

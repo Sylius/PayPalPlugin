@@ -2,7 +2,7 @@
 
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <parameters>
-        <parameter key="sylius.paypal.facilitator_url" type="string">https://paypal.sylius.com/partner-referrals/create</parameter>
+        <parameter key="sylius.paypal.facilitator_url" type="string">https://paypal.sylius.com</parameter>
     </parameters>
 
     <services>
@@ -28,7 +28,13 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius.paypal.facilitator_url%</argument>
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction" public="true">
+            <tag name="payum.action" all="true" alias="sylius.resolve_next_route" />
         </service>
 
         <service
@@ -53,6 +59,28 @@
         <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
             <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
             <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction" public="true">
+            <argument type="service" id="twig" />
+            <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="router" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Controller\CompletePayPalPaymentAction" public="true">
+            <argument type="service" id="payum" />
+            <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="sylius.factory.payum_resolve_next_route" />
+            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
+            <argument type="service" id="router" />
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface"
+            class="Sylius\PayPalPlugin\Manager\PaymentStateManager"
+        >
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius.manager.payment" />
         </service>
     </services>
 </container>
