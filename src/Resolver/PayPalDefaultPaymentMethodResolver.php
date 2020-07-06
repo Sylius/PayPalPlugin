@@ -33,15 +33,20 @@ final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodRe
     /** @var DefaultPaymentMethodResolverInterface */
     private $decoratedDefaultPaymentMethodResolver;
 
+    /** @var string */
+    private $defaultPaymentFactoryName;
+
     public function __construct(
         DefaultPaymentMethodResolverInterface $decoratedDefaultPaymentMethodResolver,
-        PaymentMethodRepositoryInterface $paymentMethodRepository
+        PaymentMethodRepositoryInterface $paymentMethodRepository,
+        string $defaultPaymentMethodFactoryName
     ) {
         $this->decoratedDefaultPaymentMethodResolver = $decoratedDefaultPaymentMethodResolver;
         $this->paymentMethodRepository = $paymentMethodRepository;
+        $this->defaultPaymentFactoryName = $defaultPaymentMethodFactoryName;
     }
 
-    public function getDefaultPaymentMethod(BasePaymentInterface $subject, string $prioritisedPayment = 'sylius.pay_pal'): PaymentMethodInterface
+    public function getDefaultPaymentMethod(BasePaymentInterface $subject): PaymentMethodInterface
     {
         /** @var PaymentInterface $subject */
         Assert::isInstanceOf($subject, PaymentInterface::class);
@@ -52,7 +57,7 @@ final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodRe
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        return $this->getFirstPrioritisedPaymentForChannel($channel, $prioritisedPayment);
+        return $this->getFirstPrioritisedPaymentForChannel($channel, $this->defaultPaymentFactoryName);
     }
 
     private function getFirstPrioritisedPaymentForChannel(ChannelInterface $channel, string $prioritisedPayment): PaymentMethodInterface

@@ -27,7 +27,7 @@ final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
 {
     function let(DefaultPaymentMethodResolverInterface $decoratedDefaultPaymentMethodResolver, PaymentMethodRepositoryInterface $paymentMethodRepository): void
     {
-        $this->beConstructedWith($decoratedDefaultPaymentMethodResolver, $paymentMethodRepository);
+        $this->beConstructedWith($decoratedDefaultPaymentMethodResolver, $paymentMethodRepository, 'prioritised.payment');
     }
 
     function it_implements_default_payment_method_resolver_interface(): void
@@ -56,7 +56,7 @@ final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
         $subject->getOrder()->willReturn($order);
         $order->getChannel()->willReturn($channel);
 
-        $this->getDefaultPaymentMethod($subject, 'prioritised.payment')->shouldReturn($secondPayment);
+        $this->getDefaultPaymentMethod($subject)->shouldReturn($secondPayment);
     }
 
     function it_returns_first_available_payment_method_if_priotitised_payment_method_is_invalid(
@@ -80,7 +80,7 @@ final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
         $subject->getOrder()->willReturn($order);
         $order->getChannel()->willReturn($channel);
 
-        $this->getDefaultPaymentMethod($subject, 'prioritised')->shouldReturn($firstPayment);
+        $this->getDefaultPaymentMethod($subject)->shouldReturn($firstPayment);
     }
 
     function it_throws_error_if_there_is_no_available_payment(
