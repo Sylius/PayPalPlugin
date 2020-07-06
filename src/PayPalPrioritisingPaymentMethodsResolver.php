@@ -22,16 +22,20 @@ final class PayPalPrioritisingPaymentMethodsResolver implements PaymentMethodsRe
     /** @var PaymentMethodsResolverInterface */
     private $decoratedPaymentMethodsResolver;
 
-    public function __construct(PaymentMethodsResolverInterface $decoratedPaymentMethodsResolver)
+    /** @var string */
+    private $firstPaymentMethodFactoryName;
+
+    public function __construct(PaymentMethodsResolverInterface $decoratedPaymentMethodsResolver, string $firstPaymentMethodFactoryName)
     {
         $this->decoratedPaymentMethodsResolver = $decoratedPaymentMethodsResolver;
+        $this->firstPaymentMethodFactoryName = $firstPaymentMethodFactoryName;
     }
 
     public function getSupportedMethods(BasePaymentInterface $payment): array
     {
         return $this->sortPayments(
             $this->decoratedPaymentMethodsResolver->getSupportedMethods($payment),
-            'sylius.pay_pal'
+            $this->firstPaymentMethodFactoryName
         );
     }
 
