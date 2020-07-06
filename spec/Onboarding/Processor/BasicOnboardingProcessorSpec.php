@@ -7,8 +7,11 @@ namespace spec\Sylius\PayPalPlugin\Onboarding\Processor;
 use Payum\Core\Model\GatewayConfig;
 use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
@@ -17,8 +20,10 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $this->shouldImplement(OnboardingProcessorInterface::class);
     }
 
-    function it_processes_onboarding_for_supported_payment_method_and_request(): void
-    {
+    function it_processes_onboarding_for_supported_payment_method_and_request(
+        HttpClientInterface $httpClient,
+        ResponseInterface $response
+    ): void {
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setFactoryName('sylius.pay_pal');
 
@@ -26,20 +31,28 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $request = new Request();
-        $request->query->set('client_id', 'CLIENT-ID');
-        $request->query->set('client_secret', 'CLIENT-SECRET');
+        $request->query->set('onboarding_id', 'ONBOARDING-ID');
 
-        $config = $this->process($paymentMethod, $request)->getGatewayConfig()->getConfig();
+        $httpClient->request(
+            'GET',
+            sprintf('%s/partner-referrals/check/%s', 'test-url', 'ONBOARDING-ID')
+        )->willReturn($response);
+
+        $response->getContent()->willReturn('{"client_id":"CLIENT-ID","client_secret":"CLIENT-SECRET"}');
+
+        $config = $this->process($paymentMethod, $request, $httpClient, 'test-url')->getGatewayConfig()->getConfig();
         $config->shouldHaveKeyWithValue('client_id', 'CLIENT-ID');
         $config->shouldHaveKeyWithValue('client_secret', 'CLIENT-SECRET');
     }
 
-    function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(): void
-    {
-        $this->shouldThrow(\DomainException::class)->during('process', [new PaymentMethod(), new Request()]);
+    function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(
+        HttpClientInterface $httpClient
+    ): void {
+        $this->shouldThrow(\DomainException::class)
+            ->during('process', [new PaymentMethod(), new Request(), $httpClient, 'test-url']);
     }
 
-    function it_supports_paypal_payment_method_with_request_containing_client_id_and_secret(): void
+    function it_supports_paypal_payment_method_with_request_containing_id(): void
     {
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setFactoryName('sylius.pay_pal');
@@ -48,8 +61,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $request = new Request();
-        $request->query->set('client_id', 'CLIENT-ID');
-        $request->query->set('client_secret', 'CLIENT-SECRET');
+        $request->query->set('onboarding_id', 'FACILITATOR-ID');
 
         $this->supports($paymentMethod, $request)->shouldReturn(true);
     }
@@ -79,5 +91,29 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
         $this->supports($paymentMethod, new Request())->shouldReturn(false);
+    }
+
+    function it_throws_error_if_facilitator_data_is_not_loaded(
+        HttpClientInterface $httpClient,
+        ResponseInterface $response
+    ): void {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setFactoryName('sylius.pay_pal');
+
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        $request = new Request();
+        $request->query->set('onboarding_id', 'ONBOARDING-ID');
+
+        $httpClient->request(
+            'GET',
+            sprintf('%s/partner-referrals/check/%s', 'test-url', 'ONBOARDING-ID')
+        )->willReturn($response);
+
+        $response->getContent()->willReturn('{"client_id":null,"client_secret":null}');
+
+        $this->shouldThrow(PayPalPluginException::class)
+            ->during('process', [$paymentMethod, $request, $httpClient, 'test-url']);
     }
 }
