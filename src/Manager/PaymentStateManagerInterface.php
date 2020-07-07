@@ -8,5 +8,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 
 interface PaymentStateManagerInterface
 {
+    public function process(PaymentInterface $payment): void;
+
     public function complete(PaymentInterface $payment): void;
 }

@@ -29,8 +29,16 @@
 
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
             <argument type="service" id="sylius.http_client" />
-            <argument>%sylius.paypal.facilitator_url%</argument>
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction" public="true">
+            <argument type="service" id="sylius.http_client" />
+            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.complete_order" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\AuthorizeAction" public="true">
+            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.authorize" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction" public="true">
@@ -72,6 +80,21 @@
             <argument type="service" id="sylius.repository.payment" />
             <argument type="service" id="sylius.factory.payum_resolve_next_route" />
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
+            <argument type="service" id="router" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction" public="true">
+            <argument type="service" id="payum" />
+            <argument type="service" id="sylius.repository.order" />
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius.manager.payment" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction" public="true">
+            <argument type="service" id="payum" />
+            <argument type="service" id="sylius.repository.order" />
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius.manager.payment" />
             <argument type="service" id="router" />
         </service>
 
