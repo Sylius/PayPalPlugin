@@ -25,5 +25,17 @@
                 <directory name="src/Payum/Action/"/>
             </errorLevel>
         </MoreSpecificImplementedParamType>
+
+        <PropertyNotSetInConstructor>
+            <errorLevel type="info">
+                <file name="src/Payum/Request/CompleteOrder.php"/>
+            </errorLevel>
+        </PropertyNotSetInConstructor>
+
+        <MissingParamType>
+            <errorLevel type="info">
+                <file name="src/Payum/Request/CompleteOrder.php"/>
+            </errorLevel>
+        </MissingParamType>
     </issueHandlers>
 </psalm>

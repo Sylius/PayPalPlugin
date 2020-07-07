@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
@@ -39,7 +40,9 @@ final class CompleteOrderAction implements ActionInterface
         $payment = $request->getModel();
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $config = $paymentMethod->getGatewayConfig()->getConfig();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = $gatewayConfig->getConfig();
 
         $response = $this->httpClient->request(
             'POST',
@@ -58,7 +61,7 @@ final class CompleteOrderAction implements ActionInterface
             sprintf('https://api.sandbox.paypal.com/v2/checkout/orders/%s/capture', $request->getOrderId()),
             [
                 'headers' => [
-                    'Authorization' => 'Bearer '.$content['access_token'],
+                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
                     'Content-Type' => 'application/json',
                 ],
@@ -74,7 +77,6 @@ final class CompleteOrderAction implements ActionInterface
                 'paypal_order_id' => $content['id'],
             ]);
         }
-
     }
 
     public function supports($request): bool

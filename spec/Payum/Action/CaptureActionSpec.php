@@ -64,7 +64,7 @@ final class CaptureActionSpec extends ObjectBehavior
         $client->request(
             'POST',
             'https://api.sandbox.paypal.com/v1/oauth2/token',
-            Argument::that(function(array $data): bool {
+            Argument::that(function (array $data): bool {
                 return
                     $data['auth'][0] === 'CLIENT_ID' &&
                     $data['auth'][1] === 'CLIENT_SECRET' &&
@@ -79,7 +79,7 @@ final class CaptureActionSpec extends ObjectBehavior
         $client->request(
             'POST',
             'https://api.sandbox.paypal.com/v2/checkout/orders',
-            Argument::that(function(array $data): bool {
+            Argument::that(function (array $data): bool {
                 return
                     $data['headers']['Authorization'] === 'Bearer ACCESS_TOKEN' &&
                     $data['headers']['PayPal-Partner-Attribution-Id'] === 'sylius-ppcp4p-bn-code' &&

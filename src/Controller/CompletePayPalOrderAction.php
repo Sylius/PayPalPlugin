@@ -6,13 +6,12 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Payum;
-use Payum\Core\Request\Capture;
 use SM\Factory\FactoryInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
-use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -58,19 +57,22 @@ final class CompletePayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $orderId = $request->attributes->get('orderId');
+        $orderId = (string) $request->attributes->get('orderId');
+        $token = (string) $request->attributes->get('token');
 
-        /** @var OrderInterface|null $order */
-        $order = $this->orderRepository->findOneByTokenValue($request->attributes->get('token'));
+        /** @var OrderInterface $order */
+        $order = $this->orderRepository->findOneByTokenValue($token);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
 
         $this
             ->payum
-            ->getGateway($paymentMethod->getGatewayConfig()->getGatewayName())
+            ->getGateway($gatewayConfig->getGatewayName())
             ->execute(new CompleteOrder($payment, $orderId))
         ;
 

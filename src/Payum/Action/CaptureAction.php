@@ -17,6 +17,8 @@ use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 
@@ -39,7 +41,9 @@ final class CaptureAction implements ActionInterface
         $payment = $request->getModel();
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $config = $paymentMethod->getGatewayConfig()->getConfig();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = $gatewayConfig->getConfig();
 
         $response = $this->httpClient->request(
             'POST',
@@ -53,13 +57,16 @@ final class CaptureAction implements ActionInterface
         /** @var array $content */
         $content = json_decode($response->getBody()->getContents(), true);
 
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
         $data = [
             'intent' => 'CAPTURE',
             'purchase_units' => [
                 [
                     'amount' => [
-                        'currency_code' => $payment->getOrder()->getCurrencyCode(),
-                        'value' => $payment->getAmount()/100,
+                        'currency_code' => $order->getCurrencyCode(),
+                        'value' => (int) $payment->getAmount() / 100,
                     ],
                     'payee' => [
                         // TODO: change hardcoded seller data
@@ -72,8 +79,8 @@ final class CaptureAction implements ActionInterface
                         'platform_fees' => [
                             [
                                 'amount' => [
-                                    'currency_code' => $payment->getOrder()->getCurrencyCode(),
-                                    'value' => round(($payment->getAmount()/100)*0.02, 2),
+                                    'currency_code' => $order->getCurrencyCode(),
+                                    'value' => round(((int) $payment->getAmount() / 100) * 0.02, 2),
                                 ],
                                 'payee' => [
                                     // TODO: change hardcoded facilitator data - or not (maybe it's not a problem)
@@ -91,12 +98,12 @@ final class CaptureAction implements ActionInterface
             'POST',
             'https://api.sandbox.paypal.com/v2/checkout/orders', [
                 'headers' => [
-                    'Authorization' => 'Bearer '.$content['access_token'],
+                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
                 ],
-                'json' => $data
+                'json' => $data,
             ]
         );
 

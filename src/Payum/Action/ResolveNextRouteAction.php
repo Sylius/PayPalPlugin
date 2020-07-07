@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Bundle\PayumBundle\Request\ResolveNextRoute;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -51,7 +52,9 @@ final class ResolveNextRouteAction implements ActionInterface
         $model = $request->getFirstModel();
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $model->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        return $paymentMethod->getGatewayConfig()->getFactoryName() === 'sylius.pay_pal';
+        return $gatewayConfig->getFactoryName() === 'sylius.pay_pal';
     }
 }

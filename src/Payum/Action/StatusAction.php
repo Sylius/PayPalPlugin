@@ -21,7 +21,9 @@ use Sylius\Component\Core\Model\PaymentInterface;
 final class StatusAction implements ActionInterface
 {
     public const STATUS_CAPTURED = 'CAPTURED';
+
     public const STATUS_CREATED = 'CREATED';
+
     public const STATUS_COMPLETED = 'COMPLETED';
 
     /** @param GetStatus $request */
