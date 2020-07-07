@@ -20,8 +20,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 
 final class StatusAction implements ActionInterface
 {
+    public const STATUS_CAPTURED = 'CAPTURED';
     public const STATUS_CREATED = 'CREATED';
-
     public const STATUS_COMPLETED = 'COMPLETED';
 
     /** @param GetStatus $request */
@@ -32,6 +32,12 @@ final class StatusAction implements ActionInterface
         $model = $request->getModel();
 
         if ($model['status'] === self::STATUS_CREATED) {
+            $request->markNew();
+
+            return;
+        }
+
+        if ($model['status'] === self::STATUS_CAPTURED) {
             $request->markPending();
 
             return;
