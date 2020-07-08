@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace spec\Sylius\PayPalPlugin;
+namespace spec\Sylius\PayPalPlugin\Resolver;
 
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;

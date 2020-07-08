@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin;
+namespace Sylius\PayPalPlugin\Resolver;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;

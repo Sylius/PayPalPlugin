@@ -2,8 +2,8 @@
 
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <parameters>
-        <parameter key="sylius.paypal.facilitator_url" type="string">https://paypal.sylius.com</parameter>
-        <parameter key="sylius.paypal.prioritized_factory_name" type="string">sylius.pay_pal</parameter>
+        <parameter key="sylius.paypal.facilitator_url">https://paypal.sylius.com</parameter>
+        <parameter key="sylius.paypal.prioritized_factory_name">sylius.pay_pal</parameter>
     </parameters>
 
     <services>
@@ -19,13 +19,13 @@
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\PayPalPrioritisingPaymentMethodsResolver" decorates="sylius.payment_methods_resolver">
-            <argument type="service" id="Sylius\PayPalPlugin\PayPalPrioritisingPaymentMethodsResolver.inner" />
-            <argument type="string">%sylius.paypal.prioritized_factory_name%</argument>
+        <service id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver" decorates="sylius.payment_methods_resolver">
+            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver.inner" />
+            <argument>%sylius.paypal.prioritized_factory_name%</argument>
         </service>
 
-        <service id="Sylius\PayPalPlugin\PayPalDefaultPaymentMethodResolver" decorates="sylius.payment_method_resolver.default">
-            <argument type="service" id="Sylius\PayPalPlugin\PayPalDefaultPaymentMethodResolver.inner" />
+        <service id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver" decorates="sylius.payment_method_resolver.default">
+            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver.inner" />
             <argument type="service" id="sylius.repository.payment_method" />
         </service>
 
