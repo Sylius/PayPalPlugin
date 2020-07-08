@@ -12,16 +12,14 @@ use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\Component\Resource\Model\ResourceInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior
 {
     function let(
         NewResourceFactoryInterface $newResourceFactory,
-        OnboardingProcessorInterface $onboardingProcessor,
-        HttpClientInterface $httpClient
+        OnboardingProcessorInterface $onboardingProcessor
     ): void {
-        $this->beConstructedWith($newResourceFactory, $onboardingProcessor, $httpClient, 'test-url');
+        $this->beConstructedWith($newResourceFactory, $onboardingProcessor);
     }
 
     function it_is_a_new_resource_factory(): void
@@ -36,15 +34,14 @@ final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior
         Request $request,
         FactoryInterface $factory,
         PaymentMethodInterface $paymentMethod,
-        PaymentMethodInterface $processedPaymentMethod,
-        HttpClientInterface $httpClient
+        PaymentMethodInterface $processedPaymentMethod
     ): void {
         $newResourceFactory->create($requestConfiguration, $factory)->willReturn($paymentMethod);
 
         $requestConfiguration->getRequest()->willReturn($request);
 
         $onboardingProcessor->supports($paymentMethod, $request)->willReturn(true);
-        $onboardingProcessor->process($paymentMethod, $request, $httpClient, 'test-url')->willReturn($processedPaymentMethod);
+        $onboardingProcessor->process($paymentMethod, $request)->willReturn($processedPaymentMethod);
 
         $this->create($requestConfiguration, $factory)->shouldReturn($processedPaymentMethod);
     }
@@ -55,8 +52,7 @@ final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior
         RequestConfiguration $requestConfiguration,
         Request $request,
         FactoryInterface $factory,
-        PaymentMethodInterface $paymentMethod,
-        HttpClientInterface $httpClient
+        PaymentMethodInterface $paymentMethod
     ): void {
         $newResourceFactory->create($requestConfiguration, $factory)->willReturn($paymentMethod);
 
@@ -66,7 +62,7 @@ final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior
 
         $this->create($requestConfiguration, $factory)->shouldReturn($paymentMethod);
 
-        $onboardingProcessor->process($paymentMethod, $request, $httpClient, 'test-url')->shouldNotHaveBeenCalled();
+        $onboardingProcessor->process($paymentMethod, $request)->shouldNotHaveBeenCalled();
     }
 
     function it_does_nothing_if_created_resource_is_not_a_payment_method(

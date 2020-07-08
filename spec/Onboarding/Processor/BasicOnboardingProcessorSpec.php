@@ -4,17 +4,24 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Onboarding\Processor;
 
-use Payum\Core\Model\GatewayConfig;
+use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
+use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
+    function let(HttpClientInterface $httpClient)
+    {
+        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com');
+    }
+
     function it_is_an_onboarding_processor(): void
     {
         $this->shouldImplement(OnboardingProcessorInterface::class);
@@ -22,98 +29,103 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
     function it_processes_onboarding_for_supported_payment_method_and_request(
         HttpClientInterface $httpClient,
-        ResponseInterface $response
+        ResponseInterface $response,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
     ): void {
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName('sylius.pay_pal');
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT-ID', 'client_secret' => 'CLIENT-SECRET']);
 
-        $paymentMethod = new PaymentMethod();
-        $paymentMethod->setGatewayConfig($gatewayConfig);
+        $gatewayConfig->setConfig(['client_id' => 'CLIENT-ID', 'client_secret' => 'CLIENT-SECRET', 'onboarding_id' => 'ONBOARDING-ID'])->shouldBeCalled();
 
-        $request = new Request();
-        $request->query->set('onboarding_id', 'ONBOARDING-ID');
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
-        $httpClient->request(
-            'GET',
-            sprintf('%s/partner-referrals/check/%s', 'test-url', 'ONBOARDING-ID')
-        )->willReturn($response);
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
+
+        $httpClient
+            ->request('GET', 'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID')
+            ->willReturn($response);
 
         $response->getContent()->willReturn('{"client_id":"CLIENT-ID","client_secret":"CLIENT-SECRET"}');
 
-        $config = $this->process($paymentMethod, $request, $httpClient, 'test-url')->getGatewayConfig()->getConfig();
-        $config->shouldHaveKeyWithValue('client_id', 'CLIENT-ID');
-        $config->shouldHaveKeyWithValue('client_secret', 'CLIENT-SECRET');
+        $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
 
     function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(
-        HttpClientInterface $httpClient
+        PaymentMethodInterface $paymentMethod,
+        Request $request
     ): void {
         $this->shouldThrow(\DomainException::class)
-            ->during('process', [new PaymentMethod(), new Request(), $httpClient, 'test-url']);
+            ->during('process', [$paymentMethod, $request]);
     }
 
-    function it_supports_paypal_payment_method_with_request_containing_id(): void
-    {
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName('sylius.pay_pal');
+    function it_supports_paypal_payment_method_with_request_containing_id(
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethod $paymentMethod,
+        Request $request
+    ): void {
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
 
-        $paymentMethod = new PaymentMethod();
-        $paymentMethod->setGatewayConfig($gatewayConfig);
-
-        $request = new Request();
-        $request->query->set('onboarding_id', 'FACILITATOR-ID');
+        $request->query = new ParameterBag(['onboarding_id' => 'FACILITATOR-ID']);
 
         $this->supports($paymentMethod, $request)->shouldReturn(true);
     }
 
-    function it_does_not_support_payment_method_that_has_no_gateway_config(): void
-    {
-        $this->supports(new PaymentMethod(), new Request())->shouldReturn(false);
+    function it_does_not_support_payment_method_that_has_no_gateway_config(
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $this->supports($paymentMethod, $request)->shouldReturn(false);
     }
 
-    function it_does_not_support_payment_method_that_does_not_have_paypal_as_a_gateway_factory(): void
-    {
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName('random');
+    function it_does_not_support_payment_method_that_does_not_have_paypal_as_a_gateway_factory(
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $gatewayConfig->getFactoryName()->willReturn('random');
 
-        $paymentMethod = new PaymentMethod();
-        $paymentMethod->setGatewayConfig($gatewayConfig);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
-        $this->supports($paymentMethod, new Request())->shouldReturn(false);
+        $this->supports($paymentMethod, $request)->shouldReturn(false);
     }
 
-    function it_does_not_support_payment_method_that_has_client_id_is_not_set_on_request(): void
-    {
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName('sylius.pay_pal');
+    function it_does_not_support_payment_method_that_has_client_id_is_not_set_on_request(
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod
+    ): void {
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
 
-        $paymentMethod = new PaymentMethod();
-        $paymentMethod->setGatewayConfig($gatewayConfig);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $this->supports($paymentMethod, new Request())->shouldReturn(false);
     }
 
     function it_throws_error_if_facilitator_data_is_not_loaded(
         HttpClientInterface $httpClient,
-        ResponseInterface $response
+        ResponseInterface $response,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
     ): void {
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName('sylius.pay_pal');
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
 
-        $paymentMethod = new PaymentMethod();
-        $paymentMethod->setGatewayConfig($gatewayConfig);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
-        $request = new Request();
-        $request->query->set('onboarding_id', 'ONBOARDING-ID');
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
 
-        $httpClient->request(
-            'GET',
-            sprintf('%s/partner-referrals/check/%s', 'test-url', 'ONBOARDING-ID')
-        )->willReturn($response);
+        $httpClient
+            ->request('GET', 'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID')
+            ->willReturn($response)
+        ;
 
         $response->getContent()->willReturn('{"client_id":null,"client_secret":null}');
 
-        $this->shouldThrow(PayPalPluginException::class)
-            ->during('process', [$paymentMethod, $request, $httpClient, 'test-url']);
+        $this
+            ->shouldThrow(PayPalPluginException::class)
+            ->during('process', [$paymentMethod, $request])
+        ;
     }
 }

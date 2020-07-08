@@ -13,11 +13,21 @@ use Webmozart\Assert\Assert;
 
 final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
+    /** @var HttpClientInterface */
+    private $httpClient;
+
+    /** @var string */
+    private $url;
+
+    public function __construct(HttpClientInterface $httpClient, string $url)
+    {
+        $this->httpClient = $httpClient;
+        $this->url = $url;
+    }
+
     public function process(
         PaymentMethodInterface $paymentMethod,
-        Request $request,
-        HttpClientInterface $httpClient,
-        string $url
+        Request $request
     ): PaymentMethodInterface {
         if (!$this->supports($paymentMethod, $request)) {
             throw new \DomainException('not supported');
@@ -28,14 +38,14 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         /** @var GatewayConfig $gatewayConfig */
         Assert::notNull($gatewayConfig);
 
-        $client_data = $httpClient->request('GET',
-            sprintf('%s/partner-referrals/check/%s', $url, (string) $request->query->get('onboarding_id')),
+        $checkPartnerReferralsResponse = $this->httpClient->request('GET',
+            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id')),
         );
 
         /** @var array $response */
-        $response = json_decode($client_data->getContent(), true);
+        $response = json_decode($checkPartnerReferralsResponse->getContent(), true);
 
-        if ($response['client_id'] === null) {
+        if (!isset($response['client_id']) || !isset($response['client_secret'])) {
             throw new PayPalPluginException();
         }
 
