@@ -7,29 +7,21 @@
     </body>
     <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
     <script>
-        var amount = "{{ amount }}";
-        var currencyCode = "{{ currency_code }}";
-        var targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
-        var orderToken = "{{ order_token }}";
+        let amount = "{{ amount }}";
+        let currencyCode = "{{ currency_code }}";
+        let targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
+        let orderToken = "{{ order_token }}";
 
         paypal.Buttons({
             createOrder: function(data, actions) {
-                return fetch('/en_US/create-pay-pal-order/'+orderToken, {
+                return fetch(`/en_US/create-pay-pal-order/${orderToken}`, {
                     method: 'post'
-                }).then(function(res) {
-                    return res.json();
-                }).then(function(data) {
-                    return data.orderID;
-                });
+                }).then(res => res.json()).then(data => data.orderID);
             },
             onApprove: function(data, actions) {
-                return fetch('/en_US/complete-pay-pal-order/'+orderToken+'/'+data.orderID, {
+                return fetch(`/en_US/complete-pay-pal-order/${orderToken}/${data.orderID}`, {
                     method: 'post'
-                }).then(function(res) {
-                    return res.json();
-                }).then(function(details) {
-                    window.location.href = details.return_url;
-                });
+                }).then(res => res.json()).then(details => window.location.href = details.return_url);
             }
         }).render('#paypal-button-container');
     </script>

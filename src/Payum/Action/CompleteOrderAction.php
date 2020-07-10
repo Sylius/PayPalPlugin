@@ -62,6 +62,7 @@ final class CompleteOrderAction implements ActionInterface
             [
                 'headers' => [
                     'Authorization' => 'Bearer ' . (string) $content['access_token'],
+                    'Prefer' => 'return=representation',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
                     'Content-Type' => 'application/json',
                 ],
