@@ -33,3 +33,15 @@ sylius_paypal_plugin_process_paypal_order:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction
+
+sylius_paypal_plugin_create_paypal_order_by_id:
+    path: /create-pay-pal-order-by-id/{id}
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderByIdAction
+
+sylius_paypal_plugin_complete_paypal_order_by_id:
+    path: /complete-pay-pal-order-by-id/{syliusOrderId}/{orderId}
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderByIdAction

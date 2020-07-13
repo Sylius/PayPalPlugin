@@ -94,6 +94,10 @@ final class PaymentPayPalContext implements Context
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
 
+        $paymentMethod->getGatewayConfig()->setConfig(
+            ['client_id' => 'AWKG4oiWX9AOifqtdkbOTgSgi3MqcaiyAt-x9Pa35lDdW94kjrOEqN-n3NQ4hD2TuomgpiDc27snMKd9']
+        );
+
         $paymentMethod->setPosition((int) $position);
 
         $this->sharedStorage->set('payment_method', $paymentMethod);

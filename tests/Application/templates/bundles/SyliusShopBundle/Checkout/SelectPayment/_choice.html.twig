@@ -1,0 +1,43 @@
+<div class="item" {{ sylius_test_html_attribute('payment-item') }}>
+    <div class="field">
+        <div class="ui radio checkbox" {{ sylius_test_html_attribute('payment-method-checkbox') }}>
+            {{ form_widget(form, sylius_test_form_attribute('payment-method-select')) }}
+        </div>
+    </div>
+    <div class="content">
+        <a class="header">{{ form_label(form, null, {'label_attr': {'data-test-payment-method-label': ''}}) }}</a>
+        {% if method.description is not null %}
+            <div class="description">
+                <p>{{ method.description }}</p>
+            </div>
+        {% endif %}
+        {% if method.gatewayConfig.factoryName == 'sylius.pay_pal' %}
+            <div id="paypal-button-container" style="width:250px"></div>
+            <script src="https://www.paypal.com/sdk/js?client-id={{ method.gatewayConfig.config.client_id }}" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+            <script>
+                let amount = "{{ order.getTotal() }}";
+                let currencyCode = "{{ order.getCurrencyCode() }}";
+                let targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
+                let syliusOrderId = "{{ order.getId() }}";
+                paypal.Buttons({
+                    style: {
+                        shape: 'pill',
+                        color: 'gold',
+                        layout: 'horizontal',
+                        label: 'paypal',
+                    },
+                    createOrder: function(data, actions) {
+                        return fetch(`/en_US/create-pay-pal-order-by-id/${syliusOrderId}`, {
+                            method: 'post'
+                        }).then(res => res.json()).then(data => data.orderID);
+                    },
+                    onApprove: function(data, actions) {
+                        return fetch(`/en_US/complete-pay-pal-order-by-id/${syliusOrderId}/${data.orderID}`, {
+                            method: 'post'
+                        }).then(res => res.json()).then(details => window.location.href = details.return_url);
+                    }
+                }).render('#paypal-button-container');
+            </script>
+        {% endif %}
+    </div>
+</div>
