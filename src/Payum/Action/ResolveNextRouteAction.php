@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Bundle\PayumBundle\Request\ResolveNextRoute;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 final class ResolveNextRouteAction implements ActionInterface
 {
@@ -17,7 +19,7 @@ final class ResolveNextRouteAction implements ActionInterface
         /** @var PaymentInterface $payment */
         $payment = $request->getFirstModel();
 
-        if ($payment->getState() === PaymentInterface::STATE_PROCESSING) {
+        if ($payment->getState() === PaymentInterface::STATE_NEW) {
             $request->setRouteName('sylius_paypal_plugin_pay_with_paypal_form');
             $request->setRouteParameters(['id' => $payment->getId()]);
 
@@ -39,9 +41,20 @@ final class ResolveNextRouteAction implements ActionInterface
 
     public function supports($request)
     {
-        return
-            $request instanceof ResolveNextRoute &&
-            $request->getFirstModel() instanceof PaymentInterface
-        ;
+        if (
+            !$request instanceof ResolveNextRoute ||
+            !$request->getFirstModel() instanceof PaymentInterface
+        ) {
+            return false;
+        }
+
+        /** @var PaymentInterface $model */
+        $model = $request->getFirstModel();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $model->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return $gatewayConfig->getFactoryName() === 'sylius.pay_pal';
     }
 }

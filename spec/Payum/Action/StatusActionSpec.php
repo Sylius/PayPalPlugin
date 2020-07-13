@@ -19,6 +19,7 @@ use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final class StatusActionSpec extends ObjectBehavior
 {
@@ -27,11 +28,21 @@ final class StatusActionSpec extends ObjectBehavior
         $this->shouldImplement(ActionInterface::class);
     }
 
+    function it_marks_request_as_new(GetStatus $request, PaymentInterface $payment): void
+    {
+        $request->getFirstModel()->willReturn($payment);
+
+        $request->getModel()->willReturn(['status' => StatusAction::STATUS_CREATED]);
+        $request->markNew()->shouldBeCalled();
+
+        $this->execute($request);
+    }
+
     function it_marks_request_as_pending(GetStatus $request, PaymentInterface $payment): void
     {
         $request->getFirstModel()->willReturn($payment);
 
-        $request->getModel()->willReturn(['status' => 'CREATED']);
+        $request->getModel()->willReturn(['status' => StatusAction::STATUS_CAPTURED]);
         $request->markPending()->shouldBeCalled();
 
         $this->execute($request);

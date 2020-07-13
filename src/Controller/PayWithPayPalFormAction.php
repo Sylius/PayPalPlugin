@@ -58,9 +58,7 @@ final class PayWithPayPalFormAction
             'amount' => $amount / 100,
             'currency_code' => $currencyCode,
             'client_id' => $clientId,
-            'complete_url' => $this->router->generate(
-                'sylius_paypal_plugin_complete_paypal_payment', ['id' => $payment->getId()]
-            ),
+            'order_token' => $order->getTokenValue(),
         ]));
     }
 }

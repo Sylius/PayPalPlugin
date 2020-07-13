@@ -7,33 +7,21 @@
     </body>
     <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
     <script>
-        var amount = "{{ amount }}";
-        var completeUrl = "{{ complete_url }}";
-        var currencyCode = "{{ currency_code }}";
-        var targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
+        let amount = "{{ amount }}";
+        let currencyCode = "{{ currency_code }}";
+        let targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
+        let orderToken = "{{ order_token }}";
 
         paypal.Buttons({
             createOrder: function(data, actions) {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: amount,
-                            currency_code: currencyCode
-                        }
-                    }]
-                });
+                return fetch(`/en_US/create-pay-pal-order/${orderToken}`, {
+                    method: 'post'
+                }).then(res => res.json()).then(data => data.orderID);
             },
             onApprove: function(data, actions) {
-                // Capture the funds from the transaction
-                return actions.order.capture().then(function(details) {
-                    if (details.status == targetStatus) {
-                        window.location.href = completeUrl;
-
-                        return;
-                    }
-
-                    alert("There was a problem with the payment. Please, try again.")
-                });
+                return fetch(`/en_US/complete-pay-pal-order/${orderToken}/${data.orderID}`, {
+                    method: 'post'
+                }).then(res => res.json()).then(details => window.location.href = details.return_url);
             }
         }).render('#paypal-button-container');
     </script>

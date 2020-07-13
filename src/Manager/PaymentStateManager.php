@@ -24,12 +24,22 @@ final class PaymentStateManager implements PaymentStateManagerInterface
         $this->paymentManager = $paymentManager;
     }
 
+    public function process(PaymentInterface $payment): void
+    {
+        $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_PROCESS);
+    }
+
     public function complete(PaymentInterface $payment): void
+    {
+        $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_COMPLETE);
+    }
+
+    private function applyTransitionAndSave(PaymentInterface $payment, string $transition): void
     {
         /** @var StateMachineInterface $stateMachine */
         $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
 
-        $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE);
+        $stateMachine->apply($transition);
         $this->paymentManager->flush();
     }
 }

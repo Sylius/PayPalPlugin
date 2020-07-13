@@ -16,13 +16,12 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Request\Capture;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
-final class CaptureAction implements ActionInterface
+final class CompleteOrderAction implements ActionInterface
 {
     /** @var ClientInterface */
     private $httpClient;
@@ -32,7 +31,7 @@ final class CaptureAction implements ActionInterface
         $this->httpClient = $httpClient;
     }
 
-    /** @param Capture $request */
+    /** @param CompleteOrder $request */
     public function execute($request): void
     {
         RequestNotSupportedException::assertSupports($this, $request);
@@ -57,62 +56,25 @@ final class CaptureAction implements ActionInterface
         /** @var array $content */
         $content = json_decode($response->getBody()->getContents(), true);
 
-        /** @var OrderInterface $order */
-        $order = $payment->getOrder();
-
-        $data = [
-            'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'amount' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => (int) $payment->getAmount() / 100,
-                    ],
-                    'payee' => [
-                        // TODO: change hardcoded seller data
-                        'email_address' => 'sb-ecyrw2404052@business.example.com',
-                        'merchant_id' => 'L7WWW2B328J7J',
-                    ],
-                    // TODO: figure out how not to send this data in the prod env
-                    'payment_instruction' => [
-                        'disbursement_mode' => 'INSTANT',
-                        'platform_fees' => [
-                            [
-                                'amount' => [
-                                    'currency_code' => $order->getCurrencyCode(),
-                                    'value' => round(((int) $payment->getAmount() / 100) * 0.02, 2),
-                                ],
-                                'payee' => [
-                                    // TODO: change hardcoded facilitator data - or not (maybe it's not a problem)
-                                    'email_address' => 'sb-nevei1350290@business.example.com',
-                                    'merchant_id' => 'JQVY284FYA5PC',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
         $response = $this->httpClient->request(
             'POST',
-            'https://api.sandbox.paypal.com/v2/checkout/orders', [
+            sprintf('https://api.sandbox.paypal.com/v2/checkout/orders/%s/capture', $request->getOrderId()),
+            [
                 'headers' => [
                     'Authorization' => 'Bearer ' . (string) $content['access_token'],
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
+                    'Prefer' => 'return=representation',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'Content-Type' => 'application/json',
                 ],
-                'json' => $data,
             ]
         );
 
         /** @var array $content */
         $content = json_decode($response->getBody()->getContents(), true);
 
-        if ($content['status'] === 'CREATED') {
+        if ($content['status'] === 'COMPLETED') {
             $payment->setDetails([
-                'status' => StatusAction::STATUS_CAPTURED,
+                'status' => StatusAction::STATUS_COMPLETED,
                 'paypal_order_id' => $content['id'],
             ]);
         }
@@ -121,7 +83,7 @@ final class CaptureAction implements ActionInterface
     public function supports($request): bool
     {
         return
-            $request instanceof Capture &&
+            $request instanceof CompleteOrder &&
             $request->getModel() instanceof PaymentInterface
         ;
     }
