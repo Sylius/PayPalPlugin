@@ -57,24 +57,12 @@ final class CompletePayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $orderId = (string) $request->attributes->get('orderId');
         $token = (string) $request->attributes->get('token');
 
         /** @var OrderInterface $order */
         $order = $this->orderRepository->findOneByTokenValue($token);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
-
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        $this
-            ->payum
-            ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new CompleteOrder($payment, $orderId))
-        ;
 
         $this->paymentStateManager->complete($payment);
 
