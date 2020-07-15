@@ -6,17 +6,18 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Payum;
+use Payum\Core\Request\Capture;
 use SM\Factory\FactoryInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
-use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-final class CompletePayPalOrderAction
+final class CreatePayPalOrderFromCartAction
 {
     /** @var Payum */
     private $payum;
@@ -27,46 +28,46 @@ final class CompletePayPalOrderAction
     /** @var FactoryInterface */
     private $stateMachineFactory;
 
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
-
     /** @var ObjectManager */
     private $paymentManager;
-
-    /** @var UrlGeneratorInterface */
-    private $router;
 
     public function __construct(
         Payum $payum,
         OrderRepositoryInterface $orderRepository,
         FactoryInterface $stateMachineFactory,
-        PaymentStateManagerInterface $paymentStateManager,
-        ObjectManager $paymentManager,
-        UrlGeneratorInterface $router
+        ObjectManager $paymentManager
     ) {
         $this->payum = $payum;
         $this->orderRepository = $orderRepository;
         $this->stateMachineFactory = $stateMachineFactory;
-        $this->paymentStateManager = $paymentStateManager;
         $this->paymentManager = $paymentManager;
-        $this->router = $router;
     }
 
     public function __invoke(Request $request): Response
     {
-        $token = (string) $request->attributes->get('token');
-
+        $id = $request->attributes->getInt('id');
         /** @var OrderInterface $order */
-        $order = $this->orderRepository->findOneByTokenValue($token);
-        /** @var PaymentInterface $payment */
-        $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
+        $order = $this->orderRepository->find($id);
 
-        $this->paymentStateManager->complete($payment);
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        $this
+            ->payum
+            ->getGateway($gatewayConfig->getGatewayName())
+            ->execute(new Capture($payment))
+        ;
+
+        $this->paymentManager->flush();
 
         return new JsonResponse([
             'orderID' => $payment->getDetails()['paypal_order_id'],
             'status' => $payment->getState(),
-            'return_url' => $this->router->generate('sylius_shop_order_thank_you', [], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
     }
 }
