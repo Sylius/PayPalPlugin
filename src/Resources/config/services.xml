@@ -155,6 +155,7 @@
             class="Sylius\PayPalPlugin\Api\AuthorizeClientApi"
         >
             <argument type="service" id="sylius.http_client" />
+            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
         </service>
     </services>
 </container>

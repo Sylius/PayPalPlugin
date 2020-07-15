@@ -24,7 +24,7 @@ final class AuthorizeClientApiSpec extends ObjectBehavior
 {
     function let(Client $client): void
     {
-        $this->beConstructedWith($client);
+        $this->beConstructedWith($client, 'https://api.test-paypal.com/');
     }
 
     function it_implements_authorize_client_api_interface(): void
@@ -39,7 +39,7 @@ final class AuthorizeClientApiSpec extends ObjectBehavior
     ): void {
         $client->request(
             'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
+            'https://api.test-paypal.com/v1/oauth2/token',
             [
                 'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
                 'form_params' => ['grant_type' => 'client_credentials'],
@@ -58,7 +58,7 @@ final class AuthorizeClientApiSpec extends ObjectBehavior
     ): void {
         $client->request(
             'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
+            'https://api.test-paypal.com/v1/oauth2/token',
             [
                 'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
                 'form_params' => ['grant_type' => 'client_credentials'],

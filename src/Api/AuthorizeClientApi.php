@@ -21,16 +21,20 @@ final class AuthorizeClientApi implements AuthorizeClientApiInterface
     /** @var Client */
     private $client;
 
-    public function __construct(Client $client)
+    /** @var string */
+    private $baseUrl;
+
+    public function __construct(Client $client, string $baseUrl)
     {
         $this->client = $client;
+        $this->baseUrl = $baseUrl;
     }
 
     public function authorize(string $clientId, string $clientSecret): string
     {
         $response = $this->client->request(
             'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
+            $this->baseUrl . 'v1/oauth2/token',
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
