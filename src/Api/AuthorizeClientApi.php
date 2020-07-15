@@ -47,6 +47,6 @@ final class AuthorizeClientApi implements AuthorizeClientApiInterface
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
 
-        return $content['access_token'];
+        return (string) $content['access_token'];
     }
 }

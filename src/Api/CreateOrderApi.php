@@ -89,6 +89,6 @@ final class CreateOrderApi implements CreateOrderApiInterface
 
     private function calculateFee(PaymentInterface $payment): float
     {
-        return (float) round(((int)$payment->getAmount() / 100) * 0.02, 2);
+        return (float) round(((int) $payment->getAmount() / 100) * 0.02, 2);
     }
 }

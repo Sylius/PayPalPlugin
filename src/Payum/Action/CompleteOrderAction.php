@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Payum\Action;
 
-use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
@@ -25,14 +24,19 @@ use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class CompleteOrderAction implements ActionInterface
 {
-    /** @var ClientInterface */
-    private $httpClient;
-
     /** @var AuthorizeClientApiInterface */
     private $authorizeClientApi;
 
     /** @var CompleteOrderApiInterface */
     private $completeOrderApi;
+
+    public function __construct(
+        AuthorizeClientApiInterface $authorizeClientApi,
+        CompleteOrderApiInterface $completeOrderApi
+    ) {
+        $this->authorizeClientApi = $authorizeClientApi;
+        $this->completeOrderApi = $completeOrderApi;
+    }
 
     /** @param CompleteOrder $request */
     public function execute($request): void
@@ -47,7 +51,10 @@ final class CompleteOrderAction implements ActionInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
+        $token = $this
+            ->authorizeClientApi
+            ->authorize((string) $config['client_id'], (string) $config['client_secret'])
+        ;
         $content = $this->completeOrderApi->complete($token, $request->getOrderId());
 
         if ($content['status'] === 'COMPLETED') {

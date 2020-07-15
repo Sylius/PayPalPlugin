@@ -51,7 +51,10 @@ final class CaptureAction implements ActionInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
+        $token = $this
+            ->authorizeClientApi
+            ->authorize((string) $config['client_id'], (string) $config['client_secret'])
+        ;
         $content = $this->createOrderApi->create($token, $payment);
 
         if ($content['status'] === 'CREATED') {
