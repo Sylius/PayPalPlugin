@@ -159,6 +159,14 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface"
+            class="Sylius\PayPalPlugin\Api\CompleteOrderApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface"
             class="Sylius\PayPalPlugin\Api\CreateOrderApi"
         >
