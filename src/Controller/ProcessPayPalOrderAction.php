@@ -6,10 +6,12 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface as StateMachineFactoryInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
@@ -71,16 +73,15 @@ final class ProcessPayPalOrderAction
         $orderId = $request->attributes->getInt('id');
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
-        $data = $this->getOrderDetails(
-            $request->request->get('payPalOrderId'),
-            $order->getLastPayment(PaymentInterface::STATE_CART)
-        );
+        $data = $this->getOrderDetails($request->request->get('payPalOrderId'), $payment);
 
         $customer = $this->getOrderCustomer($data['payer']);
         $order->setCustomer($customer);
 
-        $purchaseUnit = $data['purchase_units'][0];
+        $purchaseUnit = (array) $data['purchase_units'][0];
 
         $address = $this->addressFactory->createForCustomer($customer);
         $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
@@ -101,7 +102,6 @@ final class ProcessPayPalOrderAction
 
         $this->orderManager->flush();
 
-        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
         $this->paymentStateManager->create($payment);
         $this->paymentStateManager->process($payment);
 
@@ -127,8 +127,15 @@ final class ProcessPayPalOrderAction
 
     private function getOrderDetails(string $id, PaymentInterface $payment): array
     {
-        $config = $payment->getMethod()->getGatewayConfig()->getConfig();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = $gatewayConfig->getConfig();
 
-        return $this->payPalOrderDetailsProvider->provide($config['client_id'], $config['client_secret'], $id);
+        return $this
+            ->payPalOrderDetailsProvider
+            ->provide($config['client_id'], $config['client_secret'], $id)
+        ;
     }
 }

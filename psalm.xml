@@ -20,6 +20,24 @@
             </errorLevel>
         </DeprecatedMethod>
 
+        <MissingParamType>
+            <errorLevel type="info">
+                <file name="src/Payum/Request/CompleteOrder.php"/>
+            </errorLevel>
+        </MissingParamType>
+
+        <MixedArgument>
+            <errorLevel type="info">
+                <file name="src/Controller/ProcessPayPalOrderAction.php"/>
+            </errorLevel>
+        </MixedArgument>
+
+        <MixedArrayAccess>
+            <errorLevel type="info">
+                <file name="src/Controller/ProcessPayPalOrderAction.php"/>
+            </errorLevel>
+        </MixedArrayAccess>
+
         <MoreSpecificImplementedParamType>
             <errorLevel type="info">
                 <directory name="src/Payum/Action/"/>
@@ -31,11 +49,5 @@
                 <file name="src/Payum/Request/CompleteOrder.php"/>
             </errorLevel>
         </PropertyNotSetInConstructor>
-
-        <MissingParamType>
-            <errorLevel type="info">
-                <file name="src/Payum/Request/CompleteOrder.php"/>
-            </errorLevel>
-        </MissingParamType>
     </issueHandlers>
 </psalm>

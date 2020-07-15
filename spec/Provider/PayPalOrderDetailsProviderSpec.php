@@ -60,7 +60,7 @@ final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
-                ]
+                ],
             ]
         )->willReturn($detailsResponse);
         $detailsResponse->getBody()->willReturn($detailsBody);

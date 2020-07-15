@@ -45,7 +45,7 @@ final class PayPalPaymentCompleteProcessor
         $this
             ->payum
             ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new CompleteOrder($payment, $payment->getDetails()['paypal_order_id']))
+            ->execute(new CompleteOrder($payment, (string) $payment->getDetails()['paypal_order_id']))
         ;
 
         $this->paymentStateManager->complete($payment);

@@ -32,13 +32,13 @@ final class PayPalOrderDetailsProvider implements PayPalOrderDetailsProviderInte
             throw new PayPalAuthorizationException();
         }
 
-        $token = json_decode($authResponse->getBody()->getContents(), true)['access_token'];
+        $content = (array) json_decode($authResponse->getBody()->getContents(), true);
 
         $response = $this->client->request(
             'GET',
-            'https://api.sandbox.paypal.com/v2/checkout/orders/'.$orderId, [
+            'https://api.sandbox.paypal.com/v2/checkout/orders/' . $orderId, [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
+                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
@@ -46,6 +46,6 @@ final class PayPalOrderDetailsProvider implements PayPalOrderDetailsProviderInte
             ]
         );
 
-        return json_decode($response->getBody()->getContents(), true);
+        return (array) json_decode($response->getBody()->getContents(), true);
     }
 }

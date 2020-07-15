@@ -49,7 +49,7 @@ final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
         $payment->getDetails()->willReturn(['paypal_order_id' => '123123']);
 
         $payum->getGateway('paypal')->willReturn($gateway);
-        $gateway->execute(Argument::that(function(CompleteOrder $request): bool {
+        $gateway->execute(Argument::that(function (CompleteOrder $request): bool {
             return $request->getOrderId() === '123123';
         }))->shouldBeCalled();
 
