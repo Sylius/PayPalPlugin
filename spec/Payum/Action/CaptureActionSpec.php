@@ -13,27 +13,26 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Payum\Action;
 
-use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
-use Prophecy\Argument;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
-    function let(ClientInterface $client, AuthorizeClientApiInterface $authorizeClientApi): void
-    {
-        $this->beConstructedWith($client, $authorizeClientApi);
+    function let(
+        AuthorizeClientApiInterface $authorizeClientApi,
+        CreateOrderApiInterface $createOrderApi
+    ): void {
+        $this->beConstructedWith($authorizeClientApi, $createOrderApi);
     }
 
     function it_implements_action_interface(): void
@@ -42,15 +41,13 @@ final class CaptureActionSpec extends ObjectBehavior
     }
 
     function it_authorizes_seller_send_create_order_request_and_sets_order_response_data_on_payment(
-        ClientInterface $client,
         AuthorizeClientApiInterface $authorizeClientApi,
+        CreateOrderApiInterface $createOrderApi,
         Capture $request,
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig,
-        ResponseInterface $createResponse,
-        StreamInterface $createBody
+        GatewayConfigInterface $gatewayConfig
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
@@ -62,23 +59,7 @@ final class CaptureActionSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('USD');
 
         $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('ACCESS_TOKEN');
-
-        $client->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v2/checkout/orders',
-            Argument::that(function (array $data): bool {
-                return
-                    $data['headers']['Authorization'] === 'Bearer ACCESS_TOKEN' &&
-                    $data['headers']['PayPal-Partner-Attribution-Id'] === 'sylius-ppcp4p-bn-code' &&
-                    $data['json']['intent'] === 'CAPTURE' &&
-                    $data['json']['purchase_units'][0]['amount']['currency_code'] === 'USD' &&
-                    $data['json']['purchase_units'][0]['amount']['value'] === 10
-                ;
-            })
-        )->willReturn($createResponse);
-
-        $createResponse->getBody()->willReturn($createBody);
-        $createBody->getContents()->willReturn('{"id": "123123", "status": "CREATED"}');
+        $createOrderApi->create('ACCESS_TOKEN', $payment)->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $payment->setDetails([
             'status' => StatusAction::STATUS_CAPTURED,

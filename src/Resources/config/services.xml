@@ -30,8 +30,8 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
-            <argument type="service" id="sylius.http_client" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" />
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
 
@@ -153,6 +153,14 @@
         <service
             id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface"
             class="Sylius\PayPalPlugin\Api\AuthorizeClientApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface"
+            class="Sylius\PayPalPlugin\Api\CreateOrderApi"
         >
             <argument type="service" id="sylius.http_client" />
             <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
