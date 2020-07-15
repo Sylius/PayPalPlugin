@@ -60,6 +60,9 @@
             "vendor/bin/ecs check src/ spec/",
             "vendor/bin/phpstan.phar analyse -c phpstan.neon -l max src/",
             "vendor/bin/psalm"
+        ],
+        "link-templates": [
+            "ln -s $(pwd)/src/Resources/templates/bundles/* $(pwd)/tests/Application/templates/bundles"
         ]
     }
 }
