@@ -24,6 +24,11 @@ final class PaymentStateManager implements PaymentStateManagerInterface
         $this->paymentManager = $paymentManager;
     }
 
+    public function create(PaymentInterface $payment): void
+    {
+        $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_CREATE);
+    }
+
     public function process(PaymentInterface $payment): void
     {
         $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_PROCESS);

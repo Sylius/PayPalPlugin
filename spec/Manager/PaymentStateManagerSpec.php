@@ -24,6 +24,19 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         $this->shouldImplement(PaymentStateManagerInterface::class);
     }
 
+    function it_creates_payment(
+        FactoryInterface $stateMachineFactory,
+        ObjectManager $paymentManager,
+        PaymentInterface $payment,
+        StateMachineInterface $stateMachine
+    ): void {
+        $stateMachineFactory->get($payment, PaymentTransitions::GRAPH)->willReturn($stateMachine);
+        $stateMachine->apply(PaymentTransitions::TRANSITION_CREATE)->shouldBeCalled();
+        $paymentManager->flush()->shouldBeCalled();
+
+        $this->create($payment);
+    }
+
     function it_completes_payment(
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
