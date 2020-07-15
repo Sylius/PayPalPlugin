@@ -26,13 +26,14 @@ use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
-    function let(ClientInterface $client): void
+    function let(ClientInterface $client, AuthorizeClientApiInterface $authorizeClientApi): void
     {
-        $this->beConstructedWith($client);
+        $this->beConstructedWith($client, $authorizeClientApi);
     }
 
     function it_implements_action_interface(): void
@@ -42,14 +43,13 @@ final class CaptureActionSpec extends ObjectBehavior
 
     function it_authorizes_seller_send_create_order_request_and_sets_order_response_data_on_payment(
         ClientInterface $client,
+        AuthorizeClientApiInterface $authorizeClientApi,
         Capture $request,
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        ResponseInterface $authorizationResponse,
         ResponseInterface $createResponse,
-        StreamInterface $authorizationBody,
         StreamInterface $createBody
     ): void {
         $request->getModel()->willReturn($payment);
@@ -61,20 +61,7 @@ final class CaptureActionSpec extends ObjectBehavior
         $payment->getOrder()->willReturn($order);
         $order->getCurrencyCode()->willReturn('USD');
 
-        $client->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            Argument::that(function (array $data): bool {
-                return
-                    $data['auth'][0] === 'CLIENT_ID' &&
-                    $data['auth'][1] === 'CLIENT_SECRET' &&
-                    $data['form_params']['grant_type'] === 'client_credentials'
-                ;
-            })
-        )->willReturn($authorizationResponse);
-
-        $authorizationResponse->getBody()->willReturn($authorizationBody);
-        $authorizationBody->getContents()->willReturn('{"access_token": "ACCESS_TOKEN"}');
+        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('ACCESS_TOKEN');
 
         $client->request(
             'POST',

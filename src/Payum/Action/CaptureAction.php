@@ -21,15 +21,20 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 
 final class CaptureAction implements ActionInterface
 {
     /** @var ClientInterface */
     private $httpClient;
 
-    public function __construct(ClientInterface $httpClient)
+    /** @var AuthorizeClientApiInterface */
+    private $authorizeClientApi;
+
+    public function __construct(ClientInterface $httpClient, AuthorizeClientApiInterface $authorizeClientApi)
     {
         $this->httpClient = $httpClient;
+        $this->authorizeClientApi = $authorizeClientApi;
     }
 
     /** @param Capture $request */
@@ -45,17 +50,7 @@ final class CaptureAction implements ActionInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->httpClient->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            [
-                'auth' => [$config['client_id'], $config['client_secret']],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        );
-
-        /** @var array $content */
-        $content = json_decode($response->getBody()->getContents(), true);
+        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
 
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -98,7 +93,7 @@ final class CaptureAction implements ActionInterface
             'POST',
             'https://api.sandbox.paypal.com/v2/checkout/orders', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
+                    'Authorization' => 'Bearer ' . $token,
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',

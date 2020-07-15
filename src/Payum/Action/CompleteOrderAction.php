@@ -19,6 +19,7 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class CompleteOrderAction implements ActionInterface
@@ -26,9 +27,13 @@ final class CompleteOrderAction implements ActionInterface
     /** @var ClientInterface */
     private $httpClient;
 
-    public function __construct(ClientInterface $httpClient)
+    /** @var AuthorizeClientApiInterface */
+    private $authorizeClientApi;
+
+    public function __construct(ClientInterface $httpClient, AuthorizeClientApiInterface $authorizeClientApi)
     {
         $this->httpClient = $httpClient;
+        $this->authorizeClientApi = $authorizeClientApi;
     }
 
     /** @param CompleteOrder $request */
@@ -44,24 +49,14 @@ final class CompleteOrderAction implements ActionInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->httpClient->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            [
-                'auth' => [$config['client_id'], $config['client_secret']],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        );
-
-        /** @var array $content */
-        $content = json_decode($response->getBody()->getContents(), true);
+        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
 
         $response = $this->httpClient->request(
             'POST',
             sprintf('https://api.sandbox.paypal.com/v2/checkout/orders/%s/capture', $request->getOrderId()),
             [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
+                    'Authorization' => 'Bearer ' . $token,
                     'Prefer' => 'return=representation',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
                     'Content-Type' => 'application/json',
