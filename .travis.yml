@@ -47,6 +47,8 @@ before_script:
     - (cd tests/Application && bin/console cache:warmup -vvv)
     - (cd tests/Application && yarn build)
 
+    - composer link-templates
+
     # Downloading Symfony CLI
     - |
         if [ ! -f $SYLIUS_CACHE_DIR/symfony ]; then
