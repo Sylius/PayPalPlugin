@@ -10,6 +10,12 @@ sylius_paypal_plugin_create_paypal_order:
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction
 
+sylius_paypal_plugin_create_paypal_order_from_cart:
+    path: /create-pay-pal-order-from-cart/{id}
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction
+
 sylius_paypal_plugin_complete_paypal_order:
     path: /complete-pay-pal-order/{token}/{orderId}
     methods: [POST]
@@ -21,3 +27,9 @@ sylius_paypal_plugin_complete_paypal_payment:
     methods: [GET]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalPaymentAction
+
+sylius_paypal_plugin_process_paypal_order:
+    path: /process-pay-pal-order/{id}
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction

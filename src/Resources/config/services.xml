@@ -93,6 +93,13 @@
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction" public="true">
+            <argument type="service" id="payum" />
+            <argument type="service" id="sylius.repository.order" />
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius.manager.payment" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction" public="true">
             <argument type="service" id="payum" />
             <argument type="service" id="sylius.repository.order" />
@@ -102,12 +109,42 @@
             <argument type="service" id="router" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction" public="true">
+            <argument type="service" id="sylius.repository.order" />
+            <argument type="service" id="sylius.repository.customer" />
+            <argument type="service" id="sylius.factory.customer" />
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius.manager.order" />
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface" />
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProvider"
+        >
+            <argument type="service" id="sylius.http_client" />
+        </service>
+
         <service
             id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface"
             class="Sylius\PayPalPlugin\Manager\PaymentStateManager"
         >
             <argument type="service" id="sm.factory" />
             <argument type="service" id="sylius.manager.payment" />
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor"
+            decorates="sylius.order_processing.order_payment_processor.checkout"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor.inner" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor" public="true">
+            <argument type="service" id="payum" />
+            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
         </service>
     </services>
 </container>

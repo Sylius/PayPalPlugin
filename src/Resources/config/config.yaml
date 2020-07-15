@@ -1,0 +1,8 @@
+winzou_state_machine:
+    sylius_order_checkout:
+        callbacks:
+            after:
+                complete_pay_pal_payment:
+                    on: ['complete']
+                    do: ['@Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor', 'completePayPalOrder']
+                    args: ['object']
