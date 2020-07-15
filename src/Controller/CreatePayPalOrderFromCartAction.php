@@ -45,10 +45,9 @@ final class CreatePayPalOrderFromCartAction
 
     public function __invoke(Request $request): Response
     {
-        $token = $request->attributes->getInt('id');
-
+        $id = $request->attributes->getInt('id');
         /** @var OrderInterface $order */
-        $order = $this->orderRepository->find($token);
+        $order = $this->orderRepository->find($id);
 
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);

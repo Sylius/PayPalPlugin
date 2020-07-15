@@ -46,9 +46,9 @@
                     method: 'post',
                     headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({ payPalOrderId: data.orderID })
-                }).then(function(res) {
-                    return res.json();
-                }).then(function(details) {
+                })
+                .then(res => res.json())
+                .then(function(details) {
                     window.location.href = completeUrl;
                 });
             }
