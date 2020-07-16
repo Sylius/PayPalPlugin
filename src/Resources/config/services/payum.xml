@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <services>
+        <service
+            id="sylius.plugin.pay_pal.gateway_factory_builder"
+            class="Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder"
+        >
+            <argument>Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory</argument>
+            <tag name="payum.gateway_factory_builder" factory="sylius.pay_pal" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\AuthorizeAction" public="true">
+            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.authorize" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" />
+            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction" public="true">
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
+            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.complete_order" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction" public="true">
+            <tag name="payum.action" all="true" alias="sylius.resolve_next_route" />
+        </service>
+    </services>
+</container>
