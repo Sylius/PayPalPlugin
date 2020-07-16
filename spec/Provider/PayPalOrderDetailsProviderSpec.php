@@ -17,14 +17,14 @@ use GuzzleHttp\Client;
 use PhpSpec\ObjectBehavior;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
-use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface;
 
 final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
 {
-    function let(Client $client): void
+    function let(Client $client, AuthorizeClientApiInterface $authorizeClientApi): void
     {
-        $this->beConstructedWith($client);
+        $this->beConstructedWith($client, $authorizeClientApi);
     }
 
     function it_implements_pay_pal_order_details_provider_interface(): void
@@ -34,22 +34,11 @@ final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
 
     function it_provides_details_about_pay_pal_order(
         Client $client,
-        ResponseInterface $authorizationResponse,
-        StreamInterface $authorizationBody,
+        AuthorizeClientApiInterface $authorizeClientApi,
         ResponseInterface $detailsResponse,
         StreamInterface $detailsBody
     ): void {
-        $client->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            [
-                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        )->willReturn($authorizationResponse);
-        $authorizationResponse->getStatusCode()->willReturn(200);
-        $authorizationResponse->getBody()->willReturn($authorizationBody);
-        $authorizationBody->getContents()->willReturn('{"access_token": "111222"}');
+        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('111222');
 
         $client->request(
             'GET',
@@ -67,27 +56,5 @@ final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
         $detailsBody->getContents()->willReturn('{"total": 1111}');
 
         $this->provide('CLIENT_ID', 'CLIENT_SECRET', '123123')->shouldReturn(['total' => 1111]);
-    }
-
-    function it_throws_exception_if_client_cannot_be_authorized(
-        Client $client,
-        ResponseInterface $authorizationResponse,
-        StreamInterface $authorizationBody,
-        ResponseInterface $detailsResponse,
-        StreamInterface $detailsBody
-    ): void {
-        $client->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            [
-                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        )->willReturn($authorizationResponse);
-        $authorizationResponse->getStatusCode()->willReturn(401);
-
-        $this
-            ->shouldThrow(PayPalAuthorizationException::class)
-            ->during('provide', ['CLIENT_ID', 'CLIENT_SECRET', '123123']);
     }
 }

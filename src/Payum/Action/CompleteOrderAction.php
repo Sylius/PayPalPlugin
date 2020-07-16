@@ -13,22 +13,29 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Payum\Action;
 
-use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class CompleteOrderAction implements ActionInterface
 {
-    /** @var ClientInterface */
-    private $httpClient;
+    /** @var AuthorizeClientApiInterface */
+    private $authorizeClientApi;
 
-    public function __construct(ClientInterface $httpClient)
-    {
-        $this->httpClient = $httpClient;
+    /** @var CompleteOrderApiInterface */
+    private $completeOrderApi;
+
+    public function __construct(
+        AuthorizeClientApiInterface $authorizeClientApi,
+        CompleteOrderApiInterface $completeOrderApi
+    ) {
+        $this->authorizeClientApi = $authorizeClientApi;
+        $this->completeOrderApi = $completeOrderApi;
     }
 
     /** @param CompleteOrder $request */
@@ -44,33 +51,11 @@ final class CompleteOrderAction implements ActionInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->httpClient->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            [
-                'auth' => [$config['client_id'], $config['client_secret']],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        );
-
-        /** @var array $content */
-        $content = json_decode($response->getBody()->getContents(), true);
-
-        $response = $this->httpClient->request(
-            'POST',
-            sprintf('https://api.sandbox.paypal.com/v2/checkout/orders/%s/capture', $request->getOrderId()),
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
-                    'Prefer' => 'return=representation',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
-                    'Content-Type' => 'application/json',
-                ],
-            ]
-        );
-
-        /** @var array $content */
-        $content = json_decode($response->getBody()->getContents(), true);
+        $token = $this
+            ->authorizeClientApi
+            ->authorize((string) $config['client_id'], (string) $config['client_secret'])
+        ;
+        $content = $this->completeOrderApi->complete($token, $request->getOrderId());
 
         if ($content['status'] === 'COMPLETED') {
             $payment->setDetails([

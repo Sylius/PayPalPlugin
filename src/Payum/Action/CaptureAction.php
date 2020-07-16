@@ -13,23 +13,29 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Payum\Action;
 
-use GuzzleHttp\ClientInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 
 final class CaptureAction implements ActionInterface
 {
-    /** @var ClientInterface */
-    private $httpClient;
+    /** @var AuthorizeClientApiInterface */
+    private $authorizeClientApi;
 
-    public function __construct(ClientInterface $httpClient)
-    {
-        $this->httpClient = $httpClient;
+    /** @var CreateOrderApiInterface */
+    private $createOrderApi;
+
+    public function __construct(
+        AuthorizeClientApiInterface $authorizeClientApi,
+        CreateOrderApiInterface $createOrderApi
+    ) {
+        $this->authorizeClientApi = $authorizeClientApi;
+        $this->createOrderApi = $createOrderApi;
     }
 
     /** @param Capture $request */
@@ -45,70 +51,11 @@ final class CaptureAction implements ActionInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->httpClient->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v1/oauth2/token',
-            [
-                'auth' => [$config['client_id'], $config['client_secret']],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        );
-
-        /** @var array $content */
-        $content = json_decode($response->getBody()->getContents(), true);
-
-        /** @var OrderInterface $order */
-        $order = $payment->getOrder();
-
-        $data = [
-            'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'amount' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => (int) $payment->getAmount() / 100,
-                    ],
-                    'payee' => [
-                        // TODO: change hardcoded seller data
-                        'email_address' => 'sb-ecyrw2404052@business.example.com',
-                        'merchant_id' => 'L7WWW2B328J7J',
-                    ],
-                    // TODO: figure out how not to send this data in the prod env
-                    'payment_instruction' => [
-                        'disbursement_mode' => 'INSTANT',
-                        'platform_fees' => [
-                            [
-                                'amount' => [
-                                    'currency_code' => $order->getCurrencyCode(),
-                                    'value' => round(((int) $payment->getAmount() / 100) * 0.02, 2),
-                                ],
-                                'payee' => [
-                                    // TODO: change hardcoded facilitator data - or not (maybe it's not a problem)
-                                    'email_address' => 'sb-nevei1350290@business.example.com',
-                                    'merchant_id' => 'JQVY284FYA5PC',
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-
-        $response = $this->httpClient->request(
-            'POST',
-            'https://api.sandbox.paypal.com/v2/checkout/orders', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . (string) $content['access_token'],
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
-                ],
-                'json' => $data,
-            ]
-        );
-
-        /** @var array $content */
-        $content = json_decode($response->getBody()->getContents(), true);
+        $token = $this
+            ->authorizeClientApi
+            ->authorize((string) $config['client_id'], (string) $config['client_secret'])
+        ;
+        $content = $this->createOrderApi->create($token, $payment);
 
         if ($content['status'] === 'CREATED') {
             $payment->setDetails([
