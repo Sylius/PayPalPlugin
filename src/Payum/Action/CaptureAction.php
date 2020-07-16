@@ -59,7 +59,7 @@ final class CaptureAction implements ActionInterface
 
         if ($content['status'] === 'CREATED') {
             $payment->setDetails([
-                'status' => StatusAction::STATUS_CAPTURED,
+                'status' => StatusAction::STATUS_CREATED,
                 'paypal_order_id' => $content['id'],
             ]);
         }

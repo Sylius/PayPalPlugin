@@ -59,12 +59,12 @@ final class CaptureActionSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('USD');
 
         $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('ACCESS_TOKEN');
-        $createOrderApi->create('ACCESS_TOKEN', $payment)->willReturn(['status' => 'CREATED', 'id' => '123123']);
+        $createOrderApi->create('ACCESS_TOKEN', $payment)->willReturn(['status' => 'CAPTURED', 'id' => '123123']);
 
         $payment->setDetails([
             'status' => StatusAction::STATUS_CAPTURED,
             'paypal_order_id' => '123123',
-        ])->shouldBeCalled();
+        ])->shouldNotBeCalled();
 
         $this->execute($request);
     }
