@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+    <imports>
+        <import resource="services/api.xml"/>
+        <import resource="services/controller.xml"/>
+        <import resource="services/onboarding.xml"/>
+        <import resource="services/payum.xml"/>
+    </imports>
+
     <parameters>
         <parameter key="sylius.paypal.facilitator_url">https://paypal.sylius.com</parameter>
         <parameter key="sylius.paypal.prioritized_factory_name">sylius.pay_pal</parameter>
@@ -8,54 +15,15 @@
 
     <services>
         <service
-            id="sylius.plugin.pay_pal.gateway_factory_builder"
-            class="Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder"
+            id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory"
+            decorates="sylius.resource_controller.new_resource_factory"
         >
-            <argument>Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory</argument>
-            <tag name="payum.gateway_factory_builder" factory="sylius.pay_pal" />
+            <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
+            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver" decorates="sylius.payment_methods_resolver">
-            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver.inner" />
-            <argument>%sylius.paypal.prioritized_factory_name%</argument>
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver" decorates="sylius.payment_method_resolver.default">
-            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver.inner" />
-            <argument type="service" id="sylius.repository.payment_method" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" />
-            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction" public="true">
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
-            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.complete_order" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Payum\Action\AuthorizeAction" public="true">
-            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.authorize" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction" public="true">
-            <tag name="payum.action" all="true" alias="sylius.resolve_next_route" />
-        </service>
-
-        <service
-            id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface"
-            class="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiator"
-        >
-            <argument type="service" id="router" />
-            <argument type="service" id="security.helper" />
-            <argument>%sylius.paypal.facilitator_url%</argument>
         </service>
 
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
@@ -64,53 +32,11 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
-            class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
-        />
-
-        <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
-            <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
-            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction" public="true">
-            <argument type="service" id="twig" />
-            <argument type="service" id="sylius.repository.payment" />
-            <argument type="service" id="router" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Controller\CompletePayPalPaymentAction" public="true">
-            <argument type="service" id="payum" />
-            <argument type="service" id="sylius.repository.payment" />
-            <argument type="service" id="sylius.factory.payum_resolve_next_route" />
-            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
-            <argument type="service" id="router" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction" public="true">
-            <argument type="service" id="payum" />
-            <argument type="service" id="sylius.repository.order" />
+            id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface"
+            class="Sylius\PayPalPlugin\Manager\PaymentStateManager"
+        >
             <argument type="service" id="sm.factory" />
             <argument type="service" id="sylius.manager.payment" />
-            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction" public="true">
-            <argument type="service" id="payum" />
-            <argument type="service" id="sylius.repository.order" />
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="sylius.manager.payment" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction" public="true">
-            <argument type="service" id="sylius.repository.order" />
-            <argument type="service" id="sylius.repository.customer" />
-            <argument type="service" id="sylius.factory.customer" />
-            <argument type="service" id="sylius.factory.address" />
-            <argument type="service" id="sylius.manager.order" />
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface" />
         </service>
 
         <service
@@ -119,14 +45,6 @@
         >
             <argument type="service" id="sylius.http_client" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
-        </service>
-
-        <service
-            id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface"
-            class="Sylius\PayPalPlugin\Manager\PaymentStateManager"
-        >
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="sylius.manager.payment" />
         </service>
 
         <service
@@ -142,27 +60,19 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface"
-            class="Sylius\PayPalPlugin\Api\AuthorizeClientApi"
+            id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver"
+            decorates="sylius.payment_method_resolver.default"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver.inner" />
+            <argument type="service" id="sylius.repository.payment_method" />
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface"
-            class="Sylius\PayPalPlugin\Api\CompleteOrderApi"
+            id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver"
+            decorates="sylius.payment_methods_resolver"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
-        </service>
-
-        <service
-            id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface"
-            class="Sylius\PayPalPlugin\Api\CreateOrderApi"
-        >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver.inner" />
+            <argument>%sylius.paypal.prioritized_factory_name%</argument>
         </service>
     </services>
 </container>
