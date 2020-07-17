@@ -14,7 +14,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 
-class CapturePaymentResolverSpec extends ObjectBehavior
+final class CapturePaymentResolverSpec extends ObjectBehavior
 {
     function let(Payum $payum): void
     {

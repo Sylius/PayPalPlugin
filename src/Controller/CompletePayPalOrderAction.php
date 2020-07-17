@@ -7,10 +7,10 @@ namespace Sylius\PayPalPlugin\Controller;
 use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Payum;
 use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,13 +36,17 @@ final class CompletePayPalOrderAction
     /** @var UrlGeneratorInterface */
     private $router;
 
+    /** @var OrderProviderInterface */
+    private $orderProvider;
+
     public function __construct(
         Payum $payum,
         OrderRepositoryInterface $orderRepository,
         FactoryInterface $stateMachineFactory,
         PaymentStateManagerInterface $paymentStateManager,
         ObjectManager $paymentManager,
-        UrlGeneratorInterface $router
+        UrlGeneratorInterface $router,
+        OrderProviderInterface $orderProvider
     ) {
         $this->payum = $payum;
         $this->orderRepository = $orderRepository;
@@ -50,14 +54,13 @@ final class CompletePayPalOrderAction
         $this->paymentStateManager = $paymentStateManager;
         $this->paymentManager = $paymentManager;
         $this->router = $router;
+        $this->orderProvider = $orderProvider;
     }
 
     public function __invoke(Request $request): Response
     {
         $token = (string) $request->attributes->get('token');
-
-        /** @var OrderInterface $order */
-        $order = $this->orderRepository->findOneByTokenValue($token);
+        $order = $this->orderProvider->provideOrderByToken($token);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
 

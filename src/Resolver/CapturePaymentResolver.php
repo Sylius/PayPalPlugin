@@ -10,7 +10,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 
-class CapturePaymentResolver implements CapturePaymentResolverInterface
+final class CapturePaymentResolver implements CapturePaymentResolverInterface
 {
     /** @var Payum */
     private $payum;

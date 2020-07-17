@@ -6,8 +6,9 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
+use Sylius\PayPalPlugin\Exception\OrderNotFoundException;
 
-class OrderProvider implements OrderProviderInterface
+final class OrderProvider implements OrderProviderInterface
 {
     /** @var OrderRepositoryInterface */
     private $orderRepository;
@@ -19,16 +20,24 @@ class OrderProvider implements OrderProviderInterface
 
     public function provideOrderById(int $id): OrderInterface
     {
-        /** @var OrderInterface $order */
+        /** @var OrderInterface|null $order */
         $order = $this->orderRepository->find($id);
+
+        if ($order === null) {
+            throw new OrderNotFoundException();
+        }
 
         return $order;
     }
 
     public function provideOrderByToken(string $token): OrderInterface
     {
-        /** @var OrderInterface $order */
+        /** @var OrderInterface|null $order */
         $order = $this->orderRepository->findOneByTokenValue($token);
+
+        if ($order === null) {
+            throw new OrderNotFoundException();
+        }
 
         return $order;
     }

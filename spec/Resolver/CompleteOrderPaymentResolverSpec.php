@@ -14,19 +14,19 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Resolver\CompleteOrderPaymentResolverInterface;
 
-class CompleteOrderPaymentResolverSpec extends ObjectBehavior
+final class CompleteOrderPaymentResolverSpec extends ObjectBehavior
 {
     function let(Payum $payum): void
     {
         $this->beConstructedWith($payum);
     }
 
-    function it_is_an_capture_payment_resolver(): void
+    function it_is_an_complete_order_payment_resolver(): void
     {
         $this->shouldImplement(CompleteOrderPaymentResolverInterface::class);
     }
 
-    function it_executes_capture_action_on_payment(
+    function it_executes_complete_order_action_on_payment(
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
@@ -45,7 +45,7 @@ class CompleteOrderPaymentResolverSpec extends ObjectBehavior
                 return
                     $request->getModel() === $payment->getWrappedObject() &&
                     $request->getOrderId() === 'paypal-order-id'
-                    ;
+                ;
             },
         ))->shouldBeCalled();
 

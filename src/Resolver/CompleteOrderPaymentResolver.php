@@ -10,7 +10,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
-class CompleteOrderPaymentResolver implements CompleteOrderPaymentResolverInterface
+final class CompleteOrderPaymentResolver implements CompleteOrderPaymentResolverInterface
 {
     /** @var Payum */
     private $payum;

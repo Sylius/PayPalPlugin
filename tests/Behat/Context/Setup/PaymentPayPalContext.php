@@ -94,6 +94,7 @@ final class PaymentPayPalContext implements Context
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
 
+        /** we need to send real client_id to paypal so we dont get errors while loading javascripts */
         $paymentMethod->getGatewayConfig()->setConfig(
             ['client_id' => 'AWKG4oiWX9AOifqtdkbOTgSgi3MqcaiyAt-x9Pa35lDdW94kjrOEqN-n3NQ4hD2TuomgpiDc27snMKd9']
         );

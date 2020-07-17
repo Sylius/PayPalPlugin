@@ -34,14 +34,14 @@ sylius_paypal_plugin_process_paypal_order:
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction
 
-sylius_paypal_plugin_create_paypal_order_by_id:
-    path: /create-pay-pal-order-by-id/{id}
+sylius_paypal_plugin_create_paypal_order_from_payment_page:
+    path: /create-pay-pal-order-payment-page/{id}
     methods: [POST]
     defaults:
-        _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderByIdAction
+        _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction
 
-sylius_paypal_plugin_complete_paypal_order_by_id:
-    path: /complete-pay-pal-order-by-id/{syliusOrderId}/{orderId}
+sylius_paypal_plugin_complete_paypal_order_from_payment_page:
+    path: /complete-pay-pal-order-payment-page/{id}
     methods: [POST]
     defaults:
-        _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderByIdAction
+        _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction
