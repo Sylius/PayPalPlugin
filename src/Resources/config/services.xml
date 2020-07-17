@@ -102,15 +102,6 @@
             <argument type="service" id="sylius.manager.payment" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction" public="true">
-            <argument type="service" id="payum" />
-            <argument type="service" id="sylius.repository.order" />
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
-            <argument type="service" id="sylius.manager.payment" />
-            <argument type="service" id="router" />
-        </service>
-
         <service id="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction" public="true">
             <argument type="service" id="sylius.repository.order" />
             <argument type="service" id="sylius.repository.customer" />
