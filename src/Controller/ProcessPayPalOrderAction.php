@@ -16,8 +16,9 @@ use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
-use Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,8 +46,11 @@ final class ProcessPayPalOrderAction
     /** @var PaymentStateManagerInterface */
     private $paymentStateManager;
 
-    /** @var PayPalOrderDetailsProviderInterface */
-    private $payPalOrderDetailsProvider;
+    /** @var AuthorizeClientApiInterface */
+    private $authorizeClientApi;
+
+    /** @var OrderDetailsApiInterface */
+    private $orderDetailsApi;
 
     public function __construct(
         OrderRepositoryInterface $orderRepository,
@@ -56,7 +60,8 @@ final class ProcessPayPalOrderAction
         ObjectManager $orderManager,
         StateMachineFactoryInterface $stateMachineFactory,
         PaymentStateManagerInterface $paymentStateManager,
-        PayPalOrderDetailsProviderInterface $payPalOrderDetailsProvider
+        AuthorizeClientApiInterface $authorizeClientApi,
+        OrderDetailsApiInterface $orderDetailsApi
     ) {
         $this->orderRepository = $orderRepository;
         $this->customerRepository = $customerRepository;
@@ -65,7 +70,8 @@ final class ProcessPayPalOrderAction
         $this->orderManager = $orderManager;
         $this->stateMachineFactory = $stateMachineFactory;
         $this->paymentStateManager = $paymentStateManager;
-        $this->payPalOrderDetailsProvider = $payPalOrderDetailsProvider;
+        $this->authorizeClientApi = $authorizeClientApi;
+        $this->orderDetailsApi = $orderDetailsApi;
     }
 
     public function __invoke(Request $request): Response
@@ -133,9 +139,8 @@ final class ProcessPayPalOrderAction
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        return $this
-            ->payPalOrderDetailsProvider
-            ->provide($config['client_id'], $config['client_secret'], $id)
-        ;
+        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
+
+        return $this->orderDetailsApi->get($token, $id);
     }
 }

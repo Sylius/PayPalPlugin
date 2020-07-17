@@ -11,25 +11,25 @@
 
 declare(strict_types=1);
 
-namespace spec\Sylius\PayPalPlugin\Provider;
+namespace spec\Sylius\PayPalPlugin\Api;
 
 use GuzzleHttp\Client;
 use PhpSpec\ObjectBehavior;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface;
+use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 
-final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
+final class OrderDetailsApiSpec extends ObjectBehavior
 {
-    function let(Client $client, AuthorizeClientApiInterface $authorizeClientApi): void
+    function let(Client $client): void
     {
-        $this->beConstructedWith($client, $authorizeClientApi);
+        $this->beConstructedWith($client, 'https://api.test-paypal.com/');
     }
 
     function it_implements_pay_pal_order_details_provider_interface(): void
     {
-        $this->shouldImplement(PayPalOrderDetailsProviderInterface::class);
+        $this->shouldImplement(OrderDetailsApiInterface::class);
     }
 
     function it_provides_details_about_pay_pal_order(
@@ -38,14 +38,12 @@ final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
         ResponseInterface $detailsResponse,
         StreamInterface $detailsBody
     ): void {
-        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('111222');
-
         $client->request(
             'GET',
-            'https://api.sandbox.paypal.com/v2/checkout/orders/123123',
+            'https://api.test-paypal.com/v2/checkout/orders/123123',
             [
                 'headers' => [
-                    'Authorization' => 'Bearer 111222',
+                    'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
@@ -55,6 +53,6 @@ final class PayPalOrderDetailsProviderSpec extends ObjectBehavior
         $detailsResponse->getBody()->willReturn($detailsBody);
         $detailsBody->getContents()->willReturn('{"total": 1111}');
 
-        $this->provide('CLIENT_ID', 'CLIENT_SECRET', '123123')->shouldReturn(['total' => 1111]);
+        $this->get('TOKEN', '123123')->shouldReturn(['total' => 1111]);
     }
 }
