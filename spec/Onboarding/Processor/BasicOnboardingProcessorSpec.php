@@ -9,7 +9,6 @@ use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
-use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -17,14 +16,9 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
-    function let(HttpClientInterface $httpClient)
+    function let(HttpClientInterface $httpClient): void
     {
         $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com');
-    }
-
-    function it_is_an_onboarding_processor(): void
-    {
-        $this->shouldImplement(OnboardingProcessorInterface::class);
     }
 
     function it_processes_onboarding_for_supported_payment_method_and_request(
@@ -40,7 +34,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
                 'client_id' => 'CLIENT-ID',
                 'client_secret' => 'CLIENT-SECRET',
                 'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
-                'merchant_id' => 'MERCHANT-ID'
+                'merchant_id' => 'MERCHANT-ID',
             ]
         );
 
@@ -50,7 +44,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
                 'client_secret' => 'CLIENT-SECRET',
                 'onboarding_id' => 'ONBOARDING-ID',
                 'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
-                'merchant_id' => 'MERCHANT-ID'
+                'merchant_id' => 'MERCHANT-ID',
             ]
         )->shouldBeCalled();
 
@@ -60,9 +54,15 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
         $httpClient
             ->request('GET', 'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID')
-            ->willReturn($response);
+            ->willReturn($response)
+        ;
 
-        $response->getContent()->willReturn('{"client_id":"CLIENT-ID","client_secret":"CLIENT-SECRET","sylius_merchant_id":"SYLIUS-MERCHANT-ID","merchant_id":"MERCHANT-ID"}');
+        $response->getContent()->willReturn(
+            '{"client_id":"CLIENT-ID",
+            "client_secret":"CLIENT-SECRET",
+            "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
+            "merchant_id":"MERCHANT-ID"}'
+        );
 
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
@@ -71,8 +71,10 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         Request $request
     ): void {
-        $this->shouldThrow(\DomainException::class)
-            ->during('process', [$paymentMethod, $request]);
+        $this
+            ->shouldThrow(\DomainException::class)
+            ->during('process', [$paymentMethod, $request])
+        ;
     }
 
     function it_supports_paypal_payment_method_with_request_containing_id(

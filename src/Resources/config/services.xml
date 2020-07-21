@@ -9,7 +9,7 @@
     </imports>
 
     <parameters>
-        <parameter key="sylius.paypal.facilitator_url">http://sylius.local:8001</parameter>
+        <parameter key="sylius.paypal.facilitator_url">https://paypal.sylius.com</parameter>
         <parameter key="sylius.paypal.prioritized_factory_name">sylius.pay_pal</parameter>
     </parameters>
 
@@ -43,7 +43,7 @@
             id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
             class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
         >
-            <argument type="service" id="http_client"/>
+            <argument type="service" id="http_client" />
             <argument>%sylius.paypal.facilitator_url%</argument>
         </service>
 
