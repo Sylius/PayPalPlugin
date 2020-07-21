@@ -40,14 +40,6 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface"
-            class="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProvider"
-        >
-            <argument type="service" id="sylius.http_client" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
-        </service>
-
-        <service
             id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor"
             decorates="sylius.order_processing.order_payment_processor.checkout"
         >

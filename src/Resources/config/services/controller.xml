@@ -42,7 +42,8 @@
             <argument type="service" id="sylius.manager.order" />
             <argument type="service" id="sm.factory" />
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
         </service>
     </services>
 </container>
