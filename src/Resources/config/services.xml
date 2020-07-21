@@ -54,9 +54,12 @@
             <argument type="service" id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor.inner" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor" public="true">
+            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor" public="true">
             <argument type="service" id="payum" />
-            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
         </service>
 
         <service

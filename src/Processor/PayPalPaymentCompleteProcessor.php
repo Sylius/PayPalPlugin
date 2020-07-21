@@ -1,15 +1,22 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Paweł Jędrzejewski
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
+use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Payum;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class PayPalPaymentCompleteProcessor
@@ -17,19 +24,15 @@ final class PayPalPaymentCompleteProcessor
     /** @var Payum */
     private $payum;
 
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
-
-    public function __construct(Payum $payum, PaymentStateManagerInterface $paymentStateManager)
+    public function __construct(Payum $payum)
     {
         $this->payum = $payum;
-        $this->paymentStateManager = $paymentStateManager;
     }
 
-    public function completePayPalOrder(OrderInterface $order): void
+    public function completePayPalPayment(PaymentInterface $payment): void
     {
-        $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
-        if ($payment === null) {
+        $details = $payment->getDetails();
+        if (!isset($details['paypal_order_id'])) {
             return;
         }
 
@@ -38,16 +41,10 @@ final class PayPalPaymentCompleteProcessor
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        if ($gatewayConfig->getGatewayName() !== 'paypal') {
-            return;
-        }
-
         $this
             ->payum
             ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new CompleteOrder($payment, (string) $payment->getDetails()['paypal_order_id']))
+            ->execute(new CompleteOrder($payment, (string) $details['paypal_order_id']))
         ;
-
-        $this->paymentStateManager->complete($payment);
     }
 }

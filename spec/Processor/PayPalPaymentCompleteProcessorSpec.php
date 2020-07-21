@@ -18,73 +18,47 @@ use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Payum;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
 {
-    function let(Payum $payum, PaymentStateManagerInterface $paymentStateManager): void
+    function let(Payum $payum): void
     {
-        $this->beConstructedWith($payum, $paymentStateManager);
+        $this->beConstructedWith($payum);
     }
 
-    function it_completes_pay_pal_order(
+    function it_completes_payment_in_pay_pal(
         Payum $payum,
-        PaymentStateManagerInterface $paymentStateManager,
-        OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         GatewayInterface $gateway
     ): void {
-        $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
+        $payment->getDetails()->willReturn(['paypal_order_id' => '123123']);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getGatewayName()->willReturn('paypal');
-
-        $payment->getDetails()->willReturn(['paypal_order_id' => '123123']);
 
         $payum->getGateway('paypal')->willReturn($gateway);
         $gateway->execute(Argument::that(function (CompleteOrder $request): bool {
             return $request->getOrderId() === '123123';
         }))->shouldBeCalled();
 
-        $paymentStateManager->complete($payment)->shouldBeCalled();
-
-        $this->completePayPalOrder($order);
+        $this->completePayPalPayment($payment);
     }
 
-    function it_does_nothing_if_processing_payment_is_not_pay_pal(
+    function it_does_nothing_if_payment_has_no_pay_pal_order_id_set(
         Payum $payum,
-        PaymentStateManagerInterface $paymentStateManager,
-        OrderInterface $order,
         PaymentInterface $payment,
-        PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayInterface $gateway
     ): void {
-        $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
+        $payment->getDetails()->willReturn([]);
 
-        $payment->getMethod()->willReturn($paymentMethod);
-        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getGatewayName()->willReturn('stripe');
+        $payum->getGateway('paypal')->shouldNotBeCalled();
 
-        $payum->getGateway(Argument::any())->shouldNotBeCalled();
-
-        $this->completePayPalOrder($order);
-    }
-
-    function it_does_nothing_if_there_is_no_processing_payment_for_the_order(
-        Payum $payum,
-        OrderInterface $order
-    ): void {
-        $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn(null);
-
-        $payum->getGateway(Argument::any())->shouldNotBeCalled();
-
-        $this->completePayPalOrder($order);
+        $this->completePayPalPayment($payment);
     }
 }
