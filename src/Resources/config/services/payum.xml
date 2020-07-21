@@ -10,10 +10,6 @@
             <tag name="payum.gateway_factory_builder" factory="sylius.pay_pal" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Payum\Action\AuthorizeAction" public="true">
-            <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.authorize" />
-        </service>
-
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" />
