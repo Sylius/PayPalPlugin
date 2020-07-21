@@ -47,6 +47,7 @@
         <PropertyNotSetInConstructor>
             <errorLevel type="info">
                 <file name="src/Payum/Request/CompleteOrder.php"/>
+                <file name="src/Controller/PayPalOrderItemController.php"/>
             </errorLevel>
         </PropertyNotSetInConstructor>
     </issueHandlers>

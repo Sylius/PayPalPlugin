@@ -14,6 +14,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class PayPalOrderItemController extends OrderItemController
 {
+    /**
+     * Most of the method's body is copied from the OrderItemController::addAction
+     * The idea is to use the same process as adding to cart and then redirect to PayPal payment from cart page
+     */
     public function createFromProductDetailsAction(Request $request): Response
     {
         $cart = $this->getCurrentCart();
@@ -24,9 +28,11 @@ final class PayPalOrderItemController extends OrderItemController
         $orderItem = $this->newResourceFactory->create($configuration, $this->factory);
 
         $this->getQuantityModifier()->modify($orderItem, 1);
+        /** @var string $formType */
+        $formType = $configuration->getFormType();
 
         $form = $this->getFormFactory()->create(
-            $configuration->getFormType(),
+            $formType,
             $this->createAddToCartCommand($cart, $orderItem),
             $configuration->getFormOptions()
         );

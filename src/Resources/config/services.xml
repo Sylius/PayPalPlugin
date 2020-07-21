@@ -32,11 +32,6 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
-            class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
-        />
-
-        <service
             id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface"
             class="Sylius\PayPalPlugin\Manager\PaymentStateManager"
         >
