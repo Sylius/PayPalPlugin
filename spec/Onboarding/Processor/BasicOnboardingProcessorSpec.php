@@ -35,9 +35,24 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         Request $request
     ): void {
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
-        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT-ID', 'client_secret' => 'CLIENT-SECRET']);
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID'
+            ]
+        );
 
-        $gatewayConfig->setConfig(['client_id' => 'CLIENT-ID', 'client_secret' => 'CLIENT-SECRET', 'onboarding_id' => 'ONBOARDING-ID'])->shouldBeCalled();
+        $gatewayConfig->setConfig(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'onboarding_id' => 'ONBOARDING-ID',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID'
+            ]
+        )->shouldBeCalled();
 
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
@@ -47,7 +62,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
             ->request('GET', 'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID')
             ->willReturn($response);
 
-        $response->getContent()->willReturn('{"client_id":"CLIENT-ID","client_secret":"CLIENT-SECRET"}');
+        $response->getContent()->willReturn('{"client_id":"CLIENT-ID","client_secret":"CLIENT-SECRET","sylius_merchant_id":"SYLIUS-MERCHANT-ID","merchant_id":"MERCHANT-ID"}');
 
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }

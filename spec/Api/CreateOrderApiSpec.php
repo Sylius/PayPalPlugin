@@ -14,12 +14,15 @@ declare(strict_types=1);
 namespace spec\Sylius\PayPalPlugin\Api;
 
 use GuzzleHttp\Client;
+use Payum\Core\Model\GatewayConfig;
+use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 
 final class CreateOrderApiSpec extends ObjectBehavior
@@ -39,11 +42,20 @@ final class CreateOrderApiSpec extends ObjectBehavior
         PaymentInterface $payment,
         OrderInterface $order,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
         $order->getCurrencyCode()->willReturn('PLN');
+
+        $gatewayConfig->getConfig()->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+        );
+
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $client->request(
             'POST',

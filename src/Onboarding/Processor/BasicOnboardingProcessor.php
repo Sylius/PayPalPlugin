@@ -39,7 +39,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         Assert::notNull($gatewayConfig);
 
         $checkPartnerReferralsResponse = $this->httpClient->request('GET',
-            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id')),
+            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id'))
         );
 
         /** @var array $response */
@@ -52,6 +52,8 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         $gatewayConfig->setConfig([
             'client_id' => $response['client_id'],
             'client_secret' => $response['client_secret'],
+            'merchant_id' => $response['merchant_id'],
+            'sylius_merchant_id' => $response['sylius_merchant_id'],
             'onboarding_id' => $request->query->get('onboarding_id'),
         ]);
 
