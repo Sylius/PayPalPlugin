@@ -49,23 +49,6 @@ final class CreateOrderApi implements CreateOrderApiInterface
                         'email_address' => 'sb-ecyrw2404052@business.example.com',
                         'merchant_id' => 'L7WWW2B328J7J',
                     ],
-                    // TODO: figure out how not to send this data in the prod env
-                    'payment_instruction' => [
-                        'disbursement_mode' => 'INSTANT',
-                        'platform_fees' => [
-                            [
-                                'amount' => [
-                                    'currency_code' => $order->getCurrencyCode(),
-                                    'value' => $this->calculateFee($payment),
-                                ],
-                                'payee' => [
-                                    // TODO: change hardcoded facilitator data - or not (maybe it's not a problem)
-                                    'email_address' => 'sb-nevei1350290@business.example.com',
-                                    'merchant_id' => 'JQVY284FYA5PC',
-                                ],
-                            ],
-                        ],
-                    ],
                 ],
             ],
         ];
@@ -85,10 +68,5 @@ final class CreateOrderApi implements CreateOrderApiInterface
         );
 
         return (array) json_decode($response->getBody()->getContents(), true);
-    }
-
-    private function calculateFee(PaymentInterface $payment): float
-    {
-        return (float) round(((int) $payment->getAmount() / 100) * 0.02, 2);
     }
 }
