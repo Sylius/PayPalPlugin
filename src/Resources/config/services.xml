@@ -89,5 +89,17 @@
             <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver.inner" />
             <argument>%sylius.paypal.prioritized_factory_name%</argument>
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProvider"
+        >
+            <argument type="service" id="sylius.repository.payment_method" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Twig\ClientIdExtension">
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface" />
+            <tag name="twig.extension" />
+        </service>
     </services>
 </container>

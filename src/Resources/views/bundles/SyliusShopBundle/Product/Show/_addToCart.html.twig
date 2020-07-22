@@ -27,7 +27,7 @@
 
 <div id="paypal-button-container"></div>
 
-<script src="https://www.paypal.com/sdk/js?client-id=AaYeA91xxP2JrjDvnrY_35krWauIqByFCd5I_kSquFcJIKPZUEd7mVsZY8LqBTYUWBu_mmyt7YoToiXb&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ get_pay_pal_client_id(sylius.channel) }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
 <script>
     let completeUrl = "{{ path('sylius_shop_checkout_complete') }}";
     let productId = "{{ product.id }}";
