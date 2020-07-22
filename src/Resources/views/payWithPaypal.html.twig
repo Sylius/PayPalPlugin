@@ -8,7 +8,7 @@
     <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
     <script>
         let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
-        let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token, }) }}"
+        let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
 
         paypal.Buttons({
             createOrder: function(data, actions) {
