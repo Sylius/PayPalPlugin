@@ -62,7 +62,7 @@
             "vendor/bin/psalm"
         ],
         "link-templates": [
-            "ln -s $(pwd)/src/Resources/templates/bundles/* $(pwd)/tests/Application/templates/bundles"
+            "ln -s $(pwd)/src/Resources/views/bundles/* $(pwd)/tests/Application/templates/bundles"
         ]
     }
 }
