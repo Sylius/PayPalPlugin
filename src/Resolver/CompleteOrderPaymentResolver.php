@@ -20,7 +20,7 @@ final class CompleteOrderPaymentResolver implements CompleteOrderPaymentResolver
         $this->payum = $payum;
     }
 
-    public function resolve(PaymentInterface $payment, string $paypalOrderId): void
+    public function resolve(PaymentInterface $payment, string $payPalOrderId): void
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -30,7 +30,7 @@ final class CompleteOrderPaymentResolver implements CompleteOrderPaymentResolver
         $this
             ->payum
             ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new CompleteOrder($payment, $paypalOrderId))
+            ->execute(new CompleteOrder($payment, $payPalOrderId))
         ;
     }
 }

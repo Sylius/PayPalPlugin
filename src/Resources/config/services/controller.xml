@@ -64,6 +64,7 @@
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
             <argument type="service" id="sm.factory" />
+            <argument type="service" id="fos_oauth_server.entity_manager" />
         </service>
     </services>
 </container>

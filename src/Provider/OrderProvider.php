@@ -24,7 +24,7 @@ final class OrderProvider implements OrderProviderInterface
         $order = $this->orderRepository->find($id);
 
         if ($order === null) {
-            throw new OrderNotFoundException();
+            throw OrderNotFoundException::withId($id);
         }
 
         return $order;
@@ -36,7 +36,7 @@ final class OrderProvider implements OrderProviderInterface
         $order = $this->orderRepository->findOneByTokenValue($token);
 
         if ($order === null) {
-            throw new OrderNotFoundException();
+            throw OrderNotFoundException::withToken($token);
         }
 
         return $order;

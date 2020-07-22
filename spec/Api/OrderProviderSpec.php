@@ -26,9 +26,9 @@ final class OrderProviderSpec extends ObjectBehavior
         OrderRepositoryInterface $orderRepository,
         OrderInterface $order
     ): void {
-        $orderRepository->find(2137)->willReturn($order);
+        $orderRepository->find(420)->willReturn($order);
 
-        $this->provideOrderById(2137)->shouldReturn($order);
+        $this->provideOrderById(420)->shouldReturn($order);
     }
 
     function it_provides_order_by_given_token(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
+use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -29,16 +30,21 @@ final class CompletePayPalOrderFromPaymentPageAction
     /** @var FactoryInterface */
     private $stateMachine;
 
+    /** @var ObjectManager */
+    private $orderManager;
+
     public function __construct(
         PaymentStateManagerInterface $paymentStateManager,
         UrlGeneratorInterface $router,
         OrderProviderInterface $orderProvider,
-        FactoryInterface $stateMachine
+        FactoryInterface $stateMachine,
+        ObjectManager $orderManager
     ) {
         $this->paymentStateManager = $paymentStateManager;
         $this->router = $router;
         $this->orderProvider = $orderProvider;
         $this->stateMachine = $stateMachine;
+        $this->orderManager = $orderManager;
     }
 
     public function __invoke(Request $request): Response
@@ -53,11 +59,14 @@ final class CompletePayPalOrderFromPaymentPageAction
         $this->paymentStateManager->complete($payment);
 
         $orderStateMachine = $this->stateMachine->get($order, OrderCheckoutTransitions::GRAPH);
+        $orderStateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
         $orderStateMachine->apply(OrderCheckoutTransitions::TRANSITION_COMPLETE);
 
+        $this->orderManager->flush();
+
+        $request->getSession()->set('sylius_order_id', $order->getId());
+
         return new JsonResponse([
-            'orderID' => $payment->getDetails()['paypal_order_id'],
-            'status' => $payment->getState(),
             'return_url' => $this->router->generate('sylius_shop_order_thank_you', [], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
     }

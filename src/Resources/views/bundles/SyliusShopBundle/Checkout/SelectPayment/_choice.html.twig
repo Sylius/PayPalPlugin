@@ -29,7 +29,7 @@
                     createOrder: function(data, actions) {
                         return fetch(`{{ path('sylius_paypal_plugin_create_paypal_order_from_payment_page', {id: order.id}) }}`, {
                             method: 'post'
-                        }).then(res => res.json()).then(data => data.orderID);
+                        }).then(res => res.json()).then(data => data.order_id);
                     },
                     onApprove: function(data, actions) {
                         return fetch(`{{ path('sylius_paypal_plugin_complete_paypal_order_from_payment_page', {id: order.id}) }}`, {
