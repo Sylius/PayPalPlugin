@@ -14,8 +14,11 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use GuzzleHttp\Client;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
 {
@@ -36,6 +39,17 @@ final class CreateOrderApi implements CreateOrderApiInterface
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        $config = $gatewayConfig->getConfig();
+
+        Assert::keyExists($config, 'merchant_id');
+        Assert::keyExists($config, 'sylius_merchant_id');
+
         $data = [
             'intent' => 'CAPTURE',
             'purchase_units' => [
@@ -45,9 +59,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                         'value' => (int) $payment->getAmount() / 100,
                     ],
                     'payee' => [
-                        // TODO: change hardcoded seller data
-                        'email_address' => 'sb-ecyrw2404052@business.example.com',
-                        'merchant_id' => 'L7WWW2B328J7J',
+                        'merchant_id' => $config['merchant_id'],
                     ],
                 ],
             ],

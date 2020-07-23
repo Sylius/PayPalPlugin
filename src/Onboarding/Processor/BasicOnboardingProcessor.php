@@ -6,11 +6,25 @@ namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Webmozart\Assert\Assert;
 
 final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
+    /** @var HttpClientInterface */
+    private $httpClient;
+
+    /** @var string */
+    private $url;
+
+    public function __construct(HttpClientInterface $httpClient, string $url)
+    {
+        $this->httpClient = $httpClient;
+        $this->url = $url;
+    }
+
     public function process(PaymentMethodInterface $paymentMethod, Request $request): PaymentMethodInterface
     {
         if (!$this->supports($paymentMethod, $request)) {
@@ -22,9 +36,23 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         /** @var GatewayConfig $gatewayConfig */
         Assert::notNull($gatewayConfig);
 
+        $checkPartnerReferralsResponse = $this->httpClient->request('GET',
+            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id'))
+        );
+
+        /** @var array $response */
+        $response = json_decode($checkPartnerReferralsResponse->getContent(), true);
+
+        if (!isset($response['client_id']) || !isset($response['client_secret'])) {
+            throw new PayPalPluginException();
+        }
+
         $gatewayConfig->setConfig([
-            'client_id' => $request->query->get('client_id'),
-            'client_secret' => $request->query->get('client_secret'),
+            'client_id' => $response['client_id'],
+            'client_secret' => $response['client_secret'],
+            'merchant_id' => $response['merchant_id'],
+            'sylius_merchant_id' => $response['sylius_merchant_id'],
+            'onboarding_id' => $request->query->get('onboarding_id'),
         ]);
 
         return $paymentMethod;
@@ -42,6 +70,6 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             return false;
         }
 
-        return $request->query->has('client_id') && $request->query->has('client_secret');
+        return $request->query->has('onboarding_id');
     }
 }

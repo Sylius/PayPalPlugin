@@ -15,8 +15,10 @@ use Symfony\Component\HttpFoundation\Request;
 
 final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior
 {
-    function let(NewResourceFactoryInterface $newResourceFactory, OnboardingProcessorInterface $onboardingProcessor): void
-    {
+    function let(
+        NewResourceFactoryInterface $newResourceFactory,
+        OnboardingProcessorInterface $onboardingProcessor
+    ): void {
         $this->beConstructedWith($newResourceFactory, $onboardingProcessor);
     }
 

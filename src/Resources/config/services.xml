@@ -38,6 +38,14 @@
             <argument type="service" id="sm.factory" />
             <argument type="service" id="sylius.manager.payment" />
         </service>
+        
+        <service
+            id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
+            class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
+        >
+            <argument type="service" id="http_client" />
+            <argument>%sylius.paypal.facilitator_url%</argument>
+        </service>
 
         <service
             id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor"
