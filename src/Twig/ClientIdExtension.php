@@ -26,8 +26,12 @@ final class ClientIdExtension extends AbstractExtension
         ];
     }
 
-    public function getPayPalClientId(ChannelInterface $channel): string
+    public function getPayPalClientId(ChannelInterface $channel): ?string
     {
-        return $this->onboardedPayPalClientIdProvider->getForChannel($channel);
+        try {
+            return $this->onboardedPayPalClientIdProvider->getForChannel($channel);
+        } catch (\InvalidArgumentException $exception) {
+            return null;
+        }
     }
 }

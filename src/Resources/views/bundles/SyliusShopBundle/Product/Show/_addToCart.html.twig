@@ -1,4 +1,5 @@
 {% set product = order_item.variant.product %}
+{% set client_id = get_pay_pal_client_id(sylius.channel) %}
 
 {% form_theme form '@SyliusShop/Form/theme.html.twig' %}
 
@@ -26,8 +27,8 @@
 </div>
 
 <div id="paypal-button-container"></div>
-
-<script src="https://www.paypal.com/sdk/js?client-id={{ get_pay_pal_client_id(sylius.channel) }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+{% if client_id %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
 <script>
     let completeUrl = "{{ path('sylius_shop_checkout_complete') }}";
     let productId = "{{ product.id }}";
@@ -62,3 +63,4 @@
         }
     }).render('#paypal-button-container');
 </script>
+{% endif %}
