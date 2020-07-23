@@ -37,12 +37,11 @@
     paypal.Buttons({
         createOrder: function(data, actions) {
             let formData = new FormData(document.getElementsByName('sylius_add_to_cart')[0]);
-            // console.log(document.getElementsByName('sylius_add_to_cart')[0]);
 
-            return fetch(`/en_US/create-pay-pal-order-from-product/?productId=`+productId, {
+            return fetch(`/en_US/create-pay-pal-order-from-product/?productId=${productId}`, {
                 method: 'post',
                 body: formData
-            }).then(res => res.json()).then(function (data) {
+            }).then(res => res.json()).then(data => {
                 payPalOrderId = data.orderID;
                 orderId = data.id;
 
@@ -57,7 +56,7 @@
                 body: JSON.stringify({ payPalOrderId: payPalOrderId })
             })
             .then(res => res.json())
-            .then(function(details) {
+            .then(details => {
                 window.location.href = completeUrl;
             });
         }
