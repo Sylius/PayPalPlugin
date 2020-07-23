@@ -11,7 +11,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
 final class PayWithPayPalFormAction
@@ -22,17 +21,12 @@ final class PayWithPayPalFormAction
     /** @var PaymentRepositoryInterface */
     private $paymentRepository;
 
-    /** @var UrlGeneratorInterface */
-    private $router;
-
     public function __construct(
         Environment $twig,
-        PaymentRepositoryInterface $paymentRepository,
-        UrlGeneratorInterface $router
+        PaymentRepositoryInterface $paymentRepository
     ) {
         $this->twig = $twig;
         $this->paymentRepository = $paymentRepository;
-        $this->router = $router;
     }
 
     public function __invoke(Request $request): Response
@@ -49,14 +43,8 @@ final class PayWithPayPalFormAction
 
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
-        /** @var int $amount */
-        $amount = $payment->getAmount();
-        /** @var string $currencyCode */
-        $currencyCode = $order->getCurrencyCode();
 
         return new Response($this->twig->render('@SyliusPayPalPlugin/payWithPaypal.html.twig', [
-            'amount' => $amount / 100,
-            'currency_code' => $currencyCode,
             'client_id' => $clientId,
             'order_token' => $order->getTokenValue(),
         ]));

@@ -31,18 +31,19 @@
     {% if cart.payments|length > 0 %}
     <script src="https://www.paypal.com/sdk/js?client-id={{ cart.payments.first().method.gatewayConfig.config['client_id'] }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
     <script>
-        let orderId = "{{ cart.id }}";
         let completeUrl = "{{ path('sylius_shop_checkout_complete') }}";
+        let createPayPalOrderFromCartUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_cart', {'id': cart.id}) }}";
+        let processPayPalOrderUrl = "{{ path('sylius_paypal_plugin_process_paypal_order', {'id': cart.id}) }}";
 
         paypal.Buttons({
             createOrder: function(data, actions) {
-                return fetch(`/en_US/create-pay-pal-order-from-cart/${orderId}`, {
+                return fetch(createPayPalOrderFromCartUrl, {
                     method: 'post'
                 }).then(res => res.json()).then(data => data.orderID);
             },
 
             onApprove: function(data, actions) {
-                return fetch(`/en_US/process-pay-pal-order/${orderId}`, {
+                return fetch(processPayPalOrderUrl, {
                     method: 'post',
                     headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({ payPalOrderId: data.orderID })
