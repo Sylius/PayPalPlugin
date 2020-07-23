@@ -49,7 +49,7 @@ final class PayPalPaymentMethodNewResourceFactory implements NewResourceFactoryI
         $request = $requestConfiguration->getRequest();
 
         if ($this->onboardingProcessor->supports($resource, $request)) {
-            return $this->onboardingProcessor->process($resource, $request, $this->httpClient, $this->url);
+            return $this->onboardingProcessor->process($resource, $request);
         }
 
         return $resource;

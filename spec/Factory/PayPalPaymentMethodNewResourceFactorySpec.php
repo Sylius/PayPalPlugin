@@ -44,7 +44,7 @@ final class PayPalPaymentMethodNewResourceFactorySpec extends ObjectBehavior
         $requestConfiguration->getRequest()->willReturn($request);
 
         $onboardingProcessor->supports($paymentMethod, $request)->willReturn(true);
-        $onboardingProcessor->process($paymentMethod, $request, $httpClient, 'test-url')->willReturn($processedPaymentMethod);
+        $onboardingProcessor->process($paymentMethod, $request)->willReturn($processedPaymentMethod);
 
         $this->create($requestConfiguration, $factory)->shouldReturn($processedPaymentMethod);
     }

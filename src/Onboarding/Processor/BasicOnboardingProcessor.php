@@ -27,9 +27,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 
     public function process(
         PaymentMethodInterface $paymentMethod,
-        Request $request,
-        HttpClientInterface $httpClient,
-        string $url
+        Request $request
     ): PaymentMethodInterface {
         if (!$this->supports($paymentMethod, $request)) {
             throw new \DomainException('not supported');
@@ -48,15 +46,6 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         $response = json_decode($checkPartnerReferralsResponse->getContent(), true);
 
         if (!isset($response['client_id']) || !isset($response['client_secret'])) {
-            $client_data = $httpClient->request('GET',
-                sprintf('%s/partner-referrals/check/%s', $url, (string)$request->query->get('onboarding_id')),
-            );
-        }
-
-        /** @var array $response */
-        $response = json_decode($client_data->getContent(), true);
-
-        if ($response['client_id'] === null) {
             throw new PayPalPluginException();
         }
 
