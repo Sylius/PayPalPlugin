@@ -25,8 +25,10 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         $this->url = $url;
     }
 
-    public function process(PaymentMethodInterface $paymentMethod, Request $request): PaymentMethodInterface
-    {
+    public function process(
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): PaymentMethodInterface {
         if (!$this->supports($paymentMethod, $request)) {
             throw new \DomainException('not supported');
         }
