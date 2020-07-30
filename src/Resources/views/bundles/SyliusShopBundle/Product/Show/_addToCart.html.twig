@@ -35,11 +35,12 @@
     let payPalOrderId = null;
     let orderId = null;
 
+    let createPayPalOrderFromProductUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_product', {'productId': product.id}) }}";
+
     paypal.Buttons({
         createOrder: function(data, actions) {
             let formData = new FormData(document.getElementsByName('sylius_add_to_cart')[0]);
-
-            return fetch(`/en_US/create-pay-pal-order-from-product/?productId=${productId}`, {
+            return fetch(createPayPalOrderFromProductUrl, {
                 method: 'post',
                 body: formData
             }).then(res => res.json()).then(data => {

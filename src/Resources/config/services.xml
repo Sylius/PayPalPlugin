@@ -14,14 +14,6 @@
     </parameters>
 
     <services>
-        <service
-            id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory"
-            decorates="sylius.resource_controller.new_resource_factory"
-        >
-            <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
-            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
-        </service>
-
         <service id="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>

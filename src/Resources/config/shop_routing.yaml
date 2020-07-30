@@ -47,7 +47,7 @@ sylius_paypal_plugin_complete_paypal_order_from_payment_page:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction
 
 sylius_paypal_plugin_create_paypal_order_from_product:
-    path: /create-pay-pal-order-from-product/
+    path: /create-pay-pal-order-from-product/{productId}
     methods: [POST]
     defaults:
         _controller: sylius.controller.order_item:createFromProductDetailsAction
