@@ -9,7 +9,6 @@ use SM\Factory\FactoryInterface as StateMachineFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
@@ -19,6 +18,7 @@ use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -52,6 +52,9 @@ final class ProcessPayPalOrderAction
     /** @var OrderDetailsApiInterface */
     private $orderDetailsApi;
 
+    /** @var OrderProviderInterface */
+    private $orderProvider;
+
     public function __construct(
         OrderRepositoryInterface $orderRepository,
         CustomerRepositoryInterface $customerRepository,
@@ -61,7 +64,8 @@ final class ProcessPayPalOrderAction
         StateMachineFactoryInterface $stateMachineFactory,
         PaymentStateManagerInterface $paymentStateManager,
         AuthorizeClientApiInterface $authorizeClientApi,
-        OrderDetailsApiInterface $orderDetailsApi
+        OrderDetailsApiInterface $orderDetailsApi,
+        OrderProviderInterface $orderProvider
     ) {
         $this->orderRepository = $orderRepository;
         $this->customerRepository = $customerRepository;
@@ -72,13 +76,13 @@ final class ProcessPayPalOrderAction
         $this->paymentStateManager = $paymentStateManager;
         $this->authorizeClientApi = $authorizeClientApi;
         $this->orderDetailsApi = $orderDetailsApi;
+        $this->orderProvider = $orderProvider;
     }
 
     public function __invoke(Request $request): Response
     {
         $orderId = $request->attributes->getInt('id');
-        /** @var OrderInterface $order */
-        $order = $this->orderRepository->find($orderId);
+        $order = $this->orderProvider->provideOrderById($orderId);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 

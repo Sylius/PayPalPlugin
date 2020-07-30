@@ -55,6 +55,26 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProvider"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" class="Sylius\PayPalPlugin\Provider\OrderProvider">
+            <argument type="service" id="sylius.repository.order" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" class="Sylius\PayPalPlugin\Resolver\CapturePaymentResolver">
+            <argument type="service" id="payum" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Resolver\CompleteOrderPaymentResolverInterface" class="Sylius\PayPalPlugin\Resolver\CompleteOrderPaymentResolver">
+            <argument type="service" id="payum" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor"
             decorates="sylius.order_processing.order_payment_processor.checkout"
         >

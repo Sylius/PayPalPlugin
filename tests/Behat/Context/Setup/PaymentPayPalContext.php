@@ -42,13 +42,17 @@ final class PaymentPayPalContext implements Context
     /** @var PayPalSelectPaymentPageInterface */
     private $selectPaymentPage;
 
+    /** @var string */
+    private $clientId;
+
     public function __construct(
         SharedStorageInterface $sharedStorage,
         PaymentMethodRepositoryInterface $paymentMethodRepository,
         ExampleFactoryInterface $paymentMethodExampleFactory,
         array $gatewayFactories,
         TranslatorInterface $translator,
-        PayPalSelectPaymentPageInterface $selectPaymentPage
+        PayPalSelectPaymentPageInterface $selectPaymentPage,
+        string $clientId
     ) {
         $this->sharedStorage = $sharedStorage;
         $this->paymentMethodRepository = $paymentMethodRepository;
@@ -56,6 +60,7 @@ final class PaymentPayPalContext implements Context
         $this->gatewayFactories = $gatewayFactories;
         $this->translator = $translator;
         $this->selectPaymentPage = $selectPaymentPage;
+        $this->clientId = $clientId;
     }
 
     /**
@@ -93,6 +98,9 @@ final class PaymentPayPalContext implements Context
             'enabled' => true,
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
+
+        /** we need to send real client_id to paypal so we dont get errors while loading javascripts */
+        $paymentMethod->getGatewayConfig()->setConfig(['client_id' => $this->clientId]);
 
         $paymentMethod->setPosition((int) $position);
 
