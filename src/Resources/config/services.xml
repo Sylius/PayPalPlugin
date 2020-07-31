@@ -39,27 +39,12 @@
             <argument type="service" id="sylius.manager.payment" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
-            <argument type="service" id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory.inner" />
-            <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" />
-            <argument type="service" id="http_client"/>
-            <argument>%sylius.paypal.facilitator_url%</argument>
-        </service>
-
         <service
             id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
             class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
         >
             <argument type="service" id="http_client" />
             <argument>%sylius.paypal.facilitator_url%</argument>
-        </service>
-
-        <service
-            id="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProviderInterface"
-            class="Sylius\PayPalPlugin\Provider\PayPalOrderDetailsProvider"
-        >
-            <argument type="service" id="sylius.http_client" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" class="Sylius\PayPalPlugin\Provider\OrderProvider">
