@@ -11,6 +11,7 @@
     <parameters>
         <parameter key="sylius.paypal.facilitator_url">https://paypal.sylius.com</parameter>
         <parameter key="sylius.paypal.prioritized_factory_name">sylius.pay_pal</parameter>
+        <parameter key="sylius.paypal.partner_attribution_id">sylius-ppcp4p-bn-code</parameter>
     </parameters>
 
     <services>
@@ -44,6 +45,7 @@
         >
             <argument type="service" id="http_client" />
             <argument>%sylius.paypal.facilitator_url%</argument>
+            <argument>%sylius.paypal.partner_attribution_id%</argument>
         </service>
 
         <service id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" class="Sylius\PayPalPlugin\Provider\OrderProvider">

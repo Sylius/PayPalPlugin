@@ -40,6 +40,8 @@ final class PayWithPayPalFormAction
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         /** @var string $clientId */
         $clientId = $gatewayConfig->getConfig()['client_id'];
+        /** @var string $partnerAttributionId */
+        $partnerAttributionId = $gatewayConfig->getConfig()['partner_attribution_id'];
 
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -47,6 +49,7 @@ final class PayWithPayPalFormAction
         return new Response($this->twig->render('@SyliusPayPalPlugin/payWithPaypal.html.twig', [
             'client_id' => $clientId,
             'order_token' => $order->getTokenValue(),
+            'partner_attribution_id' => $partnerAttributionId,
         ]));
     }
 }

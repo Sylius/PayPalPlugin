@@ -5,7 +5,7 @@
     <body>
         <div id="paypal-button-container"></div>
     </body>
-    <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="{{ partner_attribution_id }}"></script>
     <script>
         let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
