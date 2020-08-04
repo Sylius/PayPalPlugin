@@ -20,11 +20,11 @@ final class DownloadPayoutsReportAction
 
     public function __invoke(Request $request): Response
     {
-        $reportContent = $this->payoutsReportDownloader->downloadFor(new \DateTime('-1 day'));
+        $report = $this->payoutsReportDownloader->downloadFor(new \DateTime('-1 day'));
 
-        $response = new Response($reportContent, Response::HTTP_OK, ['Content-Type' => 'text/csv']);
+        $response = new Response($report->content(), Response::HTTP_OK, ['Content-Type' => 'text/csv']);
         $response->headers->add([
-            'Content-Disposition' => $response->headers->makeDisposition('attachment', 'report.csv'),
+            'Content-Disposition' => $response->headers->makeDisposition('attachment', $report->fileName()),
         ]);
 
         return $response;

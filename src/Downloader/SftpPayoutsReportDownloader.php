@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Downloader;
 
 use phpseclib\Net\SFTP;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
+use Sylius\PayPalPlugin\Model\Report;
 
 final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterface
 {
@@ -34,7 +35,7 @@ final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterf
         $this->password = $password;
     }
 
-    public function downloadFor(\DateTimeInterface $day): string
+    public function downloadFor(\DateTimeInterface $day): Report
     {
         if (!$this->sftp->login($this->username, $this->password)) {
             throw new PayPalReportDownloadException();
@@ -49,6 +50,6 @@ final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterf
             throw new PayPalReportDownloadException();
         }
 
-        return (string) $reportContent;
+        return new Report((string) $reportContent, sprintf('PYT%s.csv', $day->format('Ymd')));
     }
 }

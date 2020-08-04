@@ -40,7 +40,7 @@
 
         <MixedAssignment>
             <errorLevel type="info">
-                <file name="src/Downloader/PayoutsReportDownloader.php"/>
+                <file name="src/Downloader/SftpPayoutsReportDownloader.php"/>
             </errorLevel>
         </MixedAssignment>
 
@@ -59,7 +59,7 @@
 
         <TooManyArguments>
             <errorLevel type="info">
-                <file name="src/Downloader/PayoutsReportDownloader.php"/>
+                <file name="src/Downloader/SftpPayoutsReportDownloader.php"/>
             </errorLevel>
         </TooManyArguments>
     </issueHandlers>

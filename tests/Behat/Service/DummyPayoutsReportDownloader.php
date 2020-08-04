@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Service;
 
 use Sylius\PayPalPlugin\Downloader\PayoutsReportDownloaderInterface;
+use Sylius\PayPalPlugin\Model\Report;
 
 final class DummyPayoutsReportDownloader implements PayoutsReportDownloaderInterface
 {
-    public function downloadFor(\DateTimeInterface $day): string
+    public function downloadFor(\DateTimeInterface $day): Report
     {
-        return 'LATEST DUMMY REPORT';
+        return new Report('DUMMY REPORT', 'report.csv');
     }
 }

@@ -17,6 +17,7 @@ use phpseclib\Net\SFTP;
 use PhpSpec\ObjectBehavior;
 use Sylius\PayPalPlugin\Downloader\PayoutsReportDownloaderInterface;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
+use Sylius\PayPalPlugin\Model\Report;
 
 final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
 {
@@ -40,7 +41,10 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
             ->willReturn('REPORT-CONTENT')
         ;
 
-        $this->downloadFor($yesterday)->shouldReturn('REPORT-CONTENT');
+        $this
+            ->downloadFor($yesterday)
+            ->shouldBeLike(new Report('REPORT-CONTENT', sprintf('PYT%s.csv', $yesterday->format('Ymd'))))
+        ;
     }
 
     function it_throws_an_exception_if_credentials_are_invalid(SFTP $sftp): void
