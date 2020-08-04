@@ -6,12 +6,12 @@ namespace Sylius\PayPalPlugin\Downloader;
 
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 
-interface ReportDownloaderInterface
+interface PayoutsReportDownloaderInterface
 {
     /**
      * @throws PayPalReportDownloadException
      *
      * @return string Content of the latest report
      */
-    public function downloadLatest(): string;
+    public function downloadFor(\DateTimeInterface $day): string;
 }

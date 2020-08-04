@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
-use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
+use Sylius\PayPalPlugin\Downloader\PayoutsReportDownloaderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final class DownloadPayoutsReportAction
 {
-    /** @var ReportDownloaderInterface */
-    private $reportDownloader;
+    /** @var PayoutsReportDownloaderInterface */
+    private $payoutsReportDownloader;
 
-    public function __construct(ReportDownloaderInterface $reportDownloader)
+    public function __construct(PayoutsReportDownloaderInterface $payoutsReportDownloader)
     {
-        $this->reportDownloader = $reportDownloader;
+        $this->payoutsReportDownloader = $payoutsReportDownloader;
     }
 
     public function __invoke(Request $request): Response
     {
-        $reportContent = $this->reportDownloader->downloadLatest();
+        $reportContent = $this->payoutsReportDownloader->downloadFor(new \DateTime('-1 day'));
 
         $response = new Response($reportContent, Response::HTTP_OK, ['Content-Type' => 'text/csv']);
         $response->headers->add([

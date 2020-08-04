@@ -107,7 +107,7 @@
 
         <service
             id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface"
-            class="Sylius\PayPalPlugin\Downloader\PayoutsReportDownloader"
+            class="Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader"
         >
             <argument type="service" id="sylius.paypal.client.sftp" />
             <argument>%env(resolve:PAYPAL_REPORTS_SFTP_USERNAME)%</argument>

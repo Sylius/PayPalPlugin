@@ -15,19 +15,19 @@ namespace spec\Sylius\PayPalPlugin\Downloader;
 
 use phpseclib\Net\SFTP;
 use PhpSpec\ObjectBehavior;
-use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
+use Sylius\PayPalPlugin\Downloader\PayoutsReportDownloaderInterface;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 
-final class PayoutsReportDownloaderSpec extends ObjectBehavior
+final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
 {
     function let(SFTP $sftp): void
     {
         $this->beConstructedWith($sftp, 'login', 'password');
     }
 
-    function it_implements_report_downloader_interface(): void
+    function it_implements_payouts_report_downloader_interface(): void
     {
-        $this->shouldImplement(ReportDownloaderInterface::class);
+        $this->shouldImplement(PayoutsReportDownloaderInterface::class);
     }
 
     function it_returns_content_of_the_latest_pyt_report_from_pay_pal_sftp_server(SFTP $sftp): void
@@ -40,7 +40,7 @@ final class PayoutsReportDownloaderSpec extends ObjectBehavior
             ->willReturn('REPORT-CONTENT')
         ;
 
-        $this->downloadLatest()->shouldReturn('REPORT-CONTENT');
+        $this->downloadFor($yesterday)->shouldReturn('REPORT-CONTENT');
     }
 
     function it_throws_an_exception_if_credentials_are_invalid(SFTP $sftp): void
@@ -49,7 +49,7 @@ final class PayoutsReportDownloaderSpec extends ObjectBehavior
 
         $this
             ->shouldThrow(PayPalReportDownloadException::class)
-            ->during('downloadLatest', [])
+            ->during('downloadFor', [new \DateTime()])
         ;
     }
 
@@ -65,7 +65,7 @@ final class PayoutsReportDownloaderSpec extends ObjectBehavior
 
         $this
             ->shouldThrow(PayPalReportDownloadException::class)
-            ->during('downloadLatest', [])
+            ->during('downloadFor', [$yesterday])
         ;
     }
 }
