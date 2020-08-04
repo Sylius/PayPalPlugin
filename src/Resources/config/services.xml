@@ -100,5 +100,18 @@
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface" />
             <tag name="twig.extension" />
         </service>
+
+        <service id="sylius.paypal.client.sftp" class="phpseclib\Net\SFTP">
+            <argument>reports.sandbox.paypal.com</argument>
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface"
+            class="Sylius\PayPalPlugin\Downloader\PayoutsReportDownloader"
+        >
+            <argument type="service" id="sylius.paypal.client.sftp" />
+            <argument>%env(resolve:PAYPAL_REPORTS_SFTP_USERNAME)%</argument>
+            <argument>%env(resolve:PAYPAL_REPORTS_SFTP_PASSWORD)%</argument>
+        </service>
     </services>
 </container>
