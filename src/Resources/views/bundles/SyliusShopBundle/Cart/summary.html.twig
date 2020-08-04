@@ -33,7 +33,8 @@
     <script>
         let completeUrl = "{{ path('sylius_shop_checkout_complete') }}";
         let createPayPalOrderFromCartUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_cart', {'id': cart.id}) }}";
-        let processPayPalOrderUrl = "{{ path('sylius_paypal_plugin_process_paypal_order', {'id': cart.id}) }}";
+        let processPayPalOrderUrl = "{{ path('sylius_paypal_plugin_process_paypal_order') }}";
+        let orderId = "{{ cart.id }}";
 
         paypal.Buttons({
             createOrder: function(data, actions) {
@@ -46,7 +47,7 @@
                 return fetch(processPayPalOrderUrl, {
                     method: 'post',
                     headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ payPalOrderId: data.orderID })
+                    body: JSON.stringify({ payPalOrderId: data.orderID, orderId: orderId })
                 })
                 .then(res => res.json())
                 .then(function(details) {

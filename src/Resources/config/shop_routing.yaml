@@ -29,7 +29,7 @@ sylius_paypal_plugin_complete_paypal_payment:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalPaymentAction
 
 sylius_paypal_plugin_process_paypal_order:
-    path: /process-pay-pal-order/{id}
+    path: /process-pay-pal-order/
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction

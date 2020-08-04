@@ -36,6 +36,7 @@
     let orderId = null;
 
     let createPayPalOrderFromProductUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_product', {'productId': product.id}) }}";
+    let processPayPalOrderUrl = "{{ path('sylius_paypal_plugin_process_paypal_order') }}";
 
     paypal.Buttons({
         createOrder: function(data, actions) {
@@ -52,10 +53,10 @@
         },
 
         onApprove: function(data, actions) {
-            return fetch(`/en_US/process-pay-pal-order/${orderId}`, {
+            return fetch(processPayPalOrderUrl, {
                 method: 'post',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: payPalOrderId })
+                body: JSON.stringify({ payPalOrderId: payPalOrderId, orderId: orderId })
             })
             .then(res => res.json())
             .then(details => {
