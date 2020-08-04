@@ -102,7 +102,7 @@
         </service>
 
         <service id="sylius.paypal.client.sftp" class="phpseclib\Net\SFTP">
-            <argument>reports.sandbox.paypal.com</argument>
+            <argument>%env(resolve:PAYPAL_REPORTS_SFTP_HOST)%</argument>
         </service>
 
         <service
