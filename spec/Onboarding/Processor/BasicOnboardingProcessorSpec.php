@@ -18,7 +18,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
     function let(HttpClientInterface $httpClient): void
     {
-        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com', 'ATTRIBUTION-ID');
+        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com');
     }
 
     function it_processes_onboarding_for_supported_payment_method_and_request(
@@ -62,7 +62,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
             '{"client_id":"CLIENT-ID",
             "client_secret":"CLIENT-SECRET",
             "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
-            "merchant_id":"MERCHANT-ID"}'
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
         );
 
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);

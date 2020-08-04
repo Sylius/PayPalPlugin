@@ -44,7 +44,6 @@
         <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">
             <argument type="service" id="twig" />
             <argument type="service" id="sylius.repository.payment" />
-            <argument>%sylius.paypal.partner_attribution_id%</argument>
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">

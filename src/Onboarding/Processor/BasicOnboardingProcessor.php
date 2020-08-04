@@ -19,14 +19,10 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
     /** @var string */
     private $url;
 
-    /** @var string */
-    private $partnerAttributionId;
-
-    public function __construct(HttpClientInterface $httpClient, string $url, string $partnerAttributionId)
+    public function __construct(HttpClientInterface $httpClient, string $url)
     {
         $this->httpClient = $httpClient;
         $this->url = $url;
-        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function process(
@@ -59,7 +55,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             'merchant_id' => $response['merchant_id'],
             'sylius_merchant_id' => $response['sylius_merchant_id'],
             'onboarding_id' => $request->query->get('onboarding_id'),
-            'partner_attribution_id' => $this->partnerAttributionId,
+            'partner_attribution_id' => $response['partner_attribution_id'],
         ]);
 
         return $paymentMethod;
