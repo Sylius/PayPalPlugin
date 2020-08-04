@@ -50,6 +50,6 @@ final class PayoutsReportDownloader implements ReportDownloaderInterface
             throw new PayPalReportDownloadException();
         }
 
-        return $reportContent;
+        return (string) $reportContent;
     }
 }

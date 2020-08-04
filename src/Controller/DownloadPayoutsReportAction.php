@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class DownloadPayoutsReportAction
 {
     /** @var ReportDownloaderInterface */
-    protected $reportDownloader;
+    private $reportDownloader;
 
     public function __construct(ReportDownloaderInterface $reportDownloader)
     {

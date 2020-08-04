@@ -38,6 +38,12 @@
             </errorLevel>
         </MixedArrayAccess>
 
+        <MixedAssignment>
+            <errorLevel type="info">
+                <file name="src/Downloader/PayoutsReportDownloader.php"/>
+            </errorLevel>
+        </MixedAssignment>
+
         <MoreSpecificImplementedParamType>
             <errorLevel type="info">
                 <directory name="src/Payum/Action/"/>
@@ -50,5 +56,11 @@
                 <file name="src/Controller/PayPalOrderItemController.php"/>
             </errorLevel>
         </PropertyNotSetInConstructor>
+
+        <TooManyArguments>
+            <errorLevel type="info">
+                <file name="src/Downloader/PayoutsReportDownloader.php"/>
+            </errorLevel>
+        </TooManyArguments>
     </issueHandlers>
 </psalm>
