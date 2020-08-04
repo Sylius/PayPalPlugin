@@ -12,7 +12,7 @@ sylius_paypal_plugin_create_paypal_order:
 
 sylius_paypal_plugin_create_paypal_order_from_cart:
     path: /create-pay-pal-order-from-cart/{id}
-    methods: [POST]
+    methods: [POST, GET]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction
 
@@ -29,7 +29,7 @@ sylius_paypal_plugin_complete_paypal_payment:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalPaymentAction
 
 sylius_paypal_plugin_process_paypal_order:
-    path: /process-pay-pal-order/{id}
+    path: /process-pay-pal-order/
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction
@@ -45,3 +45,17 @@ sylius_paypal_plugin_complete_paypal_order_from_payment_page:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction
+
+sylius_paypal_plugin_create_paypal_order_from_product:
+    path: /create-pay-pal-order-from-product/{productId}
+    methods: [POST]
+    defaults:
+        _controller: sylius.controller.order_item:createFromProductDetailsAction
+        _sylius:
+            factory:
+                method: createForProduct
+                arguments: [expr:notFoundOnNull(service('sylius.repository.product').find($productId))]
+            form:
+                type: Sylius\Bundle\CoreBundle\Form\Type\Order\AddToCartType
+                options:
+                    product: expr:notFoundOnNull(service('sylius.repository.product').find($productId))

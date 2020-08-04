@@ -81,7 +81,7 @@ final class ProcessPayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $orderId = $request->attributes->getInt('id');
+        $orderId = $request->request->getInt('orderId');
         $order = $this->orderProvider->provideOrderById($orderId);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);

@@ -13,3 +13,9 @@ winzou_state_machine:
                     on: ['complete']
                     do: ['@Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor', 'completePayPalPayment']
                     args: ['object']
+
+sylius_order:
+    resources:
+        order_item:
+            classes:
+                controller: Sylius\PayPalPlugin\Controller\PayPalOrderItemController

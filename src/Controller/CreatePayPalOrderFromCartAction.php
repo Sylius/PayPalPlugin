@@ -64,6 +64,7 @@ final class CreatePayPalOrderFromCartAction
         $this->paymentManager->flush();
 
         return new JsonResponse([
+            'id' => $order->getId(),
             'orderID' => $payment->getDetails()['paypal_order_id'],
             'status' => $payment->getState(),
         ]);

@@ -1,0 +1,68 @@
+{% set product = order_item.variant.product %}
+{% set client_id = get_pay_pal_client_id(sylius.channel) %}
+
+{% form_theme form '@SyliusShop/Form/theme.html.twig' %}
+
+<div class="ui segment" id="sylius-product-selecting-variant" {{ sylius_test_html_attribute('product-selecting-variant') }}>
+    {{ sylius_template_event('sylius.shop.product.show.before_add_to_cart', {'product': product, 'order_item': order_item}) }}
+
+    {{ form_start(form, {'action': path('sylius_shop_ajax_cart_add_item', {'productId': product.id}), 'attr': {'class': 'ui loadable form', 'novalidate': 'novalidate', 'data-redirect': path(configuration.getRedirectRoute('summary'))}}) }}
+    {{ form_errors(form) }}
+    <div class="ui red label bottom pointing hidden sylius-validation-error" id="sylius-cart-validation-error" {{ sylius_test_html_attribute('cart-validation-error') }}></div>
+    {% if not product.simple %}
+        {% if product.variantSelectionMethodChoice %}
+            {% include '@SyliusShop/Product/Show/_variants.html.twig' %}
+        {% else %}
+            {% include '@SyliusShop/Product/Show/_options.html.twig' %}
+        {% endif %}
+    {% endif %}
+    {{ form_row(form.cartItem.quantity, sylius_test_form_attribute('quantity')) }}
+
+    {{ sylius_template_event('sylius.shop.product.show.add_to_cart_form', {'product': product, 'order_item': order_item}) }}
+
+    <button type="submit" class="ui huge primary icon labeled button" {{ sylius_test_html_attribute('add-to-cart-button') }}><i class="cart icon"></i> {{ 'sylius.ui.add_to_cart'|trans }}</button>
+
+    {{ form_row(form._token) }}
+    {{ form_end(form, {'render_rest': false}) }}
+</div>
+
+<div id="paypal-button-container"></div>
+{% if client_id %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+<script>
+    let completeUrl = "{{ path('sylius_shop_checkout_complete') }}";
+    let productId = "{{ product.id }}";
+    let payPalOrderId = null;
+    let orderId = null;
+
+    let createPayPalOrderFromProductUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_product', {'productId': product.id}) }}";
+    let processPayPalOrderUrl = "{{ path('sylius_paypal_plugin_process_paypal_order') }}";
+
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            let formData = new FormData(document.getElementsByName('sylius_add_to_cart')[0]);
+            return fetch(createPayPalOrderFromProductUrl, {
+                method: 'post',
+                body: formData
+            }).then(res => res.json()).then(data => {
+                payPalOrderId = data.orderID;
+                orderId = data.id;
+
+                return data.orderID;
+            });
+        },
+
+        onApprove: function(data, actions) {
+            return fetch(processPayPalOrderUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ payPalOrderId: payPalOrderId, orderId: orderId })
+            })
+            .then(res => res.json())
+            .then(details => {
+                window.location.href = completeUrl;
+            });
+        }
+    }).render('#paypal-button-container');
+</script>
+{% endif %}
