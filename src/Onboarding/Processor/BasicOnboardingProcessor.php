@@ -55,6 +55,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             'merchant_id' => $response['merchant_id'],
             'sylius_merchant_id' => $response['sylius_merchant_id'],
             'onboarding_id' => $request->query->get('onboarding_id'),
+            'partner_attribution_id' => $response['partner_attribution_id'],
         ]);
 
         return $paymentMethod;

@@ -29,7 +29,7 @@
 
 {% block javascripts %}
     {% if cart.payments|length > 0 %}
-    <script src="https://www.paypal.com/sdk/js?client-id={{ get_pay_pal_client_id(sylius.channel) }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id={{ get_pay_pal_client_id(sylius.channel) }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="{{ cart.payments.first().method.gatewayConfig.config['partner_attribution_id'] }}"></script>
     <script>
         let completeUrl = "{{ path('sylius_shop_checkout_complete') }}";
         let createPayPalOrderFromCartUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_cart', {'id': cart.id}) }}";

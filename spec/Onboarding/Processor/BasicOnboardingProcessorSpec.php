@@ -45,6 +45,7 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
                 'onboarding_id' => 'ONBOARDING-ID',
                 'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
                 'merchant_id' => 'MERCHANT-ID',
+                'partner_attribution_id' => 'ATTRIBUTION-ID',
             ]
         )->shouldBeCalled();
 
@@ -61,7 +62,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
             '{"client_id":"CLIENT-ID",
             "client_secret":"CLIENT-SECRET",
             "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
-            "merchant_id":"MERCHANT-ID"}'
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
         );
 
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
