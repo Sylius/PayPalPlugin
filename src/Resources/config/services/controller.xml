@@ -51,6 +51,7 @@
             <argument type="service" id="router" />
             <argument type="service" id="sylius.context.channel" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface" />
+            <argument type="service" id="sylius.repository.order" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">

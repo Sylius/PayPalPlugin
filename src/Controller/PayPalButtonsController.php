@@ -6,6 +6,8 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Core\Repository\ProductRepositoryInterface;
 use Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,16 +29,21 @@ final class PayPalButtonsController
     /** @var OnboardedPayPalClientIdProviderInterface */
     private $onboardedPayPalClientIdProvider;
 
+    /** @var OrderRepositoryInterface */
+    private $orderRepository;
+
     public function __construct(
         Environment $twig,
         UrlGeneratorInterface $router,
         ChannelContextInterface $channelContext,
-        OnboardedPayPalClientIdProviderInterface $onboardedPayPalClientIdProvider
+        OnboardedPayPalClientIdProviderInterface $onboardedPayPalClientIdProvider,
+        OrderRepositoryInterface $orderRepository
     ) {
         $this->twig = $twig;
         $this->router = $router;
         $this->channelContext = $channelContext;
         $this->onboardedPayPalClientIdProvider = $onboardedPayPalClientIdProvider;
+        $this->orderRepository = $orderRepository;
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -47,9 +54,36 @@ final class PayPalButtonsController
 
         return new Response($this->twig->render('@SyliusPayPalPlugin/payFromProductPage.html.twig', [
             'clientId' => $this->onboardedPayPalClientIdProvider->getForChannel($channel),
-            'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
             'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
-            'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order')
+            'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
+            'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
         ]));
+    }
+
+    public function renderCartPageButtonsAction(Request $request): Response
+    {
+        $orderId = $request->attributes->get('orderId');
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
+
+        return new Response($this->twig->render('@SyliusPayPalPlugin/payFromCartPage.html.twig', [
+            'clientId' => $this->onboardedPayPalClientIdProvider->getForChannel($channel),
+            'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
+            'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_cart', ['id' => $orderId]),
+            'orderId' => $orderId,
+            'partnerAttributionId' => $this->getPartnerAttributionId($orderId),
+            'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
+        ]));
+    }
+
+    /** TODO: Remove after merging https://github.com/Sylius/PayPalPlugin/pull/39 */
+    private function getPartnerAttributionId(int $orderId): string
+    {
+        /** @var OrderInterface $order */
+        $order = $this->orderRepository->find($orderId);
+
+        $config = $order->getPayments()->first()->getMethod()->getGatewayConfig()->getConfig();
+
+        return $config['partner_attribution_id'];
     }
 }
