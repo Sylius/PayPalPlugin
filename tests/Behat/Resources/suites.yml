@@ -64,7 +64,7 @@ default:
 
             filters:
                 tags: "@checkout && @ui"
-        ui_managing_payments:
+        ui_managing_payment_methods:
             contexts:
                 - sylius.behat.context.hook.doctrine_orm
 
@@ -89,12 +89,14 @@ default:
                 - sylius.behat.context.setup.product
                 - sylius.behat.context.setup.shipping
                 - sylius.behat.context.setup.zone
+
+                - Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext
+
+                - sylius.behat.context.ui.admin.managing_payment_methods
                 - sylius.behat.context.ui.channel
                 - sylius.behat.context.ui.email
-
-                - sylius.behat.context.ui.admin.managing_payments
                 - sylius.behat.context.ui.shop.cart
 
-                - Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentsContext
+                - Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext
             filters:
-                tags: "@managing_payments && @ui"
+                tags: "@managing_payment_methods && @ui"

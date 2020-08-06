@@ -8,9 +8,10 @@ use FriendsOfBehat\PageObjectExtension\Element\Element;
 
 final class DownloadPayPalReportElement extends Element implements DownloadPayPalReportElementInterface
 {
-    public function downloadReport(): void
+    public function downloadReport(string $paymentMethod): void
     {
-        $this->getDocument()->clickLink('Download PayPal report');
+        $row = $this->getDocument()->find('css', sprintf('tbody tr:contains("%s")', $paymentMethod));
+        $row->clickLink('Report');
     }
 
     public function isCsvReportDownloaded(): bool

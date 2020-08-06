@@ -6,7 +6,7 @@ namespace Tests\Sylius\PayPalPlugin\Behat\Element;
 
 interface DownloadPayPalReportElementInterface
 {
-    public function downloadReport(): void;
+    public function downloadReport(string $paymentMethod): void;
 
     public function isCsvReportDownloaded(): bool;
 }

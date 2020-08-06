@@ -10,7 +10,7 @@
             public="false"
         />
 
-        <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentsContext">
+        <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext">
             <argument type="service" id="Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElement" />
         </service>
 

@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Downloader;
 
 use phpseclib\Net\SFTP;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 use Sylius\PayPalPlugin\Model\Report;
 
@@ -35,15 +37,26 @@ final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterf
         $this->password = $password;
     }
 
-    public function downloadFor(\DateTimeInterface $day): Report
+    public function downloadFor(\DateTimeInterface $day, PaymentMethodInterface $paymentMethod): Report
     {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = $gatewayConfig->getConfig();
+
+        if (!isset($config['partner_attribution_id'])) {
+            throw new PayPalReportDownloadException();
+        }
+
+        /** @var string $partnerAttributionId */
+        $partnerAttributionId = $gatewayConfig->getConfig()['partner_attribution_id'];
+
         if (!$this->sftp->login($this->username, $this->password)) {
             throw new PayPalReportDownloadException();
         }
 
         $reportContent = $this
             ->sftp
-            ->get(sprintf('ppreports/outgoing/PYT.%s.sylius-ppcp4p-bn-code.R.0.2.0.CSV', $day->format('Ymd')))
+            ->get(sprintf('ppreports/outgoing/PYT.%s.%s.R.0.2.0.CSV', $day->format('Ymd'), $partnerAttributionId))
         ;
 
         if ($reportContent === false) {

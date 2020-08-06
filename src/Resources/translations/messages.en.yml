@@ -2,5 +2,5 @@ sylius:
     pay_pal:
         client_id: 'Client ID'
         client_secret: 'Client Secret'
-        download_pay_pal_report: 'Download PayPal report'
         label: 'PayPal'
+        report: 'Report'

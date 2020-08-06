@@ -8,7 +8,7 @@ use Behat\Behat\Context\Context;
 use Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElementInterface;
 use Webmozart\Assert\Assert;
 
-final class ManagingPaymentsContext implements Context
+final class ManagingPaymentMethodsContext implements Context
 {
     /** @var DownloadPayPalReportElementInterface */
     private $downloadPayPalReportElement;
@@ -19,15 +19,15 @@ final class ManagingPaymentsContext implements Context
     }
 
     /**
-     * @When I download PayPal report
+     * @When I download report for :paymentMethodName payment method
      */
-    public function iDownloadPayPalReport(): void
+    public function iDownloadPayPalReport(string $paymentMethodName): void
     {
-        $this->downloadPayPalReportElement->downloadReport();
+        $this->downloadPayPalReportElement->downloadReport($paymentMethodName);
     }
 
     /**
-     * @Then yesterday report csv file should be successfully downloaded
+     * @Then yesterday report's CSV file should be successfully downloaded
      */
     public function yesterdayReportCsvFileShouldBeSuccessfullyDownloaded(): void
     {

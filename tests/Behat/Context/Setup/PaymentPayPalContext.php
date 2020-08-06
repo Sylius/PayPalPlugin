@@ -70,8 +70,9 @@ final class PaymentPayPalContext implements Context
 
     /**
      * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/
+     * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name$/
      */
-    public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, int $position)
+    public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, ?int $position = 0)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
     }
