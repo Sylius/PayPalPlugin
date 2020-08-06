@@ -46,6 +46,13 @@
             <argument type="service" id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\PayPalButtonsController">
+            <argument type="service" id="twig" />
+            <argument type="service" id="router" />
+            <argument type="service" id="sylius.context.channel" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">
             <argument type="service" id="twig" />
             <argument type="service" id="sylius.repository.payment" />
