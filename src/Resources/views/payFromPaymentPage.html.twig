@@ -1,0 +1,25 @@
+<div id="paypal-button-container" style="width:250px"></div>
+<script src="https://www.paypal.com/sdk/js?client-id={{ clientId }}" data-partner-attribution-id="{{ partnerAttributionId }}"></script>
+<script>
+    let createPayPalOrderFromPaymentPageUrl = "{{ createPayPalOrderFromPaymentPageUrl }}";
+    let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
+
+    paypal.Buttons({
+        style: {
+            shape: 'pill',
+            color: 'gold',
+            layout: 'horizontal',
+            label: 'paypal',
+        },
+        createOrder: function(data, actions) {
+            return fetch(createPayPalOrderFromPaymentPageUrl, {
+                method: 'post'
+            }).then(res => res.json()).then(data => data.order_id);
+        },
+        onApprove: function(data, actions) {
+            return fetch(completePayPalOrderFromPaymentPageUrl, {
+                method: 'post'
+            }).then(res => res.json()).then(details => window.location.href = details.return_url);
+        }
+    }).render('#paypal-button-container');
+</script>

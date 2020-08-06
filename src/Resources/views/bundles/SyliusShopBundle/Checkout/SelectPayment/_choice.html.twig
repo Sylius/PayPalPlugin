@@ -12,32 +12,7 @@
             </div>
         {% endif %}
         {% if method.gatewayConfig.factoryName == 'sylius.pay_pal' %}
-            <div id="paypal-button-container" style="width:250px"></div>
-            <script src="https://www.paypal.com/sdk/js?client-id={{ method.gatewayConfig.config.client_id }}" data-partner-attribution-id="{{ method.gatewayConfig.config.partner_attribution_id }}"></script>
-            <script>
-                let amount = "{{ order.total }}";
-                let currencyCode = "{{ order.currencyCode }}";
-                let targetStatus = "{{ constant('Sylius\\PayPalPlugin\\Payum\\Action\\StatusAction::STATUS_COMPLETED') }}";
-
-                paypal.Buttons({
-                    style: {
-                        shape: 'pill',
-                        color: 'gold',
-                        layout: 'horizontal',
-                        label: 'paypal',
-                    },
-                    createOrder: function(data, actions) {
-                        return fetch(`{{ path('sylius_paypal_plugin_create_paypal_order_from_payment_page', {id: order.id}) }}`, {
-                            method: 'post'
-                        }).then(res => res.json()).then(data => data.order_id);
-                    },
-                    onApprove: function(data, actions) {
-                        return fetch(`{{ path('sylius_paypal_plugin_complete_paypal_order_from_payment_page', {id: order.id}) }}`, {
-                            method: 'post'
-                        }).then(res => res.json()).then(details => window.location.href = details.return_url);
-                    }
-                }).render('#paypal-button-container');
-            </script>
+            {{ render(controller('Sylius\\PayPalPlugin\\Controller\\PayPalButtonsController:renderPaymentPageButtonsAction', {'orderId': order.id})) }}
         {% endif %}
     </div>
 </div>

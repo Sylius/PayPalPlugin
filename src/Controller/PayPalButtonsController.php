@@ -76,6 +76,20 @@ final class PayPalButtonsController
         ]));
     }
 
+    public function renderPaymentPageButtonsAction(Request $request): Response
+    {
+        $orderId = $request->attributes->get('orderId');
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
+
+        return new Response($this->twig->render('@SyliusPayPalPlugin/payFromPaymentPage.html.twig', [
+            'clientId' => $this->onboardedPayPalClientIdProvider->getForChannel($channel),
+            'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
+            'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
+            'partnerAttributionId' => $this->getPartnerAttributionId($orderId),
+        ]));
+    }
+
     /** TODO: Remove after merging https://github.com/Sylius/PayPalPlugin/pull/39 */
     private function getPartnerAttributionId(int $orderId): string
     {
