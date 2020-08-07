@@ -19,3 +19,21 @@ sylius_order:
         order_item:
             classes:
                 controller: Sylius\PayPalPlugin\Controller\PayPalOrderItemController
+
+sylius_grid:
+    templates:
+        action:
+            download_report: "@SyliusPayPalPlugin/Grid/downloadReport.html.twig"
+    grids:
+        sylius_admin_payment_method:
+            actions:
+                item:
+                    download_report:
+                        type: download_report
+                        label: sylius.pay_pal.report
+                        icon: download
+                        options:
+                            link:
+                                route: sylius_paypal_plugin_admin_download_payouts_report
+                                parameters:
+                                    id: resource.id

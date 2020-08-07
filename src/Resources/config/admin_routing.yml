@@ -1,1 +1,7 @@
 # Define your own admin routes here
+
+sylius_paypal_plugin_admin_download_payouts_report:
+    path: /download/payouts-report/{id}
+    methods: [GET]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction

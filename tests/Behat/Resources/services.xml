@@ -3,6 +3,17 @@
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <defaults public="true" />
+
+        <service
+            id="Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElement"
+            parent="sylius.behat.element"
+            public="false"
+        />
+
+        <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext">
+            <argument type="service" id="Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElement" />
+        </service>
+
         <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext">
             <argument type="service" id="sylius.behat.shared_storage" />
             <argument type="service" id="sylius.repository.payment_method" />
@@ -15,5 +26,10 @@
         </service>
 
         <service id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage" parent="sylius.behat.page.shop.checkout.select_payment" public="false"/>
+
+        <service
+            id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface"
+            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyPayoutsReportDownloader"
+        />
     </services>
 </container>

@@ -22,6 +22,11 @@
             <argument type="service" id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction" public="true">
+            <argument type="service" id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface" />
+            <argument type="service" id="sylius.repository.payment_method" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction">
             <argument type="service" id="payum" />
             <argument type="service" id="sylius.repository.order" />
