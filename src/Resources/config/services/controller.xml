@@ -50,7 +50,7 @@
             <argument type="service" id="twig" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius.context.channel" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
             <argument type="service" id="sylius.repository.order" />
         </service>
 
