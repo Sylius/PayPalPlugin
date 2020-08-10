@@ -37,7 +37,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $this->shouldImplement(CreateOrderApiInterface::class);
     }
 
-    function it_creates_pay_pal_order_basing_on_given_payment(
+    function it_creates_pay_pal_order_based_on_given_payment(
         Client $client,
         PaymentInterface $payment,
         OrderInterface $order,
@@ -49,7 +49,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
         $order->getCurrencyCode()->willReturn('PLN');
-        $order->getBillingAddress()->willReturn(null);
+        $order->getShippingAddress()->willReturn(null);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -76,7 +76,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
     }
 
-    function it_creates_pay_pal_order_with_billing_address_basing_on_given_payment(
+    function it_creates_pay_pal_order_with_shipping_address_based_on_given_payment(
         Client $client,
         PaymentInterface $payment,
         OrderInterface $order,
@@ -84,18 +84,18 @@ final class CreateOrderApiSpec extends ObjectBehavior
         StreamInterface $body,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        AddressInterface $billingAddress
+        AddressInterface $shippingAddress
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
         $order->getCurrencyCode()->willReturn('PLN');
-        $order->getBillingAddress()->willReturn($billingAddress);
+        $order->getShippingAddress()->willReturn($shippingAddress);
 
-        $billingAddress->getFullName()->willReturn('Gandalf The Grey');
-        $billingAddress->getStreet()->willReturn('Hobbit St. 123');
-        $billingAddress->getCity()->willReturn('Minas Tirith');
-        $billingAddress->getPostcode()->willReturn('000');
-        $billingAddress->getCountryCode()->willReturn('US');
+        $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
+        $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
+        $shippingAddress->getCity()->willReturn('Minas Tirith');
+        $shippingAddress->getPostcode()->willReturn('000');
+        $shippingAddress->getCountryCode()->willReturn('US');
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);

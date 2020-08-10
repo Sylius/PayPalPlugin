@@ -76,7 +76,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
             ],
         ];
 
-        $address = $order->getBillingAddress();
+        $address = $order->getShippingAddress();
         if ($address !== null) {
             $data['purchase_units'][0]['shipping'] = [
                 'name' => ['full_name' => $address->getFullName()],
