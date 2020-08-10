@@ -1,0 +1,35 @@
+<div id="paypal-button-container"></div>
+<script src="https://www.paypal.com/sdk/js?client-id={{ clientId }}&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
+<script>
+    let payPalOrderId = null;
+    let orderId = null;
+
+    let completeUrl = "{{ completeUrl }}";
+    let createPayPalOrderFromProductUrl = "{{ createPayPalOrderFromProductUrl }}";
+    let processPayPalOrderUrl = "{{ processPayPalOrderUrl }}";
+
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            let formData = new FormData(document.getElementsByName('sylius_add_to_cart')[0]);
+            return fetch(createPayPalOrderFromProductUrl, {
+                method: 'post',
+                body: formData
+            }).then(res => res.json()).then(data => {
+                payPalOrderId = data.orderID;
+                orderId = data.id;
+
+                return data.orderID;
+            });
+        },
+
+        onApprove: function(data, actions) {
+            return fetch(processPayPalOrderUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ payPalOrderId: payPalOrderId, orderId: orderId })
+            })
+            .then(res => res.json())
+            .then(details => window.location.href = completeUrl);
+        }
+    }).render('#paypal-button-container');
+</script>

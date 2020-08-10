@@ -17,8 +17,9 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
+use Webmozart\Assert\Assert;
 
-final class OnboardedPayPalClientIdProvider implements OnboardedPayPalClientIdProviderInterface
+final class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface
 {
     /** @var PaymentMethodRepositoryInterface */
     private $paymentMethodRepository;
@@ -28,7 +29,23 @@ final class OnboardedPayPalClientIdProvider implements OnboardedPayPalClientIdPr
         $this->paymentMethodRepository = $paymentMethodRepository;
     }
 
-    public function getForChannel(ChannelInterface $channel): string
+    public function getClientId(ChannelInterface $channel): string
+    {
+        $config = $this->getPayPalPaymentMethodConfig($channel);
+        Assert::keyExists($config, 'client_id');
+
+        return (string) $config['client_id'];
+    }
+
+    public function getPartnerAttributionId(ChannelInterface $channel): string
+    {
+        $config = $this->getPayPalPaymentMethodConfig($channel);
+        Assert::keyExists($config, 'partner_attribution_id');
+
+        return (string) $config['partner_attribution_id'];
+    }
+
+    private function getPayPalPaymentMethodConfig(ChannelInterface $channel): array
     {
         $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);
 
@@ -41,11 +58,7 @@ final class OnboardedPayPalClientIdProvider implements OnboardedPayPalClientIdPr
                 continue;
             }
 
-            $config = $gatewayConfig->getConfig();
-
-            if (isset($config['client_id'])) {
-                return (string) $config['client_id'];
-            }
+            return $gatewayConfig->getConfig();
         }
 
         throw new \InvalidArgumentException('No PayPal payment method defined');

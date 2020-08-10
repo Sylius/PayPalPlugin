@@ -37,3 +37,16 @@ sylius_grid:
                                 route: sylius_paypal_plugin_admin_download_payouts_report
                                 parameters:
                                     id: resource.id
+
+sylius_ui:
+    events:
+        sylius.shop.product.show.right_sidebar:
+            blocks:
+                pay_with_pay_pal:
+                    template: '@SyliusPayPalPlugin/Buttons/productDetails.html.twig'
+                    priority: 7
+        sylius.shop.cart.summary:
+            blocks:
+                pay_with_pay_pal:
+                    template: '@SyliusPayPalPlugin/Buttons/cart.html.twig'
+                    priority: 7

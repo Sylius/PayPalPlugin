@@ -90,15 +90,10 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface"
-            class="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProvider"
+            id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider"
         >
             <argument type="service" id="sylius.repository.payment_method" />
-        </service>
-
-        <service id="Sylius\PayPalPlugin\Twig\ClientIdExtension">
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\OnboardedPayPalClientIdProviderInterface" />
-            <tag name="twig.extension" />
         </service>
 
         <service id="sylius.paypal.client.sftp" class="phpseclib\Net\SFTP">
