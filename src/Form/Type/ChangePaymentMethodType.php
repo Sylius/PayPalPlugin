@@ -16,6 +16,7 @@ final class ChangePaymentMethodType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
+            /** @var PaymentInterface[] $payments */
             $payments = $event->getData();
             $form = $event->getForm();
 
@@ -24,7 +25,7 @@ final class ChangePaymentMethodType extends AbstractType
                     $payment->getState(),
                     [PaymentInterface::STATE_NEW, PaymentInterface::STATE_CART, PaymentInterface::STATE_PROCESSING]
                 )) {
-                    $form->remove($key);
+                    $form->remove((string) $key);
                 }
             }
         });

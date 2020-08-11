@@ -51,7 +51,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                         'op' => 'replace',
                         'path' => '/purchase_units/@reference_id==\'default\'/amount',
                         'value' => ['value' => $newTotal, 'currency_code' => $newCurrencyCode],
-                    ]
+                    ],
                 ],
             ]
         );
