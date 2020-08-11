@@ -61,9 +61,33 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     'payee' => [
                         'merchant_id' => $config['merchant_id'],
                     ],
+                    'shipping' => [
+                        'name' => ['full_name' => 'John Doe'],
+                        'address' => [
+                            'address_line_1' => 'Test St. 123',
+                            'address_line_2' => '6',
+                            'admin_area_1' => 'CA',
+                            'admin_area_2' => 'New York',
+                            'postal_code' => '32000',
+                            'country_code' => 'US',
+                        ],
+                    ],
                 ],
             ],
         ];
+
+        $address = $order->getShippingAddress();
+        if ($address !== null) {
+            $data['purchase_units'][0]['shipping'] = [
+                'name' => ['full_name' => $address->getFullName()],
+                'address' => [
+                    'address_line_1' => $address->getStreet(),
+                    'admin_area_2' => $address->getCity(),
+                    'postal_code' => $address->getPostcode(),
+                    'country_code' => $address->getCountryCode(),
+                ],
+            ];
+        }
 
         $response = $this->client->request(
             'POST',
