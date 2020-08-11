@@ -107,5 +107,14 @@
             <argument>%env(resolve:PAYPAL_REPORTS_SFTP_USERNAME)%</argument>
             <argument>%env(resolve:PAYPAL_REPORTS_SFTP_PASSWORD)%</argument>
         </service>
+
+        <service
+            id="sylius.form.type.checkout_select_payment"
+            class="Sylius\PayPalPlugin\Form\Type\SelectPaymentType"
+        >
+            <argument>%sylius.model.order.class%</argument>
+            <argument>%sylius.form.type.checkout_select_payment.validation_groups%</argument>
+            <tag name="form.type" />
+        </service>
     </services>
 </container>

@@ -59,3 +59,21 @@ sylius_paypal_plugin_create_paypal_order_from_product:
                 type: Sylius\Bundle\CoreBundle\Form\Type\Order\AddToCartType
                 options:
                     product: expr:notFoundOnNull(service('sylius.repository.product').find($productId))
+
+sylius_shop_checkout_select_payment:
+    path: /checkout/select-payment
+    methods: [GET, PUT]
+    defaults:
+        _controller: sylius.controller.order:updateAction
+        _sylius:
+            event: payment
+            flash: false
+            template: "@SyliusShop/Checkout/selectPayment.html.twig"
+            form: Sylius\PayPalPlugin\Form\Type\SelectPaymentType
+            repository:
+                method: findCartForSelectingPayment
+                arguments:
+                    - "expr:service('sylius.context.cart').getCart().getId()"
+            state_machine:
+                graph: sylius_order_checkout
+                transition: select_payment
