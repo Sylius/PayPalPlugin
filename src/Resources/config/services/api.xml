@@ -33,5 +33,14 @@
             <argument type="service" id="sylius.http_client" />
             <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface"
+            class="Sylius\PayPalPlugin\Api\UpdateOrderApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+            <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+        </service>
     </services>
 </container>

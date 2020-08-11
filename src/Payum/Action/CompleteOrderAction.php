@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
+use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class CompleteOrderAction implements ActionInterface
@@ -27,14 +28,19 @@ final class CompleteOrderAction implements ActionInterface
     /** @var AuthorizeClientApiInterface */
     private $authorizeClientApi;
 
+    /** @var UpdateOrderApiInterface */
+    private $updateOrderApi;
+
     /** @var CompleteOrderApiInterface */
     private $completeOrderApi;
 
     public function __construct(
         AuthorizeClientApiInterface $authorizeClientApi,
+        UpdateOrderApiInterface $updateOrderApi,
         CompleteOrderApiInterface $completeOrderApi
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
+        $this->updateOrderApi = $updateOrderApi;
         $this->completeOrderApi = $completeOrderApi;
     }
 
@@ -55,6 +61,18 @@ final class CompleteOrderAction implements ActionInterface
             ->authorizeClientApi
             ->authorize((string) $config['client_id'], (string) $config['client_secret'])
         ;
+
+        $details = $payment->getDetails();
+        $order = $payment->getOrder();
+        if ($payment->getAmount() !== $order->getTotal()) {
+            $this->updateOrderApi->update(
+                $token,
+                $details['paypal_order_id'],
+                (string) ($order->getTotal()/100),
+                $order->getCurrencyCode()
+            );
+        }
+
         $content = $this->completeOrderApi->complete($token, $request->getOrderId());
 
         if ($content['status'] === 'COMPLETED') {
