@@ -57,7 +57,6 @@
         <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">
             <argument type="service" id="twig" />
             <argument type="service" id="sylius.repository.payment" />
-            <argument>%sylius.paypal.facilitator_url%</argument>
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
