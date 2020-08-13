@@ -1,9 +1,35 @@
 <html>
     <head>
         <title>Pay with PayPal</title>
+        {% block stylesheets %}
+            <style>
+                .container {
+                    padding: 30px;
+                    align-items: center;
+                    display: grid;
+                    justify-content: center;
+                    grid-template-rows: 40vh auto;
+                    width: 400px;
+                    margin: auto;
+                }
+
+                #sylius-logo, #paypal-button-container {
+                    width: 100%;
+                }
+
+                .padding {
+                    padding: 10px;
+                }
+            </style>
+        {% endblock %}
     </head>
     <body>
-        <div id="paypal-button-container"></div>
+    <div class="container">
+        <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
+        <div class="button-container padding">
+            <div id="paypal-button-container"></div>
+        </div>
+    </div>
     </body>
     <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="{{ partner_attribution_id }}"></script>
     <script>
