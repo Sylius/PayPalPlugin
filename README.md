@@ -58,3 +58,36 @@ git clone git@github.com:Sylius/PayPalPlugin.git
     (cd tests/Application && bin/console sylius:fixtures:load)
     (cd tests/Application && symfony serve)
     ```
+### Installing
+
+1. Run 
+    ```bash
+    composer require sylius/paypal-plugin
+    ```
+   
+2. Import routes
+    ``` yaml
+    # config/routes/sylius_shop.yaml
+    
+    sylius_paypal:
+        resource: "@SyliusPayPalPlugin/Resources/config/shop_routing.yaml"
+   
+    #config/routes/sylius_admin.yaml
+   
+    sylius_paypal_admin:
+        resource: "@SyliusPayPalPlugin/Resources/config/admin_routing.yml"
+    ```
+
+3. Override sylius templates
+
+    ```bash
+    cp -R vendor/sylius/paypal-plugin/src/Resources/views/bundles/* templates/bundles/
+    ```
+4. Add env variables
+    
+    ```
+    #.env
+   
+    PAYPAL_FACILITATOR_URL='https://paypal.sylius.com'
+    PAYPAL_API_BASE_URL='https://api.sandbox.paypal.com/'
+    ```
