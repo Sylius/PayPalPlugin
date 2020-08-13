@@ -6,6 +6,32 @@
 
 <h1 align="center">PayPal Plugin</h1>
 
+## PayPal reports
+
+To be able to download reports about your payouts, you need to have reports feature enabled on your PayPal account. Also,
+it's required to configure SFTP account and set its data in `.env` file.
+
+1. Log in to your PayPal account
+2. Enter the profile settings
+
+    ![menu](docs/reports-menu.png)
+
+3. Pass to SFTP accounts panel
+
+    ![panel](docs/reports-panel.png)
+
+4. Create a new SFTP account
+
+    ![accounts](docs/reports-accounts.png)
+
+5. Configure following env variables
+
+    ```
+    PAYPAL_REPORTS_SFTP_HOST='reports.paypal.com'
+    PAYPAL_REPORTS_SFTP_USERNAME='USERNAME'
+    PAYPAL_REPORTS_SFTP_PASSWORD='PASSWORD'
+    ```
+
 ## Development
 
 ```bash
