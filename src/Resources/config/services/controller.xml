@@ -4,6 +4,12 @@
     <services>
         <defaults public="true"/>
 
+        <service id="Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction">
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
+            <argument type="service" id="sylius.manager.payment" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction">
             <argument type="service" id="payum" />
             <argument type="service" id="sylius.repository.order" />

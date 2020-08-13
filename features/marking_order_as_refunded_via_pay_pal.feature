@@ -14,7 +14,6 @@ Feature: Marking order as refunded via PayPal
         And the customer chose "Free" shipping method to "United States" with "PayPal" payment
         And this order is already paid as "EDE12424" PayPal order
         And I am logged in as an administrator
-        And I am viewing the summary of this order
 
     @ui
     Scenario: Having order marked as refunded after PayPal-initialized refund

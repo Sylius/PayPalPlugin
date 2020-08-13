@@ -12,6 +12,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Symfony\Component\HttpFoundation\Response;
+use Webmozart\Assert\Assert;
 
 final class ManagingOrdersContext implements Context
 {
@@ -70,5 +72,7 @@ final class ManagingOrdersContext implements Context
         ]);
 
         $this->client->request('POST', '/paypal-webhook/api/', [], [], ['Content-Type' => 'application/json'], $data);
+
+        Assert::same($this->client->getResponse()->getStatusCode(), Response::HTTP_NO_CONTENT);
     }
 }
