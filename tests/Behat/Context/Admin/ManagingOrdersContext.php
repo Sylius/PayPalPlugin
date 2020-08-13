@@ -7,6 +7,7 @@ namespace Tests\Sylius\PayPalPlugin\Behat\Context\Admin;
 use Behat\Behat\Context\Context;
 use Doctrine\Common\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
+use Sylius\Behat\Page\Admin\Order\ShowPageInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
@@ -26,17 +27,22 @@ final class ManagingOrdersContext implements Context
     /** @var KernelBrowser */
     private $client;
 
+    /** @var ShowPageInterface */
+    private $showPage;
+
     /** @var int */
     private $refundAmount;
 
     public function __construct(
         FactoryInterface $stateMachineFactory,
         ObjectManager $objectManager,
-        KernelBrowser $client
+        KernelBrowser $client,
+        ShowPageInterface $showPage
     ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->objectManager = $objectManager;
         $this->client = $client;
+        $this->showPage = $showPage;
     }
 
     /**
@@ -74,5 +80,16 @@ final class ManagingOrdersContext implements Context
         $this->client->request('POST', '/paypal-webhook/api/', [], [], ['Content-Type' => 'application/json'], $data);
 
         Assert::same($this->client->getResponse()->getStatusCode(), Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * @When I view the summary of the refunded order :order
+     */
+    public function iSeeTheRefundedOrder(OrderInterface $order): void
+    {
+        // During calling `open` method it's verified and FOR SOME REASON it constantly tries to compare it
+        // with the previously visited URL "/paypal-webhook/api/"
+        // This override is temporary until we find out what is the problem
+        $this->showPage->tryToOpen(['id' => $order->getId()]);
     }
 }

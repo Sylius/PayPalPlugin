@@ -13,6 +13,7 @@ use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Webmozart\Assert\Assert;
 
 final class RefundOrderAction
 {
@@ -37,10 +38,8 @@ final class RefundOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $content = json_decode($request->getContent(false), true);
-
         try {
-            $payment = $this->paymentProvider->getByPayPalOrderId($content['resource']['id']);
+            $payment = $this->paymentProvider->getByPayPalOrderId($this->getPayPalOrderId($request));
         } catch (PaymentNotFoundException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
         }
@@ -52,5 +51,15 @@ final class RefundOrderAction
         $this->paymentManager->flush();
 
         return new JsonResponse([], Response::HTTP_NO_CONTENT);
+    }
+
+    private function getPayPalOrderId(Request $request): string
+    {
+        $content = (array) json_decode((string) $request->getContent(false), true);
+        Assert::keyExists($content, 'resource');
+        $resource = (array) $content['resource'];
+        Assert::keyExists($resource, 'id');
+
+        return (string) $resource['id'];
     }
 }

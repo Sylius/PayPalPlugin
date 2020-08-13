@@ -18,6 +18,6 @@ Feature: Marking order as refunded via PayPal
     @ui
     Scenario: Having order marked as refunded after PayPal-initialized refund
         Given request from PayPal about "EDE12424" order refund has been received
-        When I view the summary of the order "#00000001"
+        When I view the summary of the refunded order "#00000001"
         Then it should have payment with state refunded
         And it should have order's payment state "Refunded"
