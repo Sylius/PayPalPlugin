@@ -21,12 +21,17 @@ final class PayWithPayPalFormAction
     /** @var PaymentRepositoryInterface */
     private $paymentRepository;
 
+    /** @var string */
+    private $facilitatorUrl;
+
     public function __construct(
         Environment $twig,
-        PaymentRepositoryInterface $paymentRepository
+        PaymentRepositoryInterface $paymentRepository,
+        string $facilitatorUrl
     ) {
         $this->twig = $twig;
         $this->paymentRepository = $paymentRepository;
+        $this->facilitatorUrl = $facilitatorUrl;
     }
 
     public function __invoke(Request $request): Response
@@ -50,6 +55,7 @@ final class PayWithPayPalFormAction
             'client_id' => $clientId,
             'order_token' => $order->getTokenValue(),
             'partner_attribution_id' => $partnerAttributionId,
+            'sylius_logo_path' => $this->facilitatorUrl . '/assets/img/logo.png'
         ]));
     }
 }
