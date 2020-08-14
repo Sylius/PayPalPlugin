@@ -50,12 +50,16 @@ final class PayPalButtonsController
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
 
-        return new Response($this->twig->render('@SyliusPayPalPlugin/payFromProductPage.html.twig', [
-            'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-            'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
-            'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
-            'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
-        ]));
+        try {
+            return new Response($this->twig->render('@SyliusPayPalPlugin/payFromProductPage.html.twig', [
+                'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
+                'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
+                'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
+                'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
+            ]));
+        } catch (\InvalidArgumentException $exception) {
+            return new Response('');
+        }
     }
 
     public function renderCartPageButtonsAction(Request $request): Response
@@ -64,14 +68,18 @@ final class PayPalButtonsController
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
 
-        return new Response($this->twig->render('@SyliusPayPalPlugin/payFromCartPage.html.twig', [
-            'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-            'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
-            'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_cart', ['id' => $orderId]),
-            'orderId' => $orderId,
-            'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
-            'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
-        ]));
+        try {
+            return new Response($this->twig->render('@SyliusPayPalPlugin/payFromCartPage.html.twig', [
+                'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
+                'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
+                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_cart', ['id' => $orderId]),
+                'orderId' => $orderId,
+                'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
+                'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
+            ]));
+        } catch (\InvalidArgumentException $exception) {
+            return new Response('');
+        }
     }
 
     public function renderPaymentPageButtonsAction(Request $request): Response
@@ -80,11 +88,15 @@ final class PayPalButtonsController
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
 
-        return new Response($this->twig->render('@SyliusPayPalPlugin/payFromPaymentPage.html.twig', [
-            'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-            'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
-            'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
-            'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
-        ]));
+        try {
+            return new Response($this->twig->render('@SyliusPayPalPlugin/payFromPaymentPage.html.twig', [
+                'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
+                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
+                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
+                'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
+            ]));
+        } catch (\InvalidArgumentException $exception) {
+            return new Response('');
+        }
     }
 }
