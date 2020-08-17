@@ -58,10 +58,18 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor"
+            decorates="sylius.order_processing.order_payment_processor.after_checkout"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor.inner" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor"
             decorates="sylius.order_processing.order_payment_processor.checkout"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor.inner" />
+            <argument type="service" id="sm.factory" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor" public="true">
