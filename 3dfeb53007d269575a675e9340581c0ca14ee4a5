@@ -1,0 +1,16 @@
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-17T12:34:05Z
+
+So after sending mock of webhook it works just fine
+![image](https://user-images.githubusercontent.com/22825722/90396474-905dbd00-e096-11ea-9242-ee2654714946.png)
+also sylius store seems to handle it.
+![image](https://user-images.githubusercontent.com/22825722/90396505-9f446f80-e096-11ea-9286-8eaa4b21facf.png)
+
+All i had to do was change order_id in ngrok simulation.
+
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-17T12:34:50Z
+
+Thanks, Mateusz! :1st_place_medal:
