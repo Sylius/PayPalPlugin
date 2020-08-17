@@ -1,7 +1,8 @@
 sylius:
     pay_pal:
+        back_to_store: 'Back to store'
         client_id: 'Client ID'
         client_secret: 'Client Secret'
+        different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
         label: 'PayPal'
         report: 'Report'
-        back_to_store: 'Back to store'
