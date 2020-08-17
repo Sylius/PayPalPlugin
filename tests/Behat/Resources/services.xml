@@ -10,6 +10,13 @@
             public="false"
         />
 
+        <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingOrdersContext">
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius.manager.order" />
+            <argument type="service" id="test.client" />
+            <argument type="service" id="sylius.behat.page.admin.order.show" />
+        </service>
+
         <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext">
             <argument type="service" id="Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElement" />
         </service>
@@ -30,6 +37,11 @@
         <service
             id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface"
             class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyPayoutsReportDownloader"
+        />
+
+        <service
+            id="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor"
+            class="Tests\Sylius\PayPalPlugin\Behat\Service\VoidPayPalPaymentCompleteProcessor"
         />
     </services>
 </container>
