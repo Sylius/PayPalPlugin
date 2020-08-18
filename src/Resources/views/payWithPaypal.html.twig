@@ -23,9 +23,9 @@
 
                 .back-button-container {
                     position: absolute;
-                    padding:20px;
-                    top:0;
-                    left:0;
+                    padding: 20px;
+                    top: 0;
+                    left: 0;
                 }
 
                 .back-button {
@@ -55,8 +55,8 @@
     </head>
     <body>
     <div class="back-button-container">
-        <a href="{{ path('sylius_shop_order_show', {'tokenValue':order_token}) }}" class="back-button">
-            Back to store
+        <a href="{{ path('sylius_shop_order_show', {'tokenValue': order_token}) }}" class="back-button">
+            {{ 'sylius.pay_pal.back_to_store'|trans }}
         </a>
     </div>
     <div class="container">
