@@ -20,10 +20,45 @@
                 .padding {
                     padding: 10px;
                 }
+
+                .back-button-container {
+                    position: absolute;
+                    padding:20px;
+                    top:0;
+                    left:0;
+                }
+
+                .back-button {
+                    cursor: pointer;
+                    display: inline-block;
+                    min-height: 1em;
+                    outline: 0;
+                    border: none;
+                    vertical-align: baseline;
+                    color: rgba(0,0,0,.6);
+                    font-family: Lato,'Helvetica Neue',Arial,Helvetica,sans-serif;
+                    padding: .78571429em 1.5em .78571429em;
+                    text-transform: none;
+                    text-shadow: none;
+                    font-weight: 700;
+                    line-height: 1em;
+                    font-style: normal;
+                    text-align: center;
+                    text-decoration: none;
+                    border-radius: .28571429rem;
+                    background-color: #1abb9c;
+                    color: #fff;
+                    margin:auto;
+                }
             </style>
         {% endblock %}
     </head>
     <body>
+    <div class="back-button-container">
+        <a href="{{ path('sylius_shop_order_show', {'tokenValue':order_token}) }}" class="back-button">
+            Back to store
+        </a>
+    </div>
     <div class="container">
         <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
         <div class="button-container padding">
