@@ -12,7 +12,7 @@ Feature: Refunding an order from the Admin panel
         And there is a customer "oliver@teamarrow.com" that placed an order "#00000001"
         And the customer bought a single "Green Arrow"
         And the customer chose "Free" shipping method to "United States" with "PayPal" payment
-        And this order is already paid as "EDE12424" PayPal order
+        And this order is already paid as "EDE12424" PayPal order with "RRE33212" PayPal payment
         And I am logged in as an administrator
 
     @ui

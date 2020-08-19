@@ -20,9 +20,9 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Api\RefundOrderApiInterface;
+use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 
-final class RefundOrderApiSpec extends ObjectBehavior
+final class RefundPaymentApiSpec extends ObjectBehavior
 {
     function let(Client $client): void
     {
@@ -31,10 +31,10 @@ final class RefundOrderApiSpec extends ObjectBehavior
 
     function it_implements_refund_order_api_interface(): void
     {
-        $this->shouldImplement(RefundOrderApiInterface::class);
+        $this->shouldImplement(RefundPaymentApiInterface::class);
     }
 
-    function it_refunds_pay_pal_order_with_given_id(
+    function it_refunds_pay_pal_payment_with_given_id(
         Client $client,
         PaymentInterface $payment,
         OrderInterface $order,
@@ -48,7 +48,7 @@ final class RefundOrderApiSpec extends ObjectBehavior
         $client->request(
             'POST',
             'https://api.test-paypal.com/v2/payments/captures/123123/refund',
-            Argument::that(function(array $options): bool {
+            Argument::that(function (array $options): bool {
                 return
                     $options['headers']['Authorization'] === 'Bearer TOKEN' &&
                     $options['headers']['PayPal-Partner-Attribution-Id'] === 'sylius-ppcp4p-bn-code' &&

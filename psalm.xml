@@ -35,6 +35,7 @@
         <MixedArrayAccess>
             <errorLevel type="info">
                 <file name="src/Controller/ProcessPayPalOrderAction.php"/>
+                <file name="src/Payum/Action/CompleteOrderAction.php"/>
             </errorLevel>
         </MixedArrayAccess>
 

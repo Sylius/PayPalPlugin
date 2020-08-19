@@ -44,8 +44,8 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Api\RefundOrderApiInterface"
-            class="Sylius\PayPalPlugin\Api\RefundOrderApi"
+            id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface"
+            class="Sylius\PayPalPlugin\Api\RefundPaymentApi"
         >
             <argument type="service" id="sylius.http_client" />
             <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>

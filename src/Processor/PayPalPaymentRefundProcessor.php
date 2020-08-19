@@ -17,7 +17,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\RefundOrderApiInterface;
+use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 
 final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
@@ -25,12 +25,12 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
     /** @var AuthorizeClientApiInterface */
     private $authorizeClientApi;
 
-    /** @var RefundOrderApiInterface */
+    /** @var RefundPaymentApiInterface */
     private $refundOrderApi;
 
     public function __construct(
         AuthorizeClientApiInterface $authorizeClientApi,
-        RefundOrderApiInterface $refundOrderApi
+        RefundPaymentApiInterface $refundOrderApi
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->refundOrderApi = $refundOrderApi;
@@ -49,12 +49,12 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
         }
 
         $details = $payment->getDetails();
-        if (!isset($details['paypal_order_id'])) {
+        if (!isset($details['paypal_payment_id'])) {
             return;
         }
 
         $token = $this->authorizeClientApi->authorize((string) $config['client_id'], (string) $config['client_secret']);
-        $response = $this->refundOrderApi->refund($token, (string) $details['paypal_order_id']);
+        $response = $this->refundOrderApi->refund($token, (string) $details['paypal_payment_id']);
 
         if ($response['status'] === 'COMPLETED') {
             return;

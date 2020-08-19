@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Api;
 use GuzzleHttp\Client;
 use Ramsey\Uuid\Uuid;
 
-final class RefundOrderApi implements RefundOrderApiInterface
+final class RefundPaymentApi implements RefundPaymentApiInterface
 {
     /** @var Client */
     private $client;
@@ -30,11 +30,11 @@ final class RefundOrderApi implements RefundOrderApiInterface
         $this->baseUrl = $baseUrl;
     }
 
-    public function refund(string $token, string $orderId): array
+    public function refund(string $token, string $paymentId): array
     {
         $response = $this->client->request(
             'POST',
-            sprintf('%sv2/payments/captures/%s/refund', $this->baseUrl, $orderId),
+            sprintf('%sv2/payments/captures/%s/refund', $this->baseUrl, $paymentId),
             [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token,

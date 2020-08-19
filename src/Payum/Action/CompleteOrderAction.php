@@ -84,6 +84,7 @@ final class CompleteOrderAction implements ActionInterface
             $payment->setDetails([
                 'status' => StatusAction::STATUS_COMPLETED,
                 'paypal_order_id' => $content['id'],
+                'paypal_payment_id' => $content['purchase_units'][0]['payments']['captures'][0]['id'],
             ]);
         }
     }

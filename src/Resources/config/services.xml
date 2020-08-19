@@ -84,7 +84,7 @@
             public="true"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\RefundOrderApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface" />
         </service>
 
         <service

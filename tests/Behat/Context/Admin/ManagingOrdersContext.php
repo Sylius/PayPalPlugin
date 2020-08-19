@@ -47,12 +47,21 @@ final class ManagingOrdersContext implements Context
 
     /**
      * @Given /^(this order) is already paid as "([^"]+)" PayPal order$/
+     * @Given /^(this order) is already paid as "([^"]+)" PayPal order with "([^"]+)" PayPal payment$/
      */
-    public function thisOrderIsAlreadyPaidAsPayPalOrder(OrderInterface $order, string $payPalOrderId): void
-    {
+    public function thisOrderIsAlreadyPaidAsPayPalOrder(
+        OrderInterface $order,
+        string $payPalOrderId,
+        ?string $payPalPaymentId = null
+    ): void {
         /** @var PaymentInterface $payment */
         $payment = $order->getPayments()->first();
-        $payment->setDetails(['paypal_order_id' => $payPalOrderId]);
+
+        $details = ['paypal_order_id' => $payPalOrderId];
+        if ($payPalPaymentId !== null) {
+            $details['paypal_payment_id'] = $payPalPaymentId;
+        }
+        $payment->setDetails($details);
 
         /** @var StateMachineInterface $stateMachine */
         $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
