@@ -5,5 +5,4 @@ sylius:
         client_secret: 'Client Secret'
         different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
         label: 'PayPal'
-        order_cancel: 'PayPal order has been cancelled'
         report: 'Report'
