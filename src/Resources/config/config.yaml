@@ -8,6 +8,11 @@ winzou_state_machine:
                     args: ['object']
     sylius_payment:
         callbacks:
+            before:
+                refund_pay_pal_order:
+                    on: ['refund']
+                    do: ['@Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface', 'refund']
+                    args: ['object']
             after:
                 complete_pay_pal_payment:
                     on: ['complete']

@@ -79,6 +79,15 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface"
+            class="Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor"
+            public="true"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\RefundOrderApiInterface" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver"
             decorates="sylius.payment_method_resolver.default"
         >
