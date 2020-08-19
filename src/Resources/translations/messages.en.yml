@@ -4,3 +4,4 @@ sylius:
         client_secret: 'Client Secret'
         label: 'PayPal'
         report: 'Report'
+        back_to_store: 'Back to store'
