@@ -7,7 +7,8 @@
     let completeUrl = "{{ completeUrl }}";
     let createPayPalOrderFromProductUrl = "{{ createPayPalOrderFromProductUrl }}";
     let processPayPalOrderUrl = "{{ processPayPalOrderUrl }}";
-    let cancelPayPalOrderUrl = "{{ path('sylius_paypal_plugin_cancel_order') }}"
+    let cancelPayPalOrderUrl = "{{ path('sylius_paypal_plugin_cancel_order') }}";
+
     paypal.Buttons({
         createOrder: function(data, actions) {
             let formData = new FormData(document.getElementsByName('sylius_add_to_cart')[0]);
@@ -37,8 +38,7 @@
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ payPalOrderId: data.orderID })
             })
-            .then(res => res.json())
-            .then(data => window.location.href = data.url);
+            .then(data => window.location.reload());
         }
     }).render('#paypal-button-container');
 </script>

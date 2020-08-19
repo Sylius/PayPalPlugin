@@ -7,13 +7,12 @@ namespace Sylius\PayPalPlugin\Controller;
 use Doctrine\Persistence\ObjectManager;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-class CancelPayPalOrderAction
+final class CancelPayPalOrderAction
 {
     /** @var PaymentProviderInterface */
     private $paymentProvider;
@@ -47,11 +46,11 @@ class CancelPayPalOrderAction
 
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
-        $order->clearItems();
+        $this->manager->remove($order);
 
         $this->flashBag->add('success', $this->translator->trans('sylius.pay_pal.order_cancel'));
         $this->manager->flush();
 
-        return new JsonResponse(['url' => '/']);
+        return new Response();
     }
 }
