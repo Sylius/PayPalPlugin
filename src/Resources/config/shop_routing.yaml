@@ -77,3 +77,9 @@ sylius_shop_checkout_select_payment:
             state_machine:
                 graph: sylius_order_checkout
                 transition: select_payment
+
+sylius_paypal_plugin_cancel_order:
+    path: /cancel-pay-pal-order
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction
