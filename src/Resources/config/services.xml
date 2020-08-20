@@ -58,10 +58,18 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor"
+            decorates="sylius.order_processing.order_payment_processor.after_checkout"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor.inner" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor"
             decorates="sylius.order_processing.order_payment_processor.checkout"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor.inner" />
+            <argument type="service" id="sm.factory" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor" public="true">
@@ -106,6 +114,15 @@
             <argument type="service" id="sylius.paypal.client.sftp" />
             <argument>%env(resolve:PAYPAL_REPORTS_SFTP_USERNAME)%</argument>
             <argument>%env(resolve:PAYPAL_REPORTS_SFTP_PASSWORD)%</argument>
+        </service>
+
+        <service
+            id="sylius.form.type.checkout_select_payment"
+            class="Sylius\PayPalPlugin\Form\Type\SelectPaymentType"
+        >
+            <argument>%sylius.model.order.class%</argument>
+            <argument>%sylius.form.type.checkout_select_payment.validation_groups%</argument>
+            <tag name="form.type" />
         </service>
     </services>
 </container>
