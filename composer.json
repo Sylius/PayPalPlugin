@@ -7,7 +7,7 @@
     "require": {
         "php": "^7.3",
 
-        "sylius/sylius": "^1.7.5",
+        "sylius/sylius": "^1.7",
         "nyholm/append-query-string": "^0.1.1",
         "phpseclib/phpseclib": "^2.0"
     },
