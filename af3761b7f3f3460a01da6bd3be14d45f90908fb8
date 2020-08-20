@@ -1,0 +1,55 @@
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-12T10:27:37Z
+
+seems like i'm unable to pay order (sylius store redirects me to thank you page, but on paypal account i cant see any activity :/ )
+
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-12T10:28:55Z
+
+![image](https://user-images.githubusercontent.com/22825722/90005327-53a95480-dc97-11ea-8cd6-df09e915aa63.png)
+complete page shows 2 different prices after changing shipping method
+
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-12T10:29:35Z
+
+I cant change shipping address or shipping method if my store doesnt support PL country
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-08-12T10:55:54Z
+
+> seems like i'm unable to pay order (sylius store redirects me to thank you page, but on paypal account i cant see any activity :/ )
+
+~It worked for me, can you check it out one more time?~
+
+> complete page shows 2 different prices after changing shipping method
+
+This is definitely a thing to improve... as the first approach, we could just display something like "This amount has been authorized, but you will be charged for the final amount displayed as the order total. I see one thing that we also need to think about - what if the previous amount was lower and after order changes, a customer has not enough money to pay? 😄 We should, in theory, get the information after calling the *update* endpoint, but we should handle it and return to the checkout complete page with such information.
+
+> I cant change shipping address or shipping method if my store doesnt support PL country
+
+Agreed, but it is generally because of the problem with limiting countries in the PayPal
+
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-13T11:24:19Z
+
+What if i change payment?
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-08-17T14:11:29Z
+
+<img width="1102" alt="Zrzut ekranu 2020-08-17 o 11 28 00" src="https://user-images.githubusercontent.com/6212718/90405618-4bd91e00-e0a4-11ea-9f6e-3855aee68be3.png">
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-08-18T06:23:09Z
+
+2 more things that need to be done:
+
+1. protection if the order total is bigger than the authorized amount and the customer has not enough money to pay that (right now it should fail during the order update, but it needs to be tested and handled with some proper message)
+2. fix the bug, as the cancelled PayPal payment has method changed and then cancelled... so it works well, but the UX is terrible 💃
