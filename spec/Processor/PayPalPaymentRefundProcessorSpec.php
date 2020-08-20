@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Processor;
 
+use GuzzleHttp\Exception\ClientException;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
@@ -102,6 +103,28 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
 
         $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
         $refundOrderApi->refund('TOKEN', '123123')->willReturn(['status' => 'FAILED']);
+
+        $this
+            ->shouldThrow(PayPalOrderRefundException::class)
+            ->during('refund', [$payment])
+        ;
+    }
+
+    function it_throws_exception_if_something_went_wrong_during_refunding_payment(
+        AuthorizeClientApiInterface $authorizeClientApi,
+        RefundPaymentApiInterface $refundOrderApi,
+        PaymentInterface $payment,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig
+    ): void {
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
+        $payment->getDetails()->willReturn(['paypal_payment_id' => '123123']);
+
+        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
+        $refundOrderApi->refund('TOKEN', '123123')->willThrow(ClientException::class);
 
         $this
             ->shouldThrow(PayPalOrderRefundException::class)

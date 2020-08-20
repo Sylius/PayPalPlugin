@@ -13,12 +13,14 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
+use GuzzleHttp\Exception\ClientException;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
+use Webmozart\Assert\Assert;
 
 final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
 {
@@ -53,13 +55,13 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
             return;
         }
 
-        $token = $this->authorizeClientApi->authorize((string) $config['client_id'], (string) $config['client_secret']);
-        $response = $this->refundOrderApi->refund($token, (string) $details['paypal_payment_id']);
+        try {
+            $token = $this->authorizeClientApi->authorize((string) $config['client_id'], (string) $config['client_secret']);
+            $response = $this->refundOrderApi->refund($token, (string) $details['paypal_payment_id']);
 
-        if ($response['status'] === 'COMPLETED') {
-            return;
+            Assert::same($response['status'], 'COMPLETED');
+        } catch (ClientException | \InvalidArgumentException $exception) {
+            throw new PayPalOrderRefundException();
         }
-
-        throw new PayPalOrderRefundException();
     }
 }

@@ -88,6 +88,13 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Processor\UiPayPalPaymentRefundProcessor"
+            decorates="Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Processor\UiPayPalPaymentRefundProcessor.inner" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver"
             decorates="sylius.payment_method_resolver.default"
         >
