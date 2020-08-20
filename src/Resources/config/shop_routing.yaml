@@ -83,3 +83,9 @@ sylius_paypal_plugin_cancel_order:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction
+
+sylius_paypal_plugin_cancel_payment:
+    path: /cancel-pay-pal-payment
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction

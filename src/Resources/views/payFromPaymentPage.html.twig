@@ -3,6 +3,7 @@
 <script>
     let createPayPalOrderFromPaymentPageUrl = "{{ createPayPalOrderFromPaymentPageUrl }}";
     let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
+    let cancelPayPalPaymentUrl = "{{ cancelPayPalPaymentUrl }}";
 
     paypal.Buttons({
         style: {
@@ -20,6 +21,13 @@
             return fetch(completePayPalOrderFromPaymentPageUrl, {
                 method: 'post'
             }).then(res => res.json()).then(details => window.location.href = details.return_url);
+        },
+        onCancel: function (data, actions) {
+            return fetch(cancelPayPalPaymentUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ payPalOrderId: data.orderID })
+            }).then(window.location.reload());
         }
     }).render('#paypal-button-container');
 </script>

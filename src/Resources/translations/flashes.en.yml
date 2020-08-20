@@ -1,3 +1,4 @@
 sylius:
     pay_pal:
         order_cancel: 'PayPal order has been cancelled'
+        payment_cancel: 'PayPal payment has been cancelled'

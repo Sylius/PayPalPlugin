@@ -93,6 +93,7 @@ final class PayPalButtonsController
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
                 'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
+                'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_cancel_payment'),
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
