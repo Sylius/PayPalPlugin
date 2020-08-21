@@ -9,7 +9,6 @@ use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
-use Sylius\Component\Order\OrderTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -56,9 +55,6 @@ final class CompletePayPalOrderFromPaymentPageAction
         $order = $this->orderProvider->provideOrderById($orderId);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
-
-        $orderStateMachine = $this->stateMachine->get($order, OrderTransitions::GRAPH);
-        $orderStateMachine->apply(OrderTransitions::TRANSITION_CREATE);
 
         $this->paymentStateManager->complete($payment);
 

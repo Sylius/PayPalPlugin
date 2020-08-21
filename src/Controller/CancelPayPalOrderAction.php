@@ -42,7 +42,7 @@ final class CancelPayPalOrderAction
         $order = $payment->getOrder();
         $this->orderRepository->remove($order);
 
-        $this->flashBag->add('success', 'sylius.pay_pal.order_cancel');
+        $this->flashBag->add('success', 'sylius.pay_pal.order_cancelled');
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }

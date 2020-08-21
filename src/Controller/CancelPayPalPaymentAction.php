@@ -20,29 +20,29 @@ final class CancelPayPalPaymentAction
     private $paymentProvider;
 
     /** @var ObjectManager */
-    private $manager;
+    private $objectManager;
 
     /** @var FlashBag */
     private $flashBag;
 
     /** @var FactoryInterface */
-    private $stateMachine;
+    private $stateMachineFactory;
 
     /** @var OrderProcessorInterface */
-    private $paymentProcessor;
+    private $orderPaymentProcessor;
 
     public function __construct(
         PaymentProviderInterface $paymentProvider,
-        ObjectManager $manager,
+        ObjectManager $objectManager,
         FlashBag $flashBag,
-        FactoryInterface $stateMachine,
-        OrderProcessorInterface $paymentProcessor
+        FactoryInterface $stateMachineFactory,
+        OrderProcessorInterface $orderPaymentProcessor
     ) {
         $this->paymentProvider = $paymentProvider;
-        $this->manager = $manager;
+        $this->objectManager = $objectManager;
         $this->flashBag = $flashBag;
-        $this->stateMachine = $stateMachine;
-        $this->paymentProcessor = $paymentProcessor;
+        $this->stateMachineFactory = $stateMachineFactory;
+        $this->orderPaymentProcessor = $orderPaymentProcessor;
     }
 
     public function __invoke(Request $request): Response
@@ -54,13 +54,13 @@ final class CancelPayPalPaymentAction
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        $paymentStateMachine = $this->stateMachine->get($payment, PaymentTransitions::GRAPH);
+        $paymentStateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
         $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
 
-        $this->paymentProcessor->process($order);
-        $this->manager->flush();
+        $this->orderPaymentProcessor->process($order);
+        $this->objectManager->flush();
 
-        $this->flashBag->add('success', 'sylius.pay_pal.payment_cancel');
+        $this->flashBag->add('success', 'sylius.pay_pal.payment_cancelled');
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }
