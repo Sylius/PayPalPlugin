@@ -1,0 +1,30 @@
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-20T12:38:34Z
+
+If something goes wrong with authorization (403 from paypal) we get 500 error
+
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-20T12:51:08Z
+
+works fine for new onboarded account
+![image](https://user-images.githubusercontent.com/22825722/90772022-5db10000-e2f4-11ea-81db-2d63c5e4f892.png)
+also it returns money for seller
+![image](https://user-images.githubusercontent.com/22825722/90772168-90f38f00-e2f4-11ea-8ff1-b4dc0350872f.png)
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-08-21T08:48:13Z
+
+The problem that we have right now is the problem with the proper flash message :/
+
+<img width="1150" alt="Zrzut ekranu 2020-08-21 o 10 47 19" src="https://user-images.githubusercontent.com/6212718/90871696-c3a49280-e39b-11ea-9431-1237bcfed3a4.png">
+
+But it can be solved in the separate PR (or even in **ResourceBundle** itself)
+
+---------------------------------------------------------------------------
+
+by SirDomin at 2020-08-24T11:47:28Z
+
+Thank you, Mateusz! :1st_place_medal:
