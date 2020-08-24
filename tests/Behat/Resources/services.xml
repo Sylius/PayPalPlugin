@@ -43,5 +43,15 @@
             id="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor"
             class="Tests\Sylius\PayPalPlugin\Behat\Service\VoidPayPalPaymentCompleteProcessor"
         />
+
+        <service
+            id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface"
+            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyAuthorizeClientApi"
+        />
+
+        <service
+            id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface"
+            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyRefundPaymentApi"
+        />
     </services>
 </container>

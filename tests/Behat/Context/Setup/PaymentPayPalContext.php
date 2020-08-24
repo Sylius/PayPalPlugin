@@ -106,9 +106,11 @@ final class PaymentPayPalContext implements Context
         ]);
 
         /** we need to send real client_id to paypal so we dont get errors while loading javascripts */
-        $paymentMethod->getGatewayConfig()->setConfig(
-            ['client_id' => $this->clientId, 'partner_attribution_id' => $this->partnerAttributionId]
-        );
+        $paymentMethod->getGatewayConfig()->setConfig([
+            'client_id' => $this->clientId,
+            'client_secret' => 'SECRET',
+            'partner_attribution_id' => $this->partnerAttributionId,
+        ]);
 
         $paymentMethod->setPosition((int) $position);
 
