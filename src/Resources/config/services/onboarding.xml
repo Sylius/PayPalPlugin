@@ -15,7 +15,7 @@
             id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
             class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
         >
-            <argument type="service" id="http_client" />
+            <argument type="service" id="sylius.http_client" />
             <argument>%sylius.paypal.facilitator_url%</argument>
         </service>
     </services>

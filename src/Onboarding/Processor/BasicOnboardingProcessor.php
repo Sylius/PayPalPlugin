@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
+use GuzzleHttp\ClientInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Webmozart\Assert\Assert;
 
 final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
-    /** @var HttpClientInterface */
+    /** @var ClientInterface */
     private $httpClient;
 
     /** @var string */
     private $url;
 
-    public function __construct(HttpClientInterface $httpClient, string $url)
+    public function __construct(ClientInterface $httpClient, string $url)
     {
         $this->httpClient = $httpClient;
         $this->url = $url;
@@ -38,12 +38,19 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         /** @var GatewayConfig $gatewayConfig */
         Assert::notNull($gatewayConfig);
 
-        $checkPartnerReferralsResponse = $this->httpClient->request('GET',
-            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id'))
+        $checkPartnerReferralsResponse = $this->httpClient->request(
+            'GET',
+            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id')),
+            [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+            ]
         );
 
         /** @var array $response */
-        $response = json_decode($checkPartnerReferralsResponse->getContent(), true);
+        $response = (array) json_decode($checkPartnerReferralsResponse->getBody()->getContents(), true);
 
         if (!isset($response['client_id']) || !isset($response['client_secret'])) {
             throw new PayPalPluginException();
