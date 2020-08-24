@@ -4,26 +4,28 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Onboarding\Processor;
 
+use GuzzleHttp\ClientInterface;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
-    function let(HttpClientInterface $httpClient): void
+    function let(ClientInterface $httpClient): void
     {
         $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com');
     }
 
     function it_processes_onboarding_for_supported_payment_method_and_request(
-        HttpClientInterface $httpClient,
+        ClientInterface $httpClient,
         ResponseInterface $response,
+        StreamInterface $body,
         GatewayConfigInterface $gatewayConfig,
         PaymentMethodInterface $paymentMethod,
         Request $request
@@ -54,11 +56,21 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
 
         $httpClient
-            ->request('GET', 'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID')
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
             ->willReturn($response)
         ;
 
-        $response->getContent()->willReturn(
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn(
             '{"client_id":"CLIENT-ID",
             "client_secret":"CLIENT-SECRET",
             "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
@@ -123,8 +135,9 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
     }
 
     function it_throws_error_if_facilitator_data_is_not_loaded(
-        HttpClientInterface $httpClient,
+        ClientInterface $httpClient,
         ResponseInterface $response,
+        StreamInterface $body,
         GatewayConfigInterface $gatewayConfig,
         PaymentMethodInterface $paymentMethod,
         Request $request
@@ -136,11 +149,21 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
 
         $httpClient
-            ->request('GET', 'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID')
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
             ->willReturn($response)
         ;
 
-        $response->getContent()->willReturn('{"client_id":null,"client_secret":null}');
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"client_id":null,"client_secret":null}');
 
         $this
             ->shouldThrow(PayPalPluginException::class)
