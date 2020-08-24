@@ -50,6 +50,7 @@ final class PayWithPayPalFormAction
             'client_id' => $clientId,
             'order_token' => $order->getTokenValue(),
             'partner_attribution_id' => $partnerAttributionId,
+            'locale' => $request->getLocale(),
         ]));
     }
 }

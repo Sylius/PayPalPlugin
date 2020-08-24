@@ -73,6 +73,7 @@
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
 
         paypal.Buttons({
+            locale: '{{ locale }}',
             createOrder: function(data, actions) {
                 return fetch(createPayPalOrderUrl, {
                     method: 'post'
