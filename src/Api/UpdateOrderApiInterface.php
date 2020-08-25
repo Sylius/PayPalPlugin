@@ -8,8 +8,5 @@ use Sylius\PayPalPlugin\Exception\PayPalOrderUpdateException;
 
 interface UpdateOrderApiInterface
 {
-    /**
-     * @throws PayPalOrderUpdateException
-     */
     public function update(string $token, string $orderId, string $newTotal, string $newCurrencyCode): void;
 }

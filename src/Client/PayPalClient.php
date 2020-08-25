@@ -45,6 +45,11 @@ final class PayPalClient implements PayPalClientInterface
         return $this->request('POST', $url, $token, $data);
     }
 
+    public function patch(string $url, string $token, array $data = null): array
+    {
+        return $this->request('PATCH', $url, $token, $data);
+    }
+
     private function request(string $method, string $url, string $token, array $data = null): array
     {
         $options = [
@@ -70,7 +75,10 @@ final class PayPalClient implements PayPalClientInterface
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
 
-        if ($response->getStatusCode() !== 200 && isset($content['debug_id'])) {
+        if (
+            (!in_array($response->getStatusCode(), [200, 204])) &&
+            isset($content['debug_id'])
+        ) {
             $this
                 ->logger
                 ->error(sprintf('%s request to "%s" failed with debug ID %s', $method, $fullUrl, $content['debug_id']))

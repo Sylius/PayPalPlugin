@@ -13,51 +13,30 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\Client;
-use Sylius\PayPalPlugin\Exception\PayPalOrderUpdateException;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class UpdateOrderApi implements UpdateOrderApiInterface
 {
-    /** @var Client */
+    /** @var PayPalClientInterface */
     private $client;
 
-    /** @var string */
-    private $baseUrl;
-
-    /** @var string */
-    private $partnerAttributionId;
-
-    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
+    public function __construct(PayPalClientInterface $client)
     {
         $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function update(string $token, string $orderId, string $newTotal, string $newCurrencyCode): void
     {
-        $response = $this->client->request(
-            'PATCH',
-            sprintf('%sv2/checkout/orders/%s', $this->baseUrl, $orderId),
+        $this->client->patch(
+            sprintf('v2/checkout/orders/%s', $orderId),
+            $token,
             [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
-                ],
-                'json' => [
-                    [
-                        'op' => 'replace',
-                        'path' => '/purchase_units/@reference_id==\'default\'/amount',
-                        'value' => ['value' => $newTotal, 'currency_code' => $newCurrencyCode],
-                    ],
+                [
+                    'op' => 'replace',
+                    'path' => '/purchase_units/@reference_id==\'default\'/amount',
+                    'value' => ['value' => $newTotal, 'currency_code' => $newCurrencyCode],
                 ],
             ]
         );
-
-        if ($response->getStatusCode() !== 204) {
-            throw new PayPalOrderUpdateException();
-        }
     }
 }

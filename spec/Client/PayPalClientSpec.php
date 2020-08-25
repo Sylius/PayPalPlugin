@@ -154,4 +154,69 @@ final class PayPalClientSpec extends ObjectBehavior
             ->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123'])
         ;
     }
+
+    function it_calls_patch_request_on_paypal_api(
+        ClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $client->request(
+            'PATCH',
+            'https://test-api.paypal.com/v2/patch-request/123123',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                ],
+                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(200);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
+
+        $this
+            ->patch('v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
+            ->shouldReturn(['status' => 'OK', 'id' => '123123'])
+        ;
+    }
+
+    function it_logs_debug_id_from_failed_patch_request(
+        ClientInterface $client,
+        LoggerInterface $logger,
+        RequestException $exception,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $client->request(
+            'PATCH',
+            'https://test-api.paypal.com/v2/patch-request/123123',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                ],
+                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
+            ]
+        )->willThrow($exception->getWrappedObject());
+
+        $exception->getResponse()->willReturn($response);
+        $response->getBody()->willReturn($body);
+        $response->getStatusCode()->willReturn(400);
+        $body->getContents()->willReturn('{"status": "FAILED", "debug_id": "123123"}');
+
+        $logger
+            ->error('PATCH request to "https://test-api.paypal.com/v2/patch-request/123123" failed with debug ID 123123')
+            ->shouldBeCalled()
+        ;
+
+        $this
+            ->patch('v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
+            ->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123'])
+        ;
+    }
 }
