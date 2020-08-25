@@ -13,10 +13,7 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\Client;
 use PhpSpec\ObjectBehavior;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;

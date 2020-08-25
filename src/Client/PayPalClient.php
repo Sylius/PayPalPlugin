@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Client;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
 final class PayPalClient implements PayPalClientInterface
@@ -65,11 +66,13 @@ final class PayPalClient implements PayPalClientInterface
             $options['json'] = $data;
         }
 
-        $fullUrl = $this->baseUrl.$url;
+        $fullUrl = $this->baseUrl . $url;
 
         try {
+            /** @var ResponseInterface $response */
             $response = $this->client->request($method, $fullUrl, $options);
         } catch (RequestException $exception) {
+            /** @var ResponseInterface $response */
             $response = $exception->getResponse();
         }
 
@@ -81,7 +84,7 @@ final class PayPalClient implements PayPalClientInterface
         ) {
             $this
                 ->logger
-                ->error(sprintf('%s request to "%s" failed with debug ID %s', $method, $fullUrl, $content['debug_id']))
+                ->error(sprintf('%s request to "%s" failed with debug ID %s', $method, $fullUrl, (string) $content['debug_id']))
             ;
         }
 
