@@ -2,3 +2,4 @@ sylius:
     pay_pal:
         order_cancelled: 'PayPal order has been cancelled'
         payment_cancelled: 'PayPal payment has been cancelled'
+        something_went_wrong: 'Something went wrong. Please, try again.'

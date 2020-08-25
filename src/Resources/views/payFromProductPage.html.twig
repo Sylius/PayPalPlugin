@@ -16,7 +16,15 @@
             return fetch(createPayPalOrderFromProductUrl, {
                 method: 'post',
                 body: formData
-            }).then(res => res.json()).then(data => {
+            })
+            .then(function(res) {
+                if (res.status == 400) {
+                    window.location.reload();
+                }
+
+                return res.json();
+            })
+            .then(data => {
                 payPalOrderId = data.orderID;
                 orderId = data.id;
 

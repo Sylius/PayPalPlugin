@@ -16,7 +16,15 @@
         createOrder: function(data, actions) {
             return fetch(createPayPalOrderFromPaymentPageUrl, {
                 method: 'post'
-            }).then(res => res.json()).then(data => data.order_id);
+            })
+            .then(function(res) {
+                if (res.status == 400) {
+                    window.location.reload();
+                }
+
+                return res.json();
+            })
+            .then(data => data.order_id);
         },
         onApprove: function(data, actions) {
             return fetch(completePayPalOrderFromPaymentPageUrl, {
