@@ -10,6 +10,10 @@
             <argument type="service" id="sylius.manager.payment" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\Webhook\CompleteOrderAction">
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalOrderProviderInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction">
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
             <argument type="service" id="sylius.repository.order" />

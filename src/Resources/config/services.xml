@@ -55,6 +55,13 @@
             <argument type="service" id="sylius.context.channel" />
         </service>
 
+        <service
+            id="Sylius\PayPalPlugin\Provider\PayPalOrderProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\PayPalOrderProvider"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" class="Sylius\PayPalPlugin\Resolver\CapturePaymentResolver">
             <argument type="service" id="payum" />
         </service>
