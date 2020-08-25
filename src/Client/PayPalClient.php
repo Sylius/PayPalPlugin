@@ -40,7 +40,7 @@ final class PayPalClient implements PayPalClientInterface
         return $this->request('GET', $url, $token);
     }
 
-    public function post(string $url, string $token, array $data): array
+    public function post(string $url, string $token, array $data = null): array
     {
         return $this->request('POST', $url, $token, $data);
     }

@@ -20,12 +20,13 @@ use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class CompleteOrderApiSpec extends ObjectBehavior
 {
-    function let(Client $client): void
+    function let(PayPalClientInterface $client): void
     {
-        $this->beConstructedWith($client, 'https://api.test-paypal.com/', 'PARTNER_ATTRIBUTION_ID');
+        $this->beConstructedWith($client);
     }
 
     function it_implements_complete_order_api_interface(): void
@@ -34,30 +35,18 @@ final class CompleteOrderApiSpec extends ObjectBehavior
     }
 
     function it_completes_pay_pal_order_with_given_id(
-        Client $client,
+        PayPalClientInterface $client,
         PaymentInterface $payment,
-        OrderInterface $order,
-        ResponseInterface $response,
-        StreamInterface $body
+        OrderInterface $order
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
         $order->getCurrencyCode()->willReturn('PLN');
 
-        $client->request(
-            'POST',
-            'https://api.test-paypal.com/v2/checkout/orders/123123/capture',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Prefer' => 'return=representation',
-                    'PayPal-Partner-Attribution-Id' => 'PARTNER_ATTRIBUTION_ID',
-                    'Content-Type' => 'application/json',
-                ],
-            ]
-        )->willReturn($response);
-        $response->getBody()->willReturn($body);
-        $body->getContents()->willReturn('{"status": "COMPLETED", "id": 123}');
+        $client
+            ->post('v2/checkout/orders/123123/capture', 'TOKEN')
+            ->willReturn(['status' => 'COMPLETED', 'id' => 123])
+        ;
 
         $this->complete('TOKEN', '123123')->shouldReturn(['status' => 'COMPLETED', 'id' => 123]);
     }
