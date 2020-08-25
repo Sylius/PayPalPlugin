@@ -29,6 +29,7 @@
         <MixedArgument>
             <errorLevel type="info">
                 <file name="src/Controller/ProcessPayPalOrderAction.php"/>
+                <file name="src/Controller/Webhook/CompleteOrderAction.php"/>
             </errorLevel>
         </MixedArgument>
 
@@ -36,12 +37,14 @@
             <errorLevel type="info">
                 <file name="src/Controller/ProcessPayPalOrderAction.php"/>
                 <file name="src/Payum/Action/CompleteOrderAction.php"/>
+                <file name="src/Controller/Webhook/CompleteOrderAction.php"/>
             </errorLevel>
         </MixedArrayAccess>
 
         <MixedAssignment>
             <errorLevel type="info">
                 <file name="src/Downloader/SftpPayoutsReportDownloader.php"/>
+                <file name="src/Controller/Webhook/CompleteOrderAction.php"/>
             </errorLevel>
         </MixedAssignment>
 

@@ -12,6 +12,7 @@
 
         <service id="Sylius\PayPalPlugin\Controller\Webhook\CompleteOrderAction">
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalOrderProviderInterface" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction">

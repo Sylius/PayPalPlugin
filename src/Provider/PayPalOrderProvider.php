@@ -25,9 +25,11 @@ final class PayPalOrderProvider implements PayPalOrderProviderInterface
         $resource = (array) $content['resource'];
         Assert::keyExists($resource, 'id');
 
-        $payment = $this->paymentProvider->getByPayPalOrderId($resource['id']);
-        Assert::notNull($payment);
+        $payment = $this->paymentProvider->getByPayPalOrderId((string) $resource['id']);
 
-        return $payment->getOrder();
+        $order = $payment->getOrder();
+        Assert::notNull($order);
+
+        return $order;
     }
 }
