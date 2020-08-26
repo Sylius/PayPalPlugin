@@ -89,3 +89,9 @@ sylius_paypal_plugin_cancel_payment:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction
+
+sylius_paypal_plugin_payment_error:
+    path: /pay-pal-payment-error
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction

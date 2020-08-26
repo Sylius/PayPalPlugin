@@ -71,6 +71,7 @@
     <script>
         let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
+        let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
 
         paypal.Buttons({
             locale: '{{ locale }}',
@@ -83,6 +84,13 @@
                 return fetch(completePayPalOrderUrl, {
                     method: 'post'
                 }).then(res => res.json()).then(details => window.location.href = details.return_url);
+            },
+            onError: function (err) {
+                return fetch(errorPayPalPaymentUrl, {
+                    method: 'post',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify(err)
+                }).then(window.location.reload());
             }
         }).render('#paypal-button-container');
     </script>
