@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
+use GuzzleHttp\Exception\GuzzleException;
 use Payum\Core\Payum;
 use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -14,6 +15,7 @@ use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final class CreatePayPalOrderFromCartAction
 {
@@ -59,7 +61,15 @@ final class CreatePayPalOrderFromCartAction
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
-        $this->capturePaymentResolver->resolve($payment);
+        try {
+            $this->capturePaymentResolver->resolve($payment);
+        } catch (GuzzleException $exception) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius.pay_pal.something_went_wrong');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
 
         $this->paymentManager->flush();
 
