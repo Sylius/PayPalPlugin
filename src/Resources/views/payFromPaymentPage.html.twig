@@ -4,6 +4,7 @@
     let createPayPalOrderFromPaymentPageUrl = "{{ createPayPalOrderFromPaymentPageUrl }}";
     let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
     let cancelPayPalPaymentUrl = "{{ cancelPayPalPaymentUrl }}";
+    let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
 
     paypal.Buttons({
         style: {
@@ -31,6 +32,13 @@
                 method: 'post',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ payPalOrderId: data.orderID })
+            }).then(window.location.reload());
+        },
+        onError: function (error) {
+            return fetch(errorPayPalPaymentUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(error)
             }).then(window.location.reload());
         }
     }).render('#paypal-button-container');
