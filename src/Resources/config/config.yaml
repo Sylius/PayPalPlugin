@@ -45,6 +45,10 @@ sylius_grid:
 
 sylius_ui:
     events:
+        sylius.admin.payment_method.create.header:
+            blocks:
+                pay_pal_logo:
+                    template: '@SyliusPayPalPlugin/payPalLogo.html.twig'
         sylius.shop.product.show.right_sidebar:
             blocks:
                 pay_with_pay_pal:
