@@ -8,6 +8,7 @@
     let cancelPayPalOrderUrl = "{{ path('sylius_paypal_plugin_cancel_order') }}";
 
     paypal.Buttons({
+        locale: '{{ locale }}',
         createOrder: function(data, actions) {
             return fetch(createPayPalOrderFromCartUrl, {
                 method: 'post'

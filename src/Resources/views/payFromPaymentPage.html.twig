@@ -12,6 +12,7 @@
             layout: 'horizontal',
             label: 'paypal',
         },
+        locale: '{{ locale }}',
         createOrder: function(data, actions) {
             return fetch(createPayPalOrderFromPaymentPageUrl, {
                 method: 'post'

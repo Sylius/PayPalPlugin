@@ -56,6 +56,7 @@ final class PayPalButtonsController
                 'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
+                'locale' => $request->getLocale(),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -76,6 +77,7 @@ final class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
+                'locale' => $request->getLocale(),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -95,6 +97,7 @@ final class PayPalButtonsController
                 'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
                 'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_cancel_payment'),
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
+                'locale' => $request->getLocale(),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
