@@ -1,8 +1,0 @@
-{% import '@SyliusUi/Macro/headers.html.twig' as headers %}
-
-{{ headers.default(header|trans, configuration.vars.icon|default('plus'), configuration.vars.subheader|default(null)|trans) }}
-{% if payment_method.gatewayConfig.factoryName == 'sylius.pay_pal' %}
-    <div style="width:100%">
-        <img src="https://www.paypalobjects.com/digitalassets/c/website/marketing/na/us/logo-center/9_bdg_secured_by_pp_2line.png" border="0" alt="Secured by PayPal">
-    </div>
-{% endif %}
