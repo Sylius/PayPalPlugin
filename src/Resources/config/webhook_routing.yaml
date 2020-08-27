@@ -3,9 +3,3 @@ sylius_paypal_plugin_webhook_refund_order:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction
-
-sylius_paypal_webhook_complete_order:
-    path: /paypal-webhook/api/complete-order/
-    methods: [POST]
-    defaults:
-        _controller: Sylius\PayPalPlugin\Controller\Webhook\CompleteOrderAction

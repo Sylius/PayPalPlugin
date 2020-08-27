@@ -10,11 +10,6 @@
             <argument type="service" id="sylius.manager.payment" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Controller\Webhook\CompleteOrderAction">
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalOrderProviderInterface" />
-            <argument type="service" id="doctrine.orm.entity_manager" />
-        </service>
-
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction">
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
             <argument type="service" id="sylius.repository.order" />
@@ -33,6 +28,8 @@
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction" public="true">

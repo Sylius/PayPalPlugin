@@ -153,5 +153,9 @@
             <argument>%sylius.form.type.checkout_select_payment.validation_groups%</argument>
             <tag name="form.type" />
         </service>
+
+        <service id="Sylius\PayPalPlugin\Processor\PayPalAddressProcessor">
+            <argument type="service" id="doctrine.orm.entity_manager" />
+        </service>
     </services>
 </container>
