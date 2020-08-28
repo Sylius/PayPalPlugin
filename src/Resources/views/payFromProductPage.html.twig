@@ -9,6 +9,7 @@
     let processPayPalOrderUrl = "{{ processPayPalOrderUrl }}";
     let cancelPayPalOrderUrl = "{{ path('sylius_paypal_plugin_cancel_order') }}";
     let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
+    let available_countries = {{ available_countries|json_encode|raw }};
 
     paypal.Buttons({
         locale: '{{ locale }}',
@@ -28,7 +29,6 @@
                 return data.orderID;
             });
         },
-
         onApprove: function(data, actions) {
             return fetch(processPayPalOrderUrl, {
                 method: 'post',
@@ -52,6 +52,11 @@
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(error)
             }).then(window.location.reload());
+        },
+        onShippingChange: function(data, actions) {
+            if (!available_countries.filter(country => country === data.shipping_address.country_code).length) {
+                return actions.reject();
+            }
         }
     }).render('#paypal-button-container');
 </script>
