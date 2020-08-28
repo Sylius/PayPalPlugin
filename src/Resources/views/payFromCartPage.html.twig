@@ -16,7 +16,7 @@
             })
             .then(function(res) {
                 return res.status === 400 ? window.location.reload() : res.json();
-            })
+            }).then(data => data.orderID);
         },
         onApprove: function(data, actions) {
             return fetch(processPayPalOrderUrl, {
