@@ -48,10 +48,11 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Provider\CountriesProviderInterface"
-            class="Sylius\PayPalPlugin\Provider\CountriesProvider"
+            id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\AvailableCountriesProvider"
         >
             <argument type="service" id="sylius.repository.country" />
+            <argument type="service" id="sylius.context.channel" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" class="Sylius\PayPalPlugin\Resolver\CapturePaymentResolver">

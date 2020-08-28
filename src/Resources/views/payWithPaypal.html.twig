@@ -72,7 +72,7 @@
         let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
         let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
-        let available_countries = {{ available_countries|json_encode|raw }};
+        let availableCountries = {{ available_countries|json_encode|raw }};
 
         paypal.Buttons({
             locale: '{{ locale }}',
@@ -94,7 +94,7 @@
                 }).then(window.location.reload());
             },
             onShippingChange: function(data, actions) {
-                if (!available_countries.filter(country => country === data.shipping_address.country_code).length) {
+                if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
                     return actions.reject();
                 }
             }

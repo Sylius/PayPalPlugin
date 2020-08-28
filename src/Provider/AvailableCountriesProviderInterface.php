@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-interface CountriesProviderInterface
+interface AvailableCountriesProviderInterface
 {
+    /** @return string[] */
     public function provide(): array;
 }

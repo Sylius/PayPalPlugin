@@ -9,7 +9,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\PayPalPlugin\Provider\CountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment;
@@ -22,13 +22,13 @@ final class PayWithPayPalFormAction
     /** @var PaymentRepositoryInterface */
     private $paymentRepository;
 
-    /** @var CountriesProviderInterface */
+    /** @var AvailableCountriesProviderInterface */
     private $countriesProvider;
 
     public function __construct(
         Environment $twig,
         PaymentRepositoryInterface $paymentRepository,
-        CountriesProviderInterface $countriesProvider
+        AvailableCountriesProviderInterface $countriesProvider
     ) {
         $this->twig = $twig;
         $this->paymentRepository = $paymentRepository;
