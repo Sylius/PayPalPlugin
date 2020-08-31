@@ -20,7 +20,7 @@
                 method: 'post'
             }).then(function(res) {
                 return res.status === 400 ? window.location.reload() : res.json();
-            }).then(data => data.orderID);
+            }).then(data => data.order_id);
         },
         onApprove: function(data, actions) {
             return fetch(completePayPalOrderFromPaymentPageUrl, {

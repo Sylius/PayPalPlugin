@@ -28,6 +28,8 @@
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction" public="true">

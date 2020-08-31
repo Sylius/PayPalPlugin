@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
+use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
 
 final class CompleteOrderAction implements ActionInterface
 {
@@ -35,14 +36,19 @@ final class CompleteOrderAction implements ActionInterface
     /** @var CompleteOrderApiInterface */
     private $completeOrderApi;
 
+    /** @var PayPalAddressProcessor */
+    private $payPalAddressProcessor;
+
     public function __construct(
         AuthorizeClientApiInterface $authorizeClientApi,
         UpdateOrderApiInterface $updateOrderApi,
-        CompleteOrderApiInterface $completeOrderApi
+        CompleteOrderApiInterface $completeOrderApi,
+        PayPalAddressProcessor $payPalAddressProcessor
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->updateOrderApi = $updateOrderApi;
         $this->completeOrderApi = $completeOrderApi;
+        $this->payPalAddressProcessor = $payPalAddressProcessor;
     }
 
     /** @param CompleteOrder $request */
@@ -86,6 +92,8 @@ final class CompleteOrderAction implements ActionInterface
                 'paypal_order_id' => $content['id'],
                 'paypal_payment_id' => $content['purchase_units'][0]['payments']['captures'][0]['id'],
             ]);
+
+            $this->payPalAddressProcessor->process($content['purchase_units'][0]['shipping']['address'], $order);
         }
     }
 
