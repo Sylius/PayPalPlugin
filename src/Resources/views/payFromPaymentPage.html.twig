@@ -5,6 +5,7 @@
     let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
     let cancelPayPalPaymentUrl = "{{ cancelPayPalPaymentUrl }}";
     let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
+    let availableCountries = {{ available_countries|json_encode|raw }};
 
     paypal.Buttons({
         style: {
@@ -39,6 +40,11 @@
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(error)
             }).then(window.location.reload());
+        },
+        onShippingChange: function(data, actions) {
+            if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
+                return actions.reject();
+            }
         }
     }).render('#paypal-button-container');
 </script>

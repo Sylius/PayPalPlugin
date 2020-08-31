@@ -7,6 +7,7 @@ namespace Sylius\PayPalPlugin\Controller;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
+use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,18 +31,23 @@ final class PayPalButtonsController
     /** @var OrderRepositoryInterface */
     private $orderRepository;
 
+    /** @var AvailableCountriesProviderInterface */
+    private $availableCountriesProvider;
+
     public function __construct(
         Environment $twig,
         UrlGeneratorInterface $router,
         ChannelContextInterface $channelContext,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        OrderRepositoryInterface $orderRepository
+        OrderRepositoryInterface $orderRepository,
+        AvailableCountriesProviderInterface $availableCountriesProvider
     ) {
         $this->twig = $twig;
         $this->router = $router;
         $this->channelContext = $channelContext;
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
         $this->orderRepository = $orderRepository;
+        $this->availableCountriesProvider = $availableCountriesProvider;
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -58,6 +64,7 @@ final class PayPalButtonsController
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
                 'locale' => $request->getLocale(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
+                'available_countries' => $this->availableCountriesProvider->provide(),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -80,6 +87,7 @@ final class PayPalButtonsController
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
                 'locale' => $request->getLocale(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
+                'available_countries' => $this->availableCountriesProvider->provide(),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -101,6 +109,7 @@ final class PayPalButtonsController
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'locale' => $request->getLocale(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
+                'available_countries' => $this->availableCountriesProvider->provide(),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');

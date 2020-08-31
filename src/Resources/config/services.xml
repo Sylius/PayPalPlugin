@@ -47,6 +47,14 @@
             <argument type="service" id="sylius.repository.payment" />
         </service>
 
+        <service
+            id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\AvailableCountriesProvider"
+        >
+            <argument type="service" id="sylius.repository.country" />
+            <argument type="service" id="sylius.context.channel" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" class="Sylius\PayPalPlugin\Resolver\CapturePaymentResolver">
             <argument type="service" id="payum" />
         </service>
