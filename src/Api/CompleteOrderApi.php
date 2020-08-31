@@ -13,41 +13,20 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\Client;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class CompleteOrderApi implements CompleteOrderApiInterface
 {
-    /** @var Client */
+    /** @var PayPalClientInterface */
     private $client;
 
-    /** @var string */
-    private $baseUrl;
-
-    /** @var string */
-    private $partnerAttributionId;
-
-    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
+    public function __construct(PayPalClientInterface $client)
     {
         $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function complete(string $token, string $orderId): array
     {
-        $response = $this->client->request(
-            'POST',
-            sprintf('%sv2/checkout/orders/%s/capture', $this->baseUrl, $orderId),
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'Prefer' => 'return=representation',
-                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
-                    'Content-Type' => 'application/json',
-                ],
-            ]
-        );
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        return $this->client->post(sprintf('v2/checkout/orders/%s/capture', $orderId), $token);
     }
 }

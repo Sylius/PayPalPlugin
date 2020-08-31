@@ -4,40 +4,20 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\Client;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class OrderDetailsApi implements OrderDetailsApiInterface
 {
-    /** @var Client */
+    /** @var PayPalClientInterface */
     private $client;
 
-    /** @var string */
-    private $baseUrl;
-
-    /** @var string */
-    private $partnerAttributionId;
-
-    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
+    public function __construct(PayPalClientInterface $client)
     {
         $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function get(string $token, string $orderId): array
     {
-        $response = $this->client->request(
-            'GET',
-            sprintf('%sv2/checkout/orders/%s', $this->baseUrl, $orderId), [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
-                ],
-            ]
-        );
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        return $this->client->get(sprintf('v2/checkout/orders/%s', $orderId), $token);
     }
 }

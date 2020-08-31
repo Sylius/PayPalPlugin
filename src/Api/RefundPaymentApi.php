@@ -13,42 +13,20 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\Client;
-use Ramsey\Uuid\Uuid;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class RefundPaymentApi implements RefundPaymentApiInterface
 {
-    /** @var Client */
+    /** @var PayPalClientInterface */
     private $client;
 
-    /** @var string */
-    private $baseUrl;
-
-    /** @var string */
-    private $partnerAttributionId;
-
-    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
+    public function __construct(PayPalClientInterface $client)
     {
         $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function refund(string $token, string $paymentId): array
     {
-        $response = $this->client->request(
-            'POST',
-            sprintf('%sv2/payments/captures/%s/refund', $this->baseUrl, $paymentId),
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
-                    'Content-Type' => 'application/json',
-                    'PayPal-Request-Id' => Uuid::uuid4()->toString(),
-                ],
-            ]
-        );
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        return $this->client->post(sprintf('v2/payments/captures/%s/refund', $paymentId), $token);
     }
 }

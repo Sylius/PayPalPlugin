@@ -3,6 +3,16 @@
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service
+            id="Sylius\PayPalPlugin\Client\PayPalClientInterface"
+            class="Sylius\PayPalPlugin\Client\PayPalClient"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="logger" />
+            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+            <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface"
             class="Sylius\PayPalPlugin\Api\AuthorizeClientApi"
         >
@@ -14,45 +24,35 @@
             id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface"
             class="Sylius\PayPalPlugin\Api\CompleteOrderApi"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
-            <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
         </service>
 
         <service
             id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface"
             class="Sylius\PayPalPlugin\Api\CreateOrderApi"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
-            <argument>%env(resolve:PAYPAL_TRACKING_ID)%)</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
         </service>
 
         <service
             id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface"
             class="Sylius\PayPalPlugin\Api\OrderDetailsApi"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
-            <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
         </service>
 
         <service
             id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface"
             class="Sylius\PayPalPlugin\Api\UpdateOrderApi"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
-            <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
         </service>
 
         <service
             id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface"
             class="Sylius\PayPalPlugin\Api\RefundPaymentApi"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
-            <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
         </service>
     </services>
 </container>

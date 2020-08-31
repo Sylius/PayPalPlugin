@@ -13,29 +13,21 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\Client;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
 {
-    /** @var Client */
+    /** @var PayPalClientInterface */
     private $client;
 
-    /** @var string */
-    private $baseUrl;
-
-    /** @var string */
-    private $partnerAttributionId;
-
-    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
+    public function __construct(PayPalClientInterface $client)
     {
         $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function create(string $token, PaymentInterface $payment): array
@@ -93,20 +85,6 @@ final class CreateOrderApi implements CreateOrderApiInterface
             ];
         }
 
-        $response = $this->client->request(
-            'POST',
-            $this->baseUrl . 'v2/checkout/orders',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token,
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
-                ],
-                'json' => $data,
-            ]
-        );
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        return $this->client->post('v2/checkout/orders', $token, $data);
     }
 }
