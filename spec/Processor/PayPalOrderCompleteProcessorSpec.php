@@ -39,7 +39,7 @@ final class PayPalOrderCompleteProcessorSpec extends ObjectBehavior
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getGatewayName()->willReturn('paypal');
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
 
         $paymentStateManager->complete($payment)->shouldBeCalled();
 
@@ -57,7 +57,7 @@ final class PayPalOrderCompleteProcessorSpec extends ObjectBehavior
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getGatewayName()->willReturn('stripe');
+        $gatewayConfig->getFactoryName()->willReturn('stripe');
 
         $paymentStateManager->complete($payment)->shouldNotBeCalled();
 
