@@ -29,11 +29,15 @@ final class PayPalClient implements PayPalClientInterface
     /** @var string */
     private $baseUrl;
 
-    public function __construct(ClientInterface $client, LoggerInterface $logger, string $baseUrl)
+    /** @var string */
+    private $trackingId;
+
+    public function __construct(ClientInterface $client, LoggerInterface $logger, string $baseUrl, string $trackingId)
     {
         $this->client = $client;
         $this->logger = $logger;
         $this->baseUrl = $baseUrl;
+        $this->trackingId = $trackingId;
     }
 
     public function get(string $url, string $token): array
@@ -58,7 +62,7 @@ final class PayPalClient implements PayPalClientInterface
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                'PayPal-Partner-Attribution-Id' => $this->trackingId,
             ],
         ];
 

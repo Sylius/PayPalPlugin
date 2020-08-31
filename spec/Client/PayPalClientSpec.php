@@ -25,7 +25,7 @@ final class PayPalClientSpec extends ObjectBehavior
 {
     function let(ClientInterface $client, LoggerInterface $logger): void
     {
-        $this->beConstructedWith($client, $logger, 'https://test-api.paypal.com/');
+        $this->beConstructedWith($client, $logger, 'https://test-api.paypal.com/', 'TRACKING-ID');
     }
 
     function it_implements_pay_pal_client_interface(): void
@@ -46,7 +46,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
             ]
         )->willReturn($response);
@@ -72,7 +72,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
             ]
         )->willThrow($exception->getWrappedObject());
@@ -103,7 +103,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
@@ -133,7 +133,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
@@ -168,7 +168,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
@@ -198,7 +198,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
