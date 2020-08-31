@@ -9,14 +9,13 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Webmozart\Assert\Assert;
 
-final class PayPalAddressProcessor
+final class PayPalAddressProcessor implements PayPalAddressProcessorInterface
 {
     /** @var ObjectManager */
     private $objectManager;
 
-    public function __construct(
-        ObjectManager $objectManager
-    ) {
+    public function __construct(ObjectManager $objectManager)
+    {
         $this->objectManager = $objectManager;
     }
 
@@ -33,7 +32,7 @@ final class PayPalAddressProcessor
         Assert::keyExists($address, 'postal_code');
         Assert::keyExists($address, 'country_code');
 
-        $street = $address['address_line_1'] . ($address['address_line_2'] ?? '');
+        $street = $address['address_line_1'] . (isset($address['address_line_2']) ? ' ' . $address['address_line_2'] : '');
 
         $orderAddress->setCity($address['admin_area_2']);
         $orderAddress->setStreet($street);
