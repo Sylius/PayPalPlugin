@@ -28,10 +28,14 @@ final class CreateOrderApi implements CreateOrderApiInterface
     /** @var string */
     private $baseUrl;
 
-    public function __construct(Client $client, string $baseUrl)
+    /** @var string */
+    private $partnerAttributionId;
+
+    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
     {
         $this->client = $client;
         $this->baseUrl = $baseUrl;
+        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function create(string $token, PaymentInterface $payment): array
@@ -97,7 +101,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     'Authorization' => 'Bearer ' . $token,
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
                 ],
                 'json' => $data,
             ]

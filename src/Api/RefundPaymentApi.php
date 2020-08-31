@@ -24,10 +24,14 @@ final class RefundPaymentApi implements RefundPaymentApiInterface
     /** @var string */
     private $baseUrl;
 
-    public function __construct(Client $client, string $baseUrl)
+    /** @var string */
+    private $partnerAttributionId;
+
+    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
     {
         $this->client = $client;
         $this->baseUrl = $baseUrl;
+        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function refund(string $token, string $paymentId): array
@@ -38,7 +42,7 @@ final class RefundPaymentApi implements RefundPaymentApiInterface
             [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token,
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
                     'Content-Type' => 'application/json',
                     'PayPal-Request-Id' => Uuid::uuid4()->toString(),
                 ],

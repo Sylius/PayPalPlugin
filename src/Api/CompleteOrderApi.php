@@ -23,10 +23,14 @@ final class CompleteOrderApi implements CompleteOrderApiInterface
     /** @var string */
     private $baseUrl;
 
-    public function __construct(Client $client, string $baseUrl)
+    /** @var string */
+    private $partnerAttributionId;
+
+    public function __construct(Client $client, string $baseUrl, string $partnerAttributionId)
     {
         $this->client = $client;
         $this->baseUrl = $baseUrl;
+        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     public function complete(string $token, string $orderId): array
@@ -38,7 +42,7 @@ final class CompleteOrderApi implements CompleteOrderApiInterface
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token,
                     'Prefer' => 'return=representation',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => $this->partnerAttributionId,
                     'Content-Type' => 'application/json',
                 ],
             ]
