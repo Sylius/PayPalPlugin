@@ -29,7 +29,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
 {
     function let(Client $client): void
     {
-        $this->beConstructedWith($client, 'https://api.test-paypal.com/');
+        $this->beConstructedWith($client, 'https://api.test-paypal.com/', 'PARTNER_ATTRIBUTION_ID');
     }
 
     function it_implements_create_order_api_interface(): void

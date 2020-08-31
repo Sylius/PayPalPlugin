@@ -26,7 +26,7 @@ final class RefundPaymentApiSpec extends ObjectBehavior
 {
     function let(Client $client): void
     {
-        $this->beConstructedWith($client, 'https://api.test-paypal.com/');
+        $this->beConstructedWith($client, 'https://api.test-paypal.com/', 'PARTNER_ATTRIBUTION_ID');
     }
 
     function it_implements_refund_order_api_interface(): void
@@ -51,7 +51,7 @@ final class RefundPaymentApiSpec extends ObjectBehavior
             Argument::that(function (array $options): bool {
                 return
                     $options['headers']['Authorization'] === 'Bearer TOKEN' &&
-                    $options['headers']['PayPal-Partner-Attribution-Id'] === 'sylius-ppcp4p-bn-code' &&
+                    $options['headers']['PayPal-Partner-Attribution-Id'] === 'PARTNER_ATTRIBUTION_ID' &&
                     $options['headers']['Content-Type'] === 'application/json' &&
                     is_string($options['headers']['PayPal-Request-Id'])
                 ;

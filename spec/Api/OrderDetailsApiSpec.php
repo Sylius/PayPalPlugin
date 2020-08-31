@@ -24,7 +24,7 @@ final class OrderDetailsApiSpec extends ObjectBehavior
 {
     function let(Client $client): void
     {
-        $this->beConstructedWith($client, 'https://api.test-paypal.com/');
+        $this->beConstructedWith($client, 'https://api.test-paypal.com/', 'PARTNER_ATTRIBUTION_ID');
     }
 
     function it_implements_pay_pal_order_details_provider_interface(): void
@@ -46,7 +46,7 @@ final class OrderDetailsApiSpec extends ObjectBehavior
                     'Authorization' => 'Bearer TOKEN',
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'PARTNER_ATTRIBUTION_ID',
                 ],
             ]
         )->willReturn($detailsResponse);

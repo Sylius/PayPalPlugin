@@ -25,7 +25,7 @@ final class CompleteOrderApiSpec extends ObjectBehavior
 {
     function let(Client $client): void
     {
-        $this->beConstructedWith($client, 'https://api.test-paypal.com/');
+        $this->beConstructedWith($client, 'https://api.test-paypal.com/', 'PARTNER_ATTRIBUTION_ID');
     }
 
     function it_implements_complete_order_api_interface(): void
@@ -51,7 +51,7 @@ final class CompleteOrderApiSpec extends ObjectBehavior
                 'headers' => [
                     'Authorization' => 'Bearer TOKEN',
                     'Prefer' => 'return=representation',
-                    'PayPal-Partner-Attribution-Id' => 'sylius-ppcp4p-bn-code',
+                    'PayPal-Partner-Attribution-Id' => 'PARTNER_ATTRIBUTION_ID',
                     'Content-Type' => 'application/json',
                 ],
             ]
