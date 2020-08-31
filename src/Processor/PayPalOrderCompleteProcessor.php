@@ -32,7 +32,7 @@ final class PayPalOrderCompleteProcessor
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        if ($gatewayConfig->getGatewayName() !== 'paypal') {
+        if ($gatewayConfig->getFactoryName() !== 'sylius.pay_pal') {
             return;
         }
 
