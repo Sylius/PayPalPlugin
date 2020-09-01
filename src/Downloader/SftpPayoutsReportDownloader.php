@@ -24,17 +24,9 @@ final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterf
     /** @var SFTP */
     private $sftp;
 
-    /** @var string */
-    private $username;
-
-    /** @var string */
-    private $password;
-
-    public function __construct(SFTP $sftp, string $username, string $password)
+    public function __construct(SFTP $sftp)
     {
         $this->sftp = $sftp;
-        $this->username = $username;
-        $this->password = $password;
     }
 
     public function downloadFor(\DateTimeInterface $day, PaymentMethodInterface $paymentMethod): Report
@@ -48,9 +40,15 @@ final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterf
         }
 
         /** @var string $partnerAttributionId */
-        $partnerAttributionId = $gatewayConfig->getConfig()['partner_attribution_id'];
+        $partnerAttributionId = $config['partner_attribution_id'];
 
-        if (!$this->sftp->login($this->username, $this->password)) {
+        /** @var string $reportsSftpUsername */
+        $reportsSftpUsername = $config['reports_sftp_username'];
+
+        /** @var string $reportsSftpPassword */
+        $reportsSftpPassword = $config['reports_sftp_password'];
+
+        if (!$this->sftp->login($reportsSftpUsername, $reportsSftpPassword)) {
             throw new PayPalReportDownloadException();
         }
 

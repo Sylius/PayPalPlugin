@@ -25,7 +25,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
 {
     function let(SFTP $sftp): void
     {
-        $this->beConstructedWith($sftp, 'login', 'password');
+        $this->beConstructedWith($sftp);
     }
 
     function it_implements_payouts_report_downloader_interface(): void
@@ -39,9 +39,15 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getConfig()->willReturn(['partner_attribution_id' => 'PARTNER-ID']);
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'partner_attribution_id' => 'PARTNER-ID',
+                'reports_sftp_username' => 'SFTP-USERNAME',
+                'reports_sftp_password' => 'SFTP-PASSWORD',
+            ]
+        );
 
-        $sftp->login('login', 'password')->willReturn(true);
+        $sftp->login('SFTP-USERNAME', 'SFTP-PASSWORD')->willReturn(true);
 
         $yesterday = new \DateTime('-1 day');
         $sftp
@@ -75,9 +81,15 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getConfig()->willReturn(['partner_attribution_id' => 'PARTNER-ID']);
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'partner_attribution_id' => 'PARTNER-ID',
+                'reports_sftp_username' => 'SFTP-USERNAME',
+                'reports_sftp_password' => 'SFTP-PASSWORD',
+            ]
+        );
 
-        $sftp->login('login', 'password')->willReturn(false);
+        $sftp->login('SFTP-USERNAME', 'SFTP-PASSWORD')->willReturn(false);
 
         $this
             ->shouldThrow(PayPalReportDownloadException::class)
@@ -91,9 +103,15 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getConfig()->willReturn(['partner_attribution_id' => 'PARTNER-ID']);
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'partner_attribution_id' => 'PARTNER-ID',
+                'reports_sftp_username' => 'SFTP-USERNAME',
+                'reports_sftp_password' => 'SFTP-PASSWORD',
+            ]
+        );
 
-        $sftp->login('login', 'password')->willReturn(true);
+        $sftp->login('SFTP-USERNAME', 'SFTP-PASSWORD')->willReturn(true);
 
         $yesterday = new \DateTime('-1 day');
         $sftp

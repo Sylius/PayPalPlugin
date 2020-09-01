@@ -110,6 +110,8 @@ final class PaymentPayPalContext implements Context
             'client_id' => $this->clientId,
             'client_secret' => 'SECRET',
             'partner_attribution_id' => $this->partnerAttributionId,
+            'reports_sftp_username' => 'USERNAME',
+            'reports_sftp_password' => 'PASSWORD',
         ]);
 
         $paymentMethod->setPosition((int) $position);
