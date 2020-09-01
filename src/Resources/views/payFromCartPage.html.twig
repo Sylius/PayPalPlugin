@@ -16,6 +16,8 @@
                 method: 'post'
             })
             .then(function(res) {
+                document.querySelector("#sylius_cart").parentElement.classList.add('loadable');
+                document.querySelector("#sylius_cart").parentElement.classList.add('loading');
                 return res.status === 400 ? window.location.reload() : res.json();
             }).then(data => data.orderID);
         },

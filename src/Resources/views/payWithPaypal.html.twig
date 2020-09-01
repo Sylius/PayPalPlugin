@@ -1,3 +1,4 @@
+{% include '@SyliusUi/_stylesheets.html.twig' with {'path': 'assets/shop/css/style.css'} %}
 <!DOCTYPE html>
 <html>
     <head>
@@ -16,7 +17,7 @@
                     margin: auto;
                 }
 
-                #sylius-logo, #paypal-button-container {
+                #sylius-logo {
                     width: 100%;
                 }
 
@@ -53,19 +54,30 @@
                     color: #fff;
                     margin:auto;
                 }
+
+                #paypal-payment-container {
+                    height: 100%;
+                    width: 100%;
+                }
+
+                .low-opacity {
+                    opacity: 0.9;
+                }
             </style>
         {% endblock %}
     </head>
     <body>
-    <div class="back-button-container">
-        <a href="{{ path('sylius_shop_order_show', {'tokenValue': order_token}) }}" class="back-button">
-            {{ 'sylius.pay_pal.back_to_store'|trans }}
-        </a>
-    </div>
-    <div class="container">
-        <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
-        <div class="button-container padding">
-            <div id="paypal-button-container"></div>
+    <div id="paypal-payment-container" class="ui segment loadable">
+        <div class="back-button-container">
+            <a href="{{ path('sylius_shop_order_show', {'tokenValue': order_token}) }}" class="back-button">
+                {{ 'sylius.pay_pal.back_to_store'|trans }}
+            </a>
+        </div>
+        <div class="container">
+            <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
+            <div class="button-container padding">
+                <div id="paypal-button-container"></div>
+            </div>
         </div>
     </div>
     </body>
@@ -81,7 +93,11 @@
             createOrder: function(data, actions) {
                 return fetch(createPayPalOrderUrl, {
                     method: 'post'
-                }).then(res => res.json()).then(data => data.orderID);
+                }).then(res => {
+                    document.querySelector('#paypal-payment-container').classList.add('loading');
+                    document.querySelector('#paypal-button-container').classList.add('low-opacity');
+                    return res.json();
+                }).then(data => data.orderID);
             },
             onApprove: function(data, actions) {
                 return fetch(completePayPalOrderUrl, {
