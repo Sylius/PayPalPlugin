@@ -20,6 +20,7 @@
                 body: formData
             })
             .then(function(res) {
+                document.forms[0].classList.add('loading');
                 return res.status === 400 ? window.location.reload() : res.json();
             })
             .then(data => {
