@@ -25,6 +25,8 @@
             <argument type="service" id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Processor\PayPalAddressProcessor" />
+            <argument type="service" id="Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface" />
+            <argument type="service" id="sylius.state_resolver.order_payment" />
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.complete_order" />
         </service>
 

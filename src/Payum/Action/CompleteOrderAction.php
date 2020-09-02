@@ -19,11 +19,13 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Order\StateResolver\StateResolverInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
+use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final class CompleteOrderAction implements ActionInterface
 {
@@ -39,16 +41,26 @@ final class CompleteOrderAction implements ActionInterface
     /** @var PayPalAddressProcessor */
     private $payPalAddressProcessor;
 
+    /** @var PaymentUpdaterInterface */
+    private $payPalPaymentUpdater;
+
+    /** @var StateResolverInterface */
+    private $orderPaymentStateResolver;
+
     public function __construct(
         AuthorizeClientApiInterface $authorizeClientApi,
         UpdateOrderApiInterface $updateOrderApi,
         CompleteOrderApiInterface $completeOrderApi,
-        PayPalAddressProcessor $payPalAddressProcessor
+        PayPalAddressProcessor $payPalAddressProcessor,
+        PaymentUpdaterInterface $payPalPaymentUpdater,
+        StateResolverInterface $orderPaymentStateResolver
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->updateOrderApi = $updateOrderApi;
         $this->completeOrderApi = $completeOrderApi;
         $this->payPalAddressProcessor = $payPalAddressProcessor;
+        $this->payPalPaymentUpdater = $payPalPaymentUpdater;
+        $this->orderPaymentStateResolver = $orderPaymentStateResolver;
     }
 
     /** @param CompleteOrder $request */
@@ -82,6 +94,9 @@ final class CompleteOrderAction implements ActionInterface
                 (string) ($order->getTotal() / 100),
                 $currencyCode
             );
+
+            $this->payPalPaymentUpdater->updateAmount($payment, $order->getTotal());
+            $this->orderPaymentStateResolver->resolve($order);
         }
 
         $content = $this->completeOrderApi->complete($token, $request->getOrderId());

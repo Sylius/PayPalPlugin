@@ -155,5 +155,12 @@
         <service id="Sylius\PayPalPlugin\Processor\PayPalAddressProcessor">
             <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface"
+            class="Sylius\PayPalPlugin\Updater\PayPalPaymentUpdater"
+        >
+            <argument type="service" id="sylius.manager.payment" />
+        </service>
     </services>
 </container>
