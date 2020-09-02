@@ -87,6 +87,7 @@
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
         let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
         let availableCountries = {{ available_countries|json_encode|raw }};
+        let cancelPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_payment') }}";
 
         paypal.Buttons({
             locale: '{{ locale }}',
@@ -115,6 +116,13 @@
                 if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
                     return actions.reject();
                 }
+            },
+            onCancel: function (data, actions) {
+                return fetch(cancelPayPalPaymentUrl, {
+                    method: 'post',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ payPalOrderId: data.orderID })
+                }).then(window.location.reload());
             }
         }).render('#paypal-button-container');
     </script>
