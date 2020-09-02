@@ -6,3 +6,5 @@ sylius:
         different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
         label: 'PayPal'
         report: 'Report'
+        sftp_username: 'SFTP Username'
+        sftp_password: 'SFTP Password'

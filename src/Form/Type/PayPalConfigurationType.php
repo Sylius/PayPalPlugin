@@ -21,6 +21,8 @@ final class PayPalConfigurationType extends AbstractType
             ->add('partner_attribution_id', HiddenType::class, ['label' => 'sylius.pay_pal.partner_attribution_id', 'attr' => ['readonly' => true]])
             // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
             ->add('use_authorize', HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
+            ->add('reports_sftp_username', TextType::class, ['label' => 'sylius.pay_pal.sftp_username', 'required' => false])
+            ->add('reports_sftp_password', TextType::class, ['label' => 'sylius.pay_pal.sftp_password', 'required' => false])
         ;
     }
 }
