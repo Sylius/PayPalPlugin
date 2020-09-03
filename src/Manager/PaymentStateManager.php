@@ -39,6 +39,11 @@ final class PaymentStateManager implements PaymentStateManagerInterface
         $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_COMPLETE);
     }
 
+    public function cancel(PaymentInterface $payment): void
+    {
+        $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_CANCEL);
+    }
+
     private function applyTransitionAndSave(PaymentInterface $payment, string $transition): void
     {
         /** @var StateMachineInterface $stateMachine */

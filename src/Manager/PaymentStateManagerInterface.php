@@ -13,4 +13,6 @@ interface PaymentStateManagerInterface
     public function process(PaymentInterface $payment): void;
 
     public function complete(PaymentInterface $payment): void;
+
+    public function cancel(PaymentInterface $payment): void;
 }
