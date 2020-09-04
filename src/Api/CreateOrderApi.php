@@ -70,6 +70,9 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     ],
                 ],
             ],
+            'application_context' => [
+                'shipping_preference' => 'GET_FROM_FILE',
+            ],
         ];
 
         $address = $order->getShippingAddress();
@@ -83,6 +86,8 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     'country_code' => $address->getCountryCode(),
                 ],
             ];
+
+            $data['application_context']['shipping_preference'] = 'SET_PROVIDED_ADDRESS';
         }
 
         return $this->client->post('v2/checkout/orders', $token, $data);
