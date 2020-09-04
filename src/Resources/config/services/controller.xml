@@ -24,6 +24,11 @@
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\CancelPayPalCheckoutPaymentAction">
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction">
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
             <argument type="service" id="router" />
