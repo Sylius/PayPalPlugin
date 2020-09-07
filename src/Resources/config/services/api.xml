@@ -21,6 +21,23 @@
         </service>
 
         <service
+            id="sylius_pay_pal_plugin.repository.pay_pal_credentials"
+            class="Doctrine\ORM\EntityRepository"
+        >
+            <factory service="doctrine.orm.entity_manager" method="getRepository"/>
+            <argument>Sylius\PayPalPlugin\Entity\PayPalCredentials</argument>
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface"
+            class="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi"
+        >
+            <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sylius_pay_pal_plugin.repository.pay_pal_credentials" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface"
             class="Sylius\PayPalPlugin\Api\CompleteOrderApi"
         >
