@@ -6,7 +6,6 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface as StateMachineFactoryInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -15,7 +14,7 @@ use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -46,7 +45,7 @@ final class ProcessPayPalOrderAction
     /** @var PaymentStateManagerInterface */
     private $paymentStateManager;
 
-    /** @var AuthorizeClientApiInterface */
+    /** @var CacheAuthorizeClientApiInterface */
     private $authorizeClientApi;
 
     /** @var OrderDetailsApiInterface */
@@ -63,7 +62,7 @@ final class ProcessPayPalOrderAction
         ObjectManager $orderManager,
         StateMachineFactoryInterface $stateMachineFactory,
         PaymentStateManagerInterface $paymentStateManager,
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         OrderDetailsApiInterface $orderDetailsApi,
         OrderProviderInterface $orderProvider
     ) {
@@ -139,11 +138,7 @@ final class ProcessPayPalOrderAction
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
-
-        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
+        $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         return $this->orderDetailsApi->get($token, $id);
     }

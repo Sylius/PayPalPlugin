@@ -19,19 +19,19 @@ use Payum\Core\Request\Capture;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 
 final class CaptureAction implements ActionInterface
 {
-    /** @var AuthorizeClientApiInterface */
+    /** @var CacheAuthorizeClientApiInterface */
     private $authorizeClientApi;
 
     /** @var CreateOrderApiInterface */
     private $createOrderApi;
 
     public function __construct(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         CreateOrderApiInterface $createOrderApi
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
@@ -47,14 +47,8 @@ final class CaptureAction implements ActionInterface
         $payment = $request->getModel();
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
 
-        $token = $this
-            ->authorizeClientApi
-            ->authorize((string) $config['client_id'], (string) $config['client_secret'])
-        ;
+        $token = $this->authorizeClientApi->authorize($paymentMethod);
         $content = $this->createOrderApi->create($token, $payment);
 
         if ($content['status'] === 'CREATED') {

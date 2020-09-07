@@ -17,21 +17,21 @@ use GuzzleHttp\Exception\ClientException;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Webmozart\Assert\Assert;
 
 final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
 {
-    /** @var AuthorizeClientApiInterface */
+    /** @var CacheAuthorizeClientApiInterface */
     private $authorizeClientApi;
 
     /** @var RefundPaymentApiInterface */
     private $refundOrderApi;
 
     public function __construct(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         RefundPaymentApiInterface $refundOrderApi
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
@@ -44,7 +44,6 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
         $paymentMethod = $payment->getMethod();
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
 
         if ($gatewayConfig->getFactoryName() !== 'sylius.pay_pal') {
             return;
@@ -56,7 +55,7 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
         }
 
         try {
-            $token = $this->authorizeClientApi->authorize((string) $config['client_id'], (string) $config['client_secret']);
+            $token = $this->authorizeClientApi->authorize($paymentMethod);
             $response = $this->refundOrderApi->refund($token, (string) $details['paypal_payment_id']);
 
             Assert::same($response['status'], 'COMPLETED');

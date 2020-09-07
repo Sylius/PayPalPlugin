@@ -92,7 +92,7 @@
             <argument type="service" id="sylius.manager.order" />
             <argument type="service" id="sm.factory" />
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
         </service>

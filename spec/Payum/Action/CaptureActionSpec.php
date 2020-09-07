@@ -15,21 +15,20 @@ namespace spec\Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
     function let(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         CreateOrderApiInterface $createOrderApi
     ): void {
         $this->beConstructedWith($authorizeClientApi, $createOrderApi);
@@ -41,24 +40,21 @@ final class CaptureActionSpec extends ObjectBehavior
     }
 
     function it_authorizes_seller_send_create_order_request_and_sets_order_response_data_on_payment(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         CreateOrderApiInterface $createOrderApi,
         Capture $request,
         OrderInterface $order,
         PaymentInterface $payment,
-        PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        PaymentMethodInterface $paymentMethod
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
-        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
 
         $payment->getAmount()->willReturn(1000);
         $payment->getOrder()->willReturn($order);
         $order->getCurrencyCode()->willReturn('USD');
 
-        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('ACCESS_TOKEN');
+        $authorizeClientApi->authorize($paymentMethod)->willReturn('ACCESS_TOKEN');
         $createOrderApi->create('ACCESS_TOKEN', $payment)->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $payment->setDetails([

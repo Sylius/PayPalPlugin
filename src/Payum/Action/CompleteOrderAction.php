@@ -15,12 +15,11 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\StateResolver\StateResolverInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
@@ -29,7 +28,7 @@ use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final class CompleteOrderAction implements ActionInterface
 {
-    /** @var AuthorizeClientApiInterface */
+    /** @var CacheAuthorizeClientApiInterface */
     private $authorizeClientApi;
 
     /** @var UpdateOrderApiInterface */
@@ -48,7 +47,7 @@ final class CompleteOrderAction implements ActionInterface
     private $orderPaymentStateResolver;
 
     public function __construct(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         UpdateOrderApiInterface $updateOrderApi,
         CompleteOrderApiInterface $completeOrderApi,
         PayPalAddressProcessor $payPalAddressProcessor,
@@ -72,14 +71,7 @@ final class CompleteOrderAction implements ActionInterface
         $payment = $request->getModel();
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
-
-        $token = $this
-            ->authorizeClientApi
-            ->authorize((string) $config['client_id'], (string) $config['client_secret'])
-        ;
+        $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $details = $payment->getDetails();
         /** @var OrderInterface $order */
