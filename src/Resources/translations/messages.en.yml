@@ -4,6 +4,7 @@ sylius:
         client_id: 'Client ID'
         client_secret: 'Client Secret'
         different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
+        enable_paypal: 'Enable PayPal'
         label: 'PayPal'
         report: 'Report'
         sftp_username: 'SFTP Username'
