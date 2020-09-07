@@ -70,7 +70,7 @@ final class PayPalCredentials implements PayPalCredentialsInterface
         $this->paymentMethod = $paymentMethod;
         $this->accessToken = $accessToken;
         $this->creationTime = $creationTime;
-        $this->expirationTime = (clone $creationTime)->modify('+'.$expiresIn.' seconds');
+        $this->expirationTime = (clone $creationTime)->modify('+' . $expiresIn . ' seconds');
     }
 
     public function id(): string

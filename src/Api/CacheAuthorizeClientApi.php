@@ -59,7 +59,9 @@ final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $token = $this->authorizeClientApi->authorize($config['client_id'], $config['client_secret']);
+        $token = $this->authorizeClientApi->authorize(
+            (string) $config['client_id'], (string) $config['client_secret']
+        );
         $payPalCredentials = new PayPalCredentials(
             Uuid::uuid4()->toString(), $paymentMethod, $token, new \DateTime(), 3600
         );
