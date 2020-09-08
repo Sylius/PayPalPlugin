@@ -66,3 +66,8 @@ sylius_ui:
                 pay_with_pay_pal:
                     template: '@SyliusPayPalPlugin/Buttons/cart.html.twig'
                     priority: 7
+        sylius.admin.payment_method.index.javascripts:
+            blocks:
+                pay_pal_payment_method:
+                    template: '@SyliusPayPalPlugin/javascripts.html.twig'
+                    priority: -100
