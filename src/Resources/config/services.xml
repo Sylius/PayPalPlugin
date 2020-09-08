@@ -98,7 +98,7 @@
             class="Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor"
             public="true"
         >
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface" />
         </service>
 

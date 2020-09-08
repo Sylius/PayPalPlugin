@@ -19,14 +19,14 @@ use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
 
 final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
 {
-    function let(AuthorizeClientApiInterface $authorizeClientApi, RefundPaymentApiInterface $refundOrderApi): void
+    function let(CacheAuthorizeClientApiInterface $authorizeClientApi, RefundPaymentApiInterface $refundOrderApi): void
     {
         $this->beConstructedWith($authorizeClientApi, $refundOrderApi);
     }
@@ -37,7 +37,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
     }
 
     function it_fully_refunds_payment_in_pay_pal(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         RefundPaymentApiInterface $refundOrderApi,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
@@ -46,10 +46,9 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
-        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
         $payment->getDetails()->willReturn(['paypal_payment_id' => '123123']);
 
-        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
+        $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
         $refundOrderApi->refund('TOKEN', '123123')->willReturn(['status' => 'COMPLETED', 'id' => '123123']);
 
         $this->refund($payment);
@@ -89,7 +88,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
     }
 
     function it_throws_exception_if_refund_could_not_be_processed(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         RefundPaymentApiInterface $refundOrderApi,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
@@ -98,10 +97,9 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
-        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
         $payment->getDetails()->willReturn(['paypal_payment_id' => '123123']);
 
-        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
+        $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
         $refundOrderApi->refund('TOKEN', '123123')->willReturn(['status' => 'FAILED']);
 
         $this
@@ -111,7 +109,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
     }
 
     function it_throws_exception_if_something_went_wrong_during_refunding_payment(
-        AuthorizeClientApiInterface $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         RefundPaymentApiInterface $refundOrderApi,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
@@ -120,10 +118,9 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
-        $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
         $payment->getDetails()->willReturn(['paypal_payment_id' => '123123']);
 
-        $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
+        $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
         $refundOrderApi->refund('TOKEN', '123123')->willThrow(ClientException::class);
 
         $this

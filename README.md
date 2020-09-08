@@ -57,6 +57,13 @@
     # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator) 
     PAYPAL_FACILITATOR_URL='https://paypal.sylius.com'
     ```
+   
+5. Copy and apply migrations
+
+   ```
+   cp -R vendor/sylius/paypal-plugin/migrations/ src/Migrations/
+   bin/console doctrine:migrations:migrate -n
+   ```
 
 > BEWARE!
 

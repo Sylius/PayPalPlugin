@@ -36,6 +36,8 @@ before_install:
     - echo "memory_limit=4096M" >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
     - mkdir -p "${SYLIUS_CACHE_DIR}"
 
+    - cp -R migrations/ tests/Application/src/Migrations/
+
 install:
     - composer install --no-interaction --prefer-dist
     - (cd tests/Application && yarn install)
