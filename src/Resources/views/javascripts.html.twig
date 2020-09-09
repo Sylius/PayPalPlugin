@@ -1,22 +1,22 @@
 <script type="application/javascript">
-    const confirmationText = $('#confirmation-modal .content');
-    const defaultText = confirmationText.text();
+    const confirmationText = document.querySelector('#confirmation-modal > div.content');;
+    const defaultText = confirmationText.innerHTML;
 
-    $('#confirmation-button').on('click', (evt) => {
-        window.location.href = $(evt.currentTarget).attr('href');
-    });
+    document.querySelector('#confirmation-button').addEventListener('click', evt => {
+        window.location.href = evt.currentTarget.getAttribute('href');
+    })
 
-    $('[data-confirm-pay-pal-consent]').on('click', (evt) => {
+    document.querySelector('[data-confirm-pay-pal-consent]').addEventListener('click', (evt) => {
         evt.preventDefault();
 
-        const actionButton = $(evt.currentTarget);
-        $('#confirmation-button').attr('href', actionButton.attr('href'));
+        const actionButton = evt.currentTarget;
+        document.querySelector('#confirmation-button').setAttribute('href', actionButton.getAttribute('href'));
 
-        confirmationText.text('{{ 'sylius.pay_pal.share_data_consent_confirmation'|trans }}');
+        confirmationText.innerHTML = '{{ 'sylius.pay_pal.share_data_consent_confirmation'|trans }}';
         $('#confirmation-modal')
             .modal({
                 onHidden: function() {
-                    confirmationText.text(defaultText);
+                    confirmationText.innerHTML = defaultText;
                 }
             })
             .modal('show')
