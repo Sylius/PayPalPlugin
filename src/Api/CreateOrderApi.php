@@ -15,12 +15,12 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
@@ -31,17 +31,17 @@ final class CreateOrderApi implements CreateOrderApiInterface
     /** @var PaymentReferenceNumberProviderInterface */
     private $paymentReferenceNumberProvider;
 
-    /** @var OrderItemNonNeutralTaxProviderInterface */
-    private $orderItemNonNeutralTaxProvider;
+    /** @var PayPalItemDataProviderInterface */
+    private $payPalItemDataProvider;
 
     public function __construct(
         PayPalClientInterface $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ) {
         $this->client = $client;
         $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
-        $this->orderItemNonNeutralTaxProvider = $orderItemNonNeutralTaxProvider;
+        $this->payPalItemDataProvider = $payPalItemDataProvider;
     }
 
     public function create(string $token, PaymentInterface $payment, string $referenceId): array
@@ -55,35 +55,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $orderItems = $order->getItems()->toArray();
-
-        $purchaseUnitsItems = [];
-        $totalNonNeutralTax = 0;
-        $totalItemValue = 0;
-
-        /** @var OrderItemInterface $orderItem */
-        foreach ($orderItems as $orderItem) {
-            $nonNeutralTaxList = $this->orderItemNonNeutralTaxProvider->provide($orderItem);
-            /** @var int $nonNeutralTax */
-            foreach ($nonNeutralTaxList as $nonNeutralTax) {
-                $itemValue = $orderItem->getUnitPrice();
-                $totalItemValue += $itemValue;
-                $totalNonNeutralTax += $nonNeutralTax;
-
-                $purchaseUnitsItems[] = [
-                    'name' => $orderItem->getProductName(),
-                    'unit_amount' => [
-                        'value' => $itemValue / 100,
-                        'currency_code' => $order->getCurrencyCode(),
-                    ],
-                    'quantity' => $nonNeutralTaxList === [0] ? $orderItem->getQuantity() : 1,
-                    'tax' => [
-                        'value' => $nonNeutralTax / 100,
-                        'currency_code' => $order->getCurrencyCode(),
-                    ],
-                ];
-            }
-        }
+        $payPalItemData = $this->payPalItemDataProvider->provide($order);
 
         $config = $gatewayConfig->getConfig();
 
@@ -106,11 +78,11 @@ final class CreateOrderApi implements CreateOrderApiInterface
                             ],
                             'item_total' => [
                                 'currency_code' => $order->getCurrencyCode(),
-                                'value' => $totalItemValue / 100,
+                                'value' => $payPalItemData['total_item_value'],
                             ],
                             'tax_total' => [
                                 'currency_code' => $order->getCurrencyCode(),
-                                'value' => $totalNonNeutralTax / 100,
+                                'value' => $payPalItemData['total_tax'],
                             ],
                         ],
                     ],
@@ -129,7 +101,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                         ],
                     ],
                     'soft_descriptor' => 'Sylius PayPal Payment',
-                    'items' => $purchaseUnitsItems,
+                    'items' => $payPalItemData['items'],
                 ],
             ],
             'application_context' => [

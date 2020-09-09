@@ -10,7 +10,7 @@ use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\OrderItemUnitInterface;
 
-final class OrderItemNonNeutralTaxProviderSpec extends ObjectBehavior
+final class OrderItemNonNeutralTaxesProviderSpec extends ObjectBehavior
 {
     function it_provides_non_neutral_tax_based_on_given_order_item(
         OrderItemInterface $orderItem,

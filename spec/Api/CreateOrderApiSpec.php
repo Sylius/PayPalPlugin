@@ -13,28 +13,26 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Api;
 
-use Doctrine\Common\Collections\Collection;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
-use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
 final class CreateOrderApiSpec extends ObjectBehavior
 {
     function let(
         PayPalClientInterface $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ): void {
-        $this->beConstructedWith($client, $paymentReferenceNumberProvider, $orderItemNonNeutralTaxProvider);
+        $this->beConstructedWith($client, $paymentReferenceNumberProvider, $payPalItemDataProvider);
     }
 
     function it_implements_create_order_api_interface(): void
@@ -49,23 +47,33 @@ final class CreateOrderApiSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        OrderItemInterface $orderItem,
-        Collection $orderItemCollection,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
         $order->getCurrencyCode()->willReturn('PLN');
         $order->getShippingAddress()->willReturn(null);
-        $order->getItems()->willReturn($orderItemCollection);
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
 
-        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn([0]);
-        $orderItemCollection->toArray()->willReturn([$orderItem]);
-        $orderItem->getQuantity()->willReturn(1);
-        $orderItem->getUnitPrice()->willReturn(9000);
-        $orderItem->getProductName()->willReturn('PRODUCT_ONE');
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 90,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 0,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 90,
+            'total_tax' => 0,
+        ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -105,15 +113,12 @@ final class CreateOrderApiSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
-        OrderItemInterface $orderItem,
-        Collection $orderItemCollection,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
         $order->getCurrencyCode()->willReturn('PLN');
         $order->getShippingAddress()->willReturn($shippingAddress);
-        $order->getItems()->willReturn($orderItemCollection);
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
 
@@ -123,12 +128,24 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $shippingAddress->getPostcode()->willReturn('000');
         $shippingAddress->getCountryCode()->willReturn('US');
 
-        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn([0]);
-
-        $orderItemCollection->toArray()->willReturn([$orderItem]);
-        $orderItem->getQuantity()->willReturn(1);
-        $orderItem->getUnitPrice()->willReturn(9000);
-        $orderItem->getProductName()->willReturn('PRODUCT_ONE');
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 90,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 0,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 90,
+            'total_tax' => 0,
+        ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -170,17 +187,13 @@ final class CreateOrderApiSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
-        OrderItemInterface $orderItemOne,
-        OrderItemInterface $orderItemTwo,
-        Collection $orderItemCollection,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider,
-        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(20000);
         $order->getCurrencyCode()->willReturn('PLN');
         $order->getShippingAddress()->willReturn($shippingAddress);
-        $order->getItems()->willReturn($orderItemCollection);
         $order->getItemsTotal()->willReturn(17000);
         $order->getShippingTotal()->willReturn(3000);
 
@@ -190,17 +203,36 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $shippingAddress->getPostcode()->willReturn('000');
         $shippingAddress->getCountryCode()->willReturn('US');
 
-        $orderItemCollection->toArray()->willReturn([$orderItemOne, $orderItemTwo]);
-        $orderItemOne->getQuantity()->willReturn(1);
-        $orderItemOne->getUnitPrice()->willReturn(9000);
-        $orderItemOne->getProductName()->willReturn('PRODUCT_ONE');
-
-        $orderItemTwo->getQuantity()->willReturn(2);
-        $orderItemTwo->getUnitPrice()->willReturn(4000);
-        $orderItemTwo->getProductName()->willReturn('PRODUCT_TWO');
-
-        $orderItemNonNeutralTaxProvider->provide($orderItemOne)->willReturn([0]);
-        $orderItemNonNeutralTaxProvider->provide($orderItemTwo)->willReturn([0]);
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 90,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 0,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+                [
+                    'name' => 'PRODUCT_TWO',
+                    'unit_amount' => [
+                        'value' => 40,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 2,
+                    'tax' => [
+                        'value' => 0,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 170,
+            'total_tax' => 0,
+        ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -235,7 +267,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
     }
 
     function it_creates_pay_pal_order_with_non_neutral_tax_and_changed_quantity(
@@ -245,15 +277,13 @@ final class CreateOrderApiSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
-        OrderItemInterface $orderItem,
-        Collection $orderItemCollection,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(13000);
         $order->getCurrencyCode()->willReturn('PLN');
         $order->getShippingAddress()->willReturn($shippingAddress);
-        $order->getItems()->willReturn($orderItemCollection);
         $order->getItemsTotal()->willReturn(12000);
         $order->getShippingTotal()->willReturn(1000);
 
@@ -263,12 +293,36 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $shippingAddress->getPostcode()->willReturn('000');
         $shippingAddress->getCountryCode()->willReturn('US');
 
-        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn([100, 100]);
-
-        $orderItemCollection->toArray()->willReturn([$orderItem]);
-        $orderItem->getQuantity()->willReturn(2);
-        $orderItem->getUnitPrice()->willReturn(5000);
-        $orderItem->getProductName()->willReturn('PRODUCT_ONE');
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 50,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 10,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 50,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 10,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 100,
+            'total_tax' => 20,
+        ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -276,6 +330,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $gatewayConfig->getConfig()->willReturn(
             ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
         );
+
+        $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $client->post(
             'v2/checkout/orders',
@@ -294,18 +350,18 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 50 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 10 &&
                     $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 50 &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 10 &&
                     $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN';
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
     }
 
     function it_creates_pay_pal_order_with_more_than_one_product_with_different_tax_rates(
@@ -315,17 +371,14 @@ final class CreateOrderApiSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
-        OrderItemInterface $orderItemOne,
-        OrderItemInterface $orderItemTwo,
-        Collection $orderItemCollection,
-        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ): void {
         $payment->getOrder()->willReturn($order);
-        $payment->getAmount()->willReturn(20300);
+        $payment->getAmount()->willReturn(20400);
         $order->getCurrencyCode()->willReturn('PLN');
         $order->getShippingAddress()->willReturn($shippingAddress);
-        $order->getItems()->willReturn($orderItemCollection);
-        $order->getItemsTotal()->willReturn(17300);
+        $order->getItemsTotal()->willReturn(17400);
         $order->getShippingTotal()->willReturn(3000);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
@@ -333,17 +386,49 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $shippingAddress->getCity()->willReturn('Minas Tirith');
         $shippingAddress->getPostcode()->willReturn('000');
         $shippingAddress->getCountryCode()->willReturn('US');
-        $orderItemCollection->toArray()->willReturn([$orderItemOne, $orderItemTwo]);
-        $orderItemOne->getQuantity()->willReturn(1);
-        $orderItemOne->getUnitPrice()->willReturn(9000);
-        $orderItemOne->getProductName()->willReturn('PRODUCT_ONE');
 
-        $orderItemTwo->getQuantity()->willReturn(2);
-        $orderItemTwo->getUnitPrice()->willReturn(4000);
-        $orderItemTwo->getProductName()->willReturn('PRODUCT_TWO');
-
-        $orderItemNonNeutralTaxProvider->provide($orderItemOne)->willReturn([200]);
-        $orderItemNonNeutralTaxProvider->provide($orderItemTwo)->willReturn([100, 100]);
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 90,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 2,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+                [
+                    'name' => 'PRODUCT_TWO',
+                    'unit_amount' => [
+                        'value' => 40,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 1,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+                [
+                    'name' => 'PRODUCT_TWO',
+                    'unit_amount' => [
+                        'value' => 40,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 1,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 170,
+            'total_tax' => 4,
+        ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -352,13 +437,15 @@ final class CreateOrderApiSpec extends ObjectBehavior
             ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
         );
 
+        $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+
         $client->post(
             'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
                     $data['intent'] === 'CAPTURE' &&
-                    $data['purchase_units'][0]['amount']['value'] === 203 &&
+                    $data['purchase_units'][0]['amount']['value'] === 204 &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
