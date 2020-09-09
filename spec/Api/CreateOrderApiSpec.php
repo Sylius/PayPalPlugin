@@ -61,7 +61,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
 
-        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn(0);
+        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn([0]);
         $orderItemCollection->toArray()->willReturn([$orderItem]);
         $orderItem->getQuantity()->willReturn(1);
         $orderItem->getUnitPrice()->willReturn(9000);
@@ -90,8 +90,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
-                ;
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN';
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
@@ -124,7 +123,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $shippingAddress->getPostcode()->willReturn('000');
         $shippingAddress->getCountryCode()->willReturn('US');
 
-        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn(0);
+        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn([0]);
 
         $orderItemCollection->toArray()->willReturn([$orderItem]);
         $orderItem->getQuantity()->willReturn(1);
@@ -157,8 +156,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
-                ;
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN';
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
@@ -201,8 +199,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $orderItemTwo->getUnitPrice()->willReturn(4000);
         $orderItemTwo->getProductName()->willReturn('PRODUCT_TWO');
 
-        $orderItemNonNeutralTaxProvider->provide($orderItemOne)->willReturn(0);
-        $orderItemNonNeutralTaxProvider->provide($orderItemTwo)->willReturn(0);
+        $orderItemNonNeutralTaxProvider->provide($orderItemOne)->willReturn([0]);
+        $orderItemNonNeutralTaxProvider->provide($orderItemTwo)->willReturn([0]);
 
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -233,7 +231,158 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
                     $data['purchase_units'][0]['items'][1]['quantity'] === 2 &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40 &&
-                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN'
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN';
+            })
+        )->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+    }
+
+    function it_creates_pay_pal_order_with_non_neutral_tax_and_changed_quantity(
+        PayPalClientInterface $client,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        AddressInterface $shippingAddress,
+        OrderItemInterface $orderItem,
+        Collection $orderItemCollection,
+        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+    ): void {
+        $payment->getOrder()->willReturn($order);
+        $payment->getAmount()->willReturn(13000);
+        $order->getCurrencyCode()->willReturn('PLN');
+        $order->getShippingAddress()->willReturn($shippingAddress);
+        $order->getItems()->willReturn($orderItemCollection);
+        $order->getItemsTotal()->willReturn(12000);
+        $order->getShippingTotal()->willReturn(1000);
+
+        $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
+        $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
+        $shippingAddress->getCity()->willReturn('Minas Tirith');
+        $shippingAddress->getPostcode()->willReturn('000');
+        $shippingAddress->getCountryCode()->willReturn('US');
+
+        $orderItemNonNeutralTaxProvider->provide($orderItem)->willReturn([100, 100]);
+
+        $orderItemCollection->toArray()->willReturn([$orderItem]);
+        $orderItem->getQuantity()->willReturn(2);
+        $orderItem->getUnitPrice()->willReturn(5000);
+        $orderItem->getProductName()->willReturn('PRODUCT_ONE');
+
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $gatewayConfig->getConfig()->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+        );
+
+        $client->post(
+            'v2/checkout/orders',
+            'TOKEN',
+            Argument::that(function (array $data): bool {
+                return
+                    $data['intent'] === 'CAPTURE' &&
+                    $data['purchase_units'][0]['amount']['value'] === 130 &&
+                    $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
+                    $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
+                    $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
+                    $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
+                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 50 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 50 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN';
+            })
+        )->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+    }
+
+    function it_creates_pay_pal_order_with_more_than_one_product_with_different_tax_rates(
+        PayPalClientInterface $client,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        AddressInterface $shippingAddress,
+        OrderItemInterface $orderItemOne,
+        OrderItemInterface $orderItemTwo,
+        Collection $orderItemCollection,
+        OrderItemNonNeutralTaxProviderInterface $orderItemNonNeutralTaxProvider
+    ): void {
+        $payment->getOrder()->willReturn($order);
+        $payment->getAmount()->willReturn(20300);
+        $order->getCurrencyCode()->willReturn('PLN');
+        $order->getShippingAddress()->willReturn($shippingAddress);
+        $order->getItems()->willReturn($orderItemCollection);
+        $order->getItemsTotal()->willReturn(17300);
+        $order->getShippingTotal()->willReturn(3000);
+
+        $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
+        $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
+        $shippingAddress->getCity()->willReturn('Minas Tirith');
+        $shippingAddress->getPostcode()->willReturn('000');
+        $shippingAddress->getCountryCode()->willReturn('US');
+        $orderItemCollection->toArray()->willReturn([$orderItemOne, $orderItemTwo]);
+        $orderItemOne->getQuantity()->willReturn(1);
+        $orderItemOne->getUnitPrice()->willReturn(9000);
+        $orderItemOne->getProductName()->willReturn('PRODUCT_ONE');
+
+        $orderItemTwo->getQuantity()->willReturn(2);
+        $orderItemTwo->getUnitPrice()->willReturn(4000);
+        $orderItemTwo->getProductName()->willReturn('PRODUCT_TWO');
+
+        $orderItemNonNeutralTaxProvider->provide($orderItemOne)->willReturn([200]);
+        $orderItemNonNeutralTaxProvider->provide($orderItemTwo)->willReturn([100, 100]);
+
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $gatewayConfig->getConfig()->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+        );
+
+        $client->post(
+            'v2/checkout/orders',
+            'TOKEN',
+            Argument::that(function (array $data): bool {
+                return
+                    $data['intent'] === 'CAPTURE' &&
+                    $data['purchase_units'][0]['amount']['value'] === 203 &&
+                    $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
+                    $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
+                    $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
+                    $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
+                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 2 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
+                    $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][2]['name'] === 'PRODUCT_TWO' &&
+                    $data['purchase_units'][0]['items'][2]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][2]['unit_amount']['value'] === 40 &&
+                    $data['purchase_units'][0]['items'][2]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][2]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][2]['tax']['currency_code'] === 'PLN'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);

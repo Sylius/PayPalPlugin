@@ -12,7 +12,7 @@ use Sylius\Component\Core\Model\OrderItemUnitInterface;
 
 final class OrderItemNonNeutralTaxProviderSpec extends ObjectBehavior
 {
-    function it_provides_tax_based_on_given_order_item(
+    function it_provides_non_neutral_tax_based_on_given_order_item(
         OrderItemInterface $orderItem,
         Collection $adjustmentCollection,
         Collection $unitCollection,
@@ -20,12 +20,10 @@ final class OrderItemNonNeutralTaxProviderSpec extends ObjectBehavior
         AdjustmentInterface $adjustment,
         OrderItemUnitInterface $orderItemUnit,
         AdjustmentInterface $unitAdjustment
-
     ): void {
-
         $orderItem->getAdjustments(AdjustmentInterface::TAX_ADJUSTMENT)->willReturn($adjustmentCollection);
-        $adjustment->isNeutral()->willReturn(false);
-        $adjustment->getAmount()->willReturn(20);
+        $adjustment->isNeutral()->willReturn(true);
+        $adjustment->getAmount()->shouldNotBeCalled();
 
         $adjustmentCollection->toArray()->willReturn([$adjustment]);
 
@@ -37,6 +35,6 @@ final class OrderItemNonNeutralTaxProviderSpec extends ObjectBehavior
         $unitAdjustment->isNeutral()->willReturn(false);
         $unitAdjustment->getAmount()->willReturn(20);
 
-        $this->provide($orderItem)->shouldReturn(40);
+        $this->provide($orderItem)->shouldReturn([20]);
     }
 }

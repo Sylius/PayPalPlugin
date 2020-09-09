@@ -62,24 +62,27 @@ final class CreateOrderApi implements CreateOrderApiInterface
         $totalItemValue = 0;
 
         /** @var OrderItemInterface $orderItem */
-        foreach($orderItems as $orderItem){
-            $nonNeutralTax = $this->orderItemNonNeutralTaxProvider->provide($orderItem);
-            $totalNonNeutralTax += $nonNeutralTax * $orderItem->getQuantity();
-            $itemValue = $orderItem->getUnitPrice();
-            $totalItemValue += $itemValue * $orderItem->getQuantity();
+        foreach ($orderItems as $orderItem) {
+            $nonNeutralTaxList = $this->orderItemNonNeutralTaxProvider->provide($orderItem);
+            /** @var int $nonNeutralTax */
+            foreach ($nonNeutralTaxList as $nonNeutralTax) {
+                $itemValue = $orderItem->getUnitPrice();
+                $totalItemValue += $itemValue;
+                $totalNonNeutralTax += $nonNeutralTax;
 
-            $purchaseUnitsItems[] = [
-                'name' => $orderItem->getProductName(),
-                'unit_amount' => [
-                    'value' => $itemValue / 100,
-                    'currency_code' => $order->getCurrencyCode(),
-                ],
-                'quantity' => $orderItem->getQuantity(),
-                'tax' => [
-                    'value' => $nonNeutralTax / 100,
-                    'currency_code' => $order->getCurrencyCode(),
-                ],
-            ];
+                $purchaseUnitsItems[] = [
+                    'name' => $orderItem->getProductName(),
+                    'unit_amount' => [
+                        'value' => $itemValue / 100,
+                        'currency_code' => $order->getCurrencyCode(),
+                    ],
+                    'quantity' => $nonNeutralTaxList === [0] ? $orderItem->getQuantity() : 1,
+                    'tax' => [
+                        'value' => $nonNeutralTax / 100,
+                        'currency_code' => $order->getCurrencyCode(),
+                    ],
+                ];
+            }
         }
 
         $config = $gatewayConfig->getConfig();
@@ -99,7 +102,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                         'breakdown' => [
                             'shipping' => [
                                 'currency_code' => $order->getCurrencyCode(),
-                                'value' => $order->getShippingTotal() / 100
+                                'value' => $order->getShippingTotal() / 100,
                             ],
                             'item_total' => [
                                 'currency_code' => $order->getCurrencyCode(),
@@ -108,7 +111,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                             'tax_total' => [
                                 'currency_code' => $order->getCurrencyCode(),
                                 'value' => $totalNonNeutralTax / 100,
-                            ]
+                            ],
                         ],
                     ],
                     'payee' => [

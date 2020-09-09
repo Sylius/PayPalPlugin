@@ -8,5 +8,5 @@ use Sylius\Component\Core\Model\OrderItemInterface;
 
 interface OrderItemNonNeutralTaxProviderInterface
 {
-    public function provide(OrderItemInterface $orderItem): int;
+    public function provide(OrderItemInterface $orderItem): array;
 }
