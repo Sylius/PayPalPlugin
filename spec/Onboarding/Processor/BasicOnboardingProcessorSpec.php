@@ -81,6 +81,66 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
 
+    function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_request(
+        ClientInterface $httpClient,
+        ResponseInterface $response,
+        StreamInterface $body,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+            ]
+        );
+
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID', 'permissionsGranted' => false]);
+
+        $httpClient
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
+            ->willReturn($response)
+        ;
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn(
+            '{"client_id":"CLIENT-ID",
+            "client_secret":"CLIENT-SECRET",
+            "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
+        );
+
+        $paymentMethod->setEnabled(false)->shouldBeCalled();
+        $gatewayConfig->setConfig(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'onboarding_id' => 'ONBOARDING-ID',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+                'partner_attribution_id' => 'ATTRIBUTION-ID',
+            ]
+        )->shouldBeCalled();
+
+        $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
+    }
+
     function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(
         PaymentMethodInterface $paymentMethod,
         Request $request
