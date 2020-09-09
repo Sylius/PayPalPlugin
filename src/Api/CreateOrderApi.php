@@ -68,6 +68,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                             'country_code' => 'US',
                         ],
                     ],
+                    'soft_descriptor' => 'Sylius PayPal Payment',
                 ],
             ],
             'application_context' => [
