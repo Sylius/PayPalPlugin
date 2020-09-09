@@ -1,0 +1,5 @@
+{% if data.gatewayConfig.factoryName == 'sylius.pay_pal' and not data.enabled %}
+    <form action="{{ path('sylius_paypal_plugin_admin_enable_seller', {'id': data.id}) }}" method="post">
+        <button type="submit" class="ui button purple icon labeled"><i class="icon checkmark"></i> {{ 'sylius.ui.enable'|trans }}</button>
+    </form>
+{% endif %}

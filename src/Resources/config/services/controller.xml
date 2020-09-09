@@ -50,6 +50,11 @@
             <argument type="service" id="sylius.repository.payment_method" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\EnableSellerAction" public="true">
+            <argument type="service" id="sylius.repository.payment_method" />
+            <argument type="service" id="Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction">
             <argument type="service" id="payum" />
             <argument type="service" id="sylius.repository.order" />

@@ -2,4 +2,6 @@ sylius:
     pay_pal:
         order_cancelled: 'PayPal order has been cancelled'
         payment_cancelled: 'PayPal payment has been cancelled'
+        payment_enabled: 'PayPal payment has just been enabled.'
+        payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'
         something_went_wrong: 'Something went wrong. Please, try again.'

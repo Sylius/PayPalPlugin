@@ -166,5 +166,14 @@
         >
             <argument type="service" id="sylius.manager.payment" />
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface"
+            class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius.paypal.facilitator_url%</argument>
+            <argument type="service" id="sylius.manager.payment_method" />
+        </service>
     </services>
 </container>
