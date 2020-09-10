@@ -20,7 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
  * @ORM\Entity
  * @ORM\Table(name="sylius_paypal_plugin_pay_pal_credentials")
  */
-final class PayPalCredentials implements PayPalCredentialsInterface
+class PayPalCredentials implements PayPalCredentialsInterface
 {
     /**
      * @var string
