@@ -29,6 +29,7 @@ sylius_grid:
     templates:
         action:
             download_report: "@SyliusPayPalPlugin/Grid/downloadReport.html.twig"
+            enable_pay_pal: "@SyliusPayPalPlugin/Grid/enablePayPal.html.twig"
     grids:
         sylius_admin_payment_method:
             actions:
@@ -42,6 +43,9 @@ sylius_grid:
                                 route: sylius_paypal_plugin_admin_download_payouts_report
                                 parameters:
                                     id: resource.id
+                main:
+                    enable_pay_pal:
+                        type: enable_pay_pal
 
 sylius_ui:
     events:
