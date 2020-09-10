@@ -66,7 +66,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
     }
 
     function it_creates_pay_pal_order_with_shipping_address_based_on_given_payment(
@@ -112,6 +112,6 @@ final class CreateOrderApiSpec extends ObjectBehavior
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->create('TOKEN', $payment)->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
     }
 }

@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
+use Ramsey\Uuid\Uuid;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
@@ -48,12 +49,15 @@ final class CaptureAction implements ActionInterface
         $paymentMethod = $payment->getMethod();
 
         $token = $this->authorizeClientApi->authorize($paymentMethod);
-        $content = $this->createOrderApi->create($token, $payment);
+
+        $reference_id = Uuid::uuid4()->toString();
+        $content = $this->createOrderApi->create($token, $payment, $reference_id);
 
         if ($content['status'] === 'CREATED') {
             $payment->setDetails([
                 'status' => StatusAction::STATUS_CAPTURED,
                 'paypal_order_id' => $content['id'],
+                'reference_id' => $reference_id,
             ]);
         }
     }

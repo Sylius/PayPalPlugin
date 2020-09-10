@@ -17,6 +17,7 @@ use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
 use PhpSpec\ObjectBehavior;
+use Prophecy\Argument;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -55,12 +56,15 @@ final class CaptureActionSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('USD');
 
         $authorizeClientApi->authorize($paymentMethod)->willReturn('ACCESS_TOKEN');
-        $createOrderApi->create('ACCESS_TOKEN', $payment)->willReturn(['status' => 'CREATED', 'id' => '123123']);
+        $createOrderApi->create('ACCESS_TOKEN', $payment, Argument::type('string'))->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
-        $payment->setDetails([
-            'status' => StatusAction::STATUS_CAPTURED,
-            'paypal_order_id' => '123123',
-        ])->shouldBeCalled();
+        $payment->setDetails(Argument::that(function (array $data): bool {
+            return
+                $data['status'] === StatusAction::STATUS_CAPTURED &&
+                $data['paypal_order_id'] === '123123' &&
+                is_string($data['reference_id'])
+            ;
+        }))->shouldBeCalled();
 
         $this->execute($request);
     }
