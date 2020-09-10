@@ -38,9 +38,10 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         /** @var GatewayConfig $gatewayConfig */
         Assert::notNull($gatewayConfig);
 
+        $onboardingId = (string) $request->query->get('onboarding_id');
         $checkPartnerReferralsResponse = $this->httpClient->request(
             'GET',
-            sprintf('%s/partner-referrals/check/%s', $this->url, (string) $request->query->get('onboarding_id')),
+            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
             [
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -61,9 +62,14 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             'client_secret' => $response['client_secret'],
             'merchant_id' => $response['merchant_id'],
             'sylius_merchant_id' => $response['sylius_merchant_id'],
-            'onboarding_id' => $request->query->get('onboarding_id'),
+            'onboarding_id' => $onboardingId,
             'partner_attribution_id' => $response['partner_attribution_id'],
         ]);
+
+        $permissionsGranted = (bool) $request->query->get('permissionsGranted', true);
+        if (!$permissionsGranted) {
+            $paymentMethod->setEnabled(false);
+        }
 
         return $paymentMethod;
     }

@@ -5,3 +5,9 @@ sylius_paypal_plugin_admin_download_payouts_report:
     methods: [GET]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction
+
+sylius_paypal_plugin_admin_enable_seller:
+    path: /enable-seller/{id}
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\EnableSellerAction

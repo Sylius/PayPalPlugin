@@ -14,6 +14,10 @@
     </parameters>
 
     <services>
+        <service id="Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension">
+            <tag name="form.type_extension" extended-type="Sylius\Bundle\PaymentBundle\Form\Type\PaymentMethodType" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
@@ -161,6 +165,15 @@
             class="Sylius\PayPalPlugin\Updater\PayPalPaymentUpdater"
         >
             <argument type="service" id="sylius.manager.payment" />
+        </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface"
+            class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius.paypal.facilitator_url%</argument>
+            <argument type="service" id="sylius.manager.payment_method" />
         </service>
     </services>
 </container>
