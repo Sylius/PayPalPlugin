@@ -17,6 +17,7 @@
         <service id="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
             <tag name="payum.action" factory="sylius.pay_pal" alias="payum.action.capture" />
         </service>
 

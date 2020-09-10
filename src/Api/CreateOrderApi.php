@@ -30,7 +30,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
         $this->client = $client;
     }
 
-    public function create(string $token, PaymentInterface $payment, string $reference_id): array
+    public function create(string $token, PaymentInterface $payment, string $referenceId): array
     {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -50,7 +50,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
             'intent' => 'CAPTURE',
             'purchase_units' => [
                 [
-                    'reference_id' => $reference_id,
+                    'reference_id' => $referenceId,
                     'amount' => [
                         'currency_code' => $order->getCurrencyCode(),
                         'value' => (int) $payment->getAmount() / 100,
