@@ -17,6 +17,7 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
@@ -26,16 +27,25 @@ final class PayPalClient implements PayPalClientInterface
     /** @var LoggerInterface */
     private $logger;
 
+    /** @var UuidProviderInterface */
+    private $uuidProvider;
+
     /** @var string */
     private $baseUrl;
 
     /** @var string */
     private $trackingId;
 
-    public function __construct(ClientInterface $client, LoggerInterface $logger, string $baseUrl, string $trackingId)
-    {
+    public function __construct(
+        ClientInterface $client,
+        LoggerInterface $logger,
+        UuidProviderInterface $uuidProvider,
+        string $baseUrl,
+        string $trackingId
+    ) {
         $this->client = $client;
         $this->logger = $logger;
+        $this->uuidProvider = $uuidProvider;
         $this->baseUrl = $baseUrl;
         $this->trackingId = $trackingId;
     }
@@ -47,7 +57,7 @@ final class PayPalClient implements PayPalClientInterface
 
     public function post(string $url, string $token, array $data = null): array
     {
-        return $this->request('POST', $url, $token, $data);
+        return $this->request('POST', $url, $token, $data, ['PayPal-Request-Id' => $this->uuidProvider->provide()]);
     }
 
     public function patch(string $url, string $token, array $data = null): array
@@ -55,15 +65,15 @@ final class PayPalClient implements PayPalClientInterface
         return $this->request('PATCH', $url, $token, $data);
     }
 
-    private function request(string $method, string $url, string $token, array $data = null): array
+    private function request(string $method, string $url, string $token, array $data = null, array $extraHeaders = []): array
     {
         $options = [
-            'headers' => [
+            'headers' => array_merge([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
                 'PayPal-Partner-Attribution-Id' => $this->trackingId,
-            ],
+            ], $extraHeaders),
         ];
 
         if ($data !== null) {
