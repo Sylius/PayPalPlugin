@@ -1,0 +1,27 @@
+<script type="application/javascript">
+    const confirmationText = document.querySelector('#confirmation-modal > div.content');;
+    const defaultText = confirmationText.innerHTML;
+
+    document.querySelector('#confirmation-button').addEventListener('click', evt => {
+        window.location.href = evt.currentTarget.getAttribute('href');
+    })
+
+    document.querySelectorAll('[data-confirm-pay-pal-consent]').forEach((item) => {
+        item.addEventListener('click', (evt) => {
+            evt.preventDefault();
+
+            const actionButton = evt.currentTarget;
+            document.querySelector('#confirmation-button').setAttribute('href', actionButton.getAttribute('href'));
+
+            confirmationText.innerHTML = '{{ 'sylius.pay_pal.share_data_consent_confirmation'|trans }}';
+            $('#confirmation-modal')
+                .modal({
+                    onHidden: function() {
+                        confirmationText.innerHTML = defaultText;
+                    }
+                })
+                .modal('show')
+            ;
+        });
+    });
+</script>
