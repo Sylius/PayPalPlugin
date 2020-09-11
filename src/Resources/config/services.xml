@@ -180,5 +180,10 @@
             <argument>%sylius.paypal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider"
+        />
     </services>
 </container>
