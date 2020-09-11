@@ -6,5 +6,11 @@ namespace Sylius\PayPalPlugin\Api;
 
 interface UpdateOrderApiInterface
 {
-    public function update(string $token, string $orderId, string $newTotal, string $newCurrencyCode): void;
+    public function update(
+        string $token,
+        string $orderId,
+        string $referenceId,
+        string $newTotal,
+        string $newCurrencyCode
+    ): void;
 }

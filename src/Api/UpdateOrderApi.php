@@ -25,15 +25,20 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
         $this->client = $client;
     }
 
-    public function update(string $token, string $orderId, string $newTotal, string $newCurrencyCode): void
-    {
+    public function update(
+        string $token,
+        string $orderId,
+        string $referenceId,
+        string $newTotal,
+        string $newCurrencyCode
+    ): void {
         $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
             $token,
             [
                 [
                     'op' => 'replace',
-                    'path' => '/purchase_units/@reference_id==\'default\'/amount',
+                    'path' => sprintf('/purchase_units/@reference_id==\'%s\'/amount', $referenceId),
                     'value' => ['value' => $newTotal, 'currency_code' => $newCurrencyCode],
                 ],
             ]
