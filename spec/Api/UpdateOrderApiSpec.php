@@ -38,13 +38,13 @@ final class UpdateOrderApiSpec extends ObjectBehavior
             Argument::that(function (array $data): bool {
                 return
                     $data[0]['op'] === 'replace' &&
-                    $data[0]['path'] === '/purchase_units/@reference_id==\'default\'/amount' &&
+                    $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'/amount' &&
                     $data[0]['value']['value'] === '11.22' &&
                     $data[0]['value']['currency_code'] === 'USD'
                 ;
             })
         )->shouldBeCalled();
 
-        $this->update('TOKEN', 'ORDER-ID', '11.22', 'USD');
+        $this->update('TOKEN', 'ORDER-ID', 'REFERENCE-ID', '11.22', 'USD');
     }
 }

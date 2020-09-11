@@ -83,6 +83,7 @@ final class CompleteOrderAction implements ActionInterface
             $this->updateOrderApi->update(
                 $token,
                 (string) $details['paypal_order_id'],
+                (string) $details['reference_id'],
                 (string) ($order->getTotal() / 100),
                 $currencyCode
             );
