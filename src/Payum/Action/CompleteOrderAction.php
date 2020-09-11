@@ -98,6 +98,7 @@ final class CompleteOrderAction implements ActionInterface
                 'status' => StatusAction::STATUS_COMPLETED,
                 'paypal_order_id' => $content['id'],
                 'paypal_payment_id' => $content['purchase_units'][0]['payments']['captures'][0]['id'],
+                'reference_id' => $content['purchase_units'][0]['reference_id'],
             ]);
 
             $this->payPalAddressProcessor->process($content['purchase_units'][0]['shipping']['address'], $order);

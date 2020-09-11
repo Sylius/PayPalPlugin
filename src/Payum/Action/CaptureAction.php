@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CaptureAction implements ActionInterface
 {
@@ -29,12 +30,17 @@ final class CaptureAction implements ActionInterface
     /** @var CreateOrderApiInterface */
     private $createOrderApi;
 
+    /** @var UuidProviderInterface */
+    private $uuidProvider;
+
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        CreateOrderApiInterface $createOrderApi
+        CreateOrderApiInterface $createOrderApi,
+        UuidProviderInterface $uuidProvider
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->createOrderApi = $createOrderApi;
+        $this->uuidProvider = $uuidProvider;
     }
 
     /** @param Capture $request */
@@ -48,12 +54,15 @@ final class CaptureAction implements ActionInterface
         $paymentMethod = $payment->getMethod();
 
         $token = $this->authorizeClientApi->authorize($paymentMethod);
-        $content = $this->createOrderApi->create($token, $payment);
+
+        $referenceId = $this->uuidProvider->provide();
+        $content = $this->createOrderApi->create($token, $payment, $referenceId);
 
         if ($content['status'] === 'CREATED') {
             $payment->setDetails([
                 'status' => StatusAction::STATUS_CAPTURED,
                 'paypal_order_id' => $content['id'],
+                'reference_id' => $referenceId,
             ]);
         }
     }

@@ -136,6 +136,11 @@
             <argument type="service" id="sylius.repository.payment_method" />
         </service>
 
+        <service
+            id="Sylius\PayPalPlugin\Provider\UuidProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\UuidProvider"
+        />
+
         <service id="sylius.paypal.client.sftp" class="phpseclib\Net\SFTP">
             <argument>%env(resolve:PAYPAL_REPORTS_SFTP_HOST)%</argument>
         </service>

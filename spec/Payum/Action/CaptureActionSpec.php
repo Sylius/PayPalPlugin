@@ -24,14 +24,16 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CaptureActionSpec extends ObjectBehavior
 {
     function let(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        CreateOrderApiInterface $createOrderApi
+        CreateOrderApiInterface $createOrderApi,
+        UuidProviderInterface $uuidProvider
     ): void {
-        $this->beConstructedWith($authorizeClientApi, $createOrderApi);
+        $this->beConstructedWith($authorizeClientApi, $createOrderApi, $uuidProvider);
     }
 
     function it_implements_action_interface(): void
@@ -45,7 +47,8 @@ final class CaptureActionSpec extends ObjectBehavior
         Capture $request,
         OrderInterface $order,
         PaymentInterface $payment,
-        PaymentMethodInterface $paymentMethod
+        PaymentMethodInterface $paymentMethod,
+        UuidProviderInterface $uuidProvider
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
@@ -54,12 +57,15 @@ final class CaptureActionSpec extends ObjectBehavior
         $payment->getOrder()->willReturn($order);
         $order->getCurrencyCode()->willReturn('USD');
 
+        $uuidProvider->provide()->willReturn('UUID');
+
         $authorizeClientApi->authorize($paymentMethod)->willReturn('ACCESS_TOKEN');
-        $createOrderApi->create('ACCESS_TOKEN', $payment)->willReturn(['status' => 'CREATED', 'id' => '123123']);
+        $createOrderApi->create('ACCESS_TOKEN', $payment, 'UUID')->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $payment->setDetails([
             'status' => StatusAction::STATUS_CAPTURED,
             'paypal_order_id' => '123123',
+            'reference_id' => 'UUID',
         ])->shouldBeCalled();
 
         $this->execute($request);
