@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Provider;
 
-use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Collections\ArrayCollection;
 use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
@@ -19,12 +19,10 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
 
     function it_returns_array_of_items_with_tax(
         OrderInterface $order,
-        Collection $itemCollection,
         OrderItemInterface $orderItem,
         OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
     ): void {
-        $order->getItems()->willReturn($itemCollection);
-        $itemCollection->toArray()->willReturn([$orderItem]);
+        $order->getItems()->willReturn(new ArrayCollection([$orderItem->getWrappedObject()]));
         $orderItem->getProductName()->willReturn('PRODUCT_ONE');
         $order->getCurrencyCode()->willReturn('PLN');
 
@@ -57,12 +55,10 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
 
     function it_returns_array_of_items_with_different_quantities_with_tax(
         OrderInterface $order,
-        Collection $itemCollection,
         OrderItemInterface $orderItem,
         OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
     ): void {
-        $order->getItems()->willReturn($itemCollection);
-        $itemCollection->toArray()->willReturn([$orderItem]);
+        $order->getItems()->willReturn(new ArrayCollection([$orderItem->getWrappedObject()]));
         $orderItem->getProductName()->willReturn('PRODUCT_ONE');
         $order->getCurrencyCode()->willReturn('PLN');
 
@@ -119,12 +115,10 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
 
     function it_returns_array_of_items_with_different_quantities_without_tax(
         OrderInterface $order,
-        Collection $itemCollection,
         OrderItemInterface $orderItem,
         OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
     ): void {
-        $order->getItems()->willReturn($itemCollection);
-        $itemCollection->toArray()->willReturn([$orderItem]);
+        $order->getItems()->willReturn(new ArrayCollection([$orderItem->getWrappedObject()]));
         $orderItem->getProductName()->willReturn('PRODUCT_ONE');
         $order->getCurrencyCode()->willReturn('PLN');
 
@@ -157,13 +151,12 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
 
     function it_returns_array_of_different_items_with_different_quantities_without_tax(
         OrderInterface $order,
-        Collection $itemCollection,
         OrderItemInterface $orderItemOne,
         OrderItemInterface $orderItemTwo,
         OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
     ): void {
-        $order->getItems()->willReturn($itemCollection);
-        $itemCollection->toArray()->willReturn([$orderItemOne, $orderItemTwo]);
+        $order->getItems()
+            ->willReturn(new ArrayCollection([$orderItemOne->getWrappedObject(), $orderItemTwo->getWrappedObject()]));
         $orderItemOne->getProductName()->willReturn('PRODUCT_ONE');
         $orderItemOne->getUnitPrice()->willReturn(2000);
         $orderItemOne->getQuantity()->willReturn(3);
@@ -213,13 +206,11 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
 
     function it_returns_array_of_different_items_with_different_quantities_with_tax(
         OrderInterface $order,
-        Collection $itemCollection,
         OrderItemInterface $orderItemOne,
         OrderItemInterface $orderItemTwo,
         OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
     ): void {
-        $order->getItems()->willReturn($itemCollection);
-        $itemCollection->toArray()->willReturn([$orderItemOne, $orderItemTwo]);
+        $order->getItems()->willReturn(new ArrayCollection([$orderItemOne->getWrappedObject(), $orderItemTwo->getWrappedObject()]));
         $orderItemOne->getProductName()->willReturn('PRODUCT_ONE');
         $orderItemOne->getUnitPrice()->willReturn(2000);
         $orderItemOne->getQuantity()->willReturn(3);
