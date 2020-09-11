@@ -6,20 +6,22 @@
         window.location.href = evt.currentTarget.getAttribute('href');
     })
 
-    document.querySelector('[data-confirm-pay-pal-consent]').addEventListener('click', (evt) => {
-        evt.preventDefault();
+    document.querySelectorAll('[data-confirm-pay-pal-consent]').forEach((item) => {
+        item.addEventListener('click', (evt) => {
+            evt.preventDefault();
 
-        const actionButton = evt.currentTarget;
-        document.querySelector('#confirmation-button').setAttribute('href', actionButton.getAttribute('href'));
+            const actionButton = evt.currentTarget;
+            document.querySelector('#confirmation-button').setAttribute('href', actionButton.getAttribute('href'));
 
-        confirmationText.innerHTML = '{{ 'sylius.pay_pal.share_data_consent_confirmation'|trans }}';
-        $('#confirmation-modal')
-            .modal({
-                onHidden: function() {
-                    confirmationText.innerHTML = defaultText;
-                }
-            })
-            .modal('show')
-        ;
+            confirmationText.innerHTML = '{{ 'sylius.pay_pal.share_data_consent_confirmation'|trans }}';
+            $('#confirmation-modal')
+                .modal({
+                    onHidden: function() {
+                        confirmationText.innerHTML = defaultText;
+                    }
+                })
+                .modal('show')
+            ;
+        });
     });
 </script>
