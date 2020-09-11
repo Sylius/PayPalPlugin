@@ -27,27 +27,27 @@ final class PayPalClient implements PayPalClientInterface
     /** @var LoggerInterface */
     private $logger;
 
+    /** @var UuidProviderInterface */
+    private $uuidProvider;
+
     /** @var string */
     private $baseUrl;
 
     /** @var string */
     private $trackingId;
 
-    /** @var UuidProviderInterface */
-    private $uuidProvider;
-
     public function __construct(
         ClientInterface $client,
         LoggerInterface $logger,
+        UuidProviderInterface $uuidProvider,
         string $baseUrl,
-        string $trackingId,
-        UuidProviderInterface $uuidProvider
+        string $trackingId
     ) {
         $this->client = $client;
         $this->logger = $logger;
+        $this->uuidProvider = $uuidProvider;
         $this->baseUrl = $baseUrl;
         $this->trackingId = $trackingId;
-        $this->uuidProvider = $uuidProvider;
     }
 
     public function get(string $url, string $token): array
@@ -65,21 +65,16 @@ final class PayPalClient implements PayPalClientInterface
         return $this->request('PATCH', $url, $token, $data);
     }
 
-    private function request(string $method, string $url, string $token, array $data = null, array $additionalHeaders = []): array
+    private function request(string $method, string $url, string $token, array $data = null, array $extraHeaders = []): array
     {
         $options = [
-            'headers' => [
+            'headers' => array_merge([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
                 'PayPal-Partner-Attribution-Id' => $this->trackingId,
-            ],
+            ], $extraHeaders),
         ];
-
-        /** @var string $value */
-        foreach ($additionalHeaders as $header => $value) {
-            $options['headers'][$header] = $value;
-        }
 
         if ($data !== null) {
             $options['json'] = $data;

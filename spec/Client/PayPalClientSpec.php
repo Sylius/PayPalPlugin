@@ -26,7 +26,7 @@ final class PayPalClientSpec extends ObjectBehavior
 {
     function let(ClientInterface $client, LoggerInterface $logger, UuidProviderInterface $uuidProvider): void
     {
-        $this->beConstructedWith($client, $logger, 'https://test-api.paypal.com/', 'TRACKING-ID', $uuidProvider);
+        $this->beConstructedWith($client, $logger, $uuidProvider, 'https://test-api.paypal.com/', 'TRACKING-ID');
     }
 
     function it_implements_pay_pal_client_interface(): void
