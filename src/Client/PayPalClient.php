@@ -18,8 +18,9 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
@@ -55,6 +56,24 @@ final class PayPalClient implements PayPalClientInterface
         $this->baseUrl = $baseUrl;
         $this->trackingId = $trackingId;
         $this->requestTrialsLimit = $requestTrialsLimit;
+    }
+
+    public function authorize(string $clientId, string $clientSecret): array
+    {
+        $response = $this->doRequest(
+            'POST',
+            $this->baseUrl . 'v1/oauth2/token',
+            [
+                'auth' => [$clientId, $clientSecret],
+                'form_params' => ['grant_type' => 'client_credentials'],
+            ]
+        );
+
+        if ($response->getStatusCode() !== 200) {
+            throw new PayPalAuthorizationException();
+        }
+
+        return (array) json_decode($response->getBody()->getContents(), true);
     }
 
     public function get(string $url, string $token): array
@@ -109,9 +128,9 @@ final class PayPalClient implements PayPalClientInterface
     {
         try {
             /** @var ResponseInterface $response */
-            return $this->client->request($method, $fullUrl, $options);
+            $response = $this->client->request($method, $fullUrl, $options);
         } catch (ConnectException $exception) {
-            $this->requestTrialsLimit--;
+            --$this->requestTrialsLimit;
             if ($this->requestTrialsLimit === 0) {
                 throw new PayPalApiTimeoutException();
             }
@@ -119,7 +138,9 @@ final class PayPalClient implements PayPalClientInterface
             return $this->doRequest($method, $fullUrl, $options);
         } catch (RequestException $exception) {
             /** @var ResponseInterface $response */
-            return $exception->getResponse();
+            $response = $exception->getResponse();
         }
+
+        return $response;
     }
 }

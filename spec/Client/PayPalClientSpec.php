@@ -21,8 +21,9 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClientSpec extends ObjectBehavior
 {
@@ -34,6 +35,46 @@ final class PayPalClientSpec extends ObjectBehavior
     function it_implements_pay_pal_client_interface(): void
     {
         $this->shouldImplement(PayPalClientInterface::class);
+    }
+
+    function it_returns_auth_token_for_given_client_data(
+        ClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $client->request(
+            'POST',
+            'https://test-api.paypal.com/v1/oauth2/token',
+            [
+                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
+                'form_params' => ['grant_type' => 'client_credentials'],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(200);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"access_token": "TOKEN"}');
+
+        $this->authorize('CLIENT_ID', 'CLIENT_SECRET')->shouldReturn(['access_token' => 'TOKEN']);
+    }
+
+    function it_throws_an_exception_if_client_could_not_be_authorized(
+        ClientInterface $client,
+        ResponseInterface $response
+    ): void {
+        $client->request(
+            'POST',
+            'https://test-api.paypal.com/v1/oauth2/token',
+            [
+                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
+                'form_params' => ['grant_type' => 'client_credentials'],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(401);
+
+        $this
+            ->shouldThrow(PayPalAuthorizationException::class)
+            ->during('authorize', ['CLIENT_ID', 'CLIENT_SECRET'])
+        ;
     }
 
     function it_calls_get_request_on_paypal_api(
