@@ -14,10 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Client;
 
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 
 final class PayPalClient implements PayPalClientInterface
 {
@@ -36,18 +38,23 @@ final class PayPalClient implements PayPalClientInterface
     /** @var string */
     private $trackingId;
 
+    /** @var int */
+    private $requestTrialsLimit;
+
     public function __construct(
         ClientInterface $client,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         string $baseUrl,
-        string $trackingId
+        string $trackingId,
+        int $requestTrialsLimit
     ) {
         $this->client = $client;
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
         $this->baseUrl = $baseUrl;
         $this->trackingId = $trackingId;
+        $this->requestTrialsLimit = $requestTrialsLimit;
     }
 
     public function get(string $url, string $token): array
@@ -82,14 +89,7 @@ final class PayPalClient implements PayPalClientInterface
 
         $fullUrl = $this->baseUrl . $url;
 
-        try {
-            /** @var ResponseInterface $response */
-            $response = $this->client->request($method, $fullUrl, $options);
-        } catch (RequestException $exception) {
-            /** @var ResponseInterface $response */
-            $response = $exception->getResponse();
-        }
-
+        $response = $this->doRequest($method, $fullUrl, $options);
         $content = (array) json_decode($response->getBody()->getContents(), true);
 
         if (
@@ -103,5 +103,23 @@ final class PayPalClient implements PayPalClientInterface
         }
 
         return $content;
+    }
+
+    private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
+    {
+        try {
+            /** @var ResponseInterface $response */
+            return $this->client->request($method, $fullUrl, $options);
+        } catch (ConnectException $exception) {
+            $this->requestTrialsLimit--;
+            if ($this->requestTrialsLimit === 0) {
+                throw new PayPalApiTimeoutException();
+            }
+
+            return $this->doRequest($method, $fullUrl, $options);
+        } catch (RequestException $exception) {
+            /** @var ResponseInterface $response */
+            return $exception->getResponse();
+        }
     }
 }
