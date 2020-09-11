@@ -57,7 +57,7 @@ final class PayPalClient implements PayPalClientInterface
 
     public function post(string $url, string $token, array $data = null): array
     {
-        return $this->request('POST', $url, $token, $data);
+        return $this->request('POST', $url, $token, $data, ['PayPal-Request-Id' => $this->uuidProvider->provide()]);
     }
 
     public function patch(string $url, string $token, array $data = null): array
@@ -65,7 +65,7 @@ final class PayPalClient implements PayPalClientInterface
         return $this->request('PATCH', $url, $token, $data);
     }
 
-    private function request(string $method, string $url, string $token, array $data = null): array
+    private function request(string $method, string $url, string $token, array $data = null, array $additionalHeaders = []): array
     {
         $options = [
             'headers' => [
@@ -73,9 +73,13 @@ final class PayPalClient implements PayPalClientInterface
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
                 'PayPal-Partner-Attribution-Id' => $this->trackingId,
-                'PayPal-Request-Id' => $this->uuidProvider->provide(),
             ],
         ];
+
+        /** @var string $value */
+        foreach ($additionalHeaders as $header => $value) {
+            $options['headers'][$header] = $value;
+        }
 
         if ($data !== null) {
             $options['json'] = $data;
