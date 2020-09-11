@@ -17,6 +17,7 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
@@ -32,12 +33,21 @@ final class PayPalClient implements PayPalClientInterface
     /** @var string */
     private $trackingId;
 
-    public function __construct(ClientInterface $client, LoggerInterface $logger, string $baseUrl, string $trackingId)
-    {
+    /** @var UuidProviderInterface */
+    private $uuidProvider;
+
+    public function __construct(
+        ClientInterface $client,
+        LoggerInterface $logger,
+        string $baseUrl,
+        string $trackingId,
+        UuidProviderInterface $uuidProvider
+    ) {
         $this->client = $client;
         $this->logger = $logger;
         $this->baseUrl = $baseUrl;
         $this->trackingId = $trackingId;
+        $this->uuidProvider = $uuidProvider;
     }
 
     public function get(string $url, string $token): array
@@ -63,6 +73,7 @@ final class PayPalClient implements PayPalClientInterface
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
                 'PayPal-Partner-Attribution-Id' => $this->trackingId,
+                'PayPal-Request-Id' => $this->uuidProvider->provide(),
             ],
         ];
 

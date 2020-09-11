@@ -10,6 +10,7 @@
             <argument type="service" id="logger" />
             <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
             <argument>%env(resolve:PAYPAL_TRACKING_ID)%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
         </service>
 
         <service

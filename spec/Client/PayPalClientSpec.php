@@ -20,12 +20,13 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClientSpec extends ObjectBehavior
 {
-    function let(ClientInterface $client, LoggerInterface $logger): void
+    function let(ClientInterface $client, LoggerInterface $logger, UuidProviderInterface $uuidProvider): void
     {
-        $this->beConstructedWith($client, $logger, 'https://test-api.paypal.com/', 'TRACKING-ID');
+        $this->beConstructedWith($client, $logger, 'https://test-api.paypal.com/', 'TRACKING-ID', $uuidProvider);
     }
 
     function it_implements_pay_pal_client_interface(): void
@@ -36,8 +37,11 @@ final class PayPalClientSpec extends ObjectBehavior
     function it_calls_get_request_on_paypal_api(
         ClientInterface $client,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
     ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
         $client->request(
             'GET',
             'https://test-api.paypal.com/v2/get-request/',
@@ -47,6 +51,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
             ]
         )->willReturn($response);
@@ -62,8 +67,11 @@ final class PayPalClientSpec extends ObjectBehavior
         LoggerInterface $logger,
         RequestException $exception,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
     ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
         $client->request(
             'GET',
             'https://test-api.paypal.com/v2/get-request/',
@@ -73,6 +81,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
             ]
         )->willThrow($exception->getWrappedObject());
@@ -93,8 +102,11 @@ final class PayPalClientSpec extends ObjectBehavior
     function it_calls_post_request_on_paypal_api(
         ClientInterface $client,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
     ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
         $client->request(
             'POST',
             'https://test-api.paypal.com/v2/post-request/',
@@ -104,6 +116,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
@@ -123,8 +136,11 @@ final class PayPalClientSpec extends ObjectBehavior
         LoggerInterface $logger,
         RequestException $exception,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
     ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
         $client->request(
             'POST',
             'https://test-api.paypal.com/v2/post-request/',
@@ -134,6 +150,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
@@ -158,8 +175,11 @@ final class PayPalClientSpec extends ObjectBehavior
     function it_calls_patch_request_on_paypal_api(
         ClientInterface $client,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
     ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
         $client->request(
             'PATCH',
             'https://test-api.paypal.com/v2/patch-request/123123',
@@ -169,6 +189,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
@@ -188,8 +209,11 @@ final class PayPalClientSpec extends ObjectBehavior
         LoggerInterface $logger,
         RequestException $exception,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
     ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
         $client->request(
             'PATCH',
             'https://test-api.paypal.com/v2/patch-request/123123',
@@ -199,6 +223,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
             ]
