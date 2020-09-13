@@ -33,6 +33,7 @@
         >
             <argument type="service" id="sm.factory" />
             <argument type="service" id="sylius.manager.payment" />
+            <argument type="service" id="Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
@@ -105,7 +106,10 @@
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor" public="true">
+        <service
+            id="Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface"
+            class="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor"
+        >
             <argument type="service" id="payum" />
         </service>
 

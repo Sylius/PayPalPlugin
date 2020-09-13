@@ -40,7 +40,7 @@
         />
 
         <service
-            id="Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor"
+            id="Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface"
             class="Tests\Sylius\PayPalPlugin\Behat\Service\VoidPayPalPaymentCompleteProcessor"
         />
 

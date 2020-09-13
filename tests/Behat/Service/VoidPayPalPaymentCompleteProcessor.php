@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Service;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 /** To not complete PayPal payments by API in Behat scenarios */
-final class VoidPayPalPaymentCompleteProcessor
+final class VoidPayPalPaymentCompleteProcessor implements PaymentCompleteProcessorInterface
 {
-    public function completePayPalPayment(PaymentInterface $payment): void
+    public function completePayment(PaymentInterface $payment): void
     {
         return;
     }

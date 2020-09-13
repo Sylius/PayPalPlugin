@@ -101,16 +101,14 @@ final class CompleteOrderAction implements ActionInterface
         $this->completeOrderApi->complete($token, $request->getOrderId());
         $orderDetails = $this->orderDetailsApi->get($token, $request->getOrderId());
 
-        if ($orderDetails['status'] === 'COMPLETED') {
-            $payment->setDetails([
-                'status' => StatusAction::STATUS_COMPLETED,
-                'paypal_order_id' => $orderDetails['id'],
-                'paypal_payment_id' => $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
-                'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
-            ]);
+        $payment->setDetails([
+            'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
+            'paypal_order_id' => $orderDetails['id'],
+            'paypal_payment_id' => $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
+            'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
+        ]);
 
-            $this->payPalAddressProcessor->process($orderDetails['purchase_units'][0]['shipping']['address'], $order);
-        }
+        $this->payPalAddressProcessor->process($orderDetails['purchase_units'][0]['shipping']['address'], $order);
     }
 
     public function supports($request): bool

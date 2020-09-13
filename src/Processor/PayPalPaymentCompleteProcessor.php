@@ -19,7 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
-final class PayPalPaymentCompleteProcessor
+final class PayPalPaymentCompleteProcessor implements PaymentCompleteProcessorInterface
 {
     /** @var Payum */
     private $payum;
@@ -29,7 +29,7 @@ final class PayPalPaymentCompleteProcessor
         $this->payum = $payum;
     }
 
-    public function completePayPalPayment(PaymentInterface $payment): void
+    public function completePayment(PaymentInterface $payment): void
     {
         $details = $payment->getDetails();
         if (!isset($details['paypal_order_id'])) {

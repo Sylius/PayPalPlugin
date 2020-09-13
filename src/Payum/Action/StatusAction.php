@@ -26,6 +26,8 @@ final class StatusAction implements ActionInterface
 
     public const STATUS_COMPLETED = 'COMPLETED';
 
+    public const STATUS_PROCESSING = 'PROCESSING';
+
     /** @param GetStatus $request */
     public function execute($request): void
     {

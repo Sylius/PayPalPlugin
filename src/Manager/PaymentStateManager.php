@@ -9,6 +9,8 @@ use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
+use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 final class PaymentStateManager implements PaymentStateManagerInterface
 {
@@ -18,10 +20,17 @@ final class PaymentStateManager implements PaymentStateManagerInterface
     /** @var ObjectManager */
     private $paymentManager;
 
-    public function __construct(FactoryInterface $stateMachineFactory, ObjectManager $paymentManager)
-    {
+    /** @var PaymentCompleteProcessorInterface */
+    private $paypalPaymentCompleteProcessor;
+
+    public function __construct(
+        FactoryInterface $stateMachineFactory,
+        ObjectManager $paymentManager,
+        PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor
+    ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->paymentManager = $paymentManager;
+        $this->paypalPaymentCompleteProcessor = $paypalPaymentCompleteProcessor;
     }
 
     public function create(PaymentInterface $payment): void
@@ -36,7 +45,22 @@ final class PaymentStateManager implements PaymentStateManagerInterface
 
     public function complete(PaymentInterface $payment): void
     {
-        $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_COMPLETE);
+        // TODO - move target state resolving to the separate service
+        $this->paypalPaymentCompleteProcessor->completePayment($payment);
+
+        $status = (string) $payment->getDetails()['status'];
+        if ($status === StatusAction::STATUS_COMPLETED) {
+            $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_COMPLETE);
+
+            return;
+        }
+
+        if (
+            $status === StatusAction::STATUS_PROCESSING &&
+            $payment->getState() !== PaymentInterface::STATE_PROCESSING
+        ) {
+            $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_PROCESS);
+        }
     }
 
     public function cancel(PaymentInterface $payment): void
