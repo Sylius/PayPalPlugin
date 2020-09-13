@@ -101,6 +101,39 @@ final class PayPalClientSpec extends ObjectBehavior
         $this->get('v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'OK', 'id' => '123123']);
     }
 
+    function it_logs_all_requests_if_logging_level_is_increased(
+        ClientInterface $client,
+        LoggerInterface $logger,
+        UuidProviderInterface $uuidProvider,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $this->beConstructedWith($client, $logger, $uuidProvider, 'https://test-api.paypal.com/', 'TRACKING-ID', true);
+
+        $client->request(
+            'GET',
+            'https://test-api.paypal.com/v2/get-request/',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                ],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(200);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
+
+        $logger
+            ->debug('GET request to "https://test-api.paypal.com/v2/get-request/" called successfully')
+            ->shouldBeCalled()
+        ;
+
+        $this->get('v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'OK', 'id' => '123123']);
+    }
+
     function it_logs_debug_id_from_failed_get_request(
         ClientInterface $client,
         LoggerInterface $logger,

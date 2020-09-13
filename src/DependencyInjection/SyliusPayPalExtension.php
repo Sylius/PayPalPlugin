@@ -17,6 +17,8 @@ final class SyliusPayPalExtension extends Extension
         $config = $this->processConfiguration($this->getConfiguration([], $container), $config);
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
+        $container->setParameter('sylius.paypal.logging.increased', $config['logging']['increased']);
+
         $loader->load('services.xml');
     }
 

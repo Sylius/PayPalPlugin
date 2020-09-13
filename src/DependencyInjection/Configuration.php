@@ -11,8 +11,21 @@ final class Configuration implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder('sylius_paypal_plugin');
+        $treeBuilder = new TreeBuilder('sylius_pay_pal_plugin');
         $rootNode = $treeBuilder->getRootNode();
+
+        $rootNode
+            ->children()
+                ->arrayNode('logging')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('increased')
+                            ->defaultFalse()
+                        ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ;
 
         return $treeBuilder;
     }
