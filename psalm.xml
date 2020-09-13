@@ -10,6 +10,7 @@
         <directory name="src" />
         <ignoreFiles>
             <directory name="vendor" />
+            <file name="src/DependencyInjection/Configuration.php"/>
         </ignoreFiles>
     </projectFiles>
 
@@ -36,6 +37,7 @@
         <MixedArrayAccess>
             <errorLevel type="info">
                 <file name="src/Controller/ProcessPayPalOrderAction.php"/>
+                <file name="src/DependencyInjection/SyliusPayPalExtension.php"/>
                 <file name="src/Payum/Action/CompleteOrderAction.php"/>
             </errorLevel>
         </MixedArrayAccess>
