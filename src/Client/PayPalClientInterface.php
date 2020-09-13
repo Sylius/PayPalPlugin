@@ -13,7 +13,7 @@ interface PayPalClientInterface
 
     public function get(string $url, string $token): array;
 
-    public function post(string $url, string $token, array $data = null): array;
+    public function post(string $url, string $token, array $data = null, array $extraHeaders = []): array;
 
     public function patch(string $url, string $token, array $data = null): array;
 }

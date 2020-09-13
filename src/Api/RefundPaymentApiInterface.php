@@ -6,5 +6,5 @@ namespace Sylius\PayPalPlugin\Api;
 
 interface RefundPaymentApiInterface
 {
-    public function refund(string $token, string $paymentId): array;
+    public function refund(string $token, string $paymentId, string $payPalAuthAssertion): array;
 }
