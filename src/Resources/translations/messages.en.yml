@@ -7,6 +7,7 @@ sylius:
         enable_paypal: 'Enable PayPal'
         label: 'PayPal'
         report: 'Report'
-        share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
-        sftp_username: 'SFTP Username'
         sftp_password: 'SFTP Password'
+        sftp_username: 'SFTP Username'
+        share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
+        tender_type: 'Refunded to the PayPal wallet'
