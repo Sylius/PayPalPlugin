@@ -201,5 +201,14 @@
             id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface"
             class="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider"
         />
+
+        <service id="Sylius\PayPalPlugin\Command\CompletePaidPaymentsCommand">
+            <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="sylius.manager.payment" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
+            <argument type="service" id="sm.factory" />
+            <tag name="console.command" command="sylius:pay-pal-plugin:complete-payments" />
+        </service>
     </services>
 </container>
