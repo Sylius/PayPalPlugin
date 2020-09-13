@@ -127,6 +127,7 @@
             <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface" />
         </service>
 
         <service
@@ -217,5 +218,10 @@
             <argument type="service" id="sm.factory" />
             <tag name="console.command" command="sylius:pay-pal-plugin:complete-payments" />
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProvider"
+        />
     </services>
 </container>

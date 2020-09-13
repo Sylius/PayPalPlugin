@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
+use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
 final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
 {
@@ -33,9 +34,16 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
-        PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator
+        PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
+        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider
     ): void {
-        $this->beConstructedWith($authorizeClientApi, $orderDetailsApi, $refundOrderApi, $payPalAuthAssertionGenerator);
+        $this->beConstructedWith(
+            $authorizeClientApi,
+            $orderDetailsApi,
+            $refundOrderApi,
+            $payPalAuthAssertionGenerator,
+            $refundReferenceNumberProvider
+        );
     }
 
     function it_implements_payment_refund_processor_interface(): void
@@ -48,6 +56,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
+        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
@@ -69,8 +78,10 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $payment->getOrder()->willReturn($order);
         $order->getCurrencyCode()->willReturn('USD');
 
+        $refundReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+
         $refundOrderApi
-            ->refund('TOKEN', '555', 'AUTH-ASSERTION', '10.00', 'USD')
+            ->refund('TOKEN', '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10.00', 'USD')
             ->willReturn(['status' => 'COMPLETED', 'id' => '123123'])
         ;
 
@@ -115,6 +126,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
+        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
@@ -136,8 +148,10 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $payment->getOrder()->willReturn($order);
         $order->getCurrencyCode()->willReturn('USD');
 
+        $refundReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+
         $refundOrderApi
-            ->refund('TOKEN', '555', 'AUTH-ASSERTION', '10.00', 'USD')
+            ->refund('TOKEN', '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10.00', 'USD')
             ->willReturn(['status' => 'FAILED'])
         ;
 
@@ -152,6 +166,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
+        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
@@ -173,8 +188,10 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $payment->getOrder()->willReturn($order);
         $order->getCurrencyCode()->willReturn('USD');
 
+        $refundReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+
         $refundOrderApi
-            ->refund('TOKEN', '555', 'AUTH-ASSERTION', '10.00', 'USD')
+            ->refund('TOKEN', '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10.00', 'USD')
             ->willThrow(ClientException::class)
         ;
 

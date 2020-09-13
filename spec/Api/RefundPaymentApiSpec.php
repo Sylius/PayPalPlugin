@@ -35,14 +35,14 @@ final class RefundPaymentApiSpec extends ObjectBehavior
             ->post(
                 'v2/payments/captures/123123/refund',
                 'TOKEN',
-                ['value' => '10.99', 'currency_code' => 'USD'],
+                ['amount' => ['value' => '10.99', 'currency_code' => 'USD'], 'invoice_number' => '123-11-11-2010'],
                 ['PayPal-Auth-Assertion' => 'PAY-PAL-AUTH-ASSERTION']
             )
             ->willReturn(['status' => 'COMPLETED', 'id' => '123123'])
         ;
 
         $this
-            ->refund('TOKEN', '123123', 'PAY-PAL-AUTH-ASSERTION', '10.99', 'USD')
+            ->refund('TOKEN', '123123', 'PAY-PAL-AUTH-ASSERTION', '123-11-11-2010', '10.99', 'USD')
             ->shouldReturn(['status' => 'COMPLETED', 'id' => '123123'])
         ;
     }
