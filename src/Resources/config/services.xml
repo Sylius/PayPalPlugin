@@ -22,6 +22,11 @@
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
 
+        <service
+            id="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface"
+            class="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator"
+        />
+
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
             <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" />
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
