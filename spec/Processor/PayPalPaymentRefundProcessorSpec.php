@@ -17,6 +17,7 @@ use GuzzleHttp\Exception\ClientException;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
@@ -49,7 +50,8 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
+        OrderInterface $order
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -63,7 +65,14 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         ;
         $payPalAuthAssertionGenerator->generate($paymentMethod)->willReturn('AUTH-ASSERTION');
 
-        $refundOrderApi->refund('TOKEN', '555', 'AUTH-ASSERTION')->willReturn(['status' => 'COMPLETED', 'id' => '123123']);
+        $payment->getAmount()->willReturn(1000);
+        $payment->getOrder()->willReturn($order);
+        $order->getCurrencyCode()->willReturn('USD');
+
+        $refundOrderApi
+            ->refund('TOKEN', '555', 'AUTH-ASSERTION', '10.00', 'USD')
+            ->willReturn(['status' => 'COMPLETED', 'id' => '123123'])
+        ;
 
         $this->refund($payment);
     }
@@ -108,7 +117,8 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
+        OrderInterface $order
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -122,7 +132,14 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         ;
         $payPalAuthAssertionGenerator->generate($paymentMethod)->willReturn('AUTH-ASSERTION');
 
-        $refundOrderApi->refund('TOKEN', '555', 'AUTH-ASSERTION')->willReturn(['status' => 'FAILED']);
+        $payment->getAmount()->willReturn(1000);
+        $payment->getOrder()->willReturn($order);
+        $order->getCurrencyCode()->willReturn('USD');
+
+        $refundOrderApi
+            ->refund('TOKEN', '555', 'AUTH-ASSERTION', '10.00', 'USD')
+            ->willReturn(['status' => 'FAILED'])
+        ;
 
         $this
             ->shouldThrow(PayPalOrderRefundException::class)
@@ -137,7 +154,8 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
+        OrderInterface $order
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -151,7 +169,14 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         ;
         $payPalAuthAssertionGenerator->generate($paymentMethod)->willReturn('AUTH-ASSERTION');
 
-        $refundOrderApi->refund('TOKEN', '555', 'AUTH-ASSERTION')->willThrow(ClientException::class);
+        $payment->getAmount()->willReturn(1000);
+        $payment->getOrder()->willReturn($order);
+        $order->getCurrencyCode()->willReturn('USD');
+
+        $refundOrderApi
+            ->refund('TOKEN', '555', 'AUTH-ASSERTION', '10.00', 'USD')
+            ->willThrow(ClientException::class)
+        ;
 
         $this
             ->shouldThrow(PayPalOrderRefundException::class)

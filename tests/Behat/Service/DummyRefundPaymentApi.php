@@ -8,7 +8,7 @@ use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 
 final class DummyRefundPaymentApi implements RefundPaymentApiInterface
 {
-    public function refund(string $token, string $paymentId, string $payPalAuthAssertion): array
+    public function refund(string $token, string $paymentId, string $payPalAuthAssertion, string $amount, string $currencyCode): array
     {
         return ['status' => 'COMPLETED', 'id' => $paymentId];
     }

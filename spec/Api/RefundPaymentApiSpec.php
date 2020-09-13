@@ -32,10 +32,18 @@ final class RefundPaymentApiSpec extends ObjectBehavior
     function it_refunds_pay_pal_payment_with_given_id(PayPalClientInterface $client): void
     {
         $client
-            ->post('v2/payments/captures/123123/refund', 'TOKEN', null, ['PayPal-Auth-Assertion' => 'PAY-PAL-AUTH-ASSERTION'])
+            ->post(
+                'v2/payments/captures/123123/refund',
+                'TOKEN',
+                ['value' => '10.99', 'currency_code' => 'USD'],
+                ['PayPal-Auth-Assertion' => 'PAY-PAL-AUTH-ASSERTION']
+            )
             ->willReturn(['status' => 'COMPLETED', 'id' => '123123'])
         ;
 
-        $this->refund('TOKEN', '123123', 'PAY-PAL-AUTH-ASSERTION')->shouldReturn(['status' => 'COMPLETED', 'id' => '123123']);
+        $this
+            ->refund('TOKEN', '123123', 'PAY-PAL-AUTH-ASSERTION', '10.99', 'USD')
+            ->shouldReturn(['status' => 'COMPLETED', 'id' => '123123'])
+        ;
     }
 }

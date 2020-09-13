@@ -25,12 +25,17 @@ final class RefundPaymentApi implements RefundPaymentApiInterface
         $this->client = $client;
     }
 
-    public function refund(string $token, string $paymentId, string $payPalAuthAssertion): array
-    {
+    public function refund(
+        string $token,
+        string $paymentId,
+        string $payPalAuthAssertion,
+        string $amount,
+        string $currencyCode
+    ): array {
         return $this->client->post(
             sprintf('v2/payments/captures/%s/refund', $paymentId),
             $token,
-            null,
+            ['value' => $amount, 'currency_code' => $currencyCode],
             ['PayPal-Auth-Assertion' => $payPalAuthAssertion]
         );
     }
