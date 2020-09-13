@@ -124,6 +124,7 @@
             public="true"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface" />
         </service>

@@ -18,6 +18,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
@@ -28,6 +29,9 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
     /** @var CacheAuthorizeClientApiInterface */
     private $authorizeClientApi;
 
+    /** @var OrderDetailsApiInterface */
+    private $orderDetailsApi;
+
     /** @var RefundPaymentApiInterface */
     private $refundOrderApi;
 
@@ -36,10 +40,12 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
 
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
+        OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
+        $this->orderDetailsApi = $orderDetailsApi;
         $this->refundOrderApi = $refundOrderApi;
         $this->payPalAuthAssertionGenerator = $payPalAuthAssertionGenerator;
     }
@@ -56,14 +62,17 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
         }
 
         $details = $payment->getDetails();
-        if (!isset($details['paypal_payment_id'])) {
+        if (!isset($details['paypal_order_id'])) {
             return;
         }
 
         try {
             $token = $this->authorizeClientApi->authorize($paymentMethod);
+            $details = $this->orderDetailsApi->get($token, (string) $details['paypal_order_id']);
             $authAssertion = $this->payPalAuthAssertionGenerator->generate($paymentMethod);
-            $response = $this->refundOrderApi->refund($token, (string) $details['paypal_payment_id'], $authAssertion);
+            $payPalPaymentId = (string) $details['purchase_units'][0]['payments']['captures'][0]['id'];
+
+            $response = $this->refundOrderApi->refund($token, $payPalPaymentId, $authAssertion);
 
             Assert::same($response['status'], 'COMPLETED');
         } catch (ClientException | \InvalidArgumentException $exception) {
