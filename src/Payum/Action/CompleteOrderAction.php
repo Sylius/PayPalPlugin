@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
+use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final class CompleteOrderAction implements ActionInterface
@@ -50,6 +51,9 @@ final class CompleteOrderAction implements ActionInterface
     /** @var StateResolverInterface */
     private $orderPaymentStateResolver;
 
+    /** @var PayPalItemDataProviderInterface */
+    private $payPalItemsDataProvider;
+
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         UpdateOrderApiInterface $updateOrderApi,
@@ -57,7 +61,8 @@ final class CompleteOrderAction implements ActionInterface
         OrderDetailsApiInterface $orderDetailsApi,
         PayPalAddressProcessor $payPalAddressProcessor,
         PaymentUpdaterInterface $payPalPaymentUpdater,
-        StateResolverInterface $orderPaymentStateResolver
+        StateResolverInterface $orderPaymentStateResolver,
+        PayPalItemDataProviderInterface $payPalItemsDataProvider
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->updateOrderApi = $updateOrderApi;
@@ -66,6 +71,7 @@ final class CompleteOrderAction implements ActionInterface
         $this->payPalAddressProcessor = $payPalAddressProcessor;
         $this->payPalPaymentUpdater = $payPalPaymentUpdater;
         $this->orderPaymentStateResolver = $orderPaymentStateResolver;
+        $this->payPalItemsDataProvider = $payPalItemsDataProvider;
     }
 
     /** @param CompleteOrder $request */
@@ -86,11 +92,16 @@ final class CompleteOrderAction implements ActionInterface
         $currencyCode = $order->getCurrencyCode();
 
         if ($payment->getAmount() !== $order->getTotal()) {
+            $newItemsData = $this->payPalItemsDataProvider->provide($order);
+
             $this->updateOrderApi->update(
                 $token,
                 (string) $details['paypal_order_id'],
                 (string) $details['reference_id'],
                 (string) ($order->getTotal() / 100),
+                (string) $newItemsData['total_item_value'],
+                (string) ($order->getShippingTotal() / 100),
+                (string) $newItemsData['total_tax'],
                 $currencyCode
             );
 
