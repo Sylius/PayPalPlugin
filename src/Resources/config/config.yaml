@@ -66,3 +66,12 @@ sylius_ui:
                 pay_pal_payment_method:
                     template: '@SyliusPayPalPlugin/javascripts.html.twig'
                     priority: -100
+
+monolog:
+    channels: ['paypal']
+    handlers:
+        paypal:
+            level: debug
+            type: stream
+            path: '%kernel.logs_dir%/paypal.log'
+            channels: [paypal]

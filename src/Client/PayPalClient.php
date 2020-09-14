@@ -42,13 +42,17 @@ final class PayPalClient implements PayPalClientInterface
     /** @var int */
     private $requestTrialsLimit;
 
+    /** @var bool */
+    private $loggingLevelIncreased;
+
     public function __construct(
         ClientInterface $client,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         string $baseUrl,
         string $trackingId,
-        int $requestTrialsLimit
+        int $requestTrialsLimit,
+        bool $loggingLevelIncreased = false
     ) {
         $this->client = $client;
         $this->logger = $logger;
@@ -56,6 +60,7 @@ final class PayPalClient implements PayPalClientInterface
         $this->baseUrl = $baseUrl;
         $this->trackingId = $trackingId;
         $this->requestTrialsLimit = $requestTrialsLimit;
+        $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
 
     public function authorize(string $clientId, string $clientSecret): array
@@ -108,7 +113,17 @@ final class PayPalClient implements PayPalClientInterface
 
         $fullUrl = $this->baseUrl . $url;
 
-        $response = $this->doRequest($method, $fullUrl, $options);
+        try {
+            /** @var ResponseInterface $response */
+            $response = $this->doRequest($method, $fullUrl, $options);
+            if ($this->loggingLevelIncreased) {
+                $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
+            }
+        } catch (RequestException $exception) {
+            /** @var ResponseInterface $response */
+            $response = $exception->getResponse();
+        }
+
         $content = (array) json_decode($response->getBody()->getContents(), true);
 
         if (
