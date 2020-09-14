@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
@@ -29,12 +30,17 @@ final class CreateOrderApi implements CreateOrderApiInterface
     /** @var PaymentReferenceNumberProviderInterface */
     private $paymentReferenceNumberProvider;
 
+    /** @var PayPalItemDataProviderInterface */
+    private $payPalItemDataProvider;
+
     public function __construct(
         PayPalClientInterface $client,
-        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PayPalItemDataProviderInterface $payPalItemDataProvider
     ) {
         $this->client = $client;
         $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
+        $this->payPalItemDataProvider = $payPalItemDataProvider;
     }
 
     public function create(string $token, PaymentInterface $payment, string $referenceId): array
@@ -47,6 +53,8 @@ final class CreateOrderApi implements CreateOrderApiInterface
 
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        $payPalItemData = $this->payPalItemDataProvider->provide($order);
 
         $config = $gatewayConfig->getConfig();
 
@@ -62,6 +70,20 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     'amount' => [
                         'currency_code' => $order->getCurrencyCode(),
                         'value' => (int) $payment->getAmount() / 100,
+                        'breakdown' => [
+                            'shipping' => [
+                                'currency_code' => $order->getCurrencyCode(),
+                                'value' => $order->getShippingTotal() / 100,
+                            ],
+                            'item_total' => [
+                                'currency_code' => $order->getCurrencyCode(),
+                                'value' => $payPalItemData['total_item_value'],
+                            ],
+                            'tax_total' => [
+                                'currency_code' => $order->getCurrencyCode(),
+                                'value' => $payPalItemData['total_tax'],
+                            ],
+                        ],
                     ],
                     'payee' => [
                         'merchant_id' => $config['merchant_id'],
@@ -78,6 +100,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                         ],
                     ],
                     'soft_descriptor' => 'Sylius PayPal Payment',
+                    'items' => $payPalItemData['items'],
                 ],
             ],
             'application_context' => [
