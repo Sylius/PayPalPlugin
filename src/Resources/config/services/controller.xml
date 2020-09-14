@@ -102,6 +102,16 @@
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction">
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface" />
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius.order_processing.order_processor" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction" public="true">
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
             <argument type="service" id="router" />
