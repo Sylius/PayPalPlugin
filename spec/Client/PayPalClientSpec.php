@@ -14,24 +14,67 @@ declare(strict_types=1);
 namespace spec\Sylius\PayPalPlugin\Client;
 
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use PhpSpec\ObjectBehavior;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClientSpec extends ObjectBehavior
 {
     function let(ClientInterface $client, LoggerInterface $logger, UuidProviderInterface $uuidProvider): void
     {
-        $this->beConstructedWith($client, $logger, $uuidProvider, 'https://test-api.paypal.com/', 'TRACKING-ID');
+        $this->beConstructedWith($client, $logger, $uuidProvider, 'https://test-api.paypal.com/', 'TRACKING-ID', 5);
     }
 
     function it_implements_pay_pal_client_interface(): void
     {
         $this->shouldImplement(PayPalClientInterface::class);
+    }
+
+    function it_returns_auth_token_for_given_client_data(
+        ClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $client->request(
+            'POST',
+            'https://test-api.paypal.com/v1/oauth2/token',
+            [
+                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
+                'form_params' => ['grant_type' => 'client_credentials'],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(200);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"access_token": "TOKEN"}');
+
+        $this->authorize('CLIENT_ID', 'CLIENT_SECRET')->shouldReturn(['access_token' => 'TOKEN']);
+    }
+
+    function it_throws_an_exception_if_client_could_not_be_authorized(
+        ClientInterface $client,
+        ResponseInterface $response
+    ): void {
+        $client->request(
+            'POST',
+            'https://test-api.paypal.com/v1/oauth2/token',
+            [
+                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
+                'form_params' => ['grant_type' => 'client_credentials'],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(401);
+
+        $this
+            ->shouldThrow(PayPalAuthorizationException::class)
+            ->during('authorize', ['CLIENT_ID', 'CLIENT_SECRET'])
+        ;
     }
 
     function it_calls_get_request_on_paypal_api(
@@ -226,6 +269,28 @@ final class PayPalClientSpec extends ObjectBehavior
         $this
             ->patch('v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
             ->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123'])
+        ;
+    }
+
+    function it_throws_exception_if_the_timeout_has_been_reached_the_specified_amount_of_time(
+        ClientInterface $client
+    ): void {
+        $client->request(
+            'GET',
+            'https://test-api.paypal.com/v2/get-request/',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                ],
+            ]
+        )->willThrow(ConnectException::class);
+
+        $this
+            ->shouldThrow(PayPalApiTimeoutException::class)
+            ->during('get', ['v2/get-request/', 'TOKEN'])
         ;
     }
 }
