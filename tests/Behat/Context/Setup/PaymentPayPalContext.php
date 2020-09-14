@@ -110,6 +110,7 @@ final class PaymentPayPalContext implements Context
             'client_id' => $this->clientId,
             'client_secret' => 'SECRET',
             'partner_attribution_id' => $this->partnerAttributionId,
+            'merchant_id' => 'MERCHANT-ID',
             'reports_sftp_username' => 'USERNAME',
             'reports_sftp_password' => 'PASSWORD',
         ]);

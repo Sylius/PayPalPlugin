@@ -199,6 +199,39 @@ final class PayPalClientSpec extends ObjectBehavior
         ;
     }
 
+    function it_calls_post_request_on_paypal_api_with_extra_headers(
+        ClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body,
+        UuidProviderInterface $uuidProvider
+    ): void {
+        $uuidProvider->provide()->willReturn('REQUEST-ID');
+
+        $client->request(
+            'POST',
+            'https://test-api.paypal.com/v2/post-request/',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
+                    'PayPal-Request-Id' => 'REQUEST-ID',
+                    'CUSTOM_HEADER' => 'header',
+                ],
+                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
+            ]
+        )->willReturn($response);
+        $response->getStatusCode()->willReturn(200);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
+
+        $this
+            ->post('v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'], ['CUSTOM_HEADER' => 'header'])
+            ->shouldReturn(['status' => 'OK', 'id' => '123123'])
+        ;
+    }
+
     function it_logs_debug_id_from_failed_post_request(
         ClientInterface $client,
         LoggerInterface $logger,

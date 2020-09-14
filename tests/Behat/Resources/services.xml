@@ -50,6 +50,11 @@
         />
 
         <service
+            id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface"
+            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyOrderDetailsApi"
+        />
+
+        <service
             id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface"
             class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyRefundPaymentApi"
         />

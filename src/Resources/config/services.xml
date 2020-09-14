@@ -22,6 +22,11 @@
             <tag name="sylius.gateway_configuration_type" type="sylius.pay_pal" label="sylius.pay_pal.label" />
         </service>
 
+        <service
+            id="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface"
+            class="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator"
+        />
+
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
             <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" />
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
@@ -119,7 +124,10 @@
             public="true"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface" />
         </service>
 
         <service
@@ -210,5 +218,10 @@
             <argument type="service" id="sm.factory" />
             <tag name="console.command" command="sylius:pay-pal-plugin:complete-payments" />
         </service>
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProvider"
+        />
     </services>
 </container>
