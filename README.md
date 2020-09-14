@@ -96,6 +96,11 @@ it's required to configure SFTP account and set its data in `.env` file.
     PAYPAL_REPORTS_SFTP_PASSWORD='PASSWORD'
     ```
 
+## Processing payments
+
+Plugin provides `sylius:pay-pal-plugin:complete-payments` command, that should be configured as cron job on the server.
+It iterates over processing PayPal payments and completes them if the order is completed in PayPal.
+
 ## Development
 
 ```bash

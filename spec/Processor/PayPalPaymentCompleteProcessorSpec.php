@@ -21,6 +21,7 @@ use Prophecy\Argument;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
+use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Sylius\PayPalPlugin\Resolver\CompleteOrderPaymentResolverInterface;
 
 final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
@@ -28,6 +29,11 @@ final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
     function let(Payum $payum): void
     {
         $this->beConstructedWith($payum);
+    }
+
+    function it_implements_payment_complete_processor_interface(): void
+    {
+        $this->shouldImplement(PaymentCompleteProcessorInterface::class);
     }
 
     function it_completes_payment_in_pay_pal(
@@ -49,7 +55,7 @@ final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
             return $request->getOrderId() === '123123';
         }))->shouldBeCalled();
 
-        $this->completePayPalPayment($payment);
+        $this->completePayment($payment);
     }
 
     function it_does_nothing_if_payment_has_no_pay_pal_order_id_set(
@@ -61,6 +67,6 @@ final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
 
         $payum->getGateway('paypal')->shouldNotBeCalled();
 
-        $this->completePayPalPayment($payment);
+        $this->completePayment($payment);
     }
 }

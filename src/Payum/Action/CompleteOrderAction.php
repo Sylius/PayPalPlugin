@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\StateResolver\StateResolverInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
+use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
@@ -37,6 +38,9 @@ final class CompleteOrderAction implements ActionInterface
     /** @var CompleteOrderApiInterface */
     private $completeOrderApi;
 
+    /** @var OrderDetailsApiInterface */
+    private $orderDetailsApi;
+
     /** @var PayPalAddressProcessor */
     private $payPalAddressProcessor;
 
@@ -50,6 +54,7 @@ final class CompleteOrderAction implements ActionInterface
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         UpdateOrderApiInterface $updateOrderApi,
         CompleteOrderApiInterface $completeOrderApi,
+        OrderDetailsApiInterface $orderDetailsApi,
         PayPalAddressProcessor $payPalAddressProcessor,
         PaymentUpdaterInterface $payPalPaymentUpdater,
         StateResolverInterface $orderPaymentStateResolver
@@ -57,6 +62,7 @@ final class CompleteOrderAction implements ActionInterface
         $this->authorizeClientApi = $authorizeClientApi;
         $this->updateOrderApi = $updateOrderApi;
         $this->completeOrderApi = $completeOrderApi;
+        $this->orderDetailsApi = $orderDetailsApi;
         $this->payPalAddressProcessor = $payPalAddressProcessor;
         $this->payPalPaymentUpdater = $payPalPaymentUpdater;
         $this->orderPaymentStateResolver = $orderPaymentStateResolver;
@@ -92,18 +98,17 @@ final class CompleteOrderAction implements ActionInterface
             $this->orderPaymentStateResolver->resolve($order);
         }
 
-        $content = $this->completeOrderApi->complete($token, $request->getOrderId());
+        $this->completeOrderApi->complete($token, $request->getOrderId());
+        $orderDetails = $this->orderDetailsApi->get($token, $request->getOrderId());
 
-        if ($content['status'] === 'COMPLETED') {
-            $payment->setDetails([
-                'status' => StatusAction::STATUS_COMPLETED,
-                'paypal_order_id' => $content['id'],
-                'paypal_payment_id' => $content['purchase_units'][0]['payments']['captures'][0]['id'],
-                'reference_id' => $content['purchase_units'][0]['reference_id'],
-            ]);
+        $payment->setDetails([
+            'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
+            'paypal_order_id' => $orderDetails['id'],
+            'paypal_payment_id' => $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
+            'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
+        ]);
 
-            $this->payPalAddressProcessor->process($content['purchase_units'][0]['shipping']['address'], $order);
-        }
+        $this->payPalAddressProcessor->process($orderDetails['purchase_units'][0]['shipping']['address'], $order);
     }
 
     public function supports($request): bool
