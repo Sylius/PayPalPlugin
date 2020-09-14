@@ -115,7 +115,7 @@ final class PayPalClient implements PayPalClientInterface
 
         try {
             /** @var ResponseInterface $response */
-            $response = $this->client->request($method, $fullUrl, $options);
+            $response = $this->doRequest($method, $fullUrl, $options);
             if ($this->loggingLevelIncreased) {
                 $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
             }

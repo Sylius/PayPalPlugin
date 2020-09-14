@@ -108,7 +108,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ResponseInterface $response,
         StreamInterface $body
     ): void {
-        $this->beConstructedWith($client, $logger, $uuidProvider, 'https://test-api.paypal.com/', 'TRACKING-ID', true);
+        $this->beConstructedWith($client, $logger, $uuidProvider, 'https://test-api.paypal.com/', 'TRACKING-ID', 5, true);
 
         $client->request(
             'GET',
