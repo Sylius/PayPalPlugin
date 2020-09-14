@@ -13,6 +13,7 @@ use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -80,6 +81,11 @@ final class CompletePaidPaymentsCommand extends Command
             if ($details['status'] === 'COMPLETED') {
                 $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
                 $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE);
+
+                $paymentDetails = $payment->getDetails();
+                $paymentDetails['status'] = StatusAction::STATUS_COMPLETED;
+
+                $payment->setDetails($paymentDetails);
             }
         }
 
