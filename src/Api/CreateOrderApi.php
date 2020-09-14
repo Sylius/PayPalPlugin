@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
@@ -25,9 +26,15 @@ final class CreateOrderApi implements CreateOrderApiInterface
     /** @var PayPalClientInterface */
     private $client;
 
-    public function __construct(PayPalClientInterface $client)
-    {
+    /** @var PaymentReferenceNumberProviderInterface */
+    private $paymentReferenceNumberProvider;
+
+    public function __construct(
+        PayPalClientInterface $client,
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider
+    ) {
         $this->client = $client;
+        $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
     }
 
     public function create(string $token, PaymentInterface $payment, string $referenceId): array
@@ -51,6 +58,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
             'purchase_units' => [
                 [
                     'reference_id' => $referenceId,
+                    'invoice_number' => $this->paymentReferenceNumberProvider->provide($payment),
                     'amount' => [
                         'currency_code' => $order->getCurrencyCode(),
                         'value' => (int) $payment->getAmount() / 100,

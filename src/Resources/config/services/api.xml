@@ -50,6 +50,7 @@
             class="Sylius\PayPalPlugin\Api\CreateOrderApi"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" />
         </service>
 
         <service
