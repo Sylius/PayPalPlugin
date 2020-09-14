@@ -30,6 +30,9 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
         string $orderId,
         string $referenceId,
         string $newTotal,
+        string $newItemsTotal,
+        string $newShippingTotal,
+        string $newTaxTotal,
         string $newCurrencyCode
     ): void {
         $this->client->patch(
@@ -39,7 +42,24 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                 [
                     'op' => 'replace',
                     'path' => sprintf('/purchase_units/@reference_id==\'%s\'/amount', $referenceId),
-                    'value' => ['value' => $newTotal, 'currency_code' => $newCurrencyCode],
+                    'value' => [
+                        'value' => $newTotal,
+                        'currency_code' => $newCurrencyCode,
+                        'breakdown' => [
+                            'shipping' => [
+                                'currency_code' => $newCurrencyCode,
+                                'value' => $newShippingTotal,
+                            ],
+                            'item_total' => [
+                                'currency_code' => $newCurrencyCode,
+                                'value' => $newItemsTotal,
+                            ],
+                            'tax_total' => [
+                                'currency_code' => $newCurrencyCode,
+                                'value' => $newTaxTotal,
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );

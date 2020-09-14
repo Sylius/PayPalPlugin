@@ -11,6 +11,9 @@ interface UpdateOrderApiInterface
         string $orderId,
         string $referenceId,
         string $newTotal,
+        string $newItemsTotal,
+        string $newShippingTotal,
+        string $newTaxTotal,
         string $newCurrencyCode
     ): void;
 }

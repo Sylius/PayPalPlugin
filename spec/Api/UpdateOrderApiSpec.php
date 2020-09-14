@@ -40,11 +40,14 @@ final class UpdateOrderApiSpec extends ObjectBehavior
                     $data[0]['op'] === 'replace' &&
                     $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'/amount' &&
                     $data[0]['value']['value'] === '11.22' &&
-                    $data[0]['value']['currency_code'] === 'USD'
+                    $data[0]['value']['currency_code'] === 'USD' &&
+                    $data[0]['value']['breakdown']['shipping']['value'] === '0.22' &&
+                    $data[0]['value']['breakdown']['item_total']['value'] === '10.00' &&
+                    $data[0]['value']['breakdown']['tax_total']['value'] === '1.00'
                 ;
             })
         )->shouldBeCalled();
 
-        $this->update('TOKEN', 'ORDER-ID', 'REFERENCE-ID', '11.22', 'USD');
+        $this->update('TOKEN', 'ORDER-ID', 'REFERENCE-ID', '11.22', '10.00', '0.22', '1.00', 'USD');
     }
 }
