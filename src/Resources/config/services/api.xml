@@ -71,6 +71,8 @@
             class="Sylius\PayPalPlugin\Api\UpdateOrderApi"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface" />
         </service>
 
         <service
