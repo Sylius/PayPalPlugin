@@ -100,8 +100,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                         ],
                     ],
                     'soft_descriptor' => 'Sylius PayPal Payment',
-                    // TODO: figure out how to update items while updating PayPal order
-//                    'items' => $payPalItemData['items'],
+                    'items' => $payPalItemData['items'],
                 ],
             ],
             'application_context' => [

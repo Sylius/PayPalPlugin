@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
+use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -88,21 +89,18 @@ final class CompleteOrderAction implements ActionInterface
         $details = $payment->getDetails();
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
-        /** @var string $currencyCode */
-        $currencyCode = $order->getCurrencyCode();
 
         if ($payment->getAmount() !== $order->getTotal()) {
-            $newItemsData = $this->payPalItemsDataProvider->provide($order);
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
+            $config = $gatewayConfig->getConfig();
 
             $this->updateOrderApi->update(
                 $token,
                 (string) $details['paypal_order_id'],
+                $payment,
                 (string) $details['reference_id'],
-                (string) ($order->getTotal() / 100),
-                (string) $newItemsData['total_item_value'],
-                (string) ($order->getShippingTotal() / 100),
-                (string) $newItemsData['total_tax'],
-                $currencyCode
+                $config['merchant_id']
             );
 
             $this->payPalPaymentUpdater->updateAmount($payment, $order->getTotal());

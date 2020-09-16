@@ -94,7 +94,11 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['amount']['value'] === 100 &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['amount']['breakdown']['shipping']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === 10
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === 10 &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
@@ -166,7 +170,11 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
                     $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
                     $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
-                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US'
+                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
@@ -249,7 +257,15 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
                     $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
                     $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
-                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US'
+                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
+                    $data['purchase_units'][0]['items'][1]['quantity'] === 2 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
@@ -332,7 +348,19 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
                     $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
                     $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
-                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US'
+                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 50 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 10 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 50 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 10 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
@@ -427,7 +455,25 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
                     $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
                     $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
-                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US'
+                    $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 2 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
+                    $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][2]['name'] === 'PRODUCT_TWO' &&
+                    $data['purchase_units'][0]['items'][2]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][2]['unit_amount']['value'] === 40 &&
+                    $data['purchase_units'][0]['items'][2]['unit_amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['items'][2]['tax']['value'] === 1 &&
+                    $data['purchase_units'][0]['items'][2]['tax']['currency_code'] === 'PLN'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
