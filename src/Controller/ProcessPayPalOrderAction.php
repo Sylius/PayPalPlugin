@@ -91,23 +91,26 @@ final class ProcessPayPalOrderAction
         $order->setCustomer($customer);
 
         $purchaseUnit = (array) $data['purchase_units'][0];
+        $stateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
 
         $address = $this->addressFactory->createForCustomer($customer);
-        $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
-        $address->setFirstName($name[0]);
-        $address->setLastName($name[1]);
-        $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
-        $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
-        $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
-        $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
 
-        $order->setShippingAddress(clone $address);
-        $order->setBillingAddress(clone $address);
+        if ($order->isShippingRequired()) {
+            $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
+            $address->setFirstName($name[0]);
+            $address->setLastName($name[1]);
+            $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
+            $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
+            $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
+            $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
 
-        $stateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
-        $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
-        $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
-        $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
+            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
+            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
+            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
+
+            $order->setShippingAddress(clone $address);
+            $order->setBillingAddress(clone $address);
+        }
 
         $this->orderManager->flush();
 
