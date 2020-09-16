@@ -79,7 +79,12 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
             'payee' => [
                 'merchant_id' => $merchantId,
             ],
-            'shipping' => [
+            'soft_descriptor' => 'Sylius PayPal Payment',
+            'items' => $payPalItemData['items'],
+        ];
+
+        if ($order->isShippingRequired() === true) {
+            $data['shipping'] = [
                 'name' => ['full_name' => $address->getFullName()],
                 'address' => [
                     'address_line_1' => $address->getStreet(),
@@ -87,10 +92,8 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                     'postal_code' => $address->getPostcode(),
                     'country_code' => $address->getCountryCode(),
                 ],
-            ],
-            'soft_descriptor' => 'Sylius PayPal Payment',
-            'items' => $payPalItemData['items'],
-        ];
+            ];
+        }
 
         return $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
