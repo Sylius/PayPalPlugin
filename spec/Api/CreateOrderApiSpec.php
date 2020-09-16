@@ -98,7 +98,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN';
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
+                ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
@@ -173,7 +174,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN';
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
+                ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
@@ -263,7 +265,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
                     $data['purchase_units'][0]['items'][1]['quantity'] === 2 &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40 &&
-                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN';
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN'
+                ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
@@ -357,7 +360,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 50 &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][1]['tax']['value'] === 10 &&
-                    $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN';
+                    $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN'
+                ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
