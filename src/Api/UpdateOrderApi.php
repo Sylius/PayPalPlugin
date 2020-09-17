@@ -47,7 +47,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
         PaymentInterface $payment,
         string $referenceId,
         string $merchantId
-    ): void {
+    ): array {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
         /** @var AddressInterface $address */
@@ -92,7 +92,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
             'items' => $payPalItemData['items'],
         ];
 
-        $this->client->patch(
+        return $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
             $token,
             [
@@ -103,35 +103,5 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                 ],
             ]
         );
-    }
-
-    public function updatePayPalItemData(
-        string $token,
-        string $orderId,
-        string $referenceId,
-        array $payPalItemData
-    ): void {
-        $value = [
-            'currency_code' => 'USD',
-            'value' => '66.93',
-            'breakdown' => [
-                'shipping' => ['value' => '1.93', 'currency_code' => 'USD'],
-                'item_total' => ['value' => '65.00', 'currency_code' => 'USD'],
-                'tax_total' => ['value' => '0.00', 'currency_code' => 'USD'],
-            ]
-        ];
-
-        $response = $this->client->patch(
-            sprintf('v2/checkout/orders/%s', $orderId),
-            $token,
-            [
-                [
-                    'op' => 'remove',
-                    'path' => sprintf('/purchase_units/@reference_id==\'%s\'/amount', $referenceId),
-                ],
-            ]
-        );
-
-        return;
     }
 }

@@ -31,6 +31,7 @@
             <errorLevel type="info">
                 <file name="src/Controller/ProcessPayPalOrderAction.php"/>
                 <file name="src/Payum/Action/CompleteOrderAction.php"/>
+                <file name="src/Controller/UpdatePayPalOrderAction.php"/>
             </errorLevel>
         </MixedArgument>
 
@@ -40,6 +41,7 @@
                 <file name="src/DependencyInjection/SyliusPayPalExtension.php"/>
                 <file name="src/Payum/Action/CompleteOrderAction.php"/>
                 <file name="src/Processor/PayPalPaymentRefundProcessor.php"/>
+                <file name="src/Controller/UpdatePayPalOrderAction.php"/>
             </errorLevel>
         </MixedArrayAccess>
 

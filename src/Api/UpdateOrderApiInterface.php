@@ -14,12 +14,5 @@ interface UpdateOrderApiInterface
         PaymentInterface $payment,
         string $referenceId,
         string $merchantId
-    ): void;
-
-    public function updatePayPalItemData(
-        string $token,
-        string $orderId,
-        string $referenceId,
-        array $payPalItemData
-    ): void;
+    ): array;
 }

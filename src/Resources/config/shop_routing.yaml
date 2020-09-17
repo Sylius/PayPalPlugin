@@ -35,7 +35,7 @@ sylius_paypal_plugin_process_paypal_order:
         _controller: Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction
 
 sylius_paypal_plugin_update_paypal_order:
-    path: /update-pay-pal-order/{id}
+    path: /update-pay-pal-order
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction

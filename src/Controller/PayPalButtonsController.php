@@ -108,6 +108,7 @@ final class PayPalButtonsController
                 'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_cancel_payment'),
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'locale' => $request->getLocale(),
+                'orderId' => $orderId,
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
                 'available_countries' => $this->availableCountriesProvider->provide(),
             ]));
