@@ -106,11 +106,20 @@ final class ProcessPayPalOrderAction
 
             $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
             $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
-            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
-
-            $order->setShippingAddress(clone $address);
-            $order->setBillingAddress(clone $address);
+        } else {
+            $address->setFirstName($customer->getFirstName());
+            $address->setLastName($customer->getLastName());
+            $address->setStreet('');
+            $address->setCity('');
+            $address->setPostcode('');
+            $address->setCountryCode($data['payer']['address']['country_code']);
+            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
         }
+
+        $order->setShippingAddress(clone $address);
+        $order->setBillingAddress(clone $address);
+
+        $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
 
         $this->orderManager->flush();
 

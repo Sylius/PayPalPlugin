@@ -83,7 +83,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
             'items' => $payPalItemData['items'],
         ];
 
-        if ($order->isShippingRequired() === true) {
+        if ($order->isShippingRequired()) {
             $data['shipping'] = [
                 'name' => ['full_name' => $address->getFullName()],
                 'address' => [
