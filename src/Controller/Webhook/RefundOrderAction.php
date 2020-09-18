@@ -8,6 +8,7 @@ use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,11 @@ final class RefundOrderAction
     /** @var ObjectManager */
     private $paymentManager;
 
+    /** @var PayPalClientInterface */
+    private $client;
+
+    /** @var  */
+
     public function __construct(
         FactoryInterface $stateMachineFactory,
         PaymentProviderInterface $paymentProvider,
@@ -38,6 +44,9 @@ final class RefundOrderAction
 
     public function __invoke(Request $request): Response
     {
+
+
+
         try {
             $payment = $this->paymentProvider->getByPayPalOrderId($this->getPayPalOrderId($request));
         } catch (PaymentNotFoundException $exception) {
