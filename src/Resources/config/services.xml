@@ -203,6 +203,9 @@
             <argument type="service" id="sylius.http_client" />
             <argument>%sylius.paypal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
+            <argument type="service" id="router" />
         </service>
 
         <service

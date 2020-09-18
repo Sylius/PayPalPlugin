@@ -16,6 +16,9 @@
             class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
         >
             <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="router" />
             <argument>%sylius.paypal.facilitator_url%</argument>
         </service>
     </services>

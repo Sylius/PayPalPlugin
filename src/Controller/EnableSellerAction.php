@@ -8,6 +8,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -40,6 +41,10 @@ final class EnableSellerAction
             $this->paymentMethodEnabler->enable($paymentMethod);
         } catch (PaymentMethodCouldNotBeEnabledException $exception) {
             $flashBag->add('error', 'sylius.pay_pal.payment_not_enabled');
+
+            return new RedirectResponse($request->headers->get('referer'));
+        } catch (PayPalWebhookUrlNotValidException $exception) {
+            $flashBag->add('error', 'sylius.pay_pal.webhook_url_not_valid');
 
             return new RedirectResponse($request->headers->get('referer'));
         }
