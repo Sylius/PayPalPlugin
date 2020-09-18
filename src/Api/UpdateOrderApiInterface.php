@@ -14,5 +14,5 @@ interface UpdateOrderApiInterface
         PaymentInterface $payment,
         string $referenceId,
         string $merchantId
-    ): void;
+    ): array;
 }

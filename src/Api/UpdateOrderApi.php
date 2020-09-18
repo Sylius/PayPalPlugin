@@ -47,7 +47,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
         PaymentInterface $payment,
         string $referenceId,
         string $merchantId
-    ): void {
+    ): array {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
         /** @var AddressInterface $address */
@@ -92,7 +92,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
             'items' => $payPalItemData['items'],
         ];
 
-        $this->client->patch(
+        return $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
             $token,
             [
