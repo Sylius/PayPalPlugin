@@ -116,7 +116,9 @@ final class CompleteOrderAction implements ActionInterface
             'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
         ]);
 
-        $this->payPalAddressProcessor->process($orderDetails['purchase_units'][0]['shipping']['address'], $order);
+        if ($order->isShippingRequired()) {
+            $this->payPalAddressProcessor->process($orderDetails['purchase_units'][0]['shipping']['address'], $order);
+        }
     }
 
     public function supports($request): bool

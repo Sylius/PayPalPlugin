@@ -104,7 +104,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                 ],
             ],
             'application_context' => [
-                'shipping_preference' => 'GET_FROM_FILE',
+                'shipping_preference' => $order->isShippingRequired() ? 'GET_FROM_FILE' : 'NO_SHIPPING',
             ],
         ];
 

@@ -65,6 +65,8 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $shippingAddress->getPostcode()->willReturn('10001');
         $shippingAddress->getCountryCode()->willReturn('US');
 
+        $order->isShippingRequired()->willReturn(true);
+
         $client->patch(
             'v2/checkout/orders/ORDER-ID',
             'TOKEN',
@@ -85,6 +87,52 @@ final class UpdateOrderApiSpec extends ObjectBehavior
                     $data[0]['value']['shipping']['address']['admin_area_2'] === 'New York' &&
                     $data[0]['value']['shipping']['address']['postal_code'] === '10001' &&
                     $data[0]['value']['shipping']['address']['country_code'] === 'US' &&
+                    $data[0]['value']['items'] === ['data']
+                ;
+            })
+        )->shouldBeCalled();
+
+        $this->update('TOKEN', 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');
+    }
+
+    function it_updates_digital_order(
+        PayPalClientInterface $client,
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PayPalItemDataProviderInterface $payPalItemsDataProvider,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        AddressInterface $shippingAddress
+    ): void {
+        $payment->getOrder()->willReturn($order);
+        $order->getShippingAddress()->willReturn($shippingAddress);
+        $payPalItemsDataProvider
+            ->provide($order)
+            ->willReturn(['items' => ['data'], 'total_item_value' => '10.00', 'total_tax' => '1.22'])
+        ;
+
+        $paymentReferenceNumberProvider->provide($payment)->willReturn('INVOICE_NUMBER');
+
+        $order->getTotal()->willReturn(1122);
+        $order->getCurrencyCode()->willReturn('USD');
+        $order->getShippingTotal()->willReturn(0);
+
+        $order->isShippingRequired()->willReturn(false);
+
+        $client->patch(
+            'v2/checkout/orders/ORDER-ID',
+            'TOKEN',
+            Argument::that(function (array $data): bool {
+                return
+                    $data[0]['op'] === 'replace' &&
+                    $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'' &&
+                    $data[0]['value']['reference_id'] === 'REFERENCE-ID' &&
+                    $data[0]['value']['invoice_number'] === 'INVOICE_NUMBER' &&
+                    $data[0]['value']['amount']['value'] === '11.22' &&
+                    $data[0]['value']['amount']['currency_code'] === 'USD' &&
+                    $data[0]['value']['amount']['breakdown']['shipping']['value'] === '0' &&
+                    $data[0]['value']['amount']['breakdown']['item_total']['value'] === '10.00' &&
+                    $data[0]['value']['amount']['breakdown']['tax_total']['value'] === '1.22' &&
+                    $data[0]['value']['payee']['merchant_id'] === 'MERCHANT-ID' &&
                     $data[0]['value']['items'] === ['data']
                 ;
             })

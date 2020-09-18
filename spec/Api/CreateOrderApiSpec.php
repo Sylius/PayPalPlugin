@@ -55,6 +55,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingAddress()->willReturn(null);
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
+        $order->isShippingRequired()->willReturn(true);
 
         $payPalItemDataProvider->provide($order)->willReturn([
             'items' => [
@@ -122,6 +123,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingAddress()->willReturn($shippingAddress);
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
+        $order->isShippingRequired()->willReturn(true);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -198,6 +200,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingAddress()->willReturn($shippingAddress);
         $order->getItemsTotal()->willReturn(17000);
         $order->getShippingTotal()->willReturn(3000);
+        $order->isShippingRequired()->willReturn(true);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -289,6 +292,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingAddress()->willReturn($shippingAddress);
         $order->getItemsTotal()->willReturn(12000);
         $order->getShippingTotal()->willReturn(1000);
+        $order->isShippingRequired()->willReturn(true);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -384,6 +388,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingAddress()->willReturn($shippingAddress);
         $order->getItemsTotal()->willReturn(17400);
         $order->getShippingTotal()->willReturn(3000);
+        $order->isShippingRequired()->willReturn(true);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -474,6 +479,70 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][2]['unit_amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][2]['tax']['value'] === 1 &&
                     $data['purchase_units'][0]['items'][2]['tax']['currency_code'] === 'PLN'
+                ;
+            })
+        )->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+    }
+
+    function it_allows_to_create_digital_order(
+        PayPalClientInterface $client,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        AddressInterface $shippingAddress,
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PayPalItemDataProviderInterface $payPalItemDataProvider
+    ): void {
+        $payment->getOrder()->willReturn($order);
+        $payment->getAmount()->willReturn(20000);
+        $order->getCurrencyCode()->willReturn('PLN');
+        $order->getShippingAddress()->willReturn(null);
+        $order->getItemsTotal()->willReturn(20000);
+        $order->getShippingTotal()->willReturn(0);
+        $order->isShippingRequired()->willReturn(false);
+
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 200,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 0,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 200,
+            'total_tax' => 0,
+        ]);
+
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $gatewayConfig->getConfig()->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+        );
+
+        $order->setShippingAddress(Argument::any())->shouldNotBeCalled();
+        $order->setBillingAddress(Argument::any())->shouldNotBeCalled();
+
+        $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+        $client->post(
+            'v2/checkout/orders',
+            'TOKEN',
+            Argument::that(function (array $data): bool {
+                return
+                    $data['intent'] === 'CAPTURE' &&
+                    $data['purchase_units'][0]['amount']['value'] === 200 &&
+                    $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
+                    $data['application_context']['shipping_preference'] === 'NO_SHIPPING'
                 ;
             })
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
