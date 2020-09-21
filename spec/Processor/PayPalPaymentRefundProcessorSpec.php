@@ -121,46 +121,6 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         $this->refund($payment);
     }
 
-    function it_throws_exception_if_refund_could_not_be_processed(
-        CacheAuthorizeClientApiInterface $authorizeClientApi,
-        OrderDetailsApiInterface $orderDetailsApi,
-        RefundPaymentApiInterface $refundOrderApi,
-        PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
-        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
-        PaymentInterface $payment,
-        PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig,
-        OrderInterface $order
-    ): void {
-        $payment->getMethod()->willReturn($paymentMethod);
-        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
-        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
-        $payment->getDetails()->willReturn(['paypal_order_id' => '123123']);
-
-        $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
-        $orderDetailsApi
-            ->get('TOKEN', '123123')
-            ->willReturn(['purchase_units' => [['payments' => ['captures' => [['id' => '555', 'status' => 'COMPLETED']]]]]])
-        ;
-        $payPalAuthAssertionGenerator->generate($paymentMethod)->willReturn('AUTH-ASSERTION');
-
-        $payment->getAmount()->willReturn(1000);
-        $payment->getOrder()->willReturn($order);
-        $order->getCurrencyCode()->willReturn('USD');
-
-        $refundReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
-
-        $refundOrderApi
-            ->refund('TOKEN', '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10.00', 'USD')
-            ->willReturn(['status' => 'FAILED'])
-        ;
-
-        $this
-            ->shouldThrow(PayPalOrderRefundException::class)
-            ->during('refund', [$payment])
-        ;
-    }
-
     function it_throws_exception_if_something_went_wrong_during_refunding_payment(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         OrderDetailsApiInterface $orderDetailsApi,

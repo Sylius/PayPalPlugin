@@ -6,5 +6,5 @@ namespace Sylius\PayPalPlugin\Provider;
 
 interface PayPalRefundDataProviderInterface
 {
-    public function provide(string $refundId): array;
+    public function provide(string $refundUrl): array;
 }

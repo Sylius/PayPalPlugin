@@ -6,7 +6,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-final class RefundDataApi implements RefundDataApiInterface
+final class RefundOrderDetailsApi implements RefundOrderDetailsApiInterface
 {
     /** @var HttpClientInterface */
     private $client;

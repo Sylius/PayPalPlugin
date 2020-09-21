@@ -58,5 +58,10 @@
             id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface"
             class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyRefundPaymentApi"
         />
+
+        <service
+            id="Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface"
+            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyPayPalRefundDataProvider"
+        />
     </services>
 </container>

@@ -8,6 +8,7 @@
             <argument type="service" id="sm.factory" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
             <argument type="service" id="sylius.manager.payment" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction">

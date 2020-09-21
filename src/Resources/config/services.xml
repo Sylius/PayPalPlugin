@@ -70,6 +70,23 @@
         </service>
 
         <service
+                id="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface"
+                class="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider"
+        >
+            <argument type="service" id="sylius.repository.payment_method" />
+        </service>
+
+        <service
+                id="Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface"
+                class="Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\RefundDataApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\RefundOrderDetailsApiInterface" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface"
             class="Sylius\PayPalPlugin\Provider\AvailableCountriesProvider"
         >

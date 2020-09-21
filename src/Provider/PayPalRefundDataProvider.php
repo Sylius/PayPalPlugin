@@ -2,37 +2,53 @@
 
 declare(strict_types=1);
 
-
 namespace Sylius\PayPalPlugin\Provider;
 
-use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\RefundDataApiInterface;
-use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Api\RefundOrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 
 final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterface
 {
-    /** @var CacheAuthorizeClientApi */
+    /** @var CacheAuthorizeClientApiInterface */
     private $authorizeClientApi;
+
+    /** @var PayPalPaymentMethodProviderInterface */
+    private $payPalPaymentMethodProvider;
 
     /** @var RefundDataApiInterface */
     private $refundDataApi;
 
-    /** @var  */
-    private $paymentMethodRepository;
+    /** @var RefundOrderDetailsApiInterface */
+    private $refundOrderDetailsApi;
 
     public function __construct(
-        CacheAuthorizeClientApi $authorizeClientApi,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
         RefundDataApiInterface $refundDataApi,
-        PaymentMethodRepositoryInterface $paymentMethodRepository
+        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        RefundOrderDetailsApiInterface $refundOrderDetailsApi
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->refundDataApi = $refundDataApi;
+        $this->payPalPaymentMethodProvider = $payPalPaymentMethodProvider;
+        $this->refundOrderDetailsApi = $refundOrderDetailsApi;
     }
 
-    public function provide(string $refundId): array
+    public function provide(string $url): array
     {
-        $paymentMethod = $this->paymentMethodRepository->
-        $token = $this->authorizeClientApi->authorize()
+        $paymentMethod = $this->payPalPaymentMethodProvider->provide();
+        $token = $this->authorizeClientApi->authorize($paymentMethod);
+
+        $refundData = $this->refundDataApi->get($token, $url);
+
+        /** @var string[] $link */
+        foreach ($refundData['links'] as $link) {
+            if ($link['rel'] === 'up') {
+                return $this->refundOrderDetailsApi->get($token, $link['href']);
+            }
+        }
+
+        throw new PayPalWrongDataException();
     }
 }

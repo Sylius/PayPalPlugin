@@ -8,9 +8,9 @@ use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
-use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,48 +27,56 @@ final class RefundOrderAction
     /** @var ObjectManager */
     private $paymentManager;
 
-    /** @var PayPalClientInterface */
-    private $client;
-
-    /** @var  */
+    /** @var PayPalRefundDataProviderInterface */
+    private $payPalRefundDataProvider;
 
     public function __construct(
         FactoryInterface $stateMachineFactory,
         PaymentProviderInterface $paymentProvider,
-        ObjectManager $paymentManager
+        ObjectManager $paymentManager,
+        PayPalRefundDataProviderInterface $payPalRefundDataProvider
     ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->paymentProvider = $paymentProvider;
         $this->paymentManager = $paymentManager;
+        $this->payPalRefundDataProvider = $payPalRefundDataProvider;
     }
 
     public function __invoke(Request $request): Response
     {
-
-
+        $refundData = $this->payPalRefundDataProvider->provide($this->getPayPalPaymentUrl($request));
 
         try {
-            $payment = $this->paymentProvider->getByPayPalOrderId($this->getPayPalOrderId($request));
+            $payment = $this->paymentProvider->getByPayPalOrderId((string) $refundData['id']);
         } catch (PaymentNotFoundException $exception) {
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
         }
 
         /** @var StateMachineInterface $stateMachine */
         $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        $stateMachine->apply(PaymentTransitions::TRANSITION_REFUND);
+        if ($stateMachine->can(PaymentTransitions::TRANSITION_REFUND)) {
+            $stateMachine->apply(PaymentTransitions::TRANSITION_REFUND);
+        }
 
         $this->paymentManager->flush();
 
         return new JsonResponse([], Response::HTTP_NO_CONTENT);
     }
 
-    private function getPayPalOrderId(Request $request): string
+    private function getPayPalPaymentUrl(Request $request): string
     {
         $content = (array) json_decode((string) $request->getContent(false), true);
         Assert::keyExists($content, 'resource');
         $resource = (array) $content['resource'];
-        Assert::keyExists($resource, 'id');
+        Assert::keyExists($resource, 'links');
 
-        return (string) $resource['id'];
+        /** @var string[] $link */
+        foreach ($resource['links'] as $link) {
+            if ($link['rel'] === 'up') {
+                return (string) $link['href'];
+            }
+        }
+
+        return '';
     }
 }
