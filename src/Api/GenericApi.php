@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Symfony\Contracts\HttpClient\HttpClientInterface;
+use GuzzleHttp\ClientInterface;
 
 final class GenericApi implements GenericApiInterface
 {
-    /** @var HttpClientInterface */
+    /** @var ClientInterface */
     private $client;
 
-    public function __construct(HttpClientInterface $client)
+    public function __construct(ClientInterface $client)
     {
         $this->client = $client;
     }
 
     public function get(string $token, string $url): array
     {
-        $options = [
+        $response = $this->client->request('GET', $url, [
             'headers' => [
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ],
-        ];
+        ]);
 
-        return $this->client->request('GET', $url, $options)->toArray();
+        return (array) json_decode($response->getBody()->getContents(), true);
     }
 }
