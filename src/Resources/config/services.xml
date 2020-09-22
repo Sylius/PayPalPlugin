@@ -203,9 +203,7 @@
             <argument type="service" id="sylius.http_client" />
             <argument>%sylius.paypal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
-            <argument type="service" id="router" />
+            <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
         </service>
 
         <service
@@ -226,5 +224,14 @@
             id="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface"
             class="Sylius\PayPalPlugin\Provider\RefundReferenceNumberProvider"
         />
+
+        <service
+            id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface"
+            class="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="router" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
+        </service>
     </services>
 </container>

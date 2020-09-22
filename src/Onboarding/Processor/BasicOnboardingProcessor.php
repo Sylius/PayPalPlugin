@@ -7,11 +7,10 @@ namespace Sylius\PayPalPlugin\Onboarding\Processor;
 use GuzzleHttp\ClientInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
 final class BasicOnboardingProcessor implements OnboardingProcessorInterface
@@ -19,29 +18,19 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
     /** @var ClientInterface */
     private $httpClient;
 
-    /** @var WebhookApiInterface */
-    private $webhookApi;
-
-    /** @var AuthorizeClientApiInterface */
-    private $authorizeClientApi;
-
-    /** @var UrlGeneratorInterface */
-    private $urlGenerator;
+    /** @var SellerWebhookRegistrarInterface */
+    private $sellerWebhookRegistrar;
 
     /** @var string */
     private $url;
 
     public function __construct(
         ClientInterface $httpClient,
-        WebhookApiInterface $webhookApi,
-        AuthorizeClientApiInterface $authorizeClientApi,
-        UrlGeneratorInterface $urlGenerator,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         string $url
     ) {
         $this->httpClient = $httpClient;
-        $this->authorizeClientApi = $authorizeClientApi;
-        $this->webhookApi = $webhookApi;
-        $this->urlGenerator = $urlGenerator;
+        $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
         $this->url = $url;
     }
 
@@ -91,13 +80,9 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             $paymentMethod->setEnabled(false);
         }
 
-        $token = $this->authorizeClientApi->authorize(
-            (string) $response['client_id'], (string) $response['client_secret']
-        );
-
-        $webhookResponse = $this->webhookApi->register($token, $this->urlGenerator->generate('sylius_paypal_plugin_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL));
-
-        if (!array_key_exists('id', $webhookResponse) && $webhookResponse['name'] === 'VALIDATION_ERROR') {
+        try {
+            $this->sellerWebhookRegistrar->register($paymentMethod);
+        } catch (PayPalWebhookUrlNotValidException $exception) {
             $paymentMethod->setEnabled(false);
         }
 

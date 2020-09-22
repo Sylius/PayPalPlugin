@@ -15,9 +15,8 @@ final class WebhookApiSpec extends ObjectBehavior
         $this->beConstructedWith($client);
     }
 
-    function it_registers_webhook(
-        PayPalClientInterface $client
-    ): void {
+    function it_registers_webhook(PayPalClientInterface $client): void
+    {
         $client->post(
             'v1/notifications/webhooks',
             'TOKEN',
@@ -29,5 +28,20 @@ final class WebhookApiSpec extends ObjectBehavior
         )->shouldBeCalled();
 
         $this->register('TOKEN', 'https://webhook.com');
+    }
+
+    function it_registers_webhook_without_https(PayPalClientInterface $client): void
+    {
+        $client->post(
+            'v1/notifications/webhooks',
+            'TOKEN',
+            Argument::that(function ($data): bool {
+                return
+                    $data['url'] === 'https://webhook.com' &&
+                    $data['event_types'][0]['name'] === 'PAYMENT.CAPTURE.REFUNDED';
+            })
+        )->shouldBeCalled();
+
+        $this->register('TOKEN', 'http://webhook.com');
     }
 }
