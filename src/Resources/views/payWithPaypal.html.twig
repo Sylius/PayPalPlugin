@@ -61,7 +61,15 @@
                 }
 
                 .input {
-                    height: 50px;
+                    height: 30px;
+                    padding: 5px;
+                    border: solid 1px lightgray;
+                    margin-bottom: 10px;
+                }
+
+                .invalid-field {
+                    border-color: red;
+                    background: hsla(2, 54%, 50%, 0.74);
                 }
 
                 .low-opacity {
@@ -114,6 +122,8 @@
         let availableCountries = {{ available_countries|json_encode|raw }};
         let cancelPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_checkout_payment') }}";
         let updatePayPalOrderUrl = "{{ path('sylius_paypal_plugin_update_paypal_order') }}";
+        let validForm = false;
+        let invalidFormMessage = "{{ 'sylius.pay_pal.invalid_form'|trans }}";
 
         paypal.Buttons({
             locale: '{{ locale }}',
@@ -207,13 +217,37 @@
                     }
                 }
             }).then(hostedFields => {
+                hostedFields.on('validityChange', function (event) {
+                    let field = event.fields[event.emittedBy];
+
+                    if (field.isValid) {
+                        field.container.classList.remove('invalid-field');
+                    } else if (field.isPotentiallyValid) {
+                        field.container.classList.add('invalid-field');
+                    } else {
+                        field.container.classList.add('invalid-field');
+                    }
+                });
+
                 document.querySelector('#advanced-cards-form').addEventListener('submit', event => {
                     event.preventDefault();
-                    hostedFields.submit().then(payload => {
-                        return fetch(completePayPalOrderUrl, {
-                            method: 'post'
-                        }).then(res => res.json()).then(details => window.location.href = details.return_url);
+
+                    let state = hostedFields.getState();
+                    let formValid = Object.keys(state.fields).every(function (key) {
+                        if (!state.fields[key].isValid) state.fields[key].container.classList.add('invalid-field');
+                        else state.fields[key].container.classList.remove('invalid-field')
+                        return state.fields[key].isValid;
                     });
+
+                    if(formValid) {
+                        hostedFields.submit().then(payload => {
+                            return fetch(completePayPalOrderUrl, {
+                                method: 'post'
+                            }).then(res => res.json()).then(details => window.location.href = details.return_url);
+                        });
+                    } else {
+                        alert(invalidFormMessage);
+                    }
                 });
             });
         }
