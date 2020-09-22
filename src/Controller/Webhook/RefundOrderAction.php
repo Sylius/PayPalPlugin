@@ -9,6 +9,7 @@ use SM\Factory\FactoryInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\StateMachine\StateMachineInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -77,6 +78,6 @@ final class RefundOrderAction
             }
         }
 
-        return '';
+        throw new PayPalWrongDataException();
     }
 }

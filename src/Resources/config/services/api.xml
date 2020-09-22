@@ -51,15 +51,8 @@
         </service>
 
         <service
-                id="Sylius\PayPalPlugin\Api\RefundDataApiInterface"
-                class="Sylius\PayPalPlugin\Api\RefundDataApi"
-        >
-            <argument type="service" id="http_client" />
-        </service>
-
-        <service
-                id="Sylius\PayPalPlugin\Api\RefundOrderDetailsApiInterface"
-                class="Sylius\PayPalPlugin\Api\RefundOrderDetailsApi"
+            id="Sylius\PayPalPlugin\Api\GenericApiInterface"
+            class="Sylius\PayPalPlugin\Api\GenericApi"
         >
             <argument type="service" id="http_client" />
         </service>

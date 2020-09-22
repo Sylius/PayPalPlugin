@@ -91,7 +91,6 @@ final class ManagingOrdersContext implements Context
 
         $this->client->request('POST', '/paypal-webhook/api/', [], [], ['Content-Type' => 'application/json'], $data);
 
-        echo json_encode($this->client->getResponse()->getContent());
         Assert::same($this->client->getResponse()->getStatusCode(), Response::HTTP_NO_CONTENT);
     }
 

@@ -7,8 +7,7 @@ namespace spec\Sylius\PayPalPlugin\Provider;
 use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\RefundDataApiInterface;
-use Sylius\PayPalPlugin\Api\RefundOrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
@@ -16,23 +15,21 @@ final class PayPalRefundDataProviderSpec extends ObjectBehavior
 {
     public function let(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        RefundDataApiInterface $refundDataApi,
-        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        RefundOrderDetailsApiInterface $refundOrderDetailsApi
+        GenericApiInterface $genericApi,
+        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider
     ) {
-        $this->beConstructedWith($authorizeClientApi, $refundDataApi, $payPalPaymentMethodProvider, $refundOrderDetailsApi);
+        $this->beConstructedWith($authorizeClientApi, $genericApi, $payPalPaymentMethodProvider);
     }
 
     public function it_provides_data_from_provided_url(
         PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         PaymentMethodInterface $paymentMethod,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        RefundDataApiInterface $refundDataApi,
-        RefundOrderDetailsApiInterface $refundOrderDetailsApi
+        GenericApiInterface $genericApi
     ): void {
         $payPalPaymentMethodProvider->provide()->willReturn($paymentMethod);
         $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
-        $refundDataApi->get('TOKEN', 'https://get-refund-data.com')->willReturn(
+        $genericApi->get('TOKEN', 'https://get-refund-data.com')->willReturn(
             [
                 'links' => [
                     ['rel' => 'self', 'href' => 'https://self.url.com'],
@@ -41,7 +38,7 @@ final class PayPalRefundDataProviderSpec extends ObjectBehavior
             ],
         );
 
-        $refundOrderDetailsApi->get('TOKEN', 'https://up.url.com')->shouldBeCalled();
+        $genericApi->get('TOKEN', 'https://up.url.com')->shouldBeCalled();
 
         $this->provide('https://get-refund-data.com');
     }
@@ -50,11 +47,11 @@ final class PayPalRefundDataProviderSpec extends ObjectBehavior
         PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         PaymentMethodInterface $paymentMethod,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        RefundDataApiInterface $refundDataApi
+        GenericApiInterface $genericApi
     ): void {
         $payPalPaymentMethodProvider->provide()->willReturn($paymentMethod);
         $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
-        $refundDataApi->get('TOKEN', 'https://get-refund-data.com')->willReturn(
+        $genericApi->get('TOKEN', 'https://get-refund-data.com')->willReturn(
             [
                 'links' => [
                     ['rel' => 'self', 'href' => 'https://self.url.com'],

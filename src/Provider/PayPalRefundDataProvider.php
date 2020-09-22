@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\RefundDataApiInterface;
-use Sylius\PayPalPlugin\Api\RefundOrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 
 final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterface
@@ -17,22 +16,17 @@ final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterfac
     /** @var PayPalPaymentMethodProviderInterface */
     private $payPalPaymentMethodProvider;
 
-    /** @var RefundDataApiInterface */
-    private $refundDataApi;
-
-    /** @var RefundOrderDetailsApiInterface */
-    private $refundOrderDetailsApi;
+    /** @var GenericApiInterface */
+    private $genericApi;
 
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        RefundDataApiInterface $refundDataApi,
-        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        RefundOrderDetailsApiInterface $refundOrderDetailsApi
+        GenericApiInterface $genericApi,
+        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
-        $this->refundDataApi = $refundDataApi;
+        $this->genericApi = $genericApi;
         $this->payPalPaymentMethodProvider = $payPalPaymentMethodProvider;
-        $this->refundOrderDetailsApi = $refundOrderDetailsApi;
     }
 
     public function provide(string $url): array
@@ -40,12 +34,12 @@ final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterfac
         $paymentMethod = $this->payPalPaymentMethodProvider->provide();
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-        $refundData = $this->refundDataApi->get($token, $url);
+        $refundData = $this->genericApi->get($token, $url);
 
         /** @var string[] $link */
         foreach ($refundData['links'] as $link) {
             if ($link['rel'] === 'up') {
-                return $this->refundOrderDetailsApi->get($token, $link['href']);
+                return $this->genericApi->get($token, $link['href']);
             }
         }
 
