@@ -60,6 +60,10 @@
                     width: 100%;
                 }
 
+                .input {
+                    height: 50px;
+                }
+
                 .low-opacity {
                     opacity: 0.9;
                 }
@@ -75,13 +79,34 @@
         </div>
         <div class="container">
             <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
-            <div class="button-container padding">
-                <div id="paypal-button-container"></div>
+            <div id="tabs" class="ui top attached tabular menu">
+                <div class="active item" data-tab="paypal">PayPal</div>
+                <div class="item" data-tab="card">Card</div>
+            </div>
+            <div class="ui bottom attached active tab segment" data-tab="paypal">
+                <div class="button-container padding">
+                    <div id="paypal-button-container"></div>
+                </div>
+            </div>
+            <div class="ui bottom attached tab segment" data-tab="card">
+                <div class="button-container padding">
+                    <div id="advanced-cards-container"></div>
+                    <form id="advanced-cards-form" class="ui form">
+                        <label for="card-number">{{ 'sylius.pay_pal.credit_card_number'|trans }}</label>
+                        <div id="card-number" class="input"></div>
+                        <label for="expiration-date">{{ 'sylius.pay_pal.expiration_date'|trans }}</label>
+                        <div id="expiration-date" class="input"></div>
+                        <label for="cvv">{{ 'sylius.pay_pal.cvv'|trans }}</label>
+                        <div id="cvv" class="input"></div>
+                        <button value="submit" id="submit" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
     </body>
-    <script src="https://www.paypal.com/sdk/js?client-id={{ client_id }}" data-partner-attribution-id="{{ partner_attribution_id }}"></script>
+    {% include '@SyliusUi/_javascripts.html.twig' with {'path': 'assets/shop/js/app.js'} %}
+    <script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons&locale={{ locale }}&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
     <script>
         let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
@@ -92,6 +117,7 @@
 
         paypal.Buttons({
             locale: '{{ locale }}',
+            style: { label: 'pay' },
             createOrder: function(data, actions) {
                 return fetch(createPayPalOrderUrl, {
                     method: 'post'
@@ -138,5 +164,62 @@
                 }).then(window.location.reload());
             }
         }).render('#paypal-button-container');
+
+        if (paypal.HostedFields.isEligible() === true) {
+            paypal.HostedFields.render({
+                createOrder: function(data, actions) {
+                    document.querySelector('#paypal-payment-container').classList.add('loading');
+                    document.querySelector('#paypal-button-container').classList.add('low-opacity');
+
+                    return fetch(createPayPalOrderUrl, {
+                        method: 'POST'
+                    }).then(function(res) {
+                        return res.json();
+                    }).then(function(data) {
+                        return data.orderID;
+                    });
+                },
+                styles: {
+                    'input': {
+                        'font-size': '14px',
+                        'font-family': 'Product Sans',
+                        'color': '#3a3a3a',
+                    },
+                    ':focus': {
+                        'color': '#000'
+                    }
+                },
+                fields: {
+                    number: {
+                        selector: '#card-number',
+                        placeholder: '{{ 'sylius.pay_pal.credit_card_number'|trans }}',
+                        required: 'required',
+                    },
+                    cvv: {
+                        selector: '#cvv',
+                        placeholder: 'CVV',
+                        required: 'required',
+                    },
+                    expirationDate: {
+                        selector: '#expiration-date',
+                        placeholder: 'MM/YYYY',
+                        required: 'required',
+                    }
+                }
+            }).then(hostedFields => {
+                document.querySelector('#advanced-cards-form').addEventListener('submit', event => {
+                    event.preventDefault();
+                    hostedFields.submit().then(payload => {
+                        return fetch(completePayPalOrderUrl, {
+                            method: 'post'
+                        }).then(res => res.json()).then(details => window.location.href = details.return_url);
+                    });
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            $('#tabs').tab()
+        });
     </script>
 </html>
