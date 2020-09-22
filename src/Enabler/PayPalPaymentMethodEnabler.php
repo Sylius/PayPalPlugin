@@ -18,6 +18,7 @@ use GuzzleHttp\Client;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
@@ -30,11 +31,19 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
     /** @var ObjectManager */
     private $paymentMethodManager;
 
-    public function __construct(Client $client, string $baseUrl, ObjectManager $paymentMethodManager)
-    {
+    /** @var SellerWebhookRegistrarInterface */
+    private $sellerWebhookRegistrar;
+
+    public function __construct(
+        Client $client,
+        string $baseUrl,
+        ObjectManager $paymentMethodManager,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+    ) {
         $this->client = $client;
         $this->baseUrl = $baseUrl;
         $this->paymentMethodManager = $paymentMethodManager;
+        $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
     }
 
     public function enable(PaymentMethodInterface $paymentMethod): void
@@ -52,6 +61,8 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         if (!((bool) $content['permissionsGranted'])) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
+
+        $this->sellerWebhookRegistrar->register($paymentMethod);
 
         $paymentMethod->setEnabled(true);
         $this->paymentMethodManager->flush();

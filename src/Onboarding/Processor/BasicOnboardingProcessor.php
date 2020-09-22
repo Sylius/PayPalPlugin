@@ -8,6 +8,8 @@ use GuzzleHttp\ClientInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Webmozart\Assert\Assert;
 
@@ -16,12 +18,19 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
     /** @var ClientInterface */
     private $httpClient;
 
+    /** @var SellerWebhookRegistrarInterface */
+    private $sellerWebhookRegistrar;
+
     /** @var string */
     private $url;
 
-    public function __construct(ClientInterface $httpClient, string $url)
-    {
+    public function __construct(
+        ClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        string $url
+    ) {
         $this->httpClient = $httpClient;
+        $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
         $this->url = $url;
     }
 
@@ -68,6 +77,12 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 
         $permissionsGranted = (bool) $request->query->get('permissionsGranted', true);
         if (!$permissionsGranted) {
+            $paymentMethod->setEnabled(false);
+        }
+
+        try {
+            $this->sellerWebhookRegistrar->register($paymentMethod);
+        } catch (PayPalWebhookUrlNotValidException $exception) {
             $paymentMethod->setEnabled(false);
         }
 

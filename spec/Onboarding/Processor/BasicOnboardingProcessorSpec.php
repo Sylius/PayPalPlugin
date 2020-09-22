@@ -12,18 +12,23 @@ use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 
 final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
-    function let(ClientInterface $httpClient): void
-    {
-        $this->beConstructedWith($httpClient, 'https://paypal.facilitator.com');
+    function let(
+        ClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+    ): void {
+        $this->beConstructedWith($httpClient, $sellerWebhookRegistrar, 'https://paypal.facilitator.com');
     }
 
     function it_processes_onboarding_for_supported_payment_method_and_request(
         ClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         ResponseInterface $response,
         StreamInterface $body,
         GatewayConfigInterface $gatewayConfig,
@@ -78,11 +83,14 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
             "partner_attribution_id":"ATTRIBUTION-ID"}'
         );
 
+        $sellerWebhookRegistrar->register($paymentMethod)->shouldBeCalled();
+
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
 
     function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_request(
         ClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         ResponseInterface $response,
         StreamInterface $body,
         GatewayConfigInterface $gatewayConfig,
@@ -137,6 +145,72 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
                 'partner_attribution_id' => 'ATTRIBUTION-ID',
             ]
         )->shouldBeCalled();
+
+        $sellerWebhookRegistrar->register($paymentMethod)->shouldBeCalled();
+
+        $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
+    }
+
+    function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_without_registered_webhook(
+        ClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        ResponseInterface $response,
+        StreamInterface $body,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+            ]
+        );
+
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID', 'permissionsGranted' => false]);
+
+        $httpClient
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
+            ->willReturn($response)
+        ;
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn(
+            '{"client_id":"CLIENT-ID",
+            "client_secret":"CLIENT-SECRET",
+            "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
+        );
+
+        $paymentMethod->setEnabled(false)->shouldBeCalled();
+        $gatewayConfig->setConfig(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'onboarding_id' => 'ONBOARDING-ID',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+                'partner_attribution_id' => 'ATTRIBUTION-ID',
+            ]
+        )->shouldBeCalled();
+
+        $sellerWebhookRegistrar->register($paymentMethod)->willThrow(PayPalWebhookUrlNotValidException::class);
+        $paymentMethod->setEnabled(false)->shouldBeCalled();
 
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
