@@ -60,6 +60,13 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Api\IdentityApiInterface"
+            class="Sylius\PayPalPlugin\Api\IdentityApi"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface"
             class="Sylius\PayPalPlugin\Api\OrderDetailsApi"
         >
