@@ -24,7 +24,6 @@ use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
-use Webmozart\Assert\Assert;
 
 final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
 {
@@ -91,8 +90,6 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
                 (string) (((int) $payment->getAmount()) / 100),
                 (string) $order->getCurrencyCode()
             );
-
-            Assert::same($response['status'], 'COMPLETED');
         } catch (ClientException | \InvalidArgumentException $exception) {
             throw new PayPalOrderRefundException();
         }

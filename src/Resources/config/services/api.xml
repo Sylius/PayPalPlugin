@@ -51,6 +51,13 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Api\GenericApiInterface"
+            class="Sylius\PayPalPlugin\Api\GenericApi"
+        >
+            <argument type="service" id="http_client" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface"
             class="Sylius\PayPalPlugin\Api\CreateOrderApi"
         >

@@ -83,6 +83,9 @@ final class ManagingOrdersContext implements Context
                 'id' => $payPalOrderId,
                 'amount' => ['currency_code' => 'USD', 'amount' => (string) ($this->refundAmount/100)],
                 'status' => 'COMPLETED',
+                'links' => [
+                    ['rel' => 'up', 'href' => $payPalOrderId],
+                ],
             ],
         ]);
 

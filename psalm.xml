@@ -42,6 +42,7 @@
                 <file name="src/Payum/Action/CompleteOrderAction.php"/>
                 <file name="src/Processor/PayPalPaymentRefundProcessor.php"/>
                 <file name="src/Controller/UpdatePayPalOrderAction.php"/>
+                <file name="src/Controller/Webhook/RefundOrderAction.php"/>
             </errorLevel>
         </MixedArrayAccess>
 
