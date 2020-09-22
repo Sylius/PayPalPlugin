@@ -8,6 +8,7 @@ sylius:
         different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
         enable_paypal: 'Enable PayPal'
         expiration_date: 'Expiration date'
+        invalid_form: 'Form is invalid'
         label: 'PayPal'
         pay_with_card: 'Pay with Card'
         report: 'Report'
