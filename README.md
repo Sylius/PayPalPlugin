@@ -25,11 +25,16 @@
         requirements:
             _locale: ^[A-Za-z]{2,4}(_([A-Za-z]{4}|[0-9]{3}))?(_([A-Za-z]{2}|[0-9]{3}))?$
 
-    #config/routes/sylius_admin.yaml
+    # config/routes/sylius_admin.yaml
 
     sylius_paypal_admin:
         resource: "@SyliusPayPalPlugin/Resources/config/admin_routing.yml"
         prefix: /admin
+
+    # config/routes.yaml
+
+    sylius_paypal_webhook:
+        resource: "@SyliusPayPalPlugin/Resources/config/webhook_routing.yaml"
     ```
 
 3. Import configuration
@@ -50,12 +55,26 @@
 
 4. Add env variables
 
+    ### Sandbox
+
     ```
     #.env
 
     PAYPAL_API_BASE_URL='https://api.sandbox.paypal.com/'
-    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator) 
+    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
     PAYPAL_FACILITATOR_URL='https://paypal.sylius.com'
+    PAYPAL_TRACKING_ID='sylius-ppcp4p-bn-code'
+    ```
+
+    ### Live
+
+    ```
+    #.env
+
+    PAYPAL_API_BASE_URL='https://api.paypal.com/'
+    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
+    PAYPAL_FACILITATOR_URL='https://prod.paypal.sylius.com'
+    PAYPAL_TRACKING_ID='sylius-ppcp4p-bn-code'
     ```
    
 5. Copy and apply migrations
