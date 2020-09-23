@@ -56,7 +56,8 @@
                 }
 
                 #paypal-payment-container {
-                    height: 100%;
+                    min-height: 100%;
+                    height: auto;
                     width: 100%;
                 }
 
@@ -74,6 +75,22 @@
 
                 .low-opacity {
                     opacity: 0.9;
+                }
+
+                input {
+                    font-size: 14px;
+                    font-family: 'Product Sans', sans-serif;
+                    color: #3a3a3a;
+                    cursor: auto;
+                    width: 100%;
+                    padding: 5px;
+                    height: 30px;
+                    margin-bottom: 10px;
+                    border: solid 1px lightgray;
+                }
+
+                input:focus {
+                    color: #000;
                 }
             </style>
         {% endblock %}
@@ -99,13 +116,21 @@
             <div class="ui bottom attached tab segment" data-tab="card">
                 <div class="button-container padding">
                     <div id="advanced-cards-container"></div>
-                    <form id="advanced-cards-form" class="ui form">
+                    <form id="advanced-cards-form">
                         <label for="card-number">{{ 'sylius.pay_pal.credit_card_number'|trans }}</label>
                         <div id="card-number" class="input"></div>
                         <label for="expiration-date">{{ 'sylius.pay_pal.expiration_date'|trans }}</label>
                         <div id="expiration-date" class="input"></div>
                         <label for="cvv">{{ 'sylius.pay_pal.cvv'|trans }}</label>
                         <div id="cvv" class="input"></div>
+                        <label for='card-holder-name'>{{ 'sylius.form.credit_card.cardholder_name'|trans }}</label>
+                        <br/><input type='text' id='card-holder-name' name='card-holder-name' autocomplete='off' placeholder='{{ 'sylius.form.credit_card.cardholder_name'|trans }}' value="{{ billing_address.fullName }}"/>
+                        <br/><label for='card-billing-address-street'>{{ 'sylius.ui.billing_address'|trans }}</label>
+                        <br/><input type='text' id='card-billing-address-street' name='card-billing-address-street' autocomplete='off' placeholder='{{ 'sylius.ui.street'|trans }}' value="{{ billing_address.street }}"/>
+                        <input type='text' id='card-billing-address-city' name='card-billing-address-city' autocomplete='off' placeholder='{{ 'sylius.ui.city'|trans }}' value="{{ billing_address.city }}"/>
+                        <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address.provinceName }}"/>
+                        <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
+                        <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
                         <button value="submit" id="submit" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
                     </form>
                 </div>
