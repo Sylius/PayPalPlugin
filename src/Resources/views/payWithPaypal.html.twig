@@ -281,8 +281,6 @@
                             }).then(function(res) {
                                 return res.json();
                             }).then(function(data) {
-                                console.log(data);
-
                                 if (data.status == 'processing') {
                                     return fetch(cancelPayPalPaymentUrl, {
                                         method: 'post',
