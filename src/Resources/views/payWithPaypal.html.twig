@@ -103,6 +103,7 @@
             </a>
         </div>
         <div class="container">
+            {% include '@SyliusShop/_flashes.html.twig' %}
             <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
             <div id="tabs" class="ui top attached tabular menu">
                 <div class="active item" data-tab="paypal">PayPal</div>
@@ -264,11 +265,34 @@
                         return state.fields[key].isValid;
                     });
 
-                    if(formValid) {
-                        hostedFields.submit().then(payload => {
+                    if (formValid) {
+                        hostedFields.submit({
+                            cardholderName: document.getElementById('card-holder-name').value,
+                            billingAddress: {
+                                streetAddress: document.getElementById('card-billing-address-street').value,
+                                region: document.getElementById('card-billing-address-state').value,
+                                locality: document.getElementById('card-billing-address-city').value,
+                                postalCode: document.getElementById('card-billing-address-zip').value,
+                                countryCodeAlpha2: document.getElementById('card-billing-address-country').value
+                            }
+                        }).then(payload => {
                             return fetch(completePayPalOrderUrl, {
                                 method: 'post'
-                            }).then(res => res.json()).then(details => window.location.href = details.return_url);
+                            }).then(function(res) {
+                                return res.json();
+                            }).then(function(data) {
+                                console.log(data);
+
+                                if (data.status == 'processing') {
+                                    return fetch(cancelPayPalPaymentUrl, {
+                                        method: 'post',
+                                        headers: { 'content-type': 'application/json' },
+                                        body: JSON.stringify({ payPalOrderId: data.orderID })
+                                    }).then(window.location.reload());
+                                }
+
+                                window.location.href = data.return_url;
+                            });
                         });
                     } else {
                         alert(invalidFormMessage);
