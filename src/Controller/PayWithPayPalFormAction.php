@@ -69,6 +69,7 @@ final class PayWithPayPalFormAction
 
         return new Response($this->twig->render('@SyliusPayPalPlugin/payWithPaypal.html.twig', [
             'available_countries' => $this->countriesProvider->provide(),
+            'billing_address' => $order->getBillingAddress(),
             'client_id' => $clientId,
             'client_token' => $clientToken,
             'currency' => $order->getCurrencyCode(),

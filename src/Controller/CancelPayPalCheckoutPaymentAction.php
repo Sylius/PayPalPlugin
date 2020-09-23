@@ -8,6 +8,7 @@ use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final class CancelPayPalCheckoutPaymentAction
 {
@@ -30,6 +31,10 @@ final class CancelPayPalCheckoutPaymentAction
         $content = (array) json_decode((string) $request->getContent(false), true);
 
         $payment = $this->paymentProvider->getByPayPalOrderId((string) $content['payPalOrderId']);
+
+        /** @var FlashBagInterface $flashBag */
+        $flashBag = $request->getSession()->getBag('flashes');
+        $flashBag->add('error', 'sylius.pay_pal.something_went_wrong');
 
         $this->paymentStateManager->cancel($payment);
 
