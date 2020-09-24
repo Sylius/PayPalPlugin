@@ -34,12 +34,13 @@ final class PayPalClientSpec extends ObjectBehavior
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider
     ): void {
+        $payPalConfigurationProvider->getApiBaseUrl()->willReturn('https://test-api.paypal.com/');
+
         $this->beConstructedWith(
             $client,
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
-            'https://test-api.paypal.com/',
             5
         );
     }
@@ -129,7 +130,6 @@ final class PayPalClientSpec extends ObjectBehavior
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
-            'https://test-api.paypal.com/',
             5,
             true
         );

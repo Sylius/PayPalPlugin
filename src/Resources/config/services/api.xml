@@ -14,7 +14,6 @@
             <argument type="service" id="monolog.logger.paypal" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
             <argument>%sylius.pay_pal.request_trials_limit%</argument>
             <argument>%sylius.paypal.logging.increased%</argument>
         </service>

@@ -52,6 +52,14 @@ final class PayPalConfigurationProvider implements PayPalConfigurationProviderIn
         return (string) $config['partner_attribution_id'];
     }
 
+    public function getApiBaseUrl(): string
+    {
+        $config = $this->getPayPalPaymentMethodConfig();
+        Assert::keyExists($config, 'sandbox');
+
+        return ((bool) $config['sandbox']) ? 'https://api.sandbox.paypal.com/' : 'https://api.paypal.com/';
+    }
+
     private function getPayPalPaymentMethodConfig(): array
     {
         /** @var ChannelInterface $channel */

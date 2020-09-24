@@ -62,6 +62,29 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
         $this->getClientId()->shouldReturn('123123');
     }
 
+    function it_returns_api_base_url_from_payment_method_config(
+        PaymentMethodRepositoryInterface $paymentMethodRepository,
+        PaymentMethodInterface $payPalPaymentMethod,
+        GatewayConfigInterface $payPalGatewayConfig,
+        ChannelInterface $channel
+    ): void {
+        $paymentMethodRepository
+            ->findEnabledForChannel($channel)
+            ->willReturn([$payPalPaymentMethod], [$payPalPaymentMethod])
+        ;
+
+        $payPalPaymentMethod->getGatewayConfig()->willReturn($payPalGatewayConfig, $payPalGatewayConfig);
+        $payPalGatewayConfig->getFactoryName()->willReturn('sylius.pay_pal', 'sylius.pay_pal');
+
+        $payPalGatewayConfig
+            ->getConfig()
+            ->willReturn(['sandbox' => true], ['sandbox' => false])
+        ;
+
+        $this->getApiBaseUrl()->shouldReturn('https://api.sandbox.paypal.com/');
+        $this->getApiBaseUrl()->shouldReturn('https://api.paypal.com/');
+    }
+
     function it_returns_partner_attribution_id_from_payment_method_config(
         PaymentMethodRepositoryInterface $paymentMethodRepository,
         PaymentMethodInterface $payPalPaymentMethod,

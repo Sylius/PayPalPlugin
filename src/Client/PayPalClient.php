@@ -37,9 +37,6 @@ final class PayPalClient implements PayPalClientInterface
     /** @var PayPalConfigurationProviderInterface */
     private $payPalConfigurationProvider;
 
-    /** @var string */
-    private $baseUrl;
-
     /** @var int */
     private $requestTrialsLimit;
 
@@ -51,7 +48,6 @@ final class PayPalClient implements PayPalClientInterface
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        string $baseUrl,
         int $requestTrialsLimit,
         bool $loggingLevelIncreased = false
     ) {
@@ -59,7 +55,6 @@ final class PayPalClient implements PayPalClientInterface
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
-        $this->baseUrl = $baseUrl;
         $this->requestTrialsLimit = $requestTrialsLimit;
         $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
@@ -68,7 +63,7 @@ final class PayPalClient implements PayPalClientInterface
     {
         $response = $this->doRequest(
             'POST',
-            $this->baseUrl . 'v1/oauth2/token',
+            $this->payPalConfigurationProvider->getApiBaseUrl() . 'v1/oauth2/token',
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
@@ -114,7 +109,7 @@ final class PayPalClient implements PayPalClientInterface
             $options['json'] = $data;
         }
 
-        $fullUrl = $this->baseUrl . $url;
+        $fullUrl = $this->payPalConfigurationProvider->getApiBaseUrl() . $url;
 
         try {
             /** @var ResponseInterface $response */
