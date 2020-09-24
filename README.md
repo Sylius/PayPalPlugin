@@ -91,6 +91,18 @@ Sylius Core Team’s plugin for [PayPal Commerce Platform](https://www.paypal.co
 To make PayPal integration working, your local Sylius URL should be accessible for the PayPal servers. Therefore you can
 add the proper directive to your `/etc/hosts` (something like `127.0.0.1 sylius.local`) or use a service as [ngrok](https://ngrok.com/).
 
+#### Sandbox vs Live
+
+By default, plugin operates in the sandbox mode. I means all the transactions would be used with the sandbox URLs and code.
+To change it, you need to configure the plugin properly:
+
+```yaml
+sylius_pay_pal:
+    sandbox: false
+```
+
+You can, for example, configure it only for the production environment (e.g. in `config/packages/prod/sylius_pay_pal_plugin.yaml`).
+
 ## PayPal reports
 
 To be able to download reports about your payouts, you need to have reports feature enabled on your PayPal account. Also,

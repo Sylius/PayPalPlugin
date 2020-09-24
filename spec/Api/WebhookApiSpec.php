@@ -35,13 +35,13 @@ final class WebhookApiSpec extends ObjectBehavior
                     'event_types' => [
                         ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
                     ],
-                ]
+                ],
             ]
         )->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "status": "CREATED" }');
 
-        $this->register('TOKEN', 'https://webhook.com')->shouldReturn(['status' => 'CREATED']);;
+        $this->register('TOKEN', 'https://webhook.com')->shouldReturn(['status' => 'CREATED']);
     }
 
     function it_registers_webhook_without_https(
@@ -63,12 +63,12 @@ final class WebhookApiSpec extends ObjectBehavior
                     'event_types' => [
                         ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
                     ],
-                ]
+                ],
             ]
         )->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "status": "CREATED" }');
 
-        $this->register('TOKEN', 'http://webhook.com')->shouldReturn(['status' => 'CREATED']);;
+        $this->register('TOKEN', 'http://webhook.com')->shouldReturn(['status' => 'CREATED']);
     }
 }

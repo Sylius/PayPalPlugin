@@ -33,7 +33,7 @@ final class WebhookApi implements WebhookApiInterface
                 'event_types' => [
                     ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
                 ],
-            ]
+            ],
         ]);
 
         return (array) json_decode($response->getBody()->getContents(), true);
