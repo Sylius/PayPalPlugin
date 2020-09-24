@@ -25,6 +25,6 @@ final class WebhookApi implements WebhookApiInterface
             ],
         ];
 
-        return $this->client->post('/v1/notifications/webhooks', $token, $data);
+        return $this->client->post('v1/notifications/webhooks', $token, $data);
     }
 }

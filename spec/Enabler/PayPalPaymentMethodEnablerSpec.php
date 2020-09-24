@@ -22,21 +22,17 @@ use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
 {
     function let(
         Client $client,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ObjectManager $paymentMethodManager,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ): void {
-        $payPalConfigurationProvider->getFacilitatorUrl()->willReturn('http://base-url.com');
-
         $this->beConstructedWith(
-            $client, $payPalConfigurationProvider, $paymentMethodManager, $sellerWebhookRegistrar
+            $client, 'http://base-url.com', $paymentMethodManager, $sellerWebhookRegistrar
         );
     }
 

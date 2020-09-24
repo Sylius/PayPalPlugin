@@ -45,6 +45,9 @@ final class PaymentPayPalContext implements Context
     /** @var string */
     private $clientId;
 
+    /** @var string */
+    private $partnerAttributionId;
+
     public function __construct(
         SharedStorageInterface $sharedStorage,
         PaymentMethodRepositoryInterface $paymentMethodRepository,
@@ -52,7 +55,8 @@ final class PaymentPayPalContext implements Context
         array $gatewayFactories,
         TranslatorInterface $translator,
         PayPalSelectPaymentPageInterface $selectPaymentPage,
-        string $clientId
+        string $clientId,
+        string $partnerAttributionId
     ) {
         $this->sharedStorage = $sharedStorage;
         $this->paymentMethodRepository = $paymentMethodRepository;
@@ -61,6 +65,7 @@ final class PaymentPayPalContext implements Context
         $this->translator = $translator;
         $this->selectPaymentPage = $selectPaymentPage;
         $this->clientId = $clientId;
+        $this->partnerAttributionId = $partnerAttributionId;
     }
 
     /**
@@ -104,7 +109,7 @@ final class PaymentPayPalContext implements Context
         $paymentMethod->getGatewayConfig()->setConfig([
             'client_id' => $this->clientId,
             'client_secret' => 'SECRET',
-            'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
+            'partner_attribution_id' => $this->partnerAttributionId,
             'merchant_id' => 'MERCHANT-ID',
             'reports_sftp_username' => 'USERNAME',
             'reports_sftp_password' => 'PASSWORD',

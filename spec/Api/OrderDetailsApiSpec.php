@@ -32,7 +32,7 @@ final class OrderDetailsApiSpec extends ObjectBehavior
     function it_provides_details_about_pay_pal_order(PayPalClientInterface $client): void
     {
         $client
-            ->get('/v2/checkout/orders/123123', 'TOKEN')
+            ->get('v2/checkout/orders/123123', 'TOKEN')
             ->willReturn(['total' => 1111])
         ;
 

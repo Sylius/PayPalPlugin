@@ -41,7 +41,7 @@ final class CompleteOrderApiSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('PLN');
 
         $client
-            ->post('/v2/checkout/orders/123123/capture', 'TOKEN')
+            ->post('v2/checkout/orders/123123/capture', 'TOKEN')
             ->willReturn(['status' => 'COMPLETED', 'id' => 123])
         ;
 

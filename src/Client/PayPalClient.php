@@ -20,7 +20,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
@@ -34,8 +33,11 @@ final class PayPalClient implements PayPalClientInterface
     /** @var UuidProviderInterface */
     private $uuidProvider;
 
-    /** @var PayPalConfigurationProviderInterface */
-    private $payPalConfigurationProvider;
+    /** @var string */
+    private $baseUrl;
+
+    /** @var string */
+    private $trackingId;
 
     /** @var int */
     private $requestTrialsLimit;
@@ -47,14 +49,16 @@ final class PayPalClient implements PayPalClientInterface
         ClientInterface $client,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        string $baseUrl,
+        string $trackingId,
         int $requestTrialsLimit,
         bool $loggingLevelIncreased = false
     ) {
         $this->client = $client;
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
+        $this->baseUrl = $baseUrl;
+        $this->trackingId = $trackingId;
         $this->requestTrialsLimit = $requestTrialsLimit;
         $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
@@ -63,7 +67,7 @@ final class PayPalClient implements PayPalClientInterface
     {
         $response = $this->doRequest(
             'POST',
-            $this->payPalConfigurationProvider->getApiBaseUrl() . '/v1/oauth2/token',
+            $this->baseUrl . 'v1/oauth2/token',
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
@@ -101,7 +105,7 @@ final class PayPalClient implements PayPalClientInterface
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'PayPal-Partner-Attribution-Id' => $this->payPalConfigurationProvider->getPartnerAttributionId(),
+                'PayPal-Partner-Attribution-Id' => $this->trackingId,
             ], $extraHeaders),
         ];
 
@@ -109,7 +113,7 @@ final class PayPalClient implements PayPalClientInterface
             $options['json'] = $data;
         }
 
-        $fullUrl = $this->payPalConfigurationProvider->getApiBaseUrl() . $url;
+        $fullUrl = $this->baseUrl . $url;
 
         try {
             /** @var ResponseInterface $response */

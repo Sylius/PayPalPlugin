@@ -6,7 +6,6 @@ namespace Sylius\PayPalPlugin\Onboarding\Initiator;
 
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Security;
 
@@ -15,20 +14,17 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
     /** @var UrlGeneratorInterface */
     private $urlGenerator;
 
+    /** @var string */
+    private $createPartnerReferralsUrl;
+
     /** @var Security */
     private $security;
 
-    /** @var PayPalConfigurationProviderInterface */
-    private $payPalConfigurationProvider;
-
-    public function __construct(
-        UrlGeneratorInterface $urlGenerator,
-        Security $security,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
-    ) {
+    public function __construct(UrlGeneratorInterface $urlGenerator, Security $security, string $facilitatorUrl)
+    {
         $this->urlGenerator = $urlGenerator;
         $this->security = $security;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
+        $this->createPartnerReferralsUrl = $facilitatorUrl . '/partner-referrals/create';
     }
 
     public function initiate(PaymentMethodInterface $paymentMethod): string
@@ -41,7 +37,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
         $user = $this->security->getUser();
 
         return append_query_string(
-            $this->payPalConfigurationProvider->getFacilitatorUrl() . '/partner-referrals/create',
+            $this->createPartnerReferralsUrl,
             http_build_query([
                 'email' => $user->getEmail(),
                 'return_url' => $this->urlGenerator->generate('sylius_admin_payment_method_create', [

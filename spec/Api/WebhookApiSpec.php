@@ -18,7 +18,7 @@ final class WebhookApiSpec extends ObjectBehavior
     function it_registers_webhook(PayPalClientInterface $client): void
     {
         $client->post(
-            '/v1/notifications/webhooks',
+            'v1/notifications/webhooks',
             'TOKEN',
             Argument::that(function ($data): bool {
                 return
@@ -33,7 +33,7 @@ final class WebhookApiSpec extends ObjectBehavior
     function it_registers_webhook_without_https(PayPalClientInterface $client): void
     {
         $client->post(
-            '/v1/notifications/webhooks',
+            'v1/notifications/webhooks',
             'TOKEN',
             Argument::that(function ($data): bool {
                 return

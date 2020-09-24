@@ -9,7 +9,6 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Webmozart\Assert\Assert;
@@ -22,17 +21,17 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
     /** @var SellerWebhookRegistrarInterface */
     private $sellerWebhookRegistrar;
 
-    /** @var PayPalConfigurationProviderInterface */
-    private $payPalConfigurationProvider;
+    /** @var string */
+    private $url;
 
     public function __construct(
         ClientInterface $httpClient,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        string $url
     ) {
         $this->httpClient = $httpClient;
         $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
+        $this->url = $url;
     }
 
     public function process(
@@ -51,9 +50,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         $onboardingId = (string) $request->query->get('onboarding_id');
         $checkPartnerReferralsResponse = $this->httpClient->request(
             'GET',
-            sprintf(
-                '%s/partner-referrals/check/%s', $this->payPalConfigurationProvider->getFacilitatorUrl(), $onboardingId
-            ),
+            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
             [
                 'headers' => [
                     'Content-Type' => 'application/json',
