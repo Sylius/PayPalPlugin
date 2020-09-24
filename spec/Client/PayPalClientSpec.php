@@ -34,7 +34,7 @@ final class PayPalClientSpec extends ObjectBehavior
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider
     ): void {
-        $payPalConfigurationProvider->getApiBaseUrl()->willReturn('https://test-api.paypal.com/');
+        $payPalConfigurationProvider->getApiBaseUrl()->willReturn('https://test-api.paypal.com');
 
         $this->beConstructedWith(
             $client,
@@ -114,7 +114,7 @@ final class PayPalClientSpec extends ObjectBehavior
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
 
-        $this->get('v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'OK', 'id' => '123123']);
+        $this->get('/v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'OK', 'id' => '123123']);
     }
 
     function it_logs_all_requests_if_logging_level_is_increased(
@@ -157,7 +157,7 @@ final class PayPalClientSpec extends ObjectBehavior
             ->shouldBeCalled()
         ;
 
-        $this->get('v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'OK', 'id' => '123123']);
+        $this->get('/v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'OK', 'id' => '123123']);
     }
 
     function it_logs_debug_id_from_failed_get_request(
@@ -193,7 +193,7 @@ final class PayPalClientSpec extends ObjectBehavior
             ->shouldBeCalled()
         ;
 
-        $this->get('v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123']);
+        $this->get('/v2/get-request/', 'TOKEN')->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123']);
     }
 
     function it_calls_post_request_on_paypal_api(
@@ -225,7 +225,7 @@ final class PayPalClientSpec extends ObjectBehavior
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
 
         $this
-            ->post('v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
+            ->post('/v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
             ->shouldReturn(['status' => 'OK', 'id' => '123123'])
         ;
     }
@@ -260,7 +260,7 @@ final class PayPalClientSpec extends ObjectBehavior
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
 
         $this
-            ->post('v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'], ['CUSTOM_HEADER' => 'header'])
+            ->post('/v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'], ['CUSTOM_HEADER' => 'header'])
             ->shouldReturn(['status' => 'OK', 'id' => '123123'])
         ;
     }
@@ -303,7 +303,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ;
 
         $this
-            ->post('v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
+            ->post('/v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
             ->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123'])
         ;
     }
@@ -334,7 +334,7 @@ final class PayPalClientSpec extends ObjectBehavior
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
 
         $this
-            ->patch('v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
+            ->patch('/v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
             ->shouldReturn(['status' => 'OK', 'id' => '123123'])
         ;
     }
@@ -374,7 +374,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ;
 
         $this
-            ->patch('v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
+            ->patch('/v2/patch-request/123123', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'])
             ->shouldReturn(['status' => 'FAILED', 'debug_id' => '123123'])
         ;
     }
@@ -400,7 +400,7 @@ final class PayPalClientSpec extends ObjectBehavior
 
         $this
             ->shouldThrow(PayPalApiTimeoutException::class)
-            ->during('get', ['v2/get-request/', 'TOKEN'])
+            ->during('get', ['/v2/get-request/', 'TOKEN'])
         ;
     }
 }

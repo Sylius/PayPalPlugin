@@ -81,8 +81,8 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
             ->willReturn(['sandbox' => true], ['sandbox' => false])
         ;
 
-        $this->getApiBaseUrl()->shouldReturn('https://api.sandbox.paypal.com/');
-        $this->getApiBaseUrl()->shouldReturn('https://api.paypal.com/');
+        $this->getApiBaseUrl()->shouldReturn('https://api.sandbox.paypal.com');
+        $this->getApiBaseUrl()->shouldReturn('https://api.paypal.com');
     }
 
     function it_returns_facilitator_url_from_payment_method_config(

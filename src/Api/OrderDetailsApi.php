@@ -18,6 +18,6 @@ final class OrderDetailsApi implements OrderDetailsApiInterface
 
     public function get(string $token, string $orderId): array
     {
-        return $this->client->get(sprintf('v2/checkout/orders/%s', $orderId), $token);
+        return $this->client->get(sprintf('/v2/checkout/orders/%s', $orderId), $token);
     }
 }

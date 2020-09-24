@@ -68,7 +68,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $order->isShippingRequired()->willReturn(true);
 
         $client->patch(
-            'v2/checkout/orders/ORDER-ID',
+            '/v2/checkout/orders/ORDER-ID',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
@@ -119,7 +119,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $order->isShippingRequired()->willReturn(false);
 
         $client->patch(
-            'v2/checkout/orders/ORDER-ID',
+            '/v2/checkout/orders/ORDER-ID',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return

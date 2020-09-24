@@ -63,7 +63,7 @@ final class PayPalClient implements PayPalClientInterface
     {
         $response = $this->doRequest(
             'POST',
-            $this->payPalConfigurationProvider->getApiBaseUrl() . 'v1/oauth2/token',
+            $this->payPalConfigurationProvider->getApiBaseUrl() . '/v1/oauth2/token',
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
