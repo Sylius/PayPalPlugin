@@ -20,6 +20,8 @@ use PhpSpec\ObjectBehavior;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
+use Sylius\Component\Channel\Context\ChannelContextInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
@@ -32,13 +34,18 @@ final class PayPalClientSpec extends ObjectBehavior
         ClientInterface $client,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelContextInterface $channelContext,
+        ChannelInterface $channel
     ): void {
+        $channelContext->getChannel()->willReturn($channel);
+
         $this->beConstructedWith(
             $client,
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
+            $channelContext,
             'https://test-api.paypal.com/',
             5
         );
@@ -92,10 +99,11 @@ final class PayPalClientSpec extends ObjectBehavior
     function it_calls_get_request_on_paypal_api(
         ClientInterface $client,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel,
         ResponseInterface $response,
         StreamInterface $body
     ): void {
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'GET',
@@ -121,6 +129,8 @@ final class PayPalClientSpec extends ObjectBehavior
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelContextInterface $channelContext,
+        ChannelInterface $channel,
         ResponseInterface $response,
         StreamInterface $body
     ): void {
@@ -129,12 +139,14 @@ final class PayPalClientSpec extends ObjectBehavior
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
+            $channelContext,
             'https://test-api.paypal.com/',
             5,
             true
         );
 
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $channelContext->getChannel()->willReturn($channel);
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'GET',
@@ -164,11 +176,12 @@ final class PayPalClientSpec extends ObjectBehavior
         ClientInterface $client,
         LoggerInterface $logger,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel,
         RequestException $exception,
         ResponseInterface $response,
         StreamInterface $body
     ): void {
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'GET',
@@ -201,10 +214,11 @@ final class PayPalClientSpec extends ObjectBehavior
         ResponseInterface $response,
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel
     ): void {
         $uuidProvider->provide()->willReturn('REQUEST-ID');
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'POST',
@@ -235,10 +249,11 @@ final class PayPalClientSpec extends ObjectBehavior
         ResponseInterface $response,
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel
     ): void {
         $uuidProvider->provide()->willReturn('REQUEST-ID');
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'POST',
@@ -272,10 +287,11 @@ final class PayPalClientSpec extends ObjectBehavior
         ResponseInterface $response,
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel
     ): void {
         $uuidProvider->provide()->willReturn('REQUEST-ID');
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'POST',
@@ -312,9 +328,10 @@ final class PayPalClientSpec extends ObjectBehavior
         ClientInterface $client,
         ResponseInterface $response,
         StreamInterface $body,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel
     ): void {
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'PATCH',
@@ -345,9 +362,10 @@ final class PayPalClientSpec extends ObjectBehavior
         RequestException $exception,
         ResponseInterface $response,
         StreamInterface $body,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel
     ): void {
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'PATCH',
@@ -381,9 +399,10 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_throws_exception_if_the_timeout_has_been_reached_the_specified_amount_of_time(
         ClientInterface $client,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelInterface $channel
     ): void {
-        $payPalConfigurationProvider->getPartnerAttributionId()->willReturn('TRACKING-ID');
+        $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
         $client->request(
             'GET',

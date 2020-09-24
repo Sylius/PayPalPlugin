@@ -19,6 +19,16 @@ final class SyliusPayPalExtension extends Extension
 
         $container->setParameter('sylius.paypal.logging.increased', $config['logging']['increased']);
 
+        if ($config['sandbox']) {
+            $container->setParameter('sylius.pay_pal.facilitator_url', 'https://paypal.sylius.com');
+            $container->setParameter('sylius.pay_pal.api_base_url', 'https://api.sandbox.paypal.com/');
+            $container->setParameter('sylius.pay_pal.reports_sftp_host', 'reports.sandbox.paypal.com');
+        } else {
+            $container->setParameter('sylius.pay_pal.facilitator_url', 'https://prod.paypal.sylius.com');
+            $container->setParameter('sylius.pay_pal.api_base_url', 'https://api.paypal.com/');
+            $container->setParameter('sylius.pay_pal.reports_sftp_host', 'reports.paypal.com');
+        }
+
         $loader->load('services.xml');
     }
 

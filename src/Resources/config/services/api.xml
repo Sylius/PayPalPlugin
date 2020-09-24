@@ -14,7 +14,8 @@
             <argument type="service" id="monolog.logger.paypal" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
-            <argument>%env(resolve:PAYPAL_API_BASE_URL)%</argument>
+            <argument type="service" id="sylius.context.channel" />
+            <argument>%sylius.pay_pal.api_base_url%</argument>
             <argument>%sylius.pay_pal.request_trials_limit%</argument>
             <argument>%sylius.paypal.logging.increased%</argument>
         </service>
@@ -84,7 +85,8 @@
             id="Sylius\PayPalPlugin\Api\WebhookApiInterface"
             class="Sylius\PayPalPlugin\Api\WebhookApi"
         >
-            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius.pay_pal.api_base_url%</argument>
         </service>
 
         <service

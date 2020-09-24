@@ -18,6 +18,8 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Sylius\Component\Channel\Context\ChannelContextInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
@@ -37,6 +39,9 @@ final class PayPalClient implements PayPalClientInterface
     /** @var PayPalConfigurationProviderInterface */
     private $payPalConfigurationProvider;
 
+    /** @var ChannelContextInterface */
+    private $channelContext;
+
     /** @var string */
     private $baseUrl;
 
@@ -51,6 +56,7 @@ final class PayPalClient implements PayPalClientInterface
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelContextInterface $channelContext,
         string $baseUrl,
         int $requestTrialsLimit,
         bool $loggingLevelIncreased = false
@@ -59,6 +65,7 @@ final class PayPalClient implements PayPalClientInterface
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
+        $this->channelContext = $channelContext;
         $this->baseUrl = $baseUrl;
         $this->requestTrialsLimit = $requestTrialsLimit;
         $this->loggingLevelIncreased = $loggingLevelIncreased;
@@ -101,12 +108,14 @@ final class PayPalClient implements PayPalClientInterface
 
     private function request(string $method, string $url, string $token, array $data = null, array $extraHeaders = []): array
     {
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
         $options = [
             'headers' => array_merge([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'PayPal-Partner-Attribution-Id' => $this->payPalConfigurationProvider->getPartnerAttributionId(),
+                'PayPal-Partner-Attribution-Id' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
             ], $extraHeaders),
         ];
 
