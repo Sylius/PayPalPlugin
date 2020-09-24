@@ -8,7 +8,7 @@
         >
             <argument type="service" id="router" />
             <argument type="service" id="security.helper" />
-            <argument>%sylius.paypal.facilitator_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
         </service>
 
         <service
@@ -17,7 +17,7 @@
         >
             <argument type="service" id="sylius.http_client" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
-            <argument>%sylius.paypal.facilitator_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
         </service>
     </services>
 </container>

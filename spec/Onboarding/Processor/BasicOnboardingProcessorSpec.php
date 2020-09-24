@@ -13,6 +13,7 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,9 +22,12 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
     function let(
         ClientInterface $httpClient,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider
     ): void {
-        $this->beConstructedWith($httpClient, $sellerWebhookRegistrar, 'https://paypal.facilitator.com');
+        $payPalConfigurationProvider->getFacilitatorUrl()->willReturn('https://paypal.facilitator.com');
+
+        $this->beConstructedWith($httpClient, $sellerWebhookRegistrar, $payPalConfigurationProvider);
     }
 
     function it_processes_onboarding_for_supported_payment_method_and_request(

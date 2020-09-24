@@ -60,6 +60,14 @@ final class PayPalConfigurationProvider implements PayPalConfigurationProviderIn
         return ((bool) $config['sandbox']) ? 'https://api.sandbox.paypal.com/' : 'https://api.paypal.com/';
     }
 
+    public function getFacilitatorUrl(): string
+    {
+        $config = $this->getPayPalPaymentMethodConfig();
+        Assert::keyExists($config, 'sandbox');
+
+        return ((bool) $config['sandbox']) ? 'https://paypal.sylius.com' : 'https://prod.paypal.sylius.com';
+    }
+
     private function getPayPalPaymentMethodConfig(): array
     {
         /** @var ChannelInterface $channel */

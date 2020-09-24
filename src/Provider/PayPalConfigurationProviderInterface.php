@@ -11,4 +11,6 @@ interface PayPalConfigurationProviderInterface
     public function getPartnerAttributionId(): string;
 
     public function getApiBaseUrl(): string;
+
+    public function getFacilitatorUrl(): string;
 }

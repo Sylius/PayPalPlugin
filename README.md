@@ -52,28 +52,8 @@
     ```bash
     cp -R vendor/sylius/paypal-plugin/src/Resources/views/bundles/* templates/bundles/
     ```
-
-4. Add env variables
-
-    ### Sandbox
-
-    ```
-    #.env
-
-    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
-    PAYPAL_FACILITATOR_URL='https://paypal.sylius.com'
-    ```
-
-    ### Live
-
-    ```
-    #.env
-
-    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
-    PAYPAL_FACILITATOR_URL='https://prod.paypal.sylius.com'
-    ```
    
-5. Copy and apply migrations
+4. Copy and apply migrations
 
    ```
    cp -R vendor/sylius/paypal-plugin/migrations/ src/Migrations/
