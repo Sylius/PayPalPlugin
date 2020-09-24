@@ -63,7 +63,6 @@
     PAYPAL_API_BASE_URL='https://api.sandbox.paypal.com/'
     # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
     PAYPAL_FACILITATOR_URL='https://paypal.sylius.com'
-    PAYPAL_TRACKING_ID='sylius-ppcp4p-bn-code'
     ```
 
     ### Live
@@ -74,7 +73,6 @@
     PAYPAL_API_BASE_URL='https://api.paypal.com/'
     # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
     PAYPAL_FACILITATOR_URL='https://prod.paypal.sylius.com'
-    PAYPAL_TRACKING_ID='sylius-ppcp4p-bn-code'
     ```
    
 5. Copy and apply migrations
