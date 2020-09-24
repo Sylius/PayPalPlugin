@@ -13,4 +13,6 @@ interface PayPalConfigurationProviderInterface
     public function getApiBaseUrl(): string;
 
     public function getFacilitatorUrl(): string;
+
+    public function getReportsSftpHost(): string;
 }

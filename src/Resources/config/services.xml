@@ -182,7 +182,7 @@
         />
 
         <service id="sylius.paypal.client.sftp" class="phpseclib\Net\SFTP">
-            <argument>%env(resolve:PAYPAL_REPORTS_SFTP_HOST)%</argument>
+            <argument type="expression">service('Sylius\\PayPalPlugin\\Provider\\PayPalConfigurationProviderInterface').getReportsSftpHost()</argument>
         </service>
 
         <service

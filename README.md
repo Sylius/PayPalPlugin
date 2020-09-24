@@ -83,13 +83,7 @@ it's required to configure SFTP account and set its data in `.env` file.
 
     ![accounts](docs/reports-accounts.png)
 
-5. Configure following env variables
-
-    ```
-    PAYPAL_REPORTS_SFTP_HOST='reports.paypal.com'
-    PAYPAL_REPORTS_SFTP_USERNAME='USERNAME'
-    PAYPAL_REPORTS_SFTP_PASSWORD='PASSWORD'
-    ```
+5. Configure username and password in payment method's configuration
 
 ## Processing payments
 

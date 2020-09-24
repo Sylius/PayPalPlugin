@@ -68,6 +68,14 @@ final class PayPalConfigurationProvider implements PayPalConfigurationProviderIn
         return ((bool) $config['sandbox']) ? 'https://paypal.sylius.com' : 'https://prod.paypal.sylius.com';
     }
 
+    public function getReportsSftpHost(): string
+    {
+        $config = $this->getPayPalPaymentMethodConfig();
+        Assert::keyExists($config, 'sandbox');
+
+        return ((bool) $config['sandbox']) ? 'reports.sandbox.paypal.com' : 'reports.paypal.com';
+    }
+
     private function getPayPalPaymentMethodConfig(): array
     {
         /** @var ChannelInterface $channel */
