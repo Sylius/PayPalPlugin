@@ -27,6 +27,6 @@ final class CompleteOrderApi implements CompleteOrderApiInterface
 
     public function complete(string $token, string $orderId): array
     {
-        return $this->client->post(sprintf('/v2/checkout/orders/%s/capture', $orderId), $token);
+        return $this->client->post(sprintf('v2/checkout/orders/%s/capture', $orderId), $token);
     }
 }

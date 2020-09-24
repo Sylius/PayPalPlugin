@@ -12,7 +12,6 @@ sylius:
         label: 'PayPal'
         pay_with_card: 'Pay with Card'
         report: 'Report'
-        sandbox: 'Sandbox'
         sftp_password: 'SFTP Password'
         sftp_username: 'SFTP Username'
         share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"

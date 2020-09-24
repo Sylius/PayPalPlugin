@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
@@ -25,61 +24,29 @@ final class PayPalConfigurationProvider implements PayPalConfigurationProviderIn
     /** @var PaymentMethodRepositoryInterface */
     private $paymentMethodRepository;
 
-    /** @var ChannelContextInterface */
-    private $channelContext;
-
-    public function __construct(
-        PaymentMethodRepositoryInterface $paymentMethodRepository,
-        ChannelContextInterface $channelContext
-    ) {
+    public function __construct(PaymentMethodRepositoryInterface $paymentMethodRepository)
+    {
         $this->paymentMethodRepository = $paymentMethodRepository;
-        $this->channelContext = $channelContext;
     }
 
-    public function getClientId(): string
+    public function getClientId(ChannelInterface $channel): string
     {
-        $config = $this->getPayPalPaymentMethodConfig();
+        $config = $this->getPayPalPaymentMethodConfig($channel);
         Assert::keyExists($config, 'client_id');
 
         return (string) $config['client_id'];
     }
 
-    public function getPartnerAttributionId(): string
+    public function getPartnerAttributionId(ChannelInterface $channel): string
     {
-        $config = $this->getPayPalPaymentMethodConfig();
+        $config = $this->getPayPalPaymentMethodConfig($channel);
         Assert::keyExists($config, 'partner_attribution_id');
 
         return (string) $config['partner_attribution_id'];
     }
 
-    public function getApiBaseUrl(): string
+    private function getPayPalPaymentMethodConfig(ChannelInterface $channel): array
     {
-        $config = $this->getPayPalPaymentMethodConfig();
-        Assert::keyExists($config, 'sandbox');
-
-        return ((bool) $config['sandbox']) ? 'https://api.sandbox.paypal.com' : 'https://api.paypal.com';
-    }
-
-    public function getFacilitatorUrl(): string
-    {
-        $config = $this->getPayPalPaymentMethodConfig();
-        Assert::keyExists($config, 'sandbox');
-
-        return ((bool) $config['sandbox']) ? 'https://paypal.sylius.com' : 'https://prod.paypal.sylius.com';
-    }
-
-    public function getReportsSftpHost(): string
-    {
-        $config = $this->getPayPalPaymentMethodConfig();
-        Assert::keyExists($config, 'sandbox');
-
-        return ((bool) $config['sandbox']) ? 'reports.sandbox.paypal.com' : 'reports.paypal.com';
-    }
-
-    private function getPayPalPaymentMethodConfig(): array
-    {
-        /** @var ChannelInterface $channel */
-        $channel = $this->channelContext->getChannel();
         $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);
 
         /** @var PaymentMethodInterface $method */

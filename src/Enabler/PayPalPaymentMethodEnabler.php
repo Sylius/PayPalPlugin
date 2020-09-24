@@ -18,7 +18,6 @@ use GuzzleHttp\Client;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
@@ -26,8 +25,8 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
     /** @var Client */
     private $client;
 
-    /** @var PayPalConfigurationProviderInterface */
-    private $payPalConfigurationProvider;
+    /** @var string */
+    private $baseUrl;
 
     /** @var ObjectManager */
     private $paymentMethodManager;
@@ -37,12 +36,12 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 
     public function __construct(
         Client $client,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        string $baseUrl,
         ObjectManager $paymentMethodManager,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ) {
         $this->client = $client;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
+        $this->baseUrl = $baseUrl;
         $this->paymentMethodManager = $paymentMethodManager;
         $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
     }
@@ -55,11 +54,7 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 
         $response = $this->client->request(
             'GET',
-            sprintf(
-                '%s/seller-permissions/check/%s',
-                $this->payPalConfigurationProvider->getFacilitatorUrl(),
-                (string) $config['merchant_id']
-            )
+            sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id'])
         );
 
         $content = (array) json_decode($response->getBody()->getContents(), true);

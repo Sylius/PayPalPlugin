@@ -86,7 +86,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         );
 
         $client->post(
-            '/v2/checkout/orders',
+            'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
@@ -160,7 +160,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         );
 
         $client->post(
-            '/v2/checkout/orders',
+            'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
@@ -249,7 +249,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $client->post(
-            '/v2/checkout/orders',
+            'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
@@ -341,7 +341,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $client->post(
-            '/v2/checkout/orders',
+            'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
@@ -449,7 +449,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $client->post(
-            '/v2/checkout/orders',
+            'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return
@@ -535,7 +535,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
 
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
         $client->post(
-            '/v2/checkout/orders',
+            'v2/checkout/orders',
             'TOKEN',
             Argument::that(function (array $data): bool {
                 return

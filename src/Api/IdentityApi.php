@@ -27,7 +27,7 @@ final class IdentityApi implements IdentityApiInterface
 
     public function generateToken(string $token): string
     {
-        $content = $this->client->post('/v1/identity/generate-token', $token);
+        $content = $this->client->post('v1/identity/generate-token', $token);
 
         return (string) $content['client_token'];
     }

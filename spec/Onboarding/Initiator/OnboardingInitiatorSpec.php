@@ -9,20 +9,14 @@ use PhpSpec\ObjectBehavior;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Security;
 
 final class OnboardingInitiatorSpec extends ObjectBehavior
 {
-    function let(
-        UrlGeneratorInterface $urlGenerator,
-        Security $security,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider
-    ): void {
-        $payPalConfigurationProvider->getFacilitatorUrl()->willReturn('https://paypal-url');
-
-        $this->beConstructedWith($urlGenerator, $security, $payPalConfigurationProvider);
+    function let(UrlGeneratorInterface $urlGenerator, Security $security): void
+    {
+        $this->beConstructedWith($urlGenerator, $security, 'https://paypal-url');
     }
 
     function it_implements_onboarding_initiator_interface(): void
