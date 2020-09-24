@@ -31,7 +31,7 @@ final class IdentityApiSpec extends ObjectBehavior
 
     function it_generates_identity_token(PayPalClientInterface $payPalClient): void
     {
-        $payPalClient->post('v1/identity/generate-token', 'TOKEN')->willReturn(['client_token' => 'CLIENT-TOKEN']);
+        $payPalClient->post('/v1/identity/generate-token', 'TOKEN')->willReturn(['client_token' => 'CLIENT-TOKEN']);
 
         $this->generateToken('TOKEN')->shouldReturn('CLIENT-TOKEN');
     }

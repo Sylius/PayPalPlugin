@@ -123,6 +123,6 @@ final class CreateOrderApi implements CreateOrderApiInterface
             $data['application_context']['shipping_preference'] = 'SET_PROVIDED_ADDRESS';
         }
 
-        return $this->client->post('v2/checkout/orders', $token, $data);
+        return $this->client->post('/v2/checkout/orders', $token, $data);
     }
 }

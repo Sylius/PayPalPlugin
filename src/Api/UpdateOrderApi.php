@@ -96,7 +96,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
         }
 
         return $this->client->patch(
-            sprintf('v2/checkout/orders/%s', $orderId),
+            sprintf('/v2/checkout/orders/%s', $orderId),
             $token,
             [
                 [

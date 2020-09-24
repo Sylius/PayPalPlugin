@@ -9,7 +9,6 @@
     </imports>
 
     <parameters>
-        <parameter key="sylius.paypal.facilitator_url">%env(resolve:PAYPAL_FACILITATOR_URL)%</parameter>
         <parameter key="sylius.paypal.prioritized_factory_name">sylius.pay_pal</parameter>
     </parameters>
 
@@ -174,6 +173,7 @@
             class="Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider"
         >
             <argument type="service" id="sylius.repository.payment_method" />
+            <argument type="service" id="sylius.context.channel" />
         </service>
 
         <service
@@ -182,7 +182,7 @@
         />
 
         <service id="sylius.paypal.client.sftp" class="phpseclib\Net\SFTP">
-            <argument>%env(resolve:PAYPAL_REPORTS_SFTP_HOST)%</argument>
+            <argument type="expression">service('Sylius\\PayPalPlugin\\Provider\\PayPalConfigurationProviderInterface').getReportsSftpHost()</argument>
         </service>
 
         <service
@@ -217,7 +217,7 @@
             class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
         >
             <argument type="service" id="sylius.http_client" />
-            <argument>%sylius.paypal.facilitator_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
             <argument type="service" id="sylius.manager.payment_method" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
         </service>

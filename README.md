@@ -52,32 +52,8 @@
     ```bash
     cp -R vendor/sylius/paypal-plugin/src/Resources/views/bundles/* templates/bundles/
     ```
-
-4. Add env variables
-
-    ### Sandbox
-
-    ```
-    #.env
-
-    PAYPAL_API_BASE_URL='https://api.sandbox.paypal.com/'
-    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
-    PAYPAL_FACILITATOR_URL='https://paypal.sylius.com'
-    PAYPAL_TRACKING_ID='sylius-ppcp4p-bn-code'
-    ```
-
-    ### Live
-
-    ```
-    #.env
-
-    PAYPAL_API_BASE_URL='https://api.paypal.com/'
-    # just for now, it will be eventually hardcoded (as we always want to use Sylius PayPal facilitator)
-    PAYPAL_FACILITATOR_URL='https://prod.paypal.sylius.com'
-    PAYPAL_TRACKING_ID='sylius-ppcp4p-bn-code'
-    ```
    
-5. Copy and apply migrations
+4. Copy and apply migrations
 
    ```
    cp -R vendor/sylius/paypal-plugin/migrations/ src/Migrations/
@@ -107,13 +83,7 @@ it's required to configure SFTP account and set its data in `.env` file.
 
     ![accounts](docs/reports-accounts.png)
 
-5. Configure following env variables
-
-    ```
-    PAYPAL_REPORTS_SFTP_HOST='reports.paypal.com'
-    PAYPAL_REPORTS_SFTP_USERNAME='USERNAME'
-    PAYPAL_REPORTS_SFTP_PASSWORD='PASSWORD'
-    ```
+5. Configure username and password in payment method's configuration
 
 ## Processing payments
 
