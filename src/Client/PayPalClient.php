@@ -20,6 +20,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
@@ -33,11 +34,11 @@ final class PayPalClient implements PayPalClientInterface
     /** @var UuidProviderInterface */
     private $uuidProvider;
 
-    /** @var string */
-    private $baseUrl;
+    /** @var PayPalConfigurationProviderInterface */
+    private $payPalConfigurationProvider;
 
     /** @var string */
-    private $trackingId;
+    private $baseUrl;
 
     /** @var int */
     private $requestTrialsLimit;
@@ -49,16 +50,16 @@ final class PayPalClient implements PayPalClientInterface
         ClientInterface $client,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         string $baseUrl,
-        string $trackingId,
         int $requestTrialsLimit,
         bool $loggingLevelIncreased = false
     ) {
         $this->client = $client;
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
+        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
         $this->baseUrl = $baseUrl;
-        $this->trackingId = $trackingId;
         $this->requestTrialsLimit = $requestTrialsLimit;
         $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
@@ -105,7 +106,7 @@ final class PayPalClient implements PayPalClientInterface
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'PayPal-Partner-Attribution-Id' => $this->trackingId,
+                'PayPal-Partner-Attribution-Id' => $this->payPalConfigurationProvider->getPartnerAttributionId(),
             ], $extraHeaders),
         ];
 
