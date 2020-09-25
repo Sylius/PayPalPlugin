@@ -1,6 +1,7 @@
 sylius:
     pay_pal:
         back_to_store: 'Back to store'
+        billing_info: 'Billing address same as order'
         client_id: 'Client ID'
         client_secret: 'Client Secret'
         credit_card_number: 'Credit Card number'

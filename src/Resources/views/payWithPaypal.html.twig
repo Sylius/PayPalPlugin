@@ -12,9 +12,10 @@
                     align-items: center;
                     display: grid;
                     justify-content: center;
-                    grid-template-rows: 40vh auto;
+                    grid-template-rows: 30vh auto;
                     width: 400px;
                     margin: auto;
+                    font-family: 'Roboto', verdana, sans-serif;
                 }
 
                 #sylius-logo {
@@ -64,20 +65,18 @@
                 .input {
                     height: 30px;
                     padding: 5px;
-                    border: solid 1px lightgray;
                     margin-bottom: 10px;
-                }
-
-                .invalid-field {
-                    border-color: red;
-                    background: hsla(2, 54%, 50%, 0.74);
                 }
 
                 .low-opacity {
                     opacity: 0.9;
                 }
 
-                input {
+                .hidden {
+                    display: none;
+                }
+
+                input, .input {
                     font-size: 14px;
                     font-family: 'Product Sans', sans-serif;
                     color: #3a3a3a;
@@ -85,12 +84,90 @@
                     width: 100%;
                     padding: 5px;
                     height: 30px;
-                    margin-bottom: 10px;
-                    border: solid 1px lightgray;
+                    margin-bottom: 5px;
+                    margin-top: 2px;
+                    border: 1px solid lightgray;
+                    -webkit-transition: border-color 160ms;
+                    transition: border-color 160ms;
+                    border-radius: 5px;
                 }
 
-                input:focus {
-                    color: #000;
+                input:focus, .input:focus {
+                    outline: none;
+                    border-color: #777;
+                }
+
+                .braintree-hosted-fields-focused {
+                    border-color: #777;
+                }
+
+                .braintree-hosted-fields-invalid {
+                    border-color: tomato;
+                }
+
+                .braintree-hosted-fields-valid {
+                    border-color: limegreen;
+                }
+
+                .checkbox-grid {
+                    display: grid;
+                    grid-template-columns: 20px auto;
+                    align-items: center;
+                    grid-gap: 10px;
+                    grid-template-rows: 30px;
+                    margin-bottom: 5px;
+                }
+
+                #card-image {
+                    position: absolute;
+                    top: 3.1em;
+                    right: 1.7em;
+                    width: 44px;
+                    height: 28px;
+                    background-image: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/346994/card_sprite.png);
+                    background-size: 86px 458px;
+                    border-radius: 1px;
+                    background-position: -100px 0;
+                    background-repeat: no-repeat;
+                    margin-bottom: 1em;
+                }
+
+                #card-image.visa {
+                     background-position: 0 -398px;
+                }
+
+                #card-image.master-card {
+                     background-position: 0 -281px;
+                }
+
+                #card-image.american-express {
+                     background-position: 0 -370px;
+                }
+
+                #card-image.discover {
+                     background-position: 0 -163px;
+                }
+
+                #card-image.maestro {
+                     background-position: 0 -251px;
+                }
+
+                #card-image.jcb {
+                     background-position: 0 -221px;
+                }
+
+                #card-image.diners-club {
+                     background-position: 0 -133px;
+                }
+
+                #billing-info {
+                    height: 20px;
+                    margin: 0;
+                }
+
+                label {
+                    padding: 2px;
+                    margin-bottom: 2px;
                 }
             </style>
         {% endblock %}
@@ -119,19 +196,25 @@
                     <div id="advanced-cards-container"></div>
                     <form id="advanced-cards-form">
                         <label for="card-number">{{ 'sylius.pay_pal.credit_card_number'|trans }}</label>
-                        <div id="card-number" class="input"></div>
+                        <div id="card-number" class="input"><div id="card-image"></div></div>
                         <label for="expiration-date">{{ 'sylius.pay_pal.expiration_date'|trans }}</label>
                         <div id="expiration-date" class="input"></div>
                         <label for="cvv">{{ 'sylius.pay_pal.cvv'|trans }}</label>
                         <div id="cvv" class="input"></div>
                         <label for='card-holder-name'>{{ 'sylius.form.credit_card.cardholder_name'|trans }}</label>
                         <br/><input type='text' id='card-holder-name' name='card-holder-name' autocomplete='off' placeholder='{{ 'sylius.form.credit_card.cardholder_name'|trans }}' value="{{ billing_address.fullName }}"/>
-                        <br/><label for='card-billing-address-street'>{{ 'sylius.ui.billing_address'|trans }}</label>
-                        <br/><input type='text' id='card-billing-address-street' name='card-billing-address-street' autocomplete='off' placeholder='{{ 'sylius.ui.street'|trans }}' value="{{ billing_address.street }}"/>
-                        <input type='text' id='card-billing-address-city' name='card-billing-address-city' autocomplete='off' placeholder='{{ 'sylius.ui.city'|trans }}' value="{{ billing_address.city }}"/>
-                        <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address.provinceName }}"/>
-                        <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
-                        <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
+                        <div class="checkbox-grid">
+                            <input type="checkbox" id="billing-info" checked />
+                            <label for="billing-info">{{ 'sylius.pay_pal.billing_info'|trans }}</label>
+                        </div>
+                        <div id="billing-container" class="hidden">
+                            <br/><label for='card-billing-address-street'>{{ 'sylius.ui.billing_address'|trans }}</label>
+                            <br/><input type='text' id='card-billing-address-street' name='card-billing-address-street' autocomplete='off' placeholder='{{ 'sylius.ui.street'|trans }}' value="{{ billing_address.street }}"/>
+                            <input type='text' id='card-billing-address-city' name='card-billing-address-city' autocomplete='off' placeholder='{{ 'sylius.ui.city'|trans }}' value="{{ billing_address.city }}"/>
+                            <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address.provinceName }}"/>
+                            <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
+                            <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
+                        </div>
                         <button value="submit" id="submit" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
                     </form>
                 </div>
@@ -233,7 +316,7 @@
                     },
                     cvv: {
                         selector: '#cvv',
-                        placeholder: 'CVV',
+                        placeholder: '123',
                         required: 'required',
                     },
                     expirationDate: {
@@ -252,6 +335,31 @@
                         field.container.classList.add('invalid-field');
                     } else {
                         field.container.classList.add('invalid-field');
+                    }
+                });
+
+                hostedFields.on('cardTypeChange', function (event) {
+                    if (event.cards.length === 1) {
+                        document.querySelector('#advanced-cards-form').classList = [];
+                        document.querySelector('#advanced-cards-form').classList.add(event.cards[0].type);
+                        document.querySelector('#card-image').classList = [];
+                        document.querySelector('#card-image').classList.add(event.cards[0].type);
+                        // Change the CVV length for AmericanExpress cards
+                        if (event.cards[0].code.size === 4) {
+                            hostedFieldsInstance.setAttribute({
+                                field: 'cvv',
+                                attribute: 'placeholder',
+                                value: '1234'
+                            });
+                        }
+                    } else {
+                        hostedFields.setAttribute({
+                            field: 'cvv',
+                            attribute: 'placeholder',
+                            value: '123'
+                        });
+                        document.querySelector('#card-image').classList = [];
+                        document.querySelector('#advanced-cards-form').classList = [];
                     }
                 });
 
@@ -298,6 +406,10 @@
                 });
             });
         }
+
+        document.querySelector('#billing-info').addEventListener('change', e => {
+            document.querySelector('#billing-container').classList.toggle('hidden');
+        })
 
         $(document).ready(function() {
             $('#tabs').tab()
