@@ -18,8 +18,11 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Sylius\Component\Channel\Context\ChannelContextInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
@@ -33,11 +36,14 @@ final class PayPalClient implements PayPalClientInterface
     /** @var UuidProviderInterface */
     private $uuidProvider;
 
-    /** @var string */
-    private $baseUrl;
+    /** @var PayPalConfigurationProviderInterface */
+    private $payPalConfigurationProvider;
+
+    /** @var ChannelContextInterface */
+    private $channelContext;
 
     /** @var string */
-    private $trackingId;
+    private $baseUrl;
 
     /** @var int */
     private $requestTrialsLimit;
@@ -49,16 +55,18 @@ final class PayPalClient implements PayPalClientInterface
         ClientInterface $client,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
+        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        ChannelContextInterface $channelContext,
         string $baseUrl,
-        string $trackingId,
         int $requestTrialsLimit,
         bool $loggingLevelIncreased = false
     ) {
         $this->client = $client;
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
+        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
+        $this->channelContext = $channelContext;
         $this->baseUrl = $baseUrl;
-        $this->trackingId = $trackingId;
         $this->requestTrialsLimit = $requestTrialsLimit;
         $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
@@ -100,12 +108,14 @@ final class PayPalClient implements PayPalClientInterface
 
     private function request(string $method, string $url, string $token, array $data = null, array $extraHeaders = []): array
     {
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
         $options = [
             'headers' => array_merge([
                 'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-                'PayPal-Partner-Attribution-Id' => $this->trackingId,
+                'PayPal-Partner-Attribution-Id' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
             ], $extraHeaders),
         ];
 

@@ -4,44 +4,71 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Api;
 
+use GuzzleHttp\ClientInterface;
 use PhpSpec\ObjectBehavior;
-use Prophecy\Argument;
-use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 
 final class WebhookApiSpec extends ObjectBehavior
 {
-    function let(PayPalClientInterface $client): void
+    function let(ClientInterface $client): void
     {
-        $this->beConstructedWith($client);
+        $this->beConstructedWith($client, 'http://base-url.com/');
     }
 
-    function it_registers_webhook(PayPalClientInterface $client): void
-    {
-        $client->post(
-            'v1/notifications/webhooks',
-            'TOKEN',
-            Argument::that(function ($data): bool {
-                return
-                    $data['url'] === 'https://webhook.com' &&
-                    $data['event_types'][0]['name'] === 'PAYMENT.CAPTURE.REFUNDED';
-            })
-        )->shouldBeCalled();
+    function it_registers_webhook(
+        ClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $client->request(
+            'POST',
+            'http://base-url.com/v1/notifications/webhooks',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'json' => [
+                    'url' => 'https://webhook.com',
+                    'event_types' => [
+                        ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ],
+                ],
+            ]
+        )->willReturn($response);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{ "status": "CREATED" }');
 
-        $this->register('TOKEN', 'https://webhook.com');
+        $this->register('TOKEN', 'https://webhook.com')->shouldReturn(['status' => 'CREATED']);
     }
 
-    function it_registers_webhook_without_https(PayPalClientInterface $client): void
-    {
-        $client->post(
-            'v1/notifications/webhooks',
-            'TOKEN',
-            Argument::that(function ($data): bool {
-                return
-                    $data['url'] === 'https://webhook.com' &&
-                    $data['event_types'][0]['name'] === 'PAYMENT.CAPTURE.REFUNDED';
-            })
-        )->shouldBeCalled();
+    function it_registers_webhook_without_https(
+        ClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $client->request(
+            'POST',
+            'http://base-url.com/v1/notifications/webhooks',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'json' => [
+                    'url' => 'https://webhook.com',
+                    'event_types' => [
+                        ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ],
+                ],
+            ]
+        )->willReturn($response);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{ "status": "CREATED" }');
 
-        $this->register('TOKEN', 'http://webhook.com');
+        $this->register('TOKEN', 'http://webhook.com')->shouldReturn(['status' => 'CREATED']);
     }
 }

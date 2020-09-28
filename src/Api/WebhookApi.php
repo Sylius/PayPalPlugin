@@ -4,27 +4,38 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use GuzzleHttp\ClientInterface;
 
 final class WebhookApi implements WebhookApiInterface
 {
-    /** @var PayPalClientInterface */
+    /** @var ClientInterface */
     private $client;
 
-    public function __construct(PayPalClientInterface $client)
+    /** @var string */
+    private $baseUrl;
+
+    public function __construct(ClientInterface $client, string $baseUrl)
     {
         $this->client = $client;
+        $this->baseUrl = $baseUrl;
     }
 
     public function register(string $token, string $webhookUrl): array
     {
-        $data = [
-            'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
-            'event_types' => [
-                ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+        $response = $this->client->request('POST', $this->baseUrl . 'v1/notifications/webhooks', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
             ],
-        ];
+            'json' => [
+                'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
+                'event_types' => [
+                    ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                ],
+            ],
+        ]);
 
-        return $this->client->post('v1/notifications/webhooks', $token, $data);
+        return (array) json_decode($response->getBody()->getContents(), true);
     }
 }
