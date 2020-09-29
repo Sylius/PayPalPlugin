@@ -169,6 +169,11 @@
                     padding: 2px;
                     margin-bottom: 2px;
                 }
+
+                #paypal-button-container {
+                    display: grid;
+                    grid-gap: 10px;
+                }
             </style>
         {% endblock %}
     </head>
@@ -223,7 +228,7 @@
     </div>
     </body>
     {% include '@SyliusUi/_javascripts.html.twig' with {'path': 'assets/shop/js/app.js'} %}
-    <script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons&locale={{ locale }}&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
+    <script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons,funding-eligibility&locale={{ locale }}&vault=false&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
     <script>
         let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
         let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
@@ -283,6 +288,45 @@
                 }).then(window.location.reload());
             }
         }).render('#paypal-button-container');
+
+        //once we add onshippingchange button doesnt render anymore
+        paypal.getFundingSources().forEach(function(fundingSource) {
+            var button = paypal.Buttons({
+                fundingSource: fundingSource,
+                createOrder: function(data, actions) {
+                    return fetch(createPayPalOrderUrl, {
+                        method: 'post'
+                    }).then(res => {
+                        document.querySelector('#paypal-payment-container').classList.add('loading');
+                        document.querySelector('#paypal-button-container').classList.add('low-opacity');
+                        return res.json();
+                    }).then(data => data.orderID);
+                },
+                onApprove: function(data, actions) {
+                    return fetch(completePayPalOrderUrl, {
+                        method: 'post'
+                    }).then(res => res.json()).then(details => window.location.href = details.return_url);
+                },
+                onError: function (err) {
+                    return fetch(errorPayPalPaymentUrl, {
+                        method: 'post',
+                        headers: { 'content-type': 'application/json' },
+                        body: JSON.stringify(err)
+                    }).then(window.location.reload());
+                },
+                onCancel: function (data, actions) {
+                    return fetch(cancelPayPalPaymentUrl, {
+                        method: 'post',
+                        headers: { 'content-type': 'application/json' },
+                        body: JSON.stringify({ payPalOrderId: data.orderID })
+                    }).then(window.location.reload());
+                }
+            });
+
+            if (button.isEligible() && fundingSource != 'paypal' && fundingSource != 'card') {
+                button.render('#paypal-button-container');
+            }
+        });
 
         if (paypal.HostedFields.isEligible() === true) {
             paypal.HostedFields.render({
