@@ -34,6 +34,7 @@ Sylius Core Team’s plugin for [PayPal Commerce Platform](https://www.paypal.co
 
 1. [Installation](docs/installation.md)
 1. [PayPal environment](docs/sandbox-vs-live.md)
+1. [Onboarding](docs/onboarding.md)
 1. [Reports](docs/reports.md)
 1. [Processing payments](docs/processing-payments.md)
 1. [Development](docs/development.md)
