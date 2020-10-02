@@ -39,6 +39,9 @@
         "symfony/web-server-bundle": "^4.4|^5.0",
         "vimeo/psalm": "3.11.4"
     },
+    "conflict": {
+        "symplify/package-builder": "^8.3.24"
+    },
     "autoload": {
         "psr-4": {
             "Sylius\\PayPalPlugin\\": "src/",

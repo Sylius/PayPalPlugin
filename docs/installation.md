@@ -3,7 +3,7 @@
 1. Run
 
     ```bash
-    composer require sylius/paypal-plugin
+    composer require sylius/paypal-plugin:1.0.0-RC.1
     ```
 
 2. Import routes

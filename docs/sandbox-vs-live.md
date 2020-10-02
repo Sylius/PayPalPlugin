@@ -1,4 +1,4 @@
-#### Sandbox vs Live
+## Sandbox vs Live
 
 By default, plugin operates in the sandbox mode. I means all the transactions would be used with the sandbox URLs and code.
 To change it, you need to configure the plugin properly:
