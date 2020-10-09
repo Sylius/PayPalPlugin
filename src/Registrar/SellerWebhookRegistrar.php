@@ -19,7 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyExistsException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -58,10 +58,11 @@ final class SellerWebhookRegistrar implements SellerWebhookRegistrarInterface
         } catch (ClientException $exception) {
             /** @var ResponseInterface $exceptionResponse */
             $exceptionResponse = $exception->getResponse();
+            /** @var array $exceptionMessage */
             $exceptionMessage = json_decode($exceptionResponse->getBody()->getContents(), true);
 
             if ($exceptionMessage['name'] === 'WEBHOOK_URL_ALREADY_EXISTS') {
-                throw new PayPalWebhookAlreadyExistsException();
+                throw new PayPalWebhookAlreadyRegisteredException();
             }
         }
 

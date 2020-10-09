@@ -8,7 +8,7 @@ use GuzzleHttp\ClientInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyExistsException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -85,7 +85,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             $this->sellerWebhookRegistrar->register($paymentMethod);
         } catch (PayPalWebhookUrlNotValidException $exception) {
             $paymentMethod->setEnabled(false);
-        } catch (PayPalWebhookAlreadyExistsException $exception) {
+        } catch (PayPalWebhookAlreadyRegisteredException $exception) {
             $paymentMethod->setEnabled(true);
         }
 
