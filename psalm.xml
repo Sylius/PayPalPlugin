@@ -43,12 +43,14 @@
                 <file name="src/Processor/PayPalPaymentRefundProcessor.php"/>
                 <file name="src/Controller/UpdatePayPalOrderAction.php"/>
                 <file name="src/Controller/Webhook/RefundOrderAction.php"/>
+                <file name="src/Registrar/SellerWebhookRegistrar.php"/>
             </errorLevel>
         </MixedArrayAccess>
 
         <MixedAssignment>
             <errorLevel type="info">
                 <file name="src/Downloader/SftpPayoutsReportDownloader.php"/>
+                <file name="src/Registrar/SellerWebhookRegistrar.php"/>
             </errorLevel>
         </MixedAssignment>
 
