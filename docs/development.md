@@ -24,3 +24,7 @@ git clone git@github.com:Sylius/PayPalPlugin.git
     (cd tests/Application && bin/console sylius:fixtures:load)
     (cd tests/Application && symfony serve)
     ```
+
+---
+
+Prev: [Processing payments](processing-payments.md)
