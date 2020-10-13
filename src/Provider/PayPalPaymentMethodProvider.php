@@ -21,15 +21,15 @@ final class PayPalPaymentMethodProvider implements PayPalPaymentMethodProviderIn
 
     public function provide(): PaymentMethodInterface
     {
-        $payments = $this->paymentMethodRepository->findAll();
+        $paymentMethods = $this->paymentMethodRepository->findAll();
 
-        /** @var PaymentMethodInterface $payment */
-        foreach ($payments as $payment) {
+        /** @var PaymentMethodInterface $paymentMethod */
+        foreach ($paymentMethods as $paymentMethod) {
             /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $payment->getGatewayConfig();
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
 
             if ($gatewayConfig->getFactoryName() === 'sylius.pay_pal') {
-                return $payment;
+                return $paymentMethod;
             }
         }
 
