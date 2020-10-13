@@ -56,3 +56,7 @@
 
 To make PayPal integration working, your local Sylius URL should be accessible for the PayPal servers. Therefore you can
 add the proper directive to your `/etc/hosts` (something like `127.0.0.1 sylius.local`) or use a service as [ngrok](https://ngrok.com/).
+
+---
+
+Next: [PayPal environment](sandbox-vs-live.md)

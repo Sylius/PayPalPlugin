@@ -9,3 +9,8 @@ sylius_pay_pal:
 ```
 
 You can, for example, configure it only for the production environment (e.g. in `config/packages/prod/sylius_pay_pal_plugin.yaml`).
+
+---
+
+Prev: [Installation](installation.md)  
+Next: [Onboarding](onboarding.md)

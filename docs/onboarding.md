@@ -42,4 +42,7 @@ Check out [this chapter](sandbox-vs-live.md) for more information.
 If everything is ok (consents are accepted, email is verifier and webhooks were created successfully), you are able
 to use a PayPal Commerce Platform integration 🎉
 
+---
 
+Prev: [PayPal environment](sandbox-vs-live.md)  
+Next: [Reports](reports.md)

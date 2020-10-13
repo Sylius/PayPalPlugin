@@ -17,3 +17,8 @@ it's required to configure SFTP account and set its data in `.env` file.
     ![accounts](reports-accounts.png)
 
 5. Configure username and password in payment method's configuration
+
+---
+
+Prev: [Onboarding](onboarding.md)  
+Next: [Processing payments](processing-payments.md)
