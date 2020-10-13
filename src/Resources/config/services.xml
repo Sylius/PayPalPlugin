@@ -251,5 +251,9 @@
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
         </service>
+
+        <service id="Sylius\PayPalPlugin\Twig\PayPalExtension">
+            <tag name="twig.extension" />
+        </service>
     </services>
 </container>
