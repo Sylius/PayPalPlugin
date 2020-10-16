@@ -2,7 +2,9 @@
 
 {% set path = path('sylius_admin_payment_method_create', {'factory': 'sylius.pay_pal'}) %}
 
+{% if not sylius_is_pay_pal_enabled(grid.data.currentPageResults) %}
 <a class="ui labeled buttons icon top floating button yellow" href="{{ path }}" data-confirm-pay-pal-consent>
     <i class="paypal icon"></i>
     {{ 'sylius.pay_pal.enable_paypal'|trans }}
 </a>
+{% endif %}

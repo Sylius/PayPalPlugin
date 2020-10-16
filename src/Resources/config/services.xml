@@ -28,6 +28,9 @@
 
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
             <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" />
+            <argument type="service" id="router" />
+            <argument type="service" id="session.flash_bag" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface" />
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
 
@@ -247,6 +250,10 @@
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
+        </service>
+
+        <service id="Sylius\PayPalPlugin\Twig\PayPalExtension">
+            <tag name="twig.extension" />
         </service>
     </services>
 </container>

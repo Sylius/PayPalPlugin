@@ -6,3 +6,4 @@ sylius:
         payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'
         something_went_wrong: 'Something went wrong. Please, try again.'
         webhook_url_not_valid: 'PayPal could not verify provided webhook url. Make sure it is https and try again'
+        more_than_one_seller_not_allowed: 'You cannot onboard more than one PayPal seller!'
