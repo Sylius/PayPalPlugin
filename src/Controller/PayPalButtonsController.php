@@ -8,6 +8,7 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
+use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,9 @@ final class PayPalButtonsController
     /** @var ChannelContextInterface */
     private $channelContext;
 
+    /** @var LocaleContextInterface */
+    private $localeContext;
+
     /** @var PayPalConfigurationProviderInterface */
     private $payPalConfigurationProvider;
 
@@ -39,6 +43,7 @@ final class PayPalButtonsController
         Environment $twig,
         UrlGeneratorInterface $router,
         ChannelContextInterface $channelContext,
+        LocaleContextInterface $localeContext,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         OrderRepositoryInterface $orderRepository,
         AvailableCountriesProviderInterface $availableCountriesProvider
@@ -46,6 +51,7 @@ final class PayPalButtonsController
         $this->twig = $twig;
         $this->router = $router;
         $this->channelContext = $channelContext;
+        $this->localeContext = $localeContext;
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
         $this->orderRepository = $orderRepository;
         $this->availableCountriesProvider = $availableCountriesProvider;
@@ -64,7 +70,7 @@ final class PayPalButtonsController
                 'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
-                'locale' => $request->getLocale(),
+                'locale' => $this->localeContext->getLocaleCode(),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -88,7 +94,7 @@ final class PayPalButtonsController
                 'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_cart', ['id' => $orderId]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
-                'locale' => $request->getLocale(),
+                'locale' => $order->getLocaleCode(),
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
@@ -115,7 +121,7 @@ final class PayPalButtonsController
                 'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
                 'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
-                'locale' => $request->getLocale(),
+                'locale' => $order->getLocaleCode(),
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
             ]));
