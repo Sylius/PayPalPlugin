@@ -22,15 +22,22 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Entity\PayPalCredentialsInterface;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CacheAuthorizeClientApiSpec extends ObjectBehavior
 {
     function let(
         ObjectManager $payPalCredentialsManager,
         ObjectRepository $payPalCredentialsRepository,
-        AuthorizeClientApiInterface $authorizeClientApi
+        AuthorizeClientApiInterface $authorizeClientApi,
+        UuidProviderInterface $uuidProvider
     ): void {
-        $this->beConstructedWith($payPalCredentialsManager, $payPalCredentialsRepository, $authorizeClientApi);
+        $this->beConstructedWith(
+            $payPalCredentialsManager,
+            $payPalCredentialsRepository,
+            $authorizeClientApi,
+            $uuidProvider
+        );
     }
 
     function it_implements_cache_authorize_client_api_interface(): void
@@ -56,7 +63,8 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
         ObjectRepository $payPalCredentialsRepository,
         AuthorizeClientApiInterface $authorizeClientApi,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
+        UuidProviderInterface $uuidProvider
     ): void {
         $payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod])->willReturn(null);
 
@@ -64,6 +72,8 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
         $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => '$ECRET']);
 
         $authorizeClientApi->authorize('CLIENT_ID', '$ECRET')->willReturn('TOKEN');
+
+        $uuidProvider->provide()->willReturn('UUID');
 
         $payPalCredentialsManager
             ->persist(Argument::that(function (PayPalCredentialsInterface $payPalCredentials) use ($paymentMethod): bool {
@@ -87,7 +97,8 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
         AuthorizeClientApiInterface $authorizeClientApi,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        PayPalCredentialsInterface $payPalCredentials
+        PayPalCredentialsInterface $payPalCredentials,
+        UuidProviderInterface $uuidProvider
     ): void {
         $payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod])->willReturn($payPalCredentials);
         $payPalCredentials->isExpired()->willReturn(true);
@@ -97,6 +108,8 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
 
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => '$ECRET']);
+
+        $uuidProvider->provide()->willReturn('UUID');
 
         $authorizeClientApi->authorize('CLIENT_ID', '$ECRET')->willReturn('TOKEN');
 

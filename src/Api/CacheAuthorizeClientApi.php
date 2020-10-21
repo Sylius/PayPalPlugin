@@ -16,10 +16,10 @@ namespace Sylius\PayPalPlugin\Api;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
 use Payum\Core\Model\GatewayConfigInterface;
-use Ramsey\Uuid\Uuid;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Entity\PayPalCredentialsInterface;
+use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
 {
@@ -32,14 +32,19 @@ final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
     /** @var AuthorizeClientApiInterface */
     private $authorizeClientApi;
 
+    /** @var UuidProviderInterface */
+    private $uuidProvider;
+
     public function __construct(
         ObjectManager $payPalCredentialsManager,
         ObjectRepository $payPalCredentialsRepository,
-        AuthorizeClientApiInterface $authorizeClientApi
+        AuthorizeClientApiInterface $authorizeClientApi,
+        UuidProviderInterface $uuidProvider
     ) {
         $this->payPalCredentialsManager = $payPalCredentialsManager;
         $this->payPalCredentialsRepository = $payPalCredentialsRepository;
         $this->authorizeClientApi = $authorizeClientApi;
+        $this->uuidProvider = $uuidProvider;
     }
 
     public function authorize(PaymentMethodInterface $paymentMethod): string
@@ -63,7 +68,7 @@ final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
             (string) $config['client_id'], (string) $config['client_secret']
         );
         $payPalCredentials = new PayPalCredentials(
-            Uuid::uuid4()->toString(), $paymentMethod, $token, new \DateTime(), 3600
+            $this->uuidProvider->provide(), $paymentMethod, $token, new \DateTime(), 3600
         );
 
         $this->payPalCredentialsManager->persist($payPalCredentials);
