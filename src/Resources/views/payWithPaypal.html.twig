@@ -1,247 +1,249 @@
 {% include '@SyliusUi/_stylesheets.html.twig' with {'path': 'assets/shop/css/style.css'} %}
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Pay with PayPal</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        {% block stylesheets %}
-            <style>
-                .container {
-                    padding: 30px;
-                    align-items: center;
-                    display: grid;
-                    justify-content: center;
-                    grid-template-rows: 30vh auto;
-                    width: 400px;
-                    margin: auto;
-                    font-family: 'Roboto', verdana, sans-serif;
-                }
+    {% block stylesheets %}
+        <style>
+            .container {
+                align-items: center;
+                display: grid;
+                justify-content: center;
+                margin: auto;
+                font-family: 'Roboto', verdana, sans-serif;
+            }
 
-                #sylius-logo {
-                    width: 100%;
-                }
+            #sylius-logo {
+                width: 100%;
+            }
 
-                .padding {
-                    padding: 10px;
-                }
+            .padding {
+                padding: 10px;
+            }
 
-                .back-button-container {
-                    position: absolute;
-                    padding: 20px;
-                    top: 0;
-                    left: 0;
-                }
+            #paypal-payment-container {
+                min-height: 100%;
+                height: auto;
+                width: 100%;
+            }
 
-                .back-button {
-                    cursor: pointer;
-                    display: inline-block;
-                    min-height: 1em;
-                    outline: 0;
-                    border: none;
-                    vertical-align: baseline;
-                    color: rgba(0,0,0,.6);
-                    font-family: Lato,'Helvetica Neue',Arial,Helvetica,sans-serif;
-                    padding: .78571429em 1.5em .78571429em;
-                    text-transform: none;
-                    text-shadow: none;
-                    font-weight: 700;
-                    line-height: 1em;
-                    font-style: normal;
-                    text-align: center;
-                    text-decoration: none;
-                    border-radius: .28571429rem;
-                    background-color: #1abb9c;
-                    color: #fff;
-                    margin:auto;
-                }
+            .input {
+                height: 30px;
+                padding: 5px;
+                margin-bottom: 10px;
+            }
 
-                #paypal-payment-container {
-                    min-height: 100%;
-                    height: auto;
-                    width: 100%;
-                }
+            .low-opacity {
+                opacity: 0.9;
+            }
 
-                .input {
-                    height: 30px;
-                    padding: 5px;
-                    margin-bottom: 10px;
-                }
+            .hidden {
+                display: none;
+            }
 
-                .low-opacity {
-                    opacity: 0.9;
-                }
+            input, .input {
+                font-size: 14px;
+                font-family: 'Product Sans', sans-serif;
+                color: #3a3a3a;
+                cursor: auto;
+                width: 100%;
+                padding: 5px;
+                height: 30px;
+                margin-bottom: 5px;
+                margin-top: 2px;
+                border: 1px solid lightgray;
+                -webkit-transition: border-color 160ms;
+                transition: border-color 160ms;
+                border-radius: 5px;
+            }
 
-                .hidden {
-                    display: none;
-                }
+            input:focus, .input:focus {
+                outline: none;
+                border-color: #777;
+            }
 
-                input, .input {
-                    font-size: 14px;
-                    font-family: 'Product Sans', sans-serif;
-                    color: #3a3a3a;
-                    cursor: auto;
-                    width: 100%;
-                    padding: 5px;
-                    height: 30px;
-                    margin-bottom: 5px;
-                    margin-top: 2px;
-                    border: 1px solid lightgray;
-                    -webkit-transition: border-color 160ms;
-                    transition: border-color 160ms;
-                    border-radius: 5px;
-                }
+            .braintree-hosted-fields-focused {
+                border-color: #777;
+            }
 
-                input:focus, .input:focus {
-                    outline: none;
-                    border-color: #777;
-                }
+            .braintree-hosted-fields-invalid {
+                border-color: tomato;
+            }
 
-                .braintree-hosted-fields-focused {
-                    border-color: #777;
-                }
+            .braintree-hosted-fields-valid {
+                border-color: limegreen;
+            }
 
-                .braintree-hosted-fields-invalid {
-                    border-color: tomato;
-                }
+            .checkbox-grid {
+                display: grid;
+                grid-template-columns: 20px auto;
+                align-items: center;
+                grid-gap: 10px;
+                grid-template-rows: 30px;
+                margin-bottom: 5px;
+            }
 
-                .braintree-hosted-fields-valid {
-                    border-color: limegreen;
-                }
+            #card-image {
+                position: absolute;
+                top: 3.1em;
+                right: 1.7em;
+                width: 44px;
+                height: 28px;
+                background-image: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/346994/card_sprite.png);
+                background-size: 86px 458px;
+                border-radius: 1px;
+                background-position: -100px 0;
+                background-repeat: no-repeat;
+                margin-bottom: 1em;
+            }
 
-                .checkbox-grid {
-                    display: grid;
-                    grid-template-columns: 20px auto;
-                    align-items: center;
-                    grid-gap: 10px;
-                    grid-template-rows: 30px;
-                    margin-bottom: 5px;
-                }
+            #card-image.visa {
+                 background-position: 0 -398px;
+            }
 
-                #card-image {
-                    position: absolute;
-                    top: 3.1em;
-                    right: 1.7em;
-                    width: 44px;
-                    height: 28px;
-                    background-image: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/346994/card_sprite.png);
-                    background-size: 86px 458px;
-                    border-radius: 1px;
-                    background-position: -100px 0;
-                    background-repeat: no-repeat;
-                    margin-bottom: 1em;
-                }
+            #card-image.master-card {
+                 background-position: 0 -281px;
+            }
 
-                #card-image.visa {
-                     background-position: 0 -398px;
-                }
+            #card-image.american-express {
+                 background-position: 0 -370px;
+            }
 
-                #card-image.master-card {
-                     background-position: 0 -281px;
-                }
+            #card-image.discover {
+                 background-position: 0 -163px;
+            }
 
-                #card-image.american-express {
-                     background-position: 0 -370px;
-                }
+            #card-image.maestro {
+                 background-position: 0 -251px;
+            }
 
-                #card-image.discover {
-                     background-position: 0 -163px;
-                }
+            #card-image.jcb {
+                 background-position: 0 -221px;
+            }
 
-                #card-image.maestro {
-                     background-position: 0 -251px;
-                }
+            #card-image.diners-club {
+                 background-position: 0 -133px;
+            }
 
-                #card-image.jcb {
-                     background-position: 0 -221px;
-                }
+            #billing-info {
+                height: 20px;
+                margin: 0;
+            }
 
-                #card-image.diners-club {
-                     background-position: 0 -133px;
-                }
+            label {
+                padding: 2px;
+                margin-bottom: 2px;
+            }
 
-                #billing-info {
-                    height: 20px;
-                    margin: 0;
-                }
-
-                label {
-                    padding: 2px;
-                    margin-bottom: 2px;
-                }
-
-                #paypal-button-container {
-                    display: grid;
-                    grid-gap: 10px;
-                }
-            </style>
-        {% endblock %}
-    </head>
-    <body>
-    <div id="paypal-payment-container" class="ui segment loadable">
-        <div class="back-button-container">
-            <a href="{{ path('sylius_shop_order_show', {'tokenValue': order_token}) }}" class="back-button">
-                {{ 'sylius.pay_pal.back_to_store'|trans }}
-            </a>
+            #paypal-button-container {
+                display: grid;
+                grid-gap: 10px;
+            }
+        </style>
+    {% endblock %}
+<div id="paypal-payment-container" class="ui segment loadable">
+    <div class="container">
+        <div id="tabs" class="ui top attached tabular menu">
+            <div class="active item" data-tab="paypal">PayPal</div>
+            <div class="item" data-tab="card">Card</div>
         </div>
-        <div class="container">
-            {% include '@SyliusShop/_flashes.html.twig' %}
-            <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
-            <div id="tabs" class="ui top attached tabular menu">
-                <div class="active item" data-tab="paypal">PayPal</div>
-                <div class="item" data-tab="card">Card</div>
+        <div class="ui bottom attached active tab segment" data-tab="paypal">
+            <div class="button-container padding">
+                <div id="paypal-button-container"></div>
             </div>
-            <div class="ui bottom attached active tab segment" data-tab="paypal">
-                <div class="button-container padding">
-                    <div id="paypal-button-container"></div>
-                </div>
-            </div>
-            <div class="ui bottom attached tab segment" data-tab="card">
-                <div class="button-container padding">
-                    <div id="advanced-cards-container"></div>
-                    <form id="advanced-cards-form">
-                        <label for="card-number">{{ 'sylius.pay_pal.credit_card_number'|trans }}</label>
-                        <div id="card-number" class="input"><div id="card-image"></div></div>
-                        <label for="expiration-date">{{ 'sylius.pay_pal.expiration_date'|trans }}</label>
-                        <div id="expiration-date" class="input"></div>
-                        <label for="cvv">{{ 'sylius.pay_pal.cvv'|trans }}</label>
-                        <div id="cvv" class="input"></div>
-                        <label for='card-holder-name'>{{ 'sylius.form.credit_card.cardholder_name'|trans }}</label>
-                        <br/><input type='text' id='card-holder-name' name='card-holder-name' autocomplete='off' placeholder='{{ 'sylius.form.credit_card.cardholder_name'|trans }}' value="{{ billing_address.fullName }}"/>
-                        <div class="checkbox-grid">
-                            <input type="checkbox" id="billing-info" checked />
-                            <label for="billing-info">{{ 'sylius.pay_pal.billing_info'|trans }}</label>
-                        </div>
-                        <div id="billing-container" class="hidden">
-                            <br/><label for='card-billing-address-street'>{{ 'sylius.ui.billing_address'|trans }}</label>
-                            <br/><input type='text' id='card-billing-address-street' name='card-billing-address-street' autocomplete='off' placeholder='{{ 'sylius.ui.street'|trans }}' value="{{ billing_address.street }}"/>
-                            <input type='text' id='card-billing-address-city' name='card-billing-address-city' autocomplete='off' placeholder='{{ 'sylius.ui.city'|trans }}' value="{{ billing_address.city }}"/>
-                            <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address.provinceName }}"/>
-                            <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
-                            <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
-                        </div>
-                        <button value="submit" id="submit" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
-                    </form>
-                </div>
+        </div>
+        <div class="ui bottom attached tab segment" data-tab="card">
+            <div class="button-container padding">
+                <div id="advanced-cards-container"></div>
+                <form id="advanced-cards-form">
+                    <label for="card-number">{{ 'sylius.pay_pal.credit_card_number'|trans }}</label>
+                    <div id="card-number" class="input"><div id="card-image"></div></div>
+                    <label for="expiration-date">{{ 'sylius.pay_pal.expiration_date'|trans }}</label>
+                    <div id="expiration-date" class="input"></div>
+                    <label for="cvv">{{ 'sylius.pay_pal.cvv'|trans }}</label>
+                    <div id="cvv" class="input"></div>
+                    <label for='card-holder-name'>{{ 'sylius.form.credit_card.cardholder_name'|trans }}</label>
+                    <br/><input type='text' id='card-holder-name' name='card-holder-name' autocomplete='off' placeholder='{{ 'sylius.form.credit_card.cardholder_name'|trans }}' value="{{ billing_address.fullName }}"/>
+                    <div class="checkbox-grid">
+                        <input type="checkbox" id="billing-info" checked />
+                        <label for="billing-info">{{ 'sylius.pay_pal.billing_info'|trans }}</label>
+                    </div>
+                    <div id="billing-container" class="hidden">
+                        <br/><label for='card-billing-address-street'>{{ 'sylius.ui.billing_address'|trans }}</label>
+                        <br/><input type='text' id='card-billing-address-street' name='card-billing-address-street' autocomplete='off' placeholder='{{ 'sylius.ui.street'|trans }}' value="{{ billing_address.street }}"/>
+                        <input type='text' id='card-billing-address-city' name='card-billing-address-city' autocomplete='off' placeholder='{{ 'sylius.ui.city'|trans }}' value="{{ billing_address.city }}"/>
+                        <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address.provinceName }}"/>
+                        <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
+                        <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
+                    </div>
+                    <button value="submit" id="submit" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
+                </form>
             </div>
         </div>
     </div>
-    </body>
-    {% include '@SyliusUi/_javascripts.html.twig' with {'path': 'assets/shop/js/app.js'} %}
-    <script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons,funding-eligibility&locale={{ locale }}&currency={{ currency }}&vault=false&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
-    <script>
-        let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
-        let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
-        let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
-        let availableCountries = {{ available_countries|json_encode|raw }};
-        let cancelPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_checkout_payment') }}";
-        let updatePayPalOrderUrl = "{{ path('sylius_paypal_plugin_update_paypal_order') }}";
-        let validForm = false;
-        let invalidFormMessage = "{{ 'sylius.pay_pal.invalid_form'|trans }}";
+</div>
+{% include '@SyliusUi/_javascripts.html.twig' with {'path': 'assets/shop/js/app.js'} %}
+<script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons,funding-eligibility&locale={{ locale }}&currency={{ currency }}&vault=false&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
+<script>
+    let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
+    let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
+    let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
+    let availableCountries = {{ available_countries|json_encode|raw }};
+    let cancelPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_checkout_payment') }}";
+    let updatePayPalOrderUrl = "{{ path('sylius_paypal_plugin_update_paypal_order') }}";
+    let validForm = false;
+    let invalidFormMessage = "{{ 'sylius.pay_pal.invalid_form'|trans }}";
 
-        paypal.Buttons({
-            locale: '{{ locale }}',
-            style: { label: 'pay' },
+    paypal.Buttons({
+        locale: '{{ locale }}',
+        style: { label: 'pay' },
+        createOrder: function(data, actions) {
+            return fetch(createPayPalOrderUrl, {
+                method: 'post'
+            }).then(res => {
+                document.querySelector('#paypal-payment-container').classList.add('loading');
+                document.querySelector('#paypal-button-container').classList.add('low-opacity');
+                return res.json();
+            }).then(data => data.orderID);
+        },
+        onApprove: function(data, actions) {
+            return fetch(completePayPalOrderUrl, {
+                method: 'post'
+            }).then(res => res.json()).then(details => window.location.href = details.return_url);
+        },
+        onError: function (err) {
+            return fetch(errorPayPalPaymentUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(err)
+            }).then(window.location.reload());
+        },
+        onShippingChange: function(data, actions) {
+            if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
+                return actions.reject();
+            }
+
+            return fetch(updatePayPalOrderUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(res => {
+                if (!res || res.error) {
+                    return actions.reject();
+                }
+
+                return actions.resolve();
+            });
+        },
+        onCancel: function (data, actions) {
+            return fetch(cancelPayPalPaymentUrl, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ payPalOrderId: data.orderID })
+            }).then(window.location.reload());
+        }
+    }).render('#paypal-button-container');
+
+    //once we add onshippingchange button doesnt render anymore
+    paypal.getFundingSources().forEach(function(fundingSource) {
+        var button = paypal.Buttons({
+            fundingSource: fundingSource,
             createOrder: function(data, actions) {
                 return fetch(createPayPalOrderUrl, {
                     method: 'post'
@@ -263,23 +265,6 @@
                     body: error
                 }).then(window.location.reload());
             },
-            onShippingChange: function(data, actions) {
-                if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
-                    return actions.reject();
-                }
-
-                return fetch(updatePayPalOrderUrl, {
-                    method: 'post',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify(data)
-                }).then(res => {
-                    if (!res || res.error) {
-                        return actions.reject();
-                    }
-
-                    return actions.resolve();
-                });
-            },
             onCancel: function (data, actions) {
                 return fetch(cancelPayPalPaymentUrl, {
                     method: 'post',
@@ -287,176 +272,141 @@
                     body: JSON.stringify({ payPalOrderId: data.orderID })
                 }).then(window.location.reload());
             }
-        }).render('#paypal-button-container');
+        });
 
-        //once we add onshippingchange button doesnt render anymore
-        paypal.getFundingSources().forEach(function(fundingSource) {
-            var button = paypal.Buttons({
-                fundingSource: fundingSource,
-                createOrder: function(data, actions) {
-                    return fetch(createPayPalOrderUrl, {
-                        method: 'post'
-                    }).then(res => {
-                        document.querySelector('#paypal-payment-container').classList.add('loading');
-                        document.querySelector('#paypal-button-container').classList.add('low-opacity');
-                        return res.json();
-                    }).then(data => data.orderID);
+        if (button.isEligible() && fundingSource != 'paypal' && fundingSource != 'card') {
+            button.render('#paypal-button-container');
+        }
+    });
+
+    if (paypal.HostedFields.isEligible() === true) {
+        paypal.HostedFields.render({
+            createOrder: function(data, actions) {
+                document.querySelector('#paypal-payment-container').classList.add('loading');
+                document.querySelector('#paypal-button-container').classList.add('low-opacity');
+
+                return fetch(createPayPalOrderUrl, {
+                    method: 'POST'
+                }).then(function(res) {
+                    return res.json();
+                }).then(function(data) {
+                    return data.orderID;
+                });
+            },
+            styles: {
+                'input': {
+                    'font-size': '14px',
+                    'font-family': 'Product Sans',
+                    'color': '#3a3a3a',
                 },
-                onApprove: function(data, actions) {
-                    return fetch(completePayPalOrderUrl, {
-                        method: 'post'
-                    }).then(res => res.json()).then(details => window.location.href = details.return_url);
+                ':focus': {
+                    'color': '#000'
+                }
+            },
+            fields: {
+                number: {
+                    selector: '#card-number',
+                    placeholder: '{{ 'sylius.pay_pal.credit_card_number'|trans }}',
+                    required: 'required',
                 },
-                onError: function (err) {
-                    return fetch(errorPayPalPaymentUrl, {
-                        method: 'post',
-                        headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify(err)
-                    }).then(window.location.reload());
+                cvv: {
+                    selector: '#cvv',
+                    placeholder: '123',
+                    required: 'required',
                 },
-                onCancel: function (data, actions) {
-                    return fetch(cancelPayPalPaymentUrl, {
-                        method: 'post',
-                        headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify({ payPalOrderId: data.orderID })
-                    }).then(window.location.reload());
+                expirationDate: {
+                    selector: '#expiration-date',
+                    placeholder: 'MM/YYYY',
+                    required: 'required',
+                }
+            }
+        }).then(hostedFields => {
+            hostedFields.on('validityChange', function (event) {
+                let field = event.fields[event.emittedBy];
+
+                if (field.isValid) {
+                    field.container.classList.remove('invalid-field');
+                } else if (field.isPotentiallyValid) {
+                    field.container.classList.add('invalid-field');
+                } else {
+                    field.container.classList.add('invalid-field');
                 }
             });
 
-            if (button.isEligible() && fundingSource != 'paypal' && fundingSource != 'card') {
-                button.render('#paypal-button-container');
-            }
-        });
-
-        if (paypal.HostedFields.isEligible() === true) {
-            paypal.HostedFields.render({
-                createOrder: function(data, actions) {
-                    document.querySelector('#paypal-payment-container').classList.add('loading');
-                    document.querySelector('#paypal-button-container').classList.add('low-opacity');
-
-                    return fetch(createPayPalOrderUrl, {
-                        method: 'POST'
-                    }).then(function(res) {
-                        return res.json();
-                    }).then(function(data) {
-                        return data.orderID;
-                    });
-                },
-                styles: {
-                    'input': {
-                        'font-size': '14px',
-                        'font-family': 'Product Sans',
-                        'color': '#3a3a3a',
-                    },
-                    ':focus': {
-                        'color': '#000'
-                    }
-                },
-                fields: {
-                    number: {
-                        selector: '#card-number',
-                        placeholder: '{{ 'sylius.pay_pal.credit_card_number'|trans }}',
-                        required: 'required',
-                    },
-                    cvv: {
-                        selector: '#cvv',
-                        placeholder: '123',
-                        required: 'required',
-                    },
-                    expirationDate: {
-                        selector: '#expiration-date',
-                        placeholder: 'MM/YYYY',
-                        required: 'required',
-                    }
-                }
-            }).then(hostedFields => {
-                hostedFields.on('validityChange', function (event) {
-                    let field = event.fields[event.emittedBy];
-
-                    if (field.isValid) {
-                        field.container.classList.remove('invalid-field');
-                    } else if (field.isPotentiallyValid) {
-                        field.container.classList.add('invalid-field');
-                    } else {
-                        field.container.classList.add('invalid-field');
-                    }
-                });
-
-                hostedFields.on('cardTypeChange', function (event) {
-                    if (event.cards.length === 1) {
-                        document.querySelector('#advanced-cards-form').classList = [];
-                        document.querySelector('#advanced-cards-form').classList.add(event.cards[0].type);
-                        document.querySelector('#card-image').classList = [];
-                        document.querySelector('#card-image').classList.add(event.cards[0].type);
-                        // Change the CVV length for AmericanExpress cards
-                        if (event.cards[0].code.size === 4) {
-                            hostedFieldsInstance.setAttribute({
-                                field: 'cvv',
-                                attribute: 'placeholder',
-                                value: '1234'
-                            });
-                        }
-                    } else {
-                        hostedFields.setAttribute({
+            hostedFields.on('cardTypeChange', function (event) {
+                if (event.cards.length === 1) {
+                    document.querySelector('#advanced-cards-form').classList = [];
+                    document.querySelector('#advanced-cards-form').classList.add(event.cards[0].type);
+                    document.querySelector('#card-image').classList = [];
+                    document.querySelector('#card-image').classList.add(event.cards[0].type);
+                    // Change the CVV length for AmericanExpress cards
+                    if (event.cards[0].code.size === 4) {
+                        hostedFieldsInstance.setAttribute({
                             field: 'cvv',
                             attribute: 'placeholder',
-                            value: '123'
+                            value: '1234'
                         });
-                        document.querySelector('#card-image').classList = [];
-                        document.querySelector('#advanced-cards-form').classList = [];
                     }
-                });
-
-                document.querySelector('#advanced-cards-form').addEventListener('submit', event => {
-                    event.preventDefault();
-
-                    let state = hostedFields.getState();
-                    let formValid = Object.keys(state.fields).every(function (key) {
-                        if (!state.fields[key].isValid) state.fields[key].container.classList.add('invalid-field');
-                        else state.fields[key].container.classList.remove('invalid-field')
-                        return state.fields[key].isValid;
+                } else {
+                    hostedFields.setAttribute({
+                        field: 'cvv',
+                        attribute: 'placeholder',
+                        value: '123'
                     });
-
-                    if (formValid) {
-                        hostedFields.submit({
-                            cardholderName: document.getElementById('card-holder-name').value,
-                            billingAddress: {
-                                streetAddress: document.getElementById('card-billing-address-street').value,
-                                region: document.getElementById('card-billing-address-state').value,
-                                locality: document.getElementById('card-billing-address-city').value,
-                                postalCode: document.getElementById('card-billing-address-zip').value,
-                                countryCodeAlpha2: document.getElementById('card-billing-address-country').value
-                            }
-                        }).then(payload => {
-                            return fetch(completePayPalOrderUrl, {
-                                method: 'post'
-                            }).then(function(res) {
-                                return res.json();
-                            }).then(function(data) {
-                                if (data.status == 'processing') {
-                                    return fetch(cancelPayPalPaymentUrl, {
-                                        method: 'post',
-                                        headers: { 'content-type': 'application/json' },
-                                        body: JSON.stringify({ payPalOrderId: data.orderID })
-                                    }).then(window.location.reload());
-                                }
-
-                                window.location.href = data.return_url;
-                            });
-                        });
-                    } else {
-                        alert(invalidFormMessage);
-                    }
-                });
+                    document.querySelector('#card-image').classList = [];
+                    document.querySelector('#advanced-cards-form').classList = [];
+                }
             });
-        }
 
-        document.querySelector('#billing-info').addEventListener('change', e => {
-            document.querySelector('#billing-container').classList.toggle('hidden');
-        })
+            document.querySelector('#advanced-cards-form').addEventListener('submit', event => {
+                event.preventDefault();
 
-        $(document).ready(function() {
-            $('#tabs').tab()
+                let state = hostedFields.getState();
+                let formValid = Object.keys(state.fields).every(function (key) {
+                    if (!state.fields[key].isValid) state.fields[key].container.classList.add('invalid-field');
+                    else state.fields[key].container.classList.remove('invalid-field')
+                    return state.fields[key].isValid;
+                });
+
+                if (formValid) {
+                    hostedFields.submit({
+                        cardholderName: document.getElementById('card-holder-name').value,
+                        billingAddress: {
+                            streetAddress: document.getElementById('card-billing-address-street').value,
+                            region: document.getElementById('card-billing-address-state').value,
+                            locality: document.getElementById('card-billing-address-city').value,
+                            postalCode: document.getElementById('card-billing-address-zip').value,
+                            countryCodeAlpha2: document.getElementById('card-billing-address-country').value
+                        }
+                    }).then(payload => {
+                        return fetch(completePayPalOrderUrl, {
+                            method: 'post'
+                        }).then(function(res) {
+                            return res.json();
+                        }).then(function(data) {
+                            if (data.status == 'processing') {
+                                return fetch(cancelPayPalPaymentUrl, {
+                                    method: 'post',
+                                    headers: { 'content-type': 'application/json' },
+                                    body: JSON.stringify({ payPalOrderId: data.orderID })
+                                }).then(window.location.reload());
+                            }
+
+                            window.location.href = data.return_url;
+                        });
+                    });
+                } else {
+                    alert(invalidFormMessage);
+                }
+            });
         });
-    </script>
-</html>
+    }
+
+    document.querySelector('#billing-info').addEventListener('change', e => {
+        document.querySelector('#billing-container').classList.toggle('hidden');
+    })
+
+    $(document).ready(function() {
+        $('#tabs').tab()
+    });
+</script>

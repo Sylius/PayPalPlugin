@@ -84,6 +84,8 @@
             <argument type="service" id="sylius.repository.order" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Processor\LocaleProcessorInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\IdentityApiInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">

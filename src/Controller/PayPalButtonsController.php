@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\IdentityApiInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
@@ -43,6 +48,12 @@ final class PayPalButtonsController
     /** @var LocaleProcessorInterface */
     private $localeProcessor;
 
+    /** @var CacheAuthorizeClientApiInterface */
+    private $authorizeClientApi;
+
+    /** @var IdentityApiInterface */
+    private $identityApi;
+
     public function __construct(
         Environment $twig,
         UrlGeneratorInterface $router,
@@ -51,7 +62,9 @@ final class PayPalButtonsController
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         OrderRepositoryInterface $orderRepository,
         AvailableCountriesProviderInterface $availableCountriesProvider,
-        LocaleProcessorInterface $localeProcessor
+        LocaleProcessorInterface $localeProcessor,
+        CacheAuthorizeClientApiInterface $authorizeClientApi,
+        IdentityApiInterface $identityApi
     ) {
         $this->twig = $twig;
         $this->router = $router;
@@ -61,6 +74,8 @@ final class PayPalButtonsController
         $this->orderRepository = $orderRepository;
         $this->availableCountriesProvider = $availableCountriesProvider;
         $this->localeProcessor = $localeProcessor;
+        $this->authorizeClientApi = $authorizeClientApi;
+        $this->identityApi = $identityApi;
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -134,5 +149,40 @@ final class PayPalButtonsController
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
+    }
+
+    public function renderPayPalPaymentAction(Request $request): Response
+    {
+        $orderId = $request->attributes->getInt('orderId');
+        /** @var OrderInterface $order */
+        $order = $this->orderRepository->find($orderId);
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        /** @var string $clientId */
+        $clientId = $gatewayConfig->getConfig()['client_id'];
+        /** @var string $partnerAttributionId */
+        $partnerAttributionId = $gatewayConfig->getConfig()['partner_attribution_id'];
+
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
+        $token = $this->authorizeClientApi->authorize($paymentMethod);
+        $clientToken = $this->identityApi->generateToken($token);
+
+        return new Response($this->twig->render('@SyliusPayPalPlugin/payWithPaypal.html.twig', [
+            'available_countries' => $this->availableCountriesProvider->provide(),
+            'billing_address' => $order->getBillingAddress(),
+            'client_id' => $clientId,
+            'client_token' => $clientToken,
+            'currency' => $order->getCurrencyCode(),
+            'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
+            'merchant_id' => $gatewayConfig->getConfig()['merchant_id'],
+            'order_token' => 'test',
+            'partner_attribution_id' => $partnerAttributionId,
+        ]));
     }
 }
