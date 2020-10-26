@@ -42,6 +42,7 @@
             <argument type="service" id="doctrine.orm.entity_manager" />
             <argument type="service" id="sylius_pay_pal_plugin.repository.pay_pal_credentials" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
         </service>
 
         <service
