@@ -87,8 +87,12 @@ final class ProcessPayPalOrderAction
 
         $data = $this->getOrderDetails($request->request->get('payPalOrderId'), $payment);
 
-        $customer = $this->getOrderCustomer($data['payer']);
-        $order->setCustomer($customer);
+        /** @var CustomerInterface|null $customer */
+        $customer = $order->getCustomer();
+        if ($customer === null) {
+            $customer = $this->getOrderCustomer($data['payer']);
+            $order->setCustomer($customer);
+        }
 
         $purchaseUnit = (array) $data['purchase_units'][0];
         $stateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
