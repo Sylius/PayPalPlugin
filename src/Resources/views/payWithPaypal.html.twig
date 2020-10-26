@@ -150,8 +150,7 @@
         </div>
         <div class="ui bottom attached tab segment" data-tab="card">
             <div class="button-container padding">
-                <div id="advanced-cards-container"></div>
-                <form id="advanced-cards-form">
+                <div id="advanced-cards-container">
                     <label for="card-number">{{ 'sylius.pay_pal.credit_card_number'|trans }}</label>
                     <div id="card-number" class="input"><div id="card-image"></div></div>
                     <label for="expiration-date">{{ 'sylius.pay_pal.expiration_date'|trans }}</label>
@@ -172,8 +171,8 @@
                         <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
                         <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
                     </div>
-                    <button value="submit" id="submit" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
-                </form>
+                    <button id="submit-card" class="ui button yellow fluid">{{ 'sylius.pay_pal.pay_with_card'|trans }}</button>
+                </div>
             </div>
         </div>
     </div>
@@ -181,8 +180,8 @@
 {% include '@SyliusUi/_javascripts.html.twig' with {'path': 'assets/shop/js/app.js'} %}
 <script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons,funding-eligibility&locale={{ locale }}&currency={{ currency }}&vault=false&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
 <script>
-    let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order', {'token': order_token}) }}";
-    let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', {'token': order_token }) }}"
+    let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_payment_page', { 'id': order_id }) }}";
+    let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order_from_payment_page', { 'id': order_id }) }}"
     let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
     let availableCountries = {{ available_countries|json_encode|raw }};
     let cancelPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_checkout_payment') }}";
@@ -200,7 +199,7 @@
                 document.querySelector('#paypal-payment-container').classList.add('loading');
                 document.querySelector('#paypal-button-container').classList.add('low-opacity');
                 return res.json();
-            }).then(data => data.orderID);
+            }).then(data => data.order_id);
         },
         onApprove: function(data, actions) {
             return fetch(completePayPalOrderUrl, {
@@ -240,7 +239,6 @@
         }
     }).render('#paypal-button-container');
 
-    //once we add onshippingchange button doesnt render anymore
     paypal.getFundingSources().forEach(function(fundingSource) {
         var button = paypal.Buttons({
             fundingSource: fundingSource,
@@ -251,7 +249,7 @@
                     document.querySelector('#paypal-payment-container').classList.add('loading');
                     document.querySelector('#paypal-button-container').classList.add('low-opacity');
                     return res.json();
-                }).then(data => data.orderID);
+                }).then(data => data.order_id);
             },
             onApprove: function(data, actions) {
                 return fetch(completePayPalOrderUrl, {
@@ -290,7 +288,7 @@
                 }).then(function(res) {
                     return res.json();
                 }).then(function(data) {
-                    return data.orderID;
+                    return data.order_id;
                 });
             },
             styles: {
@@ -335,8 +333,8 @@
 
             hostedFields.on('cardTypeChange', function (event) {
                 if (event.cards.length === 1) {
-                    document.querySelector('#advanced-cards-form').classList = [];
-                    document.querySelector('#advanced-cards-form').classList.add(event.cards[0].type);
+                    document.querySelector('#advanced-cards-container').classList = [];
+                    document.querySelector('#advanced-cards-container').classList.add(event.cards[0].type);
                     document.querySelector('#card-image').classList = [];
                     document.querySelector('#card-image').classList.add(event.cards[0].type);
                     // Change the CVV length for AmericanExpress cards
@@ -354,11 +352,11 @@
                         value: '123'
                     });
                     document.querySelector('#card-image').classList = [];
-                    document.querySelector('#advanced-cards-form').classList = [];
+                    document.querySelector('#advanced-cards-container').classList = [];
                 }
             });
 
-            document.querySelector('#advanced-cards-form').addEventListener('submit', event => {
+            document.querySelector('#submit-card').addEventListener('click', event => {
                 event.preventDefault();
 
                 let state = hostedFields.getState();
@@ -398,7 +396,7 @@
                 } else {
                     alert(invalidFormMessage);
                 }
-            });
+            })
         });
     }
 

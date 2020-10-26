@@ -5,7 +5,7 @@ sylius_paypal_plugin_pay_with_paypal_form:
         _controller: Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction
 
 sylius_paypal_plugin_create_paypal_order:
-    path: /create-pay-pal-order/{token}
+    path: /create-pay-pal-order/{id}
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction

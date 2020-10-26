@@ -181,7 +181,7 @@ final class PayPalButtonsController
             'currency' => $order->getCurrencyCode(),
             'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
             'merchant_id' => $gatewayConfig->getConfig()['merchant_id'],
-            'order_token' => 'test',
+            'order_id' => $order->getId(),
             'partner_attribution_id' => $partnerAttributionId,
         ]));
     }
