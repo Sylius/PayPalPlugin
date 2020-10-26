@@ -23,7 +23,7 @@
 
         {{ sylius_template_event('sylius.shop.checkout.complete.before_navigation', {'order': order}) }}
 
-        {% if order.lastPayment.method.gatewayConfig.factoryName == 'sylius.pay_pal' %}
+        {% if order.lastPayment.method.gatewayConfig.factoryName == 'sylius.pay_pal' and order.lastPayment.state == 'cart' %}
             {{ render(controller('Sylius\\PayPalPlugin\\Controller\\PayPalButtonsController:renderPayPalPaymentAction', {'orderId': order.id})) }}
         {% else %}
             {% include '@SyliusShop/Checkout/Complete/_navigation.html.twig' %}
