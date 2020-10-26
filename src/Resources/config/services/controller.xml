@@ -125,6 +125,7 @@
 
         <service id="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
             <argument type="service" id="session.flash_bag" />
+            <argument type="service" id="monolog.logger.paypal" />
         </service>
     </services>
 </container>
