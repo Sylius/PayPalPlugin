@@ -136,6 +136,8 @@
             <argument type="service" id="payum" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Processor\LocaleProcessor" />
+
         <service
             id="Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface"
             class="Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor"
