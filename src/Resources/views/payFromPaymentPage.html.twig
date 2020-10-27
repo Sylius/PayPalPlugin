@@ -38,8 +38,8 @@
         onError: function (error) {
             return fetch(errorPayPalPaymentUrl, {
                 method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(error)
+                headers: {},
+                body: error
             }).then(window.location.reload());
         },
         onShippingChange: function(data, actions) {

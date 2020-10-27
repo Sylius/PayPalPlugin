@@ -256,11 +256,11 @@
                     method: 'post'
                 }).then(res => res.json()).then(details => window.location.href = details.return_url);
             },
-            onError: function (err) {
+            onError: function (error) {
                 return fetch(errorPayPalPaymentUrl, {
                     method: 'post',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify(err)
+                    headers: {},
+                    body: error
                 }).then(window.location.reload());
             },
             onShippingChange: function(data, actions) {
