@@ -211,7 +211,7 @@
                 method: 'post',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify(err)
-            }).then(window.location.reload());
+            }).then(() => {setTimeout(window.location.reload, 300)});
         },
         onShippingChange: function(data, actions) {
             if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {

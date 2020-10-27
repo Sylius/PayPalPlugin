@@ -1,0 +1,7 @@
+{% if order.lastPayment.method.gatewayConfig.factoryName == 'sylius.pay_pal' and order.lastPayment.state == 'cart' %}
+    {{ render(controller('Sylius\\PayPalPlugin\\Controller\\PayPalButtonsController:renderPayPalPaymentAction', {'orderId': order.id})) }}
+{% else %}
+    <button type="submit" class="ui huge primary fluid icon labeled button" {{ sylius_test_html_attribute('confirmation-button') }}>
+        <i class="check icon"></i> {{ 'sylius.ui.place_order'|trans }}
+    </button>
+{% endif %}
