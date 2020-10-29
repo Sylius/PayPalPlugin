@@ -9,6 +9,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
+use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,6 +40,9 @@ final class PayPalButtonsController
     /** @var AvailableCountriesProviderInterface */
     private $availableCountriesProvider;
 
+    /** @var LocaleProcessorInterface */
+    private $localeProcessor;
+
     public function __construct(
         Environment $twig,
         UrlGeneratorInterface $router,
@@ -46,7 +50,8 @@ final class PayPalButtonsController
         LocaleContextInterface $localeContext,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         OrderRepositoryInterface $orderRepository,
-        AvailableCountriesProviderInterface $availableCountriesProvider
+        AvailableCountriesProviderInterface $availableCountriesProvider,
+        LocaleProcessorInterface $localeProcessor
     ) {
         $this->twig = $twig;
         $this->router = $router;
@@ -55,6 +60,7 @@ final class PayPalButtonsController
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
         $this->orderRepository = $orderRepository;
         $this->availableCountriesProvider = $availableCountriesProvider;
+        $this->localeProcessor = $localeProcessor;
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -70,7 +76,7 @@ final class PayPalButtonsController
                 'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_product', ['productId' => $productId]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
-                'locale' => $this->localeContext->getLocaleCode(),
+                'locale' => $this->localeProcessor->process($this->localeContext->getLocaleCode()),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -94,7 +100,7 @@ final class PayPalButtonsController
                 'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_cart', ['id' => $orderId]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
-                'locale' => $order->getLocaleCode(),
+                'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_plugin_process_paypal_order'),
@@ -121,7 +127,7 @@ final class PayPalButtonsController
                 'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
                 'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_create_paypal_order_from_payment_page', ['id' => $orderId]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_payment_error'),
-                'locale' => $order->getLocaleCode(),
+                'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
             ]));

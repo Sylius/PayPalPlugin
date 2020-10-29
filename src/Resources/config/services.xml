@@ -137,6 +137,11 @@
         </service>
 
         <service
+            id="Sylius\PayPalPlugin\Processor\LocaleProcessorInterface"
+            class="Sylius\PayPalPlugin\Processor\LocaleProcessor"
+        />
+
+        <service
             id="Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface"
             class="Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor"
             public="true"
