@@ -14,17 +14,18 @@ final class LocaleProcessor implements LocaleProcessorInterface
             return $locale;
         }
 
-        $locales = Locales::getLocales();
-        $localeFound = (int) array_search($locale, $locales);
-        while (!$this->isValidLocale($locales[$localeFound]) && $localeFound < count($locales)) {
-            ++$localeFound;
-        }
+        $locales = array_filter(Locales::getLocales(), function (string $targetLocale) use ($locale): bool {
+            return
+                strpos($targetLocale, $locale) === 0 &&
+                strpos($targetLocale, '_') !== false
+            ;
+        });
 
-        return $locales[$localeFound];
+        return $locales[array_key_first($locales)];
     }
 
     private function isValidLocale(string $locale): bool
     {
-        return preg_match('/^[a-z]{2}_[A-Z]{2}$/', $locale) > 0;
+        return strpos($locale, '_') !== false;
     }
 }
