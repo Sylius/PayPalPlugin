@@ -88,17 +88,6 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     'payee' => [
                         'merchant_id' => $config['merchant_id'],
                     ],
-                    'shipping' => [
-                        'name' => ['full_name' => 'John Doe'],
-                        'address' => [
-                            'address_line_1' => 'Test St. 123',
-                            'address_line_2' => '6',
-                            'admin_area_1' => 'CA',
-                            'admin_area_2' => 'New York',
-                            'postal_code' => '32000',
-                            'country_code' => 'US',
-                        ],
-                    ],
                     'soft_descriptor' => 'Sylius PayPal Payment',
                     'items' => $payPalItemData['items'],
                 ],
@@ -109,7 +98,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
         ];
 
         $address = $order->getShippingAddress();
-        if ($address !== null) {
+        if ($address !== null && $order->isShippingRequired()) {
             $data['purchase_units'][0]['shipping'] = [
                 'name' => ['full_name' => $address->getFullName()],
                 'address' => [

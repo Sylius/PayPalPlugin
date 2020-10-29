@@ -17,3 +17,5 @@ sylius:
         sftp_username: 'SFTP Username'
         share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
         tender_type: 'Refunded to the PayPal wallet'
+        missing_billing_address_header: 'We could not fetch any billing address from PayPal'
+        missing_billing_address_content: 'Please, go back to the Addressing step and complete it'
