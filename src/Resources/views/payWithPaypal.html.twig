@@ -134,11 +134,12 @@
             #paypal-button-container {
                 display: grid;
                 grid-gap: 10px;
+                justify-items: center;
             }
         </style>
     {% endblock %}
 <div id="paypal-payment-container" class="ui segment loadable">
-    <div class="container">
+    <div class="container ui fluid">
         <div id="tabs" class="ui top attached tabular menu">
             <div class="active item" data-tab="paypal">PayPal</div>
             <div class="item" data-tab="card">Card</div>
