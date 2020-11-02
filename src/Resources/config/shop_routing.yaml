@@ -11,7 +11,7 @@ sylius_paypal_plugin_create_paypal_order_from_cart:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction
 
 sylius_paypal_plugin_complete_paypal_order:
-    path: /complete-pay-pal-order/{token}
+    path: /complete-pay-pal-order/{id}
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction

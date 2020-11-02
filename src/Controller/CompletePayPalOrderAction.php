@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
+use Doctrine\Persistence\ObjectManager;
+use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,24 +26,41 @@ final class CompletePayPalOrderAction
     /** @var OrderProviderInterface */
     private $orderProvider;
 
+    /** @var FactoryInterface */
+    private $stateMachineFactory;
+
+    /** @var ObjectManager */
+    private $orderManager;
+
     public function __construct(
         PaymentStateManagerInterface $paymentStateManager,
         UrlGeneratorInterface $router,
-        OrderProviderInterface $orderProvider
+        OrderProviderInterface $orderProvider,
+        FactoryInterface $stateMachineFactory,
+        ObjectManager $orderManager
     ) {
         $this->paymentStateManager = $paymentStateManager;
         $this->router = $router;
         $this->orderProvider = $orderProvider;
+        $this->stateMachineFactory = $stateMachineFactory;
+        $this->orderManager = $orderManager;
     }
 
     public function __invoke(Request $request): Response
     {
-        $token = (string) $request->attributes->get('token');
-        $order = $this->orderProvider->provideOrderByToken($token);
+        $id = (int) $request->attributes->get('id');
+        $order = $this->orderProvider->provideOrderById($id);
+
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
-
         $this->paymentStateManager->complete($payment);
+
+        $stateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
+        $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_COMPLETE);
+
+        $this->orderManager->flush();
+
+        $request->getSession()->set('sylius_order_id', $order->getId());
 
         return new JsonResponse([
             'orderID' => $payment->getDetails()['paypal_order_id'],
