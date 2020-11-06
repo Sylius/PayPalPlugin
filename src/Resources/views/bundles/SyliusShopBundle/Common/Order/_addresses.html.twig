@@ -12,7 +12,7 @@
         {% endif %}
     </div>
 </div>
-{% if not order.isShippingRequired() and order.billingAddress.street == '' %}
+{% if sylius_is_billing_address_missing(order) %}
 <div class="ui icon message">
     <i class="address card icon"></i>
     <div class="content">
