@@ -113,9 +113,12 @@ final class ProcessPayPalOrderAction
         } else {
             $address->setFirstName($customer->getFirstName());
             $address->setLastName($customer->getLastName());
-            $address->setStreet('');
-            $address->setCity('');
-            $address->setPostcode('');
+
+            $defaultAddress = $customer->getDefaultAddress();
+
+            $address->setStreet($defaultAddress ? $defaultAddress->getStreet() : '');
+            $address->setCity($defaultAddress ? $defaultAddress->getCity() : '');
+            $address->setPostcode($defaultAddress ? $defaultAddress->getPostcode() : '');
             $address->setCountryCode($data['payer']['address']['country_code']);
             $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
         }
