@@ -24,8 +24,12 @@ final class PayPalAddressProcessor implements PayPalAddressProcessorInterface
      */
     public function process(array $address, OrderInterface $order): void
     {
-        /** @var AddressInterface $orderAddress */
+        /** @var ?AddressInterface $orderAddress */
         $orderAddress = $order->getShippingAddress();
+
+        if (null === $orderAddress) {
+            return;
+        }
 
         Assert::keyExists($address, 'admin_area_2');
         Assert::keyExists($address, 'address_line_1');
