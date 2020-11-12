@@ -27,7 +27,7 @@ final class PayPalAddressProcessor implements PayPalAddressProcessorInterface
         /** @var ?AddressInterface $orderAddress */
         $orderAddress = $order->getShippingAddress();
 
-        if (null == $orderAddress) {
+        if (null === $orderAddress) {
             return;
         }
 
