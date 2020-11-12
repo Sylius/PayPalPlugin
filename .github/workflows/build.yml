@@ -21,7 +21,7 @@ jobs:
                 php: [7.4, 7.3]
                 node: [10.x]
                 mysql: [5.7, 8.0]
-                sylius: [1.7.*, 1.8.*]
+                sylius: [1.8.*]
 
                 exclude:
                     -
@@ -50,22 +50,6 @@ jobs:
                 uses: actions/setup-node@v1
                 with:
                     node-version: "${{ matrix.node }}"
-
-            -
-                name: Require Sylius
-                run: composer require sylius/sylius:${{ matrix.sylius }} --no-interaction --no-update
-
-            -
-                name: Sylius 1.8 conflicts
-                if: matrix.sylius == '1.8.*'
-                run: |
-                    composer require sylius-labs/doctrine-migrations-extra-bundle --no-interaction --no-update
-                    cp etc/travis/sylius18/bundles.php tests/Application/config/
-                    cp etc/travis/sylius18/doctrine_migrations.yaml tests/Application/config/packages/
-                    cp etc/travis/sylius18/lexik_jwt_authentication.yaml tests/Application/config/packages/
-                    cp etc/travis/sylius18/security.yaml tests/Application/config/packages/
-                    cp etc/travis/sylius18/sylius_api.yaml tests/Application/config/routes/
-                    rm tests/Application/src/Migrations/Version20200604080033.php
 
             -
                 name: Shutdown default MySQL
