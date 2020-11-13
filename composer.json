@@ -10,7 +10,8 @@
         "sylius/sylius": "^1.8",
         "nyholm/append-query-string": "^0.1.1",
         "phpseclib/phpseclib": "^2.0",
-        "sylius-labs/doctrine-migrations-extra-bundle": "^0.1.3"
+        "sylius-labs/doctrine-migrations-extra-bundle": "^0.1.3",
+        "doctrine/doctrine-migrations-bundle": "^3.0"
     },
     "require-dev": {
         "behat/behat": "^3.6.1",

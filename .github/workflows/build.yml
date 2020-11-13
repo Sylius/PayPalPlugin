@@ -108,7 +108,6 @@ jobs:
             -
                 name: Prepare test application database
                 run: |
-                    cp -R migrations/* tests/Application/src/Migrations/
                     (cd tests/Application && bin/console doctrine:database:create -vvv)
                     (cd tests/Application && bin/console doctrine:migrations:migrate -n -vvv -q)
 

@@ -45,10 +45,9 @@
     cp -R vendor/sylius/paypal-plugin/src/Resources/views/bundles/* templates/bundles/
     ```
 
-4. Copy and apply migrations
+4. Apply migrations
 
    ```
-   cp -R vendor/sylius/paypal-plugin/migrations/ src/Migrations/
    bin/console doctrine:migrations:migrate -n
    ```
 
