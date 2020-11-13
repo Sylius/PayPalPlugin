@@ -182,7 +182,7 @@
 <script src="https://www.paypal.com/sdk/js?components=hosted-fields,buttons,funding-eligibility&locale={{ locale }}&currency={{ currency }}&vault=false&client-id={{ client_id }}&merchant-id={{ merchant_id }}&intent=capture" data-partner-attribution-id="{{ partner_attribution_id }}" data-enable-3ds data-client-token="{{ client_token }}"></script>
 <script>
     let createPayPalOrderUrl = "{{ path('sylius_paypal_plugin_create_paypal_order_from_payment_page', { 'id': order_id }) }}";
-    let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order', { 'id': order_id }) }}"
+    let completePayPalOrderUrl = "{{ path('sylius_paypal_plugin_complete_paypal_order') }}"
     let errorPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_payment_error') }}";
     let availableCountries = {{ available_countries|json_encode|raw }};
     let cancelPayPalPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_payment') }}";
@@ -203,7 +203,7 @@
             }).then(data => data.order_id);
         },
         onApprove: function(data, actions) {
-            return fetch(completePayPalOrderUrl, {
+            return fetch(completePayPalOrderUrl+'?id='+data.orderID, {
                 method: 'post'
             }).then(res => res.json()).then(details => window.location.href = details.return_url);
         },

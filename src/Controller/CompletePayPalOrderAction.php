@@ -10,6 +10,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +24,9 @@ final class CompletePayPalOrderAction
     /** @var UrlGeneratorInterface */
     private $router;
 
+    /** @var PaymentProviderInterface */
+    private $paymentProvider;
+
     /** @var OrderProviderInterface */
     private $orderProvider;
 
@@ -35,12 +39,14 @@ final class CompletePayPalOrderAction
     public function __construct(
         PaymentStateManagerInterface $paymentStateManager,
         UrlGeneratorInterface $router,
+        PaymentProviderInterface $paymentProvider,
         OrderProviderInterface $orderProvider,
         FactoryInterface $stateMachineFactory,
         ObjectManager $orderManager
     ) {
         $this->paymentStateManager = $paymentStateManager;
         $this->router = $router;
+        $this->paymentProvider = $paymentProvider;
         $this->orderProvider = $orderProvider;
         $this->stateMachineFactory = $stateMachineFactory;
         $this->orderManager = $orderManager;
@@ -48,11 +54,10 @@ final class CompletePayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $id = (int) $request->attributes->get('id');
-        $order = $this->orderProvider->provideOrderById($id);
+        $id = $request->query->get('id');
+        $payment = $this->paymentProvider->getByPayPalOrderId($id);
+        $order = $payment->getOrder();
 
-        /** @var PaymentInterface $payment */
-        $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         $this->paymentStateManager->complete($payment);
 
         $stateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
