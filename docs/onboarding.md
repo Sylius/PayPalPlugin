@@ -2,7 +2,7 @@
 
 To be able to use the PayPal integration as a Store Owner, you need to onboard with your PayPal business account.
 
-> BEWARE
+#### BEWARE!
 
 Remember, that by default plugin is using a sandbox mode - so you need to onboard with a sandbox account.
 Check out [this chapter](sandbox-vs-live.md) for more information.
@@ -15,6 +15,13 @@ Check out [this chapter](sandbox-vs-live.md) for more information.
 
     ![](onboarding/step2.png)
     
+    #### BEWARE!
+
+    If you will encounter following error:
+    ![](onboarding/http-error.png)
+    Please ensure, that your website is accessible from the internet as described in [beware section of installation docs](installation.md#beware)
+    and that you are using https connection.
+
 1. Click the _Sign up for PayPal_ button (we will try to improve the UX here [soon](https://github.com/Sylius/PayPalPlugin/issues/114)):
 
     ![](onboarding/step3.png)
