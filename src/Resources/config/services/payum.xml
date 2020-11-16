@@ -34,7 +34,7 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction" public="true">
-            <tag name="payum.action" all="true" alias="sylius.resolve_next_route" />
+            <tag name="payum.action" factory="sylius.pay_pal" alias="sylius.resolve_next_route" />
         </service>
     </services>
 </container>

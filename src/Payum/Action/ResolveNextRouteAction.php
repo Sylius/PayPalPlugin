@@ -41,20 +41,6 @@ final class ResolveNextRouteAction implements ActionInterface
 
     public function supports($request)
     {
-        if (
-            !$request instanceof ResolveNextRoute ||
-            !$request->getFirstModel() instanceof PaymentInterface
-        ) {
-            return false;
-        }
-
-        /** @var PaymentInterface $model */
-        $model = $request->getFirstModel();
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $model->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        return $gatewayConfig->getFactoryName() === 'sylius.pay_pal';
+        return $request instanceof ResolveNextRoute && $request->getFirstModel() instanceof PaymentInterface;
     }
 }
