@@ -6,7 +6,7 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -54,8 +54,9 @@ final class CompletePayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $id = $request->query->get('id');
+        $id = (string) $request->query->get('id');
         $payment = $this->paymentProvider->getByPayPalOrderId($id);
+        /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
         $this->paymentStateManager->complete($payment);
