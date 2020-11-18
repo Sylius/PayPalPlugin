@@ -1,11 +1,5 @@
-sylius_paypal_plugin_pay_with_paypal_form:
-    path: /pay-with-paypal/{id}
-    methods: [GET]
-    defaults:
-        _controller: Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction
-
 sylius_paypal_plugin_create_paypal_order:
-    path: /create-pay-pal-order/{token}
+    path: /create-pay-pal-order/{id}
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction
@@ -17,7 +11,7 @@ sylius_paypal_plugin_create_paypal_order_from_cart:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction
 
 sylius_paypal_plugin_complete_paypal_order:
-    path: /complete-pay-pal-order/{token}
+    path: /complete-pay-pal-order
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction
@@ -115,12 +109,6 @@ sylius_paypal_plugin_cancel_payment:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction
-
-sylius_paypal_plugin_cancel_checkout_payment:
-    path: /cancel-pay-pal-checkout-payment
-    methods: [POST]
-    defaults:
-        _controller: Sylius\PayPalPlugin\Controller\CancelPayPalCheckoutPaymentAction
 
 sylius_paypal_plugin_payment_error:
     path: /pay-pal-payment-error
