@@ -26,6 +26,12 @@
             class="Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator"
         />
 
+        <service id="Sylius\PayPalPlugin\ApiPlatform\PayPalPayment">
+            <argument type="service" id="router" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface" />
+            <tag name="sylius.api.payment_method_handler" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
             <argument type="service" id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" />
             <argument type="service" id="router" />
