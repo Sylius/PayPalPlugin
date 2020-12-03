@@ -29,7 +29,7 @@
         <service id="Sylius\PayPalPlugin\ApiPlatform\PayPalPayment">
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface" />
-            <tag name="api.payment" />
+            <tag name="sylius.api.payment_method_handler" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
