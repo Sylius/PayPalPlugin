@@ -112,6 +112,17 @@ jobs:
                     (cd tests/Application && bin/console doctrine:migrations:migrate -n -vvv -q)
 
             -
+                name: Test migrations generation directory
+                run: |
+                    cp etc/travis/Order.php src/Entity
+                    cp etc/travis/resources.yaml tests/Application/config/packages/
+                    (cd tests/Application && bin/console doctrine:migrations:diff -q)
+                    COUNT=$(ls tests/Application/src/Migrations/ | wc -l)
+                    if [ $COUNT == 0 ]; then exit 1; fi
+                    rm src/Entity/Order.php
+                    rm tests/Application/config/packages/resources.yaml
+
+            -
                 name: Prepare test application assets
                 run: |
                     (cd tests/Application && bin/console assets:install public -vvv)
