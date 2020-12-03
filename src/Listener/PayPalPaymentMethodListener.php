@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Listener;
 
+use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
@@ -46,6 +47,10 @@ final class PayPalPaymentMethodListener
         /** @var PaymentMethodInterface $paymentMethod */
         Assert::isInstanceOf($paymentMethod, PaymentMethodInterface::class);
 
+        if (!$this->isNewPaymentMethodPayPal($paymentMethod)) {
+            return;
+        }
+
         if ($this->isTherePayPalPaymentMethod()) {
             $this->flashBag->add('error', 'sylius.pay_pal.more_than_one_seller_not_allowed');
 
@@ -59,6 +64,14 @@ final class PayPalPaymentMethodListener
         }
 
         $event->setResponse(new RedirectResponse($this->onboardingInitiator->initiate($paymentMethod)));
+    }
+
+    private function isNewPaymentMethodPayPal(PaymentMethodInterface $paymentMethod): bool
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return $gatewayConfig->getFactoryName() === 'sylius.pay_pal';
     }
 
     private function isTherePayPalPaymentMethod(): bool

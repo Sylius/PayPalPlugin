@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Admin;
 
 use Behat\Behat\Context\Context;
+use Behat\Mink\Exception\ElementNotFoundException;
+use Sylius\Behat\Exception\NotificationExpectationMismatchException;
 use Sylius\Behat\NotificationType;
 use Sylius\Behat\Page\Admin\Crud\IndexPageInterface;
 use Sylius\Behat\Page\Admin\PaymentMethod\CreatePageInterface;
@@ -66,5 +68,22 @@ final class ManagingPaymentMethodsContext implements Context
             'You cannot onboard more than one PayPal seller!',
             NotificationType::failure()
         );
+    }
+
+    /**
+     * @Then I should not be notified that I cannot onboard more than one PayPal seller
+     */
+    public function iShouldNotBeNotifiedThatICannotOnboardMoreThanOnePayPalSeller(): void
+    {
+        try {
+            $this->notificationChecker->checkNotification(
+                'You cannot onboard more than one PayPal seller!',
+                NotificationType::failure()
+            );
+        } catch (NotificationExpectationMismatchException|ElementNotFoundException $exception) {
+            return;
+        }
+
+        throw new \DomainException('Step should fail');
     }
 }
