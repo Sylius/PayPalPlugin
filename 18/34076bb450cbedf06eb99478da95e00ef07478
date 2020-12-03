@@ -1,0 +1,19 @@
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-12-03T10:14:56Z
+
+Thank you for the fix 🖖
+
+~It would also nice to express it in [this scenario](https://github.com/Sylius/PayPalPlugin/blob/master/features/trying_to_onboard_more_than_one_pay_pal_seller.feature), as it only represents the situation with PayPal already onboarded. We would need one scenario checking do get the error with PayPal seller already onboarded (the one we have) and the other one, checking can we create an offline PM. Do you think you would be able to give it a try?~
+
+~Also, it would be great if you could squash your commits, as 4 of them for such a small change is definitely too much 🖖 :)~
+
+EDIT: I've allowed myself to do that, I hope you don't mind :)
+
+Thank you one more time!
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-12-03T12:54:15Z
+
+Thanks, @tifed! :tada:
