@@ -42,7 +42,6 @@
         "vimeo/psalm": "3.11.4"
     },
     "conflict": {
-        "symplify/package-builder": "^8.3.24",
         "symfony/doctrine-bridge": "4.4.16"
     },
     "autoload": {
