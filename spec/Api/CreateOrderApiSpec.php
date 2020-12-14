@@ -56,6 +56,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
         $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $payPalItemDataProvider->provide($order)->willReturn([
             'items' => [
@@ -124,6 +125,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(9000);
         $order->getShippingTotal()->willReturn(1000);
         $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -201,6 +203,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(17000);
         $order->getShippingTotal()->willReturn(3000);
         $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -293,6 +296,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(12000);
         $order->getShippingTotal()->willReturn(1000);
         $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -389,6 +393,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(17400);
         $order->getShippingTotal()->willReturn(3000);
         $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -503,6 +508,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getItemsTotal()->willReturn(20000);
         $order->getShippingTotal()->willReturn(0);
         $order->isShippingRequired()->willReturn(false);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $payPalItemDataProvider->provide($order)->willReturn([
             'items' => [
