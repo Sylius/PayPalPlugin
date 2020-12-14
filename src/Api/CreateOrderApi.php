@@ -86,7 +86,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                             'discount' => [
                                 'currency_code' => $order->getCurrencyCode(),
                                 'value' => abs($order->getOrderPromotionTotal()) / 100,
-                            ]
+                            ],
                         ],
                     ],
                     'payee' => [
