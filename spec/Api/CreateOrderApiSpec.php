@@ -555,4 +555,76 @@ final class CreateOrderApiSpec extends ObjectBehavior
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
     }
+
+    function it_creates_pay_pal_order_with_promotion(
+        PayPalClientInterface $client,
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        PayPalItemDataProviderInterface $payPalItemDataProvider
+    ): void {
+        $payment->getOrder()->willReturn($order);
+        $payment->getAmount()->willReturn(2999);
+        $order->getCurrencyCode()->willReturn('PLN');
+        $order->getShippingAddress()->willReturn(null);
+        $order->getItemsTotal()->willReturn(2250);
+        $order->getShippingTotal()->willReturn(749);
+        $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(-250);
+
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => 25,
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => 0,
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => 25,
+            'total_tax' => 0,
+        ]);
+
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+
+        $gatewayConfig->getConfig()->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+        );
+
+        $client->post(
+            'v2/checkout/orders',
+            'TOKEN',
+            Argument::that(function (array $data): bool {
+                return
+                    $data['intent'] === 'CAPTURE' &&
+                    $data['purchase_units'][0]['invoice_number'] === 'REFERENCE-NUMBER' &&
+                    $data['purchase_units'][0]['amount']['value'] === 29.99 &&
+                    $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === 7.49 &&
+                    $data['purchase_units'][0]['amount']['breakdown']['item_total']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['item_total']['value'] === 25 &&
+                    $data['purchase_units'][0]['amount']['breakdown']['discount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['discount']['value'] === 2.5 &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 25 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
+                    ;
+            })
+        )->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+    }
 }
