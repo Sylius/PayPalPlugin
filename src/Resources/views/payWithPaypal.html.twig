@@ -216,7 +216,7 @@
                             <br/><label for='card-billing-address-street'>{{ 'sylius.ui.billing_address'|trans }}</label>
                             <br/><input type='text' id='card-billing-address-street' name='card-billing-address-street' autocomplete='off' placeholder='{{ 'sylius.ui.street'|trans }}' value="{{ billing_address.street }}"/>
                             <input type='text' id='card-billing-address-city' name='card-billing-address-city' autocomplete='off' placeholder='{{ 'sylius.ui.city'|trans }}' value="{{ billing_address.city }}"/>
-                            <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address.provinceName }}"/>
+                            <input type='text' id='card-billing-address-state' name='card-billing-address-state' autocomplete='off' placeholder='{{ 'sylius.ui.state'|trans }}' value="{{ billing_address|sylius_province_name }}"/>
                             <input type='text' id='card-billing-address-zip' name='card-billing-address-zip' autocomplete='off' placeholder='{{ 'sylius.ui.postcode'|trans }}' value="{{ billing_address.postcode }}"/>
                             <input type='text' id='card-billing-address-country' name='card-billing-address-country' autocomplete='off' placeholder='{{ 'sylius.ui.country'|trans }}' value="{{ billing_address.countryCode }}" />
                         </div>
