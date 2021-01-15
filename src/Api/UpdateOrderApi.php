@@ -74,6 +74,10 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                         'currency_code' => $order->getCurrencyCode(),
                         'value' => $payPalItemData['total_tax'],
                     ],
+                    'discount' => [
+                        'currency_code' => $order->getCurrencyCode(),
+                        'value' => abs($order->getOrderPromotionTotal()) / 100,
+                    ],
                 ],
             ],
             'payee' => [

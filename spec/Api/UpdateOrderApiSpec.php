@@ -58,6 +58,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $order->getTotal()->willReturn(1122);
         $order->getCurrencyCode()->willReturn('USD');
         $order->getShippingTotal()->willReturn(22);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('John Doe');
         $shippingAddress->getStreet()->willReturn('Main St. 123');
@@ -115,6 +116,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $order->getTotal()->willReturn(1122);
         $order->getCurrencyCode()->willReturn('USD');
         $order->getShippingTotal()->willReturn(0);
+        $order->getOrderPromotionTotal()->willReturn(0);
 
         $order->isShippingRequired()->willReturn(false);
 
