@@ -1,0 +1,9 @@
+sylius:
+    pay_pal:
+        more_than_one_seller_not_allowed: 'Vous ne pouvez ajouter plus d''un vendeur PayPal !'
+        order_cancelled: 'La commande PayPal a été annulée'
+        payment_cancelled: 'Le paiement PayPal a été annulé'
+        payment_enabled: 'Le paiement PayPal payment vient d''être activé.'
+        payment_not_enabled: 'Impossible d''activer le paiement PayPal. Merci de réessayer plus tard.'
+        something_went_wrong: 'Une erreur est survenue. Merci de réessayer.'
+        webhook_url_not_valid: 'PayPal n''a pas pu vérifier l''URL de webhook. Assurez vous qu''elle utilise HTTPS et réessayez.'
