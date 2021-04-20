@@ -21,4 +21,9 @@ final class LocaleProcessorSpec extends ObjectBehavior
         $this->process('ja_JP_TRADITIONAL')->shouldReturn('ja_JP_TRADITIONAL');
         $this->process('sd_Arab_PK')->shouldReturn('sd_Arab_PK');
     }
+
+    function it_returns_correct_locale_for_en_locale(): void
+    {
+        $this->process('en')->shouldReturn('en_EN');
+    }
 }
