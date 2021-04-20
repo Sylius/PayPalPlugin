@@ -17,11 +17,12 @@ final class LocaleProcessor implements LocaleProcessorInterface
         $locales = array_filter(Locales::getLocales(), function (string $targetLocale) use ($locale): bool {
             return
                 strpos($targetLocale, $locale) === 0 &&
-                strpos($targetLocale, '_') !== false
+                strpos($targetLocale, '_') !== false &&
+                strlen($targetLocale) === 5
             ;
         });
 
-        return $locales[array_key_first($locales)];
+        return preg_replace('/en_[A-Z]{2}/', 'en_US', $locales[array_key_first($locales)]);
     }
 
     private function isValidLocale(string $locale): bool

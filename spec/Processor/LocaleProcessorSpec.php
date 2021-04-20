@@ -24,6 +24,6 @@ final class LocaleProcessorSpec extends ObjectBehavior
 
     function it_returns_correct_locale_for_en_locale(): void
     {
-        $this->process('en')->shouldReturn('en_EN');
+        $this->process('en')->shouldReturn('en_US');
     }
 }
