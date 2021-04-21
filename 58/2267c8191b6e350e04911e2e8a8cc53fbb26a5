@@ -1,0 +1,23 @@
+---------------------------------------------------------------------------
+
+by Zales0123 at 2021-01-26T08:11:26Z
+
+The build is not passing due to problems on Sylius, I will merge it as soon as these problems are solved 🖖
+
+---------------------------------------------------------------------------
+
+by toofff at 2021-01-28T14:31:41Z
+
+I saw a problem in the configuration, do not merge for the moment please
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2021-04-21T09:20:37Z
+
+Hello, @toofff 🖖 I've rebased your PR and I think it's still a valid fix - according to our [Configuration file](https://github.com/Sylius/PayPalPlugin/blob/master/src/DependencyInjection/Configuration.php#L14), it should indeed be `sylius_pay_pal_plugin`
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2021-04-21T09:30:15Z
+
+Thank you, @toofff! :1st_place_medal:
