@@ -121,7 +121,7 @@
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
             <argument type="service" id="sm.factory" />
-            <argument type="service" id="fos_oauth_server.entity_manager" />
+            <argument type="service" id="sylius.manager.order" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
