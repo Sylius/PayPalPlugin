@@ -1,0 +1,17 @@
+---------------------------------------------------------------------------
+
+by armellarcier at 2020-12-08T16:45:41Z
+
+@Zales0123 composer analysis IS broken. Insights ?
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2020-12-14T15:37:45Z
+
+As far as I see, the problem is deeper :/ It's the same issue as here: https://github.com/Sylius/Sylius/issues/12017. Maybe we should fix it on the level of `sylius-labs/coding-standard`
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2021-04-21T09:27:58Z
+
+Thank you, Armel! :tada:
