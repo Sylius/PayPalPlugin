@@ -1,0 +1,23 @@
+sylius:
+    pay_pal:
+        back_to_store: 'Retour au magasin'
+        billing_info: 'Utiliser la même adresse de facturation que pour la commande'
+        client_id: 'Client ID'
+        client_secret: 'Client Secret'
+        credit_card: 'Carte de crédit'
+        credit_card_number: 'Numéro de carte'
+        cvv: 'CVV'
+        different_amount: 'Ceci est le montant autorisé. Etant donné que vous avez modifié la commande après son autorisation, vous paierez le montant indiqué comme "Total"'
+        enable_paypal: 'Activer PayPal'
+        expiration_date: 'Date d''expiration'
+        invalid_form: 'Le formulaire est invalide'
+        label: 'PayPal'
+        missing_billing_address_content: 'Merci de renseignez votre adresse'
+        missing_billing_address_header: 'Impossible de récupérer une adresse de facturation depuis PayPal'
+        pay_with_card: 'Payer par carte'
+        pay_with_pay_pal: 'Payer avec PayPal'
+        report: 'Rapport'
+        sftp_password: 'Mot de passe SFTP'
+        sftp_username: 'Identifiant SFTP'
+        share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
+        tender_type: 'Remboursé sur le porte-monnaie PayPal'

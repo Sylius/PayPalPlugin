@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Pay with PayPal</title>
+        <title>{{ 'sylius.pay_pal.pay_with_pay_pal'|trans }}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         {% block stylesheets %}
@@ -189,7 +189,7 @@
             <div class="header padding"><img draggable="false" id="sylius-logo" src="https://paypal.sylius.com/assets/img/logo.png" alt="logo"/></div>
             <div id="tabs" class="ui top attached tabular menu">
                 <div class="active item" data-tab="paypal">PayPal</div>
-                <div class="item" data-tab="card">Card</div>
+                <div class="item" data-tab="card">{{ 'sylius.pay_pal.credit_card'|trans }}</div>
             </div>
             <div class="ui bottom attached active tab segment" data-tab="paypal">
                 <div class="button-container padding">
