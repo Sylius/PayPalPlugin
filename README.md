@@ -9,6 +9,12 @@
         <img src="https://www.paypalobjects.com/webstatic/mktg/Logo/pp-logo-200px.png" width="200" />
     </a>
 </p>
+<br/>
+<p align="center">
+    <a href="https://sylius.com/plugins/" target="_blank">
+        <img src="https://sylius.com/assets/badge-official-sylius-plugin.png" width="150">
+    </a>
+</p>
 
 # PayPal Plugin
 
