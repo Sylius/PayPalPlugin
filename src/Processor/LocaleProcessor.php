@@ -14,10 +14,15 @@ final class LocaleProcessor implements LocaleProcessorInterface
             return $locale;
         }
 
+        if ($locale === 'en') {
+            return 'en_US';
+        }
+
         $locales = array_filter(Locales::getLocales(), function (string $targetLocale) use ($locale): bool {
             return
                 strpos($targetLocale, $locale) === 0 &&
-                strpos($targetLocale, '_') !== false
+                strpos($targetLocale, '_') !== false &&
+                strlen($targetLocale) === 5
             ;
         });
 
