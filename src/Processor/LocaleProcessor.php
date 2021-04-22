@@ -14,6 +14,10 @@ final class LocaleProcessor implements LocaleProcessorInterface
             return $locale;
         }
 
+        if ($locale === 'en') {
+            return 'en_US';
+        }
+
         $locales = array_filter(Locales::getLocales(), function (string $targetLocale) use ($locale): bool {
             return
                 strpos($targetLocale, $locale) === 0 &&
@@ -22,7 +26,7 @@ final class LocaleProcessor implements LocaleProcessorInterface
             ;
         });
 
-        return preg_replace('/en_[A-Z]{2}/', 'en_US', $locales[array_key_first($locales)]);
+        return $locales[array_key_first($locales)];
     }
 
     private function isValidLocale(string $locale): bool
