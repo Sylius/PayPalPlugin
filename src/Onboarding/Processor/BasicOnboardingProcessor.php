@@ -76,7 +76,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             'partner_attribution_id' => $response['partner_attribution_id'],
         ]);
 
-        $permissionsGranted = (bool) $request->query->get('permissionsGranted', true);
+        $permissionsGranted = $request->query->get('permissionsGranted') === null ? true : (bool) $request->query->get('permissionsGranted');
         if (!$permissionsGranted) {
             $paymentMethod->setEnabled(false);
         }
