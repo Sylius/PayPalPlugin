@@ -115,22 +115,18 @@ final class Kernel extends BaseKernel
         $routes->import($confDir . '/{routes}' . self::CONFIG_EXTS, '/', 'glob');
     }
 
-    /**
-     * @return BundleInterface[]
-     */
+    /** @return BundleInterface[] */
     private function registerBundlesFromFile(string $bundlesFile): iterable
     {
         $contents = require $bundlesFile;
-        foreach ($contents as $class => $envs) {
-            if (isset($envs['all']) || isset($envs[$this->environment])) {
+        foreach ($contents as $class => $environments) {
+            if (isset($environments['all']) || isset($environments[$this->environment])) {
                 yield new $class();
             }
         }
     }
 
-    /**
-     * @return string[]
-     */
+    /** @return string[] */
     private function getConfigurationDirectories(): iterable
     {
         yield $this->getProjectDir() . '/config';
