@@ -42,15 +42,15 @@ final class EnableSellerAction
         } catch (PaymentMethodCouldNotBeEnabledException $exception) {
             $flashBag->add('error', 'sylius.pay_pal.payment_not_enabled');
 
-            return new RedirectResponse($request->headers->get('referer'));
+            return new RedirectResponse((string) $request->headers->get('referer'));
         } catch (PayPalWebhookUrlNotValidException $exception) {
             $flashBag->add('error', 'sylius.pay_pal.webhook_url_not_valid');
 
-            return new RedirectResponse($request->headers->get('referer'));
+            return new RedirectResponse((string) $request->headers->get('referer'));
         }
 
         $flashBag->add('success', 'sylius.pay_pal.payment_enabled');
 
-        return new RedirectResponse($request->headers->get('referer'));
+        return new RedirectResponse((string) $request->headers->get('referer'));
     }
 }

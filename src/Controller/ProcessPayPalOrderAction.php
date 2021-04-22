@@ -85,7 +85,7 @@ final class ProcessPayPalOrderAction
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
-        $data = $this->getOrderDetails($request->request->get('payPalOrderId'), $payment);
+        $data = $this->getOrderDetails((string) $request->request->get('payPalOrderId'), $payment);
 
         /** @var CustomerInterface|null $customer */
         $customer = $order->getCustomer();
