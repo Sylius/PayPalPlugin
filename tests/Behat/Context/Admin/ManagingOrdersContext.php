@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Admin;
 
 use Behat\Behat\Context\Context;
-use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
 use Sylius\Behat\Page\Admin\Order\ShowPageInterface;
 use Sylius\Component\Core\Model\OrderInterface;

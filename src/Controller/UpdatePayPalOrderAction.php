@@ -56,7 +56,7 @@ final class UpdatePayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        $payment = $this->paymentProvider->getByPayPalOrderId($request->request->get('orderID'));
+        $payment = $this->paymentProvider->getByPayPalOrderId((string) $request->request->get('orderID'));
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
@@ -64,14 +64,17 @@ final class UpdatePayPalOrderAction
         $paymentMethod = $payment->getMethod();
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
+        /** @var array $shippingAddress */
+        $shippingAddress = $request->request->get('shipping_address');
+
         /** @var AddressInterface $address */
         $address = $this->addressFactory->createNew();
         $address->setFirstName('Temp');
         $address->setLastName('Temp');
         $address->setStreet('Temp');
-        $address->setCity($request->request->get('shipping_address')['city']);
-        $address->setPostcode($request->request->get('shipping_address')['postal_code']);
-        $address->setCountryCode($request->request->get('shipping_address')['country_code']);
+        $address->setCity((string) $shippingAddress['city']);
+        $address->setPostcode((string) $shippingAddress['postal_code']);
+        $address->setCountryCode((string) $shippingAddress['country_code']);
         $order->setBillingAddress($address);
         $order->setShippingAddress($address);
 
@@ -82,7 +85,7 @@ final class UpdatePayPalOrderAction
 
         $response = $this->updateOrderApi->update(
             $token,
-            $request->request->get('orderID'),
+            (string) $request->request->get('orderID'),
             $payment,
             $payment->getDetails()['reference_id'],
             $gatewayConfig->getConfig()['merchant_id'],
