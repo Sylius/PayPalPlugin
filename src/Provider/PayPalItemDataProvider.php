@@ -36,8 +36,8 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
             foreach ($nonNeutralTaxes as $nonNeutralTax) {
                 $displayQuantity = $nonNeutralTaxes === [0] ? $orderItem->getQuantity() : 1;
                 $itemValue = $orderItem->getUnitPrice();
-                $itemData['total_item_value'] += ($itemValue * $displayQuantity) / 100;
-                $itemData['total_tax'] += ($nonNeutralTax * $displayQuantity) / 100;
+                $itemData['total_item_value'] += $itemValue * $displayQuantity;
+                $itemData['total_tax'] += $nonNeutralTax * $displayQuantity;
 
                 $itemData['items'][] = [
                     'name' => $orderItem->getProductName(),
@@ -53,6 +53,9 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
                 ];
             }
         }
+
+        $itemData['total_item_value'] /= 100;
+        $itemData['total_tax'] /= 100;
 
         return $itemData;
     }
