@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
 use GuzzleHttp\ClientInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
@@ -44,8 +43,6 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         }
 
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        /** @var GatewayConfig $gatewayConfig */
         Assert::notNull($gatewayConfig);
 
         $onboardingId = (string) $request->query->get('onboarding_id');
