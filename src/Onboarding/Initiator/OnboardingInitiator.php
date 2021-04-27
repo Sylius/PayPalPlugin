@@ -6,6 +6,7 @@ namespace Sylius\PayPalPlugin\Onboarding\Initiator;
 
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\UrlUtils;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Security;
 
@@ -36,7 +37,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
         /** @var AdminUserInterface $user */
         $user = $this->security->getUser();
 
-        return append_query_string(
+        return UrlUtils::appendQueryString(
             $this->createPartnerReferralsUrl,
             http_build_query([
                 'email' => $user->getEmail(),
@@ -44,7 +45,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
                     'factory' => 'sylius.pay_pal',
                 ], UrlGeneratorInterface::ABSOLUTE_URL),
             ]),
-            APPEND_QUERY_STRING_REPLACE_DUPLICATE
+            UrlUtils::APPEND_QUERY_STRING_REPLACE_DUPLICATE
         );
     }
 
