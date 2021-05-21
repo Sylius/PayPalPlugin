@@ -63,6 +63,7 @@
             class="Sylius\PayPalPlugin\Provider\PaymentProvider"
         >
             <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="sylius.repository.order" />
         </service>
 
         <service
