@@ -43,7 +43,8 @@
     },
     "conflict": {
         "symfony/doctrine-bridge": "4.4.16",
-        "doctrine/doctrine-bundle": "2.3.0"
+        "doctrine/doctrine-bundle": "2.3.0",
+        "sylius/invoicing-plugin": "<0.16.0"
     },
     "autoload": {
         "psr-4": {
