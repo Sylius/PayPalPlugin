@@ -76,25 +76,6 @@ final class Kernel extends BaseKernel
         return parent::getContainerBaseClass();
     }
 
-    protected function getContainerLoader(ContainerInterface $container): LoaderInterface
-    {
-        /** @var ContainerBuilder $container */
-        Assert::isInstanceOf($container, ContainerBuilder::class);
-
-        $locator = new FileLocator($this, $this->getProjectDir() . '/Resources');
-        $resolver = new LoaderResolver(array(
-            new XmlFileLoader($container, $locator),
-            new YamlFileLoader($container, $locator),
-            new IniFileLoader($container, $locator),
-            new PhpFileLoader($container, $locator),
-            new GlobFileLoader($container, $locator),
-            new DirectoryLoader($container, $locator),
-            new ClosureLoader($container),
-        ));
-
-        return new DelegatingLoader($resolver);
-    }
-
     private function isTestEnvironment(): bool
     {
         return 0 === strpos($this->getEnvironment(), 'test');
