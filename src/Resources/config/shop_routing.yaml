@@ -116,6 +116,12 @@ sylius_paypal_plugin_cancel_payment:
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction
 
+sylius_paypal_plugin_cancel_last_payment:
+    path: /order/{token}/cancel-last-pay-pal-payment
+    methods: [GET]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\CancelLastPayPalPaymentAction
+
 sylius_paypal_plugin_cancel_checkout_payment:
     path: /cancel-pay-pal-checkout-payment
     methods: [POST]

@@ -238,6 +238,13 @@
         let updatePayPalOrderUrl = "{{ path('sylius_paypal_plugin_update_paypal_order') }}";
         let validForm = false;
         let invalidFormMessage = "{{ 'sylius.pay_pal.invalid_form'|trans }}";
+        let cancelPreviousPaymentUrl = "{{ path('sylius_paypal_plugin_cancel_last_payment', {'token': order_token}) }}";
+
+        window.addEventListener("beforeunload", function(event) {
+            fetch (cancelPreviousPaymentUrl, {
+                method: 'get'
+            })
+        });
 
         paypal.Buttons({
             locale: '{{ locale }}',
