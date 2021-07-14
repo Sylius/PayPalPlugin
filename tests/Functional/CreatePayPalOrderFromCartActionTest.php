@@ -11,7 +11,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     /** @test */
     function it_creates_pay_pal_order_from_cart_and_returns_its_data(): void
     {
-        $order = $this->loadFixturesFromFile('resources/new_cart.yaml');
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
         /** @var int $orderId */
         $orderId = $order['new_cart']->getId();
 

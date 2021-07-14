@@ -11,7 +11,7 @@ final class CreatePayPalOrderActionTest extends JsonApiTestCase
     /** @test */
     function it_creates_pay_pal_order_and_returns_its_data(): void
     {
-        $this->loadFixturesFromFile('resources/new_order.yaml');
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
         $this->client->request('POST', '/en_US/create-pay-pal-order/TOKEN');
 

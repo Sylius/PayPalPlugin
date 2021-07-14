@@ -1,0 +1,111 @@
+Sylius\Component\Core\Model\Product:
+    mug:
+        code: "MUG"
+        channels: ["@channel_web"]
+        currentLocale: "en_US"
+        translations:
+            en_US: "@mug_translation"
+
+Sylius\Component\Core\Model\ProductTranslation:
+    mug_translation:
+        slug: "mug"
+        locale: "en_US"
+        name: "Mug"
+        description: "<paragraph(2)>"
+        translatable: "@mug"
+
+Sylius\Component\Core\Model\ProductVariant:
+    mug_sw:
+        code: "MUG_SW"
+        product: "@mug"
+        currentLocale: "en_US"
+        translations:
+            en_US: "@sw_mug_translation"
+        updatedAt: "<(new \\DateTime('2015-10-10'))>"
+        channelPricings:
+            WEB: "@sw_mug_web_channel_pricing"
+    mug_lotr:
+        code: "MUG_LOTR"
+        product: "@mug"
+        currentLocale: "en_US"
+        translations:
+            en_US: "@lotr_mug_translation"
+        updatedAt: "<(new \\DateTime('2015-10-04'))>"
+        channelPricings:
+            WEB: "@lotr_mug_web_channel_pricing"
+
+Sylius\Component\Product\Model\ProductVariantTranslation:
+    sw_mug_translation:
+        locale: "en_US"
+        name: "Star wars mug"
+        translatable: "@mug_sw"
+    lotr_mug_translation:
+        locale: "en_US"
+        name: "Lotr mug"
+        translatable: "@mug_lotr"
+
+Sylius\Component\Core\Model\Channel:
+    channel_web:
+        code: "WEB"
+        name: "Web Channel"
+        hostname: "localhost"
+        description: "Lorem ipsum"
+        baseCurrency: "@currency"
+        defaultLocale: "@locale"
+        locales: ["@locale"]
+        color: "black"
+        enabled: true
+        taxCalculationStrategy: "order_items_based"
+
+Sylius\Component\Currency\Model\Currency:
+    currency:
+        code: "USD"
+
+Sylius\Component\Locale\Model\Locale:
+    locale:
+        code: "en_US"
+
+Sylius\Component\Core\Model\Customer:
+    customer_oliver:
+        firstName: "Oliver"
+        lastName: "Queen"
+        email: "oliver.queen@star-city.com"
+        emailCanonical: "oliver.queen@star-city.com"
+        birthday: "<(new \\DateTime())>"
+
+Sylius\Component\Core\Model\ChannelPricing:
+    sw_mug_web_channel_pricing:
+        channelCode: "WEB"
+        price: 20
+    lotr_mug_web_channel_pricing:
+        channelCode: "WEB"
+        price: 20
+
+Sylius\Component\Core\Model\PaymentMethod:
+    paypal:
+        code: PAYPAL
+        enabled: true
+        gatewayConfig: "@paypal_config"
+        currentLocale: en_US
+        translations:
+            - "@paypal_translation"
+        channels: ["@channel_web"]
+
+Sylius\Bundle\PayumBundle\Model\GatewayConfig:
+    paypal_config:
+        gatewayName: "paypal"
+        factoryName: "sylius.pay_pal"
+        config:
+            client_id: "CLIENT_ID"
+            client_secret: "CLIENT_SECRET"
+            merchant_id: "MERCHANT_ID"
+            sylius_merchant_id: "SYLIUS_MERCHANT_ID"
+            partner_attribution_id: "PARTNER_ATTRIBUTION_ID"
+            use_authorize: true
+
+Sylius\Component\Payment\Model\PaymentMethodTranslation:
+    paypal_translation:
+        name: "PayPal"
+        locale: "en_US"
+        description: <paragraph(2)>
+        translatable: "@paypal"
