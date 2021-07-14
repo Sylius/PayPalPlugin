@@ -33,15 +33,6 @@ Sylius\Component\Core\Model\ProductVariant:
         updatedAt: "<(new \\DateTime('2015-10-04'))>"
         channelPricings:
             WEB: "@lotr_mug_web_channel_pricing"
-    mug_bb:
-        code: "MUG_BB"
-        product: "@mug"
-        currentLocale: "en_US"
-        translations:
-            en_US: "@bb_mug_translation"
-        updatedAt: "<(new \\DateTime('2015-10-05'))>"
-        channelPricings:
-            WEB: "@bb_mug_web_channel_pricing"
 
 Sylius\Component\Product\Model\ProductVariantTranslation:
     sw_mug_translation:
@@ -52,20 +43,16 @@ Sylius\Component\Product\Model\ProductVariantTranslation:
         locale: "en_US"
         name: "Lotr mug"
         translatable: "@mug_lotr"
-    bb_mug_translation:
-        locale: "en_US"
-        name: "Breaking bad mug"
-        translatable: "@mug_bb"
 
 Sylius\Component\Core\Model\Order:
-    cart_with_items:
+    new_cart:
         channel: "@channel_web"
         items: ["@sw_mug_item"]
         currencyCode: "USD"
         localeCode: "en_US"
         customer: "@customer_oliver"
-        state: "new"
-        checkoutState: "completed"
+        state: "cart"
+        checkoutState: "shipping_selected"
         tokenValue: "TOKEN"
         payments: ["@paypal_payment"]
 
@@ -73,7 +60,7 @@ Sylius\Component\Core\Model\OrderItem:
     sw_mug_item:
         units: ["@sw_mug_item_unit1", "@sw_mug_item_unit2"]
         variant: "@mug_sw"
-        order: "@cart_with_items"
+        order: "@new_cart"
 
 Sylius\Component\Core\Model\OrderItemUnit:
     sw_mug_item_unit1:
@@ -86,7 +73,7 @@ Sylius\Component\Core\Model\Payment:
         method: "@paypal"
         currencyCode: "USD"
         amount: 40
-        state: "new"
+        state: "cart"
 
 Sylius\Component\Core\Model\Channel:
     channel_web:
@@ -122,9 +109,6 @@ Sylius\Component\Core\Model\ChannelPricing:
         channelCode: "WEB"
         price: 20
     lotr_mug_web_channel_pricing:
-        channelCode: "WEB"
-        price: 20
-    bb_mug_web_channel_pricing:
         channelCode: "WEB"
         price: 20
 

@@ -9,7 +9,6 @@ sylius_paypal_plugin_create_paypal_order:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction
-        _format: json
 
 sylius_paypal_plugin_create_paypal_order_from_cart:
     path: /create-pay-pal-order-from-cart/{id}
