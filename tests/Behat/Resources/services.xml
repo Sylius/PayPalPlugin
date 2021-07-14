@@ -48,35 +48,5 @@
         </service>
 
         <service id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage" parent="sylius.behat.page.shop.checkout.select_payment" public="false"/>
-
-        <service
-            id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface"
-            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyPayoutsReportDownloader"
-        />
-
-        <service
-            id="Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface"
-            class="Tests\Sylius\PayPalPlugin\Behat\Service\VoidPayPalPaymentCompleteProcessor"
-        />
-
-        <service
-            id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface"
-            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyAuthorizeClientApi"
-        />
-
-        <service
-            id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface"
-            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyOrderDetailsApi"
-        />
-
-        <service
-            id="Sylius\PayPalPlugin\Api\RefundPaymentApiInterface"
-            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyRefundPaymentApi"
-        />
-
-        <service
-            id="Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface"
-            class="Tests\Sylius\PayPalPlugin\Behat\Service\DummyPayPalRefundDataProvider"
-        />
     </services>
 </container>
