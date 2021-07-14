@@ -1,3 +1,25 @@
 imports:
     - { resource: "../../../vendor/sylius/sylius/src/Sylius/Behat/Resources/config/services.xml" }
     - { resource: "../../Behat/Resources/services.xml" }
+
+services:
+    Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\DummyPayoutsReportDownloader
+
+    Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\VoidPayPalPaymentCompleteProcessor
+
+    Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\DummyAuthorizeClientApi
+
+    Sylius\PayPalPlugin\Api\OrderDetailsApiInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi
+
+    Sylius\PayPalPlugin\Api\RefundPaymentApiInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi
+
+    Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\DummyPayPalRefundDataProvider
+
+    Sylius\PayPalPlugin\Api\CreateOrderApiInterface:
+        class: Tests\Sylius\PayPalPlugin\Service\FakeCreateOrderApi
