@@ -1,0 +1,30 @@
+Sylius\Component\Core\Model\Order:
+    new_cart:
+        channel: "@channel_web"
+        items: ["@sw_mug_item"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        state: "cart"
+        checkoutState: "shipping_selected"
+        tokenValue: "TOKEN"
+        payments: ["@paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    sw_mug_item:
+        units: ["@sw_mug_item_unit1", "@sw_mug_item_unit2"]
+        variant: "@mug_sw"
+        order: "@new_cart"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    sw_mug_item_unit1:
+        __construct: ["@sw_mug_item"]
+    sw_mug_item_unit2:
+        __construct: ["@sw_mug_item"]
+
+Sylius\Component\Core\Model\Payment:
+    paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 40
+        state: "cart"
