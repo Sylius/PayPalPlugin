@@ -27,7 +27,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             10000,
             1000,
             80,
-            1000,
+            10,
             0,
             'MERCHANT_ID',
             [['test_item']],
@@ -45,7 +45,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
         $shippingAddress->getPostcode()->willReturn('000');
         $shippingAddress->getCountryCode()->willReturn('US');
 
-        $this->data()->shouldReturn(
+        $this->toArray()->shouldReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
                 'invoice_number' => 'INVOICE_NUMBER',
@@ -59,11 +59,11 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                         ],
                         'item_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 80,
+                            'value' => 80.0,
                         ],
                         'tax_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10,
+                            'value' => 10.0,
                         ],
                         'discount' => [
                             'currency_code' => 'CURRENCY_CODE',
@@ -102,7 +102,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             10000,
             1000,
             80,
-            1000,
+            10,
             0,
             'MERCHANT_ID',
             [['test_item']],
@@ -110,7 +110,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             $shippingAddress
         );
 
-        $this->data()->shouldReturn(
+        $this->toArray()->shouldReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
                 'invoice_number' => 'INVOICE_NUMBER',
@@ -124,11 +124,11 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                         ],
                         'item_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 80,
+                            'value' => 80.0,
                         ],
                         'tax_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10,
+                            'value' => 10.0,
                         ],
                         'discount' => [
                             'currency_code' => 'CURRENCY_CODE',
@@ -156,7 +156,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             10000,
             1000,
             80,
-            1000,
+            10,
             0,
             'MERCHANT_ID',
             [['test_item']],
@@ -164,7 +164,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             null
         );
 
-        $this->data()->shouldReturn(
+        $this->toArray()->shouldReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
                 'invoice_number' => 'INVOICE_NUMBER',
@@ -178,11 +178,11 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                         ],
                         'item_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 80,
+                            'value' => 80.0,
                         ],
                         'tax_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10,
+                            'value' => 10.0,
                         ],
                         'discount' => [
                             'currency_code' => 'CURRENCY_CODE',

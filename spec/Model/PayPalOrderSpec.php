@@ -33,7 +33,7 @@ final class PayPalOrderSpec extends ObjectBehavior
         $order->isShippingRequired()->willReturn(true);
         $order->getShippingAddress()->willReturn($shippingAddress);
 
-        $payPalPurchaseUnit->data()->willReturn(
+        $payPalPurchaseUnit->toArray()->willReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
                 'invoice_number' => 'INVOICE_NUMBER',
@@ -80,7 +80,7 @@ final class PayPalOrderSpec extends ObjectBehavior
             ],
         );
 
-        $this->data()->shouldReturn(
+        $this->toArray()->shouldReturn(
             [
                 'intent' => 'CAPTURE',
                 'purchase_units' => [
@@ -143,7 +143,7 @@ final class PayPalOrderSpec extends ObjectBehavior
         $order->isShippingRequired()->willReturn(true);
         $order->getShippingAddress()->willReturn(null);
 
-        $payPalPurchaseUnit->data()->willReturn(
+        $payPalPurchaseUnit->toArray()->willReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
                 'invoice_number' => 'INVOICE_NUMBER',
@@ -179,7 +179,7 @@ final class PayPalOrderSpec extends ObjectBehavior
             ],
         );
 
-        $this->data()->shouldReturn(
+        $this->toArray()->shouldReturn(
             [
                 'intent' => 'CAPTURE',
                 'purchase_units' => [
@@ -231,7 +231,7 @@ final class PayPalOrderSpec extends ObjectBehavior
         $order->isShippingRequired()->willReturn(false);
         $order->getShippingAddress()->shouldNotBeCalled();
 
-        $payPalPurchaseUnit->data()->willReturn(
+        $payPalPurchaseUnit->toArray()->willReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
                 'invoice_number' => 'INVOICE_NUMBER',
@@ -267,7 +267,7 @@ final class PayPalOrderSpec extends ObjectBehavior
             ],
         );
 
-        $this->data()->shouldReturn(
+        $this->toArray()->shouldReturn(
             [
                 'intent' => 'CAPTURE',
                 'purchase_units' => [
