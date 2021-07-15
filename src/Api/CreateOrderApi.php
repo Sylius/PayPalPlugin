@@ -18,12 +18,16 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
 {
+    const PAYPAL_INTENT_CAPTURE = 'CAPTURE';
+
     /** @var PayPalClientInterface */
     private $client;
 
@@ -61,61 +65,23 @@ final class CreateOrderApi implements CreateOrderApiInterface
         Assert::keyExists($config, 'merchant_id');
         Assert::keyExists($config, 'sylius_merchant_id');
 
-        $data = [
-            'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'reference_id' => $referenceId,
-                    'invoice_number' => $this->paymentReferenceNumberProvider->provide($payment),
-                    'amount' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => (int) $payment->getAmount() / 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => $order->getCurrencyCode(),
-                                'value' => $order->getShippingTotal() / 100,
-                            ],
-                            'item_total' => [
-                                'currency_code' => $order->getCurrencyCode(),
-                                'value' => $payPalItemData['total_item_value'],
-                            ],
-                            'tax_total' => [
-                                'currency_code' => $order->getCurrencyCode(),
-                                'value' => $payPalItemData['total_tax'],
-                            ],
-                            'discount' => [
-                                'currency_code' => $order->getCurrencyCode(),
-                                'value' => abs($order->getOrderPromotionTotal()) / 100,
-                            ],
-                        ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => $config['merchant_id'],
-                    ],
-                    'soft_descriptor' => 'Sylius PayPal Payment',
-                    'items' => $payPalItemData['items'],
-                ],
-            ],
-            'application_context' => [
-                'shipping_preference' => $order->isShippingRequired() ? 'GET_FROM_FILE' : 'NO_SHIPPING',
-            ],
-        ];
+        $payPalPurchaseUnit = new PayPalPurchaseUnit(
+            $referenceId,
+            $this->paymentReferenceNumberProvider->provide($payment),
+            (string) $order->getCurrencyCode(),
+            (int) $payment->getAmount(),
+            $order->getShippingTotal(),
+            (float) $payPalItemData['total_item_value'],
+            (float) $payPalItemData['total_tax'],
+            $order->getOrderPromotionTotal(),
+            (string) $config['merchant_id'],
+            (array) $payPalItemData['items'],
+            $order->isShippingRequired(),
+            $order->getShippingAddress()
+        );
 
-        $address = $order->getShippingAddress();
-        if ($address !== null && $order->isShippingRequired()) {
-            $data['purchase_units'][0]['shipping'] = [
-                'name' => ['full_name' => $address->getFullName()],
-                'address' => [
-                    'address_line_1' => $address->getStreet(),
-                    'admin_area_2' => $address->getCity(),
-                    'postal_code' => $address->getPostcode(),
-                    'country_code' => $address->getCountryCode(),
-                ],
-            ];
+        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);
 
-            $data['application_context']['shipping_preference'] = 'SET_PROVIDED_ADDRESS';
-        }
-
-        return $this->client->post('v2/checkout/orders', $token, $data);
+        return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }
 }

@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
@@ -55,49 +56,20 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
 
         $payPalItemData = $this->payPalItemsDataProvider->provide($order);
 
-        $data = [
-            'reference_id' => $referenceId,
-            'invoice_number' => $this->paymentReferenceNumberProvider->provide($payment),
-            'amount' => [
-                'currency_code' => $order->getCurrencyCode(),
-                'value' => (string) ($order->getTotal() / 100),
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => (string) ($order->getShippingTotal() / 100),
-                    ],
-                    'item_total' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => $payPalItemData['total_item_value'],
-                    ],
-                    'tax_total' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => $payPalItemData['total_tax'],
-                    ],
-                    'discount' => [
-                        'currency_code' => $order->getCurrencyCode(),
-                        'value' => abs($order->getOrderPromotionTotal()) / 100,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => $merchantId,
-            ],
-            'soft_descriptor' => 'Sylius PayPal Payment',
-            'items' => $payPalItemData['items'],
-        ];
-
-        if ($order->isShippingRequired()) {
-            $data['shipping'] = [
-                'name' => ['full_name' => $address->getFullName()],
-                'address' => [
-                    'address_line_1' => $address->getStreet(),
-                    'admin_area_2' => $address->getCity(),
-                    'postal_code' => $address->getPostcode(),
-                    'country_code' => $address->getCountryCode(),
-                ],
-            ];
-        }
+        $data = new PayPalPurchaseUnit(
+            $referenceId,
+            $this->paymentReferenceNumberProvider->provide($payment),
+            (string) $order->getCurrencyCode(),
+            (int) $payment->getAmount(),
+            $order->getShippingTotal(),
+            (float) $payPalItemData['total_item_value'],
+            (float) $payPalItemData['total_tax'],
+            $order->getOrderPromotionTotal(),
+            $merchantId,
+            (array) $payPalItemData['items'],
+            $order->isShippingRequired(),
+            $order->getShippingAddress()
+        );
 
         return $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
@@ -106,7 +78,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                 [
                     'op' => 'replace',
                     'path' => sprintf('/purchase_units/@reference_id==\'%s\'', $referenceId),
-                    'value' => $data,
+                    'value' => $data->toArray(),
                 ],
             ]
         );
