@@ -43,8 +43,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         if (!$container->hasExtension('doctrine_migrations') || !$container->hasExtension('sylius_labs_doctrine_migrations_extra')) {
             return;
         }
-        
-        
+
         if (
             $container->hasParameter('sylius_core.prepend_doctrine_migrations') &&
             !$container->getParameter('sylius_core.prepend_doctrine_migrations')
