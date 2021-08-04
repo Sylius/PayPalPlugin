@@ -34,6 +34,7 @@
                 <file name="src/Controller/ProcessPayPalOrderAction.php"/>
                 <file name="src/Payum/Action/CompleteOrderAction.php"/>
                 <file name="src/Controller/UpdatePayPalOrderAction.php"/>
+                <file name="src/DependencyInjection/SyliusPayPalExtension.php"/>
             </errorLevel>
         </MixedArgument>
 
