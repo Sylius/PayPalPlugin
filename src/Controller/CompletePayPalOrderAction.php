@@ -14,14 +14,11 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CompletePayPalOrderAction
 {
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
+    private PaymentStateManagerInterface $paymentStateManager;
 
-    /** @var UrlGeneratorInterface */
-    private $router;
+    private UrlGeneratorInterface $router;
 
-    /** @var OrderProviderInterface */
-    private $orderProvider;
+    private OrderProviderInterface $orderProvider;
 
     public function __construct(
         PaymentStateManagerInterface $paymentStateManager,

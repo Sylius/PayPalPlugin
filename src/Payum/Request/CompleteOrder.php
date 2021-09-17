@@ -8,8 +8,7 @@ use Payum\Core\Request\Generic;
 
 class CompleteOrder extends Generic
 {
-    /** @var string */
-    private $orderId;
+    private string $orderId;
 
     public function __construct($model, string $orderId)
     {

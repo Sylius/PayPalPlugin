@@ -27,29 +27,21 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
-    /** @var ClientInterface */
-    private $client;
+    private ClientInterface $client;
 
-    /** @var LoggerInterface */
-    private $logger;
+    private LoggerInterface $logger;
 
-    /** @var UuidProviderInterface */
-    private $uuidProvider;
+    private UuidProviderInterface $uuidProvider;
 
-    /** @var PayPalConfigurationProviderInterface */
-    private $payPalConfigurationProvider;
+    private PayPalConfigurationProviderInterface $payPalConfigurationProvider;
 
-    /** @var ChannelContextInterface */
-    private $channelContext;
+    private ChannelContextInterface $channelContext;
 
-    /** @var string */
-    private $baseUrl;
+    private string $baseUrl;
 
-    /** @var int */
-    private $requestTrialsLimit;
+    private int $requestTrialsLimit;
 
-    /** @var bool */
-    private $loggingLevelIncreased;
+    private bool $loggingLevelIncreased;
 
     public function __construct(
         ClientInterface $client,

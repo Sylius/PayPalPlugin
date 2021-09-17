@@ -14,14 +14,11 @@ use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 final class PaymentStateManager implements PaymentStateManagerInterface
 {
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
+    private FactoryInterface $stateMachineFactory;
 
-    /** @var ObjectManager */
-    private $paymentManager;
+    private ObjectManager $paymentManager;
 
-    /** @var PaymentCompleteProcessorInterface */
-    private $paypalPaymentCompleteProcessor;
+    private PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor;
 
     public function __construct(
         FactoryInterface $stateMachineFactory,

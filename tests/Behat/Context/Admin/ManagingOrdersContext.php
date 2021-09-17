@@ -18,20 +18,15 @@ use Webmozart\Assert\Assert;
 
 final class ManagingOrdersContext implements Context
 {
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
+    private FactoryInterface $stateMachineFactory;
 
-    /** @var ObjectManager */
-    private $objectManager;
+    private ObjectManager $objectManager;
 
-    /** @var KernelBrowser */
-    private $client;
+    private KernelBrowser $client;
 
-    /** @var ShowPageInterface */
-    private $showPage;
+    private ShowPageInterface $showPage;
 
-    /** @var int */
-    private $refundAmount;
+    private ?int $refundAmount = null;
 
     public function __construct(
         FactoryInterface $stateMachineFactory,

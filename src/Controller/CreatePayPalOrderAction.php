@@ -18,26 +18,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class CreatePayPalOrderAction
 {
-    /** @var Payum */
-    private $payum;
+    private Payum $payum;
 
-    /** @var OrderRepositoryInterface */
-    private $orderRepository;
+    private OrderRepositoryInterface $orderRepository;
 
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
+    private FactoryInterface $stateMachineFactory;
 
-    /** @var ObjectManager */
-    private $paymentManager;
+    private ObjectManager $paymentManager;
 
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
+    private PaymentStateManagerInterface $paymentStateManager;
 
-    /** @var OrderProviderInterface */
-    private $orderProvider;
+    private OrderProviderInterface $orderProvider;
 
-    /** @var CapturePaymentResolverInterface */
-    private $capturePaymentResolver;
+    private CapturePaymentResolverInterface $capturePaymentResolver;
 
     public function __construct(
         Payum $payum,

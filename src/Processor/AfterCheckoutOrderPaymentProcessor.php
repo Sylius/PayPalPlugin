@@ -12,8 +12,7 @@ use Webmozart\Assert\Assert;
 
 final class AfterCheckoutOrderPaymentProcessor implements OrderProcessorInterface
 {
-    /** @var OrderProcessorInterface */
-    private $baseAfterCheckoutOrderPaymentProcessor;
+    private OrderProcessorInterface $baseAfterCheckoutOrderPaymentProcessor;
 
     public function __construct(OrderProcessorInterface $baseAfterCheckoutOrderPaymentProcessor)
     {

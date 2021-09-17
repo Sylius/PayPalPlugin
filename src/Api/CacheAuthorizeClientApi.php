@@ -23,17 +23,13 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
 {
-    /** @var ObjectManager */
-    private $payPalCredentialsManager;
+    private ObjectManager $payPalCredentialsManager;
 
-    /** @var ObjectRepository */
-    private $payPalCredentialsRepository;
+    private ObjectRepository $payPalCredentialsRepository;
 
-    /** @var AuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private AuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var UuidProviderInterface */
-    private $uuidProvider;
+    private UuidProviderInterface $uuidProvider;
 
     public function __construct(
         ObjectManager $payPalCredentialsManager,

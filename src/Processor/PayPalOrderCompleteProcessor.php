@@ -12,8 +12,7 @@ use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 
 final class PayPalOrderCompleteProcessor
 {
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
+    private PaymentStateManagerInterface $paymentStateManager;
 
     public function __construct(PaymentStateManagerInterface $paymentStateManager)
     {

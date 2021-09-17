@@ -11,8 +11,7 @@ use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 
 final class PayPalPaymentMethodProvider implements PayPalPaymentMethodProviderInterface
 {
-    /** @var PaymentMethodRepositoryInterface */
-    private $paymentMethodRepository;
+    private PaymentMethodRepositoryInterface $paymentMethodRepository;
 
     public function __construct(PaymentMethodRepositoryInterface $paymentMethodRepository)
     {

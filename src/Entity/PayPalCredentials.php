@@ -23,41 +23,33 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 class PayPalCredentials implements PayPalCredentialsInterface
 {
     /**
-     * @var string
      *
      * @ORM\Id
      * @ORM\Column(type="string")
      */
-    private $id;
+    private string $id;
 
     /**
-     * @var PaymentMethodInterface
      *
      * @ORM\ManyToOne(targetEntity="Sylius\Component\Core\Model\PaymentMethodInterface")
      * @ORM\JoinColumn(name="payment_method_id", referencedColumnName="id")
      */
-    private $paymentMethod;
+    private PaymentMethodInterface $paymentMethod;
 
     /**
-     * @var string
-     *
      * @ORM\Column(type="string", name="access_token")
      */
-    private $accessToken;
+    private string $accessToken;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(type="datetime", name="creation_time")
      */
-    private $creationTime;
+    private \DateTime $creationTime;
 
     /**
-     * @var \DateTime
-     *
      * @ORM\Column(type="datetime", name="expiration_time")
      */
-    private $expirationTime;
+    private \DateTime $expirationTime;
 
     public function __construct(
         string $id,

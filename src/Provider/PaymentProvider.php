@@ -19,8 +19,7 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 
 final class PaymentProvider implements PaymentProviderInterface
 {
-    /** @var PaymentRepositoryInterface */
-    private $paymentRepository;
+    private PaymentRepositoryInterface $paymentRepository;
 
     public function __construct(PaymentRepositoryInterface $paymentRepository)
     {

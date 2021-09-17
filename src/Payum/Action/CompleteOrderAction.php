@@ -31,29 +31,21 @@ use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final class CompleteOrderAction implements ActionInterface
 {
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var UpdateOrderApiInterface */
-    private $updateOrderApi;
+    private UpdateOrderApiInterface $updateOrderApi;
 
-    /** @var CompleteOrderApiInterface */
-    private $completeOrderApi;
+    private CompleteOrderApiInterface $completeOrderApi;
 
-    /** @var OrderDetailsApiInterface */
-    private $orderDetailsApi;
+    private OrderDetailsApiInterface $orderDetailsApi;
 
-    /** @var PayPalAddressProcessor */
-    private $payPalAddressProcessor;
+    private PayPalAddressProcessor $payPalAddressProcessor;
 
-    /** @var PaymentUpdaterInterface */
-    private $payPalPaymentUpdater;
+    private PaymentUpdaterInterface $payPalPaymentUpdater;
 
-    /** @var StateResolverInterface */
-    private $orderPaymentStateResolver;
+    private StateResolverInterface $orderPaymentStateResolver;
 
-    /** @var PayPalItemDataProviderInterface */
-    private $payPalItemsDataProvider;
+    private PayPalItemDataProviderInterface $payPalItemsDataProvider;
 
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,

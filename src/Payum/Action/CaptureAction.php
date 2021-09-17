@@ -24,14 +24,11 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CaptureAction implements ActionInterface
 {
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var CreateOrderApiInterface */
-    private $createOrderApi;
+    private CreateOrderApiInterface $createOrderApi;
 
-    /** @var UuidProviderInterface */
-    private $uuidProvider;
+    private UuidProviderInterface $uuidProvider;
 
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,

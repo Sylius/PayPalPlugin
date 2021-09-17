@@ -10,8 +10,7 @@ use Sylius\Component\Core\Model\OrderItemInterface;
 
 final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
 {
-    /** @var OrderItemNonNeutralTaxesProviderInterface */
-    private $orderItemNonNeutralTaxesProvider;
+    private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider;
 
     public function __construct(OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider)
     {

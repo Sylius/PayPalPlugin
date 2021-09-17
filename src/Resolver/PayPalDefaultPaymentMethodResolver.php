@@ -27,11 +27,9 @@ use Webmozart\Assert\Assert;
 
 final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodResolverInterface
 {
-    /** @var PaymentMethodRepositoryInterface */
-    private $paymentMethodRepository;
+    private PaymentMethodRepositoryInterface $paymentMethodRepository;
 
-    /** @var DefaultPaymentMethodResolverInterface */
-    private $decoratedDefaultPaymentMethodResolver;
+    private DefaultPaymentMethodResolverInterface $decoratedDefaultPaymentMethodResolver;
 
     public function __construct(
         DefaultPaymentMethodResolverInterface $decoratedDefaultPaymentMethodResolver,

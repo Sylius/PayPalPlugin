@@ -19,8 +19,7 @@ use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 
 final class UiPayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
 {
-    /** @var PaymentRefundProcessorInterface */
-    private $paymentRefundProcessor;
+    private PaymentRefundProcessorInterface $paymentRefundProcessor;
 
     public function __construct(PaymentRefundProcessorInterface $paymentRefundProcessor)
     {

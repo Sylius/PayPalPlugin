@@ -18,8 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 
 final class PayPalPaymentUpdater implements PaymentUpdaterInterface
 {
-    /** @var ObjectManager */
-    private $paymentManager;
+    private ObjectManager $paymentManager;
 
     public function __construct(ObjectManager $paymentManager)
     {

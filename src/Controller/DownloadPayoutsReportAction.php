@@ -13,11 +13,9 @@ use Webmozart\Assert\Assert;
 
 final class DownloadPayoutsReportAction
 {
-    /** @var PayoutsReportDownloaderInterface */
-    private $payoutsReportDownloader;
+    private PayoutsReportDownloaderInterface $payoutsReportDownloader;
 
-    /** @var PaymentMethodRepositoryInterface */
-    private $paymentMethodRepository;
+    private PaymentMethodRepositoryInterface $paymentMethodRepository;
 
     public function __construct(
         PayoutsReportDownloaderInterface $payoutsReportDownloader,

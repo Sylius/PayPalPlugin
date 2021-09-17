@@ -21,8 +21,7 @@ use Webmozart\Assert\Assert;
 
 final class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface
 {
-    /** @var PaymentMethodRepositoryInterface */
-    private $paymentMethodRepository;
+    private PaymentMethodRepositoryInterface $paymentMethodRepository;
 
     public function __construct(PaymentMethodRepositoryInterface $paymentMethodRepository)
     {

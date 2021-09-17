@@ -12,14 +12,11 @@ use Symfony\Component\Security\Core\Security;
 
 final class OnboardingInitiator implements OnboardingInitiatorInterface
 {
-    /** @var UrlGeneratorInterface */
-    private $urlGenerator;
+    private UrlGeneratorInterface $urlGenerator;
 
-    /** @var string */
-    private $createPartnerReferralsUrl;
+    private string $createPartnerReferralsUrl;
 
-    /** @var Security */
-    private $security;
+    private Security $security;
 
     public function __construct(UrlGeneratorInterface $urlGenerator, Security $security, string $facilitatorUrl)
     {

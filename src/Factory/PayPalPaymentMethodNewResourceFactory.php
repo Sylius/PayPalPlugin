@@ -13,11 +13,9 @@ use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface;
 
 final class PayPalPaymentMethodNewResourceFactory implements NewResourceFactoryInterface
 {
-    /** @var NewResourceFactoryInterface */
-    private $newResourceFactory;
+    private NewResourceFactoryInterface $newResourceFactory;
 
-    /** @var OnboardingProcessorInterface */
-    private $onboardingProcessor;
+    private OnboardingProcessorInterface $onboardingProcessor;
 
     public function __construct(
         NewResourceFactoryInterface $newResourceFactory,

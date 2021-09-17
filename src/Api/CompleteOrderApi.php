@@ -17,8 +17,7 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class CompleteOrderApi implements CompleteOrderApiInterface
 {
-    /** @var PayPalClientInterface */
-    private $client;
+    private PayPalClientInterface $client;
 
     public function __construct(PayPalClientInterface $client)
     {

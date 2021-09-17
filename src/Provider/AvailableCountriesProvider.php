@@ -11,11 +11,9 @@ use Sylius\Component\Resource\Repository\RepositoryInterface;
 
 class AvailableCountriesProvider implements AvailableCountriesProviderInterface
 {
-    /** @var RepositoryInterface */
-    private $countryRepository;
+    private RepositoryInterface $countryRepository;
 
-    /** @var ChannelContextInterface */
-    private $channelContext;
+    private ChannelContextInterface $channelContext;
 
     public function __construct(RepositoryInterface $countryRepository, ChannelContextInterface $channelContext)
     {

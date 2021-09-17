@@ -28,11 +28,9 @@ use Symfony\Component\Routing\RouterInterface;
  */
 final class PayPalPayment
 {
-    /** @var RouterInterface */
-    private $router;
+    private RouterInterface $router;
 
-    /** @var AvailableCountriesProviderInterface */
-    private $availableCountriesProvider;
+    private AvailableCountriesProviderInterface $availableCountriesProvider;
 
     public function __construct(RouterInterface $router, AvailableCountriesProviderInterface $availableCountriesProvider)
     {

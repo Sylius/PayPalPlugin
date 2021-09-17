@@ -12,11 +12,9 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final class CancelPayPalCheckoutPaymentAction
 {
-    /** @var PaymentProviderInterface */
-    private $paymentProvider;
+    private PaymentProviderInterface $paymentProvider;
 
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
+    private PaymentStateManagerInterface $paymentStateManager;
 
     public function __construct(
         PaymentProviderInterface $paymentProvider,

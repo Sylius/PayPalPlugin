@@ -17,17 +17,13 @@ use Webmozart\Assert\Assert;
 
 final class PayPalPaymentMethodListener
 {
-    /** @var OnboardingInitiatorInterface */
-    private $onboardingInitiator;
+    private OnboardingInitiatorInterface $onboardingInitiator;
 
-    /** @var UrlGeneratorInterface */
-    private $urlGenerator;
+    private UrlGeneratorInterface $urlGenerator;
 
-    /** @var FlashBagInterface */
-    private $flashBag;
+    private FlashBagInterface $flashBag;
 
-    /** @var PayPalPaymentMethodProviderInterface */
-    private $payPalPaymentMethodProvider;
+    private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider;
 
     public function __construct(
         OnboardingInitiatorInterface $onboardingInitiator,

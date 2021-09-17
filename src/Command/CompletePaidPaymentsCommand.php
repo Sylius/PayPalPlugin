@@ -20,20 +20,15 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 final class CompletePaidPaymentsCommand extends Command
 {
-    /** @var PaymentRepositoryInterface */
-    private $paymentRepository;
+    private PaymentRepositoryInterface $paymentRepository;
 
-    /** @var ObjectManager */
-    private $paymentManager;
+    private ObjectManager $paymentManager;
 
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var OrderDetailsApiInterface */
-    private $orderDetailsApi;
+    private OrderDetailsApiInterface $orderDetailsApi;
 
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
+    private FactoryInterface $stateMachineFactory;
 
     public function __construct(
         PaymentRepositoryInterface $paymentRepository,

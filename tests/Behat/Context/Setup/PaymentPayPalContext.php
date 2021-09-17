@@ -24,26 +24,19 @@ use Webmozart\Assert\Assert;
 
 final class PaymentPayPalContext implements Context
 {
-    /** @var SharedStorageInterface */
-    private $sharedStorage;
+    private SharedStorageInterface $sharedStorage;
 
-    /** @var PaymentMethodRepositoryInterface */
-    private $paymentMethodRepository;
+    private PaymentMethodRepositoryInterface $paymentMethodRepository;
 
-    /** @var ExampleFactoryInterface */
-    private $paymentMethodExampleFactory;
+    private ExampleFactoryInterface $paymentMethodExampleFactory;
 
-    /** @var array */
-    private $gatewayFactories;
+    private array $gatewayFactories;
 
-    /** @var TranslatorInterface */
-    private $translator;
+    private TranslatorInterface $translator;
 
-    /** @var PayPalSelectPaymentPageInterface */
-    private $selectPaymentPage;
+    private PayPalSelectPaymentPageInterface $selectPaymentPage;
 
-    /** @var string */
-    private $clientId;
+    private string $clientId;
 
     public function __construct(
         SharedStorageInterface $sharedStorage,

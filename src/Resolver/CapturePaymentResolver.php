@@ -12,8 +12,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 final class CapturePaymentResolver implements CapturePaymentResolverInterface
 {
-    /** @var Payum */
-    private $payum;
+    private Payum $payum;
 
     public function __construct(Payum $payum)
     {

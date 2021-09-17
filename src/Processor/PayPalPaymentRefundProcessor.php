@@ -27,20 +27,15 @@ use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
 final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
 {
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var OrderDetailsApiInterface */
-    private $orderDetailsApi;
+    private OrderDetailsApiInterface $orderDetailsApi;
 
-    /** @var RefundPaymentApiInterface */
-    private $refundOrderApi;
+    private RefundPaymentApiInterface $refundOrderApi;
 
-    /** @var PayPalAuthAssertionGeneratorInterface */
-    private $payPalAuthAssertionGenerator;
+    private PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator;
 
-    /** @var RefundReferenceNumberProviderInterface */
-    private $refundReferenceNumberProvider;
+    private RefundReferenceNumberProviderInterface $refundReferenceNumberProvider;
 
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,

@@ -16,14 +16,11 @@ use Webmozart\Assert\Assert;
 
 final class ManagingPaymentMethodsContext implements Context
 {
-    /** @var DownloadPayPalReportElementInterface */
-    private $downloadPayPalReportElement;
+    private DownloadPayPalReportElementInterface $downloadPayPalReportElement;
 
-    /** @var NotificationCheckerInterface */
-    private $notificationChecker;
+    private NotificationCheckerInterface $notificationChecker;
 
-    /** @var CreatePageInterface */
-    private $createPage;
+    private CreatePageInterface $createPage;
 
     public function __construct(
         DownloadPayPalReportElementInterface $downloadPayPalReportElement,

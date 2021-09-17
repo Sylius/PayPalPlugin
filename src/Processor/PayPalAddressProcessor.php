@@ -11,8 +11,7 @@ use Webmozart\Assert\Assert;
 
 final class PayPalAddressProcessor implements PayPalAddressProcessorInterface
 {
-    /** @var ObjectManager */
-    private $objectManager;
+    private ObjectManager $objectManager;
 
     public function __construct(ObjectManager $objectManager)
     {

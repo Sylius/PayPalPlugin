@@ -16,20 +16,15 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 
 final class CancelPayPalPaymentAction
 {
-    /** @var PaymentProviderInterface */
-    private $paymentProvider;
+    private PaymentProviderInterface $paymentProvider;
 
-    /** @var ObjectManager */
-    private $objectManager;
+    private ObjectManager $objectManager;
 
-    /** @var FlashBag */
-    private $flashBag;
+    private FlashBag $flashBag;
 
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
+    private FactoryInterface $stateMachineFactory;
 
-    /** @var OrderProcessorInterface */
-    private $orderPaymentProcessor;
+    private OrderProcessorInterface $orderPaymentProcessor;
 
     public function __construct(
         PaymentProviderInterface $paymentProvider,

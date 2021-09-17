@@ -19,29 +19,21 @@ use Twig\Environment;
 
 final class PayPalButtonsController
 {
-    /** @var Environment */
-    private $twig;
+    private Environment $twig;
 
-    /** @var UrlGeneratorInterface */
-    private $router;
+    private UrlGeneratorInterface $router;
 
-    /** @var ChannelContextInterface */
-    private $channelContext;
+    private ChannelContextInterface $channelContext;
 
-    /** @var LocaleContextInterface */
-    private $localeContext;
+    private LocaleContextInterface $localeContext;
 
-    /** @var PayPalConfigurationProviderInterface */
-    private $payPalConfigurationProvider;
+    private PayPalConfigurationProviderInterface $payPalConfigurationProvider;
 
-    /** @var OrderRepositoryInterface */
-    private $orderRepository;
+    private OrderRepositoryInterface $orderRepository;
 
-    /** @var AvailableCountriesProviderInterface */
-    private $availableCountriesProvider;
+    private AvailableCountriesProviderInterface $availableCountriesProvider;
 
-    /** @var LocaleProcessorInterface */
-    private $localeProcessor;
+    private LocaleProcessorInterface $localeProcessor;
 
     public function __construct(
         Environment $twig,

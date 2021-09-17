@@ -25,14 +25,11 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class SellerWebhookRegistrar implements SellerWebhookRegistrarInterface
 {
-    /** @var AuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private AuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var UrlGeneratorInterface */
-    private $urlGenerator;
+    private UrlGeneratorInterface $urlGenerator;
 
-    /** @var WebhookApiInterface */
-    private $webhookApi;
+    private WebhookApiInterface $webhookApi;
 
     public function __construct(
         AuthorizeClientApiInterface $authorizeClientApi,
