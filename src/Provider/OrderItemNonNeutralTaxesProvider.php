@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\OrderItemUnitInterface;
 
 final class OrderItemNonNeutralTaxesProvider implements OrderItemNonNeutralTaxesProviderInterface
 {
-    public function provide(OrderItemInterface $orderItem): array
+    public function provide(OrderItemInterface $orderItem): iterable
     {
         $taxes = [];
 
-        /** @var ArrayCollection<array-key, AdjustmentInterface> $orderItemTaxAdjustments */
+        /** @var Collection<int, AdjustmentInterface> $orderItemTaxAdjustments */
         $orderItemTaxAdjustments = $orderItem->getAdjustments(AdjustmentInterface::TAX_ADJUSTMENT);
         foreach ($orderItemTaxAdjustments as $taxAdjustment) {
             if (!$taxAdjustment->isNeutral()) {
@@ -23,11 +23,11 @@ final class OrderItemNonNeutralTaxesProvider implements OrderItemNonNeutralTaxes
             }
         }
 
-        /** @var ArrayCollection<array-key, OrderItemUnitInterface> $orderItemUnits */
+        /** @var Collection<array-key, OrderItemUnitInterface> $orderItemUnits */
         $orderItemUnits = $orderItem->getUnits();
 
         foreach ($orderItemUnits as $unit) {
-            /** @var ArrayCollection<array-key, AdjustmentInterface> $unitAdjustments */
+            /** @var Collection<int, AdjustmentInterface> $unitAdjustments */
             $unitAdjustments = $unit->getAdjustments(AdjustmentInterface::TAX_ADJUSTMENT);
 
             foreach ($unitAdjustments as $taxAdjustment) {
@@ -37,6 +37,6 @@ final class OrderItemNonNeutralTaxesProvider implements OrderItemNonNeutralTaxes
             }
         }
 
-        return $taxes === [] ? [0] : $taxes;
+        return (empty($taxes)) ? [0] : $taxes;
     }
 }
