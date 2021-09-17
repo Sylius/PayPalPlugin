@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 
@@ -26,7 +26,7 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
             'total_tax' => 0,
         ];
 
-        /** @var ArrayCollection<array-key, OrderItemInterface> $orderItems */
+        /** @var Collection<int, OrderItemInterface> $orderItems */
         $orderItems = $order->getItems();
 
         /** @var OrderItemInterface $orderItem */
