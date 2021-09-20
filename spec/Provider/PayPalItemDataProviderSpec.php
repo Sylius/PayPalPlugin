@@ -37,18 +37,18 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 2,
+                            'value' => 2.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                 ],
-                'total_item_value' => 20,
-                'total_tax' => 2,
+                'total_item_value' => 20.0,
+                'total_tax' => 2.0,
             ]
         );
     }
@@ -73,42 +73,42 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 2,
+                            'value' => 2.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 2,
+                            'value' => 2.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 2,
+                            'value' => 2.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                 ],
-                'total_item_value' => 60,
-                'total_tax' => 6,
+                'total_item_value' => 60.0,
+                'total_tax' => 6.0,
             ],
         );
     }
@@ -133,18 +133,18 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 3,
                         'tax' => [
-                            'value' => 0,
+                            'value' => 0.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                 ],
-                'total_item_value' => 60,
-                'total_tax' => 0,
+                'total_item_value' => 60.0,
+                'total_tax' => 0.0,
             ],
         );
     }
@@ -176,30 +176,30 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 3,
                         'tax' => [
-                            'value' => 0,
+                            'value' => 0.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_TWO',
                         'unit_amount' => [
-                            'value' => 10,
+                            'value' => 10.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 2,
                         'tax' => [
-                            'value' => 0,
+                            'value' => 0.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                 ],
-                'total_item_value' => 80,
-                'total_tax' => 0,
+                'total_item_value' => 80.0,
+                'total_tax' => 0.0,
             ],
         );
     }
@@ -230,66 +230,66 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 1,
+                            'value' => 1.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 1,
+                            'value' => 1.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_ONE',
                         'unit_amount' => [
-                            'value' => 20,
+                            'value' => 20.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 1,
+                            'value' => 1.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_TWO',
                         'unit_amount' => [
-                            'value' => 10,
+                            'value' => 10.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 2,
+                            'value' => 2.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                     [
                         'name' => 'PRODUCT_TWO',
                         'unit_amount' => [
-                            'value' => 10,
+                            'value' => 10.0,
                             'currency_code' => 'PLN',
                         ],
                         'quantity' => 1,
                         'tax' => [
-                            'value' => 1,
+                            'value' => 1.0,
                             'currency_code' => 'PLN',
                         ],
                     ],
                 ],
-                'total_item_value' => 80,
-                'total_tax' => 6,
+                'total_item_value' => 80.0,
+                'total_tax' => 6.0,
             ],
         );
     }
