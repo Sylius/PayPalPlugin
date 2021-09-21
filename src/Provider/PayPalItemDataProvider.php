@@ -42,20 +42,20 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
                 $itemData['items'][] = [
                     'name' => $orderItem->getProductName(),
                     'unit_amount' => [
-                        'value' => number_format($itemValue / 100, 2),
+                        'value' => number_format($itemValue / 100, 2, '.', ''),
                         'currency_code' => $order->getCurrencyCode(),
                     ],
                     'quantity' => $displayQuantity,
                     'tax' => [
-                        'value' => number_format($nonNeutralTax / 100, 2),
+                        'value' => number_format($nonNeutralTax / 100, 2, '.', ''),
                         'currency_code' => $order->getCurrencyCode(),
                     ],
                 ];
             }
         }
 
-        $itemData['total_item_value'] = number_format($itemData['total_item_value'], 2);
-        $itemData['total_tax'] = number_format($itemData['total_tax'], 2);
+        $itemData['total_item_value'] = number_format($itemData['total_item_value'], 2, '.', '');
+        $itemData['total_tax'] = number_format($itemData['total_tax'], 2, '.', '');
 
         return $itemData;
     }
