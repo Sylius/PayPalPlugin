@@ -63,18 +63,18 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 90.0,
+                        'value' => '90.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 0,
+                        'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 90.0,
-            'total_tax' => 0,
+            'total_item_value' => '90.00',
+            'total_tax' => '0.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -93,13 +93,13 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 return
                     $data['intent'] === 'CAPTURE' &&
                     $data['purchase_units'][0]['invoice_number'] === 'REFERENCE-NUMBER' &&
-                    $data['purchase_units'][0]['amount']['value'] === 100.0 &&
+                    $data['purchase_units'][0]['amount']['value'] === '100.00' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['amount']['breakdown']['shipping']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === 10.0 &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === '10.00' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90.0 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                 ;
             })
@@ -138,18 +138,18 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 90.0,
+                        'value' => '90.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 0,
+                        'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 90.0,
-            'total_tax' => 0,
+            'total_item_value' => '90.00',
+            'total_tax' => '0.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -168,7 +168,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 return
                     $data['intent'] === 'CAPTURE' &&
                     $data['purchase_units'][0]['invoice_number'] === 'REFERENCE-NUMBER' &&
-                    $data['purchase_units'][0]['amount']['value'] === 100.0 &&
+                    $data['purchase_units'][0]['amount']['value'] === '100.00' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
@@ -177,7 +177,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90.0 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                 ;
             })
@@ -216,30 +216,30 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 90.0,
+                        'value' => '90.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 0,
+                        'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
                     'unit_amount' => [
-                        'value' => 40.0,
+                        'value' => '40.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 2,
                     'tax' => [
-                        'value' => 0,
+                        'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 170.0,
-            'total_tax' => 0,
+            'total_item_value' => '170.00',
+            'total_tax' => '0.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -257,7 +257,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
             Argument::that(function (array $data): bool {
                 return
                     $data['intent'] === 'CAPTURE' &&
-                    $data['purchase_units'][0]['amount']['value'] === 200.0 &&
+                    $data['purchase_units'][0]['amount']['value'] === '200.00' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
@@ -266,11 +266,11 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90.0 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
                     $data['purchase_units'][0]['items'][1]['quantity'] === 2 &&
-                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40.0 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === '40.00' &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN'
                 ;
             })
@@ -309,30 +309,30 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 50.0,
+                        'value' => '50.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 10.0,
+                        'value' => '10.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 50.0,
+                        'value' => '50.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 10.0,
+                        'value' => '10.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 100.0,
-            'total_tax' => 20.0,
+            'total_item_value' => '100.00',
+            'total_tax' => '20.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -350,7 +350,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
             Argument::that(function (array $data): bool {
                 return
                     $data['intent'] === 'CAPTURE' &&
-                    $data['purchase_units'][0]['amount']['value'] === 130.0 &&
+                    $data['purchase_units'][0]['amount']['value'] === '130.00' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
@@ -359,15 +359,15 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 50.0 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '50.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 10.0 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === '10.00' &&
                     $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 50.0 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === '50.00' &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 10.0 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === '10.00' &&
                     $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN'
                 ;
             })
@@ -406,42 +406,42 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 90.0,
+                        'value' => '90.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 2.0,
+                        'value' => '2.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
                     'unit_amount' => [
-                        'value' => 40.0,
+                        'value' => '40.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 1.0,
+                        'value' => '1.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
                     'unit_amount' => [
-                        'value' => 40.0,
+                        'value' => '40.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 1.0,
+                        'value' => '1.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 170.0,
-            'total_tax' => 4.0,
+            'total_item_value' => '170.00',
+            'total_tax' => '4.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -459,7 +459,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
             Argument::that(function (array $data): bool {
                 return
                     $data['intent'] === 'CAPTURE' &&
-                    $data['purchase_units'][0]['amount']['value'] === 204.0 &&
+                    $data['purchase_units'][0]['amount']['value'] === '204.00' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
                     $data['purchase_units'][0]['shipping']['address']['address_line_1'] === 'Hobbit St. 123' &&
@@ -468,21 +468,21 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 90.0 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][0]['tax']['value'] === 2.0 &&
+                    $data['purchase_units'][0]['items'][0]['tax']['value'] === '2.00' &&
                     $data['purchase_units'][0]['items'][0]['tax']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][1]['name'] === 'PRODUCT_TWO' &&
                     $data['purchase_units'][0]['items'][1]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === 40.0 &&
+                    $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === '40.00' &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][1]['tax']['value'] === 1.0 &&
+                    $data['purchase_units'][0]['items'][1]['tax']['value'] === '1.00' &&
                     $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['items'][2]['name'] === 'PRODUCT_TWO' &&
                     $data['purchase_units'][0]['items'][2]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][2]['unit_amount']['value'] === 40.0 &&
+                    $data['purchase_units'][0]['items'][2]['unit_amount']['value'] === '40.00' &&
                     $data['purchase_units'][0]['items'][2]['unit_amount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['items'][2]['tax']['value'] === 1.0 &&
+                    $data['purchase_units'][0]['items'][2]['tax']['value'] === '1.00' &&
                     $data['purchase_units'][0]['items'][2]['tax']['currency_code'] === 'PLN'
                 ;
             })
@@ -515,18 +515,18 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 200.0,
+                        'value' => '200.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 0,
+                        'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 200.0,
-            'total_tax' => 0,
+            'total_item_value' => '200.00',
+            'total_tax' => '0.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -546,7 +546,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
             Argument::that(function (array $data): bool {
                 return
                     $data['intent'] === 'CAPTURE' &&
-                    $data['purchase_units'][0]['amount']['value'] === 200.0 &&
+                    $data['purchase_units'][0]['amount']['value'] === '200.00' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['application_context']['shipping_preference'] === 'NO_SHIPPING'
                 ;
@@ -579,18 +579,18 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 [
                     'name' => 'PRODUCT_ONE',
                     'unit_amount' => [
-                        'value' => 25.0,
+                        'value' => '25.00',
                         'currency_code' => 'PLN',
                     ],
                     'quantity' => 1,
                     'tax' => [
-                        'value' => 0,
+                        'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
                 ],
             ],
-            'total_item_value' => 25.0,
-            'total_tax' => 0,
+            'total_item_value' => '25.00',
+            'total_tax' => '0.00',
         ]);
 
         $payment->getMethod()->willReturn($paymentMethod);
@@ -609,17 +609,17 @@ final class CreateOrderApiSpec extends ObjectBehavior
                 return
                     $data['intent'] === 'CAPTURE' &&
                     $data['purchase_units'][0]['invoice_number'] === 'REFERENCE-NUMBER' &&
-                    $data['purchase_units'][0]['amount']['value'] === 29.99 &&
+                    $data['purchase_units'][0]['amount']['value'] === '29.99' &&
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['amount']['breakdown']['shipping']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === 7.49 &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === '7.49' &&
                     $data['purchase_units'][0]['amount']['breakdown']['item_total']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['amount']['breakdown']['item_total']['value'] === 25.0 &&
+                    $data['purchase_units'][0]['amount']['breakdown']['item_total']['value'] === '25.00' &&
                     $data['purchase_units'][0]['amount']['breakdown']['discount']['currency_code'] === 'PLN' &&
-                    $data['purchase_units'][0]['amount']['breakdown']['discount']['value'] === 2.5 &&
+                    $data['purchase_units'][0]['amount']['breakdown']['discount']['value'] === '2.50' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === 25.0 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '25.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                     ;
             })

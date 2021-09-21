@@ -69,11 +69,11 @@ final class CreateOrderApi implements CreateOrderApiInterface
                     'invoice_number' => $this->paymentReferenceNumberProvider->provide($payment),
                     'amount' => [
                         'currency_code' => $order->getCurrencyCode(),
-                        'value' => (float) number_format((int) $payment->getAmount() / 100, 2),
+                        'value' => number_format((int) $payment->getAmount() / 100, 2, '.', ''),
                         'breakdown' => [
                             'shipping' => [
                                 'currency_code' => $order->getCurrencyCode(),
-                                'value' => (float) number_format($order->getShippingTotal() / 100, 2),
+                                'value' => number_format($order->getShippingTotal() / 100, 2, '.', ''),
                             ],
                             'item_total' => [
                                 'currency_code' => $order->getCurrencyCode(),
@@ -85,7 +85,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
                             ],
                             'discount' => [
                                 'currency_code' => $order->getCurrencyCode(),
-                                'value' => (float) number_format(abs($order->getOrderPromotionTotal()) / 100, 2),
+                                'value' => number_format(abs($order->getOrderPromotionTotal()) / 100, 2, '.', ''),
                             ],
                         ],
                     ],
