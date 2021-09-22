@@ -1,0 +1,24 @@
+---------------------------------------------------------------------------
+
+by LucaGallinari at 2021-09-21T15:25:12Z
+
+This fixes #183 too
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2021-09-22T06:33:10Z
+
+The base of this pull-request was changed, you need fetch and reset your local branch
+if you want to add new commits to this pull request. **Reset before you pull, else commits
+may become messed-up.**
+
+Unless you added new commits (to this branch) locally that you did not push yet,
+execute `git fetch origin && git reset "force-decimal-precision"` to update your local branch.
+
+Feel free to ask for assistance when you get stuck :+1:
+
+---------------------------------------------------------------------------
+
+by Zales0123 at 2021-09-22T08:20:30Z
+
+Thank you, @SirDomin! :1st_place_medal:
