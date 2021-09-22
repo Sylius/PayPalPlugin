@@ -8,8 +8,7 @@ use GuzzleHttp\ClientInterface;
 
 final class GenericApi implements GenericApiInterface
 {
-    /** @var ClientInterface */
-    private $client;
+    private ClientInterface $client;
 
     public function __construct(ClientInterface $client)
     {

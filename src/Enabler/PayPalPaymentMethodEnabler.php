@@ -22,17 +22,13 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
-    /** @var Client */
-    private $client;
+    private Client $client;
 
-    /** @var string */
-    private $baseUrl;
+    private string $baseUrl;
 
-    /** @var ObjectManager */
-    private $paymentMethodManager;
+    private ObjectManager $paymentMethodManager;
 
-    /** @var SellerWebhookRegistrarInterface */
-    private $sellerWebhookRegistrar;
+    private SellerWebhookRegistrarInterface $sellerWebhookRegistrar;
 
     public function __construct(
         Client $client,

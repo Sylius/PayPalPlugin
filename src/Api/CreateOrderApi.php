@@ -24,14 +24,11 @@ use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
 {
-    /** @var PayPalClientInterface */
-    private $client;
+    private PayPalClientInterface $client;
 
-    /** @var PaymentReferenceNumberProviderInterface */
-    private $paymentReferenceNumberProvider;
+    private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider;
 
-    /** @var PayPalItemDataProviderInterface */
-    private $payPalItemDataProvider;
+    private PayPalItemDataProviderInterface $payPalItemDataProvider;
 
     public function __construct(
         PayPalClientInterface $client,

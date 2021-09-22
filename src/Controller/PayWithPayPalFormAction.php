@@ -18,20 +18,15 @@ use Twig\Environment;
 
 final class PayWithPayPalFormAction
 {
-    /** @var Environment */
-    private $twig;
+    private Environment $twig;
 
-    /** @var PaymentRepositoryInterface */
-    private $paymentRepository;
+    private PaymentRepositoryInterface $paymentRepository;
 
-    /** @var AvailableCountriesProviderInterface */
-    private $countriesProvider;
+    private AvailableCountriesProviderInterface $countriesProvider;
 
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var IdentityApiInterface */
-    private $identityApi;
+    private IdentityApiInterface $identityApi;
 
     public function __construct(
         Environment $twig,

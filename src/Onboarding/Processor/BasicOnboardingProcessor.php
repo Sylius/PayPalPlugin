@@ -15,14 +15,11 @@ use Webmozart\Assert\Assert;
 
 final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
-    /** @var ClientInterface */
-    private $httpClient;
+    private ClientInterface $httpClient;
 
-    /** @var SellerWebhookRegistrarInterface */
-    private $sellerWebhookRegistrar;
+    private SellerWebhookRegistrarInterface $sellerWebhookRegistrar;
 
-    /** @var string */
-    private $url;
+    private string $url;
 
     public function __construct(
         ClientInterface $httpClient,

@@ -10,14 +10,11 @@ use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 
 final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterface
 {
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var PayPalPaymentMethodProviderInterface */
-    private $payPalPaymentMethodProvider;
+    private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider;
 
-    /** @var GenericApiInterface */
-    private $genericApi;
+    private GenericApiInterface $genericApi;
 
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,

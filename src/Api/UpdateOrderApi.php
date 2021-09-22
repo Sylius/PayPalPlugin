@@ -22,14 +22,11 @@ use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
 final class UpdateOrderApi implements UpdateOrderApiInterface
 {
-    /** @var PayPalClientInterface */
-    private $client;
+    private PayPalClientInterface $client;
 
-    /** @var PaymentReferenceNumberProviderInterface */
-    private $paymentReferenceNumberProvider;
+    private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider;
 
-    /** @var PayPalItemDataProviderInterface */
-    private $payPalItemsDataProvider;
+    private PayPalItemDataProviderInterface $payPalItemsDataProvider;
 
     public function __construct(
         PayPalClientInterface $client,

@@ -8,8 +8,7 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class OrderDetailsApi implements OrderDetailsApiInterface
 {
-    /** @var PayPalClientInterface */
-    private $client;
+    private PayPalClientInterface $client;
 
     public function __construct(PayPalClientInterface $client)
     {

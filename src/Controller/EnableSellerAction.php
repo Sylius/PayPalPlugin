@@ -16,11 +16,9 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final class EnableSellerAction
 {
-    /** @var PaymentMethodRepositoryInterface */
-    private $paymentMethodRepository;
+    private PaymentMethodRepositoryInterface $paymentMethodRepository;
 
-    /** @var PaymentMethodEnablerInterface */
-    private $paymentMethodEnabler;
+    private PaymentMethodEnablerInterface $paymentMethodEnabler;
 
     public function __construct(
         PaymentMethodRepositoryInterface $paymentMethodRepository,

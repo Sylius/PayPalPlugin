@@ -20,23 +20,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class UpdatePayPalOrderAction
 {
-    /** @var PaymentProviderInterface */
-    private $paymentProvider;
+    private PaymentProviderInterface $paymentProvider;
 
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var OrderDetailsApiInterface */
-    private $orderDetailsApi;
+    private OrderDetailsApiInterface $orderDetailsApi;
 
-    /** @var UpdateOrderApiInterface */
-    private $updateOrderApi;
+    private UpdateOrderApiInterface $updateOrderApi;
 
-    /** @var AddressFactoryInterface */
-    private $addressFactory;
+    private AddressFactoryInterface $addressFactory;
 
-    /** @var OrderProcessorInterface */
-    private $orderProcessor;
+    private OrderProcessorInterface $orderProcessor;
 
     public function __construct(
         PaymentProviderInterface $paymentProvider,

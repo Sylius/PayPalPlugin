@@ -15,11 +15,9 @@ namespace Sylius\PayPalPlugin\Model;
 
 final class Report
 {
-    /** @var string */
-    private $content;
+    private string $content;
 
-    /** @var string */
-    private $fileName;
+    private string $fileName;
 
     public function __construct(string $content, string $fileName)
     {

@@ -21,8 +21,7 @@ use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class PayPalPaymentCompleteProcessor implements PaymentCompleteProcessorInterface
 {
-    /** @var Payum */
-    private $payum;
+    private Payum $payum;
 
     public function __construct(Payum $payum)
     {

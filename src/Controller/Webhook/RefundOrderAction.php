@@ -19,17 +19,13 @@ use Webmozart\Assert\Assert;
 
 final class RefundOrderAction
 {
-    /** @var FactoryInterface */
-    private $stateMachineFactory;
+    private FactoryInterface $stateMachineFactory;
 
-    /** @var PaymentProviderInterface */
-    private $paymentProvider;
+    private PaymentProviderInterface $paymentProvider;
 
-    /** @var ObjectManager */
-    private $paymentManager;
+    private ObjectManager $paymentManager;
 
-    /** @var PayPalRefundDataProviderInterface */
-    private $payPalRefundDataProvider;
+    private PayPalRefundDataProviderInterface $payPalRefundDataProvider;
 
     public function __construct(
         FactoryInterface $stateMachineFactory,

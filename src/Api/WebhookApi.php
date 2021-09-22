@@ -8,11 +8,9 @@ use GuzzleHttp\ClientInterface;
 
 final class WebhookApi implements WebhookApiInterface
 {
-    /** @var ClientInterface */
-    private $client;
+    private ClientInterface $client;
 
-    /** @var string */
-    private $baseUrl;
+    private string $baseUrl;
 
     public function __construct(ClientInterface $client, string $baseUrl)
     {

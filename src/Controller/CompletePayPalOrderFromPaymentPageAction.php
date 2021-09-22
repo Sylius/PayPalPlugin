@@ -18,20 +18,15 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CompletePayPalOrderFromPaymentPageAction
 {
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
+    private PaymentStateManagerInterface $paymentStateManager;
 
-    /** @var UrlGeneratorInterface */
-    private $router;
+    private UrlGeneratorInterface $router;
 
-    /** @var OrderProviderInterface */
-    private $orderProvider;
+    private OrderProviderInterface $orderProvider;
 
-    /** @var FactoryInterface */
-    private $stateMachine;
+    private FactoryInterface $stateMachine;
 
-    /** @var ObjectManager */
-    private $orderManager;
+    private ObjectManager $orderManager;
 
     public function __construct(
         PaymentStateManagerInterface $paymentStateManager,

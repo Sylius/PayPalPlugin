@@ -11,11 +11,9 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final class PayPalPaymentOnErrorAction
 {
-    /** @var FlashBagInterface */
-    private $flashBag;
+    private FlashBagInterface $flashBag;
 
-    /** @var LoggerInterface */
-    private $logger;
+    private LoggerInterface $logger;
 
     public function __construct(FlashBagInterface $flashBag, LoggerInterface $logger)
     {

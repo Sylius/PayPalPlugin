@@ -17,8 +17,7 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class AuthorizeClientApi implements AuthorizeClientApiInterface
 {
-    /** @var PayPalClientInterface */
-    private $payPalClient;
+    private PayPalClientInterface $payPalClient;
 
     public function __construct(PayPalClientInterface $payPalClient)
     {

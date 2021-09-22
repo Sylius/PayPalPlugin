@@ -19,11 +19,9 @@ use Sylius\Component\Payment\Resolver\PaymentMethodsResolverInterface;
 
 final class PayPalPrioritisingPaymentMethodsResolver implements PaymentMethodsResolverInterface
 {
-    /** @var PaymentMethodsResolverInterface */
-    private $decoratedPaymentMethodsResolver;
+    private PaymentMethodsResolverInterface $decoratedPaymentMethodsResolver;
 
-    /** @var string */
-    private $firstPaymentMethodFactoryName;
+    private string $firstPaymentMethodFactoryName;
 
     public function __construct(PaymentMethodsResolverInterface $decoratedPaymentMethodsResolver, string $firstPaymentMethodFactoryName)
     {

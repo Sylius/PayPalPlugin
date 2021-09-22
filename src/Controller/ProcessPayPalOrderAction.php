@@ -24,35 +24,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class ProcessPayPalOrderAction
 {
-    /** @var OrderRepositoryInterface */
-    private $orderRepository;
+    private OrderRepositoryInterface $orderRepository;
 
-    /** @var CustomerRepositoryInterface */
-    private $customerRepository;
+    private CustomerRepositoryInterface $customerRepository;
 
-    /** @var FactoryInterface */
-    private $customerFactory;
+    private \Sylius\Component\Resource\Factory\FactoryInterface $customerFactory;
 
-    /** @var AddressFactoryInterface */
-    private $addressFactory;
+    private AddressFactoryInterface $addressFactory;
 
-    /** @var ObjectManager */
-    private $orderManager;
+    private ObjectManager $orderManager;
 
-    /** @var StateMachineFactoryInterface */
-    private $stateMachineFactory;
+    private StateMachineFactoryInterface $stateMachineFactory;
 
-    /** @var PaymentStateManagerInterface */
-    private $paymentStateManager;
+    private PaymentStateManagerInterface $paymentStateManager;
 
-    /** @var CacheAuthorizeClientApiInterface */
-    private $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface $authorizeClientApi;
 
-    /** @var OrderDetailsApiInterface */
-    private $orderDetailsApi;
+    private OrderDetailsApiInterface $orderDetailsApi;
 
-    /** @var OrderProviderInterface */
-    private $orderProvider;
+    private OrderProviderInterface $orderProvider;
 
     public function __construct(
         OrderRepositoryInterface $orderRepository,

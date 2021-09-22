@@ -21,8 +21,7 @@ use Sylius\PayPalPlugin\Model\Report;
 
 final class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterface
 {
-    /** @var SFTP */
-    private $sftp;
+    private SFTP $sftp;
 
     public function __construct(SFTP $sftp)
     {

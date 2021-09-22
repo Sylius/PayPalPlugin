@@ -12,8 +12,7 @@ use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final class CompleteOrderPaymentResolver implements CompleteOrderPaymentResolverInterface
 {
-    /** @var Payum */
-    private $payum;
+    private Payum $payum;
 
     public function __construct(Payum $payum)
     {
