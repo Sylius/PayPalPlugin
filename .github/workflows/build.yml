@@ -22,15 +22,9 @@ jobs:
                 node: ["10.x"]
                 mysql: ["5.7", "8.0"]
                 symfony: ["^4.4", "^5.2"]
-                sylius: ["~1.8.0", "~1.9.0", "~1.10.0"]
+                sylius: ["~1.9.0", "~1.10.0"]
 
                 exclude:
-                    -
-                        sylius: "~1.8.0"
-                        symfony: "^5.2"
-                    -
-                        php: "8.0"
-                        sylius: "~1.8.0"
                     -
                         php: "8.0"
                         sylius: "~1.9.0"
