@@ -17,6 +17,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
     function it_executes_resolve_next_route_request_with_processing_payment(
         ResolveNextRoute $request,
         PaymentInterface $payment,
+        OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig
     ): void {
@@ -28,8 +29,11 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
 
+        $payment->getOrder()->willReturn($order);
+        $order->getTokenValue()->willReturn('123!@#asd');
+
         $request->setRouteName('sylius_paypal_plugin_pay_with_paypal_form')->shouldBeCalled();
-        $request->setRouteParameters(['id' => 12])->shouldBeCalled();
+        $request->setRouteParameters(['orderToken' => '123!@#asd', 'paymentId' => 12])->shouldBeCalled();
 
         $this->execute($request);
     }
@@ -37,10 +41,12 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
     function it_executes_resolve_next_route_request_with_completed_payment(
         ResolveNextRoute $request,
         PaymentInterface $payment,
+        OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig
     ): void {
         $request->getFirstModel()->willReturn($payment);
+        $payment->getOrder()->willReturn($order);
 
         $payment->getState()->willReturn(PaymentInterface::STATE_COMPLETED);
         $payment->getMethod()->willReturn($paymentMethod);

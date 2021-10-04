@@ -1,5 +1,5 @@
 sylius_paypal_plugin_pay_with_paypal_form:
-    path: /pay-with-paypal/{id}
+    path: /pay-with-paypal/{orderToken}/{paymentId}
     methods: [GET]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction
