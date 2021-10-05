@@ -12,6 +12,7 @@
             <directory name="vendor" />
             <file name="src/DependencyInjection/Configuration.php" />
             <file name="src/UrlUtils.php" />
+            <file name="src/Controller/PayWithPayPalFormAction.php" />
         </ignoreFiles>
     </projectFiles>
 

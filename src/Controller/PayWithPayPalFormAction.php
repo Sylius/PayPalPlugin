@@ -49,8 +49,11 @@ final class PayWithPayPalFormAction
 
     public function __invoke(Request $request): Response
     {
+        $paymentId = (string) $request->attributes->get('paymentId');
+        $orderToken = (string) $request->attributes->get('orderToken');
+
         /** @var PaymentInterface $payment */
-        $payment = $this->paymentRepository->find($request->attributes->get('id'));
+        $payment = $this->findOneByPaymentIdOrderToken($paymentId, $orderToken);
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
@@ -78,5 +81,23 @@ final class PayWithPayPalFormAction
             'order_token' => $order->getTokenValue(),
             'partner_attribution_id' => $partnerAttributionId,
         ]));
+    }
+
+    /**
+     * Need to be used due to support for Sylius 1.8.
+     * After dropping it, we can switch to Sylius\Component\Core\Repository\PaymentRepositoryInterface::findOneByOrderToken
+     */
+    private function findOneByPaymentIdOrderToken(string $paymentId, string $orderToken): ?PaymentInterface
+    {
+        return $this->paymentRepository
+            ->createQueryBuilder('p')
+            ->innerJoin('p.order', 'o')
+            ->andWhere('p.id = :paymentId')
+            ->andWhere('o.tokenValue = :orderToken')
+            ->setParameter('paymentId', $paymentId)
+            ->setParameter('orderToken', $orderToken)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
     }
 }
