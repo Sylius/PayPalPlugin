@@ -44,3 +44,9 @@ Sylius Core Team’s plugin for [PayPal Commerce Platform](https://www.paypal.co
 1. [Reports](docs/reports.md)
 1. [Processing payments](docs/processing-payments.md)
 1. [Development](docs/development.md)
+
+#### Supported branches
+
+* `1.2` (v1.2.*) - security fixes
+* `1.3` (v1.3.*) - bug fixes, improvements
+* `master` (v1.4.*) - new features
