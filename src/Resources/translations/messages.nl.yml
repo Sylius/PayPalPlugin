@@ -1,0 +1,23 @@
+sylius:
+    pay_pal:
+        back_to_store: 'Terug naar de winkel'
+        billing_info: 'Facturatie adres is hetzefde als de bestelling'
+        client_id: 'Client ID'
+        client_secret: 'Client Secret'
+        credit_card: 'Credit Card'
+        credit_card_number: 'Credit Card nummer'
+        cvv: 'CVV'
+        different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
+        enable_paypal: 'PayPal inschakelen'
+        expiration_date: 'Vervaldatum'
+        invalid_form: 'Formulier is ongeldig'
+        label: 'PayPal'
+        missing_billing_address_content: 'Ga alstublief terug naar de "adressering" en vul deze aan.'
+        missing_billing_address_header: 'We konden geen facturatie adres ophalen van PayPal'
+        pay_with_card: 'Betalen met kaart'
+        pay_with_pay_pal: 'Betalen met PayPal'
+        report: 'Rapporteren'
+        sftp_password: 'SFTP wachtwoord'
+        sftp_username: 'SFTP gebruikersnaam'
+        share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
+        tender_type: 'Teruggestort in de PayPal portemonnee'
