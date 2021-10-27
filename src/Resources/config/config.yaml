@@ -13,6 +13,10 @@ winzou_state_machine:
                     on: ['refund']
                     do: ['@Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface', 'refund']
                     args: ['object']
+        transitions:
+            cancel:
+                from: [cart]
+                to: cancelled
 
 sylius_order:
     resources:

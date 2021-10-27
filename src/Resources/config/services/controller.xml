@@ -25,6 +25,13 @@
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
         </service>
 
+        <service id="Sylius\PayPalPlugin\Controller\CancelLastPayPalPaymentAction">
+            <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
+            <argument type="service" id="sylius.repository.order" />
+        </service>
+
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalCheckoutPaymentAction">
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
