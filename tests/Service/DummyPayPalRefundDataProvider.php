@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sylius\PayPalPlugin\Behat\Service;
+namespace Tests\Sylius\PayPalPlugin\Service;
 
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 
