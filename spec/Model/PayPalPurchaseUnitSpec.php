@@ -51,23 +51,23 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                 'invoice_number' => 'INVOICE_NUMBER',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
-                    'value' => 100,
+                    'value' => '100.00',
                     'breakdown' => [
                         'shipping' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10,
+                            'value' => '10.00',
                         ],
                         'item_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 80.0,
+                            'value' => '80.00',
                         ],
                         'tax_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10.0,
+                            'value' => '10.00',
                         ],
                         'discount' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 0,
+                            'value' => '0.00',
                         ],
                     ],
                 ],
@@ -116,23 +116,23 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                 'invoice_number' => 'INVOICE_NUMBER',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
-                    'value' => 100,
+                    'value' => '100.00',
                     'breakdown' => [
                         'shipping' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10,
+                            'value' => '10.00',
                         ],
                         'item_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 80.0,
+                            'value' => '80.00',
                         ],
                         'tax_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10.0,
+                            'value' => '10.00',
                         ],
                         'discount' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 0,
+                            'value' => '0.00',
                         ],
                     ],
                 ],
@@ -170,23 +170,23 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                 'invoice_number' => 'INVOICE_NUMBER',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
-                    'value' => 100,
+                    'value' => '100.00',
                     'breakdown' => [
                         'shipping' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10,
+                            'value' => '10.00',
                         ],
                         'item_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 80.0,
+                            'value' => '80.00',
                         ],
                         'tax_total' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 10.0,
+                            'value' => '10.00',
                         ],
                         'discount' => [
                             'currency_code' => 'CURRENCY_CODE',
-                            'value' => 0,
+                            'value' => '0.00',
                         ],
                     ],
                 ],

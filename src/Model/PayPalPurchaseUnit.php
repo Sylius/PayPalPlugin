@@ -102,11 +102,11 @@ class PayPalPurchaseUnit
                     ],
                     'item_total' => [
                         'currency_code' => $this->currencyCode,
-                        'value' => $this->itemTotalValue,
+                        'value' => number_format($this->itemTotalValue, 2, '.', ''),
                     ],
                     'tax_total' => [
                         'currency_code' => $this->currencyCode,
-                        'value' => $this->taxTotalValue,
+                        'value' => number_format($this->taxTotalValue, 2, '.', ''),
                     ],
                     'discount' => [
                         'currency_code' => $this->currencyCode,

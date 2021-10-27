@@ -79,11 +79,11 @@ final class UpdateOrderApiSpec extends ObjectBehavior
                     $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'' &&
                     $data[0]['value']['reference_id'] === 'REFERENCE-ID' &&
                     $data[0]['value']['invoice_number'] === 'INVOICE_NUMBER' &&
-                    $data[0]['value']['amount']['value'] === 11.22 &&
+                    $data[0]['value']['amount']['value'] === '11.22' &&
                     $data[0]['value']['amount']['currency_code'] === 'USD' &&
-                    $data[0]['value']['amount']['breakdown']['shipping']['value'] === 0.22 &&
-                    $data[0]['value']['amount']['breakdown']['item_total']['value'] === 10.0 &&
-                    $data[0]['value']['amount']['breakdown']['tax_total']['value'] === 1.0 &&
+                    $data[0]['value']['amount']['breakdown']['shipping']['value'] === '0.22' &&
+                    $data[0]['value']['amount']['breakdown']['item_total']['value'] === '10.00' &&
+                    $data[0]['value']['amount']['breakdown']['tax_total']['value'] === '1.00' &&
                     $data[0]['value']['payee']['merchant_id'] === 'MERCHANT-ID' &&
                     $data[0]['value']['shipping']['name']['full_name'] === 'John Doe' &&
                     $data[0]['value']['shipping']['address']['address_line_1'] === 'Main St. 123' &&
@@ -133,11 +133,11 @@ final class UpdateOrderApiSpec extends ObjectBehavior
                     $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'' &&
                     $data[0]['value']['reference_id'] === 'REFERENCE-ID' &&
                     $data[0]['value']['invoice_number'] === 'INVOICE_NUMBER' &&
-                    $data[0]['value']['amount']['value'] === 11.22 &&
+                    $data[0]['value']['amount']['value'] === '11.22' &&
                     $data[0]['value']['amount']['currency_code'] === 'USD' &&
-                    $data[0]['value']['amount']['breakdown']['shipping']['value'] === 0 &&
-                    $data[0]['value']['amount']['breakdown']['item_total']['value'] === 10.00 &&
-                    $data[0]['value']['amount']['breakdown']['tax_total']['value'] === 1.22 &&
+                    $data[0]['value']['amount']['breakdown']['shipping']['value'] === '0.00' &&
+                    $data[0]['value']['amount']['breakdown']['item_total']['value'] === '10.00' &&
+                    $data[0]['value']['amount']['breakdown']['tax_total']['value'] === '1.22' &&
                     $data[0]['value']['payee']['merchant_id'] === 'MERCHANT-ID' &&
                     $data[0]['value']['items'] === ['data']
                 ;
