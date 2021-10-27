@@ -1,0 +1,9 @@
+sylius:
+    pay_pal:
+        more_than_one_seller_not_allowed: 'U kunt niet meer dan één PayPal verkoper instellen!'
+        order_cancelled: 'PayPal bestelling is geannuleerd'
+        payment_cancelled: 'PayPal betaling is geannuleerd'
+        payment_enabled: 'PayPal betaling is zojuist ingeschakeld.'
+        payment_not_enabled: 'PayPal betaling kon niet worden ingeschakeld. Probeer het later nog eens.'
+        something_went_wrong: 'Er is iets fout gegaan. Probeer het alstublieft opnieuw.'
+        webhook_url_not_valid: 'PayPal kan de opgegeven webhook-URL niet verifiëren. Zorg ervoor dat het https is en probeer het opnieuw.'
