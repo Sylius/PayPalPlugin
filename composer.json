@@ -5,8 +5,7 @@
     "description": "PayPal plugin for Sylius.",
     "license": "MIT",
     "require": {
-        "php": "^7.4 || ^8.0",
-
+        "php": "^8.0",
         "sylius/sylius": "^1.9",
         "phpseclib/phpseclib": "^2.0",
         "sylius-labs/doctrine-migrations-extra-bundle": "^0.1.3",
