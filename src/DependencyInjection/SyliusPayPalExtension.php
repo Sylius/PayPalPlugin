@@ -51,6 +51,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
             return;
         }
 
+        /** @var array<int|string, mixed> $doctrineConfig */
         $doctrineConfig = $container->getExtensionConfig('doctrine_migrations');
         $migrationsPath = (array) \array_pop($doctrineConfig)['migrations_paths'];
         $container->prependExtensionConfig('doctrine_migrations', [
