@@ -3,6 +3,8 @@
 {% set path = options.link.url|default(path(options.link.route, options.link.parameters|default({}))) %}
 
 {% if data.gatewayConfig.factoryName == 'sylius.pay_pal'
+    and data.gatewayConfig.config.reports_sftp_username is defined
+    and data.gatewayConfig.config.reports_sftp_password is defined
     and data.gatewayConfig.config.reports_sftp_username
     and data.gatewayConfig.config.reports_sftp_password
 %}
