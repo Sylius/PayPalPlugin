@@ -47,6 +47,6 @@ Sylius Core Team’s plugin for [PayPal Commerce Platform](https://www.paypal.co
 
 #### Supported branches
 
-* `1.2` (v1.2.*) - security fixes
-* `1.3` (v1.3.*) - bug fixes, improvements
-* `master` (v1.4.*) - new features
+* `1.3` (v1.3.*) - security fixes
+* `1.4` (v1.4.*) - bug fixes, improvements
+* `master` (v1.5.*) - new features
