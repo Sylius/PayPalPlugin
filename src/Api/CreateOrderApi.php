@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\PaymentMethod;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
@@ -77,7 +78,11 @@ final class CreateOrderApi implements CreateOrderApiInterface
             $order->getShippingAddress()
         );
 
-        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);
+        $paymentMethod = new PaymentMethod(
+            PaymentMethod::IMMEDIATE_PAYMENT
+        );
+
+        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, $paymentMethod, self::PAYPAL_INTENT_CAPTURE);
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }

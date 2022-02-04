@@ -29,12 +29,20 @@ class PayPalOrder
     /** @var PayPalPurchaseUnit */
     private $payPalPurchaseUnit;
 
+    /** @var PaymentMethod */
+    private $paymentMethod;
+
     /** @var OrderInterface */
     private $order;
 
-    public function __construct(OrderInterface $order, PayPalPurchaseUnit $payPalPurchaseUnit, string $intent)
-    {
+    public function __construct(
+        OrderInterface $order,
+        PayPalPurchaseUnit $payPalPurchaseUnit,
+        PaymentMethod $paymentMethod,
+        string $intent
+    ) {
         $this->payPalPurchaseUnit = $payPalPurchaseUnit;
+        $this->paymentMethod = $paymentMethod;
         $this->order = $order;
         $this->intent = $intent;
     }
@@ -47,7 +55,8 @@ class PayPalOrder
                 $this->payPalPurchaseUnit->toArray(),
             ],
             'application_context' => [
-                'shipping_preference' => $this->getShippingPreference()
+                'shipping_preference' => $this->getShippingPreference(),
+                'payment_method' => $this->paymentMethod->toArray()
             ]
         ];
     }
