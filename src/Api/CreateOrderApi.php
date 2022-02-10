@@ -28,6 +28,7 @@ use Webmozart\Assert\Assert;
 final class CreateOrderApi implements CreateOrderApiInterface
 {
     const PAYPAL_INTENT_CAPTURE = 'CAPTURE';
+    const PAYPAL_INTENT_AUTHORIZE = 'AUTHORIZE';
 
     private PayPalClientInterface $client;
 
@@ -36,16 +37,17 @@ final class CreateOrderApi implements CreateOrderApiInterface
     private PayPalItemDataProviderInterface $payPalItemDataProvider;
 
     public function __construct(
-        PayPalClientInterface $client,
+        PayPalClientInterface                   $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
-    ) {
+        PayPalItemDataProviderInterface         $payPalItemDataProvider
+    )
+    {
         $this->client = $client;
         $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
         $this->payPalItemDataProvider = $payPalItemDataProvider;
     }
 
-    public function create(string $token, PaymentInterface $payment, string $referenceId): array
+    public function create(string $token, PaymentInterface $payment, string $referenceId, array $applicationContext): array
     {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -66,14 +68,14 @@ final class CreateOrderApi implements CreateOrderApiInterface
         $payPalPurchaseUnit = new PayPalPurchaseUnit(
             $referenceId,
             $this->paymentReferenceNumberProvider->provide($payment),
-            (string) $order->getCurrencyCode(),
-            (int) $payment->getAmount(),
+            (string)$order->getCurrencyCode(),
+            (int)$payment->getAmount(),
             $order->getShippingTotal(),
-            (float) $payPalItemData['total_item_value'],
-            (float) $payPalItemData['total_tax'],
+            (float)$payPalItemData['total_item_value'],
+            (float)$payPalItemData['total_tax'],
             $order->getOrderPromotionTotal(),
-            (string) $config['merchant_id'],
-            (array) $payPalItemData['items'],
+            (string)$config['merchant_id'],
+            (array)$payPalItemData['items'],
             $order->isShippingRequired(),
             $order->getShippingAddress()
         );
@@ -82,7 +84,13 @@ final class CreateOrderApi implements CreateOrderApiInterface
             PaymentMethod::IMMEDIATE_PAYMENT
         );
 
-        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, $paymentMethod, self::PAYPAL_INTENT_CAPTURE);
+        $payPalOrder = new PayPalOrder(
+            $order,
+            $payPalPurchaseUnit,
+            $paymentMethod,
+            self::PAYPAL_INTENT_CAPTURE,
+            $applicationContext
+        );
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }

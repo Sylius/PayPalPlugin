@@ -35,16 +35,22 @@ class PayPalOrder
     /** @var OrderInterface */
     private $order;
 
+    /** @var array */
+    private $defaultContext;
+
     public function __construct(
-        OrderInterface $order,
+        OrderInterface     $order,
         PayPalPurchaseUnit $payPalPurchaseUnit,
-        PaymentMethod $paymentMethod,
-        string $intent
-    ) {
+        PaymentMethod      $paymentMethod,
+        string             $intent,
+        ?array             $defaultContext = []
+    )
+    {
         $this->payPalPurchaseUnit = $payPalPurchaseUnit;
         $this->paymentMethod = $paymentMethod;
         $this->order = $order;
         $this->intent = $intent;
+        $this->defaultContext = $defaultContext;
     }
 
     public function toArray(): array
@@ -54,10 +60,12 @@ class PayPalOrder
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
-            'application_context' => [
-                'shipping_preference' => $this->getShippingPreference(),
-                'payment_method' => $this->paymentMethod->toArray()
-            ]
+            'application_context' => array_merge_recursive($this->defaultContext,
+                [
+                    'shipping_preference' => $this->getShippingPreference(),
+                    'payment_method' => $this->paymentMethod->toArray()
+                ]
+            )
         ];
     }
 
