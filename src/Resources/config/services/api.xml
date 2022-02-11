@@ -28,6 +28,13 @@
         </service>
 
         <service
+                id="Sylius\PayPalPlugin\Api\AuthorizePaymentOrderApiInterface"
+                class="Sylius\PayPalPlugin\Api\AuthorizePaymentOrderApi"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
+        </service>
+
+        <service
             id="sylius_pay_pal_plugin.repository.pay_pal_credentials"
             class="Doctrine\ORM\EntityRepository"
         >

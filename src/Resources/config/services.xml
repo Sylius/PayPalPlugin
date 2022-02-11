@@ -95,6 +95,15 @@
         </service>
 
         <service
+                id="Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface"
+                class="Sylius\PayPalPlugin\Provider\PayPalWebhookDataProvider"
+        >
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\GenericApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface" />
+        </service>
+
+        <service
             id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface"
             class="Sylius\PayPalPlugin\Provider\AvailableCountriesProvider"
         >

@@ -1,5 +1,19 @@
-sylius_paypal_plugin_webhook_refund_order:
-    path: /paypal-webhook/api/
+#sylius_paypal_plugin_webhook_refund_order:
+#    path: /paypal-webhook/api/
+#    methods: [POST]
+#    defaults:
+#        _controller: Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction
+
+# CHECKOUT.ORDER.APPROVED -> Capture payment (complete)
+sylius_paypal_plugin_webhook_checkout_order_approved:
+    path: /paypal-webhook/checkout_order_approved
     methods: [POST]
     defaults:
-        _controller: Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction
+        _controller: Sylius\PayPalPlugin\Controller\Webhook\CheckoutOrderApprovedAction
+
+# PAYMENT.CAPTURE.COMPLETED -> update state machine of order and payment to TRANSITION_COMPLETE
+sylius_paypal_plugin_webhook_payment_capture_completed:
+    path: /paypal-webhook/payment_capture_completed
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\Webhook\PaymentCaptureCompletedAction
