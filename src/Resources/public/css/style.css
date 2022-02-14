@@ -1,0 +1,12 @@
+.paypal-hint-help.ui.message {
+  font-size: .8em;
+}
+
+.paypal-hint-help.ui.message p {
+  margin: 0 0 .3em;
+}
+
+.paypal-hint-help.ui.message ul {
+  margin: 0.3em 0;
+  padding-left: 2em;
+}

@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
@@ -36,18 +37,22 @@ final class CreateOrderApi implements CreateOrderApiInterface
 
     private PayPalItemDataProviderInterface $payPalItemDataProvider;
 
+    private RequestStack $requestStack;
+
     public function __construct(
         PayPalClientInterface                   $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface         $payPalItemDataProvider
+        PayPalItemDataProviderInterface         $payPalItemDataProvider,
+        RequestStack                            $requestStack
     )
     {
         $this->client = $client;
         $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
         $this->payPalItemDataProvider = $payPalItemDataProvider;
+        $this->requestStack = $requestStack;
     }
 
-    public function create(string $token, PaymentInterface $payment, string $referenceId, array $applicationContext): array
+    public function create(string $token, PaymentInterface $payment, string $referenceId): array
     {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -64,6 +69,8 @@ final class CreateOrderApi implements CreateOrderApiInterface
 
         Assert::keyExists($config, 'merchant_id');
         Assert::keyExists($config, 'sylius_merchant_id');
+        Assert::keyExists($config, 'return_url');
+        Assert::keyExists($config, 'cancel_url');
 
         $payPalPurchaseUnit = new PayPalPurchaseUnit(
             $referenceId,
@@ -89,9 +96,27 @@ final class CreateOrderApi implements CreateOrderApiInterface
             $payPalPurchaseUnit,
             $paymentMethod,
             self::PAYPAL_INTENT_CAPTURE,
-            $applicationContext
+            $this->_getApplicationContext($config, $order)
         );
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
+    }
+
+    private function _getApplicationContext(array $config, OrderInterface $order): array
+    {
+        Assert::keyExists($config, 'return_url');
+        Assert::keyExists($config, 'cancel_url');
+
+        $baseUrl = $this->requestStack->getCurrentRequest()->headers->get('origin');
+        $applicationContext = ['return_url' => $config['return_url'], 'cancel_url' => $config['cancel_url']];
+        array_walk_recursive($applicationContext, function ($item, $key) use ($baseUrl, $order, &$applicationContext){
+            $applicationContext[$key] = str_replace(
+                ['@baseUrl', '@orderTokenValue'],
+                [$baseUrl, $order->getTokenValue()],
+                $item
+            );
+        });
+
+        return $applicationContext;
     }
 }

@@ -23,6 +23,21 @@ final class PayPalConfigurationType extends AbstractType
             ->add('use_authorize', HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add('reports_sftp_username', TextType::class, ['label' => 'sylius.pay_pal.sftp_username', 'required' => false])
             ->add('reports_sftp_password', TextType::class, ['label' => 'sylius.pay_pal.sftp_password', 'required' => false])
+
+            ->add('return_url', TextType::class, [
+                'attr' => ['placeholder'=> '@baseUrl/commande/confirmation/@orderTokenValue'],
+                'label' => 'sylius.pay_pal.order_return_url',
+                'help' => 'sylius.pay_pal.order_return_url_help',
+                'help_html' => true,
+                'required' => true
+            ])
+            ->add('cancel_url', TextType::class, [
+                'attr' => ['placeholder'=> '@baseUrl/commande/@orderTokenValue'],
+                'label' => 'sylius.pay_pal.order_cancel_url',
+                'help' => 'sylius.pay_pal.order_cancel_url_help',
+                'help_html' => true,
+                'required' => true
+            ])
         ;
     }
 }

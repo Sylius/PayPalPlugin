@@ -73,6 +73,7 @@
             <argument type="service" id="Sylius\PayPalPlugin\Client\PayPalClientInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface" />
+            <argument type="service" id="Symfony\Component\HttpFoundation\RequestStack" />
         </service>
 
         <service

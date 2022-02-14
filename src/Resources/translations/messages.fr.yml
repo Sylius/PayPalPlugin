@@ -21,3 +21,23 @@ sylius:
         sftp_username: 'Identifiant SFTP'
         share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
         tender_type: 'Remboursé sur le porte-monnaie PayPal'
+        order_return_url: "URL de retour paiement client"
+        order_cancel_url: "URL d'annulation paiement client"
+        order_return_url_help: >-
+            <div class="paypal-hint-help ui info message">
+                <p>URL vers laquelle le client est redirigé une fois que le client a approuvé le paiement.</p>
+                <p>Les valeurs dynamique suivantes sont disponible:</p>
+                <ul>
+                    <li><b>@baseUrl</b>: Url de base du site de provenance du client avant redirection vers Paypal</li>
+                    <li><b>@orderTokenValue</b>: Token Sylius de la commande client à l'orgine du paiement</li>
+                </ul>
+            </div>
+        order_cancel_url_help: >-
+            <div class="paypal-hint-help ui info message">
+                <p>URL vers laquelle le client est redirigé après que le client a annulé le paiement.</p>
+                <p>Les valeurs dynamique suivantes sont disponible:</p>
+                <ul>
+                    <li><b>@baseUrl</b>: Url de base du site de provenance du client avant redirection vers Paypal</li>
+                    <li><b>@orderTokenValue</b>: Token Sylius de la commande client à l'orgine du paiement</li>
+                </ul>
+            </div>

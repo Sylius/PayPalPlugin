@@ -21,3 +21,23 @@ sylius:
         sftp_username: 'SFTP Username'
         share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
         tender_type: 'Refunded to the PayPal wallet'
+        order_return_url: 'Customer Payment Return URL'
+        order_cancel_url: 'Customer Payment Cancellation URL'
+        order_return_url_help: >-
+            <div class="paypal-hint-help ui info message">
+                <p>URL to which the customer is redirected after the customer approves the payment.</p>
+                <p>The following dynamic values are available:</p>
+                <ul>
+                    <li><b>@baseUrl</b>: Base URL of the customer's site before redirecting to Paypal</li>
+                    <li><b>@orderTokenValue</b>: Sylius token of the customer order at the origin of the payment</li>
+                </ul>
+            </div>
+            order_cancel_url_help: >-
+            <div class="paypal-hint-help ui info message">
+                <p>URL to which the customer is redirected after the customer cancels the payment.</p>
+                <p>The following dynamic values are available:</p>
+                <ul>
+                    <li><b>@baseUrl</b>: Base URL of the customer's site before redirecting to Paypal</li>
+                    <li><b>@orderTokenValue</b>: Sylius token of the customer order at the origin of the payment</li>
+                </ul>
+            </div>

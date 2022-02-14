@@ -21,3 +21,23 @@ sylius:
         sftp_username: 'SFTP gebruikersnaam'
         share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
         tender_type: 'Teruggestort in de PayPal portemonnee'
+        order_return_url: 'Retour-URL klantbetaling'
+        order_cancel_url: 'Annulerings-URL klantbetaling'
+        order_return_url_help: >-
+            <div class="paypal-hint-help ui info message">
+                <p>URL waarnaar de klant wordt doorverwezen nadat de klant de betaling heeft goedgekeurd.</p>
+                <p>De volgende dynamische waarden zijn beschikbaar:</p>
+                <ul>
+                    <li><b>@baseUrl</b>: Basis-URL van de site van de klant voordat wordt omgeleid naar Paypal</li>
+                    <li><b>@orderTokenValue</b>: Sylius-token van de bestelling van de klant aan de oorsprong van de betaling</li>
+                </ul>
+            </div>
+            order_cancel_url_help: >-
+            <div class="paypal-hint-help ui info message">
+                <p>URL waarnaar de klant wordt doorverwezen nadat de klant de betaling annuleert.</p>
+                <p>De volgende dynamische waarden zijn beschikbaar:</p>
+                <ul>
+                    <li><b>@baseUrl</b>: Basis-URL van de site van de klant voordat wordt omgeleid naar Paypal</li>
+                    <li><b>@orderTokenValue</b>: Sylius-token van de bestelling van de klant aan de oorsprong van de betaling</li>
+                </ul>
+            </div>

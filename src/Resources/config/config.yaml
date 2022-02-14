@@ -71,6 +71,11 @@ sylius_ui:
                     template: '@SyliusPayPalPlugin/javascripts.html.twig'
                     priority: -100
 
+        sylius.admin.layout.stylesheets:
+            blocks:
+                stylesheets:
+                    template: '@SyliusPayPalPlugin/stylesheets.html.twig'
+
 monolog:
     channels: ['paypal']
     handlers:
