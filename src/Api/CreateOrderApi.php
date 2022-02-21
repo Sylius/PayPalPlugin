@@ -108,15 +108,10 @@ final class CreateOrderApi implements CreateOrderApiInterface
         Assert::keyExists($config, 'cancel_url');
 
         $baseUrl = $this->requestStack->getCurrentRequest()->headers->get('origin');
-        $applicationContext = ['return_url' => $config['return_url'], 'cancel_url' => $config['cancel_url']];
-        array_walk_recursive($applicationContext, function ($item, $key) use ($baseUrl, $order, &$applicationContext){
-            $applicationContext[$key] = str_replace(
-                ['@baseUrl', '@orderTokenValue'],
-                [$baseUrl, $order->getTokenValue()],
-                $item
-            );
-        });
-
-        return $applicationContext;
+        return str_replace(
+            ['@baseUrl', '@orderTokenValue'],
+            [$baseUrl, $order->getTokenValue()],
+            ['return_url' => $config['return_url'], 'cancel_url' => $config['cancel_url']]
+        );
     }
 }

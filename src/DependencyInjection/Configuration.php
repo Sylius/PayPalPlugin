@@ -25,6 +25,16 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('webhooks')
+                    ->arrayPrototype()
+                        ->children()
+                            ->scalarNode('route')->end()
+                            ->arrayNode('event_types')
+                                ->scalarPrototype()->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end()
             ->end()
         ;
 

@@ -18,7 +18,7 @@ final class WebhookApi implements WebhookApiInterface
         $this->baseUrl = $baseUrl;
     }
 
-    public function register(string $token, string $webhookUrl): array
+    public function register(string $token, string $webhookUrl, array $eventTypes): array
     {
         $response = $this->client->request('POST', $this->baseUrl . 'v1/notifications/webhooks', [
             'headers' => [
@@ -28,9 +28,7 @@ final class WebhookApi implements WebhookApiInterface
             ],
             'json' => [
                 'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
-                'event_types' => [
-                    ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
-                ],
+                'event_types' => $eventTypes,
             ],
         ]);
 
