@@ -6,5 +6,5 @@ namespace Sylius\PayPalPlugin\Api;
 
 interface WebhookApiInterface
 {
-    public function register(string $token, string $webhookUrl): array;
+    public function register(string $token, string $webhookUrl, array $eventTypes): array;
 }

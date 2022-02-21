@@ -1,86 +1,95 @@
 winzou_state_machine:
-    sylius_order_checkout:
-        callbacks:
-            after:
-                complete_pay_pal_order:
-                    on: ['complete']
-                    do: ['@Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor', 'completePayPalOrder']
-                    args: ['object']
-    sylius_payment:
-        callbacks:
-            before:
-                refund_pay_pal_order:
-                    on: ['refund']
-                    do: ['@Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface', 'refund']
-                    args: ['object']
-        transitions:
-            cancel:
-                from: [cart]
-                to: cancelled
+  sylius_order_checkout:
+    callbacks:
+      after:
+        complete_pay_pal_order:
+          on: [ 'complete' ]
+          do: [ '@Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor', 'completePayPalOrder' ]
+          args: [ 'object' ]
+  sylius_payment:
+    callbacks:
+      before:
+        refund_pay_pal_order:
+          on: [ 'refund' ]
+          do: [ '@Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface', 'refund' ]
+          args: [ 'object' ]
+    transitions:
+      cancel:
+        from: [ cart ]
+        to: cancelled
 
 sylius_order:
-    resources:
-        order_item:
-            classes:
-                controller: Sylius\PayPalPlugin\Controller\PayPalOrderItemController
+  resources:
+    order_item:
+      classes:
+        controller: Sylius\PayPalPlugin\Controller\PayPalOrderItemController
 
 sylius_grid:
-    templates:
-        action:
-            download_report: "@SyliusPayPalPlugin/Grid/downloadReport.html.twig"
-            enable_pay_pal: "@SyliusPayPalPlugin/Grid/enablePayPal.html.twig"
-            enable_seller: "@SyliusPayPalPlugin/Grid/enableSeller.html.twig"
-    grids:
-        sylius_admin_payment_method:
-            actions:
-                item:
-                    enable_seller:
-                        type: enable_seller
-                    download_report:
-                        type: download_report
-                        label: sylius.pay_pal.report
-                        icon: download
-                        options:
-                            link:
-                                route: sylius_paypal_plugin_admin_download_payouts_report
-                                parameters:
-                                    id: resource.id
-                main:
-                    enable_pay_pal:
-                        type: enable_pay_pal
+  templates:
+    action:
+      download_report: "@SyliusPayPalPlugin/Grid/downloadReport.html.twig"
+      enable_pay_pal: "@SyliusPayPalPlugin/Grid/enablePayPal.html.twig"
+      enable_seller: "@SyliusPayPalPlugin/Grid/enableSeller.html.twig"
+  grids:
+    sylius_admin_payment_method:
+      actions:
+        item:
+          enable_seller:
+            type: enable_seller
+          download_report:
+            type: download_report
+            label: sylius.pay_pal.report
+            icon: download
+            options:
+              link:
+                route: sylius_paypal_plugin_admin_download_payouts_report
+                parameters:
+                  id: resource.id
+        main:
+          enable_pay_pal:
+            type: enable_pay_pal
 
 sylius_ui:
-    events:
-        sylius.admin.payment_method.create.header:
-            blocks:
-                pay_pal_logo:
-                    template: '@SyliusPayPalPlugin/payPalLogo.html.twig'
-        sylius.shop.product.show.right_sidebar:
-            blocks:
-                pay_with_pay_pal:
-                    template: '@SyliusPayPalPlugin/Buttons/productDetails.html.twig'
-                    priority: 7
-        sylius.shop.cart.summary:
-            blocks:
-                pay_with_pay_pal:
-                    template: '@SyliusPayPalPlugin/Buttons/cart.html.twig'
-                    priority: 7
-        sylius.admin.payment_method.index.javascripts:
-            blocks:
-                pay_pal_payment_method:
-                    template: '@SyliusPayPalPlugin/javascripts.html.twig'
-                    priority: -100
+  events:
+    sylius.admin.payment_method.create.header:
+      blocks:
+        pay_pal_logo:
+          template: '@SyliusPayPalPlugin/payPalLogo.html.twig'
+    sylius.shop.product.show.right_sidebar:
+      blocks:
+        pay_with_pay_pal:
+          template: '@SyliusPayPalPlugin/Buttons/productDetails.html.twig'
+          priority: 7
+    sylius.shop.cart.summary:
+      blocks:
+        pay_with_pay_pal:
+          template: '@SyliusPayPalPlugin/Buttons/cart.html.twig'
+          priority: 7
+    sylius.admin.payment_method.index.javascripts:
+      blocks:
+        pay_pal_payment_method:
+          template: '@SyliusPayPalPlugin/javascripts.html.twig'
+          priority: -100
 
-        sylius.admin.layout.stylesheets:
-            blocks:
-                stylesheets:
-                    template: '@SyliusPayPalPlugin/stylesheets.html.twig'
+    sylius.admin.layout.stylesheets:
+      blocks:
+        stylesheets:
+          template: '@SyliusPayPalPlugin/stylesheets.html.twig'
 
 monolog:
-    channels: ['paypal']
-    handlers:
-        paypal:
-            level: debug
-            type: stream
-            path: '%kernel.logs_dir%/paypal.log'
-            channels: [paypal]
+  channels: [ 'paypal' ]
+  handlers:
+    paypal:
+      level: debug
+      type: stream
+      path: '%kernel.logs_dir%/paypal.log'
+      channels: [ paypal ]
+
+sylius_pay_pal:
+  webhooks:
+    -
+      route: 'sylius_paypal_plugin_webhook_checkout_order_approved'
+      event_types: [ 'CHECKOUT.ORDER.APPROVED' ]
+    -
+      route: 'sylius_paypal_plugin_webhook_payment_capture_completed'
+      event_types: [ 'PAYMENT.CAPTURE.COMPLETED' ]

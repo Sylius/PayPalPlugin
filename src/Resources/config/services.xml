@@ -271,6 +271,7 @@
             <argument type="service" id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" />
             <argument type="service" id="router" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\WebhookApiInterface" />
+            <argument>%sylius.paypal.webhooks%</argument>
         </service>
 
         <service id="Sylius\PayPalPlugin\Twig\PayPalExtension">
