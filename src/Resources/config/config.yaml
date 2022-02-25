@@ -1,22 +1,22 @@
-winzou_state_machine:
-  sylius_order_checkout:
-    callbacks:
-      after:
-        complete_pay_pal_order:
-          on: [ 'complete' ]
-          do: [ '@Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor', 'completePayPalOrder' ]
-          args: [ 'object' ]
-  sylius_payment:
-    callbacks:
-      before:
-        refund_pay_pal_order:
-          on: [ 'refund' ]
-          do: [ '@Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface', 'refund' ]
-          args: [ 'object' ]
-    transitions:
-      cancel:
-        from: [ cart ]
-        to: cancelled
+#winzou_state_machine:
+#  sylius_order_checkout:
+#    callbacks:
+#      after:
+#        complete_pay_pal_order:
+#          on: [ 'complete' ]
+#          do: [ '@Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor', 'completePayPalOrder' ]
+#          args: [ 'object' ]
+#  sylius_payment:
+#    callbacks:
+#      before:
+#        refund_pay_pal_order:
+#          on: [ 'refund' ]
+#          do: [ '@Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface', 'refund' ]
+#          args: [ 'object' ]
+#    transitions:
+#      cancel:
+#        from: [ cart ]
+#        to: cancelled
 
 sylius_order:
   resources:

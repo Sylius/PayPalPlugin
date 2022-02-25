@@ -184,13 +184,13 @@
             <argument type="service" id="sylius.repository.payment_method" />
         </service>
 
-        <service
-            id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver"
-            decorates="sylius.payment_methods_resolver"
-        >
-            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver.inner" />
-            <argument>%sylius.paypal.prioritized_factory_name%</argument>
-        </service>
+<!--        <service-->
+<!--            id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver"-->
+<!--            decorates="sylius.payment_methods_resolver"-->
+<!--        >-->
+<!--            <argument type="service" id="Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver.inner" />-->
+<!--            <argument>%sylius.paypal.prioritized_factory_name%</argument>-->
+<!--        </service>-->
 
         <service
             id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface"
