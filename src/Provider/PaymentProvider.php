@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Repository\PaymentRepositoryInterface;
 
 final class PaymentProvider implements PaymentProviderInterface
 {
@@ -28,15 +28,11 @@ final class PaymentProvider implements PaymentProviderInterface
 
     public function getByPayPalOrderId(string $orderId): PaymentInterface
     {
-        /** @var PaymentInterface[] $payments */
-        $payments = $this->paymentRepository->findAll();
+        /** @var PaymentInterface|null $payment */
+        $payment = $this->paymentRepository->getByPayPalOrderId($orderId);
 
-        foreach ($payments as $payment) {
-            $details = $payment->getDetails();
-
-            if (isset($details['paypal_order_id']) && $details['paypal_order_id'] === $orderId) {
-                return $payment;
-            }
+        if(!is_null($payment)) {
+            return $payment;
         }
 
         throw PaymentNotFoundException::withPayPalOrderId($orderId);

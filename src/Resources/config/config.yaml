@@ -84,12 +84,3 @@ monolog:
       type: stream
       path: '%kernel.logs_dir%/paypal.log'
       channels: [ paypal ]
-
-sylius_pay_pal:
-  webhooks:
-    -
-      route: 'sylius_paypal_plugin_webhook_checkout_order_approved'
-      event_types: [ 'CHECKOUT.ORDER.APPROVED' ]
-    -
-      route: 'sylius_paypal_plugin_webhook_payment_capture_completed'
-      event_types: [ 'PAYMENT.CAPTURE.COMPLETED' ]

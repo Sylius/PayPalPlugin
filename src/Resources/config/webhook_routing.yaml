@@ -17,3 +17,10 @@ sylius_paypal_plugin_webhook_payment_capture_completed:
     methods: [POST]
     defaults:
         _controller: Sylius\PayPalPlugin\Controller\Webhook\PaymentCaptureCompletedAction
+
+# PAYMENT.CAPTURE.DENIED -> update state machine of order to STATE_CART and payment to TRANSITION_FAIL
+sylius_paypal_plugin_webhook_payment_capture_denied:
+    path: /paypal-webhook/payment_capture_denied
+    methods: [POST]
+    defaults:
+        _controller: Sylius\PayPalPlugin\Controller\Webhook\PaymentCaptureDeniedAction
