@@ -80,7 +80,7 @@ final class PaymentCaptureCompletedAction
 
                 // Retrieve order details
                 $details = $this->orderDetailsApi->get($token, $data['id']);
-                if ($details['status'] === 'COMPLETED') {
+                if ($this->getDetailsStatus($details) === 'COMPLETED') {
                     $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
 
                     if ($stateMachine->can(PaymentTransitions::TRANSITION_COMPLETE)) {
@@ -130,5 +130,12 @@ final class PaymentCaptureCompletedAction
         }
 
         throw new PayPalWrongDataException();
+    }
+
+    private function getDetailsStatus($orderDetails)
+    {
+        if (!isset($orderDetails['status']))
+            return false;
+        return $orderDetails['status'];
     }
 }

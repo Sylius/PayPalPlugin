@@ -1,26 +1,21 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Sylius\PayPalPlugin\Controller\Webhook;
 
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
-use Payum\Core\Action\ActionInterface;
-use Psr\Log\LoggerInterface;
+use Monolog\Logger;
 use SM\Factory\FactoryInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Payment\Provider\OrderPaymentProviderInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as PaymentInterfaceAlias;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\Component\Resource\StateMachine\StateMachineInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\AuthorizePaymentOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
-use Sylius\PayPalPlugin\Exception\PayPalWrongWebhookException;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface;
@@ -29,9 +24,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Webmozart\Assert\Assert;
 
-final class CheckoutOrderApprovedAction
+final class PaymentCaptureDeniedAction
 {
-    const WEBHOOK_EVENT = 'CHECKOUT.ORDER.APPROVED';
+    const WEBHOOK_EVENT = 'PAYMENT.CAPTURE.DENIED';
 
     private FactoryInterface $stateMachineFactory;
     private PaymentProviderInterface $paymentProvider;
@@ -39,7 +34,8 @@ final class CheckoutOrderApprovedAction
     private OrderDetailsApiInterface $orderDetailsApi;
     private PayPalWebhookDataProviderInterface $payPalWebhookDataProvider;
     private CacheAuthorizeClientApiInterface $authorizeClientApi;
-    private CompleteOrderApiInterface $completeOrderApi;
+    private OrderPaymentProviderInterface $orderPaymentProvider;
+    private Logger $logger;
 
     public function __construct(
         FactoryInterface                   $stateMachineFactory,
@@ -48,7 +44,8 @@ final class CheckoutOrderApprovedAction
         OrderDetailsApiInterface           $orderDetailsApi,
         PayPalWebhookDataProviderInterface $payPalWebhookDataProvider,
         CacheAuthorizeClientApiInterface   $authorizeClientApi,
-        CompleteOrderApiInterface          $completeOrderApi
+        OrderPaymentProviderInterface  $orderPaymentProvider,
+        Logger $logger
     )
     {
         $this->stateMachineFactory = $stateMachineFactory;
@@ -57,61 +54,54 @@ final class CheckoutOrderApprovedAction
         $this->orderDetailsApi = $orderDetailsApi;
         $this->payPalWebhookDataProvider = $payPalWebhookDataProvider;
         $this->authorizeClientApi = $authorizeClientApi;
-        $this->completeOrderApi = $completeOrderApi;
+        $this->orderPaymentProvider = $orderPaymentProvider;
+        $this->logger = $logger;
     }
 
     public function __invoke(Request $request): Response
     {
         if ($this->supports($request)) {
             try {
-                $data = $this->payPalWebhookDataProvider->provide($this->getPayPalPaymentUrl($request), 'self');
+                $data = $this->payPalWebhookDataProvider->provide($this->getPayPalPaymentUrl($request), 'up');
 
                 try {
                     /** @var PaymentInterface $payment */
                     $payment = $this->paymentProvider->getByPayPalOrderId((string)$data['id']);
+
+                    /** @var OrderInterface $order */
+                    $order = $payment->getOrder();
+
                 } catch (PaymentNotFoundException $exception) {
                     return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
                 }
 
-                if ($payment->getDetails()['status'] === StatusAction::STATUS_CREATED) {
-                    /** @var PaymentMethodInterface $paymentMethod */
-                    $paymentMethod = $payment->getMethod();
-                    $token = $this->authorizeClientApi->authorize($paymentMethod);
+                /** @var PaymentMethodInterface $paymentMethod */
+                $paymentMethod = $payment->getMethod();
+                $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-                    // Capture order to complete it
-                    $this->completeOrderApi->complete($token, $data['id']);
+                // Retrieve order details
+                $details = $this->orderDetailsApi->get($token, $data['id']);
 
-                    // Retrieve order details
-                    $details = $this->orderDetailsApi->get($token, $data['id']);
+                if ($this->getDetailsStatus($details) === 'DECLINED') {
+                    $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+                    if ($stateMachine->can(PaymentTransitions::TRANSITION_PROCESS)) {
+                        $stateMachine->apply(PaymentTransitions::TRANSITION_PROCESS);
+                    }
 
-                    if($this->getDetailsStatus($details)) {
-                        $payment->setDetails([
-                            'status' => $details['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
-                            'paypal_order_id' => $details['id'],
-                            'reference_id' => $details['purchase_units'][0]['reference_id'],
-                        ]);
+                    $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+                    if ($stateMachine->can(PaymentTransitions::TRANSITION_FAIL)) {
+                        $stateMachine->apply(PaymentTransitions::TRANSITION_FAIL);
+                    }
 
-                        $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-
-                        switch ($details['status']) {
-                            case 'COMPLETED':
-                                if ($stateMachine->can(PaymentTransitions::TRANSITION_COMPLETE)) {
-                                    $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE);
-                                }
-                                break;
-                            case 'PROCESSING':
-                                if ($stateMachine->can(PaymentTransitions::TRANSITION_PROCESS)) {
-                                    $stateMachine->apply(PaymentTransitions::TRANSITION_PROCESS);
-                                }
-                                break;
-                            default: // No implementation explicit
-                                break;
-                        }
-
-                        $this->paymentManager->flush();
+                    $newPayment = $this->orderPaymentProvider->provideOrderPayment($order, PaymentInterfaceAlias::STATE_CART);
+                    if($newPayment) {
+                        $order->addPayment($newPayment);
                     }
                 }
+
+                $this->paymentManager->flush();
             } catch (RequestException $requestException) {
+                $this->logger->error($requestException->getMessage());
                 return new JsonResponse(['error' => $requestException->getMessage()], Response::HTTP_BAD_REQUEST);
             }
 
