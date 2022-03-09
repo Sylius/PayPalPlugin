@@ -6,21 +6,16 @@ namespace Sylius\PayPalPlugin\Controller\Webhook;
 
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\RequestException;
-use Payum\Core\Action\ActionInterface;
-use Psr\Log\LoggerInterface;
+use Monolog\Logger;
 use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\Component\Resource\StateMachine\StateMachineInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\AuthorizePaymentOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
-use Sylius\PayPalPlugin\Exception\PayPalWrongWebhookException;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface;
@@ -40,6 +35,7 @@ final class CheckoutOrderApprovedAction
     private PayPalWebhookDataProviderInterface $payPalWebhookDataProvider;
     private CacheAuthorizeClientApiInterface $authorizeClientApi;
     private CompleteOrderApiInterface $completeOrderApi;
+    private Logger $logger;
 
     public function __construct(
         FactoryInterface                   $stateMachineFactory,
@@ -48,7 +44,8 @@ final class CheckoutOrderApprovedAction
         OrderDetailsApiInterface           $orderDetailsApi,
         PayPalWebhookDataProviderInterface $payPalWebhookDataProvider,
         CacheAuthorizeClientApiInterface   $authorizeClientApi,
-        CompleteOrderApiInterface          $completeOrderApi
+        CompleteOrderApiInterface          $completeOrderApi,
+        Logger $logger
     )
     {
         $this->stateMachineFactory = $stateMachineFactory;
@@ -58,6 +55,7 @@ final class CheckoutOrderApprovedAction
         $this->payPalWebhookDataProvider = $payPalWebhookDataProvider;
         $this->authorizeClientApi = $authorizeClientApi;
         $this->completeOrderApi = $completeOrderApi;
+        $this->logger = $logger;
     }
 
     public function __invoke(Request $request): Response
@@ -79,18 +77,23 @@ final class CheckoutOrderApprovedAction
                     $token = $this->authorizeClientApi->authorize($paymentMethod);
 
                     // Capture order to complete it
-                    $this->completeOrderApi->complete($token, $data['id']);
+                    $detailsComplete = $this->completeOrderApi->complete($token, $data['id']);
 
                     // Retrieve order details
                     $details = $this->orderDetailsApi->get($token, $data['id']);
 
                     if($this->getDetailsStatus($details)) {
-                        $payment->setDetails([
+                        $detailsPayment = [
                             'status' => $details['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
                             'paypal_order_id' => $details['id'],
-                            'reference_id' => $details['purchase_units'][0]['reference_id'],
-                        ]);
+                            'reference_id' => $details['purchase_units'][0]['reference_id']
+                        ];
 
+                        if ($this->getDetailsStatus($detailsComplete) === 'COMPLETED') {
+                            $detailsPayment['transaction_id'] = $details['purchase_units'][0]['payments']['captures'][0]['id'];
+                        }
+
+                        $payment->setDetails($detailsPayment);
                         $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
 
                         switch ($details['status']) {
@@ -112,6 +115,7 @@ final class CheckoutOrderApprovedAction
                     }
                 }
             } catch (RequestException $requestException) {
+                $this->logger->debug('error: ' . $requestException->getMessage());
                 return new JsonResponse(['error' => $requestException->getMessage()], Response::HTTP_BAD_REQUEST);
             }
 

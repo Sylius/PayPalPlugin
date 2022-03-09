@@ -19,6 +19,7 @@
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
+            <argument type="service" id="monolog.logger.paypal" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\Webhook\PaymentCaptureCompletedAction">
