@@ -13,28 +13,36 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
-use Sylius\PayPalPlugin\Repository\PaymentRepositoryInterface;
+use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 
 final class PaymentProvider implements PaymentProviderInterface
 {
+    private EntityManager $entityManager;
     private PaymentRepositoryInterface $paymentRepository;
 
-    public function __construct(PaymentRepositoryInterface $paymentRepository)
+    public function __construct(EntityManager $entityManager, PaymentRepositoryInterface $paymentRepository)
     {
+        $this->entityManager = $entityManager;
         $this->paymentRepository = $paymentRepository;
     }
 
     public function getByPayPalOrderId(string $orderId): PaymentInterface
     {
-        /** @var PaymentInterface|null $payment */
-        $payment = $this->paymentRepository->getByPayPalOrderId($orderId);
+        /** @var ResultSetMappingBuilder $builder */
+        $builder = $this->paymentRepository->createResultSetMappingBuilder('p');
+        $builder->addRootEntityFromClassMetadata($this->paymentRepository->getClassName(), 'p');
 
-        if(!is_null($payment)) {
-            return $payment;
-        }
+        $rawQuery = sprintf(
+            'SELECT %s FROM sylius_payment p WHERE JSON_EXTRACT(details, \'$.paypal_order_id\') = ? LIMIT 0,1',
+            $builder->generateSelectClause(),
+        );
 
-        throw PaymentNotFoundException::withPayPalOrderId($orderId);
+        $query = $this->entityManager->createNativeQuery($rawQuery, $builder);
+        $query->setParameter(1, $orderId);
+
+        return $query->getOneOrNullResult();
     }
 }
