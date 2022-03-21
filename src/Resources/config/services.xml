@@ -281,5 +281,14 @@
         <service id="Sylius\PayPalPlugin\Twig\OrderAddressExtension">
             <tag name="twig.extension" />
         </service>
+
+        <service id="Sylius\PayPalPlugin\Service\WebhookService">
+            <argument type="service" id="sm.factory" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
+            <argument type="service" id="sylius.manager.payment" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
+        </service>
     </services>
 </container>

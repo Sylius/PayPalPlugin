@@ -22,7 +22,10 @@ class PayPalPurchaseUnit
     private $referenceId;
 
     /** @var string */
-    private $invoiceNumber;
+    private $customId;
+
+    /** @var int */
+    private $invoiceId;
 
     /** @var string */
     private $currencyCode;
@@ -59,7 +62,8 @@ class PayPalPurchaseUnit
 
     public function __construct(
         string $referenceId,
-        string $invoiceNumber,
+        int $customId,
+        string $invoiceId,
         string $currencyCode,
         int $totalAmount,
         int $shippingValue,
@@ -73,7 +77,8 @@ class PayPalPurchaseUnit
         string $softDescriptor = 'Sylius PayPal Payment'
     ) {
         $this->referenceId = $referenceId;
-        $this->invoiceNumber = $invoiceNumber;
+        $this->customId = $customId;
+        $this->invoiceId = $invoiceId;
         $this->currencyCode = $currencyCode;
         $this->totalAmount = $totalAmount;
         $this->shippingValue = $shippingValue;
@@ -91,7 +96,8 @@ class PayPalPurchaseUnit
     {
         $paypalPurchaseUnit = [
             'reference_id' => $this->referenceId,
-            'invoice_number' => $this->invoiceNumber,
+            'custom_id' => $this->customId,
+            'invoice_id' => $this->invoiceId,
             'amount' => [
                 'currency_code' => $this->currencyCode,
                 'value' => number_format($this->totalAmount / 100, 2, '.', ''),

@@ -55,7 +55,8 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
 
         $data = new PayPalPurchaseUnit(
             $referenceId,
-            $this->paymentReferenceNumberProvider->provide($payment),
+            (int)$order->getId(),
+            (string)$order->getNumber(),
             (string) $order->getCurrencyCode(),
             (int) $payment->getAmount(),
             $order->getShippingTotal(),

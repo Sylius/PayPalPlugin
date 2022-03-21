@@ -6,5 +6,5 @@ namespace Sylius\PayPalPlugin\Api;
 
 interface CompleteOrderApiInterface
 {
-    public function complete(string $token, string $orderId): array;
+    public function complete(string $token, string $orderId, ?bool $mockError = false): array;
 }

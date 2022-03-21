@@ -12,33 +12,20 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\Webhook\CheckoutOrderApprovedAction">
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
-            <argument type="service" id="sylius.manager.payment" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Service\WebhookService" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
             <argument type="service" id="monolog.logger.paypal" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\Webhook\PaymentCaptureCompletedAction">
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
-            <argument type="service" id="sylius.manager.payment" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Service\WebhookService" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
+            <argument type="service" id="monolog.logger.paypal" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\Webhook\PaymentCaptureDeniedAction">
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
-            <argument type="service" id="sylius.manager.payment" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Service\WebhookService" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface" />
-            <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
-            <argument type="service" id="sylius.order_payment_provider" />
             <argument type="service" id="monolog.logger.paypal" />
         </service>
 

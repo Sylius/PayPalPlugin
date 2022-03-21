@@ -17,6 +17,7 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 
 final class PaymentProvider implements PaymentProviderInterface
 {
@@ -29,7 +30,13 @@ final class PaymentProvider implements PaymentProviderInterface
         $this->paymentRepository = $paymentRepository;
     }
 
-    public function getByPayPalOrderId(string $orderId): PaymentInterface
+    /**
+     * @param string $orderId
+     * @return PaymentInterface|null
+     * @throws PaymentNotFoundException
+     * @throws \Doctrine\ORM\NonUniqueResultException
+     */
+    public function getByPayPalOrderId(string $orderId): ?PaymentInterface
     {
         /** @var ResultSetMappingBuilder $builder */
         $builder = $this->paymentRepository->createResultSetMappingBuilder('p');
@@ -42,7 +49,12 @@ final class PaymentProvider implements PaymentProviderInterface
 
         $query = $this->entityManager->createNativeQuery($rawQuery, $builder);
         $query->setParameter(1, $orderId);
+        $payment = $query->getOneOrNullResult();
 
-        return $query->getOneOrNullResult();
+        if (!is_null($payment)) {
+            return $payment;
+        }
+
+        throw PaymentNotFoundException::withPayPalOrderId($orderId);
     }
 }

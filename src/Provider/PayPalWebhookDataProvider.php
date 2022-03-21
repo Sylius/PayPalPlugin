@@ -25,6 +25,13 @@ final class PayPalWebhookDataProvider implements PayPalWebhookDataProviderInterf
         $this->payPalPaymentMethodProvider = $payPalPaymentMethodProvider;
     }
 
+    /**
+     * @param string $url
+     * @param string $rel
+     * @return array
+     * @throws PayPalWrongDataException
+     * @throws \Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException
+     */
     public function provide(string $url, string $rel): array
     {
         $paymentMethod = $this->payPalPaymentMethodProvider->provide();

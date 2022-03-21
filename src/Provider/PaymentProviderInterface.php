@@ -9,6 +9,10 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 
 interface PaymentProviderInterface
 {
-    /** @throws PaymentNotFoundException */
-    public function getByPayPalOrderId(string $orderId): PaymentInterface;
+    /**
+     * @param string $orderId
+     * @return null|PaymentInterface
+     * @throws PaymentNotFoundException
+     */
+    public function getByPayPalOrderId(string $orderId): ?PaymentInterface;
 }
