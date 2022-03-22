@@ -36,7 +36,13 @@ final class PaymentProvider implements PaymentProviderInterface
         $builder->addRootEntityFromClassMetadata($this->paymentRepository->getClassName(), 'p');
 
         $rawQuery = sprintf(
-            'SELECT %s FROM sylius_payment p WHERE p.details IS NOT NULL AND p.details != \'\' AND JSON_EXTRACT(p.details, \'$.paypal_order_id\') = ? LIMIT 0,1',
+            'SELECT %s FROM sylius_payment p '
+            . 'JOIN sylius_payment_method AS pm ON p.method_id = pm.id '
+            . 'JOIN sylius_gateway_config AS gc ON pm.gateway_config_id = gc.id '
+            . 'WHERE p.details IS NOT NULL AND p.details != \'\' AND JSON_EXTRACT(p.details, \'$.paypal_order_id\') = ? '
+            . 'AND gc.factory_name = \'sylius.pay_pal\' '
+            . 'LIMIT 0,1',
+
             $builder->generateSelectClause(),
         );
 
