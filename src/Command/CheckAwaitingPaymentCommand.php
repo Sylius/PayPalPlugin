@@ -148,7 +148,12 @@ final class CheckAwaitingPaymentCommand extends Command
                         $this->_markOrderStatus($orderDetails, $payment, StatusAction::STATUS_COMPLETED);
                         break;
                     default:
-                        $this->_markOrderStatus($orderDetails, $payment, StatusAction::STATUS_PROCESSING);
+                        if (isset($orderDetails['debug_id'])) {
+                            $this->_processError($orderDetails, $payment);
+                        } else {
+                            $this->_markOrderStatus($orderDetails, $payment, StatusAction::STATUS_PROCESSING);
+                        }
+
                         break;
                 }
             } else {
@@ -201,17 +206,17 @@ final class CheckAwaitingPaymentCommand extends Command
     private function _markOrderStatus(array $orderDetails, PaymentInterface $payment, string $status): void
     {
         if (!$this->isDry) {
-            $detailsPayment = array_merge([
+            $detailsPayment = array_merge($payment->getDetails(), [
                 'status' => $status,
                 'paypal_order_details' => $orderDetails
-            ], $payment->getDetails());
+            ]);
 
             if ($status === StatusAction::STATUS_COMPLETED) {
-                $detailsPayment = array_merge([
+                $detailsPayment = array_merge($detailsPayment, [
                     'transaction_id' => $this->accessor->getValue(
                         $orderDetails, '[purchase_units][0][payments][captures][0][id]'
                     )
-                ], $detailsPayment);
+                ]);
             }
             $payment->setDetails($detailsPayment);
 
@@ -241,25 +246,28 @@ final class CheckAwaitingPaymentCommand extends Command
     {
         /** @var string|null $errorName */
         $errorName = $this->accessor->getValue($err, '[name]');
-        if (in_array($errorName, ['RESOURCE_NOT_FOUND', 'UNPROCESSABLE_ENTITY']) && !$this->isDry) {
+        if (in_array($errorName, ['UNPROCESSABLE_ENTITY'])) {
+            if (!$this->isDry) {
+                // Log error in payment details
+                $payment->setDetails(array_merge($payment->getDetails(), [
+                    'status' => 'FAILED',
+                    'error' => $err
+                ]));
 
-            // Log error in payment details
-            $payment->setDetails(array_merge([
-                'status' => 'FAILED',
-                'error' => $err
-            ], $payment->getDetails()));
+                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+                if ($stateMachine->can(PaymentTransitions::TRANSITION_PROCESS)) {
+                    $stateMachine->apply(PaymentTransitions::TRANSITION_PROCESS);
+                }
 
-            $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-            if ($stateMachine->can(PaymentTransitions::TRANSITION_PROCESS)) {
-                $stateMachine->apply(PaymentTransitions::TRANSITION_PROCESS);
+                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+                if ($stateMachine->can(PaymentTransitions::TRANSITION_FAIL)) {
+                    $stateMachine->apply(PaymentTransitions::TRANSITION_FAIL);
+                }
+
+                $this->paymentManager->flush();
+            } else {
+                $this->io->note('[DRY] Payment id:' . $payment->getId() . ' passage au status: FAILED');
             }
-
-            $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-            if ($stateMachine->can(PaymentTransitions::TRANSITION_FAIL)) {
-                $stateMachine->apply(PaymentTransitions::TRANSITION_FAIL);
-            }
-
-            $this->paymentManager->flush();
         } else {
             $this->io->caution('Exception pour le paiement[id:' . $payment->getId() . '] de la commande[id:' . $payment->getOrder()->getId() . ']');
             $this->io->caution('Détails de l\'erreur :');
