@@ -24,8 +24,14 @@ final class CompleteOrderApi implements CompleteOrderApiInterface
         $this->client = $client;
     }
 
-    public function complete(string $token, string $orderId): array
+    public function complete(string $token, string $orderId, ?bool $mockError = false): array
     {
+        if ($mockError) {
+            return $this->client->post(sprintf('v2/checkout/orders/%s/capture', $orderId), $token, [], [
+                'PayPal-Mock-Response' => '{"mock_application_codes": "INSTRUMENT_DECLINED"}'
+            ]);
+        }
+
         return $this->client->post(sprintf('v2/checkout/orders/%s/capture', $orderId), $token);
     }
 }

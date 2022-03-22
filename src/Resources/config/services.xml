@@ -250,13 +250,16 @@
             class="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider"
         />
 
-        <service id="Sylius\PayPalPlugin\Command\CompletePaidPaymentsCommand">
-            <argument type="service" id="sylius.repository.payment" />
-            <argument type="service" id="sylius.manager.payment" />
+        <service id="Sylius\PayPalPlugin\Command\CheckAwaitingPaymentCommand">
+            <argument type="service" id="sm.factory" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
-            <argument type="service" id="sm.factory" />
-            <tag name="console.command" command="sylius:pay-pal-plugin:complete-payments" />
+            <argument type="service" id="Sylius\PayPalPlugin\Api\CompleteOrderApiInterface" />
+            <argument type="service" id="sylius.manager.payment" />
+            <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
+            <argument type="service" id="sylius.context.channel" />
+            <tag name="console.command" command="sylius:pay-pal-plugin:check-payment" />
         </service>
 
         <service

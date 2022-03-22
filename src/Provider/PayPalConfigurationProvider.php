@@ -44,6 +44,25 @@ final class PayPalConfigurationProvider implements PayPalConfigurationProviderIn
         return (string) $config['partner_attribution_id'];
     }
 
+    public function getPayPalPaymentMethod(ChannelInterface $channel): PaymentMethodInterface
+    {
+        $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);
+
+        /** @var PaymentMethodInterface $method */
+        foreach ($methods as $method) {
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $method->getGatewayConfig();
+
+            if ($gatewayConfig->getFactoryName() !== 'sylius.pay_pal') {
+                continue;
+            }
+
+            return $method;
+        }
+
+        throw new \InvalidArgumentException('No PayPal payment method defined');
+    }
+
     private function getPayPalPaymentMethodConfig(ChannelInterface $channel): array
     {
         $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);
