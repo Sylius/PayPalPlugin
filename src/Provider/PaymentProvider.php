@@ -36,7 +36,7 @@ final class PaymentProvider implements PaymentProviderInterface
         $builder->addRootEntityFromClassMetadata($this->paymentRepository->getClassName(), 'p');
 
         $rawQuery = sprintf(
-            'SELECT %s FROM sylius_payment p WHERE JSON_EXTRACT(details, \'$.paypal_order_id\') = ? LIMIT 0,1',
+            'SELECT %s FROM sylius_payment p WHERE p.details IS NOT NULL AND p.details != \'\' AND JSON_EXTRACT(p.details, \'$.paypal_order_id\') = ? LIMIT 0,1',
             $builder->generateSelectClause(),
         );
 
