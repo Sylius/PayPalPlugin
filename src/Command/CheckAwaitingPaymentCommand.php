@@ -271,7 +271,7 @@ final class CheckAwaitingPaymentCommand extends Command
         } else {
             $this->io->caution('Exception pour le paiement[id:' . $payment->getId() . '] de la commande[id:' . $payment->getOrder()->getId() . ']');
             $this->io->caution('Détails de l\'erreur :');
-            $this->io->caution($err);
+            $this->io->caution(json_encode($err));
         }
     }
 }
