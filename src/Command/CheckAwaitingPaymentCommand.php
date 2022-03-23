@@ -268,7 +268,28 @@ final class CheckAwaitingPaymentCommand extends Command
             } else {
                 $this->io->note('[DRY] Payment id:' . $payment->getId() . ' passage au status: FAILED');
             }
-        } else {
+        }
+        elseif (in_array($errorName, ['RESOURCE_NOT_FOUND'])) {
+            if (!$this->isDry) {
+                // Log error in payment details
+                $payment->setDetails(array_merge($payment->getDetails(), [
+                    'status' => 'CANCELED',
+                    'error' => $err
+                ]));
+
+                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+
+                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+                if ($stateMachine->can(PaymentTransitions::TRANSITION_CANCEL)) {
+                    $stateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
+                }
+
+                $this->paymentManager->flush();
+            } else {
+                $this->io->note('[DRY] Payment id:' . $payment->getId() . ' passage au status: CANCELED');
+            }
+        }
+        else {
             $this->io->caution('Exception pour le paiement[id:' . $payment->getId() . '] de la commande[id:' . $payment->getOrder()->getId() . ']');
             $this->io->caution('Détails de l\'erreur :');
             $this->io->caution(json_encode($err));
