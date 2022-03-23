@@ -147,6 +147,9 @@ final class CheckAwaitingPaymentCommand extends Command
                     case 'COMPLETED':
                         $this->_markOrderStatus($orderDetails, $payment, StatusAction::STATUS_COMPLETED);
                         break;
+                    case 'CREATED':
+                        // Do nothing for now
+                        break;
                     default:
                         if (isset($orderDetails['debug_id'])) {
                             $this->_processError($orderDetails, $payment);
@@ -276,8 +279,6 @@ final class CheckAwaitingPaymentCommand extends Command
                     'status' => 'CANCELED',
                     'error' => $err
                 ]));
-
-                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
 
                 $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
                 if ($stateMachine->can(PaymentTransitions::TRANSITION_CANCEL)) {
