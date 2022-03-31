@@ -10,6 +10,7 @@ use Monolog\Logger;
 use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Order\StateResolver\StateResolverInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
@@ -19,6 +20,7 @@ use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebhookDataProviderInterface;
+use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +37,8 @@ final class CheckoutOrderApprovedAction
     private PayPalWebhookDataProviderInterface $payPalWebhookDataProvider;
     private CacheAuthorizeClientApiInterface $authorizeClientApi;
     private CompleteOrderApiInterface $completeOrderApi;
+    private PaymentUpdaterInterface $payPalPaymentUpdater;
+    private StateResolverInterface $orderPaymentStateResolver;
     private Logger $logger;
 
     public function __construct(
@@ -45,7 +49,9 @@ final class CheckoutOrderApprovedAction
         PayPalWebhookDataProviderInterface $payPalWebhookDataProvider,
         CacheAuthorizeClientApiInterface   $authorizeClientApi,
         CompleteOrderApiInterface          $completeOrderApi,
-        Logger $logger
+        PaymentUpdaterInterface            $payPalPaymentUpdater,
+        StateResolverInterface             $orderPaymentStateResolver,
+        Logger                             $logger
     )
     {
         $this->stateMachineFactory = $stateMachineFactory;
@@ -55,6 +61,8 @@ final class CheckoutOrderApprovedAction
         $this->payPalWebhookDataProvider = $payPalWebhookDataProvider;
         $this->authorizeClientApi = $authorizeClientApi;
         $this->completeOrderApi = $completeOrderApi;
+        $this->payPalPaymentUpdater = $payPalPaymentUpdater;
+        $this->orderPaymentStateResolver = $orderPaymentStateResolver;
         $this->logger = $logger;
     }
 
@@ -82,12 +90,20 @@ final class CheckoutOrderApprovedAction
                     // Retrieve order details
                     $details = $this->orderDetailsApi->get($token, $data['id']);
 
-                    if($this->getDetailsStatus($details)) {
-                        $detailsPayment = [
+                    $order = $payment->getOrder();
+                    $totalPaypal = (int) $details['purchase_units'][0]['amount']['value'] * 100;
+
+                    // Update payment total with the Paypal total (partially paid state will be triggered)
+                    if ($totalPaypal != $order->getTotal()) {
+                        $this->payPalPaymentUpdater->updateAmount($payment, $totalPaypal);
+                        $this->orderPaymentStateResolver->resolve($order);
+                    }
+
+                    if ($this->getDetailsStatus($details)) {
+                        $detailsPayment = array_merge($payment->getDetails(), [
                             'status' => $details['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
-                            'paypal_order_id' => $details['id'],
-                            'reference_id' => $details['purchase_units'][0]['reference_id']
-                        ];
+                            'paypal_order_details' => $details
+                        ]);
 
                         if ($this->getDetailsStatus($detailsComplete) === 'COMPLETED') {
                             $detailsPayment['transaction_id'] = $details['purchase_units'][0]['payments']['captures'][0]['id'];
