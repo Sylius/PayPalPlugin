@@ -91,7 +91,7 @@ final class CheckoutOrderApprovedAction
                     $details = $this->orderDetailsApi->get($token, $data['id']);
 
                     $order = $payment->getOrder();
-                    $totalPaypal = (int) ($details['purchase_units'][0]['amount']['value'] * 100);
+                    $totalPaypal = (int) round($details['purchase_units'][0]['amount']['value'] * 100);
 
                     // Update payment total with the Paypal total (partially paid state will be triggered)
                     if ($totalPaypal != $order->getTotal()) {
