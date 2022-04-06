@@ -102,13 +102,13 @@ default:
                 tags: "@managing_payment_methods && @ui"
         ui_managing_orders:
             contexts:
-                - sylius.behat.context.hook.calendar
+                - Sylius\Calendar\Tests\Behat\Context\Hook\CalendarContext
                 - sylius.behat.context.hook.doctrine_orm
                 - sylius.behat.context.hook.email_spool
 
                 - sylius.behat.context.setup.admin_security
                 - sylius.behat.context.setup.admin_user
-                - sylius.behat.context.setup.calendar
+                - Sylius\Calendar\Tests\Behat\Context\Setup\CalendarContext
                 - sylius.behat.context.setup.channel
                 - sylius.behat.context.setup.currency
                 - sylius.behat.context.setup.customer
