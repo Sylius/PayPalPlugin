@@ -44,6 +44,14 @@ final class Kernel extends BaseKernel
     public function registerBundles(): iterable
     {
         $contents = require $this->getProjectDir() . '/config/bundles.php';
+
+        if (SyliusKernel::MINOR_VERSION > 10) {
+            $contents = array_merge(
+                ['Sylius\Calendar\SyliusCalendarBundle' => ['all' => true]],
+                $contents
+            );
+        }
+
         foreach ($contents as $class => $envs) {
             if (isset($envs['all']) || isset($envs[$this->environment])) {
                 yield new $class();
