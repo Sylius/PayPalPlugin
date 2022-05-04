@@ -99,6 +99,7 @@
             <argument type="service" id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\IdentityApiInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Processor\LocaleProcessorInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
