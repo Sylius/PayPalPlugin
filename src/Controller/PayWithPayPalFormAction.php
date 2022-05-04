@@ -11,6 +11,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\IdentityApiInterface;
+use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,18 +29,22 @@ final class PayWithPayPalFormAction
 
     private IdentityApiInterface $identityApi;
 
+    private LocaleProcessorInterface $localeProcessor;
+
     public function __construct(
         Environment $twig,
         PaymentRepositoryInterface $paymentRepository,
         AvailableCountriesProviderInterface $countriesProvider,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        IdentityApiInterface $identityApi
+        IdentityApiInterface $identityApi,
+        LocaleProcessorInterface $localeProcessor
     ) {
         $this->twig = $twig;
         $this->paymentRepository = $paymentRepository;
         $this->countriesProvider = $countriesProvider;
         $this->authorizeClientApi = $authorizeClientApi;
         $this->identityApi = $identityApi;
+        $this->localeProcessor = $localeProcessor;
     }
 
     public function __invoke(Request $request): Response
@@ -71,7 +76,7 @@ final class PayWithPayPalFormAction
             'client_id' => $clientId,
             'client_token' => $clientToken,
             'currency' => $order->getCurrencyCode(),
-            'locale' => $request->getLocale(),
+            'locale' => $this->localeProcessor->process($request->getLocale()),
             'merchant_id' => $gatewayConfig->getConfig()['merchant_id'],
             'order_token' => $order->getTokenValue(),
             'partner_attribution_id' => $partnerAttributionId,
