@@ -113,7 +113,7 @@ final class PayPalButtonsController
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/payFromPaymentPage.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
-                'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_cancel_payment'),
+                'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_cancel_paypal_order_from_payment_page', ['id' => $orderId]),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'currency' => $order->getCurrencyCode(),
                 'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_plugin_complete_paypal_order_from_payment_page', ['id' => $orderId]),
