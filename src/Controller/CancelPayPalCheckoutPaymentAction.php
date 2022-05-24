@@ -26,10 +26,12 @@ final class CancelPayPalCheckoutPaymentAction
 
     public function __invoke(Request $request): Response
     {
-        $content = (array) json_decode((string) $request->getContent(false), true);
-
-        $payment = $this->paymentProvider->getByPayPalOrderId((string) $content['payPalOrderId']);
-
+        $id = $request->attributes->getInt('id');
+        
+        /** @var OrderInterface $order */
+        $order = $this->orderProvider->provideOrderById($id);
+        $payment = $order->getLastPayment();
+        
         /** @var FlashBagInterface $flashBag */
         $flashBag = $request->getSession()->getBag('flashes');
         $flashBag->add('error', 'sylius.pay_pal.something_went_wrong');
