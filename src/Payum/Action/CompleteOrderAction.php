@@ -106,6 +106,7 @@ final class CompleteOrderAction implements ActionInterface
             'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
             'paypal_order_id' => $orderDetails['id'],
             'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
+            'TRANSACTIONID' => $orderDetails['purchase_units'][0]["payments"]["captures"][0]["id"],
         ]);
 
         if ($order->isShippingRequired()) {
