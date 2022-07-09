@@ -57,6 +57,13 @@
     "autoload-dev": {
         "classmap": ["tests/Application/Kernel.php"]
     },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": false,
+            "ocramius/package-versions":  false,
+            "symfony/flex": true
+        }
+    },
     "extra": {
         "branch-alias": {
             "dev-master": "1.0-dev"
