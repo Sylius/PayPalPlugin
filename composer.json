@@ -46,7 +46,7 @@
     "conflict": {
         "symfony/doctrine-bridge": "4.4.16",
         "doctrine/doctrine-bundle": "2.3.0",
-        "doctrine/orm": "^2.10.0",
+        "doctrine/dbal": "^3.0.0",
         "sylius/invoicing-plugin": "<0.16.0"
     },
     "autoload": {
@@ -57,6 +57,13 @@
     },
     "autoload-dev": {
         "classmap": ["tests/Application/Kernel.php"]
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": false,
+            "ocramius/package-versions":  false,
+            "symfony/flex": true
+        }
     },
     "extra": {
         "branch-alias": {
