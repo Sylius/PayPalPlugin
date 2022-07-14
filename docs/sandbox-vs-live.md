@@ -4,7 +4,7 @@ By default, plugin operates in the sandbox mode. I means all the transactions wo
 To change it, you need to configure the plugin properly:
 
 ```yaml
-sylius_pay_pal_plugin:
+sylius_pay_pal:
     sandbox: false
 ```
 
