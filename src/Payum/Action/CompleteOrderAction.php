@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
+use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
@@ -39,7 +40,7 @@ final class CompleteOrderAction implements ActionInterface
 
     private OrderDetailsApiInterface $orderDetailsApi;
 
-    private PayPalAddressProcessor $payPalAddressProcessor;
+    private PayPalAddressProcessorInterface $payPalAddressProcessor;
 
     private PaymentUpdaterInterface $payPalPaymentUpdater;
 
@@ -52,7 +53,7 @@ final class CompleteOrderAction implements ActionInterface
         UpdateOrderApiInterface $updateOrderApi,
         CompleteOrderApiInterface $completeOrderApi,
         OrderDetailsApiInterface $orderDetailsApi,
-        PayPalAddressProcessor $payPalAddressProcessor,
+        PayPalAddressProcessorInterface $payPalAddressProcessor,
         PaymentUpdaterInterface $payPalPaymentUpdater,
         StateResolverInterface $orderPaymentStateResolver,
         PayPalItemDataProviderInterface $payPalItemsDataProvider
@@ -102,11 +103,19 @@ final class CompleteOrderAction implements ActionInterface
         $this->completeOrderApi->complete($token, $request->getOrderId());
         $orderDetails = $this->orderDetailsApi->get($token, $request->getOrderId());
 
-        $payment->setDetails([
+        $details = [
             'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
             'paypal_order_id' => $orderDetails['id'],
             'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
-        ]);
+        ];
+        if (isset($orderDetails['purchase_units'][0]["payments"]["captures"][0]["id"])) {
+            $details = array_merge(
+                $details,
+                ['transaction_id' => $orderDetails['purchase_units'][0]["payments"]["captures"][0]["id"]]
+            );
+        }
+
+        $payment->setDetails($details);
 
         if ($order->isShippingRequired()) {
             $this->payPalAddressProcessor->process($orderDetails['purchase_units'][0]['shipping']['address'], $order);
