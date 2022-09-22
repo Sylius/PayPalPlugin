@@ -20,13 +20,28 @@ jobs:
             fail-fast: false
             matrix:
                 php: ["7.4", "8.0", "8.1"]
-                node: ["14.x"]
+                node: ["14.x", "16.x"]
                 mysql: ["5.7", "8.0"]
                 symfony: ["^4.4", "^5.4"]
-                sylius: ["1.10.*", "1.11.*"]
+                sylius: ["1.10.*", "1.11.*", "1.12.*"]
                 exclude:
                     - php: "7.4"
                       sylius: "1.11.*"
+
+                    - sylius: "1.10.*"
+                      node: "16.x"
+
+                    - sylius: "1.11.*"
+                      node: "16.x"
+
+                    - php: "7.4"
+                      sylius: "1.12.*"
+
+                    - symfony: "^4.4"
+                      sylius: "1.12.*"
+
+                    - sylius: "1.12.*"
+                      node: "14.x"
         env:
             APP_ENV: test
             DATABASE_URL: "mysql://root:root@127.0.0.1/sylius?serverVersion=${{ matrix.mysql }}"
