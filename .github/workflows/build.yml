@@ -28,7 +28,7 @@ jobs:
                     - php: "7.4"
                       sylius: "1.11.*"
                     - php: "7.4"
-                      sylius: "1.12.0-alpha"
+                      sylius: "1.12.0-ALPHA.1"
         env:
             APP_ENV: test
             DATABASE_URL: "mysql://root:root@127.0.0.1/sylius?serverVersion=${{ matrix.mysql }}"
