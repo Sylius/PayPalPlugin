@@ -26,12 +26,12 @@ final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterfac
         $this->payPalPaymentMethodProvider = $payPalPaymentMethodProvider;
     }
 
-    public function provide(string $url): array
+    public function provide(string $refundRefundUrl): array
     {
         $paymentMethod = $this->payPalPaymentMethodProvider->provide();
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-        $refundData = $this->genericApi->get($token, $url);
+        $refundData = $this->genericApi->get($token, $refundRefundUrl);
 
         /** @var string[] $link */
         foreach ($refundData['links'] as $link) {

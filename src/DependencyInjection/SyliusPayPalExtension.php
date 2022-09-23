@@ -13,9 +13,9 @@ use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 
 final class SyliusPayPalExtension extends Extension implements PrependExtensionInterface
 {
-    public function load(array $config, ContainerBuilder $container): void
+    public function load(array $configs, ContainerBuilder $container): void
     {
-        $config = $this->processConfiguration($this->getConfiguration([], $container), $config);
+        $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
         $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         $container->setParameter('sylius.paypal.logging.increased', (bool) $config['logging']['increased']);
@@ -56,7 +56,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $migrationsPath = (array) \array_pop($doctrineConfig)['migrations_paths'];
         $container->prependExtensionConfig('doctrine_migrations', [
             'migrations_paths' => \array_merge(
-                $migrationsPath ?? [],
+                $migrationsPath,
                 [
                     'Sylius\PayPalPlugin\Migrations' => '@SyliusPayPalPlugin/Migrations',
                 ]

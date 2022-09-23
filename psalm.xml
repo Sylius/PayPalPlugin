@@ -38,16 +38,7 @@
             </errorLevel>
         </MixedArgument>
 
-        <MixedArrayAccess>
-            <errorLevel type="info">
-                <file name="src/Controller/ProcessPayPalOrderAction.php"/>
-                <file name="src/DependencyInjection/SyliusPayPalExtension.php"/>
-                <file name="src/Payum/Action/CompleteOrderAction.php"/>
-                <file name="src/Processor/PayPalPaymentRefundProcessor.php"/>
-                <file name="src/Controller/UpdatePayPalOrderAction.php"/>
-                <file name="src/Controller/Webhook/RefundOrderAction.php"/>
-            </errorLevel>
-        </MixedArrayAccess>
+        <MixedArrayAccess errorLevel="info" />
 
         <MixedAssignment>
             <errorLevel type="info">
@@ -55,11 +46,7 @@
             </errorLevel>
         </MixedAssignment>
 
-        <MoreSpecificImplementedParamType>
-            <errorLevel type="info">
-                <directory name="src/Payum/Action/"/>
-            </errorLevel>
-        </MoreSpecificImplementedParamType>
+        <MoreSpecificImplementedParamType errorLevel="info" />
 
         <PropertyNotSetInConstructor>
             <errorLevel type="info">

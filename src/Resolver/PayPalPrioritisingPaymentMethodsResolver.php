@@ -29,17 +29,17 @@ final class PayPalPrioritisingPaymentMethodsResolver implements PaymentMethodsRe
         $this->firstPaymentMethodFactoryName = $firstPaymentMethodFactoryName;
     }
 
-    public function getSupportedMethods(BasePaymentInterface $payment): array
+    public function getSupportedMethods(BasePaymentInterface $subject): array
     {
         return $this->sortPayments(
-            $this->decoratedPaymentMethodsResolver->getSupportedMethods($payment),
+            $this->decoratedPaymentMethodsResolver->getSupportedMethods($subject),
             $this->firstPaymentMethodFactoryName
         );
     }
 
-    public function supports(BasePaymentInterface $payment): bool
+    public function supports(BasePaymentInterface $subject): bool
     {
-        return $this->decoratedPaymentMethodsResolver->supports($payment);
+        return $this->decoratedPaymentMethodsResolver->supports($subject);
     }
 
     /**
