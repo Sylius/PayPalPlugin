@@ -26,6 +26,10 @@ final class LocaleProcessor implements LocaleProcessorInterface
             ;
         });
 
+        if ([] === $locales) {
+            throw new \UnexpectedValueException(sprintf('Locale "%s" is not supported by PayPal.', $locale));
+        }
+
         return $locales[array_key_first($locales)];
     }
 

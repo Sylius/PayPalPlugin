@@ -48,8 +48,6 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
     ): array {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
-        /** @var AddressInterface $address */
-        $address = $order->getShippingAddress();
 
         $payPalItemData = $this->payPalItemsDataProvider->provide($order);
 

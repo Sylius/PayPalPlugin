@@ -77,7 +77,7 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
             $referenceNumber = $this->refundReferenceNumberProvider->provide($payment);
             $payPalPaymentId = (string) $details['purchase_units'][0]['payments']['captures'][0]['id'];
 
-            $response = $this->refundOrderApi->refund(
+            $this->refundOrderApi->refund(
                 $token,
                 $payPalPaymentId,
                 $authAssertion,

@@ -46,7 +46,6 @@ final class CompletePayPalOrderFromPaymentPageAction
     {
         $orderId = $request->attributes->getInt('id');
 
-        /** @var OrderInterface $order */
         $order = $this->orderProvider->provideOrderById($orderId);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);

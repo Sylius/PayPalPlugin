@@ -48,7 +48,6 @@ final class CreatePayPalOrderFromPaymentPageAction
     {
         $id = $request->attributes->getInt('id');
 
-        /** @var OrderInterface $order */
         $order = $this->orderProvider->provideOrderById($id);
 
         /** @var PaymentInterface $payment */

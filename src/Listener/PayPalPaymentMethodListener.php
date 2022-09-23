@@ -39,6 +39,7 @@ final class PayPalPaymentMethodListener
 
     public function initializeCreate(ResourceControllerEvent $event): void
     {
+        /** @var object $paymentMethod */
         $paymentMethod = $event->getSubject();
         /** @var PaymentMethodInterface $paymentMethod */
         Assert::isInstanceOf($paymentMethod, PaymentMethodInterface::class);

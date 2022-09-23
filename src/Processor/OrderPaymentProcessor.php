@@ -31,7 +31,6 @@ final class OrderPaymentProcessor implements OrderProcessorInterface
     {
         Assert::isInstanceOf($order, \Sylius\Component\Core\Model\OrderInterface::class);
 
-        /** @var PaymentInterface|null $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
 
         if (
@@ -60,6 +59,6 @@ final class OrderPaymentProcessor implements OrderProcessorInterface
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        return (string) $gatewayConfig->getFactoryName();
+        return $gatewayConfig->getFactoryName();
     }
 }
