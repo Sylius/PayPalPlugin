@@ -39,13 +39,13 @@ final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodRe
         $this->paymentMethodRepository = $paymentMethodRepository;
     }
 
-    public function getDefaultPaymentMethod(BasePaymentInterface $subject, string $prioritisedPayment = 'sylius.pay_pal'): PaymentMethodInterface
+    public function getDefaultPaymentMethod(BasePaymentInterface $payment, string $prioritisedPayment = 'sylius.pay_pal'): PaymentMethodInterface
     {
-        /** @var PaymentInterface $subject */
-        Assert::isInstanceOf($subject, PaymentInterface::class);
+        /** @var PaymentInterface $payment */
+        Assert::isInstanceOf($payment, PaymentInterface::class);
 
         /** @var OrderInterface $order */
-        $order = $subject->getOrder();
+        $order = $payment->getOrder();
 
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();

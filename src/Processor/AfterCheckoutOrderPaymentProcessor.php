@@ -19,7 +19,9 @@ final class AfterCheckoutOrderPaymentProcessor implements OrderProcessorInterfac
         $this->baseAfterCheckoutOrderPaymentProcessor = $baseAfterCheckoutOrderPaymentProcessor;
     }
 
-    /** @var CoreOrderInterface */
+    /**
+     * @param CoreOrderInterface $order
+     */
     public function process(OrderInterface $order): void
     {
         Assert::isInstanceOf($order, CoreOrderInterface::class);
