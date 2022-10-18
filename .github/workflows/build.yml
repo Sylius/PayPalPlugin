@@ -121,12 +121,6 @@ jobs:
                 run: (cd tests/Application && yarn install)
 
             -
-                name: Prepare configuration for Sylius 1.10
-                if: matrix.sylius == '1.10.*'
-                run: |
-                    rm tests/Behat/Resources/suites.yml
-                    cp tests/Behat/Resources/sylius-1.10/suites.yml tests/Behat/Resources
-            -
                 name: Prepare test application database
                 run: |
                     (cd tests/Application && bin/console doctrine:database:create -vvv)
