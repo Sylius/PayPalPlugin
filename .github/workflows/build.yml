@@ -22,12 +22,8 @@ jobs:
                 php: ["8.0", "8.1"]
                 node: ["16.x"]
                 mysql: ["5.7", "8.0"]
-                symfony: ["^4.4", "^5.4"]
+                symfony: ["^5.4"]
                 sylius: ["1.11.*", "~1.12.x-dev"]
-                exclude:
-                    -
-                        symfony: "^4.4"
-                        sylius: "~1.12.x-dev"
         env:
             APP_ENV: test
             DATABASE_URL: "mysql://root:root@127.0.0.1/sylius?serverVersion=${{ matrix.mysql }}"
@@ -100,7 +96,7 @@ jobs:
 
             -
                 name: Install PHP dependencies
-                run: composer install --no-interaction
+                run: composer update --no-interaction
 
             -
                 name: Get Yarn cache directory
