@@ -7,9 +7,14 @@ parameters:
     checkMissingIterableValueType: false
     checkGenericClassInNonGenericObjectType: false
 
-    excludes_analyse:
+    paths:
+        - 'src/'
+
+    excludePaths:
         # Makes PHPStan crash
         - 'src/DependencyInjection/Configuration.php'
+        - 'src/DependencyInjection/SyliusPayPalExtension.php'
+        - 'src/Command/CompletePaidPaymentsCommand.php'
 
         # Test dependencies
         - 'tests/Application/app/**.php'
