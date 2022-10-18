@@ -6,8 +6,10 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
+use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 
@@ -17,16 +19,16 @@ final class CancelPayPalOrderAction
 
     private OrderRepositoryInterface $orderRepository;
 
-    private FlashBag $flashBag;
+    private FlashBag|RequestStack $flashBagOrRequestStack;
 
     public function __construct(
         PaymentProviderInterface $paymentProvider,
         OrderRepositoryInterface $orderRepository,
-        FlashBag $flashBag
+        FlashBag|RequestStack $flashBagOrRequestStack
     ) {
         $this->paymentProvider = $paymentProvider;
         $this->orderRepository = $orderRepository;
-        $this->flashBag = $flashBag;
+        $this->flashBagOrRequestStack = $flashBagOrRequestStack;
     }
 
     public function __invoke(Request $request): Response
@@ -39,7 +41,7 @@ final class CancelPayPalOrderAction
         $order = $payment->getOrder();
         $this->orderRepository->remove($order);
 
-        $this->flashBag->add('success', 'sylius.pay_pal.order_cancelled');
+        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)->add('success', 'sylius.pay_pal.order_cancelled');
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }
