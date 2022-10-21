@@ -6,7 +6,7 @@ default:
         ui_checkout:
             contexts:
                 - sylius.behat.context.hook.doctrine_orm
-                - sylius.behat.context.hook.email_spool
+                - sylius.behat.context.hook.mailer
 
                 - sylius.behat.context.transform.address
                 - sylius.behat.context.transform.country
@@ -63,7 +63,7 @@ default:
                 - sylius.behat.context.ui.shop.locale
 
             filters:
-                tags: "@checkout && @ui"
+                tags: "@checkout&&@ui"
         ui_managing_payment_methods:
             contexts:
                 - sylius.behat.context.hook.doctrine_orm
@@ -99,12 +99,12 @@ default:
 
                 - Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext
             filters:
-                tags: "@managing_payment_methods && @ui"
+                tags: "@managing_payment_methods&&@ui"
         ui_managing_orders:
             contexts:
                 - Sylius\Calendar\Tests\Behat\Context\Hook\CalendarContext
                 - sylius.behat.context.hook.doctrine_orm
-                - sylius.behat.context.hook.email_spool
+                - sylius.behat.context.hook.mailer
 
                 - sylius.behat.context.setup.admin_security
                 - sylius.behat.context.setup.admin_user
@@ -160,4 +160,4 @@ default:
                 - Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingOrdersContext
 
             filters:
-                tags: "@managing_orders && @ui"
+                tags: "@managing_orders&&@ui"

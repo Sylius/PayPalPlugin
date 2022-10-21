@@ -9,8 +9,10 @@ use SM\Factory\FactoryInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 
@@ -20,7 +22,7 @@ final class CancelPayPalPaymentAction
 
     private ObjectManager $objectManager;
 
-    private FlashBag $flashBag;
+    private FlashBag|RequestStack $flashBagOrRequestStack;
 
     private FactoryInterface $stateMachineFactory;
 
@@ -29,13 +31,17 @@ final class CancelPayPalPaymentAction
     public function __construct(
         PaymentProviderInterface $paymentProvider,
         ObjectManager $objectManager,
-        FlashBag $flashBag,
+        FlashBag|RequestStack $flashBagOrRequestStack,
         FactoryInterface $stateMachineFactory,
         OrderProcessorInterface $orderPaymentProcessor
     ) {
+        if ($flashBagOrRequestStack instanceof FlashBag) {
+            trigger_deprecation('sylius/paypal-plugin', '1.5', sprintf('Passing an instance of %s as constructor argument for %s is deprecated as of PayPalPlugin 1.5 and will be removed in 2.0. Pass an instance of %s instead.', FlashBag::class, self::class, RequestStack::class));
+        }
+
         $this->paymentProvider = $paymentProvider;
         $this->objectManager = $objectManager;
-        $this->flashBag = $flashBag;
+        $this->flashBagOrRequestStack = $flashBagOrRequestStack;
         $this->stateMachineFactory = $stateMachineFactory;
         $this->orderPaymentProcessor = $orderPaymentProcessor;
     }
@@ -55,7 +61,9 @@ final class CancelPayPalPaymentAction
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
 
-        $this->flashBag->add('success', 'sylius.pay_pal.payment_cancelled');
+        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
+            ->add('success', 'sylius.pay_pal.payment_cancelled')
+        ;
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }
