@@ -23,7 +23,7 @@ jobs:
                 node: ["16.x"]
                 mysql: ["5.7", "8.0"]
                 symfony: ["^5.4", "^6.0"]
-                sylius: ["~1.11.0", "~1.12.x-dev"]
+                sylius: ["~1.11.0", "~1.12.0"]
                 exclude:
                     -
                         symfony: "^6.0"
