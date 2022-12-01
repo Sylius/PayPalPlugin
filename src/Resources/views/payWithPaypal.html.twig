@@ -268,7 +268,7 @@
                     method: 'post',
                     headers: {},
                     body: error
-                }).then(window.location.reload());
+                }).then(() => window.location.reload());
             },
             onShippingChange: function(data, actions) {
                 if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
@@ -292,7 +292,7 @@
                     method: 'post',
                     headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({ payPalOrderId: data.orderID })
-                }).then(window.location.reload());
+                }).then(() => window.location.reload());
             }
         }).render('#paypal-button-container');
 
@@ -319,14 +319,14 @@
                         method: 'post',
                         headers: { 'content-type': 'application/json' },
                         body: JSON.stringify(err)
-                    }).then(window.location.reload());
+                    }).then(() => window.location.reload());
                 },
                 onCancel: function (data, actions) {
                     return fetch(cancelPayPalPaymentUrl, {
                         method: 'post',
                         headers: { 'content-type': 'application/json' },
                         body: JSON.stringify({ payPalOrderId: data.orderID })
-                    }).then(window.location.reload());
+                    }).then(() => window.location.reload());
                 }
             });
 
@@ -451,7 +451,7 @@
                                             method: 'post',
                                             headers: { 'content-type': 'application/json' },
                                             body: JSON.stringify({ payPalOrderId: data.orderID })
-                                        }).then(window.location.reload());
+                                        }).then(() => window.location.reload());
                                     }
 
                                     window.location.href = data.return_url;
@@ -468,7 +468,7 @@
                                     method: 'post',
                                     headers: { 'content-type': 'application/json' },
                                     body: JSON.stringify({ payPalOrderId: processingOrderId })
-                                }).then(window.location.reload());
+                                }).then(() => window.location.reload());
                             });
                         });
                     } else {
