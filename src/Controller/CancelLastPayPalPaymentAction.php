@@ -51,7 +51,6 @@ final class CancelLastPayPalPaymentAction
         $paymentStateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
         $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
 
-        $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
 
         return new Response('', Response::HTTP_NO_CONTENT);
