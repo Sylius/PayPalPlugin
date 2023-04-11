@@ -23,6 +23,12 @@
             </errorLevel>
         </DeprecatedMethod>
 
+        <DeprecatedClass>
+            <errorLevel type="info">
+                <referencedClass name="Symfony\Component\Security\Core\Security" />
+            </errorLevel>
+        </DeprecatedClass>
+
         <MissingParamType>
             <errorLevel type="info">
                 <file name="src/Payum/Request/CompleteOrder.php"/>
