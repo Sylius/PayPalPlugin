@@ -62,7 +62,7 @@ final class RefundOrderAction
 
     private function getPayPalPaymentUrl(Request $request): string
     {
-        $content = (array) json_decode((string) $request->getContent(false), true);
+        $content = (array) json_decode($request->getContent(), true);
         Assert::keyExists($content, 'resource');
         $resource = (array) $content['resource'];
         Assert::keyExists($resource, 'links');
