@@ -26,7 +26,7 @@ final class CancelPayPalCheckoutPaymentAction
 
     public function __invoke(Request $request): Response
     {
-        $content = (array) json_decode((string) $request->getContent(false), true);
+        $content = (array) json_decode($request->getContent(), true);
 
         $payment = $this->paymentProvider->getByPayPalOrderId((string) $content['payPalOrderId']);
 
