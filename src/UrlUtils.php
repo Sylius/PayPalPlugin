@@ -28,7 +28,7 @@ final class UrlUtils
      *
      * @return string the resulting string
      */
-    public static function appendQueryString(string $url, string $queryString, int $mode = APPEND_QUERY_STRING_IGNORE_DUPLICATE): string
+    public static function appendQueryString(string $url, string $queryString, int $mode = self::APPEND_QUERY_STRING_IGNORE_DUPLICATE): string
     {
         if ('' === $queryString) {
             return $url;
