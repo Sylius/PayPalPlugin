@@ -17,6 +17,12 @@
     </projectFiles>
 
     <issueHandlers>
+        <UndefinedDocblockClass>
+            <errorLevel type="suppress">
+                <referencedClass name="UnitEnum" />
+            </errorLevel>
+        </UndefinedDocblockClass>
+
         <DeprecatedMethod>
             <errorLevel type="info">
                 <referencedMethod name="Payum\Core\Model\GatewayConfigInterface::getFactoryName" />
