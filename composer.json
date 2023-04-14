@@ -72,7 +72,7 @@
     "scripts": {
         "analyse": [
             "@composer validate --strict",
-            "vendor/bin/phpstan.phar analyse -c phpstan.neon.dist -l max src/",
+            "vendor/bin/phpstan.phar analyse",
             "vendor/bin/psalm"
         ],
         "fix": [
