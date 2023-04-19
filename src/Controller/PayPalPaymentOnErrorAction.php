@@ -29,7 +29,13 @@ final class PayPalPaymentOnErrorAction
 
     public function __invoke(Request $request): Response
     {
-        $this->logger->error((string) $request->getContent());
+        /**
+         * @var string $content
+         * @psalm-suppress UnnecessaryVarAnnotation
+         */
+        $content = $request->getContent();
+
+        $this->logger->error($content);
         FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
             ->add('error', 'sylius.pay_pal.something_went_wrong')
         ;
