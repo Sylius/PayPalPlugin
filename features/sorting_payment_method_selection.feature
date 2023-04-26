@@ -14,7 +14,7 @@ Feature: Prioritising PayPal payment method during checkout
         And the store allows paying with "PayPal" with "PayPal" factory name at position 4
         And I am a logged in customer
 
-    @ui @javascript
+    @ui
     Scenario: Seeing payment methods sorted
         Given I have product "Targaryen T-Shirt" in the cart
         When I am at the checkout addressing step

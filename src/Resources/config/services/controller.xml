@@ -14,13 +14,13 @@
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction">
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
             <argument type="service" id="sylius.repository.order" />
-            <argument type="service" id="session.flash_bag" />
+            <argument type="service" id="request_stack" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction">
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PaymentProviderInterface" />
             <argument type="service" id="doctrine.orm.entity_manager" />
-            <argument type="service" id="session.flash_bag" />
+            <argument type="service" id="request_stack" />
             <argument type="service" id="sm.factory" />
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
         </service>
@@ -132,7 +132,7 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
-            <argument type="service" id="session.flash_bag" />
+            <argument type="service" id="request_stack" />
             <argument type="service" id="monolog.logger.paypal" />
         </service>
     </services>

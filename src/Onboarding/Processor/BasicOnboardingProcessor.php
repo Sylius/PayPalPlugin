@@ -54,7 +54,6 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
             ]
         );
 
-        /** @var array $response */
         $response = (array) json_decode($checkPartnerReferralsResponse->getBody()->getContents(), true);
 
         if (!isset($response['client_id']) || !isset($response['client_secret'])) {

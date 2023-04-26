@@ -70,7 +70,7 @@ final class RefundOrderAction
         /** @var string[] $link */
         foreach ($resource['links'] as $link) {
             if ($link['rel'] === 'up') {
-                return (string) $link['href'];
+                return $link['href'];
             }
         }
 

@@ -28,7 +28,6 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
         /** @var Collection<int, OrderItemInterface> $orderItems */
         $orderItems = $order->getItems();
 
-        /** @var OrderItemInterface $orderItem */
         foreach ($orderItems as $orderItem) {
             $nonNeutralTaxes = $this->orderItemNonNeutralTaxesProvider->provide($orderItem);
             /** @var int $nonNeutralTax */

@@ -56,7 +56,7 @@ sylius_paypal_plugin_create_paypal_order_from_product:
     path: /create-pay-pal-order-from-product/{productId}
     methods: [POST]
     defaults:
-        _controller: sylius.controller.order_item:createFromProductDetailsAction
+        _controller: sylius.controller.order_item::createFromProductDetailsAction
         _sylius:
             factory:
                 method: createForProduct
@@ -70,7 +70,7 @@ sylius_shop_checkout_select_payment:
     path: /checkout/select-payment
     methods: [GET, PUT]
     defaults:
-        _controller: sylius.controller.order:updateAction
+        _controller: sylius.controller.order::updateAction
         _sylius:
             event: payment
             flash: false
@@ -88,7 +88,7 @@ sylius_shop_order_show:
     path: /order/{tokenValue}
     methods: [GET, PUT]
     defaults:
-        _controller: sylius.controller.order:updateAction
+        _controller: sylius.controller.order::updateAction
         _sylius:
             template: "@SyliusShop/Order/show.html.twig"
             repository:
