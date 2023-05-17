@@ -44,7 +44,6 @@
     },
     "conflict": {
         "doctrine/doctrine-bundle": "2.3.0",
-        "doctrine/dbal": "^3.0.0",
         "sylius/invoicing-plugin": "<0.16.0"
     },
     "autoload": {
