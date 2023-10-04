@@ -1,6 +1,6 @@
 {% if
     payment.method.gatewayConfig.factoryName == 'sylius.pay_pal' and
-    payment.state == 'refunded'
+    payment.state == constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_REFUNDED')
 %}
     <div class="ui icon mini message">
         <i class="paypal icon"></i>
