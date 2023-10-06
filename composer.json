@@ -42,10 +42,6 @@
         "symfony/webpack-encore-bundle": "^1.15",
         "vimeo/psalm": "4.27.0"
     },
-    "conflict": {
-        "doctrine/doctrine-bundle": "2.3.0",
-        "sylius/invoicing-plugin": "<0.16.0"
-    },
     "autoload": {
         "psr-4": {
             "Sylius\\PayPalPlugin\\": "src/",
