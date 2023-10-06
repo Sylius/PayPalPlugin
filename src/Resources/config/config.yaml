@@ -70,6 +70,11 @@ sylius_ui:
                 pay_pal_payment_method:
                     template: '@SyliusPayPalPlugin/javascripts.html.twig'
                     priority: -100
+        sylius.admin.order.show.payment_content:
+            blocks:
+                pay_pal_refunded_message:
+                    template: '@SyliusPayPalPlugin/Admin/Order/Show/Payment/_refundedPayPal.html.twig'
+                    priority: 7 # After "refund_transition" block. 
 
 monolog:
     channels: ['paypal']

@@ -1,0 +1,11 @@
+{% if
+    payment.method.gatewayConfig.factoryName == 'sylius.pay_pal' and
+    payment.state == constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_REFUNDED')
+%}
+    <div class="ui icon mini message">
+        <i class="paypal icon"></i>
+        <div class="content">
+            <p>{{ 'sylius.pay_pal.tender_type'|trans }}</p>
+        </div>
+    </div>
+{% endif %}
