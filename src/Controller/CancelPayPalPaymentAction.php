@@ -50,12 +50,14 @@ final class CancelPayPalPaymentAction
         $order = $payment->getOrder();
 
         $paymentStateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
+        if ($paymentStateMachine->can(PaymentTransitions::TRANSITION_CANCEL)) {
+            $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
 
-        $this->orderPaymentProcessor->process($order);
-        $this->objectManager->flush();
+            $this->orderPaymentProcessor->process($order);
+            $this->objectManager->flush();
 
-        $this->flashBag->add('success', 'sylius.pay_pal.payment_cancelled');
+            $this->flashBag->add('success', 'sylius.pay_pal.payment_cancelled');
+        }
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }
