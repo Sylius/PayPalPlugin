@@ -10,7 +10,7 @@
         "phpseclib/phpseclib": "^2.0",
         "polishsymfonycommunity/symfony-mocker-container": "^1.0",
         "sylius-labs/doctrine-migrations-extra-bundle": "^0.1.4 || ^0.2",
-        "sylius/sylius": "~1.12.0 || 1.13.x-dev",
+        "sylius/sylius": "~1.12.0 || 1.13.x-dev || 2.0.x-dev",
         "symfony/mailer": "^5.4 || ^6.0"
     },
     "require-dev": {
