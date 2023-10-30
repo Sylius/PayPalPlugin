@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
-use GuzzleHttp\ClientInterface;
+use GuzzleHttp\ClientInterface as DeprecatedClientInterface;
+use Psr\Http\Client\ClientInterface;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
@@ -27,40 +28,16 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
-    private ClientInterface $client;
-
-    private LoggerInterface $logger;
-
-    private UuidProviderInterface $uuidProvider;
-
-    private PayPalConfigurationProviderInterface $payPalConfigurationProvider;
-
-    private ChannelContextInterface $channelContext;
-
-    private string $baseUrl;
-
-    private int $requestTrialsLimit;
-
-    private bool $loggingLevelIncreased;
-
     public function __construct(
-        ClientInterface $client,
-        LoggerInterface $logger,
-        UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelContextInterface $channelContext,
-        string $baseUrl,
-        int $requestTrialsLimit,
-        bool $loggingLevelIncreased = false
+        private ClientInterface|DeprecatedClientInterface $client,
+        private LoggerInterface $logger,
+        private UuidProviderInterface $uuidProvider,
+        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private ChannelContextInterface $channelContext,
+        private string $baseUrl,
+        private int $requestTrialsLimit,
+        private bool $loggingLevelIncreased = false
     ) {
-        $this->client = $client;
-        $this->logger = $logger;
-        $this->uuidProvider = $uuidProvider;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
-        $this->channelContext = $channelContext;
-        $this->baseUrl = $baseUrl;
-        $this->requestTrialsLimit = $requestTrialsLimit;
-        $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
 
     public function authorize(string $clientId, string $clientSecret): array
