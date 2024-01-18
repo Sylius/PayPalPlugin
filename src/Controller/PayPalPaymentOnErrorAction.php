@@ -31,7 +31,6 @@ final class PayPalPaymentOnErrorAction
     {
         /**
          * @var string $content
-         * @psalm-suppress UnnecessaryVarAnnotation
          */
         $content = $request->getContent();
 
