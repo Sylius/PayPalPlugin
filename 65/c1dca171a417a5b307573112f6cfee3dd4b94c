@@ -1,0 +1,26 @@
+---------------------------------------------------------------------------
+
+by oallain at 2023-01-28T21:35:50Z
+
+Hello @Zales0123 @SirDomin and others ;)
+
+I fixed the bug that made two new payments (one in `new` and one in `cart`) when cancelling a payment.
+Because of this, the order was broken.
+
+Regards
+
+---------------------------------------------------------------------------
+
+by oallain at 2023-05-27T09:29:27Z
+
+Hello,
+
+This bug is still present, so I've rebased my branch to make it compatible with the new version.
+
+Can you take a look? Ping @GSadee
+
+---------------------------------------------------------------------------
+
+by GSadee at 2024-01-18T14:44:11Z
+
+Thank you, Olivier! :1st_place_medal:
