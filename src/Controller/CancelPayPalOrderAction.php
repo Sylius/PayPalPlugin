@@ -39,7 +39,6 @@ final class CancelPayPalOrderAction
     {
         /**
          * @var string $content
-         * @psalm-suppress UnnecessaryVarAnnotation
          */
         $content = $request->getContent();
 
