@@ -64,7 +64,6 @@ final class RefundOrderAction
     {
         /**
          * @var string $content
-         * @psalm-suppress UnnecessaryVarAnnotation
          */
         $content = $request->getContent();
 
