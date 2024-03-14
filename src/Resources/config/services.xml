@@ -6,6 +6,7 @@
         <import resource="services/controller.xml"/>
         <import resource="services/onboarding.xml"/>
         <import resource="services/payum.xml"/>
+        <import resource="services/workflow.xml"/>
     </imports>
 
     <parameters>

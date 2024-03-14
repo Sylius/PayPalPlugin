@@ -6,11 +6,14 @@
         <parameter key="sylius.paypal.logging_level_increased">true</parameter>
     </parameters>
     <services>
+        <service id="Http\Discovery\Psr18Client" class="Http\Discovery\Psr18Client" />
         <service
             id="Sylius\PayPalPlugin\Client\PayPalClientInterface"
             class="Sylius\PayPalPlugin\Client\PayPalClient"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
             <argument type="service" id="monolog.logger.paypal" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
@@ -86,7 +89,9 @@
             id="Sylius\PayPalPlugin\Api\WebhookApiInterface"
             class="Sylius\PayPalPlugin\Api\WebhookApi"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
             <argument>%sylius.pay_pal.api_base_url%</argument>
         </service>
 

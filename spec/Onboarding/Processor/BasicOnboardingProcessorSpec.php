@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Onboarding\Processor;
 
-use GuzzleHttp\ClientInterface;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
+use Prophecy\Argument;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
@@ -21,13 +24,24 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
     function let(
         ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ): void {
-        $this->beConstructedWith($httpClient, $sellerWebhookRegistrar, 'https://paypal.facilitator.com');
+        $this->beConstructedWith(
+            $httpClient,
+            $requestFactory,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com'
+        );
+
+        $apiRequest->withHeader(Argument::any(), Argument::any())->willReturn($apiRequest);
     }
 
     function it_processes_onboarding_for_supported_payment_method_and_request(
         ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         ResponseInterface $response,
         StreamInterface $body,
@@ -60,19 +74,11 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
         $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
 
-        $httpClient
-            ->request(
-                'GET',
-                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
-                [
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json',
-                    ],
-                ]
-            )
-            ->willReturn($response)
-        ;
+        $requestFactory->createRequest(
+            'GET',
+            'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID'
+        )->willReturn($apiRequest);
+        $httpClient->sendRequest($apiRequest)->willReturn($response);
 
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn(
@@ -90,6 +96,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
     function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_request(
         ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         ResponseInterface $response,
         StreamInterface $body,
@@ -111,19 +119,11 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
         $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID', 'permissionsGranted' => false]);
 
-        $httpClient
-            ->request(
-                'GET',
-                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
-                [
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json',
-                    ],
-                ]
-            )
-            ->willReturn($response)
-        ;
+        $requestFactory->createRequest(
+            'GET',
+            'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID'
+        )->willReturn($apiRequest);
+        $httpClient->sendRequest($apiRequest)->willReturn($response);
 
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn(
@@ -153,6 +153,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
     function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_without_registered_webhook(
         ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         ResponseInterface $response,
         StreamInterface $body,
@@ -174,19 +176,12 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
         $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID', 'permissionsGranted' => false]);
 
-        $httpClient
-            ->request(
-                'GET',
-                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
-                [
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json',
-                    ],
-                ]
-            )
-            ->willReturn($response)
-        ;
+        $requestFactory->createRequest(
+            'GET',
+            'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID'
+        )->willReturn($apiRequest);
+        $httpClient->sendRequest($apiRequest)->willReturn($response);
+
 
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn(
@@ -270,6 +265,8 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
     function it_throws_error_if_facilitator_data_is_not_loaded(
         ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
         ResponseInterface $response,
         StreamInterface $body,
         GatewayConfigInterface $gatewayConfig,
@@ -282,19 +279,11 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 
         $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
 
-        $httpClient
-            ->request(
-                'GET',
-                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
-                [
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json',
-                    ],
-                ]
-            )
-            ->willReturn($response)
-        ;
+        $requestFactory->createRequest(
+            'GET',
+            'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID'
+        )->willReturn($apiRequest);
+        $httpClient->sendRequest($apiRequest)->willReturn($response);
 
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"client_id":null,"client_secret":null}');

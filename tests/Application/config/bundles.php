@@ -1,6 +1,7 @@
 <?php
 
 use Sylius\Bundle\CoreBundle\Application\Kernel;
+use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
 
 $bundles = [
     Symfony\Bundle\FrameworkBundle\FrameworkBundle::class => ['all' => true],
@@ -62,10 +63,15 @@ $bundles = [
     Sylius\Calendar\SyliusCalendarBundle::class => ['all' => true],
 ];
 
-if (Kernel::MINOR_VERSION < 12) {
-    $bundles[Symfony\Bundle\SwiftmailerBundle\SwiftmailerBundle::class] = ['all' => true];
-} else {
+if (defined(SyliusCoreBundle::class.'::VERSION_ID') && SyliusCoreBundle::VERSION_ID >= '11200') {
     $bundles[League\FlysystemBundle\FlysystemBundle::class] = ['all' => true];
+} else {
+    $bundles[Symfony\Bundle\SwiftmailerBundle\SwiftmailerBundle::class] = ['all' => true];
+}
+
+
+if ( defined(SyliusCoreBundle::class.'::VERSION_ID') && SyliusCoreBundle::VERSION_ID >= '11300') {
+    $bundles[Sylius\Abstraction\StateMachine\SyliusStateMachineAbstractionBundle::class] = ['all' => true];
 }
 
 return $bundles;

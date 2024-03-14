@@ -15,7 +15,8 @@
             id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface"
             class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
             <argument>%sylius.pay_pal.facilitator_url%</argument>
         </service>

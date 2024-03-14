@@ -13,11 +13,15 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Client;
 
-use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use PhpSpec\ObjectBehavior;
+use Prophecy\Argument;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
@@ -32,6 +36,10 @@ final class PayPalClientSpec extends ObjectBehavior
 {
     function let(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+        RequestInterface $request,
+        StreamInterface $stream,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
@@ -39,9 +47,14 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelInterface $channel
     ): void {
         $channelContext->getChannel()->willReturn($channel);
+        $streamFactory->createStream(Argument::any())->willReturn($stream);
+        $request->withHeader(Argument::any(), Argument::any())->willReturn($request);
+        $request->withBody(Argument::any())->willReturn($request);
 
         $this->beConstructedWith(
             $client,
+            $requestFactory,
+            $streamFactory,
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
@@ -58,17 +71,15 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_returns_auth_token_for_given_client_data(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ResponseInterface $response,
         StreamInterface $body
     ): void {
-        $client->request(
-            'POST',
-            'https://test-api.paypal.com/v1/oauth2/token',
-            [
-                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        )->willReturn($response);
+        $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v1/oauth2/token')->willReturn($request);
+        $request->withHeader(Argument::any(), Argument::any())->willReturn($request);
+        $request->withBody(Argument::any())->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"access_token": "TOKEN"}');
@@ -78,16 +89,13 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_throws_an_exception_if_client_could_not_be_authorized(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ResponseInterface $response
     ): void {
-        $client->request(
-            'POST',
-            'https://test-api.paypal.com/v1/oauth2/token',
-            [
-                'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ]
-        )->willReturn($response);
+            $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v1/oauth2/token')->willReturn($request);
+            $client->sendRequest($request)->willReturn($response);
+
         $response->getStatusCode()->willReturn(401);
 
         $this
@@ -98,6 +106,8 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_calls_get_request_on_paypal_api(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelInterface $channel,
         ResponseInterface $response,
@@ -105,18 +115,9 @@ final class PayPalClientSpec extends ObjectBehavior
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'GET',
-            'https://test-api.paypal.com/v2/get-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                ],
-            ]
-        )->willReturn($response);
+        $requestFactory->createRequest('GET', 'https://test-api.paypal.com/v2/get-request/')->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
+
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
@@ -126,6 +127,9 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_logs_all_requests_if_logging_level_is_increased(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+        RequestInterface $request,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
@@ -136,6 +140,8 @@ final class PayPalClientSpec extends ObjectBehavior
     ): void {
         $this->beConstructedWith(
             $client,
+            $requestFactory,
+            $streamFactory,
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
@@ -148,18 +154,9 @@ final class PayPalClientSpec extends ObjectBehavior
         $channelContext->getChannel()->willReturn($channel);
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'GET',
-            'https://test-api.paypal.com/v2/get-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                ],
-            ]
-        )->willReturn($response);
+        $requestFactory->createRequest('GET', 'https://test-api.paypal.com/v2/get-request/')->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
+
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
@@ -174,6 +171,8 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_logs_debug_id_from_failed_get_request(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         LoggerInterface $logger,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelInterface $channel,
@@ -183,18 +182,8 @@ final class PayPalClientSpec extends ObjectBehavior
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'GET',
-            'https://test-api.paypal.com/v2/get-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                ],
-            ]
-        )->willThrow($exception->getWrappedObject());
+        $requestFactory->createRequest('GET', 'https://test-api.paypal.com/v2/get-request/')->willReturn($request);
+        $client->sendRequest($request)->willThrow($exception->getWrappedObject());
 
         $exception->getResponse()->willReturn($response);
         $response->getBody()->willReturn($body);
@@ -211,6 +200,8 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_calls_post_request_on_paypal_api(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ResponseInterface $response,
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
@@ -220,20 +211,9 @@ final class PayPalClientSpec extends ObjectBehavior
         $uuidProvider->provide()->willReturn('REQUEST-ID');
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'POST',
-            'https://test-api.paypal.com/v2/post-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                    'PayPal-Request-Id' => 'REQUEST-ID',
-                ],
-                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
-        )->willReturn($response);
+        $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v2/post-request/')->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
+
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
@@ -246,7 +226,10 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_calls_post_request_on_paypal_api_with_extra_headers(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ResponseInterface $response,
+        StreamFactoryInterface $streamFactory,
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
@@ -255,21 +238,9 @@ final class PayPalClientSpec extends ObjectBehavior
         $uuidProvider->provide()->willReturn('REQUEST-ID');
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'POST',
-            'https://test-api.paypal.com/v2/post-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                    'PayPal-Request-Id' => 'REQUEST-ID',
-                    'CUSTOM_HEADER' => 'header',
-                ],
-                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
-        )->willReturn($response);
+        $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v2/post-request/')->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
+
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
@@ -278,10 +249,15 @@ final class PayPalClientSpec extends ObjectBehavior
             ->post('v2/post-request/', 'TOKEN', ['parameter' => 'value', 'another_parameter' => 'another_value'], ['CUSTOM_HEADER' => 'header'])
             ->shouldReturn(['status' => 'OK', 'id' => '123123'])
         ;
+
+        $request->withHeader('CUSTOM_HEADER', 'header')->shouldBeCalled();
+        $streamFactory->createStream(json_encode(['parameter' => 'value', 'another_parameter' => 'another_value']))->shouldBeCalled();
     }
 
     function it_logs_debug_id_from_failed_post_request(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         LoggerInterface $logger,
         RequestException $exception,
         ResponseInterface $response,
@@ -293,20 +269,8 @@ final class PayPalClientSpec extends ObjectBehavior
         $uuidProvider->provide()->willReturn('REQUEST-ID');
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'POST',
-            'https://test-api.paypal.com/v2/post-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                    'PayPal-Request-Id' => 'REQUEST-ID',
-                ],
-                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
-        )->willThrow($exception->getWrappedObject());
+        $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v2/post-request/')->willReturn($request);
+        $client->sendRequest($request)->willThrow($exception->getWrappedObject());
 
         $exception->getResponse()->willReturn($response);
         $response->getBody()->willReturn($body);
@@ -326,26 +290,16 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_calls_patch_request_on_paypal_api(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ResponseInterface $response,
         StreamInterface $body,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelInterface $channel
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
-
-        $client->request(
-            'PATCH',
-            'https://test-api.paypal.com/v2/patch-request/123123',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                ],
-                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
-        )->willReturn($response);
+        $requestFactory->createRequest('PATCH', 'https://test-api.paypal.com/v2/patch-request/123123')->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"status": "OK", "id": "123123"}');
@@ -358,6 +312,8 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_logs_debug_id_from_failed_patch_request(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         LoggerInterface $logger,
         RequestException $exception,
         ResponseInterface $response,
@@ -367,19 +323,8 @@ final class PayPalClientSpec extends ObjectBehavior
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'PATCH',
-            'https://test-api.paypal.com/v2/patch-request/123123',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                ],
-                'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
-        )->willThrow($exception->getWrappedObject());
+        $requestFactory->createRequest('PATCH', 'https://test-api.paypal.com/v2/patch-request/123123')->willReturn($request);
+        $client->sendRequest($request)->willThrow($exception->getWrappedObject());
 
         $exception->getResponse()->willReturn($response);
         $response->getBody()->willReturn($body);
@@ -399,23 +344,15 @@ final class PayPalClientSpec extends ObjectBehavior
 
     function it_throws_exception_if_the_timeout_has_been_reached_the_specified_amount_of_time(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelInterface $channel
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
-        $client->request(
-            'GET',
-            'https://test-api.paypal.com/v2/get-request/',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer TOKEN',
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
-                ],
-            ]
-        )->willThrow(ConnectException::class);
+        $requestFactory->createRequest('GET', 'https://test-api.paypal.com/v2/get-request/')->willReturn($request);
+        $client->sendRequest($request)->willThrow(ConnectException::class);
 
         $this
             ->shouldThrow(PayPalApiTimeoutException::class)

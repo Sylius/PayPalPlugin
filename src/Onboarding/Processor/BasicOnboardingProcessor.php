@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
-use GuzzleHttp\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Client\ClientInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
@@ -17,16 +18,20 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
     private ClientInterface $httpClient;
 
+    private RequestFactoryInterface $requestFactory;
+
     private SellerWebhookRegistrarInterface $sellerWebhookRegistrar;
 
     private string $url;
 
     public function __construct(
         ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         string $url
     ) {
         $this->httpClient = $httpClient;
+        $this->requestFactory = $requestFactory;
         $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
         $this->url = $url;
     }
@@ -43,16 +48,15 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         Assert::notNull($gatewayConfig);
 
         $onboardingId = (string) $request->query->get('onboarding_id');
-        $checkPartnerReferralsResponse = $this->httpClient->request(
+        $checkPartnerReferralsRequest = $this->requestFactory->createRequest(
             'GET',
-            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
-            [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                ],
-            ]
-        );
+            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId)
+        )
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Accept', 'application/json')
+            ;
+
+        $checkPartnerReferralsResponse = $this->httpClient->sendRequest($checkPartnerReferralsRequest);
 
         $response = (array) json_decode($checkPartnerReferralsResponse->getBody()->getContents(), true);
 

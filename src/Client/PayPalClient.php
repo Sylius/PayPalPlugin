@@ -13,11 +13,14 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
-use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpClient\Psr18Client;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
@@ -27,7 +30,11 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
-    private ClientInterface $client;
+    private ClientInterface  $client;
+
+    private RequestFactoryInterface $requestFactory;
+
+    private StreamFactoryInterface $streamFactory;
 
     private LoggerInterface $logger;
 
@@ -44,7 +51,9 @@ final class PayPalClient implements PayPalClientInterface
     private bool $loggingLevelIncreased;
 
     public function __construct(
-        ClientInterface $client,
+        ClientInterface  $client,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
@@ -54,6 +63,8 @@ final class PayPalClient implements PayPalClientInterface
         bool $loggingLevelIncreased = false
     ) {
         $this->client = $client;
+        $this->requestFactory = $requestFactory;
+        $this->streamFactory = $streamFactory;
         $this->logger = $logger;
         $this->uuidProvider = $uuidProvider;
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
@@ -145,7 +156,44 @@ final class PayPalClient implements PayPalClientInterface
     private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
     {
         try {
-            $response = $this->client->request($method, $fullUrl, $options);
+            $request = $this->requestFactory->createRequest($method, $fullUrl);
+
+            if (isset($options['auth'])) {
+                $request = $request->withHeader(
+                    'Authorization',
+                    sprintf(
+                        "Basic %s",
+                        base64_encode(sprintf("%s:%s", $options['auth'][0], $options['auth'][1]))
+                    )
+                );
+            }
+
+            if (isset($options['form_params'])) {
+                $request = $request->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+                $request = $request->withBody(
+                    $this->streamFactory->createStream(http_build_query(
+                        $options['form_params'],
+                        '',
+                        '&',
+                        PHP_QUERY_RFC1738
+                    ))
+                );
+
+            }
+
+            if (isset($options['json'])) {
+                $request = $request->withBody(
+                    $this->streamFactory->createStream(json_encode($options['json']))
+                );
+            }
+
+            if (isset($options['headers'])) {
+                foreach ($options['headers'] as $header => $headerValue) {
+                    $request = $request->withHeader($header, $headerValue);
+                }
+            }
+
+            $response = $this->client->sendRequest($request);
         } catch (ConnectException $exception) {
             --$this->requestTrialsLimit;
             if ($this->requestTrialsLimit === 0) {
