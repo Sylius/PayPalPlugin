@@ -34,7 +34,7 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         Client $client,
         string $baseUrl,
         ObjectManager $paymentMethodManager,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
     ) {
         $this->client = $client;
         $this->baseUrl = $baseUrl;
@@ -50,7 +50,7 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 
         $response = $this->client->request(
             'GET',
-            sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id'])
+            sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
         );
 
         $content = (array) json_decode($response->getBody()->getContents(), true);

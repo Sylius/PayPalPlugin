@@ -21,7 +21,7 @@ final class OrderPaymentProcessor implements OrderProcessorInterface
 
     public function __construct(
         OrderProcessorInterface $baseOrderPaymentProcessor,
-        FactoryInterface $stateMachineFactory
+        FactoryInterface $stateMachineFactory,
     ) {
         $this->baseOrderPaymentProcessor = $baseOrderPaymentProcessor;
         $this->stateMachineFactory = $stateMachineFactory;

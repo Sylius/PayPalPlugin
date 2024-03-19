@@ -31,7 +31,7 @@ final class RefundOrderAction
         FactoryInterface $stateMachineFactory,
         PaymentProviderInterface $paymentProvider,
         ObjectManager $paymentManager,
-        PayPalRefundDataProviderInterface $payPalRefundDataProvider
+        PayPalRefundDataProviderInterface $payPalRefundDataProvider,
     ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->paymentProvider = $paymentProvider;

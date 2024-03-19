@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
-use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
@@ -28,7 +28,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
-        string $url
+        string $url,
     ) {
         $this->httpClient = $httpClient;
         $this->requestFactory = $requestFactory;
@@ -38,7 +38,7 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 
     public function process(
         PaymentMethodInterface $paymentMethod,
-        Request $request
+        Request $request,
     ): PaymentMethodInterface {
         if (!$this->supports($paymentMethod, $request)) {
             throw new \DomainException('not supported');
@@ -50,11 +50,11 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         $onboardingId = (string) $request->query->get('onboarding_id');
         $checkPartnerReferralsRequest = $this->requestFactory->createRequest(
             'GET',
-            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId)
+            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
         )
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json')
-            ;
+        ;
 
         $checkPartnerReferralsResponse = $this->httpClient->sendRequest($checkPartnerReferralsRequest);
 

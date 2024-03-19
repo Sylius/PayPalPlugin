@@ -43,7 +43,7 @@ final class PayPalButtonsController
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         OrderRepositoryInterface $orderRepository,
         AvailableCountriesProviderInterface $availableCountriesProvider,
-        LocaleProcessorInterface $localeProcessor
+        LocaleProcessorInterface $localeProcessor,
     ) {
         $this->twig = $twig;
         $this->router = $router;

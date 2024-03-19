@@ -34,7 +34,7 @@ final class SellerWebhookRegistrar implements SellerWebhookRegistrarInterface
     public function __construct(
         AuthorizeClientApiInterface $authorizeClientApi,
         UrlGeneratorInterface $urlGenerator,
-        WebhookApiInterface $webhookApi
+        WebhookApiInterface $webhookApi,
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->urlGenerator = $urlGenerator;

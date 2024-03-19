@@ -24,7 +24,7 @@ final class CancelPayPalOrderAction
     public function __construct(
         PaymentProviderInterface $paymentProvider,
         OrderRepositoryInterface $orderRepository,
-        FlashBag|RequestStack $flashBagOrRequestStack
+        FlashBag|RequestStack $flashBagOrRequestStack,
     ) {
         if ($flashBagOrRequestStack instanceof FlashBag) {
             trigger_deprecation('sylius/paypal-plugin', '1.5', sprintf('Passing an instance of %s as constructor argument for %s is deprecated as of PayPalPlugin 1.5 and will be removed in 2.0. Pass an instance of %s instead.', FlashBag::class, self::class, RequestStack::class));

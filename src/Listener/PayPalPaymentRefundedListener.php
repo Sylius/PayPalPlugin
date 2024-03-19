@@ -21,7 +21,8 @@ use Webmozart\Assert\Assert;
 final class PayPalPaymentRefundedListener
 {
     public function __construct(private readonly PaymentRefundProcessorInterface $paymentRefundProcessor)
-    {}
+    {
+    }
 
     /** @phpstan-ignore-next-line */
     public function __invoke(EnterEvent $event)

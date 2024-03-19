@@ -20,7 +20,6 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpClient\Psr18Client;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
@@ -51,7 +50,7 @@ final class PayPalClient implements PayPalClientInterface
     private bool $loggingLevelIncreased;
 
     public function __construct(
-        ClientInterface  $client,
+        ClientInterface $client,
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
         LoggerInterface $logger,
@@ -60,7 +59,7 @@ final class PayPalClient implements PayPalClientInterface
         ChannelContextInterface $channelContext,
         string $baseUrl,
         int $requestTrialsLimit,
-        bool $loggingLevelIncreased = false
+        bool $loggingLevelIncreased = false,
     ) {
         $this->client = $client;
         $this->requestFactory = $requestFactory;
@@ -82,7 +81,7 @@ final class PayPalClient implements PayPalClientInterface
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
-            ]
+            ],
         );
 
         if ($response->getStatusCode() !== 200) {
@@ -162,9 +161,9 @@ final class PayPalClient implements PayPalClientInterface
                 $request = $request->withHeader(
                     'Authorization',
                     sprintf(
-                        "Basic %s",
-                        base64_encode(sprintf("%s:%s", $options['auth'][0], $options['auth'][1]))
-                    )
+                        'Basic %s',
+                        base64_encode(sprintf('%s:%s', $options['auth'][0], $options['auth'][1])),
+                    ),
                 );
             }
 
@@ -175,15 +174,14 @@ final class PayPalClient implements PayPalClientInterface
                         $options['form_params'],
                         '',
                         '&',
-                        PHP_QUERY_RFC1738
-                    ))
+                        \PHP_QUERY_RFC1738,
+                    )),
                 );
-
             }
 
             if (isset($options['json'])) {
                 $request = $request->withBody(
-                    $this->streamFactory->createStream(json_encode($options['json']))
+                    $this->streamFactory->createStream(json_encode($options['json'])),
                 );
             }
 

@@ -23,7 +23,7 @@ final class PaymentStateManager implements PaymentStateManagerInterface
     public function __construct(
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
-        PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor
+        PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor,
     ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->paymentManager = $paymentManager;

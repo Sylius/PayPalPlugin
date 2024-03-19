@@ -39,7 +39,7 @@ final class CreatePayPalOrderAction
         ObjectManager $paymentManager,
         PaymentStateManagerInterface $paymentStateManager,
         OrderProviderInterface $orderProvider,
-        CapturePaymentResolverInterface $capturePaymentResolver
+        CapturePaymentResolverInterface $capturePaymentResolver,
     ) {
         $this->payum = $payum;
         $this->orderRepository = $orderRepository;

@@ -25,7 +25,6 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
-use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
@@ -56,7 +55,7 @@ final class CompleteOrderAction implements ActionInterface
         PayPalAddressProcessorInterface $payPalAddressProcessor,
         PaymentUpdaterInterface $payPalPaymentUpdater,
         StateResolverInterface $orderPaymentStateResolver,
-        PayPalItemDataProviderInterface $payPalItemsDataProvider
+        PayPalItemDataProviderInterface $payPalItemsDataProvider,
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->updateOrderApi = $updateOrderApi;
@@ -93,7 +92,7 @@ final class CompleteOrderAction implements ActionInterface
                 (string) $details['paypal_order_id'],
                 $payment,
                 (string) $details['reference_id'],
-                $config['merchant_id']
+                $config['merchant_id'],
             );
 
             $this->payPalPaymentUpdater->updateAmount($payment, $order->getTotal());
@@ -108,10 +107,10 @@ final class CompleteOrderAction implements ActionInterface
             'paypal_order_id' => $orderDetails['id'],
             'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
         ];
-        if (isset($orderDetails['purchase_units'][0]["payments"]["captures"][0]["id"])) {
+        if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
             $details = array_merge(
                 $details,
-                ['transaction_id' => $orderDetails['purchase_units'][0]["payments"]["captures"][0]["id"]]
+                ['transaction_id' => $orderDetails['purchase_units'][0]['payments']['captures'][0]['id']],
             );
         }
 

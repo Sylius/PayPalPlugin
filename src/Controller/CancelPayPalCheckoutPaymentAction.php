@@ -18,7 +18,7 @@ final class CancelPayPalCheckoutPaymentAction
 
     public function __construct(
         PaymentProviderInterface $paymentProvider,
-        PaymentStateManagerInterface $paymentStateManager
+        PaymentStateManagerInterface $paymentStateManager,
     ) {
         $this->paymentProvider = $paymentProvider;
         $this->paymentStateManager = $paymentStateManager;

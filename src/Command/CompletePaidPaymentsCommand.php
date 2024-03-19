@@ -35,7 +35,7 @@ final class CompletePaidPaymentsCommand extends Command
         ObjectManager $paymentManager,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         OrderDetailsApiInterface $orderDetailsApi,
-        FactoryInterface $stateMachineFactory
+        FactoryInterface $stateMachineFactory,
     ) {
         parent::__construct();
 

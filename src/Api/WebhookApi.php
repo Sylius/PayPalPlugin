@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -23,7 +22,7 @@ final class WebhookApi implements WebhookApiInterface
         ClientInterface $client,
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
-        string $baseUrl
+        string $baseUrl,
     ) {
         $this->client = $client;
         $this->requestFactory = $requestFactory;
@@ -45,10 +44,10 @@ final class WebhookApi implements WebhookApiInterface
                         'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
                         'event_types' => [
                             ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
-                        ]
-                    ]
-                )
-            )
+                        ],
+                    ],
+                ),
+            ),
         );
 
         $response = $this->client->sendRequest($request);

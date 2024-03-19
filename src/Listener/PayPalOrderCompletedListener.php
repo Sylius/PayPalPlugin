@@ -20,9 +20,9 @@ use Webmozart\Assert\Assert;
 
 final class PayPalOrderCompletedListener
 {
-
     public function __construct(private readonly PayPalOrderCompleteProcessor $completeProcessor)
-    { }
+    {
+    }
 
     /** @phpstan-ignore-next-line */
     public function __invoke(CompletedEvent $event)

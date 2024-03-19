@@ -37,7 +37,7 @@ final class CreatePayPalOrderFromCartAction
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
         OrderProviderInterface $orderProvider,
-        CapturePaymentResolverInterface $capturePaymentResolver
+        CapturePaymentResolverInterface $capturePaymentResolver,
     ) {
         $this->payum = $payum;
         $this->orderRepository = $orderRepository;

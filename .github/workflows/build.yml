@@ -148,6 +148,14 @@ jobs:
                 run: (cd tests/Application && bin/console sylius:fixtures:load -n)
 
             -
+                name: Run security check
+                run: symfony security:check
+
+            -
+                name: Run ECS
+                run: vendor/bin/ecs check
+
+            -
                 name: Validate composer.json
                 if: ${{ matrix.sylius != '1.13.x-dev' }}
                 run: composer validate --ansi --strict

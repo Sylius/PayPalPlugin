@@ -32,7 +32,7 @@ final class CancelLastPayPalPaymentAction
         ObjectManager $objectManager,
         FactoryInterface $stateMachineFactory,
         OrderProcessorInterface $orderPaymentProcessor,
-        OrderRepositoryInterface $orderRepository
+        OrderRepositoryInterface $orderRepository,
     ) {
         $this->objectManager = $objectManager;
         $this->stateMachineFactory = $stateMachineFactory;

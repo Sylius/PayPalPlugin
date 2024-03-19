@@ -19,7 +19,7 @@ final class DownloadPayoutsReportAction
 
     public function __construct(
         PayoutsReportDownloaderInterface $payoutsReportDownloader,
-        PaymentMethodRepositoryInterface $paymentMethodRepository
+        PaymentMethodRepositoryInterface $paymentMethodRepository,
     ) {
         $this->payoutsReportDownloader = $payoutsReportDownloader;
         $this->paymentMethodRepository = $paymentMethodRepository;

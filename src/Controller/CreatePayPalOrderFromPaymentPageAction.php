@@ -7,7 +7,6 @@ namespace Sylius\PayPalPlugin\Controller;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\GuzzleException;
 use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -35,7 +34,7 @@ final class CreatePayPalOrderFromPaymentPageAction
         ObjectManager $paymentManager,
         PaymentStateManagerInterface $paymentStateManager,
         OrderProviderInterface $orderProvider,
-        CapturePaymentResolverInterface $capturePaymentResolver
+        CapturePaymentResolverInterface $capturePaymentResolver,
     ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->paymentManager = $paymentManager;
