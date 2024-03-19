@@ -61,16 +61,10 @@ $bundles = [
     SyliusLabs\Polyfill\Symfony\Security\Bundle\SyliusLabsPolyfillSymfonySecurityBundle::class => ['all' => true],
     Symfony\WebpackEncoreBundle\WebpackEncoreBundle::class => ['all' => true],
     Sylius\Calendar\SyliusCalendarBundle::class => ['all' => true],
+    League\FlysystemBundle\FlysystemBundle::class => ['all' => true],
 ];
 
-if (defined(SyliusCoreBundle::class.'::VERSION_ID') && SyliusCoreBundle::VERSION_ID >= '11200') {
-    $bundles[League\FlysystemBundle\FlysystemBundle::class] = ['all' => true];
-} else {
-    $bundles[Symfony\Bundle\SwiftmailerBundle\SwiftmailerBundle::class] = ['all' => true];
-}
-
-
-if ( defined(SyliusCoreBundle::class.'::VERSION_ID') && SyliusCoreBundle::VERSION_ID >= '11300') {
+if (SyliusCoreBundle::VERSION_ID >= '11300') {
     $bundles[Sylius\Abstraction\StateMachine\SyliusStateMachineAbstractionBundle::class] = ['all' => true];
 }
 
