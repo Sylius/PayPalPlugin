@@ -13,7 +13,7 @@
         "psr/http-client-implementation": "~1.0",
         "psr/http-factory-implementation": "~1.0",
         "sylius-labs/doctrine-migrations-extra-bundle": "^0.1.4 || ^0.2",
-        "sylius/sylius": "~1.12.0 || 1.13.x-dev",
+        "sylius/sylius": "~1.12.0 || ~1.13.x-dev",
         "symfony/mailer": "^5.4.21 || ^6.4"
     },
     "require-dev": {
