@@ -172,7 +172,6 @@ jobs:
 
             -
                 name: Validate composer.json
-                if: ${{ matrix.sylius != '1.13.x-dev' }}
                 run: composer validate --ansi --strict
 
             -
