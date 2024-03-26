@@ -4,7 +4,7 @@ framework:
         storage_factory_id: session.storage.factory.mock_file
 
     mailer:
-        dsn: 'null://null'
+        dsn: '%env(MAILER_DSN)%'
     cache:
         pools:
             test.mailer_pool:

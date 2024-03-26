@@ -90,9 +90,9 @@
             class="Sylius\PayPalPlugin\Api\WebhookApi"
         >
             <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument>%sylius.pay_pal.api_base_url%</argument>
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
-            <argument>%sylius.pay_pal.api_base_url%</argument>
         </service>
 
         <service

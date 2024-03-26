@@ -10,24 +10,12 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 final class WebhookApi implements WebhookApiInterface
 {
-    private ClientInterface $client;
-
-    private RequestFactoryInterface $requestFactory;
-
-    private StreamFactoryInterface $streamFactory;
-
-    private string $baseUrl;
-
     public function __construct(
-        ClientInterface $client,
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory,
-        string $baseUrl,
+        private readonly ClientInterface $client,
+        private readonly string $baseUrl,
+        private readonly RequestFactoryInterface $requestFactory,
+        private readonly StreamFactoryInterface $streamFactory,
     ) {
-        $this->client = $client;
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
-        $this->baseUrl = $baseUrl;
     }
 
     public function register(string $token, string $webhookUrl): array
