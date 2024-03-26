@@ -57,8 +57,7 @@
         "classmap": ["tests/Application/Kernel.php"]
     },
     "conflict": {
-        "behat/mink-selenium2-driver": ">=1.7.0",
-        "api-platform/core": "v2.7.17"
+        "behat/mink-selenium2-driver": ">=1.7.0"
     },
     "config": {
         "sort-packages": true,
