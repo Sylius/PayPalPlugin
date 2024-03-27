@@ -59,7 +59,8 @@
             id="Sylius\PayPalPlugin\Api\GenericApiInterface"
             class="Sylius\PayPalPlugin\Api\GenericApi"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
         </service>
 
         <service

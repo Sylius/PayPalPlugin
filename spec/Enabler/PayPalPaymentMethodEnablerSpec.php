@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace spec\Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Client;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -27,12 +29,13 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
 {
     function let(
-        Client $client,
+        ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
         ObjectManager $paymentMethodManager,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ): void {
         $this->beConstructedWith(
-            $client, 'http://base-url.com', $paymentMethodManager, $sellerWebhookRegistrar
+            $client, $requestFactory, 'http://base-url.com', $paymentMethodManager, $sellerWebhookRegistrar
         );
     }
 
@@ -42,7 +45,9 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
     }
 
     function it_enables_payment_method_if_it_has_proper_credentials_and_webhook_are_set(
-        Client $client,
+        ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ObjectManager $paymentMethodManager,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         PaymentMethodInterface $paymentMethod,
@@ -53,7 +58,9 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['merchant_id' => '123123', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
-        $client->request('GET', 'http://base-url.com/seller-permissions/check/123123')->willReturn($response);
+        $requestFactory->createRequest('GET', 'http://base-url.com/seller-permissions/check/123123')
+            ->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "permissionsGranted": true }');
 
@@ -66,7 +73,9 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
     }
 
     function it_throws_exception_if_payment_method_credentials_are_not_granted(
-        Client $client,
+        ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ObjectManager $paymentMethodManager,
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         PaymentMethodInterface $paymentMethod,
@@ -77,7 +86,9 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['merchant_id' => '123123', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
-        $client->request('GET', 'http://base-url.com/seller-permissions/check/123123')->willReturn($response);
+        $requestFactory->createRequest('GET', 'http://base-url.com/seller-permissions/check/123123')
+            ->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "permissionsGranted": false }');
 

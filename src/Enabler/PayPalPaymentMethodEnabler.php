@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Client;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
@@ -22,24 +23,13 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
-    private Client $client;
-
-    private string $baseUrl;
-
-    private ObjectManager $paymentMethodManager;
-
-    private SellerWebhookRegistrarInterface $sellerWebhookRegistrar;
-
     public function __construct(
-        Client $client,
-        string $baseUrl,
-        ObjectManager $paymentMethodManager,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+        private readonly ClientInterface $client,
+        private readonly RequestFactoryInterface $requestFactory,
+        private readonly string $baseUrl,
+        private readonly ObjectManager $paymentMethodManager,
+        private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ) {
-        $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->paymentMethodManager = $paymentMethodManager;
-        $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
     }
 
     public function enable(PaymentMethodInterface $paymentMethod): void
@@ -48,9 +38,11 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->client->request(
+        $response = $this->client->sendRequest(
+            $this->requestFactory->createRequest(
             'GET',
-            sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id'])
+                    sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id'])
+            )
         );
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
