@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Client\ClientInterface;
@@ -30,9 +31,7 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 final class PayPalClient implements PayPalClientInterface
 {
     public function __construct(
-        private readonly ClientInterface $client,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory,
+        private readonly GuzzleClientInterface|ClientInterface $client,
         private readonly LoggerInterface $logger,
         private readonly UuidProviderInterface $uuidProvider,
         private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
@@ -40,7 +39,26 @@ final class PayPalClient implements PayPalClientInterface
         private readonly string $baseUrl,
         private int $requestTrialsLimit,
         private readonly bool $loggingLevelIncreased = false,
+        private readonly ?RequestFactoryInterface $requestFactory = null,
+        private readonly ?StreamFactoryInterface $streamFactory = null,
     ) {
+        if ($this->client instanceof GuzzleClientInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be removed. Use Psr\Http\Client\ClientInterface instead.',
+                self::class,
+            );
+        }
+
+        if (null === $this->requestFactory && null === $this->streamFactory) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Not passing $requestFactory and $streamFactory to %s constructor is deprecated and will be removed',
+                self::class,
+            );
+        }
     }
 
     public function authorize(string $clientId, string $clientSecret): array
@@ -125,43 +143,49 @@ final class PayPalClient implements PayPalClientInterface
     private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
     {
         try {
-            $request = $this->requestFactory->createRequest($method, $fullUrl);
+            if ($this->client instanceof GuzzleClientInterface && null === $this->requestFactory && null === $this->streamFactory) {
+                $response = $this->client->request($method, $fullUrl, $options);
+            } else {
+                $request = $this->requestFactory->createRequest($method, $fullUrl);
 
-            if (isset($options['auth'])) {
-                $request = $request->withHeader(
-                    'Authorization',
-                    sprintf(
-                        'Basic %s',
-                        base64_encode(sprintf('%s:%s', $options['auth'][0], $options['auth'][1])),
-                    ),
-                );
-            }
-
-            if (isset($options['form_params'])) {
-                $request = $request->withHeader('Content-Type', 'application/x-www-form-urlencoded');
-                $request = $request->withBody(
-                    $this->streamFactory->createStream(http_build_query(
-                        $options['form_params'],
-                        '',
-                        '&',
-                        \PHP_QUERY_RFC1738,
-                    )),
-                );
-            }
-
-            if (isset($options['json'])) {
-                $request = $request->withBody(
-                    $this->streamFactory->createStream(json_encode($options['json'])),
-                );
-            }
-
-            if (isset($options['headers'])) {
-                foreach ($options['headers'] as $header => $headerValue) {
-                    $request = $request->withHeader($header, $headerValue);
+                if (isset($options['auth'])) {
+                    $request = $request->withHeader(
+                        'Authorization',
+                        sprintf(
+                            'Basic %s',
+                            base64_encode(sprintf('%s:%s', $options['auth'][0], $options['auth'][1])),
+                        ),
+                    );
                 }
-            }
 
-            $response = $this->client->sendRequest($request);
+                if (isset($options['form_params'])) {
+                    $request = $request->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    $request = $request->withBody(
+                        $this->streamFactory->createStream(
+                            http_build_query(
+                                $options['form_params'],
+                                '',
+                                '&',
+                                \PHP_QUERY_RFC1738,
+                            ),
+                        ),
+                    );
+                }
+
+                if (isset($options['json'])) {
+                    $request = $request->withBody(
+                        $this->streamFactory->createStream(json_encode($options['json'])),
+                    );
+                }
+
+                if (isset($options['headers'])) {
+                    foreach ($options['headers'] as $header => $headerValue) {
+                        $request = $request->withHeader($header, $headerValue);
+                    }
+                }
+
+                $response = $this->client->sendRequest($request);
+            }
         } catch (ConnectException $exception) {
             --$this->requestTrialsLimit;
             if ($this->requestTrialsLimit === 0) {

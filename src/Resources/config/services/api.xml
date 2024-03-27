@@ -12,8 +12,6 @@
             class="Sylius\PayPalPlugin\Client\PayPalClient"
         >
             <argument type="service" id="Http\Discovery\Psr18Client" />
-            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
-            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
             <argument type="service" id="monolog.logger.paypal" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
@@ -21,6 +19,8 @@
             <argument>%sylius.pay_pal.api_base_url%</argument>
             <argument>%sylius.pay_pal.request_trials_limit%</argument>
             <argument>%sylius.paypal.logging.increased%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
         </service>
 
         <service

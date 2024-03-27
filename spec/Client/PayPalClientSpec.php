@@ -53,14 +53,15 @@ final class PayPalClientSpec extends ObjectBehavior
 
         $this->beConstructedWith(
             $client,
-            $requestFactory,
-            $streamFactory,
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
             $channelContext,
             'https://test-api.paypal.com/',
-            5
+            5,
+            false,
+            $requestFactory,
+            $streamFactory,
         );
     }
 
@@ -140,15 +141,15 @@ final class PayPalClientSpec extends ObjectBehavior
     ): void {
         $this->beConstructedWith(
             $client,
-            $requestFactory,
-            $streamFactory,
             $logger,
             $uuidProvider,
             $payPalConfigurationProvider,
             $channelContext,
             'https://test-api.paypal.com/',
             5,
-            true
+            true,
+            $requestFactory,
+            $streamFactory,
         );
 
         $channelContext->getChannel()->willReturn($channel);
