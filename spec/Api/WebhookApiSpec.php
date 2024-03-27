@@ -22,7 +22,7 @@ final class WebhookApiSpec extends ObjectBehavior
         StreamInterface $stream,
         RequestInterface $request
     ): void {
-        $this->beConstructedWith($client, $requestFactory, $streamFactory, 'http://base-url.com/');
+        $this->beConstructedWith($client, 'http://base-url.com/', $requestFactory, $streamFactory);
         $request->withHeader(Argument::any(), Argument::any())->willReturn($request);
         $request->withBody(Argument::any())->willReturn($request);
         $streamFactory->createStream(Argument::any())->willReturn($stream);

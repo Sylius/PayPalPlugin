@@ -29,48 +29,18 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClient implements PayPalClientInterface
 {
-    private ClientInterface  $client;
-
-    private RequestFactoryInterface $requestFactory;
-
-    private StreamFactoryInterface $streamFactory;
-
-    private LoggerInterface $logger;
-
-    private UuidProviderInterface $uuidProvider;
-
-    private PayPalConfigurationProviderInterface $payPalConfigurationProvider;
-
-    private ChannelContextInterface $channelContext;
-
-    private string $baseUrl;
-
-    private int $requestTrialsLimit;
-
-    private bool $loggingLevelIncreased;
-
     public function __construct(
-        ClientInterface $client,
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory,
-        LoggerInterface $logger,
-        UuidProviderInterface $uuidProvider,
-        PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelContextInterface $channelContext,
-        string $baseUrl,
-        int $requestTrialsLimit,
-        bool $loggingLevelIncreased = false,
+        private readonly ClientInterface $client,
+        private readonly RequestFactoryInterface $requestFactory,
+        private readonly StreamFactoryInterface $streamFactory,
+        private readonly LoggerInterface $logger,
+        private readonly UuidProviderInterface $uuidProvider,
+        private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private readonly ChannelContextInterface $channelContext,
+        private readonly string $baseUrl,
+        private int $requestTrialsLimit,
+        private readonly bool $loggingLevelIncreased = false,
     ) {
-        $this->client = $client;
-        $this->requestFactory = $requestFactory;
-        $this->streamFactory = $streamFactory;
-        $this->logger = $logger;
-        $this->uuidProvider = $uuidProvider;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
-        $this->channelContext = $channelContext;
-        $this->baseUrl = $baseUrl;
-        $this->requestTrialsLimit = $requestTrialsLimit;
-        $this->loggingLevelIncreased = $loggingLevelIncreased;
     }
 
     public function authorize(string $clientId, string $clientSecret): array
