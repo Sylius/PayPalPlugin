@@ -232,10 +232,10 @@
             class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
         >
             <argument type="service" id="Http\Discovery\Psr18Client" />
-            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument>%sylius.pay_pal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
         </service>
 
         <service

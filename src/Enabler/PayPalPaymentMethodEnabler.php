@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
+use GuzzleHttp\Client;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
@@ -24,12 +25,28 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
     public function __construct(
-        private readonly ClientInterface $client,
-        private readonly RequestFactoryInterface $requestFactory,
+        private readonly Client|ClientInterface $client,
         private readonly string $baseUrl,
         private readonly ObjectManager $paymentMethodManager,
-        private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+        private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        private readonly ?RequestFactoryInterface $requestFactory = null,
     ) {
+        if ($this->client instanceof Client) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Passing GuzzleHttp\Client as a first argument in the constructor is deprecated and will be removed. Use Psr\Http\Client\ClientInterface instead.',
+            );
+        }
+
+        if (null === $this->requestFactory) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Not passing $requestFactory to %s constructor is deprecated and will be removed',
+                self::class,
+            );
+        }
     }
 
     public function enable(PaymentMethodInterface $paymentMethod): void
@@ -38,12 +55,19 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->client->sendRequest(
-            $this->requestFactory->createRequest(
-            'GET',
-                    sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id'])
-            )
-        );
+        if ($this->client instanceof Client && null === $this->requestFactory) {
+            $response = $this->client->request(
+                'GET',
+                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
+            );
+        } else {
+            $response = $this->client->sendRequest(
+                $this->requestFactory->createRequest(
+                    'GET',
+                    sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
+                ),
+            );
+        }
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
         if (!((bool) $content['permissionsGranted'])) {

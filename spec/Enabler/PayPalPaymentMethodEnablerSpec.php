@@ -35,7 +35,7 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ): void {
         $this->beConstructedWith(
-            $client, $requestFactory, 'http://base-url.com', $paymentMethodManager, $sellerWebhookRegistrar
+            $client, 'http://base-url.com', $paymentMethodManager, $sellerWebhookRegistrar, $requestFactory
         );
     }
 
