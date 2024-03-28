@@ -42,7 +42,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
                     'factory' => 'sylius.pay_pal',
                 ], UrlGeneratorInterface::ABSOLUTE_URL),
             ]),
-            UrlUtils::APPEND_QUERY_STRING_REPLACE_DUPLICATE
+            UrlUtils::APPEND_QUERY_STRING_REPLACE_DUPLICATE,
         );
     }
 

@@ -33,7 +33,7 @@ final class PayPalPrioritisingPaymentMethodsResolver implements PaymentMethodsRe
     {
         return $this->sortPayments(
             $this->decoratedPaymentMethodsResolver->getSupportedMethods($subject),
-            $this->firstPaymentMethodFactoryName
+            $this->firstPaymentMethodFactoryName,
         );
     }
 

@@ -32,7 +32,7 @@ final class ManagingOrdersContext implements Context
         FactoryInterface $stateMachineFactory,
         ObjectManager $objectManager,
         KernelBrowser $client,
-        ShowPageInterface $showPage
+        ShowPageInterface $showPage,
     ) {
         $this->stateMachineFactory = $stateMachineFactory;
         $this->objectManager = $objectManager;
@@ -47,7 +47,7 @@ final class ManagingOrdersContext implements Context
     public function thisOrderIsAlreadyPaidAsPayPalOrder(
         OrderInterface $order,
         string $payPalOrderId,
-        ?string $payPalPaymentId = null
+        ?string $payPalPaymentId = null,
     ): void {
         /** @var PaymentInterface $payment */
         $payment = $order->getPayments()->first();
@@ -76,7 +76,7 @@ final class ManagingOrdersContext implements Context
             'resource_type' => 'refund',
             'resource' => [
                 'id' => $payPalOrderId,
-                'amount' => ['currency_code' => 'USD', 'amount' => (string) ($this->refundAmount/100)],
+                'amount' => ['currency_code' => 'USD', 'amount' => (string) ($this->refundAmount / 100)],
                 'status' => 'COMPLETED',
                 'links' => [
                     ['rel' => 'up', 'href' => $payPalOrderId],

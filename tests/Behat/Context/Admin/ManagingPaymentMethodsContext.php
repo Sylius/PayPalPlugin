@@ -8,7 +8,6 @@ use Behat\Behat\Context\Context;
 use Behat\Mink\Exception\ElementNotFoundException;
 use Sylius\Behat\Exception\NotificationExpectationMismatchException;
 use Sylius\Behat\NotificationType;
-use Sylius\Behat\Page\Admin\Crud\IndexPageInterface;
 use Sylius\Behat\Page\Admin\PaymentMethod\CreatePageInterface;
 use Sylius\Behat\Service\NotificationCheckerInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElementInterface;
@@ -25,7 +24,7 @@ final class ManagingPaymentMethodsContext implements Context
     public function __construct(
         DownloadPayPalReportElementInterface $downloadPayPalReportElement,
         NotificationCheckerInterface $notificationChecker,
-        CreatePageInterface $createPage
+        CreatePageInterface $createPage,
     ) {
         $this->downloadPayPalReportElement = $downloadPayPalReportElement;
         $this->notificationChecker = $notificationChecker;
@@ -63,7 +62,7 @@ final class ManagingPaymentMethodsContext implements Context
     {
         $this->notificationChecker->checkNotification(
             'You cannot onboard more than one PayPal seller!',
-            NotificationType::failure()
+            NotificationType::failure(),
         );
     }
 
@@ -75,7 +74,7 @@ final class ManagingPaymentMethodsContext implements Context
         try {
             $this->notificationChecker->checkNotification(
                 'You cannot onboard more than one PayPal seller!',
-                NotificationType::failure()
+                NotificationType::failure(),
             );
         } catch (NotificationExpectationMismatchException|ElementNotFoundException $exception) {
             return;

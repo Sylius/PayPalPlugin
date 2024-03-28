@@ -6,11 +6,12 @@
         <parameter key="sylius.paypal.logging_level_increased">true</parameter>
     </parameters>
     <services>
+        <service id="Http\Discovery\Psr18Client" class="Http\Discovery\Psr18Client" />
         <service
             id="Sylius\PayPalPlugin\Client\PayPalClientInterface"
             class="Sylius\PayPalPlugin\Client\PayPalClient"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
             <argument type="service" id="monolog.logger.paypal" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" />
@@ -18,6 +19,8 @@
             <argument>%sylius.pay_pal.api_base_url%</argument>
             <argument>%sylius.pay_pal.request_trials_limit%</argument>
             <argument>%sylius.paypal.logging.increased%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
         </service>
 
         <service
@@ -56,7 +59,8 @@
             id="Sylius\PayPalPlugin\Api\GenericApiInterface"
             class="Sylius\PayPalPlugin\Api\GenericApi"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
         </service>
 
         <service
@@ -86,8 +90,10 @@
             id="Sylius\PayPalPlugin\Api\WebhookApiInterface"
             class="Sylius\PayPalPlugin\Api\WebhookApi"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
             <argument>%sylius.pay_pal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
         </service>
 
         <service

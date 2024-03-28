@@ -59,7 +59,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
                 $migrationsPath,
                 [
                     'Sylius\PayPalPlugin\Migrations' => '@SyliusPayPalPlugin/Migrations',
-                ]
+                ],
             ),
         ]);
 

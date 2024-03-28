@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor;
 
 use Doctrine\Persistence\ObjectManager;
-use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Webmozart\Assert\Assert;
 

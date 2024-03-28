@@ -33,7 +33,7 @@ final class CaptureAction implements ActionInterface
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         CreateOrderApiInterface $createOrderApi,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->createOrderApi = $createOrderApi;

@@ -33,7 +33,7 @@ final class PayWithPayPalFormAction
         PaymentRepositoryInterface $paymentRepository,
         AvailableCountriesProviderInterface $countriesProvider,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        IdentityApiInterface $identityApi
+        IdentityApiInterface $identityApi,
     ) {
         $this->twig = $twig;
         $this->paymentRepository = $paymentRepository;

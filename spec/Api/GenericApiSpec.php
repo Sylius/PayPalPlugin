@@ -13,17 +13,19 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Api;
 
-use GuzzleHttp\ClientInterface;
 use PhpSpec\ObjectBehavior;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 
 final class GenericApiSpec extends ObjectBehavior
 {
-    function let(ClientInterface $client): void
+    function let(ClientInterface $client, RequestFactoryInterface $requestFactory): void
     {
-        $this->beConstructedWith($client);
+        $this->beConstructedWith($client, $requestFactory);
     }
 
     function it_implements_generic_api_interface(): void
@@ -33,17 +35,19 @@ final class GenericApiSpec extends ObjectBehavior
 
     function it_calls_api_by_url(
         ClientInterface $client,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $request,
         ResponseInterface $response,
         StreamInterface $body
     ): void {
-        $client->request('GET', 'http://url.com/', [
-            'headers' => [
-                'Authorization' => 'Bearer TOKEN',
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ],
-        ])->willReturn($response);
 
+        $requestFactory->createRequest('GET', 'http://url.com/')->willReturn($request);
+
+        $request->withHeader('Authorization', 'Bearer TOKEN')->willReturn($request);
+        $request->withHeader('Content-Type', 'application/json')->willReturn($request);
+        $request->withHeader('Accept', 'application/json')->willReturn($request);
+
+        $client->sendRequest($request)->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "parameter": "VALUE" }');
 

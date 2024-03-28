@@ -6,6 +6,7 @@
         <import resource="services/controller.xml"/>
         <import resource="services/onboarding.xml"/>
         <import resource="services/payum.xml"/>
+        <import resource="services/workflow.xml"/>
     </imports>
 
     <parameters>
@@ -234,6 +235,7 @@
             <argument>%sylius.pay_pal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
         </service>
 
         <service

@@ -54,7 +54,7 @@ final class ProcessPayPalOrderAction
         PaymentStateManagerInterface $paymentStateManager,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         OrderDetailsApiInterface $orderDetailsApi,
-        OrderProviderInterface $orderProvider
+        OrderProviderInterface $orderProvider,
     ) {
         $this->orderRepository = $orderRepository;
         $this->customerRepository = $customerRepository;

@@ -19,7 +19,7 @@ final class PayPalRefundDataProvider implements PayPalRefundDataProviderInterfac
     public function __construct(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         GenericApiInterface $genericApi,
-        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider
+        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->genericApi = $genericApi;

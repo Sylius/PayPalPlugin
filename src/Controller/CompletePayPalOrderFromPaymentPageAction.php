@@ -6,7 +6,6 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -33,7 +32,7 @@ final class CompletePayPalOrderFromPaymentPageAction
         UrlGeneratorInterface $router,
         OrderProviderInterface $orderProvider,
         FactoryInterface $stateMachine,
-        ObjectManager $orderManager
+        ObjectManager $orderManager,
     ) {
         $this->paymentStateManager = $paymentStateManager;
         $this->router = $router;

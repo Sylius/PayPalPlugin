@@ -31,7 +31,7 @@ final class PayPalAuthAssertionGenerator implements PayPalAuthAssertionGenerator
         return
             base64_encode('{"alg":"none"}') . '.' .
             base64_encode(
-                (string) json_encode(['iss' => (string) $config['client_id'], 'payer_id' => (string) $config['merchant_id']])
+                (string) json_encode(['iss' => (string) $config['client_id'], 'payer_id' => (string) $config['merchant_id']]),
             ) . '.'
         ;
     }

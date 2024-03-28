@@ -17,11 +17,11 @@ use Sylius\Component\Core\Model\OrderInterface;
 
 class PayPalOrder
 {
-    const NO_SHIPPING = 'NO_SHIPPING';
+    public const NO_SHIPPING = 'NO_SHIPPING';
 
-    const PROVIDED_ADDRESS = 'SET_PROVIDED_ADDRESS';
+    public const PROVIDED_ADDRESS = 'SET_PROVIDED_ADDRESS';
 
-    const PAYPAL_ADDRESS = 'GET_FROM_FILE';
+    public const PAYPAL_ADDRESS = 'GET_FROM_FILE';
 
     /** @var string */
     private $intent;
@@ -47,8 +47,8 @@ class PayPalOrder
                 $this->payPalPurchaseUnit->toArray(),
             ],
             'application_context' => [
-                'shipping_preference' => $this->getShippingPreference()
-            ]
+                'shipping_preference' => $this->getShippingPreference(),
+            ],
         ];
     }
 

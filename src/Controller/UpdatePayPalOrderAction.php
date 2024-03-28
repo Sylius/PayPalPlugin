@@ -38,7 +38,7 @@ final class UpdatePayPalOrderAction
         OrderDetailsApiInterface $orderDetailsApi,
         UpdateOrderApiInterface $updateOrderApi,
         AddressFactoryInterface $addressFactory,
-        OrderProcessorInterface $orderProcessor
+        OrderProcessorInterface $orderProcessor,
     ) {
         $this->paymentProvider = $paymentProvider;
         $this->authorizeClientApi = $authorizeClientApi;

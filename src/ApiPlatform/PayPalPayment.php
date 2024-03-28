@@ -63,12 +63,12 @@ final class PayPalPayment
             'completePayPalOrderFromPaymentPageUrl' => $this->router->generate(
                 'sylius_paypal_plugin_complete_paypal_order',
                 ['token' => $order->getTokenValue()],
-                UrlGeneratorInterface::ABSOLUTE_URL
+                UrlGeneratorInterface::ABSOLUTE_URL,
             ),
             'createPayPalOrderFromPaymentPageUrl' => $this->router->generate(
                 'sylius_paypal_plugin_create_paypal_order',
                 ['token' => $order->getTokenValue()],
-                UrlGeneratorInterface::ABSOLUTE_URL
+                UrlGeneratorInterface::ABSOLUTE_URL,
             ),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_plugin_cancel_payment', [], UrlGeneratorInterface::ABSOLUTE_URL),
             'partnerAttributionId' => $gatewayConfig->getConfig()['partner_attribution_id'],

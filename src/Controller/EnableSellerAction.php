@@ -22,7 +22,7 @@ final class EnableSellerAction
 
     public function __construct(
         PaymentMethodRepositoryInterface $paymentMethodRepository,
-        PaymentMethodEnablerInterface $paymentMethodEnabler
+        PaymentMethodEnablerInterface $paymentMethodEnabler,
     ) {
         $this->paymentMethodRepository = $paymentMethodRepository;
         $this->paymentMethodEnabler = $paymentMethodEnabler;
