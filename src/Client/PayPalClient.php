@@ -143,7 +143,7 @@ final class PayPalClient implements PayPalClientInterface
     private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
     {
         try {
-            if ($this->client instanceof GuzzleClientInterface && null === $this->requestFactory && null === $this->streamFactory) {
+            if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory || null === $this->streamFactory) {
                 $response = $this->client->request($method, $fullUrl, $options);
             } else {
                 $request = $this->requestFactory->createRequest($method, $fullUrl);

@@ -38,7 +38,7 @@ final class WebhookApi implements WebhookApiInterface
 
     public function register(string $token, string $webhookUrl): array
     {
-        if ($this->client instanceof GuzzleClientInterface && null === $this->requestFactory && null === $this->streamFactory) {
+        if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory || null === $this->streamFactory) {
             return $this->legacyRegister($token, $webhookUrl);
         }
 

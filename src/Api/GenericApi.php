@@ -34,7 +34,7 @@ final class GenericApi implements GenericApiInterface
 
     public function get(string $token, string $url): array
     {
-        if ($this->client instanceof GuzzleClientInterface && null === $this->requestFactory) {
+        if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory) {
             return $this->legacyGet($token, $url);
         }
 

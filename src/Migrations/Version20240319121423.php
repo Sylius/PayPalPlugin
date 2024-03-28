@@ -17,6 +17,11 @@ if (class_exists(AbstractPostgreSQLMigration::class)) {
 
         public function up(Schema $schema): void
         {
+            if ($schema->hasTable('sylius_paypal_plugin_pay_pal_credentials')) {
+                $this->markAsExecuted($this->getVersion());
+                $this->skipIf(true, 'This migration is marked as completed.');
+            }
+
             $this->addSql('CREATE TABLE sylius_paypal_plugin_pay_pal_credentials (id VARCHAR(255) NOT NULL, payment_method_id INT DEFAULT NULL, access_token VARCHAR(255) NOT NULL, creation_time TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, expiration_time TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, PRIMARY KEY(id))');
             $this->addSql('CREATE INDEX IDX_C56F54AD5AA1164F ON sylius_paypal_plugin_pay_pal_credentials (payment_method_id)');
             $this->addSql('ALTER TABLE sylius_paypal_plugin_pay_pal_credentials ADD CONSTRAINT FK_C56F54AD5AA1164F FOREIGN KEY (payment_method_id) REFERENCES sylius_payment_method (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
