@@ -36,15 +36,15 @@ final class PayPalClientSpec extends ObjectBehavior
 {
     function let(
         ClientInterface $client,
-        RequestFactoryInterface $requestFactory,
-        StreamFactoryInterface $streamFactory,
-        RequestInterface $request,
-        StreamInterface $stream,
         LoggerInterface $logger,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelContextInterface $channelContext,
-        ChannelInterface $channel
+        ChannelInterface $channel,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+        RequestInterface $request,
+        StreamInterface $stream,
     ): void {
         $channelContext->getChannel()->willReturn($channel);
         $streamFactory->createStream(Argument::any())->willReturn($stream);
