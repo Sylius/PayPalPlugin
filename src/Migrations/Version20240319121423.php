@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Migrations;
 
 use Doctrine\DBAL\Schema\Schema;
-use Sylius\Bundle\CoreBundle\Doctrine\Migrations\AbstractPostgreSQLMigration as SyliusAbstractMigration;
+use Sylius\Bundle\CoreBundle\Doctrine\Migrations\AbstractPostgreSQLMigration;
 
-if (class_exists(SyliusAbstractMigration::class)) {
-    final class Version20240319121423 extends SyliusAbstractMigration
+if (class_exists(AbstractPostgreSQLMigration::class)) {
+    final class Version20240319121423 extends AbstractPostgreSQLMigration
     {
         public function getDescription(): string
         {

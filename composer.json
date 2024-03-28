@@ -84,8 +84,5 @@
         ]
     },
     "prefer-stable": true,
-    "minimum-stability": "dev",
-    "suggest": {
-        "php-http/guzzle6-adapter ":"Required to use this package on 32bit PHP"
-    }
+    "minimum-stability": "dev"
 }

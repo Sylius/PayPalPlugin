@@ -21,7 +21,7 @@ final class WebhookApi implements WebhookApiInterface
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
-                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be removed. Use Psr\Http\Client\ClientInterface instead.',
+                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be prohibited in 2.0. Use Psr\Http\Client\ClientInterface instead.',
                 self::class,
             );
         }
@@ -30,7 +30,7 @@ final class WebhookApi implements WebhookApiInterface
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
-                'Not passing $requestFactory and $streamFactory to %s constructor is deprecated and will be removed',
+                'Not passing $requestFactory and $streamFactory to %s constructor is deprecated and will be prohibited in 2.0',
                 self::class,
             );
         }
