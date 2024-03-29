@@ -2,11 +2,8 @@
 
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <imports>
-        <import resource="services/api.xml"/>
-        <import resource="services/controller.xml"/>
-        <import resource="services/onboarding.xml"/>
-        <import resource="services/payum.xml"/>
-        <import resource="services/workflow.xml"/>
+        <import resource="services/*.xml"/>
+        <import resource="integrations/services.php"/>
     </imports>
 
     <parameters>
@@ -45,7 +42,7 @@
             id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface"
             class="Sylius\PayPalPlugin\Manager\PaymentStateManager"
         >
-            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius.manager.payment" />
             <argument type="service" id="Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface" />
         </service>
@@ -130,7 +127,7 @@
             decorates="sylius.order_processing.order_payment_processor.checkout"
         >
             <argument type="service" id="Sylius\PayPalPlugin\Processor\OrderPaymentProcessor.inner" />
-            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor" public="true">
@@ -231,7 +228,7 @@
             id="Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface"
             class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
         >
-            <argument type="service" id="Http\Discovery\Psr18Client" />
+            <argument type="service" id="sylius.http_client" />
             <argument>%sylius.pay_pal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
@@ -248,7 +245,7 @@
             <argument type="service" id="sylius.manager.payment" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Api\OrderDetailsApiInterface" />
-            <argument type="service" id="sm.factory" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
             <tag name="console.command" command="sylius:pay-pal-plugin:complete-payments" />
         </service>
 

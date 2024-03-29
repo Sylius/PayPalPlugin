@@ -3,7 +3,7 @@
 use Sylius\Bundle\CoreBundle\Application\Kernel;
 use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
 
-$bundles = [
+return [
     Symfony\Bundle\FrameworkBundle\FrameworkBundle::class => ['all' => true],
     Symfony\Bundle\MonologBundle\MonologBundle::class => ['all' => true],
     Symfony\Bundle\SecurityBundle\SecurityBundle::class => ['all' => true],
@@ -62,10 +62,5 @@ $bundles = [
     Symfony\WebpackEncoreBundle\WebpackEncoreBundle::class => ['all' => true],
     Sylius\Calendar\SyliusCalendarBundle::class => ['all' => true],
     League\FlysystemBundle\FlysystemBundle::class => ['all' => true],
+    Sylius\Abstraction\StateMachine\SyliusStateMachineAbstractionBundle::class => ['all' => true],
 ];
-
-if (SyliusCoreBundle::VERSION_ID >= '11300') {
-    $bundles[Sylius\Abstraction\StateMachine\SyliusStateMachineAbstractionBundle::class] = ['all' => true];
-}
-
-return $bundles;

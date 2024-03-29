@@ -6,6 +6,8 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Abstraction\StateMachine\WinzouStateMachineAdapter;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
@@ -18,32 +20,28 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 
 final class CancelPayPalPaymentAction
 {
-    private PaymentProviderInterface $paymentProvider;
-
-    private ObjectManager $objectManager;
-
-    private FlashBag|RequestStack $flashBagOrRequestStack;
-
-    private FactoryInterface $stateMachineFactory;
-
-    private OrderProcessorInterface $orderPaymentProcessor;
-
     public function __construct(
-        PaymentProviderInterface $paymentProvider,
-        ObjectManager $objectManager,
-        FlashBag|RequestStack $flashBagOrRequestStack,
-        FactoryInterface $stateMachineFactory,
-        OrderProcessorInterface $orderPaymentProcessor,
+        private readonly PaymentProviderInterface $paymentProvider,
+        private readonly ObjectManager $objectManager,
+        private readonly FlashBag|RequestStack $flashBagOrRequestStack,
+        private readonly FactoryInterface|StateMachineInterface $stateMachineFactory,
+        private readonly OrderProcessorInterface $orderPaymentProcessor,
     ) {
         if ($flashBagOrRequestStack instanceof FlashBag) {
             trigger_deprecation('sylius/paypal-plugin', '1.5', sprintf('Passing an instance of %s as constructor argument for %s is deprecated as of PayPalPlugin 1.5 and will be removed in 2.0. Pass an instance of %s instead.', FlashBag::class, self::class, RequestStack::class));
         }
 
-        $this->paymentProvider = $paymentProvider;
-        $this->objectManager = $objectManager;
-        $this->flashBagOrRequestStack = $flashBagOrRequestStack;
-        $this->stateMachineFactory = $stateMachineFactory;
-        $this->orderPaymentProcessor = $orderPaymentProcessor;
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                sprintf(
+                    'Passing an instance of "%s" as the fourth argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
+                    FactoryInterface::class,
+                    StateMachineInterface::class,
+                ),
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -60,8 +58,7 @@ final class CancelPayPalPaymentAction
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        $paymentStateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
+        $this->getStateMachine()->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
 
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
@@ -71,5 +68,14 @@ final class CancelPayPalPaymentAction
         ;
 
         return new Response('', Response::HTTP_NO_CONTENT);
+    }
+
+    private function getStateMachine(): StateMachineInterface
+    {
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            return new WinzouStateMachineAdapter($this->stateMachineFactory);
+        }
+
+        return $this->stateMachineFactory;
     }
 }

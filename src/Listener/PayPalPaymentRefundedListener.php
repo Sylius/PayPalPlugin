@@ -24,11 +24,9 @@ final class PayPalPaymentRefundedListener
     {
     }
 
-    /** @phpstan-ignore-next-line */
-    public function __invoke(EnterEvent $event)
+    public function __invoke(EnterEvent $event): void
     {
         /** @var PaymentInterface $payment */
-        /** @phpstan-ignore-next-line */
         $payment = $event->getSubject();
         Assert::isInstanceOf($payment, PaymentInterface::class);
 

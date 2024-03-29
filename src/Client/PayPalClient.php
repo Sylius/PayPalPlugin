@@ -46,7 +46,7 @@ final class PayPalClient implements PayPalClientInterface
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
-                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be removed. Use Psr\Http\Client\ClientInterface instead.',
+                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be prohibited in 2.0. Use Psr\Http\Client\ClientInterface instead.',
                 self::class,
             );
         }
@@ -55,7 +55,7 @@ final class PayPalClient implements PayPalClientInterface
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
-                'Not passing $requestFactory and $streamFactory to %s constructor is deprecated and will be removed',
+                'Not passing $requestFactory and $streamFactory to %s constructor is deprecated and will be prohibited in 2.0',
                 self::class,
             );
         }
@@ -143,7 +143,7 @@ final class PayPalClient implements PayPalClientInterface
     private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
     {
         try {
-            if ($this->client instanceof GuzzleClientInterface && null === $this->requestFactory && null === $this->streamFactory) {
+            if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory || null === $this->streamFactory) {
                 $response = $this->client->request($method, $fullUrl, $options);
             } else {
                 $request = $this->requestFactory->createRequest($method, $fullUrl);

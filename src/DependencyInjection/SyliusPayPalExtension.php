@@ -6,9 +6,12 @@ namespace Sylius\PayPalPlugin\DependencyInjection;
 
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Config\Loader\DelegatingLoader;
+use Symfony\Component\Config\Loader\LoaderResolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 
 final class SyliusPayPalExtension extends Extension implements PrependExtensionInterface
@@ -16,7 +19,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     public function load(array $configs, ContainerBuilder $container): void
     {
         $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
-        $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
+        $loaderResolver = new LoaderResolver([
+            new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config')),
+            new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config')),
+        ]);
+        $delegatingLoader = new DelegatingLoader($loaderResolver);
 
         $container->setParameter('sylius.paypal.logging.increased', (bool) $config['logging']['increased']);
 
@@ -30,7 +37,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
             $container->setParameter('sylius.pay_pal.reports_sftp_host', 'reports.paypal.com');
         }
 
-        $loader->load('services.xml');
+        $delegatingLoader->load('services.xml');
     }
 
     public function getConfiguration(array $config, ContainerBuilder $container): ConfigurationInterface

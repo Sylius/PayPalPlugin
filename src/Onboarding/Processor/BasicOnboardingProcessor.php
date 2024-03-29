@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -16,24 +17,29 @@ use Webmozart\Assert\Assert;
 
 final class BasicOnboardingProcessor implements OnboardingProcessorInterface
 {
-    private ClientInterface $httpClient;
-
-    private RequestFactoryInterface $requestFactory;
-
-    private SellerWebhookRegistrarInterface $sellerWebhookRegistrar;
-
-    private string $url;
-
     public function __construct(
-        ClientInterface $httpClient,
-        RequestFactoryInterface $requestFactory,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
-        string $url,
+        private readonly GuzzleClientInterface|ClientInterface $httpClient,
+        private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        private readonly string $url,
+        private readonly ?RequestFactoryInterface $requestFactory = null,
     ) {
-        $this->httpClient = $httpClient;
-        $this->requestFactory = $requestFactory;
-        $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
-        $this->url = $url;
+        if ($this->httpClient instanceof GuzzleClientInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be prohibited in 2.0. Use Psr\Http\Client\ClientInterface instead.',
+                self::class,
+            );
+        }
+
+        if (null === $this->requestFactory) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Not passing $requestFactory to %s constructor is deprecated and will be prohibited in 2.0',
+                self::class,
+            );
+        }
     }
 
     public function process(
@@ -48,16 +54,28 @@ final class BasicOnboardingProcessor implements OnboardingProcessorInterface
         Assert::notNull($gatewayConfig);
 
         $onboardingId = (string) $request->query->get('onboarding_id');
-        $checkPartnerReferralsRequest = $this->requestFactory->createRequest(
-            'GET',
-            sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
-        )
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Accept', 'application/json')
-        ;
 
-        $checkPartnerReferralsResponse = $this->httpClient->sendRequest($checkPartnerReferralsRequest);
+        if ($this->httpClient instanceof GuzzleClientInterface || null === $this->requestFactory) {
+            $checkPartnerReferralsResponse = $this->httpClient->request(
+                'GET',
+                sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ],
+            );
+        } else {
+            $checkPartnerReferralsRequest = $this->requestFactory->createRequest(
+                'GET',
+                sprintf('%s/partner-referrals/check/%s', $this->url, $onboardingId),
+            )
+                ->withHeader('Content-Type', 'application/json')
+                ->withHeader('Accept', 'application/json');
 
+            $checkPartnerReferralsResponse = $this->httpClient->sendRequest($checkPartnerReferralsRequest);
+        }
         $response = (array) json_decode($checkPartnerReferralsResponse->getBody()->getContents(), true);
 
         if (!isset($response['client_id']) || !isset($response['client_secret'])) {

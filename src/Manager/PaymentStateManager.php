@@ -6,28 +6,31 @@ namespace Sylius\PayPalPlugin\Manager;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Abstraction\StateMachine\WinzouStateMachineAdapter;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\Component\Resource\StateMachine\StateMachineInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 final class PaymentStateManager implements PaymentStateManagerInterface
 {
-    private FactoryInterface $stateMachineFactory;
-
-    private ObjectManager $paymentManager;
-
-    private PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor;
-
     public function __construct(
-        FactoryInterface $stateMachineFactory,
-        ObjectManager $paymentManager,
-        PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor,
+        private readonly FactoryInterface|StateMachineInterface $stateMachineFactory,
+        private readonly ObjectManager $paymentManager,
+        private readonly PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor,
     ) {
-        $this->stateMachineFactory = $stateMachineFactory;
-        $this->paymentManager = $paymentManager;
-        $this->paypalPaymentCompleteProcessor = $paypalPaymentCompleteProcessor;
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                sprintf(
+                    'Passing an instance of "%s" as the first argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
+                    FactoryInterface::class,
+                    StateMachineInterface::class,
+                ),
+            );
+        }
     }
 
     public function create(PaymentInterface $payment): void
@@ -67,10 +70,16 @@ final class PaymentStateManager implements PaymentStateManagerInterface
 
     private function applyTransitionAndSave(PaymentInterface $payment, string $transition): void
     {
-        /** @var StateMachineInterface $stateMachine */
-        $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-
-        $stateMachine->apply($transition);
+        $this->getStateMachine()->apply($payment, PaymentTransitions::GRAPH, $transition);
         $this->paymentManager->flush();
+    }
+
+    private function getStateMachine(): StateMachineInterface
+    {
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            return new WinzouStateMachineAdapter($this->stateMachineFactory);
+        }
+
+        return $this->stateMachineFactory;
     }
 }

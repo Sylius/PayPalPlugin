@@ -24,15 +24,15 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
 {
     function let(
         ClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         RequestFactoryInterface $requestFactory,
         RequestInterface $apiRequest,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
     ): void {
         $this->beConstructedWith(
             $httpClient,
-            $requestFactory,
             $sellerWebhookRegistrar,
-            'https://paypal.facilitator.com'
+            'https://paypal.facilitator.com',
+            $requestFactory,
         );
 
         $apiRequest->withHeader(Argument::any(), Argument::any())->willReturn($apiRequest);

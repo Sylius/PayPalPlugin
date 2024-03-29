@@ -6,6 +6,8 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface as StateMachineFactoryInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Abstraction\StateMachine\WinzouStateMachineAdapter;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -24,48 +26,29 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class ProcessPayPalOrderAction
 {
-    private OrderRepositoryInterface $orderRepository;
-
-    private CustomerRepositoryInterface $customerRepository;
-
-    private \Sylius\Component\Resource\Factory\FactoryInterface $customerFactory;
-
-    private AddressFactoryInterface $addressFactory;
-
-    private ObjectManager $orderManager;
-
-    private StateMachineFactoryInterface $stateMachineFactory;
-
-    private PaymentStateManagerInterface $paymentStateManager;
-
-    private CacheAuthorizeClientApiInterface $authorizeClientApi;
-
-    private OrderDetailsApiInterface $orderDetailsApi;
-
-    private OrderProviderInterface $orderProvider;
-
     public function __construct(
-        OrderRepositoryInterface $orderRepository,
-        CustomerRepositoryInterface $customerRepository,
-        FactoryInterface $customerFactory,
-        AddressFactoryInterface $addressFactory,
-        ObjectManager $orderManager,
-        StateMachineFactoryInterface $stateMachineFactory,
-        PaymentStateManagerInterface $paymentStateManager,
-        CacheAuthorizeClientApiInterface $authorizeClientApi,
-        OrderDetailsApiInterface $orderDetailsApi,
-        OrderProviderInterface $orderProvider,
+        private readonly OrderRepositoryInterface $orderRepository,
+        private readonly CustomerRepositoryInterface $customerRepository,
+        private readonly FactoryInterface $customerFactory,
+        private readonly AddressFactoryInterface $addressFactory,
+        private readonly ObjectManager $orderManager,
+        private readonly StateMachineFactoryInterface|StateMachineInterface $stateMachineFactory,
+        private readonly PaymentStateManagerInterface $paymentStateManager,
+        private readonly CacheAuthorizeClientApiInterface $authorizeClientApi,
+        private readonly OrderDetailsApiInterface $orderDetailsApi,
+        private readonly OrderProviderInterface $orderProvider,
     ) {
-        $this->orderRepository = $orderRepository;
-        $this->customerRepository = $customerRepository;
-        $this->customerFactory = $customerFactory;
-        $this->addressFactory = $addressFactory;
-        $this->orderManager = $orderManager;
-        $this->stateMachineFactory = $stateMachineFactory;
-        $this->paymentStateManager = $paymentStateManager;
-        $this->authorizeClientApi = $authorizeClientApi;
-        $this->orderDetailsApi = $orderDetailsApi;
-        $this->orderProvider = $orderProvider;
+        if ($this->stateMachineFactory instanceof StateMachineFactoryInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                message: sprintf(
+                    'Passing an instance of "%s" as the sixth argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
+                    FactoryInterface::class,
+                    StateMachineInterface::class,
+                ),
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -85,7 +68,6 @@ final class ProcessPayPalOrderAction
         }
 
         $purchaseUnit = (array) $data['purchase_units'][0];
-        $stateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
 
         $address = $this->addressFactory->createForCustomer($customer);
 
@@ -98,8 +80,8 @@ final class ProcessPayPalOrderAction
             $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
             $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
 
-            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
-            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
+            $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_ADDRESS);
+            $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
         } else {
             $address->setFirstName($customer->getFirstName());
             $address->setLastName($customer->getLastName());
@@ -110,13 +92,13 @@ final class ProcessPayPalOrderAction
             $address->setCity($defaultAddress ? $defaultAddress->getCity() : '');
             $address->setPostcode($defaultAddress ? $defaultAddress->getPostcode() : '');
             $address->setCountryCode($data['payer']['address']['country_code']);
-            $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_ADDRESS);
+            $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_ADDRESS);
         }
 
         $order->setShippingAddress(clone $address);
         $order->setBillingAddress(clone $address);
 
-        $stateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
+        $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
 
         $this->orderManager->flush();
 
@@ -150,5 +132,14 @@ final class ProcessPayPalOrderAction
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         return $this->orderDetailsApi->get($token, $id);
+    }
+
+    private function getStateMachine(): StateMachineInterface
+    {
+        if ($this->stateMachineFactory instanceof StateMachineFactoryInterface) {
+            return new WinzouStateMachineAdapter($this->stateMachineFactory);
+        }
+
+        return $this->stateMachineFactory;
     }
 }

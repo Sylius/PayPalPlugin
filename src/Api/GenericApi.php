@@ -18,7 +18,7 @@ final class GenericApi implements GenericApiInterface
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
-                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will be removed. Use Psr\Http\Client\ClientInterface instead.',
+                'Passing GuzzleHttp\ClientInterface as a first argument in the constructor is deprecated and will prohibited in 2.0. Use Psr\Http\Client\ClientInterface instead.',
             );
         }
 
@@ -26,7 +26,7 @@ final class GenericApi implements GenericApiInterface
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
-                'Not passing $requestFactory to %s constructor is deprecated and will be removed',
+                'Not passing $requestFactory to %s constructor is deprecated and will be prohibited in 2.0',
                 self::class,
             );
         }
@@ -34,7 +34,7 @@ final class GenericApi implements GenericApiInterface
 
     public function get(string $token, string $url): array
     {
-        if ($this->client instanceof GuzzleClientInterface && null === $this->requestFactory) {
+        if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory) {
             return $this->legacyGet($token, $url);
         }
 

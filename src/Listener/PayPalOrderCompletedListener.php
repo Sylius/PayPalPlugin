@@ -24,11 +24,9 @@ final class PayPalOrderCompletedListener
     {
     }
 
-    /** @phpstan-ignore-next-line */
-    public function __invoke(CompletedEvent $event)
+    public function __invoke(CompletedEvent $event): void
     {
         /** @var OrderInterface $order */
-        /** @phpstan-ignore-next-line */
         $order = $event->getSubject();
         Assert::isInstanceOf($order, OrderInterface::class);
 
