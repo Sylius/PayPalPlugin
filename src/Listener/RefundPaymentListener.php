@@ -18,7 +18,7 @@ use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
 use Symfony\Component\Workflow\Event\EnterEvent;
 use Webmozart\Assert\Assert;
 
-final class PayPalPaymentRefundedListener
+final class RefundPaymentListener
 {
     public function __construct(private readonly PaymentRefundProcessorInterface $paymentRefundProcessor)
     {

@@ -18,7 +18,7 @@ use Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor;
 use Symfony\Component\Workflow\Event\CompletedEvent;
 use Webmozart\Assert\Assert;
 
-final class PayPalOrderCompletedListener
+final class CompletePayPalOrderListener
 {
     public function __construct(private readonly PayPalOrderCompleteProcessor $completeProcessor)
     {
