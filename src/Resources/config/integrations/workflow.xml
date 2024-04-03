@@ -2,13 +2,13 @@
 
 <container xmlns="http://symfony.com/schema/dic/services" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
-        <service id="Sylius\PayPalPlugin\Listener\CompletePayPalOrderListener">
+        <service id="Sylius\PayPalPlugin\EventListener\Workflow\CompletePayPalOrderListener">
             <argument type="service" id="Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor" />
 
             <tag name="kernel.event_listener" event="workflow.sylius_order.completed.complete" priority="100" />
         </service>
 
-        <service id="Sylius\PayPalPlugin\Listener\RefundPaymentListener">
+        <service id="Sylius\PayPalPlugin\EventListener\Workflow\RefundPaymentListener">
             <argument type="service" id="Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface" />
 
             <tag name="kernel.event_listener" event="workflow.sylius_order_payment.enter.refund" priority="100" />

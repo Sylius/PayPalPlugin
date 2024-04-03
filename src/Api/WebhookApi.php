@@ -26,7 +26,7 @@ final class WebhookApi implements WebhookApiInterface
             );
         }
 
-        if (null === $this->requestFactory && null === $this->streamFactory) {
+        if (null === $this->requestFactory || null === $this->streamFactory) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',

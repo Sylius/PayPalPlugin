@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Sylius\PayPalPlugin\Listener;
+namespace Sylius\PayPalPlugin\EventListener\Workflow;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;

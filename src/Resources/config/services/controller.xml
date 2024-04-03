@@ -64,19 +64,19 @@
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction">
-            <argument type="service" id="payum" />
-            <argument type="service" id="sylius.repository.order" />
-            <argument type="service" id="sm.factory" />
-            <argument type="service" id="sylius.manager.payment" />
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
             <argument type="service" id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" />
         </service>
 
         <service id="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction">
-            <argument type="service" id="payum" />
-            <argument type="service" id="sylius.repository.order" />
-            <argument type="service" id="sm.factory" />
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
             <argument type="service" id="sylius.manager.payment" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" />
             <argument type="service" id="Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface" />

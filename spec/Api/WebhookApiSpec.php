@@ -36,7 +36,8 @@ final class WebhookApiSpec extends ObjectBehavior
         StreamInterface $body
     ): void {
 
-        $requestFactory->createRequest('POST','http://base-url.com/v1/notifications/webhooks')
+        $requestFactory
+            ->createRequest('POST','http://base-url.com/v1/notifications/webhooks')
             ->willReturn($request);
         $client->sendRequest($request)->willReturn($response);
 

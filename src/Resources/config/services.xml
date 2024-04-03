@@ -228,7 +228,7 @@
             id="Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface"
             class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Http\Discovery\Psr18Client" />
             <argument>%sylius.pay_pal.facilitator_url%</argument>
             <argument type="service" id="sylius.manager.payment_method" />
             <argument type="service" id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" />
