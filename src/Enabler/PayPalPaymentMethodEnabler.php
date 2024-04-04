@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -26,7 +25,7 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
     public function __construct(
-        private readonly Client|ClientInterface $client,
+        private readonly GuzzleClientInterface|ClientInterface $client,
         private readonly string $baseUrl,
         private readonly ObjectManager $paymentMethodManager,
         private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
