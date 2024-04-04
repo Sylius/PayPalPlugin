@@ -7,6 +7,7 @@ namespace spec\Sylius\PayPalPlugin\Api;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Psr\Http\Client\ClientInterface;
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -47,6 +48,36 @@ final class WebhookApiSpec extends ObjectBehavior
         $this->register('TOKEN', 'https://webhook.com')->shouldReturn(['status' => 'CREATED']);
     }
 
+    function it_registers_webhook_using_guzzle_client(
+        GuzzleClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $this->beConstructedWith($client, 'http://base-url.com/');
+
+        $client->request(
+            'POST',
+            'http://base-url.com/v1/notifications/webhooks',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'json' => [
+                    'url' => 'https://webhook.com',
+                    'event_types' => [
+                        ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ],
+                ],
+            ]
+        )->willReturn($response);
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{ "status": "CREATED" }');
+
+        $this->register('TOKEN', 'https://webhook.com')->shouldReturn(['status' => 'CREATED']);
+    }
+
     function it_registers_webhook_without_https(
         ClientInterface $client,
         RequestFactoryInterface $requestFactory,
@@ -58,6 +89,36 @@ final class WebhookApiSpec extends ObjectBehavior
             ->willReturn($request);
         $client->sendRequest($request)->willReturn($response);
 
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{ "status": "CREATED" }');
+
+        $this->register('TOKEN', 'http://webhook.com')->shouldReturn(['status' => 'CREATED']);
+    }
+
+    function it_registers_webhook_without_https_using_guzzle_client(
+        GuzzleClientInterface $client,
+        ResponseInterface $response,
+        StreamInterface $body
+    ): void {
+        $this->beConstructedWith($client, 'http://base-url.com/');
+
+        $client->request(
+            'POST',
+            'http://base-url.com/v1/notifications/webhooks',
+            [
+                'headers' => [
+                    'Authorization' => 'Bearer TOKEN',
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'json' => [
+                    'url' => 'https://webhook.com',
+                    'event_types' => [
+                        ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ],
+                ],
+            ]
+        )->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "status": "CREATED" }');
 

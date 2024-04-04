@@ -8,6 +8,7 @@ use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Psr\Http\Client\ClientInterface;
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -94,6 +95,74 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
 
+    function it_processes_onboarding_for_supported_payment_method_and_request_using_guzzle_client(
+        GuzzleClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        ResponseInterface $response,
+        StreamInterface $body,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $this->beConstructedWith(
+            $httpClient,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com',
+        );
+
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+            ]
+        );
+
+        $gatewayConfig->setConfig(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'onboarding_id' => 'ONBOARDING-ID',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+                'partner_attribution_id' => 'ATTRIBUTION-ID',
+            ]
+        )->shouldBeCalled();
+
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
+
+        $httpClient
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
+            ->willReturn($response)
+        ;
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn(
+            '{"client_id":"CLIENT-ID",
+            "client_secret":"CLIENT-SECRET",
+            "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
+        );
+
+        $sellerWebhookRegistrar->register($paymentMethod)->shouldBeCalled();
+
+        $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
+    }
+
     function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_request(
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
@@ -124,6 +193,77 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
             'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID'
         )->willReturn($apiRequest);
         $httpClient->sendRequest($apiRequest)->willReturn($response);
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn(
+            '{"client_id":"CLIENT-ID",
+            "client_secret":"CLIENT-SECRET",
+            "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
+        );
+
+        $paymentMethod->setEnabled(false)->shouldBeCalled();
+        $gatewayConfig->setConfig(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'onboarding_id' => 'ONBOARDING-ID',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+                'partner_attribution_id' => 'ATTRIBUTION-ID',
+            ]
+        )->shouldBeCalled();
+
+        $sellerWebhookRegistrar->register($paymentMethod)->shouldBeCalled();
+
+        $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
+    }
+
+    function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_request_using_guzzle_client(
+        GuzzleClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        ResponseInterface $response,
+        StreamInterface $body,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $this->beConstructedWith(
+            $httpClient,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com',
+        );
+
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+            ]
+        );
+
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID', 'permissionsGranted' => false]);
+
+        $httpClient
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
+            ->willReturn($response)
+        ;
 
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn(
@@ -210,10 +350,98 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
     }
 
+    function it_processes_onboarding_for_supported_payment_method_with_not_granted_permissions_and_without_registered_webhook_using_guzzle_client(
+        GuzzleClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        ResponseInterface $response,
+        StreamInterface $body,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $this->beConstructedWith(
+            $httpClient,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com',
+        );
+
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+        $gatewayConfig->getConfig()->willReturn(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+            ]
+        );
+
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID', 'permissionsGranted' => false]);
+
+        $httpClient
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
+            ->willReturn($response)
+        ;
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn(
+            '{"client_id":"CLIENT-ID",
+            "client_secret":"CLIENT-SECRET",
+            "sylius_merchant_id":"SYLIUS-MERCHANT-ID",
+            "merchant_id":"MERCHANT-ID",
+            "partner_attribution_id":"ATTRIBUTION-ID"}'
+        );
+
+        $paymentMethod->setEnabled(false)->shouldBeCalled();
+        $gatewayConfig->setConfig(
+            [
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'onboarding_id' => 'ONBOARDING-ID',
+                'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
+                'merchant_id' => 'MERCHANT-ID',
+                'partner_attribution_id' => 'ATTRIBUTION-ID',
+            ]
+        )->shouldBeCalled();
+
+        $sellerWebhookRegistrar->register($paymentMethod)->willThrow(PayPalWebhookUrlNotValidException::class);
+        $paymentMethod->setEnabled(false)->shouldBeCalled();
+
+        $this->process($paymentMethod, $request)->shouldReturn($paymentMethod);
+    }
+
     function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request(
         PaymentMethodInterface $paymentMethod,
         Request $request
     ): void {
+        $this
+            ->shouldThrow(\DomainException::class)
+            ->during('process', [$paymentMethod, $request])
+        ;
+    }
+
+    function it_throws_an_exception_when_trying_to_process_onboarding_for_unsupported_payment_method_or_request_using_guzzle_client(
+        GuzzleClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $this->beConstructedWith(
+            $httpClient,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com',
+        );
+
         $this
             ->shouldThrow(\DomainException::class)
             ->during('process', [$paymentMethod, $request])
@@ -225,6 +453,27 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
         PaymentMethod $paymentMethod,
         Request $request
     ): void {
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+
+        $request->query = new ParameterBag(['onboarding_id' => 'FACILITATOR-ID']);
+
+        $this->supports($paymentMethod, $request)->shouldReturn(true);
+    }
+
+    function it_supports_paypal_payment_method_with_request_containing_id_using_guzzle_client(
+        GuzzleClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethod $paymentMethod,
+        Request $request
+    ): void {
+        $this->beConstructedWith(
+            $httpClient,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com',
+        );
+
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
 
@@ -284,6 +533,52 @@ final class BasicOnboardingProcessorSpec extends ObjectBehavior
             'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID'
         )->willReturn($apiRequest);
         $httpClient->sendRequest($apiRequest)->willReturn($response);
+
+        $response->getBody()->willReturn($body);
+        $body->getContents()->willReturn('{"client_id":null,"client_secret":null}');
+
+        $this
+            ->shouldThrow(PayPalPluginException::class)
+            ->during('process', [$paymentMethod, $request])
+        ;
+    }
+
+    function it_throws_error_if_facilitator_data_is_not_loaded_using_guzzle_client(
+        GuzzleClientInterface $httpClient,
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        RequestFactoryInterface $requestFactory,
+        RequestInterface $apiRequest,
+        ResponseInterface $response,
+        StreamInterface $body,
+        GatewayConfigInterface $gatewayConfig,
+        PaymentMethodInterface $paymentMethod,
+        Request $request
+    ): void {
+        $this->beConstructedWith(
+            $httpClient,
+            $sellerWebhookRegistrar,
+            'https://paypal.facilitator.com',
+        );
+
+        $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
+
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $request->query = new ParameterBag(['onboarding_id' => 'ONBOARDING-ID']);
+
+        $httpClient
+            ->request(
+                'GET',
+                'https://paypal.facilitator.com/partner-referrals/check/ONBOARDING-ID',
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ],
+                ]
+            )
+            ->willReturn($response)
+        ;
 
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{"client_id":null,"client_secret":null}');

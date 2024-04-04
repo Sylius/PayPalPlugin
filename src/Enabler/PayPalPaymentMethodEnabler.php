@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
@@ -31,7 +32,7 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         private readonly ?RequestFactoryInterface $requestFactory = null,
     ) {
-        if ($this->client instanceof Client) {
+        if ($this->client instanceof GuzzleClientInterface) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '1.6',
@@ -55,7 +56,7 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        if ($this->client instanceof Client && null === $this->requestFactory) {
+        if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory) {
             $response = $this->client->request(
                 'GET',
                 sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
