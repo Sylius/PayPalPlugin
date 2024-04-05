@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Client;
 
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Psr\Http\Client\ClientInterface;
-use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -76,7 +76,7 @@ final class PayPalClientSpec extends ObjectBehavior
         RequestFactoryInterface $requestFactory,
         RequestInterface $request,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v1/oauth2/token')->willReturn($request);
         $request->withHeader(Argument::any(), Argument::any())->willReturn($request);
@@ -96,7 +96,7 @@ final class PayPalClientSpec extends ObjectBehavior
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelContextInterface $channelContext,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -115,7 +115,7 @@ final class PayPalClientSpec extends ObjectBehavior
             [
                 'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
                 'form_params' => ['grant_type' => 'client_credentials'],
-            ]
+            ],
         )->willReturn($response);
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
@@ -128,10 +128,10 @@ final class PayPalClientSpec extends ObjectBehavior
         ClientInterface $client,
         RequestFactoryInterface $requestFactory,
         RequestInterface $request,
-        ResponseInterface $response
+        ResponseInterface $response,
     ): void {
-            $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v1/oauth2/token')->willReturn($request);
-            $client->sendRequest($request)->willReturn($response);
+        $requestFactory->createRequest('POST', 'https://test-api.paypal.com/v1/oauth2/token')->willReturn($request);
+        $client->sendRequest($request)->willReturn($response);
 
         $response->getStatusCode()->willReturn(401);
 
@@ -147,7 +147,7 @@ final class PayPalClientSpec extends ObjectBehavior
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelContextInterface $channelContext,
-        ResponseInterface $response
+        ResponseInterface $response,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -166,7 +166,7 @@ final class PayPalClientSpec extends ObjectBehavior
             [
                 'auth' => ['CLIENT_ID', 'CLIENT_SECRET'],
                 'form_params' => ['grant_type' => 'client_credentials'],
-            ]
+            ],
         )->willReturn($response);
         $response->getStatusCode()->willReturn(401);
 
@@ -183,7 +183,7 @@ final class PayPalClientSpec extends ObjectBehavior
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelInterface $channel,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
@@ -205,7 +205,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelContextInterface $channelContext,
         ChannelInterface $channel,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -230,7 +230,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
-            ]
+            ],
         )->willReturn($response);
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
@@ -250,7 +250,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelContextInterface $channelContext,
         ChannelInterface $channel,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -291,7 +291,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelContextInterface $channelContext,
         ChannelInterface $channel,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -317,7 +317,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
-            ]
+            ],
         )->willReturn($response);
 
         $response->getStatusCode()->willReturn(200);
@@ -341,7 +341,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelInterface $channel,
         RequestException $exception,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
@@ -370,7 +370,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelInterface $channel,
         RequestException $exception,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -395,7 +395,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
-            ]
+            ],
         )->willThrow($exception->getWrappedObject());
 
         $exception->getResponse()->willReturn($response);
@@ -419,7 +419,7 @@ final class PayPalClientSpec extends ObjectBehavior
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $uuidProvider->provide()->willReturn('REQUEST-ID');
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
@@ -445,7 +445,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelContextInterface $channelContext,
         ResponseInterface $response,
         StreamInterface $body,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -473,7 +473,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
+            ],
         )->willReturn($response);
 
         $response->getStatusCode()->willReturn(200);
@@ -495,7 +495,7 @@ final class PayPalClientSpec extends ObjectBehavior
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $uuidProvider->provide()->willReturn('REQUEST-ID');
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
@@ -524,7 +524,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelContextInterface $channelContext,
         ResponseInterface $response,
         StreamInterface $body,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -553,7 +553,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'CUSTOM_HEADER' => 'header',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
+            ],
         )->willReturn($response);
 
         $response->getStatusCode()->willReturn(200);
@@ -576,7 +576,7 @@ final class PayPalClientSpec extends ObjectBehavior
         StreamInterface $body,
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $uuidProvider->provide()->willReturn('REQUEST-ID');
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
@@ -609,7 +609,7 @@ final class PayPalClientSpec extends ObjectBehavior
         RequestException $exception,
         ResponseInterface $response,
         StreamInterface $body,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -637,7 +637,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'PayPal-Request-Id' => 'REQUEST-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
+            ],
         )->willThrow($exception->getWrappedObject());
 
         $exception->getResponse()->willReturn($response);
@@ -663,7 +663,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ResponseInterface $response,
         StreamInterface $body,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
         $requestFactory->createRequest('PATCH', 'https://test-api.paypal.com/v2/patch-request/123123')->willReturn($request);
@@ -686,7 +686,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ChannelContextInterface $channelContext,
         ResponseInterface $response,
         StreamInterface $body,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -711,7 +711,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
+            ],
         )->willReturn($response);
         $response->getStatusCode()->willReturn(200);
         $response->getBody()->willReturn($body);
@@ -732,7 +732,7 @@ final class PayPalClientSpec extends ObjectBehavior
         ResponseInterface $response,
         StreamInterface $body,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
@@ -764,7 +764,7 @@ final class PayPalClientSpec extends ObjectBehavior
         RequestException $exception,
         ResponseInterface $response,
         StreamInterface $body,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -790,7 +790,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
                 'json' => ['parameter' => 'value', 'another_parameter' => 'another_value'],
-            ]
+            ],
         )->willThrow($exception->getWrappedObject());
 
         $exception->getResponse()->willReturn($response);
@@ -814,7 +814,7 @@ final class PayPalClientSpec extends ObjectBehavior
         RequestFactoryInterface $requestFactory,
         RequestInterface $request,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $payPalConfigurationProvider->getPartnerAttributionId($channel)->willReturn('TRACKING-ID');
 
@@ -833,7 +833,7 @@ final class PayPalClientSpec extends ObjectBehavior
         UuidProviderInterface $uuidProvider,
         PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         ChannelContextInterface $channelContext,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -858,7 +858,7 @@ final class PayPalClientSpec extends ObjectBehavior
                     'Accept' => 'application/json',
                     'PayPal-Partner-Attribution-Id' => 'TRACKING-ID',
                 ],
-            ]
+            ],
         )->willThrow(ConnectException::class);
 
         $this

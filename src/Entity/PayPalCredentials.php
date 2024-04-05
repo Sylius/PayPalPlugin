@@ -18,21 +18,18 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 /**
  * @ORM\Entity
- *
  * @ORM\Table(name="sylius_paypal_plugin_pay_pal_credentials")
  */
 class PayPalCredentials implements PayPalCredentialsInterface
 {
     /**
      * @ORM\Id
-     *
      * @ORM\Column(type="string")
      */
     private string $id;
 
     /**
      * @ORM\ManyToOne(targetEntity="Sylius\Component\Core\Model\PaymentMethodInterface")
-     *
      * @ORM\JoinColumn(name="payment_method_id", referencedColumnName="id")
      */
     private PaymentMethodInterface $paymentMethod;

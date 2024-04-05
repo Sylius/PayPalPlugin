@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace spec\Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Psr\Http\Client\ClientInterface;
-use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -33,10 +33,14 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         ClientInterface $client,
         RequestFactoryInterface $requestFactory,
         ObjectManager $paymentMethodManager,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+        SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
     ): void {
         $this->beConstructedWith(
-            $client, 'http://base-url.com', $paymentMethodManager, $sellerWebhookRegistrar, $requestFactory
+            $client,
+            'http://base-url.com',
+            $paymentMethodManager,
+            $sellerWebhookRegistrar,
+            $requestFactory,
         );
     }
 
@@ -54,12 +58,13 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['merchant_id' => '123123', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
-        $requestFactory->createRequest('GET', 'http://base-url.com/seller-permissions/check/123123')
+        $requestFactory
+            ->createRequest('GET', 'http://base-url.com/seller-permissions/check/123123')
             ->willReturn($request);
         $client->sendRequest($request)->willReturn($response);
         $response->getBody()->willReturn($body);
@@ -80,7 +85,7 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,
@@ -113,12 +118,13 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['merchant_id' => '123123', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
-        $requestFactory->createRequest('GET', 'http://base-url.com/seller-permissions/check/123123')
+        $requestFactory
+            ->createRequest('GET', 'http://base-url.com/seller-permissions/check/123123')
             ->willReturn($request);
         $client->sendRequest($request)->willReturn($response);
         $response->getBody()->willReturn($body);
@@ -143,7 +149,7 @@ final class PayPalPaymentMethodEnablerSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith(
             $client,

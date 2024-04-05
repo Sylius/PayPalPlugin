@@ -44,7 +44,7 @@ final class ProcessPayPalOrderAction
                 '1.6',
                 message: sprintf(
                     'Passing an instance of "%s" as the sixth argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
-                    FactoryInterface::class,
+                    StateMachineFactoryInterface::class,
                     StateMachineInterface::class,
                 ),
             );
@@ -92,6 +92,7 @@ final class ProcessPayPalOrderAction
             $address->setCity($defaultAddress ? $defaultAddress->getCity() : '');
             $address->setPostcode($defaultAddress ? $defaultAddress->getPostcode() : '');
             $address->setCountryCode($data['payer']['address']['country_code']);
+
             $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_ADDRESS);
         }
 

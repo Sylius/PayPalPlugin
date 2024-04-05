@@ -13,11 +13,9 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit;
 
-use Payum\Core\Bridge\Spl\ArrayObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory;
-use Sylius\PayPalPlugin\Payum\Model\PayPalApi;
 
 final class PayPalGatewayFactoryTest extends TestCase
 {

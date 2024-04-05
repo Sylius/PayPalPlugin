@@ -32,7 +32,7 @@ final class PayPalPaymentUpdaterSpec extends ObjectBehavior
 
     function it_updates_payment_amount(
         ObjectManager $paymentManager,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $payment->setAmount(1000)->shouldBeCalled();
         $paymentManager->flush();

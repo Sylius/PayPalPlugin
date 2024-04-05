@@ -31,7 +31,7 @@ final class CapturePaymentResolverSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         GatewayInterface $gateway,
-        Payum $payum
+        Payum $payum,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
 

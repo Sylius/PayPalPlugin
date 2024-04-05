@@ -27,7 +27,7 @@ final class SellerWebhookRegistrarSpec extends ObjectBehavior
     function let(
         AuthorizeClientApiInterface $authorizeClientApi,
         UrlGeneratorInterface $urlGenerator,
-        WebhookApiInterface $webhookApi
+        WebhookApiInterface $webhookApi,
     ): void {
         $this->beConstructedWith($authorizeClientApi, $urlGenerator, $webhookApi);
     }
@@ -42,7 +42,7 @@ final class SellerWebhookRegistrarSpec extends ObjectBehavior
         UrlGeneratorInterface $urlGenerator,
         WebhookApiInterface $webhookApi,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
@@ -63,7 +63,7 @@ final class SellerWebhookRegistrarSpec extends ObjectBehavior
         UrlGeneratorInterface $urlGenerator,
         WebhookApiInterface $webhookApi,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);

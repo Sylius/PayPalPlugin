@@ -35,7 +35,7 @@ final class PaymentProviderSpec extends ObjectBehavior
         PaymentRepositoryInterface $paymentRepository,
         PaymentInterface $firstPayment,
         PaymentInterface $secondPayment,
-        PaymentInterface $thirdPayment
+        PaymentInterface $thirdPayment,
     ): void {
         $paymentRepository->findAll()->willReturn([$firstPayment, $secondPayment, $thirdPayment]);
 
@@ -50,7 +50,7 @@ final class PaymentProviderSpec extends ObjectBehavior
         PaymentRepositoryInterface $paymentRepository,
         PaymentInterface $firstPayment,
         PaymentInterface $secondPayment,
-        PaymentInterface $thirdPayment
+        PaymentInterface $thirdPayment,
     ): void {
         $paymentRepository->findAll()->willReturn([$firstPayment, $secondPayment, $thirdPayment]);
 

@@ -32,7 +32,7 @@ final class AfterCheckoutOrderPaymentProcessorSpec extends ObjectBehavior
 
     function it_does_nothing_if_order_is_not_completed(
         OrderProcessorInterface $baseOrderPaymentProcessor,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $order->getCheckoutState()->willReturn(OrderCheckoutStates::STATE_ADDRESSED);
 
@@ -43,7 +43,7 @@ final class AfterCheckoutOrderPaymentProcessorSpec extends ObjectBehavior
 
     function it_uses_processor_if_order_is_completed(
         OrderProcessorInterface $baseOrderPaymentProcessor,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $order->getCheckoutState()->willReturn(OrderCheckoutStates::STATE_COMPLETED);
 

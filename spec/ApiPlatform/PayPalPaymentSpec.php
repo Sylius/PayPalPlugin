@@ -31,7 +31,7 @@ final class PayPalPaymentSpec extends ObjectBehavior
 
     function it_supports_paypal_payment_method(
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
@@ -46,7 +46,7 @@ final class PayPalPaymentSpec extends ObjectBehavior
         OrderInterface $order,
         GatewayConfigInterface $gatewayConfig,
         AvailableCountriesProviderInterface $availableCountriesProvider,
-        RouterInterface $router
+        RouterInterface $router,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
 
@@ -55,7 +55,7 @@ final class PayPalPaymentSpec extends ObjectBehavior
             [
                 'client_id' => 'CLIENT-ID',
                 'partner_attribution_id' => 'PARTNER-ATTRIBUTION-ID',
-            ]
+            ],
         );
 
         $payment->getOrder()->willReturn($order);
@@ -70,25 +70,25 @@ final class PayPalPaymentSpec extends ObjectBehavior
         $router->generate(
             'sylius_paypal_plugin_complete_paypal_order',
             ['token' => 'TOKEN'],
-            UrlGeneratorInterface::ABSOLUTE_URL
+            UrlGeneratorInterface::ABSOLUTE_URL,
         )->willReturn('https://path-to-complete/TOKEN');
 
         $router->generate(
             'sylius_paypal_plugin_create_paypal_order',
             ['token' => 'TOKEN'],
-            UrlGeneratorInterface::ABSOLUTE_URL
+            UrlGeneratorInterface::ABSOLUTE_URL,
         )->willReturn('https://path-to-create/TOKEN');
 
         $router->generate(
             'sylius_paypal_plugin_cancel_payment',
             [],
-            UrlGeneratorInterface::ABSOLUTE_URL
+            UrlGeneratorInterface::ABSOLUTE_URL,
         )->willReturn('https://path-to-cancel');
 
         $router->generate(
             'sylius_paypal_plugin_payment_error',
             [],
-            UrlGeneratorInterface::ABSOLUTE_URL
+            UrlGeneratorInterface::ABSOLUTE_URL,
         )->willReturn('https://path-to-error');
 
         $this->provideConfiguration($payment)->shouldReturn(
@@ -104,7 +104,7 @@ final class PayPalPaymentSpec extends ObjectBehavior
                 'orderToken' => 'TOKEN',
                 'errorPayPalPaymentUrl' => 'https://path-to-error',
                 'available_countries' => ['PL', 'US'],
-            ]
+            ],
         );
     }
 }

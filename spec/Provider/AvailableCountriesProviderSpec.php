@@ -25,7 +25,7 @@ final class AvailableCountriesProviderSpec extends ObjectBehavior
         RepositoryInterface $countryRepository,
         ChannelContextInterface $channelContext,
         ChannelInterface $channel,
-        Collection $collection
+        Collection $collection,
     ): void {
         $channel->getCountries()->willReturn($collection);
 
@@ -46,7 +46,7 @@ final class AvailableCountriesProviderSpec extends ObjectBehavior
         RepositoryInterface $countryRepository,
         ChannelContextInterface $channelContext,
         ChannelInterface $channel,
-        Collection $collection
+        Collection $collection,
     ): void {
         $channel->getCountries()->willReturn($collection);
         $collection->toArray()->willReturn([$countryOne, $countryTwo]);

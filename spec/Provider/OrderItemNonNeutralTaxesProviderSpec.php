@@ -16,7 +16,7 @@ final class OrderItemNonNeutralTaxesProviderSpec extends ObjectBehavior
         OrderItemInterface $orderItem,
         AdjustmentInterface $adjustment,
         OrderItemUnitInterface $orderItemUnit,
-        AdjustmentInterface $unitAdjustment
+        AdjustmentInterface $unitAdjustment,
     ): void {
         $orderItem->getAdjustments(AdjustmentInterface::TAX_ADJUSTMENT)
             ->willReturn(new ArrayCollection([$adjustment->getWrappedObject()]));

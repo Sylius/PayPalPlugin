@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Api;
 
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use PhpSpec\ObjectBehavior;
 use Psr\Http\Client\ClientInterface;
-use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -39,9 +39,8 @@ final class GenericApiSpec extends ObjectBehavior
         RequestFactoryInterface $requestFactory,
         RequestInterface $request,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
-
         $requestFactory->createRequest('GET', 'http://url.com/')->willReturn($request);
 
         $request->withHeader('Authorization', 'Bearer TOKEN')->willReturn($request);
@@ -58,7 +57,7 @@ final class GenericApiSpec extends ObjectBehavior
     function it_calls_api_by_url_using_guzzle_client(
         GuzzleClientInterface $client,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith($client);
 

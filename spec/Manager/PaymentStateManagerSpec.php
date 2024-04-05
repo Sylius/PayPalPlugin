@@ -19,7 +19,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
     function let(
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
-        PaymentCompleteProcessorInterface $paymentCompleteProcessor
+        PaymentCompleteProcessorInterface $paymentCompleteProcessor,
     ): void {
         $this->beConstructedWith($stateMachineFactory, $paymentManager, $paymentCompleteProcessor);
     }
@@ -33,7 +33,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
         PaymentInterface $payment,
-        StateMachineInterface $stateMachine
+        StateMachineInterface $stateMachine,
     ): void {
         $stateMachineFactory->get($payment, PaymentTransitions::GRAPH)->willReturn($stateMachine);
         $stateMachine->apply(PaymentTransitions::TRANSITION_CREATE)->shouldBeCalled();
@@ -47,7 +47,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         ObjectManager $paymentManager,
         PaymentCompleteProcessorInterface $paymentCompleteProcessor,
         PaymentInterface $payment,
-        StateMachineInterface $stateMachine
+        StateMachineInterface $stateMachine,
     ): void {
         $paymentCompleteProcessor->completePayment($payment);
         $payment->getDetails()->willReturn(['status' => StatusAction::STATUS_COMPLETED]);
@@ -64,7 +64,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         ObjectManager $paymentManager,
         PaymentCompleteProcessorInterface $paymentCompleteProcessor,
         PaymentInterface $payment,
-        StateMachineInterface $stateMachine
+        StateMachineInterface $stateMachine,
     ): void {
         $paymentCompleteProcessor->completePayment($payment);
         $payment->getDetails()->willReturn(['status' => StatusAction::STATUS_PROCESSING]);
@@ -80,7 +80,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
     function it_does_nothing_if_payment_is_processing_in_paypal_but_already_processing_in_sylius(
         FactoryInterface $stateMachineFactory,
         PaymentCompleteProcessorInterface $paymentCompleteProcessor,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $paymentCompleteProcessor->completePayment($payment);
         $payment->getDetails()->willReturn(['status' => StatusAction::STATUS_PROCESSING]);
@@ -95,7 +95,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
         PaymentInterface $payment,
-        StateMachineInterface $stateMachine
+        StateMachineInterface $stateMachine,
     ): void {
         $stateMachineFactory->get($payment, PaymentTransitions::GRAPH)->willReturn($stateMachine);
         $stateMachine->apply(PaymentTransitions::TRANSITION_PROCESS)->shouldBeCalled();
@@ -108,7 +108,7 @@ final class PaymentStateManagerSpec extends ObjectBehavior
         FactoryInterface $stateMachineFactory,
         ObjectManager $paymentManager,
         PaymentInterface $payment,
-        StateMachineInterface $stateMachine
+        StateMachineInterface $stateMachine,
     ): void {
         $stateMachineFactory->get($payment, PaymentTransitions::GRAPH)->willReturn($stateMachine);
         $stateMachine->apply(PaymentTransitions::TRANSITION_CANCEL)->shouldBeCalled();

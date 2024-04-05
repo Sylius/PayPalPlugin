@@ -27,7 +27,7 @@ final class PayPalAuthAssertionGeneratorSpec extends ObjectBehavior
 
     function it_generates_auth_assertion_based_on_payment_method_config(
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['client_id' => 'CLIENT_ID', 'merchant_id' => 'MERCHANT_ID']);
@@ -40,7 +40,7 @@ final class PayPalAuthAssertionGeneratorSpec extends ObjectBehavior
 
     function it_throws_an_exception_if_gateway_config_does_not_have_proper_values_set(
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig, $gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(['merchant_id' => 'MERCHANT_ID'], ['client_id' => 'CLIENT_ID']);

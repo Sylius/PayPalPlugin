@@ -20,7 +20,7 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
     function it_returns_array_of_items_with_tax(
         OrderInterface $order,
         OrderItemInterface $orderItem,
-        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
+        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
     ): void {
         $order->getItems()->willReturn(new ArrayCollection([$orderItem->getWrappedObject()]));
         $orderItem->getProductName()->willReturn('PRODUCT_ONE');
@@ -49,14 +49,14 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
                 ],
                 'total_item_value' => '20.00',
                 'total_tax' => '2.00',
-            ]
+            ],
         );
     }
 
     function it_returns_array_of_items_with_different_quantities_with_tax(
         OrderInterface $order,
         OrderItemInterface $orderItem,
-        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
+        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
     ): void {
         $order->getItems()->willReturn(new ArrayCollection([$orderItem->getWrappedObject()]));
         $orderItem->getProductName()->willReturn('PRODUCT_ONE');
@@ -116,7 +116,7 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
     function it_returns_array_of_items_with_different_quantities_without_tax(
         OrderInterface $order,
         OrderItemInterface $orderItem,
-        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
+        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
     ): void {
         $order->getItems()->willReturn(new ArrayCollection([$orderItem->getWrappedObject()]));
         $orderItem->getProductName()->willReturn('PRODUCT_ONE');
@@ -153,7 +153,7 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
         OrderInterface $order,
         OrderItemInterface $orderItemOne,
         OrderItemInterface $orderItemTwo,
-        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
+        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
     ): void {
         $order->getItems()
             ->willReturn(new ArrayCollection([$orderItemOne->getWrappedObject(), $orderItemTwo->getWrappedObject()]));
@@ -208,7 +208,7 @@ final class PayPalItemDataProviderSpec extends ObjectBehavior
         OrderInterface $order,
         OrderItemInterface $orderItemOne,
         OrderItemInterface $orderItemTwo,
-        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider
+        OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
     ): void {
         $order->getItems()->willReturn(new ArrayCollection([$orderItemOne->getWrappedObject(), $orderItemTwo->getWrappedObject()]));
         $orderItemOne->getProductName()->willReturn('PRODUCT_ONE');

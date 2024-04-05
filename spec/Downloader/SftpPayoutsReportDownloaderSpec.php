@@ -36,7 +36,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
     function it_returns_content_of_the_latest_pyt_report_from_pay_pal_sftp_server(
         SFTP $sftp,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(
@@ -44,7 +44,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
                 'partner_attribution_id' => 'PARTNER-ID',
                 'reports_sftp_username' => 'SFTP-USERNAME',
                 'reports_sftp_password' => 'SFTP-PASSWORD',
-            ]
+            ],
         );
 
         $sftp->login('SFTP-USERNAME', 'SFTP-PASSWORD')->willReturn(true);
@@ -64,7 +64,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
     function it_throws_an_exception_if_payment_method_has_no_partner_attribution_id(
         SFTP $sftp,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn([]);
@@ -78,7 +78,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
     function it_throws_an_exception_if_credentials_are_invalid(
         SFTP $sftp,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(
@@ -86,7 +86,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
                 'partner_attribution_id' => 'PARTNER-ID',
                 'reports_sftp_username' => 'SFTP-USERNAME',
                 'reports_sftp_password' => 'SFTP-PASSWORD',
-            ]
+            ],
         );
 
         $sftp->login('SFTP-USERNAME', 'SFTP-PASSWORD')->willReturn(false);
@@ -100,7 +100,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
     function it_throws_an_exception_if_there_is_no_report_with_given_name(
         SFTP $sftp,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getConfig()->willReturn(
@@ -108,7 +108,7 @@ final class SftpPayoutsReportDownloaderSpec extends ObjectBehavior
                 'partner_attribution_id' => 'PARTNER-ID',
                 'reports_sftp_username' => 'SFTP-USERNAME',
                 'reports_sftp_password' => 'SFTP-PASSWORD',
-            ]
+            ],
         );
 
         $sftp->login('SFTP-USERNAME', 'SFTP-PASSWORD')->willReturn(true);

@@ -49,11 +49,11 @@
      use Psr\Http\Message\StreamFactoryInterface;
    
         public function __construct(
-   -      private readonly GuzzleClientInterface $client,
-   +      private readonly GuzzleClientInterface|ClientInterface $client,
-            private readonly string $baseUrl,
-   +      private readonly ?RequestFactoryInterface $requestFactory = null,
-   +      private readonly ?StreamFactoryInterface $streamFactory = null,
+   -       private readonly GuzzleClientInterface $client,
+   +       private readonly GuzzleClientInterface|ClientInterface $client,
+             private readonly string $baseUrl,
+   +       private readonly ?RequestFactoryInterface $requestFactory = null,
+   +       private readonly ?StreamFactoryInterface $streamFactory = null,
     )
      ```
 

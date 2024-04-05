@@ -39,7 +39,7 @@ final class CompleteOrderActionSpec extends ObjectBehavior
         PayPalAddressProcessorInterface $payPalAddressProcessor,
         PaymentUpdaterInterface $payPalPaymentUpdater,
         StateResolverInterface $orderPaymentStateResolver,
-        PayPalItemDataProviderInterface $payPalItemsDataProvider
+        PayPalItemDataProviderInterface $payPalItemsDataProvider,
     ): void {
         $this->beConstructedWith(
             $authorizeClientApi,
@@ -49,7 +49,7 @@ final class CompleteOrderActionSpec extends ObjectBehavior
             $payPalAddressProcessor,
             $payPalPaymentUpdater,
             $orderPaymentStateResolver,
-            $payPalItemsDataProvider
+            $payPalItemsDataProvider,
         );
     }
 
@@ -65,7 +65,7 @@ final class CompleteOrderActionSpec extends ObjectBehavior
         CompleteOrder $request,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
@@ -76,7 +76,7 @@ final class CompleteOrderActionSpec extends ObjectBehavior
 
         $request->getOrderId()->willReturn('123123');
 
-        $payment->getAmount()->willReturn(1000);;
+        $payment->getAmount()->willReturn(1000);
         $order->getTotal()->willReturn(1000);
 
         $completeOrderApi->complete('TOKEN', '123123')->shouldBeCalled();
@@ -84,8 +84,8 @@ final class CompleteOrderActionSpec extends ObjectBehavior
             'status' => 'COMPLETED',
             'id' => '123123',
             'purchase_units' => [
-                ['reference_id' => 'REFERENCE_ID']
-            ]
+                ['reference_id' => 'REFERENCE_ID'],
+            ],
         ]);
 
         $payment->setDetails([
@@ -106,7 +106,7 @@ final class CompleteOrderActionSpec extends ObjectBehavior
         CompleteOrder $request,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
@@ -117,7 +117,7 @@ final class CompleteOrderActionSpec extends ObjectBehavior
 
         $request->getOrderId()->willReturn('123123');
 
-        $payment->getAmount()->willReturn(1000);;
+        $payment->getAmount()->willReturn(1000);
         $order->getTotal()->willReturn(1000);
 
         $completeOrderApi->complete('TOKEN', '123123')->shouldBeCalled();
@@ -128,8 +128,8 @@ final class CompleteOrderActionSpec extends ObjectBehavior
                 [
                     'reference_id' => 'REFERENCE_ID',
                     'payments' => ['captures' => [['id' => 'TRANSACTION_ID']]],
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $payment->setDetails([

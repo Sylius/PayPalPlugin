@@ -34,7 +34,7 @@ final class CompleteOrderApiSpec extends ObjectBehavior
     function it_completes_pay_pal_order_with_given_id(
         PayPalClientInterface $client,
         PaymentInterface $payment,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);

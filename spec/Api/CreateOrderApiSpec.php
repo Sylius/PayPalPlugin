@@ -30,7 +30,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
     function let(
         PayPalClientInterface $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $this->beConstructedWith($client, $paymentReferenceNumberProvider, $payPalItemDataProvider);
     }
@@ -47,7 +47,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
@@ -83,7 +83,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $client->post(
@@ -102,7 +102,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                 ;
-            })
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
@@ -116,7 +116,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(10000);
@@ -158,7 +158,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $client->post(
@@ -180,7 +180,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
                 ;
-            })
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
@@ -194,7 +194,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(20000);
@@ -246,7 +246,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
@@ -273,7 +273,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][1]['unit_amount']['value'] === '40.00' &&
                     $data['purchase_units'][0]['items'][1]['unit_amount']['currency_code'] === 'PLN'
                 ;
-            })
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
@@ -287,7 +287,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(13000);
@@ -339,7 +339,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
@@ -370,7 +370,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][1]['tax']['value'] === '10.00' &&
                     $data['purchase_units'][0]['items'][1]['tax']['currency_code'] === 'PLN'
                 ;
-            })
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
@@ -384,7 +384,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(20400);
@@ -448,7 +448,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
@@ -485,7 +485,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][2]['tax']['value'] === '1.00' &&
                     $data['purchase_units'][0]['items'][2]['tax']['currency_code'] === 'PLN'
                 ;
-            })
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
@@ -499,7 +499,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig,
         AddressInterface $shippingAddress,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(20000);
@@ -533,7 +533,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $order->setShippingAddress(Argument::any())->shouldNotBeCalled();
@@ -550,7 +550,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                     $data['application_context']['shipping_preference'] === 'NO_SHIPPING'
                 ;
-            })
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
@@ -563,7 +563,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ): void {
         $payment->getOrder()->willReturn($order);
         $payment->getAmount()->willReturn(2999);
@@ -599,7 +599,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
 
         $gatewayConfig->getConfig()->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id']
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
 
         $client->post(
@@ -621,8 +621,8 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '25.00' &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
-                    ;
-            })
+                ;
+            }),
         )->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);

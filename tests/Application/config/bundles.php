@@ -1,8 +1,5 @@
 <?php
 
-use Sylius\Bundle\CoreBundle\Application\Kernel;
-use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
-
 return [
     Symfony\Bundle\FrameworkBundle\FrameworkBundle::class => ['all' => true],
     Symfony\Bundle\MonologBundle\MonologBundle::class => ['all' => true],

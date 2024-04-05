@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace spec\Sylius\PayPalPlugin\Api;
 
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Psr\Http\Client\ClientInterface;
-use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -21,7 +21,7 @@ final class WebhookApiSpec extends ObjectBehavior
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
         StreamInterface $stream,
-        RequestInterface $request
+        RequestInterface $request,
     ): void {
         $this->beConstructedWith($client, 'http://base-url.com/', $requestFactory, $streamFactory);
         $request->withHeader(Argument::any(), Argument::any())->willReturn($request);
@@ -34,11 +34,10 @@ final class WebhookApiSpec extends ObjectBehavior
         RequestFactoryInterface $requestFactory,
         RequestInterface $request,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
-
         $requestFactory
-            ->createRequest('POST','http://base-url.com/v1/notifications/webhooks')
+            ->createRequest('POST', 'http://base-url.com/v1/notifications/webhooks')
             ->willReturn($request);
         $client->sendRequest($request)->willReturn($response);
 
@@ -51,7 +50,7 @@ final class WebhookApiSpec extends ObjectBehavior
     function it_registers_webhook_using_guzzle_client(
         GuzzleClientInterface $client,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith($client, 'http://base-url.com/');
 
@@ -70,7 +69,7 @@ final class WebhookApiSpec extends ObjectBehavior
                         ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
                     ],
                 ],
-            ]
+            ],
         )->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "status": "CREATED" }');
@@ -83,9 +82,9 @@ final class WebhookApiSpec extends ObjectBehavior
         RequestFactoryInterface $requestFactory,
         RequestInterface $request,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
-        $requestFactory->createRequest('POST','http://base-url.com/v1/notifications/webhooks')
+        $requestFactory->createRequest('POST', 'http://base-url.com/v1/notifications/webhooks')
             ->willReturn($request);
         $client->sendRequest($request)->willReturn($response);
 
@@ -98,7 +97,7 @@ final class WebhookApiSpec extends ObjectBehavior
     function it_registers_webhook_without_https_using_guzzle_client(
         GuzzleClientInterface $client,
         ResponseInterface $response,
-        StreamInterface $body
+        StreamInterface $body,
     ): void {
         $this->beConstructedWith($client, 'http://base-url.com/');
 
@@ -117,7 +116,7 @@ final class WebhookApiSpec extends ObjectBehavior
                         ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
                     ],
                 ],
-            ]
+            ],
         )->willReturn($response);
         $response->getBody()->willReturn($body);
         $body->getContents()->willReturn('{ "status": "CREATED" }');

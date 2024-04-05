@@ -28,7 +28,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
     function let(
         PayPalClientInterface $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemsDataProvider
+        PayPalItemDataProviderInterface $payPalItemsDataProvider,
     ): void {
         $this->beConstructedWith($client, $paymentReferenceNumberProvider, $payPalItemsDataProvider);
     }
@@ -44,7 +44,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         PayPalItemDataProviderInterface $payPalItemsDataProvider,
         PaymentInterface $payment,
         OrderInterface $order,
-        AddressInterface $shippingAddress
+        AddressInterface $shippingAddress,
     ): void {
         $payment->getOrder()->willReturn($order);
         $order->getShippingAddress()->willReturn($shippingAddress);
@@ -92,7 +92,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
                     $data[0]['value']['shipping']['address']['country_code'] === 'US' &&
                     $data[0]['value']['items'] === ['data']
                 ;
-            })
+            }),
         )->shouldBeCalled();
 
         $this->update('TOKEN', 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');
@@ -104,7 +104,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         PayPalItemDataProviderInterface $payPalItemsDataProvider,
         PaymentInterface $payment,
         OrderInterface $order,
-        AddressInterface $shippingAddress
+        AddressInterface $shippingAddress,
     ): void {
         $payment->getOrder()->willReturn($order);
         $order->getShippingAddress()->willReturn($shippingAddress);
@@ -141,7 +141,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
                     $data[0]['value']['payee']['merchant_id'] === 'MERCHANT-ID' &&
                     $data[0]['value']['items'] === ['data']
                 ;
-            })
+            }),
         )->shouldBeCalled();
 
         $this->update('TOKEN', 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');

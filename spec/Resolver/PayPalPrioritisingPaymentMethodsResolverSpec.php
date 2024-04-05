@@ -30,7 +30,7 @@ final class PayPalPrioritisingPaymentMethodsResolverSpec extends ObjectBehavior
         PaymentMethodInterface $thirdPayment,
         GatewayConfigInterface $firstGatewayConfig,
         GatewayConfigInterface $secondGatewayConfig,
-        GatewayConfigInterface $thirdGatewayConfig
+        GatewayConfigInterface $thirdGatewayConfig,
     ): void {
         $firstPayment->getGatewayConfig()->willReturn($firstGatewayConfig);
         $firstGatewayConfig->getFactoryName()->willReturn('payment1');
@@ -44,7 +44,7 @@ final class PayPalPrioritisingPaymentMethodsResolverSpec extends ObjectBehavior
         $paymentMethodsResolver->getSupportedMethods($payment)->willReturn([$firstPayment, $secondPayment, $thirdPayment]);
 
         $this->getSupportedMethods($payment)->shouldReturn(
-            [$thirdPayment, $firstPayment, $secondPayment]
+            [$thirdPayment, $firstPayment, $secondPayment],
         );
     }
 
@@ -56,7 +56,7 @@ final class PayPalPrioritisingPaymentMethodsResolverSpec extends ObjectBehavior
         PaymentMethodInterface $thirdPayment,
         GatewayConfigInterface $firstGatewayConfig,
         GatewayConfigInterface $secondGatewayConfig,
-        GatewayConfigInterface $thirdGatewayConfig
+        GatewayConfigInterface $thirdGatewayConfig,
     ): void {
         $firstPayment->getGatewayConfig()->willReturn($firstGatewayConfig);
         $firstGatewayConfig->getFactoryName()->willReturn('payment1');
@@ -70,7 +70,7 @@ final class PayPalPrioritisingPaymentMethodsResolverSpec extends ObjectBehavior
         $paymentMethodsResolver->getSupportedMethods($payment)->willReturn([$firstPayment, $secondPayment, $thirdPayment]);
 
         $this->getSupportedMethods($payment)->shouldReturn(
-            [$firstPayment, $secondPayment, $thirdPayment]
+            [$firstPayment, $secondPayment, $thirdPayment],
         );
     }
 }

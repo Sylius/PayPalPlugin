@@ -24,7 +24,7 @@ final class CreatePayPalOrderFromPaymentPageAction
 {
     public function __construct(
         private readonly FactoryInterface|StateMachineInterface $stateMachineFactory,
-        private readonly ObjectManager $paymentManager,
+        private readonly ?ObjectManager $paymentManager,
         private readonly PaymentStateManagerInterface $paymentStateManager,
         private readonly OrderProviderInterface $orderProvider,
         private readonly CapturePaymentResolverInterface $capturePaymentResolver,
@@ -41,14 +41,16 @@ final class CreatePayPalOrderFromPaymentPageAction
             );
         }
 
-        trigger_deprecation(
-            'sylius/paypal-plugin',
-            '1.6',
-            sprintf(
-                'Passing an instance of "%s" as the second argument is deprecated and will be prohibited in 2.0',
-                ObjectManager::class,
-            ),
-        );
+        if (null !== $this->paymentManager) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                sprintf(
+                    'Passing an instance of "%s" as the second argument is deprecated and will be prohibited in 2.0',
+                    ObjectManager::class,
+                ),
+            );
+        }
     }
 
     public function __invoke(Request $request): Response

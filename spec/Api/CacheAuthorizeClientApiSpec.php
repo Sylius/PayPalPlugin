@@ -30,13 +30,13 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
         ObjectManager $payPalCredentialsManager,
         ObjectRepository $payPalCredentialsRepository,
         AuthorizeClientApiInterface $authorizeClientApi,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ): void {
         $this->beConstructedWith(
             $payPalCredentialsManager,
             $payPalCredentialsRepository,
             $authorizeClientApi,
-            $uuidProvider
+            $uuidProvider,
         );
     }
 
@@ -48,7 +48,7 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
     function it_returns_cached_access_token_if_it_is_not_expired(
         ObjectRepository $payPalCredentialsRepository,
         PayPalCredentialsInterface $payPalCredentials,
-        PaymentMethodInterface $paymentMethod
+        PaymentMethodInterface $paymentMethod,
     ): void {
         $payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod])->willReturn($payPalCredentials);
 
@@ -64,7 +64,7 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
         AuthorizeClientApiInterface $authorizeClientApi,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ): void {
         $payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod])->willReturn(null);
 
@@ -98,7 +98,7 @@ final class CacheAuthorizeClientApiSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         PayPalCredentialsInterface $payPalCredentials,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ): void {
         $payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod])->willReturn($payPalCredentials);
         $payPalCredentials->isExpired()->willReturn(true);
