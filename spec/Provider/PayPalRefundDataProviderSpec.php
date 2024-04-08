@@ -16,7 +16,7 @@ final class PayPalRefundDataProviderSpec extends ObjectBehavior
     public function let(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         GenericApiInterface $genericApi,
-        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider
+        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
     ) {
         $this->beConstructedWith($authorizeClientApi, $genericApi, $payPalPaymentMethodProvider);
     }
@@ -25,7 +25,7 @@ final class PayPalRefundDataProviderSpec extends ObjectBehavior
         PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         PaymentMethodInterface $paymentMethod,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        GenericApiInterface $genericApi
+        GenericApiInterface $genericApi,
     ): void {
         $payPalPaymentMethodProvider->provide()->willReturn($paymentMethod);
         $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');
@@ -47,7 +47,7 @@ final class PayPalRefundDataProviderSpec extends ObjectBehavior
         PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         PaymentMethodInterface $paymentMethod,
         CacheAuthorizeClientApiInterface $authorizeClientApi,
-        GenericApiInterface $genericApi
+        GenericApiInterface $genericApi,
     ): void {
         $payPalPaymentMethodProvider->provide()->willReturn($paymentMethod);
         $authorizeClientApi->authorize($paymentMethod)->willReturn('TOKEN');

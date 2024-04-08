@@ -34,7 +34,7 @@ final class PayPalOrderItemController extends OrderItemController
         $form = $this->getFormFactory()->create(
             $formType,
             $this->createAddToCartCommand($cart, $orderItem),
-            $configuration->getFormOptions()
+            $configuration->getFormOptions(),
         );
 
         $form = $form->handleRequest($request);

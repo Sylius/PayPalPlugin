@@ -42,7 +42,7 @@ final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         GatewayInterface $gateway,
-        CompleteOrderPaymentResolverInterface $completeOrderPaymentResolver
+        CompleteOrderPaymentResolverInterface $completeOrderPaymentResolver,
     ): void {
         $payment->getDetails()->willReturn(['paypal_order_id' => '123123']);
 
@@ -61,7 +61,7 @@ final class PayPalPaymentCompleteProcessorSpec extends ObjectBehavior
     function it_does_nothing_if_payment_has_no_pay_pal_order_id_set(
         Payum $payum,
         PaymentInterface $payment,
-        GatewayInterface $gateway
+        GatewayInterface $gateway,
     ): void {
         $payment->getDetails()->willReturn([]);
 

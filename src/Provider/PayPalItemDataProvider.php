@@ -49,7 +49,6 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
                         'currency_code' => $order->getCurrencyCode(),
                     ],
                 ];
-
             }
         }
 

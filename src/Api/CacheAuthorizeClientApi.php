@@ -35,7 +35,7 @@ final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
         ObjectManager $payPalCredentialsManager,
         ObjectRepository $payPalCredentialsRepository,
         AuthorizeClientApiInterface $authorizeClientApi,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ) {
         $this->payPalCredentialsManager = $payPalCredentialsManager;
         $this->payPalCredentialsRepository = $payPalCredentialsRepository;
@@ -61,10 +61,15 @@ final class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
         $config = $gatewayConfig->getConfig();
 
         $token = $this->authorizeClientApi->authorize(
-            (string) $config['client_id'], (string) $config['client_secret']
+            (string) $config['client_id'],
+            (string) $config['client_secret'],
         );
         $payPalCredentials = new PayPalCredentials(
-            $this->uuidProvider->provide(), $paymentMethod, $token, new \DateTime(), 3600
+            $this->uuidProvider->provide(),
+            $paymentMethod,
+            $token,
+            new \DateTime(),
+            3600,
         );
 
         $this->payPalCredentialsManager->persist($payPalCredentials);

@@ -7,7 +7,9 @@ namespace Sylius\PayPalPlugin\Controller;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\GuzzleException;
 use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\Model\OrderInterface;
+use SM\Factory\FactoryInterface as StateMachineFactoryInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Abstraction\StateMachine\WinzouStateMachineAdapter;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -20,28 +22,35 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final class CreatePayPalOrderFromPaymentPageAction
 {
-    private FactoryInterface $stateMachineFactory;
-
-    private ObjectManager $paymentManager;
-
-    private PaymentStateManagerInterface $paymentStateManager;
-
-    private OrderProviderInterface $orderProvider;
-
-    private CapturePaymentResolverInterface $capturePaymentResolver;
-
     public function __construct(
-        FactoryInterface $stateMachineFactory,
-        ObjectManager $paymentManager,
-        PaymentStateManagerInterface $paymentStateManager,
-        OrderProviderInterface $orderProvider,
-        CapturePaymentResolverInterface $capturePaymentResolver
+        private readonly FactoryInterface|StateMachineInterface $stateMachineFactory,
+        private readonly ?ObjectManager $paymentManager,
+        private readonly PaymentStateManagerInterface $paymentStateManager,
+        private readonly OrderProviderInterface $orderProvider,
+        private readonly CapturePaymentResolverInterface $capturePaymentResolver,
     ) {
-        $this->stateMachineFactory = $stateMachineFactory;
-        $this->paymentManager = $paymentManager;
-        $this->paymentStateManager = $paymentStateManager;
-        $this->orderProvider = $orderProvider;
-        $this->capturePaymentResolver = $capturePaymentResolver;
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                sprintf(
+                    'Passing an instance of "%s" as the first argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
+                    FactoryInterface::class,
+                    StateMachineInterface::class,
+                ),
+            );
+        }
+
+        if (null !== $this->paymentManager) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                sprintf(
+                    'Passing an instance of "%s" as the second argument is deprecated and will be prohibited in 2.0',
+                    ObjectManager::class,
+                ),
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -53,8 +62,7 @@ final class CreatePayPalOrderFromPaymentPageAction
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
-        $orderCheckoutStateMachine = $this->stateMachineFactory->get($order, OrderCheckoutTransitions::GRAPH);
-        $orderCheckoutStateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
+        $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
 
         try {
             $this->capturePaymentResolver->resolve($payment);
@@ -72,5 +80,14 @@ final class CreatePayPalOrderFromPaymentPageAction
         return new JsonResponse([
             'order_id' => $payment->getDetails()['paypal_order_id'],
         ]);
+    }
+
+    private function getStateMachine(): StateMachineInterface
+    {
+        if ($this->stateMachineFactory instanceof StateMachineFactoryInterface) {
+            return new WinzouStateMachineAdapter($this->stateMachineFactory);
+        }
+
+        return $this->stateMachineFactory;
     }
 }

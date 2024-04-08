@@ -33,7 +33,7 @@ final class UiPayPalPaymentRefundProcessorSpec extends ObjectBehavior
 
     function it_throws_exception_if_refund_has_fails(
         PaymentRefundProcessorInterface $paymentRefundProcessor,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $paymentRefundProcessor->refund($payment)->willThrow(PayPalOrderRefundException::class);
 
@@ -42,7 +42,7 @@ final class UiPayPalPaymentRefundProcessorSpec extends ObjectBehavior
 
     function it_does_nothing_if_refund_was_successful(
         PaymentRefundProcessorInterface $paymentRefundProcessor,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $paymentRefundProcessor->refund($payment)->shouldBeCalled();
 

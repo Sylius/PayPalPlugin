@@ -31,7 +31,7 @@ final class AuthorizeActionSpec extends ObjectBehavior
 
     function it_marks_payment_as_created(
         Authorize $request,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->setDetails(['status' => StatusAction::STATUS_CREATED])->shouldBeCalled();
@@ -49,7 +49,7 @@ final class AuthorizeActionSpec extends ObjectBehavior
 
     function it_supports_authorize_request_with_payment_as_first_model(
         Authorize $request,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $request->getModel()->willReturn($payment);
 

@@ -31,7 +31,7 @@ final class CaptureActionSpec extends ObjectBehavior
     function let(
         CacheAuthorizeClientApiInterface $authorizeClientApi,
         CreateOrderApiInterface $createOrderApi,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ): void {
         $this->beConstructedWith($authorizeClientApi, $createOrderApi, $uuidProvider);
     }
@@ -48,7 +48,7 @@ final class CaptureActionSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        UuidProviderInterface $uuidProvider
+        UuidProviderInterface $uuidProvider,
     ): void {
         $request->getModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
@@ -81,7 +81,7 @@ final class CaptureActionSpec extends ObjectBehavior
 
     function it_supports_capture_request_with_payment_as_first_model(
         Capture $request,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $request->getModel()->willReturn($payment);
 

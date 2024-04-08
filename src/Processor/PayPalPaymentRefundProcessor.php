@@ -42,7 +42,7 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
         OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
-        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider
+        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
     ) {
         $this->authorizeClientApi = $authorizeClientApi;
         $this->orderDetailsApi = $orderDetailsApi;
@@ -83,7 +83,7 @@ final class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterf
                 $authAssertion,
                 $referenceNumber,
                 (string) (((int) $payment->getAmount()) / 100),
-                (string) $order->getCurrencyCode()
+                (string) $order->getCurrencyCode(),
             );
         } catch (ClientException | \InvalidArgumentException $exception) {
             throw new PayPalOrderRefundException();

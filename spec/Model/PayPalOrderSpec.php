@@ -28,7 +28,7 @@ final class PayPalOrderSpec extends ObjectBehavior
     public function it_returns_full_paypal_order_data(
         OrderInterface $order,
         PayPalPurchaseUnit $payPalPurchaseUnit,
-        AddressInterface $shippingAddress
+        AddressInterface $shippingAddress,
     ): void {
         $order->isShippingRequired()->willReturn(true);
         $order->getShippingAddress()->willReturn($shippingAddress);
@@ -64,18 +64,18 @@ final class PayPalOrderSpec extends ObjectBehavior
                 ],
                 'soft_descriptor' => 'DESCRIPTION',
                 'items' => [
-                    ['test_item']
+                    ['test_item'],
                 ],
                 'shipping' => [
                     'name' => [
-                        'full_name' => 'Gandalf The Grey'
+                        'full_name' => 'Gandalf The Grey',
                     ],
                     'address' => [
                         'address_line_1' => 'Hobbit St. 123',
                         'admin_area_2' => 'Minas Tirith',
                         'postal_code' => '000',
-                        'country_code' => 'US'
-                    ]
+                        'country_code' => 'US',
+                    ],
                 ],
             ],
         );
@@ -114,31 +114,31 @@ final class PayPalOrderSpec extends ObjectBehavior
                         ],
                         'soft_descriptor' => 'DESCRIPTION',
                         'items' => [
-                            ['test_item']
+                            ['test_item'],
                         ],
                         'shipping' => [
                             'name' => [
-                                'full_name' => 'Gandalf The Grey'
+                                'full_name' => 'Gandalf The Grey',
                             ],
                             'address' => [
                                 'address_line_1' => 'Hobbit St. 123',
                                 'admin_area_2' => 'Minas Tirith',
                                 'postal_code' => '000',
-                                'country_code' => 'US'
-                            ]
+                                'country_code' => 'US',
+                            ],
                         ],
                     ],
                 ],
                 'application_context' => [
-                    'shipping_preference' => 'SET_PROVIDED_ADDRESS'
-                ]
-            ]
+                    'shipping_preference' => 'SET_PROVIDED_ADDRESS',
+                ],
+            ],
         );
     }
 
     public function it_returns_paypal_order_data_without_shipping_address(
         OrderInterface $order,
-        PayPalPurchaseUnit $payPalPurchaseUnit
+        PayPalPurchaseUnit $payPalPurchaseUnit,
     ): void {
         $order->isShippingRequired()->willReturn(true);
         $order->getShippingAddress()->willReturn(null);
@@ -174,7 +174,7 @@ final class PayPalOrderSpec extends ObjectBehavior
                 ],
                 'soft_descriptor' => 'DESCRIPTION',
                 'items' => [
-                    ['test_item']
+                    ['test_item'],
                 ],
             ],
         );
@@ -213,20 +213,20 @@ final class PayPalOrderSpec extends ObjectBehavior
                         ],
                         'soft_descriptor' => 'DESCRIPTION',
                         'items' => [
-                            ['test_item']
+                            ['test_item'],
                         ],
                     ],
                 ],
                 'application_context' => [
-                    'shipping_preference' => 'GET_FROM_FILE'
-                ]
-            ]
+                    'shipping_preference' => 'GET_FROM_FILE',
+                ],
+            ],
         );
     }
 
     public function it_returns_paypal_order_data_if_shipping_is_not_required(
         OrderInterface $order,
-        PayPalPurchaseUnit $payPalPurchaseUnit
+        PayPalPurchaseUnit $payPalPurchaseUnit,
     ): void {
         $order->isShippingRequired()->willReturn(false);
         $order->getShippingAddress()->shouldNotBeCalled();
@@ -262,7 +262,7 @@ final class PayPalOrderSpec extends ObjectBehavior
                 ],
                 'soft_descriptor' => 'DESCRIPTION',
                 'items' => [
-                    ['test_item']
+                    ['test_item'],
                 ],
             ],
         );
@@ -301,14 +301,14 @@ final class PayPalOrderSpec extends ObjectBehavior
                         ],
                         'soft_descriptor' => 'DESCRIPTION',
                         'items' => [
-                            ['test_item']
+                            ['test_item'],
                         ],
                     ],
                 ],
                 'application_context' => [
-                    'shipping_preference' => 'NO_SHIPPING'
-                ]
-            ]
+                    'shipping_preference' => 'NO_SHIPPING',
+                ],
+            ],
         );
     }
 }

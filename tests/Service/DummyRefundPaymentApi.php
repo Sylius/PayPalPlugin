@@ -14,7 +14,7 @@ final class DummyRefundPaymentApi implements RefundPaymentApiInterface
         string $payPalAuthAssertion,
         string $invoiceNumber,
         string $amount,
-        string $currencyCode
+        string $currencyCode,
     ): array {
         return ['status' => 'COMPLETED', 'id' => $paymentId];
     }

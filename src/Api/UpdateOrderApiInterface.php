@@ -13,6 +13,6 @@ interface UpdateOrderApiInterface
         string $orderId,
         PaymentInterface $payment,
         string $referenceId,
-        string $merchantId
+        string $merchantId,
     ): array;
 }

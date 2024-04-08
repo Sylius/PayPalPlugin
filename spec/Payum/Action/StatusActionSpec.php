@@ -68,7 +68,7 @@ final class StatusActionSpec extends ObjectBehavior
 
     function it_supports_get_status_request_with_payment_as_first_model(
         GetStatus $request,
-        PaymentInterface $payment
+        PaymentInterface $payment,
     ): void {
         $request->getFirstModel()->willReturn($payment);
 

@@ -1,5 +1,8 @@
 {
     "name": "sylius/paypal-plugin",
     "description": "PayPal plugin for Sylius",
-    "license": "MIT"
+    "license": "MIT",
+    "require": {
+        "nyholm/psr7": "^1.8"
+    }
 }

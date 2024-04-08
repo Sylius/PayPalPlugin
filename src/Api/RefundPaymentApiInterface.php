@@ -12,6 +12,6 @@ interface RefundPaymentApiInterface
         string $payPalAuthAssertion,
         string $invoiceNumber,
         string $amount,
-        string $currencyCode
+        string $currencyCode,
     ): array;
 }

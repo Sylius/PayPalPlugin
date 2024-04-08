@@ -26,7 +26,7 @@ use Webmozart\Assert\Assert;
 
 final class CreateOrderApi implements CreateOrderApiInterface
 {
-    const PAYPAL_INTENT_CAPTURE = 'CAPTURE';
+    public const PAYPAL_INTENT_CAPTURE = 'CAPTURE';
 
     private PayPalClientInterface $client;
 
@@ -37,7 +37,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
     public function __construct(
         PayPalClientInterface $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemDataProvider
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
     ) {
         $this->client = $client;
         $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
@@ -74,7 +74,7 @@ final class CreateOrderApi implements CreateOrderApiInterface
             (string) $config['merchant_id'],
             (array) $payPalItemData['items'],
             $order->isShippingRequired(),
-            $order->getShippingAddress()
+            $order->getShippingAddress(),
         );
 
         $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);

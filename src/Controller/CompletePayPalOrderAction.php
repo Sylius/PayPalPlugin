@@ -23,7 +23,7 @@ final class CompletePayPalOrderAction
     public function __construct(
         PaymentStateManagerInterface $paymentStateManager,
         UrlGeneratorInterface $router,
-        OrderProviderInterface $orderProvider
+        OrderProviderInterface $orderProvider,
     ) {
         $this->paymentStateManager = $paymentStateManager;
         $this->router = $router;

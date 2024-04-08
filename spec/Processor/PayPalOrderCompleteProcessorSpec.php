@@ -33,7 +33,7 @@ final class PayPalOrderCompleteProcessorSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
 
@@ -51,7 +51,7 @@ final class PayPalOrderCompleteProcessorSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
 
@@ -66,7 +66,7 @@ final class PayPalOrderCompleteProcessorSpec extends ObjectBehavior
 
     function it_does_nothing_if_there_is_no_processing_payment_for_the_order(
         PaymentStateManagerInterface $paymentStateManager,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn(null);
 

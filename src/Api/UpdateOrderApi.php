@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -32,7 +31,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
     public function __construct(
         PayPalClientInterface $client,
         PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        PayPalItemDataProviderInterface $payPalItemsDataProvider
+        PayPalItemDataProviderInterface $payPalItemsDataProvider,
     ) {
         $this->client = $client;
         $this->paymentReferenceNumberProvider = $paymentReferenceNumberProvider;
@@ -44,7 +43,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
         string $orderId,
         PaymentInterface $payment,
         string $referenceId,
-        string $merchantId
+        string $merchantId,
     ): array {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -63,7 +62,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
             $merchantId,
             (array) $payPalItemData['items'],
             $order->isShippingRequired(),
-            $order->getShippingAddress()
+            $order->getShippingAddress(),
         );
 
         return $this->client->patch(
@@ -75,7 +74,7 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
                     'path' => sprintf('/purchase_units/@reference_id==\'%s\'', $referenceId),
                     'value' => $data->toArray(),
                 ],
-            ]
+            ],
         );
     }
 }

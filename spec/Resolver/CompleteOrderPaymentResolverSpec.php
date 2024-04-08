@@ -31,7 +31,7 @@ final class CompleteOrderPaymentResolverSpec extends ObjectBehavior
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
         GatewayInterface $gateway,
-        Payum $payum
+        Payum $payum,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
 
@@ -41,13 +41,15 @@ final class CompleteOrderPaymentResolverSpec extends ObjectBehavior
         $payum->getGateway('gateway-12')->willReturn($gateway);
 
         $gateway->execute(
-            Argument::that(function (CompleteOrder $request) use ($payment): bool {
-                return
-                    $request->getModel() === $payment->getWrappedObject() &&
-                    $request->getOrderId() === 'paypal-order-id'
-                ;
-            },
-        ))->shouldBeCalled();
+            Argument::that(
+                function (CompleteOrder $request) use ($payment): bool {
+                    return
+                        $request->getModel() === $payment->getWrappedObject() &&
+                        $request->getOrderId() === 'paypal-order-id'
+                    ;
+                },
+            ),
+        )->shouldBeCalled();
 
         $this->resolve($payment, 'paypal-order-id');
     }

@@ -6,8 +6,9 @@ namespace Sylius\PayPalPlugin\Controller\Webhook;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Abstraction\StateMachine\WinzouStateMachineAdapter;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\Component\Resource\StateMachine\StateMachineInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
@@ -19,24 +20,23 @@ use Webmozart\Assert\Assert;
 
 final class RefundOrderAction
 {
-    private FactoryInterface $stateMachineFactory;
-
-    private PaymentProviderInterface $paymentProvider;
-
-    private ObjectManager $paymentManager;
-
-    private PayPalRefundDataProviderInterface $payPalRefundDataProvider;
-
     public function __construct(
-        FactoryInterface $stateMachineFactory,
-        PaymentProviderInterface $paymentProvider,
-        ObjectManager $paymentManager,
-        PayPalRefundDataProviderInterface $payPalRefundDataProvider
+        private readonly FactoryInterface|StateMachineInterface $stateMachineFactory,
+        private readonly PaymentProviderInterface $paymentProvider,
+        private readonly ObjectManager $paymentManager,
+        private readonly PayPalRefundDataProviderInterface $payPalRefundDataProvider,
     ) {
-        $this->stateMachineFactory = $stateMachineFactory;
-        $this->paymentProvider = $paymentProvider;
-        $this->paymentManager = $paymentManager;
-        $this->payPalRefundDataProvider = $payPalRefundDataProvider;
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                message: sprintf(
+                    'Passing an instance of "%s" as the first argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
+                    FactoryInterface::class,
+                    StateMachineInterface::class,
+                ),
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -49,10 +49,10 @@ final class RefundOrderAction
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
         }
 
-        /** @var StateMachineInterface $stateMachine */
-        $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
-        if ($stateMachine->can(PaymentTransitions::TRANSITION_REFUND)) {
-            $stateMachine->apply(PaymentTransitions::TRANSITION_REFUND);
+        $stateMachine = $this->getStateMachine();
+
+        if ($stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND)) {
+            $stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND);
         }
 
         $this->paymentManager->flush();
@@ -64,7 +64,6 @@ final class RefundOrderAction
     {
         /**
          * @var string $content
-         * @psalm-suppress UnnecessaryVarAnnotation
          */
         $content = $request->getContent();
 
@@ -81,5 +80,14 @@ final class RefundOrderAction
         }
 
         throw new PayPalWrongDataException();
+    }
+
+    private function getStateMachine(): StateMachineInterface
+    {
+        if ($this->stateMachineFactory instanceof FactoryInterface) {
+            return new WinzouStateMachineAdapter($this->stateMachineFactory);
+        }
+
+        return $this->stateMachineFactory;
     }
 }

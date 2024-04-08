@@ -25,7 +25,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
     }
 
     function it_throws_an_exception_during_initialization_if_payment_method_is_not_supported(
-        PaymentMethodInterface $paymentMethod
+        PaymentMethodInterface $paymentMethod,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn(null);
 
@@ -37,7 +37,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
 
     function it_supports_paypal_payment_method_without_client_id_set(
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
@@ -48,7 +48,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
 
     function it_does_not_support_paypal_payment_method_with_client_id_set(
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('sylius.pay_pal');
@@ -59,7 +59,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
 
     function it_does_not_support_payment_method_with_invalid_gateway_factory_name(
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
         $gatewayConfig->getFactoryName()->willReturn('offline');
@@ -68,7 +68,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
     }
 
     function it_does_not_support_payment_method_without_gateway_config(
-        PaymentMethodInterface $paymentMethod
+        PaymentMethodInterface $paymentMethod,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn(null);
 
@@ -80,7 +80,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
         GatewayConfigInterface $gatewayConfig,
         Security $security,
         AdminUserInterface $adminUser,
-        UrlGeneratorInterface $urlGenerator
+        UrlGeneratorInterface $urlGenerator,
     ): void {
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
 
@@ -96,7 +96,7 @@ final class OnboardingInitiatorSpec extends ObjectBehavior
         ;
 
         $this->initiate($paymentMethod)->shouldReturn(
-            'https://paypal-url/partner-referrals/create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal'
+            'https://paypal-url/partner-referrals/create?email=sylius%40sylius.com&return_url=%2Fadmin%2Fpayment-methods%2Fnew%2Fsylius.pay_pal',
         );
     }
 }

@@ -22,13 +22,13 @@ final class PayPalPaymentMethodListenerSpec extends ObjectBehavior
         OnboardingInitiatorInterface $onboardingInitiator,
         UrlGeneratorInterface $urlGenerator,
         FlashBagInterface $flashBag,
-        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider
+        PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
     ): void {
         $this->beConstructedWith(
             $onboardingInitiator,
             $urlGenerator,
             $flashBag,
-            $payPalPaymentMethodProvider
+            $payPalPaymentMethodProvider,
         );
     }
 
@@ -37,7 +37,7 @@ final class PayPalPaymentMethodListenerSpec extends ObjectBehavior
         PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         ResourceControllerEvent $event,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $event->getSubject()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -71,7 +71,7 @@ final class PayPalPaymentMethodListenerSpec extends ObjectBehavior
         FlashBagInterface $flashBag,
         ResourceControllerEvent $event,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $event->getSubject()->willReturn($paymentMethod);
         $payPalPaymentMethodProvider->provide()->willReturn($paymentMethod);
@@ -95,7 +95,7 @@ final class PayPalPaymentMethodListenerSpec extends ObjectBehavior
         PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         ResourceControllerEvent $event,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $event->getSubject()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -112,7 +112,7 @@ final class PayPalPaymentMethodListenerSpec extends ObjectBehavior
     function it_does_nothing_if_payment_method_is_not_pay_pal(
         ResourceControllerEvent $event,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $event->getSubject()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);

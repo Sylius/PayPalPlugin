@@ -35,14 +35,14 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         OrderDetailsApiInterface $orderDetailsApi,
         RefundPaymentApiInterface $refundOrderApi,
         PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
-        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider
+        RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
     ): void {
         $this->beConstructedWith(
             $authorizeClientApi,
             $orderDetailsApi,
             $refundOrderApi,
             $payPalAuthAssertionGenerator,
-            $refundReferenceNumberProvider
+            $refundReferenceNumberProvider,
         );
     }
 
@@ -60,7 +60,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -92,7 +92,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         RefundPaymentApiInterface $refundOrderApi,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -108,7 +108,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         RefundPaymentApiInterface $refundOrderApi,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
@@ -130,7 +130,7 @@ final class PayPalPaymentRefundProcessorSpec extends ObjectBehavior
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $payment->getMethod()->willReturn($paymentMethod);
         $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);

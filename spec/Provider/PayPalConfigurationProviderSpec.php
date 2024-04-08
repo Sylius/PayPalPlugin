@@ -38,7 +38,7 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
         PaymentMethodInterface $otherPaymentMethod,
         GatewayConfigInterface $payPalGatewayConfig,
         GatewayConfigInterface $otherGatewayConfig,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $paymentMethodRepository
             ->findEnabledForChannel($channel)
@@ -62,7 +62,7 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
         PaymentMethodInterface $otherPaymentMethod,
         GatewayConfigInterface $payPalGatewayConfig,
         GatewayConfigInterface $otherGatewayConfig,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $paymentMethodRepository
             ->findEnabledForChannel($channel)
@@ -84,7 +84,7 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
         PaymentMethodRepositoryInterface $paymentMethodRepository,
         PaymentMethodInterface $otherPaymentMethod,
         GatewayConfigInterface $otherGatewayConfig,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $paymentMethodRepository->findEnabledForChannel($channel)->willReturn([$otherPaymentMethod]);
         $otherPaymentMethod->getGatewayConfig()->willReturn($otherGatewayConfig);
@@ -107,7 +107,7 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
         PaymentMethodInterface $otherPaymentMethod,
         GatewayConfigInterface $payPalGatewayConfig,
         GatewayConfigInterface $otherGatewayConfig,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $paymentMethodRepository
             ->findEnabledForChannel($channel)
@@ -134,7 +134,7 @@ final class PayPalConfigurationProviderSpec extends ObjectBehavior
         PaymentMethodInterface $otherPaymentMethod,
         GatewayConfigInterface $payPalGatewayConfig,
         GatewayConfigInterface $otherGatewayConfig,
-        ChannelInterface $channel
+        ChannelInterface $channel,
     ): void {
         $paymentMethodRepository
             ->findEnabledForChannel($channel)

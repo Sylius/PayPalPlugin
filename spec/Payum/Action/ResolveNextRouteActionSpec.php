@@ -19,7 +19,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
         PaymentInterface $payment,
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $request->getFirstModel()->willReturn($payment);
 
@@ -43,7 +43,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
         PaymentInterface $payment,
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $request->getFirstModel()->willReturn($payment);
         $payment->getOrder()->willReturn($order);
@@ -63,7 +63,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
         PaymentInterface $payment,
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $request->getFirstModel()->willReturn($payment);
 
@@ -85,7 +85,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
         ResolveNextRoute $request,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $request->getFirstModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);
@@ -99,7 +99,7 @@ final class ResolveNextRouteActionSpec extends ObjectBehavior
         ResolveNextRoute $request,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $request->getFirstModel()->willReturn($payment);
         $payment->getMethod()->willReturn($paymentMethod);

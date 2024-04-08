@@ -41,7 +41,7 @@ final class OrderPaymentProcessorSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
         $payment->getDetails()->willReturn(['status' => 'CAPTURED']);
@@ -56,7 +56,7 @@ final class OrderPaymentProcessorSpec extends ObjectBehavior
 
     function it_processes_order_if_there_is_no_processing_payment(
         OrderProcessorInterface $baseOrderProcessor,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn(null);
 
@@ -70,7 +70,7 @@ final class OrderPaymentProcessorSpec extends ObjectBehavior
         OrderInterface $order,
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
-        GatewayConfigInterface $gatewayConfig
+        GatewayConfigInterface $gatewayConfig,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
         $payment->getDetails()->willReturn(['status' => 'CANCELLED']);
@@ -91,7 +91,7 @@ final class OrderPaymentProcessorSpec extends ObjectBehavior
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         GatewayConfigInterface $gatewayConfig,
-        StateMachineInterface $stateMachine
+        StateMachineInterface $stateMachine,
     ): void {
         $order->getLastPayment(PaymentInterface::STATE_PROCESSING)->willReturn($payment);
         $payment->getDetails()->willReturn(['status' => 'CANCELLED']);

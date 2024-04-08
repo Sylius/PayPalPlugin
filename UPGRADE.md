@@ -1,3 +1,79 @@
+### UPGRADE FROM 1.5.1 to 1.6
+
+1. Support for Sylius 1.13 has been added, it is now the recommended Sylius version to use.
+
+1. Support for PHP 8.0 has been dropped.
+
+1. The following constructor signatures have been changed:
+
+    `Sylius\PayPalPlugin\Client\PayPalClient`:
+     ```diff
+     use Psr\Http\Client\ClientInterface;
+     use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+     use Psr\Http\Message\RequestFactoryInterface;
+     use Psr\Http\Message\StreamFactoryInterface;
+    
+        public function __construct(
+    -      private readonly GuzzleClientInterface $client, 
+    +      private readonly GuzzleClientInterface|ClientInterface $client,
+            private readonly LoggerInterface $logger,
+            private readonly UuidProviderInterface $uuidProvider,
+            private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+            private readonly ChannelContextInterface $channelContext,
+            private readonly string $baseUrl,
+            private int $requestTrialsLimit,
+            private readonly bool $loggingLevelIncreased = false,
+    +      private readonly ?RequestFactoryInterface $requestFactory = null,
+    +      private readonly ?StreamFactoryInterface $streamFactory = null,
+        )
+     ```
+
+   `Sylius\PayPalPlugin\Api\GeneralApi`:
+     ```diff
+     use Psr\Http\Client\ClientInterface;
+     use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+     use Psr\Http\Message\RequestFactoryInterface;
+   
+        public function __construct(
+   -      private readonly GuzzleClientInterface $client,
+   +      private readonly GuzzleClientInterface|ClientInterface $client,
+   +      private readonly ?RequestFactoryInterface $requestFactory = null,
+    )
+     ```
+
+   `Sylius\PayPalPlugin\Api\WebhookApi`:
+     ```diff
+     use Psr\Http\Client\ClientInterface;
+     use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+     use Psr\Http\Message\RequestFactoryInterface;
+     use Psr\Http\Message\StreamFactoryInterface;
+   
+        public function __construct(
+   -       private readonly GuzzleClientInterface $client,
+   +       private readonly GuzzleClientInterface|ClientInterface $client,
+             private readonly string $baseUrl,
+   +       private readonly ?RequestFactoryInterface $requestFactory = null,
+   +       private readonly ?StreamFactoryInterface $streamFactory = null,
+    )
+     ```
+
+   `Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor`:
+     ```diff
+      use Psr\Http\Client\ClientInterface;
+      use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+      use Psr\Http\Message\RequestFactoryInterface;
+   
+        public function __construct(
+   -      private readonly GuzzleClientInterface $client,
+   +      private readonly GuzzleClientInterface|ClientInterface $client,
+            private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+            private readonly string $url,
+   +      private readonly ?RequestFactoryInterface $requestFactory = null,
+    )
+     ```
+   
+1. Added doctrine migration for PostgreSQL. For more information, please refer to the [Sylius 1.13 UPGRADE.md](https://github.com/Sylius/Sylius/blob/1.13/UPGRADE-1.13.md)
+
 ### UPGRADE FROM 1.3.0 to 1.3.1
 
 1. `sylius_paypal_plugin_pay_with_paypal_form` route now operates on both payment ID and order token. URl then changed from

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Application;
 
 use PSS\SymfonyMockerContainer\DependencyInjection\MockerContainer;
-use Sylius\Bundle\CoreBundle\Application\Kernel as SyliusKernel;
+use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Config\Resource\FileResource;
@@ -75,7 +75,7 @@ final class Kernel extends BaseKernel
     {
         return array_filter([
             $this->getProjectDir() . '/config',
-            $this->getProjectDir() . '/config/sylius/' . SyliusKernel::MAJOR_VERSION . '.' . SyliusKernel::MINOR_VERSION,
+            $this->getProjectDir() . '/config/sylius/' . SyliusCoreBundle::MAJOR_VERSION . '.' . SyliusCoreBundle::MINOR_VERSION,
         ], 'file_exists');
     }
 

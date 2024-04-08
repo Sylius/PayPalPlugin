@@ -25,7 +25,7 @@ final class PayPalAddressProcessorSpec extends ObjectBehavior
     function it_updates_order_address(
         OrderInterface $order,
         AddressInterface $orderAddress,
-        ObjectManager $objectManager
+        ObjectManager $objectManager,
     ): void {
         $order->getShippingAddress()->willReturn($orderAddress);
 
@@ -43,14 +43,14 @@ final class PayPalAddressProcessorSpec extends ObjectBehavior
                 'postal_code' => '10001',
                 'country_code' => 'US',
             ],
-            $order
+            $order,
         );
     }
 
     function it_updates_order_address_with_two_address_lines(
         OrderInterface $order,
         AddressInterface $orderAddress,
-        ObjectManager $objectManager
+        ObjectManager $objectManager,
     ): void {
         $order->getShippingAddress()->willReturn($orderAddress);
 
@@ -69,14 +69,14 @@ final class PayPalAddressProcessorSpec extends ObjectBehavior
                 'postal_code' => '10001',
                 'country_code' => 'US',
             ],
-            $order
+            $order,
         );
     }
 
     function it_throws_an_exception_if_address_data_is_missing(
         OrderInterface $order,
         AddressInterface $orderAddress,
-        ObjectManager $objectManager
+        ObjectManager $objectManager,
     ): void {
         $order->getShippingAddress()->willReturn($orderAddress);
 

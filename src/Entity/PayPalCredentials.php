@@ -23,32 +23,24 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 class PayPalCredentials implements PayPalCredentialsInterface
 {
     /**
-     *
      * @ORM\Id
      * @ORM\Column(type="string")
      */
     private string $id;
 
     /**
-     *
      * @ORM\ManyToOne(targetEntity="Sylius\Component\Core\Model\PaymentMethodInterface")
      * @ORM\JoinColumn(name="payment_method_id", referencedColumnName="id")
      */
     private PaymentMethodInterface $paymentMethod;
 
-    /**
-     * @ORM\Column(type="string", name="access_token")
-     */
+    /** @ORM\Column(type="string", name="access_token") */
     private string $accessToken;
 
-    /**
-     * @ORM\Column(type="datetime", name="creation_time")
-     */
+    /** @ORM\Column(type="datetime", name="creation_time") */
     private \DateTime $creationTime;
 
-    /**
-     * @ORM\Column(type="datetime", name="expiration_time")
-     */
+    /** @ORM\Column(type="datetime", name="expiration_time") */
     private \DateTime $expirationTime;
 
     public function __construct(
@@ -56,7 +48,7 @@ class PayPalCredentials implements PayPalCredentialsInterface
         PaymentMethodInterface $paymentMethod,
         string $accessToken,
         \DateTime $creationTime,
-        int $expiresIn
+        int $expiresIn,
     ) {
         $this->id = $id;
         $this->paymentMethod = $paymentMethod;

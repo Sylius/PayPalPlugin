@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface as GuzzleClientInterface;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
@@ -22,24 +24,29 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
-    private Client $client;
-
-    private string $baseUrl;
-
-    private ObjectManager $paymentMethodManager;
-
-    private SellerWebhookRegistrarInterface $sellerWebhookRegistrar;
-
     public function __construct(
-        Client $client,
-        string $baseUrl,
-        ObjectManager $paymentMethodManager,
-        SellerWebhookRegistrarInterface $sellerWebhookRegistrar
+        private readonly GuzzleClientInterface|ClientInterface $client,
+        private readonly string $baseUrl,
+        private readonly ObjectManager $paymentMethodManager,
+        private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
+        private readonly ?RequestFactoryInterface $requestFactory = null,
     ) {
-        $this->client = $client;
-        $this->baseUrl = $baseUrl;
-        $this->paymentMethodManager = $paymentMethodManager;
-        $this->sellerWebhookRegistrar = $sellerWebhookRegistrar;
+        if ($this->client instanceof GuzzleClientInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Passing GuzzleHttp\Client as a first argument in the constructor is deprecated and will be prohibited in 2.0. Use Psr\Http\Client\ClientInterface instead.',
+            );
+        }
+
+        if (null === $this->requestFactory) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                'Not passing $requestFactory to %s constructor is deprecated and will be prohibited in 2.0',
+                self::class,
+            );
+        }
     }
 
     public function enable(PaymentMethodInterface $paymentMethod): void
@@ -48,10 +55,19 @@ final class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->client->request(
-            'GET',
-            sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id'])
-        );
+        if ($this->client instanceof GuzzleClientInterface || null === $this->requestFactory) {
+            $response = $this->client->request(
+                'GET',
+                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
+            );
+        } else {
+            $response = $this->client->sendRequest(
+                $this->requestFactory->createRequest(
+                    'GET',
+                    sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
+                ),
+            );
+        }
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
         if (!((bool) $content['permissionsGranted'])) {

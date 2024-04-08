@@ -33,7 +33,7 @@ final class PayPalDefaultPaymentMethodResolver implements DefaultPaymentMethodRe
 
     public function __construct(
         DefaultPaymentMethodResolverInterface $decoratedDefaultPaymentMethodResolver,
-        PaymentMethodRepositoryInterface $paymentMethodRepository
+        PaymentMethodRepositoryInterface $paymentMethodRepository,
     ) {
         $this->decoratedDefaultPaymentMethodResolver = $decoratedDefaultPaymentMethodResolver;
         $this->paymentMethodRepository = $paymentMethodRepository;

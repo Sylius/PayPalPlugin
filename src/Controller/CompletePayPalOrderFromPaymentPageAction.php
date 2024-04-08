@@ -6,7 +6,8 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Abstraction\StateMachine\WinzouStateMachineAdapter;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -18,28 +19,24 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CompletePayPalOrderFromPaymentPageAction
 {
-    private PaymentStateManagerInterface $paymentStateManager;
-
-    private UrlGeneratorInterface $router;
-
-    private OrderProviderInterface $orderProvider;
-
-    private FactoryInterface $stateMachine;
-
-    private ObjectManager $orderManager;
-
     public function __construct(
-        PaymentStateManagerInterface $paymentStateManager,
-        UrlGeneratorInterface $router,
-        OrderProviderInterface $orderProvider,
-        FactoryInterface $stateMachine,
-        ObjectManager $orderManager
+        private readonly PaymentStateManagerInterface $paymentStateManager,
+        private readonly UrlGeneratorInterface $router,
+        private readonly OrderProviderInterface $orderProvider,
+        private readonly FactoryInterface|StateMachineInterface $stateMachine,
+        private readonly ObjectManager $orderManager,
     ) {
-        $this->paymentStateManager = $paymentStateManager;
-        $this->router = $router;
-        $this->orderProvider = $orderProvider;
-        $this->stateMachine = $stateMachine;
-        $this->orderManager = $orderManager;
+        if ($this->stateMachine instanceof FactoryInterface) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.6',
+                sprintf(
+                    'Passing an instance of "%s" as the fourth argument is deprecated and will be prohibited in 2.0. Use "%s" instead.',
+                    FactoryInterface::class,
+                    StateMachineInterface::class,
+                ),
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -52,9 +49,8 @@ final class CompletePayPalOrderFromPaymentPageAction
 
         $this->paymentStateManager->complete($payment);
 
-        $orderStateMachine = $this->stateMachine->get($order, OrderCheckoutTransitions::GRAPH);
-        $orderStateMachine->apply(OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
-        $orderStateMachine->apply(OrderCheckoutTransitions::TRANSITION_COMPLETE);
+        $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
+        $this->getStateMachine()->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_COMPLETE);
 
         $this->orderManager->flush();
 
@@ -63,5 +59,14 @@ final class CompletePayPalOrderFromPaymentPageAction
         return new JsonResponse([
             'return_url' => $this->router->generate('sylius_shop_order_thank_you', [], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
+    }
+
+    private function getStateMachine(): StateMachineInterface
+    {
+        if ($this->stateMachine instanceof FactoryInterface) {
+            return new WinzouStateMachineAdapter($this->stateMachine);
+        }
+
+        return $this->stateMachine;
     }
 }

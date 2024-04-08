@@ -45,7 +45,7 @@ final class PaymentPayPalContext implements Context
         array $gatewayFactories,
         TranslatorInterface $translator,
         PayPalSelectPaymentPageInterface $selectPaymentPage,
-        string $clientId
+        string $clientId,
     ) {
         $this->sharedStorage = $sharedStorage;
         $this->paymentMethodRepository = $paymentMethodRepository;
@@ -78,7 +78,7 @@ final class PaymentPayPalContext implements Context
         string $code,
         string $gatewayFactory,
         string $description,
-        int $position
+        int $position,
     ): void {
         $gatewayFactory = $this->findGatewayNameByTranslation($gatewayFactory, $this->gatewayFactories);
 

@@ -24,7 +24,7 @@ final class OrderProviderSpec extends ObjectBehavior
 
     function it_provides_order_by_given_id(
         OrderRepositoryInterface $orderRepository,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $orderRepository->find(420)->willReturn($order);
 
@@ -33,7 +33,7 @@ final class OrderProviderSpec extends ObjectBehavior
 
     function it_provides_order_by_given_token(
         OrderRepositoryInterface $orderRepository,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $orderRepository->findOneByTokenValue('token-str')->willReturn($order);
 
@@ -41,7 +41,7 @@ final class OrderProviderSpec extends ObjectBehavior
     }
 
     function it_throws_error_if_order_is_not_found_by_id(
-        OrderRepositoryInterface $orderRepository
+        OrderRepositoryInterface $orderRepository,
     ): void {
         $orderRepository->find(123)->willReturn(null);
 
@@ -49,7 +49,7 @@ final class OrderProviderSpec extends ObjectBehavior
     }
 
     function it_throws_error_if_order_is_not_found_by_token(
-        OrderRepositoryInterface $orderRepository
+        OrderRepositoryInterface $orderRepository,
     ): void {
         $orderRepository->findOneByTokenValue('token')->willReturn(null);
 

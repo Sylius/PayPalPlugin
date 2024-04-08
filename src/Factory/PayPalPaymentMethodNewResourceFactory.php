@@ -19,7 +19,7 @@ final class PayPalPaymentMethodNewResourceFactory implements NewResourceFactoryI
 
     public function __construct(
         NewResourceFactoryInterface $newResourceFactory,
-        OnboardingProcessorInterface $onboardingProcessor
+        OnboardingProcessorInterface $onboardingProcessor,
     ) {
         $this->newResourceFactory = $newResourceFactory;
         $this->onboardingProcessor = $onboardingProcessor;

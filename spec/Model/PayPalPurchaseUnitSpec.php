@@ -33,7 +33,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             [['test_item']],
             true,
             $shippingAddress,
-            'DESCRIPTION'
+            'DESCRIPTION',
         );
     }
 
@@ -76,18 +76,18 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                 ],
                 'soft_descriptor' => 'DESCRIPTION',
                 'items' => [
-                    ['test_item']
+                    ['test_item'],
                 ],
                 'shipping' => [
                     'name' => [
-                        'full_name' => 'Gandalf The Grey'
+                        'full_name' => 'Gandalf The Grey',
                     ],
                     'address' => [
                         'address_line_1' => 'Hobbit St. 123',
                         'admin_area_2' => 'Minas Tirith',
                         'postal_code' => '000',
-                        'country_code' => 'US'
-                    ]
+                        'country_code' => 'US',
+                    ],
                 ],
             ],
         );
@@ -107,7 +107,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             'MERCHANT_ID',
             [['test_item']],
             false,
-            $shippingAddress
+            $shippingAddress,
         );
 
         $this->toArray()->shouldReturn(
@@ -141,7 +141,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                 ],
                 'soft_descriptor' => 'Sylius PayPal Payment',
                 'items' => [
-                    ['test_item']
+                    ['test_item'],
                 ],
             ],
         );
@@ -161,7 +161,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             'MERCHANT_ID',
             [['test_item']],
             false,
-            null
+            null,
         );
 
         $this->toArray()->shouldReturn(
@@ -195,7 +195,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                 ],
                 'soft_descriptor' => 'Sylius PayPal Payment',
                 'items' => [
-                    ['test_item']
+                    ['test_item'],
                 ],
             ],
         );

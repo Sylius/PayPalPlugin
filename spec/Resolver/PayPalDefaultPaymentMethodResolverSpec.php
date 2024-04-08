@@ -43,7 +43,7 @@ final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
         GatewayConfigInterface $firstGatewayConfig,
         GatewayConfigInterface $secondGatewayConfig,
         PaymentInterface $subject,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $firstPayment->getGatewayConfig()->willReturn($firstGatewayConfig);
         $firstGatewayConfig->getFactoryName()->willReturn('new.payment');
@@ -67,7 +67,7 @@ final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
         GatewayConfigInterface $firstGatewayConfig,
         GatewayConfigInterface $secondGatewayConfig,
         PaymentInterface $subject,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $firstPayment->getGatewayConfig()->willReturn($firstGatewayConfig);
         $firstGatewayConfig->getFactoryName()->willReturn('payment1');
@@ -87,7 +87,7 @@ final class PayPalDefaultPaymentMethodResolverSpec extends ObjectBehavior
         PaymentMethodRepositoryInterface $paymentMethodRepository,
         ChannelInterface $channel,
         PaymentInterface $subject,
-        OrderInterface $order
+        OrderInterface $order,
     ): void {
         $paymentMethodRepository->findEnabledForChannel($channel)->willReturn([]);
 

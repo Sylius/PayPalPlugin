@@ -70,7 +70,7 @@ class PayPalPurchaseUnit
         array $items,
         bool $shippingRequired,
         ?AddressInterface $shippingAddress = null,
-        string $softDescriptor = 'Sylius PayPal Payment'
+        string $softDescriptor = 'Sylius PayPal Payment',
     ) {
         $this->referenceId = $referenceId;
         $this->invoiceNumber = $invoiceNumber;
@@ -130,7 +130,8 @@ class PayPalPurchaseUnit
 
     private function getShippingAddress(): array
     {
-        Assert::isInstanceOf( $this->shippingAddress, AddressInterface::class);
+        Assert::isInstanceOf($this->shippingAddress, AddressInterface::class);
+
         return [
             'name' => ['full_name' => (string) $this->shippingAddress->getFullName()],
             'address' => [
