@@ -39,8 +39,7 @@
         "symfony/dotenv": "^5.4 || ^6.0",
         "symfony/intl": "^5.4 || ^6.0",
         "symfony/web-profiler-bundle": "^5.4 || ^6.0",
-        "symfony/webpack-encore-bundle": "^1.15",
-        "vimeo/psalm": "4.27.0"
+        "symfony/webpack-encore-bundle": "^1.15"
     },
     "autoload": {
         "psr-4": {
@@ -50,6 +49,9 @@
     },
     "autoload-dev": {
         "classmap": ["tests/Application/Kernel.php"]
+    },
+    "conflict": {
+        "behat/mink-selenium2-driver": ">=1.7.0"
     },
     "config": {
         "sort-packages": true,
@@ -68,8 +70,7 @@
     "scripts": {
         "analyse": [
             "@composer validate --strict",
-            "vendor/bin/phpstan.phar analyse",
-            "vendor/bin/psalm"
+            "vendor/bin/phpstan.phar analyse"
         ],
         "fix": [
             "vendor/bin/ecs check src/ spec/ --fix"

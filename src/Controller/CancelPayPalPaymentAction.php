@@ -50,7 +50,6 @@ final class CancelPayPalPaymentAction
     {
         /**
          * @var string $content
-         * @psalm-suppress UnnecessaryVarAnnotation
          */
         $content = $request->getContent();
 

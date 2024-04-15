@@ -51,6 +51,14 @@ final class CancelLastPayPalPaymentAction
         $paymentStateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
         $paymentStateMachine->apply(PaymentTransitions::TRANSITION_CANCEL);
 
+        /** @var PaymentInterface $lastPayment */
+        $lastPayment = $order->getLastPayment();
+        if ($lastPayment->getState() === PaymentInterface::STATE_NEW) {
+            $this->objectManager->flush();
+
+            return new Response('', Response::HTTP_NO_CONTENT);
+        }
+
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
 
