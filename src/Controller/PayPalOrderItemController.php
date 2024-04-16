@@ -48,7 +48,7 @@ final class PayPalOrderItemController extends OrderItemController
 
         $form = $form->handleRequest($request);
 
-        if (!$form->isValid()) {
+        if ($form->isSubmitted() && !$form->isValid()) {
             return new RedirectResponse((string) $request->headers->get('referer'));
         }
 
