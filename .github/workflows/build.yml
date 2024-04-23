@@ -23,7 +23,7 @@ jobs:
                 node: ["20.x"]
                 mysql: ["8.0"]
                 symfony: ["^5.4.21", "^6.4"]
-                sylius: ["~1.12.0", "~1.13.x-dev"]
+                sylius: ["~1.12.0", "~1.13.0"]
                 state_machine_adapter: ["winzou_state_machine", "symfony_workflow"]
 
                 include:
@@ -31,7 +31,7 @@ jobs:
                         node: "20.x"
                         mysql: "8.0"
                         symfony: "^6.4"
-                        sylius: "~1.13.x-dev"
+                        sylius: "~1.13.0"
                         state_machine_adapter: "symfony_workflow"
 
                 exclude:
