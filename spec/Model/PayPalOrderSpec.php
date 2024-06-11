@@ -36,7 +36,7 @@ final class PayPalOrderSpec extends ObjectBehavior
         $payPalPurchaseUnit->toArray()->willReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
-                'invoice_number' => 'INVOICE_NUMBER',
+                'invoice_id' => 'INVOICE_ID',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
                     'value' => 100,
@@ -86,7 +86,7 @@ final class PayPalOrderSpec extends ObjectBehavior
                 'purchase_units' => [
                     [
                         'reference_id' => 'REFERENCE_ID',
-                        'invoice_number' => 'INVOICE_NUMBER',
+                        'invoice_id' => 'INVOICE_ID',
                         'amount' => [
                             'currency_code' => 'CURRENCY_CODE',
                             'value' => 100,
@@ -146,7 +146,7 @@ final class PayPalOrderSpec extends ObjectBehavior
         $payPalPurchaseUnit->toArray()->willReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
-                'invoice_number' => 'INVOICE_NUMBER',
+                'invoice_id' => 'INVOICE_ID',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
                     'value' => 100,
@@ -185,7 +185,7 @@ final class PayPalOrderSpec extends ObjectBehavior
                 'purchase_units' => [
                     [
                         'reference_id' => 'REFERENCE_ID',
-                        'invoice_number' => 'INVOICE_NUMBER',
+                        'invoice_id' => 'INVOICE_ID',
                         'amount' => [
                             'currency_code' => 'CURRENCY_CODE',
                             'value' => 100,
@@ -234,7 +234,7 @@ final class PayPalOrderSpec extends ObjectBehavior
         $payPalPurchaseUnit->toArray()->willReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
-                'invoice_number' => 'INVOICE_NUMBER',
+                'invoice_id' => 'INVOICE_ID',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
                     'value' => 100,
@@ -273,7 +273,7 @@ final class PayPalOrderSpec extends ObjectBehavior
                 'purchase_units' => [
                     [
                         'reference_id' => 'REFERENCE_ID',
-                        'invoice_number' => 'INVOICE_NUMBER',
+                        'invoice_id' => 'INVOICE_ID',
                         'amount' => [
                             'currency_code' => 'CURRENCY_CODE',
                             'value' => 100,

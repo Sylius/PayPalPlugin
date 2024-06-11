@@ -19,7 +19,7 @@ interface RefundPaymentApiInterface
         string $token,
         string $paymentId,
         string $payPalAuthAssertion,
-        string $invoiceNumber,
+        string $invoiceId,
         string $amount,
         string $currencyCode,
     ): array;

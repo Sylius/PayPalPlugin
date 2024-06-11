@@ -20,7 +20,7 @@ class PayPalPurchaseUnit
 {
     public function __construct(
         private readonly string $referenceId,
-        private readonly string $invoiceNumber,
+        private readonly string $invoiceId,
         private readonly string $currencyCode,
         private readonly int $totalAmount,
         private readonly int $shippingValue,
@@ -39,7 +39,7 @@ class PayPalPurchaseUnit
     {
         $paypalPurchaseUnit = [
             'reference_id' => $this->referenceId,
-            'invoice_number' => $this->invoiceNumber,
+            'invoice_id' => $this->invoiceId,
             'amount' => [
                 'currency_code' => $this->currencyCode,
                 'value' => number_format($this->totalAmount / 100, 2, '.', ''),

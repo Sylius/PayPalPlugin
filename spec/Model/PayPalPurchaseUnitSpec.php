@@ -22,7 +22,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
     {
         $this->beConstructedWith(
             'REFERENCE_ID',
-            'INVOICE_NUMBER',
+            'INVOICE_ID',
             'CURRENCY_CODE',
             10000,
             1000,
@@ -48,7 +48,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
         $this->toArray()->shouldReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
-                'invoice_number' => 'INVOICE_NUMBER',
+                'invoice_id' => 'INVOICE_ID',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
                     'value' => '100.00',
@@ -97,7 +97,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
     {
         $this->beConstructedWith(
             'REFERENCE_ID',
-            'INVOICE_NUMBER',
+            'INVOICE_ID',
             'CURRENCY_CODE',
             10000,
             1000,
@@ -113,7 +113,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
         $this->toArray()->shouldReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
-                'invoice_number' => 'INVOICE_NUMBER',
+                'invoice_id' => 'INVOICE_ID',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
                     'value' => '100.00',
@@ -151,7 +151,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
     {
         $this->beConstructedWith(
             'REFERENCE_ID',
-            'INVOICE_NUMBER',
+            'INVOICE_ID',
             'CURRENCY_CODE',
             10000,
             1000,
@@ -167,7 +167,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
         $this->toArray()->shouldReturn(
             [
                 'reference_id' => 'REFERENCE_ID',
-                'invoice_number' => 'INVOICE_NUMBER',
+                'invoice_id' => 'INVOICE_ID',
                 'amount' => [
                     'currency_code' => 'CURRENCY_CODE',
                     'value' => '100.00',
