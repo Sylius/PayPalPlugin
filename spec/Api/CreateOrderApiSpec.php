@@ -17,6 +17,7 @@ use Payum\Core\Model\GatewayConfigInterface;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -57,6 +58,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(1000);
         $order->isShippingRequired()->willReturn(true);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $payPalItemDataProvider->provide($order)->willReturn([
             'items' => [
@@ -126,6 +128,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(1000);
         $order->isShippingRequired()->willReturn(true);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -204,6 +207,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(3000);
         $order->isShippingRequired()->willReturn(true);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -297,6 +301,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(1000);
         $order->isShippingRequired()->willReturn(true);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -394,6 +399,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(3000);
         $order->isShippingRequired()->willReturn(true);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('Gandalf The Grey');
         $shippingAddress->getStreet()->willReturn('Hobbit St. 123');
@@ -509,6 +515,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(0);
         $order->isShippingRequired()->willReturn(false);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $payPalItemDataProvider->provide($order)->willReturn([
             'items' => [
@@ -573,6 +580,7 @@ final class CreateOrderApiSpec extends ObjectBehavior
         $order->getShippingTotal()->willReturn(749);
         $order->isShippingRequired()->willReturn(true);
         $order->getOrderPromotionTotal()->willReturn(-250);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $payPalItemDataProvider->provide($order)->willReturn([
             'items' => [
@@ -617,6 +625,82 @@ final class CreateOrderApiSpec extends ObjectBehavior
                     $data['purchase_units'][0]['amount']['breakdown']['item_total']['value'] === '25.00' &&
                     $data['purchase_units'][0]['amount']['breakdown']['discount']['currency_code'] === 'PLN' &&
                     $data['purchase_units'][0]['amount']['breakdown']['discount']['value'] === '2.50' &&
+                    $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
+                    $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '25.00' &&
+                    $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
+                ;
+            }),
+        )->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->create('TOKEN', $payment, 'REFERENCE_ID')->shouldReturn(['status' => 'CREATED', 'id' => 123]);
+    }
+
+    function it_creates_pay_pal_order_with_shipping_promotion(
+        PayPalClientInterface $client,
+        PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        GatewayConfigInterface $gatewayConfig,
+        PayPalItemDataProviderInterface $payPalItemDataProvider,
+    ): void {
+        $payment->getOrder()->willReturn($order);
+        $payment->getAmount()->willReturn(3000);
+        $order->getCurrencyCode()->willReturn('PLN');
+        $order->getShippingAddress()->willReturn(null);
+        $order->getItemsTotal()->willReturn(2500);
+        $order->getShippingTotal()->willReturn(500);
+        $order->isShippingRequired()->willReturn(true);
+        $order->getOrderPromotionTotal()->willReturn(0);
+        $order
+            ->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)
+            ->willReturn(-249)
+        ;
+
+        $payPalItemDataProvider->provide($order)->willReturn([
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => '25.00',
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => '0.00',
+                        'currency_code' => 'PLN',
+                    ],
+                ],
+            ],
+            'total_item_value' => '25.00',
+            'total_tax' => '0.00',
+        ]);
+
+        $payment->getMethod()->willReturn($paymentMethod);
+        $paymentMethod->getGatewayConfig()->willReturn($gatewayConfig);
+
+        $paymentReferenceNumberProvider->provide($payment)->willReturn('REFERENCE-NUMBER');
+
+        $gatewayConfig->getConfig()->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+        );
+
+        $client->post(
+            'v2/checkout/orders',
+            'TOKEN',
+            Argument::that(function (array $data): bool {
+                return
+                    $data['intent'] === 'CAPTURE' &&
+                    $data['purchase_units'][0]['invoice_id'] === 'REFERENCE-NUMBER' &&
+                    $data['purchase_units'][0]['amount']['value'] === '30.00' &&
+                    $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === '7.49' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['item_total']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['item_total']['value'] === '25.00' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping_discount']['currency_code'] === 'PLN' &&
+                    $data['purchase_units'][0]['amount']['breakdown']['shipping_discount']['value'] === '2.49' &&
                     $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                     $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
                     $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '25.00' &&

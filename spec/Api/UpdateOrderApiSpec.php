@@ -16,6 +16,7 @@ namespace spec\Sylius\PayPalPlugin\Api;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
@@ -61,6 +62,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('USD');
         $order->getShippingTotal()->willReturn(22);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $shippingAddress->getFullName()->willReturn('John Doe');
         $shippingAddress->getStreet()->willReturn('Main St. 123');
@@ -121,6 +123,7 @@ final class UpdateOrderApiSpec extends ObjectBehavior
         $order->getCurrencyCode()->willReturn('USD');
         $order->getShippingTotal()->willReturn(0);
         $order->getOrderPromotionTotal()->willReturn(0);
+        $order->getAdjustmentsTotalRecursively(AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT)->willReturn(0);
 
         $order->isShippingRequired()->willReturn(false);
 

@@ -29,6 +29,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             80,
             10,
             0,
+            0,
             'MERCHANT_ID',
             [['test_item']],
             true,
@@ -69,6 +70,10 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                             'currency_code' => 'CURRENCY_CODE',
                             'value' => '0.00',
                         ],
+                        'shipping_discount' => [
+                            'currency_code' => 'CURRENCY_CODE',
+                            'value' => '0.00',
+                        ],
                     ],
                 ],
                 'payee' => [
@@ -104,6 +109,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             80,
             10,
             0,
+            0,
             'MERCHANT_ID',
             [['test_item']],
             false,
@@ -134,6 +140,10 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                             'currency_code' => 'CURRENCY_CODE',
                             'value' => '0.00',
                         ],
+                        'shipping_discount' => [
+                            'currency_code' => 'CURRENCY_CODE',
+                            'value' => '0.00',
+                        ],
                     ],
                 ],
                 'payee' => [
@@ -157,6 +167,7 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
             1000,
             80,
             10,
+            0,
             0,
             'MERCHANT_ID',
             [['test_item']],
@@ -185,6 +196,10 @@ final class PayPalPurchaseUnitSpec extends ObjectBehavior
                             'value' => '10.00',
                         ],
                         'discount' => [
+                            'currency_code' => 'CURRENCY_CODE',
+                            'value' => '0.00',
+                        ],
+                        'shipping_discount' => [
                             'currency_code' => 'CURRENCY_CODE',
                             'value' => '0.00',
                         ],

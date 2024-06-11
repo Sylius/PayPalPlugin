@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -50,15 +51,20 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
 
         $payPalItemData = $this->payPalItemsDataProvider->provide($order);
 
+        $shippingDiscount = $order->getAdjustmentsTotalRecursively(
+            AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT,
+        );
+
         $data = new PayPalPurchaseUnit(
             $referenceId,
             $this->paymentReferenceNumberProvider->provide($payment),
             (string) $order->getCurrencyCode(),
             (int) $payment->getAmount(),
-            $order->getShippingTotal(),
+            $order->getShippingTotal() - $shippingDiscount,
             (float) $payPalItemData['total_item_value'],
             (float) $payPalItemData['total_tax'],
             $order->getOrderPromotionTotal(),
+            $shippingDiscount,
             $merchantId,
             (array) $payPalItemData['items'],
             $order->isShippingRequired(),

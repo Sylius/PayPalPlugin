@@ -27,6 +27,7 @@ class PayPalPurchaseUnit
         private readonly float $itemTotalValue,
         private readonly float $taxTotalValue,
         private readonly int $discountValue,
+        private readonly int $shippingDiscountValue,
         private readonly string $merchantId,
         private readonly array $items,
         private readonly bool $shippingRequired,
@@ -59,6 +60,10 @@ class PayPalPurchaseUnit
                     'discount' => [
                         'currency_code' => $this->currencyCode,
                         'value' => number_format(abs($this->discountValue) / 100, 2, '.', ''),
+                    ],
+                    'shipping_discount' => [
+                        'currency_code' => $this->currencyCode,
+                        'value' => number_format(abs($this->shippingDiscountValue) / 100, 2, '.', ''),
                     ],
                 ],
             ],
