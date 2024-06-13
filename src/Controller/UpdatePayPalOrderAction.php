@@ -28,28 +28,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class UpdatePayPalOrderAction
 {
-    private PaymentProviderInterface $paymentProvider;
-
-    private CacheAuthorizeClientApiInterface $authorizeClientApi;
-
-    private UpdateOrderApiInterface $updateOrderApi;
-
-    private AddressFactoryInterface $addressFactory;
-
-    private OrderProcessorInterface $orderProcessor;
-
     public function __construct(
-        PaymentProviderInterface $paymentProvider,
-        CacheAuthorizeClientApiInterface $authorizeClientApi,
-        UpdateOrderApiInterface $updateOrderApi,
-        AddressFactoryInterface $addressFactory,
-        OrderProcessorInterface $orderProcessor,
+        private readonly PaymentProviderInterface $paymentProvider,
+        private readonly CacheAuthorizeClientApiInterface $authorizeClientApi,
+        private readonly UpdateOrderApiInterface $updateOrderApi,
+        private readonly AddressFactoryInterface $addressFactory,
+        private readonly OrderProcessorInterface $orderProcessor,
     ) {
-        $this->paymentProvider = $paymentProvider;
-        $this->authorizeClientApi = $authorizeClientApi;
-        $this->updateOrderApi = $updateOrderApi;
-        $this->addressFactory = $addressFactory;
-        $this->orderProcessor = $orderProcessor;
     }
 
     public function __invoke(Request $request): Response
