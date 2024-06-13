@@ -47,8 +47,7 @@ final class UpdatePayPalOrderAction
         $paymentMethod = $payment->getMethod();
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-        /** @var array $shippingAddress */
-        $shippingAddress = $request->request->get('shipping_address');
+        $shippingAddress = $request->request->all('shipping_address');
 
         /** @var AddressInterface $address */
         $address = $this->addressFactory->createNew();
