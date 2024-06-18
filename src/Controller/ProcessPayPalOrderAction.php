@@ -78,7 +78,7 @@ final class ProcessPayPalOrderAction
 
         $purchaseUnit = (array) $data['purchase_units'][0];
 
-        $address = $this->addressFactory->createForCustomer($customer);
+        $address = $this->addressFactory->createNew();
 
         if ($order->isShippingRequired()) {
             $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
