@@ -65,15 +65,15 @@
         </service>
 
         <service
-            id="Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface"
-            class="Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProvider"
+            id="Sylius\PayPalPlugin\Provider\OrderItemTaxProviderInterface"
+            class="Sylius\PayPalPlugin\Provider\OrderItemTaxesProvider"
         />
 
         <service
             id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface"
             class="Sylius\PayPalPlugin\Provider\PayPalItemDataProvider"
         >
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\OrderItemTaxProviderInterface" />
         </service>
 
         <service

@@ -15,8 +15,13 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderItemInterface;
 
-interface OrderItemNonNeutralTaxesProviderInterface
+interface OrderItemTaxesProviderInterface
 {
-    /** @return array|int[] */
-    public function provide(OrderItemInterface $orderItem): iterable;
+    /**
+     * @return array{
+     *     total: int,
+     *     itemTaxes: array<string, array{0: int, 1: int}>
+     * }
+     */
+    public function provide(OrderItemInterface $orderItem): array;
 }

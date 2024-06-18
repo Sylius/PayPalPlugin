@@ -13,17 +13,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\OrderItemInterface;
 
 final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
 {
-    private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider;
-
-    public function __construct(OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider)
+    public function __construct(private readonly OrderItemTaxesProviderInterface $orderItemTaxesProvider)
     {
-        $this->orderItemNonNeutralTaxesProvider = $orderItemNonNeutralTaxesProvider;
     }
 
     public function provide(OrderInterface $order): array
@@ -34,36 +29,60 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
             'total_tax' => 0,
         ];
 
-        /** @var Collection<int, OrderItemInterface> $orderItems */
-        $orderItems = $order->getItems();
+        $currencyCode = (string) $order->getCurrencyCode();
 
-        foreach ($orderItems as $orderItem) {
-            $nonNeutralTaxes = $this->orderItemNonNeutralTaxesProvider->provide($orderItem);
-            /** @var int $nonNeutralTax */
-            foreach ($nonNeutralTaxes as $nonNeutralTax) {
-                $displayQuantity = $nonNeutralTaxes === [0] ? $orderItem->getQuantity() : 1;
-                $itemValue = $orderItem->getUnitPrice();
-                $itemData['total_item_value'] += ($itemValue * $displayQuantity) / 100;
-                $itemData['total_tax'] += ($nonNeutralTax * $displayQuantity) / 100;
+        foreach ($order->getItems() as $orderItem) {
+            $productName = (string) $orderItem->getProductName();
+            $itemValue = $orderItem->getUnitPrice();
 
-                $itemData['items'][] = [
-                    'name' => $orderItem->getProductName(),
-                    'unit_amount' => [
-                        'value' => number_format($itemValue / 100, 2, '.', ''),
-                        'currency_code' => $order->getCurrencyCode(),
-                    ],
-                    'quantity' => $displayQuantity,
-                    'tax' => [
-                        'value' => number_format($nonNeutralTax / 100, 2, '.', ''),
-                        'currency_code' => $order->getCurrencyCode(),
-                    ],
-                ];
+            $taxes = $this->orderItemTaxesProvider->provide($orderItem);
+
+            if ($taxes['total'] === 0) {
+                $this->addItem($itemData, $productName, $orderItem->getQuantity(), $itemValue, 0, $currencyCode);
+
+                continue;
+            }
+
+            foreach ($taxes['itemTaxes'] as $itemTaxes) {
+                $this->addItem(
+                    $itemData,
+                    $productName,
+                    1,
+                    $itemValue - $itemTaxes[1],
+                    array_sum($itemTaxes),
+                    $currencyCode,
+                );
             }
         }
 
-        $itemData['total_item_value'] = number_format($itemData['total_item_value'], 2, '.', '');
-        $itemData['total_tax'] = number_format($itemData['total_tax'], 2, '.', '');
+        $itemData['total_item_value'] = number_format($itemData['total_item_value'] / 100, 2, '.', '');
+        $itemData['total_tax'] = number_format($itemData['total_tax'] / 100, 2, '.', '');
 
         return $itemData;
+    }
+
+    private function addItem(
+        array &$itemData,
+        string $productName,
+        int $quantity,
+        int $itemValue,
+        int $tax,
+        string $currencyCode,
+    ): void {
+        $itemData['total_item_value'] += $itemValue * $quantity;
+        $itemData['total_tax'] += $tax * $quantity;
+
+        $itemData['items'][] = [
+            'name' => $productName,
+            'unit_amount' => [
+                'value' => number_format($itemValue / 100, 2, '.', ''),
+                'currency_code' => $currencyCode,
+            ],
+            'quantity' => $quantity,
+            'tax' => [
+                'value' => number_format($tax / 100, 2, '.', ''),
+                'currency_code' => $currencyCode,
+            ],
+        ];
     }
 }
