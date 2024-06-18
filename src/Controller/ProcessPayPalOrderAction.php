@@ -23,7 +23,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
-use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
@@ -36,7 +35,6 @@ use Symfony\Component\HttpFoundation\Response;
 final class ProcessPayPalOrderAction
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orderRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly FactoryInterface $customerFactory,
         private readonly AddressFactoryInterface $addressFactory,
