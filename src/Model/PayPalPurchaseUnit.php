@@ -20,19 +20,19 @@ class PayPalPurchaseUnit
 {
     public function __construct(
         private readonly string $referenceId,
-        private readonly string $invoiceId,
+        private readonly string $invoiceNumber,
         private readonly string $currencyCode,
         private readonly int $totalAmount,
         private readonly int $shippingValue,
         private readonly float $itemTotalValue,
         private readonly float $taxTotalValue,
         private readonly int $discountValue,
-        private readonly int $shippingDiscountValue,
         private readonly string $merchantId,
         private readonly array $items,
         private readonly bool $shippingRequired,
         private readonly ?AddressInterface $shippingAddress = null,
         private readonly string $softDescriptor = 'Sylius PayPal Payment',
+        private readonly int $shippingDiscountValue = 0,
     ) {
     }
 
@@ -40,7 +40,7 @@ class PayPalPurchaseUnit
     {
         $paypalPurchaseUnit = [
             'reference_id' => $this->referenceId,
-            'invoice_id' => $this->invoiceId,
+            'invoice_id' => $this->invoiceNumber,
             'amount' => [
                 'currency_code' => $this->currencyCode,
                 'value' => number_format($this->totalAmount / 100, 2, '.', ''),

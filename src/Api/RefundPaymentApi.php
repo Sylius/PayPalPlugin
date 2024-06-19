@@ -28,14 +28,14 @@ final class RefundPaymentApi implements RefundPaymentApiInterface
         string $token,
         string $paymentId,
         string $payPalAuthAssertion,
-        string $invoiceId,
+        string $invoiceNumber,
         string $amount,
         string $currencyCode,
     ): array {
         return $this->client->post(
             sprintf('v2/payments/captures/%s/refund', $paymentId),
             $token,
-            ['amount' => ['value' => $amount, 'currency_code' => $currencyCode], 'invoice_id' => $invoiceId],
+            ['amount' => ['value' => $amount, 'currency_code' => $currencyCode], 'invoice_id' => $invoiceNumber],
             ['PayPal-Auth-Assertion' => $payPalAuthAssertion],
         );
     }

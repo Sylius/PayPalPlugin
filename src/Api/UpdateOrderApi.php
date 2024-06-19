@@ -64,11 +64,11 @@ final class UpdateOrderApi implements UpdateOrderApiInterface
             (float) $payPalItemData['total_item_value'],
             (float) $payPalItemData['total_tax'],
             $order->getOrderPromotionTotal(),
-            $shippingDiscount,
             $merchantId,
             (array) $payPalItemData['items'],
             $order->isShippingRequired(),
             $order->getShippingAddress(),
+            shippingDiscountValue: $shippingDiscount,
         );
 
         return $this->client->patch(

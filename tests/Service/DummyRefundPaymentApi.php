@@ -21,7 +21,7 @@ final class DummyRefundPaymentApi implements RefundPaymentApiInterface
         string $token,
         string $paymentId,
         string $payPalAuthAssertion,
-        string $invoiceId,
+        string $invoiceNumber,
         string $amount,
         string $currencyCode,
     ): array {

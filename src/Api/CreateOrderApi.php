@@ -76,11 +76,11 @@ final class CreateOrderApi implements CreateOrderApiInterface
             (float) $payPalItemData['total_item_value'],
             (float) $payPalItemData['total_tax'],
             $order->getOrderPromotionTotal(),
-            $shippingDiscount,
             (string) $config['merchant_id'],
             (array) $payPalItemData['items'],
             $order->isShippingRequired(),
             $order->getShippingAddress(),
+            shippingDiscountValue: $shippingDiscount,
         );
 
         $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);
