@@ -45,7 +45,7 @@ final class OrderItemTaxesProvider implements OrderItemTaxesProviderInterface
             $nonNeutralItemTaxes -= $nonNeutralTaxAllocation;
             $neutralItemTaxes -= $neutralTaxAllocation;
 
-            $unitCount--;
+            --$unitCount;
 
             foreach ($unit->getAdjustments(AdjustmentInterface::TAX_ADJUSTMENT) as $taxAdjustment) {
                 $totalTaxes['itemTaxes'][$unitId][(int) $taxAdjustment->isNeutral()] += $taxAdjustment->getAmount();
