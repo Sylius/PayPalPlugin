@@ -2,7 +2,7 @@
 
 1. The following constructor signatures have been changed:
 
-   `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction`:
+    `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction`:
     ```diff
     public function __construct(
         private readonly PaymentProviderInterface $paymentProvider,
@@ -14,7 +14,7 @@
     )
     ```
 
-   `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit`:
+    `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit`:
     ```diff
     public function __construct(
         private readonly string $referenceId,
@@ -34,7 +34,7 @@
     )
     ```
 
-### UPGRADE FROM 1.5.1 to 1.6
+### UPGRADE FROM 1.5.1 to 1.6.0
 
 1. Support for Sylius 1.13 has been added, it is now the recommended Sylius version to use.
 
