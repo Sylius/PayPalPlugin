@@ -1,3 +1,39 @@
+### UPGRADE FROM 1.6.0 to 1.6.1
+
+1. The following constructor signatures have been changed:
+
+   `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction`:
+    ```diff
+    public function __construct(
+        private readonly PaymentProviderInterface $paymentProvider,
+        private readonly CacheAuthorizeClientApiInterface $authorizeClientApi,
+    -   private readonly OrderDetailsApiInterface $orderDetailsApi,
+        private readonly UpdateOrderApiInterface $updateOrderApi,
+        private readonly AddressFactoryInterface $addressFactory,
+        private readonly OrderProcessorInterface $orderProcessor,
+    )
+    ```
+
+   `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit`:
+    ```diff
+    public function __construct(
+        private readonly string $referenceId,
+        private readonly string $invoiceNumber,
+        private readonly string $currencyCode,
+        private readonly int $totalAmount,
+        private readonly int $shippingValue,
+        private readonly float $itemTotalValue,
+        private readonly float $taxTotalValue,
+        private readonly int $discountValue,
+        private readonly string $merchantId,
+        private readonly array $items,
+        private readonly bool $shippingRequired,
+        private readonly ?AddressInterface $shippingAddress = null,
+        private readonly string $softDescriptor = 'Sylius PayPal Payment',
+    +   private readonly int $shippingDiscountValue = 0,
+    )
+    ```
+
 ### UPGRADE FROM 1.5.1 to 1.6
 
 1. Support for Sylius 1.13 has been added, it is now the recommended Sylius version to use.
@@ -69,29 +105,6 @@
             private readonly SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
             private readonly string $url,
    +      private readonly ?RequestFactoryInterface $requestFactory = null,
-    )
-     ```
-
-   `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit`:
-     ```diff
-      use Sylius\Component\Core\Model\AddressInterface;
-      use Webmozart\Assert\Assert;
-
-        public function __construct(
-            private readonly string $referenceId,
-            private readonly string $invoiceNumber,
-            private readonly string $currencyCode,
-            private readonly int $totalAmount,
-            private readonly int $shippingValue,
-            private readonly float $itemTotalValue,
-            private readonly float $taxTotalValue,
-            private readonly int $discountValue,
-            private readonly string $merchantId,
-            private readonly array $items,
-            private readonly bool $shippingRequired,
-            private readonly ?AddressInterface $shippingAddress = null,
-            private readonly string $softDescriptor = 'Sylius PayPal Payment',
-   +      private readonly int $shippingDiscountValue = 0,
     )
      ```
 
