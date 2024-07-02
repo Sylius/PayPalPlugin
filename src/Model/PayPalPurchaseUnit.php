@@ -18,80 +18,29 @@ use Webmozart\Assert\Assert;
 
 class PayPalPurchaseUnit
 {
-    /** @var string */
-    private $referenceId;
-
-    /** @var string */
-    private $invoiceNumber;
-
-    /** @var string */
-    private $currencyCode;
-
-    /** @var int */
-    private $totalAmount;
-
-    /** @var int */
-    private $shippingValue;
-
-    /** @var float */
-    private $itemTotalValue;
-
-    /** @var float */
-    private $taxTotalValue;
-
-    /** @var int */
-    private $discountValue;
-
-    /** @var string */
-    private $softDescriptor;
-
-    /** @var string */
-    private $merchantId;
-
-    /** @var ?AddressInterface */
-    private $shippingAddress;
-
-    /** @var bool */
-    private $shippingRequired;
-
-    /** @var array */
-    private $items;
-
     public function __construct(
-        string $referenceId,
-        string $invoiceNumber,
-        string $currencyCode,
-        int $totalAmount,
-        int $shippingValue,
-        float $itemTotalValue,
-        float $taxTotalValue,
-        int $discountValue,
-        string $merchantId,
-        array $items,
-        bool $shippingRequired,
-        ?AddressInterface $shippingAddress = null,
-        string $softDescriptor = 'Sylius PayPal Payment',
+        private readonly string $referenceId,
+        private readonly string $invoiceNumber,
+        private readonly string $currencyCode,
+        private readonly int $totalAmount,
+        private readonly int $shippingValue,
+        private readonly float $itemTotalValue,
+        private readonly float $taxTotalValue,
+        private readonly int $discountValue,
+        private readonly string $merchantId,
+        private readonly array $items,
+        private readonly bool $shippingRequired,
+        private readonly ?AddressInterface $shippingAddress = null,
+        private readonly string $softDescriptor = 'Sylius PayPal Payment',
+        private readonly int $shippingDiscountValue = 0,
     ) {
-        $this->referenceId = $referenceId;
-        $this->invoiceNumber = $invoiceNumber;
-        $this->currencyCode = $currencyCode;
-        $this->totalAmount = $totalAmount;
-        $this->shippingValue = $shippingValue;
-        $this->itemTotalValue = $itemTotalValue;
-        $this->taxTotalValue = $taxTotalValue;
-        $this->discountValue = $discountValue;
-        $this->merchantId = $merchantId;
-        $this->items = $items;
-        $this->shippingRequired = $shippingRequired;
-        $this->shippingAddress = $shippingAddress;
-        $this->softDescriptor = $softDescriptor;
     }
 
     public function toArray(): array
     {
         $paypalPurchaseUnit = [
             'reference_id' => $this->referenceId,
-            'invoice_number' => $this->invoiceNumber,
+            'invoice_id' => $this->invoiceNumber,
             'amount' => [
                 'currency_code' => $this->currencyCode,
                 'value' => number_format($this->totalAmount / 100, 2, '.', ''),
@@ -111,6 +60,10 @@ class PayPalPurchaseUnit
                     'discount' => [
                         'currency_code' => $this->currencyCode,
                         'value' => number_format(abs($this->discountValue) / 100, 2, '.', ''),
+                    ],
+                    'shipping_discount' => [
+                        'currency_code' => $this->currencyCode,
+                        'value' => number_format(abs($this->shippingDiscountValue) / 100, 2, '.', ''),
                     ],
                 ],
             ],
