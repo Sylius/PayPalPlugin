@@ -41,7 +41,7 @@ final class PaymentAmountVerifier implements PaymentAmountVerifierInterface
 
         foreach ($paypalOrderDetails['purchase_units'] as $unit) {
             $stringAmount = $unit['amount']['value'] ?? '0';
-            $totalAmount += (int) ($stringAmount * 100);
+            $totalAmount += (int) round($stringAmount * 100);
         }
 
         return $totalAmount;

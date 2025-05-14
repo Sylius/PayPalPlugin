@@ -47,6 +47,24 @@ final class PaymentAmountVerifierTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    public function testVerifySucceedsWhenAmountsMatchWithRoundedValue(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+        $order->method('getTotal')->willReturn(225845);
+
+        $paypalOrderDetails = [
+            'purchase_units' => [
+                ['amount' => ['value' => '2258.45']],
+            ],
+        ];
+
+        $this->verifier->verify($payment, $paypalOrderDetails);
+
+        $this->addToAssertionCount(1);
+    }
+
     public function testVerifyThrowsExceptionWhenAmountsDoNotMatch(): void
     {
         $payment = $this->createMock(PaymentInterface::class);
