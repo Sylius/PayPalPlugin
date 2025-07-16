@@ -50,4 +50,21 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
     }
+
+    /** @test */
+    public function it_handles_processing_payment_state_by_cancelling_old_payment(): void
+    {
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart_with_processing_payment.yaml']);
+        /** @var int $orderId */
+        $orderId = $order['new_cart']->getId();
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
+
+        $response = $this->client->getResponse();
+        $content = (array) json_decode($response->getContent(), true);
+
+        $this->assertSame($content['id'], $orderId);
+        $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
+        $this->assertSame($content['status'], 'cart');
+    }
 }

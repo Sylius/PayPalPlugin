@@ -24,6 +24,8 @@ use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -42,6 +44,7 @@ final class CreatePayPalOrderFromCartAction
         private readonly CapturePaymentResolverInterface $capturePaymentResolver,
         private readonly ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
         private readonly ?OrderProcessorInterface $orderProcessor = null,
+        private readonly ?PaymentStateManagerInterface $paymentStateManager = null,
     ) {
         if (null !== $this->payum) {
             trigger_deprecation(
@@ -89,6 +92,14 @@ final class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->paymentStateManager) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '1.7',
+                'Not passing an $paymentStateManager to %s constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -119,20 +130,35 @@ final class CreatePayPalOrderFromCartAction
     private function getPayment(OrderInterface $order): PaymentInterface
     {
         /** @var PaymentInterface $payment */
-        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $payment = $order->getLastPayment();
+        if ($payment === null) {
+            throw new PaymentNotFoundException();
+        }
+
         /** @var PaymentMethodInterface|null $paymentMethod */
         $paymentMethod = $payment->getMethod();
         $factoryName = $paymentMethod?->getGatewayConfig()?->getFactoryName();
 
-        if ($factoryName === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
-            return $payment;
+        if ($payment->getState() === PaymentInterface::STATE_PROCESSING) {
+            if ($this->paymentStateManager === null) {
+                throw new \DomainException('PaymentStateManager must be provided to cancel old payment.');
+            }
+
+            $this->paymentStateManager->cancel($payment);
         }
 
-        if ($this->orderPaymentsRemover === null || $this->orderProcessor === null) {
-            throw new \DomainException('OrderPaymentsRemover and OrderProcessor must be provided to create a new payment.');
+        if ($payment->getState() === PaymentInterface::STATE_CART) {
+            if ($factoryName === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
+                return $payment;
+            }
+
+            if ($this->orderPaymentsRemover === null || $this->orderProcessor === null) {
+                throw new \DomainException('OrderPaymentsRemover and OrderProcessor must be provided to create a new payment.');
+            }
+
+            $this->orderPaymentsRemover->removePayments($order);
         }
 
-        $this->orderPaymentsRemover->removePayments($order);
         $this->orderProcessor->process($order);
 
         return $order->getLastPayment(PaymentInterface::STATE_CART);

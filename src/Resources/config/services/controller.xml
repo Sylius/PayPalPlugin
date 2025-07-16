@@ -107,6 +107,7 @@
             <argument type="service" id="sylius_paypal.resolver.capture_payment" />
             <argument type="service" id="Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface" />
             <argument type="service" id="sylius.order_processing.order_processor" />
+            <argument type="service" id="sylius_paypal.manager.payment_state" />
         </service>
         <service id="sylius_paypal.controller.create_paypal_order_from_cart" alias="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction" />
 
