@@ -157,9 +157,6 @@ final class ProcessPayPalOrderAction
             return new JsonResponse(['orderID' => $orderId]);
         }
 
-        $this->paymentStateManager->create($payment);
-        $this->paymentStateManager->process($payment);
-
         return new JsonResponse(['orderID' => $orderId]);
     }
 
