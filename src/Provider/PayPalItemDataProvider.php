@@ -45,9 +45,13 @@ final class PayPalItemDataProvider implements PayPalItemDataProviderInterface
                 $itemValue = $orderItem->getUnitPrice();
                 $itemData['total_item_value'] += ($itemValue * $displayQuantity) / 100;
                 $itemData['total_tax'] += ($nonNeutralTax * $displayQuantity) / 100;
+                $productName = $orderItem->getProductName();
+                $productName = mb_strlen($productName) > 127
+                    ? mb_substr($productName, 0, 124) . '...'
+                    : $productName;
 
                 $itemData['items'][] = [
-                    'name' => $orderItem->getProductName(),
+                    'name' => $productName,
                     'unit_amount' => [
                         'value' => number_format($itemValue / 100, 2, '.', ''),
                         'currency_code' => $order->getCurrencyCode(),

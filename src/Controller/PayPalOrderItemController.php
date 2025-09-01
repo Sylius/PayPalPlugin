@@ -29,7 +29,7 @@ trigger_deprecation(
 );
 
 /** @deprecated since Sylius/PayPalPlugin 1.7 and will be removed in Sylius/PayPalPlugin 2.0. */
-final class PayPalOrderItemController extends OrderItemController
+class PayPalOrderItemController extends OrderItemController
 {
     /**
      * Most of the method's body is copied from the OrderItemController::addAction
