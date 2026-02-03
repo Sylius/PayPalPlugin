@@ -39,10 +39,6 @@
     </parameters>
 
     <services>
-        <service id="sylius_paypal.form.extension.payment_method" class="Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension">
-            <tag name="form.type_extension" />
-        </service>
-
         <service id="sylius_paypal.form.type.paypal_configuration" class="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
             <argument>%sylius_paypal.sandbox%</argument>
 
@@ -68,9 +64,6 @@
 
         <service id="sylius_paypal.listener.paypal_payment_method" class="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
             <argument type="service" id="sylius_paypal.onboarding.initiator" />
-            <argument type="service" id="router" />
-            <argument type="service" id="request_stack" />
-            <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
             <argument>%sylius_paypal.sandbox%</argument>
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
@@ -370,5 +363,13 @@
             <argument>%sylius_paypal.supported_locales%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface" alias="sylius_paypal.resolver.supported_locale" />
+
+        <service
+            id="sylius_paypal.validator.only_one_enabled_paypal_payment_method"
+            class="Sylius\PayPalPlugin\Validator\Constraints\OnlyOneEnabledPayPalPaymentMethodValidator"
+        >
+            <argument type="service" id="sylius.repository.payment_method" />
+            <tag name="validator.constraint_validator" alias="sylius_paypal.validator.only_one_enabled_paypal_payment_method" />
+        </service>
     </services>
 </container>

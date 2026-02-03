@@ -1,0 +1,2 @@
+sylius_paypal:
+    only_one_paypal_enabled: "Une seule methode de paiement PayPal peut etre activee a la fois. Veuillez d'abord desactiver l'autre methode PayPal."
