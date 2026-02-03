@@ -39,9 +39,17 @@ final class PaymentPayPalContext implements Context
      * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/
      * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name$/
      */
-    public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, ?int $position = 0)
+    public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, ?int $position = 0): void
     {
-        $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
+        $this->createPaymentMethod($paymentMethodName, 'PM_' . str_replace(' ', '_', strtoupper($paymentMethodName)), $gatewayFactory, 'Payment method', $position, true);
+    }
+
+    /**
+     * @Given /^the store has a disabled "([^"]*)" payment method with "([^"]*)" gateway factory$/
+     */
+    public function theStoreHasADisabledPaymentMethodWithGatewayFactory(string $paymentMethodName, string $gatewayFactory): void
+    {
+        $this->createPaymentMethod($paymentMethodName, 'PM_' . str_replace(' ', '_', strtoupper($paymentMethodName)), $gatewayFactory, 'Payment method', 0, false);
     }
 
     /**
@@ -58,6 +66,7 @@ final class PaymentPayPalContext implements Context
         string $gatewayFactory,
         string $description,
         int $position,
+        bool $enabled = true,
     ): void {
         $gatewayFactory = $this->findGatewayNameByTranslation($gatewayFactory, $this->gatewayFactories);
 
@@ -68,7 +77,7 @@ final class PaymentPayPalContext implements Context
             'description' => $description,
             'gatewayName' => $gatewayFactory,
             'gatewayFactory' => $gatewayFactory,
-            'enabled' => true,
+            'enabled' => $enabled,
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
 
