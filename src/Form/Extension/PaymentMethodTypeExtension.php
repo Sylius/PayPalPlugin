@@ -32,8 +32,12 @@ final class PaymentMethodTypeExtension extends AbstractTypeExtension
             $data = $event->getData();
             $form = $event->getForm();
 
-            /** @var GatewayConfigInterface $gatewayConfig */
+            /** @var GatewayConfigInterface|null $gatewayConfig */
             $gatewayConfig = $data->getGatewayConfig();
+            if ($gatewayConfig === null) {
+                return;
+            }
+
             if ($gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
                 $form->add('enabled', HiddenType::class, [
                     'required' => false,
