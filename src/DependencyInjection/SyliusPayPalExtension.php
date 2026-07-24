@@ -15,13 +15,10 @@ namespace Sylius\PayPalPlugin\DependencyInjection;
 
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
-use Symfony\Component\Config\Loader\DelegatingLoader;
-use Symfony\Component\Config\Loader\LoaderResolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
-use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 
 final class SyliusPayPalExtension extends Extension implements PrependExtensionInterface
 {
@@ -41,13 +38,9 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
         $container->setParameter('sylius_paypal.supported_locales', $config['supported_locales']);
 
-        $loaderResolver = new LoaderResolver([
-            new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config')),
-            new XmlFileLoader($container, new FileLocator(__DIR__ . '/../../config')),
-        ]);
-        $delegatingLoader = new DelegatingLoader($loaderResolver);
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
 
-        $delegatingLoader->load('services.xml');
+        $loader->load('services.php');
     }
 
     public function getConfiguration(array $config, ContainerBuilder $container): ConfigurationInterface
