@@ -1,0 +1,47 @@
+{% set paypal_factory = constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+
+{% if not sylius_paypal_is_configured() %}
+    <div class="payment-method-list__item payment-method-list__item--suggested payment-method-list__item--paypal d-flex align-items-center gap-3">
+        <div class="payment-method-list__select flex-shrink-0"></div>
+
+        <div class="payment-method-list__position flex-shrink-0 d-flex justify-content-center"></div>
+
+        <div class="payment-method-list__logo flex-shrink-0 d-flex align-items-center justify-content-center overflow-hidden p-2">
+            <img src="{{ asset('build/admin/images/paypal.png', 'admin') }}" alt="{{ 'sylius_paypal.label'|trans }}">
+        </div>
+
+        <div class="payment-method-list__content d-flex flex-column gap-3">
+            <div class="payment-method-list__heading">
+                <h3 class="payment-method-list__name m-0 fw-semibold">
+                    {{ 'sylius_paypal.label'|trans }}
+                    <span class="badge bg-blue-lt ms-2 align-middle">{{ 'sylius.ui.suggested'|trans }}</span>
+                </h3>
+                <p class="payment-method-list__description mt-1 mb-0">{{ 'sylius_paypal.suggested_description'|trans }}</p>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                {% for method in ['visa', 'master_card', 'amex', 'maestro'] %}
+                    <span class="payment-method-list__method d-inline-flex align-items-center justify-content-center">
+                        <img src="{{ asset('build/admin/images/' ~ method ~ '.svg', 'admin') }}" alt="{{ method|replace({'_': ' '})|title }}">
+                    </span>
+                {% endfor %}
+                <span class="payment-method-list__method payment-method-list__method--more d-inline-flex align-items-center justify-content-center px-1 fw-semibold">+ {{ 'sylius.ui.more'|trans }}</span>
+            </div>
+
+            <div class="payment-method-list__meta d-flex flex-wrap align-items-center gap-4 fw-medium">
+                <span class="d-inline-flex align-items-center gap-2">
+                    {{ 'sylius.ui.code'|trans }}: <code class="payment-method-list__code px-2 py-1">paypal</code>
+                </span>
+                <span class="d-inline-flex align-items-center gap-2">
+                    {{ 'sylius.ui.gateway'|trans }}: <span>{{ 'sylius_paypal.label'|trans }}</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="payment-method-list__actions d-flex align-items-center gap-2 flex-shrink-0">
+            <a href="{{ path('sylius_admin_payment_method_create', { factory: paypal_factory }) }}" class="btn">
+                {{ ux_icon('tabler:settings', { class: 'icon' }) }} {{ 'sylius.ui.configure'|trans }}
+            </a>
+        </div>
+    </div>
+{% endif %}

@@ -317,8 +317,13 @@
             <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
 
+        <service id="sylius_paypal.checker.paypal_payment_method" class="Sylius\PayPalPlugin\Checker\PayPalPaymentMethodChecker">
+            <argument type="service" id="sylius.repository.payment_method" />
+        </service>
+
         <service id="sylius_paypal.twig.extension.paypal" class="Sylius\PayPalPlugin\Twig\PayPalExtension">
             <argument>%sylius_paypal.sandbox%</argument>
+            <argument type="service" id="sylius_paypal.checker.paypal_payment_method" />
             <tag name="twig.extension" />
         </service>
 

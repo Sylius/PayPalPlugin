@@ -22,4 +22,5 @@ sylius_paypal:
     sftp_password: 'SFTP Password'
     sftp_username: 'SFTP Username'
     share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
+    suggested_description: 'Offer your customers a trusted checkout experience with PayPal and Pay Later options.'
     tender_type: 'Refunded to the PayPal wallet'

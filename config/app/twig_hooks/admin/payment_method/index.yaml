@@ -7,3 +7,8 @@ sylius_twig_hooks:
             confirmation_modal_create_paypal_sandbox:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/confirmation_modal_create_paypal_sandbox.html.twig'
                 priority: -200
+
+        'sylius_admin.payment_method.index.content.grid.data_table#suggested':
+            paypal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/index/content/grid/data_table/suggested/paypal.html.twig'
+                priority: 300

@@ -15,14 +15,17 @@ namespace Sylius\PayPalPlugin\Twig;
 
 use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\PayPalPaymentMethodCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 final class PayPalExtension extends AbstractExtension
 {
-    public function __construct(private readonly bool $sandbox)
-    {
+    public function __construct(
+        private readonly bool $sandbox,
+        private readonly PayPalPaymentMethodCheckerInterface $payPalPaymentMethodChecker,
+    ) {
     }
 
     public function getFunctions(): array
@@ -30,7 +33,13 @@ final class PayPalExtension extends AbstractExtension
         return [
             new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
             new TwigFunction('sylius_is_paypal_sandbox', [$this, 'isSandbox']),
+            new TwigFunction('sylius_paypal_is_configured', [$this, 'isPayPalConfigured']),
         ];
+    }
+
+    public function isPayPalConfigured(): bool
+    {
+        return $this->payPalPaymentMethodChecker->hasPayPalPaymentMethod();
     }
 
     public function isSandbox(): bool
