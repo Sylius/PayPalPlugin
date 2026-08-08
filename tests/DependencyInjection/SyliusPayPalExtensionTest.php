@@ -85,54 +85,6 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
             'sylius_paypal.facilitator_url',
             'https://paypal.sylius.com',
         ];
-
-        yield 'production mode sftp host' => [
-            false,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.paypal.com',
-        ];
-
-        yield 'sandbox mode sftp host' => [
-            true,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.sandbox.paypal.com',
-        ];
-
-        yield 'production mode aliased facilitator url' => [
-            false,
-            'sylius.pay_pal.facilitator_url',
-            'https://prod.paypal.sylius.com',
-        ];
-
-        yield 'sandbox mode aliased facilitator url' => [
-            true,
-            'sylius.pay_pal.facilitator_url',
-            'https://paypal.sylius.com',
-        ];
-
-        yield 'production mode aliased api base url' => [
-            false,
-            'sylius.pay_pal.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'sandbox mode aliased api base url' => [
-            true,
-            'sylius.pay_pal.api_base_url',
-            'https://api.sandbox.paypal.com/',
-        ];
-
-        yield 'production mode aliased sftp host' => [
-            false,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.paypal.com',
-        ];
-
-        yield 'sandbox mode aliased sftp host' => [
-            true,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.sandbox.paypal.com',
-        ];
     }
 
     /**

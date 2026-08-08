@@ -28,7 +28,7 @@ final readonly class PayPalPaymentMethodProvider implements PayPalPaymentMethodP
 
     public function provide(): PaymentMethodInterface
     {
-        $paymentMethods = $this->paymentMethodRepository->findAll();
+        $paymentMethods = $this->paymentMethodRepository->findBy(['enabled' => true]);
 
         /** @var PaymentMethodInterface $paymentMethod */
         foreach ($paymentMethods as $paymentMethod) {

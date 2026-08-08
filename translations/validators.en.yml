@@ -1,0 +1,2 @@
+sylius_paypal:
+    only_one_paypal_enabled: 'Only one PayPal payment method can be enabled at a time. Please disable the other PayPal method first.'

@@ -1,0 +1,2 @@
+sylius_paypal:
+    only_one_paypal_enabled: 'Er kan slechts een PayPal-betaalmethode tegelijk actief zijn. Schakel eerst de andere PayPal-methode uit.'
