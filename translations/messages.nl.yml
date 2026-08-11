@@ -3,6 +3,7 @@ sylius_paypal:
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    configure: 'Configureren'
     credit_card: 'Credit Card'
     credit_card_number: 'Credit Card nummer'
     cvv: 'CVV'
@@ -22,4 +23,6 @@ sylius_paypal:
     sftp_password: 'SFTP wachtwoord'
     sftp_username: 'SFTP gebruikersnaam'
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
+    suggested: 'Voorgesteld'
+    suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
