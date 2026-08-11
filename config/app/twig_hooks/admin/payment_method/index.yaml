@@ -1,5 +1,12 @@
 sylius_twig_hooks:
     hooks:
+        'sylius_admin.payment_method.index.content.grid.data_table#pre_header':
+            paypal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/index/content/grid/data_table/pre_header/paypal.html.twig'
+                priority: 0
+                configuration:
+                    payment_methods: ['visa', 'master_card', 'amex', 'paypal', 'venmo', 'apple_pay']
+                    payment_methods_more: true
         'sylius_admin.payment_method.index.content.grid':
             confirmation_modal_create_paypal:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/confirmation_modal_create_paypal.html.twig'
