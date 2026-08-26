@@ -16,13 +16,13 @@ namespace Sylius\PayPalPlugin\Provider;
 interface SellerNonceProviderInterface
 {
     /**
-     * Generates a random seller nonce (at least 40 characters), stores it under
-     * the given key and returns it. Used as the code_verifier during onboarding.
+     * Generates a random seller nonce (at least 40 characters), stores it in the
+     * admin session and returns it. Used as the code_verifier during onboarding.
      */
-    public function generateFor(string $sellerKey): string;
+    public function generate(): string;
 
     /**
      * Returns and removes the stored nonce (single use). Null when missing or expired.
      */
-    public function consume(string $sellerKey): ?string;
+    public function consume(): ?string;
 }
