@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -23,6 +24,12 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 final class SyliusPayPalExtension extends Extension implements PrependExtensionInterface
 {
     public const PAYPAL_FACTORY_NAME = 'sylius_paypal';
+
+    public const PARTNER_ID = '';
+
+    public const PARTNER_CLIENT_ID = '';
+
+    public const PARTNER_LOGO_URL = '';
 
     public function getAlias(): string
     {
@@ -109,17 +116,25 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
         $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
+        $container->setParameter('sylius_paypal.partner_attribution_id', PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID);
+        $container->setParameter('sylius_paypal.partner_logo_url', self::PARTNER_LOGO_URL);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
+            $container->setParameter('sylius_paypal.partner_id', '');
+            $container->setParameter('sylius_paypal.partner_client_id', '');
             $container->setParameter('sylius_paypal.facilitator_url', 'https://paypal.sylius.com');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.sandbox.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.sandbox.paypal.com');
+            $container->setParameter('sylius_paypal.partner_js_url', 'https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
         } else {
+            $container->setParameter('sylius_paypal.partner_id', self::PARTNER_ID);
+            $container->setParameter('sylius_paypal.partner_client_id', self::PARTNER_CLIENT_ID);
             $container->setParameter('sylius_paypal.facilitator_url', 'https://prod.paypal.sylius.com');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
+            $container->setParameter('sylius_paypal.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
         }
     }
 
