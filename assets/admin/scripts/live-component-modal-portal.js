@@ -7,15 +7,18 @@
  * file that was distributed with this source code.
  */
 
-const SANDBOX_MODAL_COMPONENT_NAME = 'sylius_paypal:create_sandbox_modal';
+const PORTALED_MODAL_COMPONENT_NAMES = [
+    'sylius_paypal:create_sandbox_modal',
+    'sylius_paypal:create_onboarding_modal',
+];
 
-function getSandboxModalWrapper(modal) {
+function getPortalWrapper(modal) {
     const parent = modal.parentElement;
 
     if (
         parent === null ||
         parent === document.body ||
-        parent.getAttribute('data-live-name-value') !== SANDBOX_MODAL_COMPONENT_NAME
+        !PORTALED_MODAL_COMPONENT_NAMES.includes(parent.getAttribute('data-live-name-value'))
     ) {
         return null;
     }
@@ -23,14 +26,15 @@ function getSandboxModalWrapper(modal) {
     return parent;
 }
 
-function portalSandboxModal(event) {
-    const wrapper = getSandboxModalWrapper(event.target);
+function portalLiveComponentModal(event) {
+    const wrapper = getPortalWrapper(event.target);
 
     if (wrapper === null) {
         return;
     }
 
-    const placeholder = document.createComment(SANDBOX_MODAL_COMPONENT_NAME);
+    const componentName = wrapper.getAttribute('data-live-name-value');
+    const placeholder = document.createComment(componentName);
     wrapper.before(placeholder);
     document.body.appendChild(wrapper);
 
@@ -38,4 +42,4 @@ function portalSandboxModal(event) {
     event.stopImmediatePropagation();
 }
 
-document.addEventListener('show.bs.modal', portalSandboxModal, { capture: true });
+document.addEventListener('show.bs.modal', portalLiveComponentModal, { capture: true });

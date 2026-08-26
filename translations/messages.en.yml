@@ -25,6 +25,7 @@ sylius_paypal:
     messaging_enabled: 'Enable Pay Later messaging'
     missing_billing_address_content: 'Please, go back to the Addressing step and complete it'
     missing_billing_address_header: 'We could not fetch any billing address from PayPal'
+    onboarding_modal_description: 'You will be asked to log in or create a PayPal account to connect it with your store.'
     paylater_enabled: 'Enable Pay Later'
     pay_with: 'Pay with'
     pay_with_card: 'Pay with Card'

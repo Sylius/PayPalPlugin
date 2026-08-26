@@ -20,6 +20,7 @@ sylius_paypal:
     merchant_id: 'Merchant ID'
     missing_billing_address_content: 'Ga alstublief terug naar de "adressering" en vul deze aan.'
     missing_billing_address_header: 'We konden geen facturatie adres ophalen van PayPal'
+    onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
     report: 'Rapporteren'

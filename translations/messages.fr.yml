@@ -20,6 +20,7 @@ sylius_paypal:
     merchant_id: 'ID marchand'
     missing_billing_address_content: 'Merci de renseignez votre adresse'
     missing_billing_address_header: 'Impossible de récupérer une adresse de facturation depuis PayPal'
+    onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
     report: 'Rapport'
