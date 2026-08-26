@@ -17,7 +17,6 @@ use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
-use Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -28,11 +27,9 @@ use Webmozart\Assert\Assert;
 final readonly class PayPalPaymentMethodListener
 {
     public function __construct(
-        private OnboardingInitiatorInterface $onboardingInitiator,
         private UrlGeneratorInterface $urlGenerator,
         private RequestStack $flashBagOrRequestStack,
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        private bool $isSandbox = false,
     ) {
     }
 
@@ -46,21 +43,15 @@ final readonly class PayPalPaymentMethodListener
             return;
         }
 
-        if ($this->isTherePayPalPaymentMethod()) {
-            FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
-                ->add('error', 'sylius_paypal.more_than_one_seller_not_allowed')
-            ;
-
-            $event->setResponse(new RedirectResponse($this->urlGenerator->generate('sylius_admin_payment_method_index')));
-
+        if (!$this->isTherePayPalPaymentMethod()) {
             return;
         }
 
-        if ($this->isSandbox || !$this->onboardingInitiator->supports($paymentMethod)) {
-            return;
-        }
+        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
+            ->add('error', 'sylius_paypal.more_than_one_seller_not_allowed')
+        ;
 
-        $event->setResponse(new RedirectResponse($this->onboardingInitiator->initiate($paymentMethod)));
+        $event->setResponse(new RedirectResponse($this->urlGenerator->generate('sylius_admin_payment_method_index')));
     }
 
     private function isNewPaymentMethodPayPal(PaymentMethodInterface $paymentMethod): bool
