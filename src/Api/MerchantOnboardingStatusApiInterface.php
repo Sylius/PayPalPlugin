@@ -13,9 +13,17 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use JsonException;
+use Psr\Http\Client\ClientExceptionInterface;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 interface MerchantOnboardingStatusApiInterface
 {
+    /**
+     * @throws ClientExceptionInterface
+     * @throws JsonException
+     * @throws PayPalPluginException
+     */
     public function get(string $sellerToken, string $partnerId, string $merchantId): OnboardingStatus;
 }

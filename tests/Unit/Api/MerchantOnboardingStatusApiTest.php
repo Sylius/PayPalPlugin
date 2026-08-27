@@ -16,37 +16,29 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
-use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApi;
-use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
 
 final class MerchantOnboardingStatusApiTest extends TestCase
 {
-    private ClientInterface&MockObject $client;
+    private PayPalOnboardingRequestExecutorInterface&MockObject $requestExecutor;
 
     private RequestFactoryInterface&MockObject $requestFactory;
-
-    private LoggerInterface&MockObject $logger;
 
     private MerchantOnboardingStatusApi $merchantOnboardingStatusApi;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->client = $this->createMock(ClientInterface::class);
+        $this->requestExecutor = $this->createMock(PayPalOnboardingRequestExecutorInterface::class);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->merchantOnboardingStatusApi = new MerchantOnboardingStatusApi(
-            $this->client,
-            'http://base-url.com/',
+            $this->requestExecutor,
             $this->requestFactory,
-            $this->logger,
+            'http://base-url.com/',
         );
     }
 
@@ -54,8 +46,6 @@ final class MerchantOnboardingStatusApiTest extends TestCase
     public function it_returns_a_complete_onboarding_status(): void
     {
         $request = $this->createMock(RequestInterface::class);
-        $response = $this->createMock(ResponseInterface::class);
-        $body = $this->createMock(StreamInterface::class);
 
         $this->requestFactory
             ->expects(self::once())
@@ -64,12 +54,12 @@ final class MerchantOnboardingStatusApiTest extends TestCase
             ->willReturn($request);
 
         $request->method('withHeader')->willReturn($request);
-        $this->client->method('sendRequest')->with($request)->willReturn($response);
-        $response->method('getStatusCode')->willReturn(200);
-        $response->method('getBody')->willReturn($body);
-        $body->method('getContents')->willReturn(
-            '{"payments_receivable": true, "primary_email_confirmed": true}',
-        );
+
+        $this->requestExecutor
+            ->expects(self::once())
+            ->method('execute')
+            ->with($request, 'Onboarding status')
+            ->willReturn(['payments_receivable' => true, 'primary_email_confirmed' => true]);
 
         $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID');
 
@@ -82,39 +72,15 @@ final class MerchantOnboardingStatusApiTest extends TestCase
     public function it_returns_an_incomplete_status_when_flags_are_missing(): void
     {
         $request = $this->createMock(RequestInterface::class);
-        $response = $this->createMock(ResponseInterface::class);
-        $body = $this->createMock(StreamInterface::class);
 
         $this->requestFactory->method('createRequest')->willReturn($request);
         $request->method('withHeader')->willReturn($request);
-        $this->client->method('sendRequest')->willReturn($response);
-        $response->method('getStatusCode')->willReturn(200);
-        $response->method('getBody')->willReturn($body);
-        $body->method('getContents')->willReturn('{"payments_receivable": true}');
+        $this->requestExecutor->method('execute')->willReturn(['payments_receivable' => true]);
 
         $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID');
 
         self::assertTrue($status->arePaymentsReceivable());
         self::assertFalse($status->isPrimaryEmailConfirmed());
         self::assertFalse($status->isComplete());
-    }
-
-    #[Test]
-    public function it_throws_an_exception_when_the_response_is_not_successful(): void
-    {
-        $request = $this->createMock(RequestInterface::class);
-        $response = $this->createMock(ResponseInterface::class);
-        $body = $this->createMock(StreamInterface::class);
-
-        $this->requestFactory->method('createRequest')->willReturn($request);
-        $request->method('withHeader')->willReturn($request);
-        $this->client->method('sendRequest')->willReturn($response);
-        $response->method('getStatusCode')->willReturn(401);
-        $response->method('getBody')->willReturn($body);
-        $body->method('getContents')->willReturn('{"error": "invalid_token"}');
-
-        $this->expectException(PayPalPluginException::class);
-
-        $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID');
     }
 }
