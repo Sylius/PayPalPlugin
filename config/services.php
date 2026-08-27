@@ -3,7 +3,6 @@
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use phpseclib3\Net\SFTP;
-use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
@@ -25,7 +24,6 @@ use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
@@ -195,13 +193,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalExpressOrderCompleterInterface::class, 'sylius_paypal.completer.express_order');
-
-    $services->set('sylius_paypal.factory.paypal_payment_method_new_resource', PayPalPaymentMethodNewResourceFactory::class)
-        ->decorate('sylius.resource_controller.new_resource_factory')
-        ->args([
-            service('.inner'),
-            service('sylius_paypal.onboarding.processor.basic'),
-        ]);
 
     $services->set('sylius_paypal.factory.paypal_shipping_address', PayPalShippingAddressFactory::class)
         ->args([
@@ -446,11 +437,11 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.enabler.payment_method', PayPalPaymentMethodEnabler::class)
         ->args([
-            service('sylius.http_client'),
-            '%sylius_paypal.facilitator_url%',
+            service('sylius_paypal.api.authorize_client'),
+            service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius.manager.payment_method'),
             service('sylius_paypal.registrar.seller_webhook'),
-            service(RequestFactoryInterface::class),
+            '%sylius_paypal.partner_id%',
         ]);
 
     $services->alias(PaymentMethodEnablerInterface::class, 'sylius_paypal.enabler.payment_method');
