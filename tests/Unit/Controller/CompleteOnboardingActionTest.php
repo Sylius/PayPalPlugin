@@ -198,6 +198,21 @@ final class CompleteOnboardingActionTest extends TestCase
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
 
+    #[Test]
+    public function it_returns_bad_request_when_the_request_body_is_not_valid_json(): void
+    {
+        $request = Request::create('/onboarding/complete', 'POST', content: '{not-valid-json');
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
+
+        $this->payPalPaymentMethodProvider->expects(self::never())->method('provide');
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
     /** @param array<string, mixed> $body */
     private function requestWithBody(array $body): Request
     {

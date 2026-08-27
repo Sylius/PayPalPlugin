@@ -35,7 +35,8 @@ final class PayPalOnboardingModalComponent
 
     public function mount(): void
     {
-        $nonce = $this->sellerNonceProvider->generate();
-        $this->onboardingUrl = $this->onboardingUrlProvider->generate($nonce);
+        $this->onboardingUrl = $this->onboardingUrlProvider->generate(
+            $this->sellerNonceProvider->generate(),
+        );
     }
 }
