@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+
+ This file is part of the Sylius package.
+
+ (c) Sylius Sp. z o.o.
+
+ For the full copyright and license information, please view the LICENSE
+ file that was distributed with this source code.
+
+-->
+
+<container
+    xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd"
+>
+    <services>
+        <service
+            id="sylius_paypal.api.onboarding_token"
+            class="Sylius\PayPalPlugin\Api\OnboardingTokenApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface" alias="sylius_paypal.api.onboarding_token" />
+
+        <service
+            id="sylius_paypal.api.seller_credentials"
+            class="Sylius\PayPalPlugin\Api\SellerCredentialsApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface" alias="sylius_paypal.api.seller_credentials" />
+
+        <service
+            id="sylius_paypal.api.merchant_onboarding_status"
+            class="Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface" alias="sylius_paypal.api.merchant_onboarding_status" />
+
+        <service
+            id="sylius_paypal.onboarding.resolver.seller"
+            class="Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver"
+        >
+            <argument type="service" id="sylius_paypal.api.onboarding_token" />
+            <argument type="service" id="sylius_paypal.api.seller_credentials" />
+            <argument type="service" id="sylius_paypal.api.authorize_client" />
+            <argument type="service" id="sylius_paypal.api.merchant_onboarding_status" />
+            <argument>%sylius_paypal.partner_id%</argument>
+        </service>
+        <service id="Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface" alias="sylius_paypal.onboarding.resolver.seller" />
+    </services>
+</container>

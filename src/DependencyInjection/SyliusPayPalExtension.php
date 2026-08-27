@@ -25,9 +25,9 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 {
     public const PAYPAL_FACTORY_NAME = 'sylius_paypal';
 
-    public const PARTNER_ID = '';
+    public const PARTNER_ID = 'YR4AEKDNHGZ9G';
 
-    public const PARTNER_CLIENT_ID = '';
+    public const PARTNER_CLIENT_ID = 'AeqrXgdSJxEdFhKI33McRsLaSU2_hCybsKfIT4hHK_DpCCHWzUyS-oR9qt0LrvbTYQJCWJ4ezAgnUAOs';
 
     public const PARTNER_LOGO_URL = '';
 
