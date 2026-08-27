@@ -15,14 +15,17 @@ namespace Sylius\PayPalPlugin\Api;
 
 use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Message\RequestInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 
-interface OnboardingTokenApiInterface
+interface PayPalOnboardingRequestExecutorInterface
 {
     /**
+     * @return array<string, mixed>
+     *
      * @throws ClientExceptionInterface
      * @throws PayPalPluginException
      * @throws JsonException
      */
-    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce): string;
+    public function execute(RequestInterface $request, string $operation): array;
 }

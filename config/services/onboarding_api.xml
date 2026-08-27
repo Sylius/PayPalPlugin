@@ -18,10 +18,19 @@
 >
     <services>
         <service
+            id="sylius_paypal.api.onboarding_request_executor"
+            class="Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutor"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface" alias="sylius_paypal.api.onboarding_request_executor" />
+
+        <service
             id="sylius_paypal.api.onboarding_token"
             class="Sylius\PayPalPlugin\Api\OnboardingTokenApi"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="sylius_paypal.api.onboarding_request_executor" />
             <argument>%sylius_paypal.api_base_url%</argument>
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
@@ -32,7 +41,7 @@
             id="sylius_paypal.api.seller_credentials"
             class="Sylius\PayPalPlugin\Api\SellerCredentialsApi"
         >
-            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="sylius_paypal.api.onboarding_request_executor" />
             <argument>%sylius_paypal.api_base_url%</argument>
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
         </service>
@@ -42,10 +51,9 @@
             id="sylius_paypal.api.merchant_onboarding_status"
             class="Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApi"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="sylius_paypal.api.onboarding_request_executor" />
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
-            <argument type="service" id="monolog.logger.paypal" />
+            <argument>%sylius_paypal.api_base_url%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface" alias="sylius_paypal.api.merchant_onboarding_status" />
 

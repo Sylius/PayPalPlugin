@@ -16,37 +16,30 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
-use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApi;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 
 final class SellerCredentialsApiTest extends TestCase
 {
-    private ClientInterface&MockObject $client;
+    private PayPalOnboardingRequestExecutorInterface&MockObject $requestExecutor;
 
     private RequestFactoryInterface&MockObject $requestFactory;
-
-    private LoggerInterface&MockObject $logger;
 
     private SellerCredentialsApi $sellerCredentialsApi;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->client = $this->createMock(ClientInterface::class);
+        $this->requestExecutor = $this->createMock(PayPalOnboardingRequestExecutorInterface::class);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->sellerCredentialsApi = new SellerCredentialsApi(
-            $this->client,
+            $this->requestExecutor,
             'http://base-url.com/',
             $this->requestFactory,
-            $this->logger,
         );
     }
 
@@ -54,8 +47,6 @@ final class SellerCredentialsApiTest extends TestCase
     public function it_returns_the_seller_credentials(): void
     {
         $request = $this->createMock(RequestInterface::class);
-        $response = $this->createMock(ResponseInterface::class);
-        $body = $this->createMock(StreamInterface::class);
 
         $this->requestFactory
             ->expects(self::once())
@@ -65,16 +56,15 @@ final class SellerCredentialsApiTest extends TestCase
 
         $request->method('withHeader')->willReturn($request);
 
-        $this->client
+        $this->requestExecutor
             ->expects(self::once())
-            ->method('sendRequest')
-            ->with($request)
-            ->willReturn($response);
-
-        $response->method('getBody')->willReturn($body);
-        $body->method('getContents')->willReturn(
-            '{"client_id": "CLIENT-ID", "client_secret": "CLIENT-SECRET", "payer_id": "MERCHANT-ID"}',
-        );
+            ->method('execute')
+            ->with($request, 'Seller credentials')
+            ->willReturn([
+                'client_id' => 'CLIENT-ID',
+                'client_secret' => 'CLIENT-SECRET',
+                'payer_id' => 'MERCHANT-ID',
+            ]);
 
         self::assertSame(
             [
@@ -90,14 +80,10 @@ final class SellerCredentialsApiTest extends TestCase
     public function it_throws_an_exception_when_credentials_are_incomplete(): void
     {
         $request = $this->createMock(RequestInterface::class);
-        $response = $this->createMock(ResponseInterface::class);
-        $body = $this->createMock(StreamInterface::class);
 
         $this->requestFactory->method('createRequest')->willReturn($request);
         $request->method('withHeader')->willReturn($request);
-        $this->client->method('sendRequest')->willReturn($response);
-        $response->method('getBody')->willReturn($body);
-        $body->method('getContents')->willReturn('{"client_id": "CLIENT-ID"}');
+        $this->requestExecutor->method('execute')->willReturn(['client_id' => 'CLIENT-ID']);
 
         $this->expectException(PayPalPluginException::class);
 
