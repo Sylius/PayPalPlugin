@@ -11,12 +11,12 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Exception;
+namespace Sylius\PayPalPlugin\Api;
 
-final class PayPalPluginException extends \Exception
+interface SellerCredentialsApiInterface
 {
-    public function __construct(string $message = 'Could not load data from PayPal')
-    {
-        parent::__construct($message);
-    }
+    /**
+     * @return array{client_id: string, client_secret: string, payer_id: string}
+     */
+    public function get(string $onboardingToken, string $partnerId): array;
 }

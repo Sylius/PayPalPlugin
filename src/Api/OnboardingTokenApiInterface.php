@@ -11,12 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Exception;
+namespace Sylius\PayPalPlugin\Api;
 
-final class PayPalPluginException extends \Exception
+interface OnboardingTokenApiInterface
 {
-    public function __construct(string $message = 'Could not load data from PayPal')
-    {
-        parent::__construct($message);
-    }
+    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce): string;
 }
