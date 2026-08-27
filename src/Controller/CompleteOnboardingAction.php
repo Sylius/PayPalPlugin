@@ -44,14 +44,18 @@ final readonly class CompleteOnboardingAction
         $flashBag = $request->getSession()->getBag('flashes');
         $indexUrl = $this->urlGenerator->generate('sylius_admin_payment_method_index');
 
-        $data = (array) json_decode($request->getContent(), true);
-
         try {
+            $data = (array) json_decode(
+                json: $request->getContent(),
+                associative: true,
+                flags: \JSON_THROW_ON_ERROR,
+            );
+
             Assert::keyExists($data, 'authCode');
             Assert::keyExists($data, 'sharedId');
             Assert::stringNotEmpty((string) $data['authCode']);
             Assert::stringNotEmpty((string) $data['sharedId']);
-        } catch (\InvalidArgumentException) {
+        } catch (\JsonException | \InvalidArgumentException) {
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
@@ -62,7 +66,7 @@ final readonly class CompleteOnboardingAction
         }
 
         $sellerNonce = $this->sellerNonceProvider->consume();
-        if ($sellerNonce === null) {
+        if (null === $sellerNonce) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
