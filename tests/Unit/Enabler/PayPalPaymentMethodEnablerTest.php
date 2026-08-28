@@ -25,6 +25,8 @@ use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Model\PartnerCredentials;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnablerTest extends TestCase
@@ -37,6 +39,8 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
 
     private SellerWebhookRegistrarInterface&MockObject $sellerWebhookRegistrar;
 
+    private PartnerCredentialsProviderInterface&MockObject $partnerCredentialsProvider;
+
     private PayPalPaymentMethodEnabler $payPalPaymentMethodEnabler;
 
     protected function setUp(): void
@@ -46,13 +50,17 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
         $this->merchantOnboardingStatusApi = $this->createMock(MerchantOnboardingStatusApiInterface::class);
         $this->paymentMethodManager = $this->createMock(ObjectManager::class);
         $this->sellerWebhookRegistrar = $this->createMock(SellerWebhookRegistrarInterface::class);
+        $this->partnerCredentialsProvider = $this->createMock(PartnerCredentialsProviderInterface::class);
+        $this->partnerCredentialsProvider
+            ->method('provide')
+            ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
 
         $this->payPalPaymentMethodEnabler = new PayPalPaymentMethodEnabler(
             $this->authorizeClientApi,
             $this->merchantOnboardingStatusApi,
             $this->paymentMethodManager,
             $this->sellerWebhookRegistrar,
-            'PARTNER-ID',
+            $this->partnerCredentialsProvider,
         );
     }
 

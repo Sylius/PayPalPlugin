@@ -441,7 +441,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius.manager.payment_method'),
             service('sylius_paypal.registrar.seller_webhook'),
-            '%sylius_paypal.partner_id%',
+            service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(PaymentMethodEnablerInterface::class, 'sylius_paypal.enabler.payment_method');

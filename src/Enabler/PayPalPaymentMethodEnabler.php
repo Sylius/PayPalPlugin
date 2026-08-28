@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
 use JsonException;
+use Psr\Cache\InvalidArgumentException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -24,6 +25,7 @@ use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
@@ -33,7 +35,7 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
         private ObjectManager $paymentMethodManager,
         private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
-        private string $partnerId,
+        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
     ) {
     }
 
@@ -44,9 +46,10 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
         try {
+            $partnerId = $this->partnerCredentialsProvider->provide()->getPartnerId();
             $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret());
-            $status = $this->merchantOnboardingStatusApi->get($token, $this->partnerId, $config->merchantId());
-        } catch (PayPalPluginException | ClientExceptionInterface | JsonException) {
+            $status = $this->merchantOnboardingStatusApi->get($token, $partnerId, $config->merchantId());
+        } catch (PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
 
