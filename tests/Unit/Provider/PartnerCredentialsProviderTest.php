@@ -113,4 +113,23 @@ final class PartnerCredentialsProviderTest extends TestCase
 
         $this->provider->provide();
     }
+
+    #[Test]
+    public function it_throws_an_exception_when_the_response_contains_empty_credentials(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('withHeader')->willReturn($request);
+        $item = $this->createMock(CacheItemInterface::class);
+        $this->cache->method('getItem')->willReturn($item);
+        $item->method('isHit')->willReturn(false);
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn(['partner_id' => '', 'partner_client_id' => '']);
+
+        $item->expects(self::never())->method('set');
+        $this->cache->expects(self::never())->method('save');
+
+        $this->expectException(PayPalPluginException::class);
+
+        $this->provider->provide();
+    }
 }

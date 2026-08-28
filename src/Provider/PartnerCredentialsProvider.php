@@ -49,12 +49,12 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
 
         $content = $this->requestExecutor->execute($request, 'Partner credentials');
 
-        if (!isset($content['partner_id'], $content['partner_client_id'])) {
+        $partnerId = (string) ($content['partner_id'] ?? '');
+        $partnerClientId = (string) ($content['partner_client_id'] ?? '');
+
+        if ('' === $partnerId || '' === $partnerClientId) {
             throw new PayPalPluginException('partner_id/partner_client_id is missing in response');
         }
-
-        $partnerId = (string) $content['partner_id'];
-        $partnerClientId = (string) $content['partner_client_id'];
 
         $item->set(['partner_id' => $partnerId, 'partner_client_id' => $partnerClientId]);
         $item->expiresAfter($this->cacheTtl);
