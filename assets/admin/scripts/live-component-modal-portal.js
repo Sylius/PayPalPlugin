@@ -40,12 +40,6 @@ function portalLiveComponentModal(event) {
 
     event.target.addEventListener('hidden.bs.modal', () => placeholder.replaceWith(wrapper), { once: true });
     event.stopImmediatePropagation();
-
-    // stopImmediatePropagation() above prevents this event from ever reaching listeners on the modal
-    // element itself (e.g. a component's own data-action="show.bs.modal->live#action"), since it was
-    // stopped during the capture phase before it got there. Re-dispatch it now that the element has
-    // settled in its new (portaled) position, so such listeners still see the modal opening.
-    event.target.dispatchEvent(new Event(event.type, { bubbles: true }));
 }
 
 document.addEventListener('show.bs.modal', portalLiveComponentModal, { capture: true });
