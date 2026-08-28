@@ -9,7 +9,7 @@
         aria-hidden="true"
         data-paypal-onboarding-complete-url="{{ path('sylius_paypal_admin_complete_onboarding') }}"
         data-paypal-onboarding-partner-js-url="{{ sylius_paypal_partner_js_url() }}"
-        data-action="show.bs.modal->live#action"
+        data-action="paypal:onboarding-open->live#action"
         data-live-action-param="loadOnboardingUrl"
     >
         <div class="modal-dialog modal-dialog-centered">

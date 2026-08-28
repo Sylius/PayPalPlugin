@@ -57,18 +57,40 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         });
 };
 
-// partner.js is loaded as soon as the onboarding modal markup is present on the page (matching PayPal's own
-// integration snippet, which embeds the script unconditionally rather than lazily on modal open) — this avoids
-// depending on the "show.bs.modal" event, which live-component-modal-portal.js can stop from propagating further.
-function loadPartnerJsIfOnboardingModalPresent() {
+function loadPartnerJsOnceButtonExists(onboardingModal) {
+    if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
+        loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
+
+        return;
+    }
+
+    const observer = new MutationObserver(() => {
+        if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
+            observer.disconnect();
+            loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
+        }
+    });
+    observer.observe(onboardingModal, { childList: true, subtree: true });
+}
+
+function bindOnboardingUrlLoader(onboardingModal) {
+    document.querySelectorAll(`[data-bs-target="#${onboardingModal.id}"]`).forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+            onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
+        });
+    });
+}
+
+function initOnboardingModal() {
     const onboardingModal = findOnboardingModal();
     if (onboardingModal !== null) {
-        loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
+        bindOnboardingUrlLoader(onboardingModal);
+        loadPartnerJsOnceButtonExists(onboardingModal);
     }
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadPartnerJsIfOnboardingModalPresent);
+    document.addEventListener('DOMContentLoaded', initOnboardingModal);
 } else {
-    loadPartnerJsIfOnboardingModalPresent();
+    initOnboardingModal();
 }
