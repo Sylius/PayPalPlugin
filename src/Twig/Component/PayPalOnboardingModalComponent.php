@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Twig\Component;
 
+use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -30,13 +31,20 @@ final class PayPalOnboardingModalComponent
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceProviderInterface $sellerNonceProvider,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     public function mount(): void
     {
-        $this->onboardingUrl = $this->onboardingUrlProvider->generate(
-            $this->sellerNonceProvider->generate(),
-        );
+        try {
+            $this->onboardingUrl = $this->onboardingUrlProvider->generate(
+                $this->sellerNonceProvider->generate(),
+            );
+        } catch (\Throwable $exception) {
+            $this->logger->error(
+                sprintf('Could not generate the PayPal onboarding URL: %s', $exception->getMessage()),
+            );
+        }
     }
 }
