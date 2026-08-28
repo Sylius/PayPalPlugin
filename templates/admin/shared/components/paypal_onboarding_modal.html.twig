@@ -1,3 +1,4 @@
+{% import '@SyliusAdmin/shared/helper/button.html.twig' as button %}
 {% props modal_id = null, type = null %}
 
 <div {{ attributes }} {{ sylius_test_html_attribute('modal', type) }}>
@@ -8,6 +9,8 @@
         aria-hidden="true"
         data-paypal-onboarding-complete-url="{{ path('sylius_paypal_admin_complete_onboarding') }}"
         data-paypal-onboarding-partner-js-url="{{ sylius_paypal_partner_js_url() }}"
+        data-action="show.bs.modal->live#action"
+        data-live-action-param="loadOnboardingUrl"
     >
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -17,18 +20,26 @@
                 <div class="modal-body">
                     <p>{{ 'sylius_paypal.onboarding_modal_description'|trans }}</p>
                     <div class="alert alert-danger d-none" data-paypal-onboarding-error></div>
-                    <a
-                        href="{{ onboardingUrl }}"
-                        target="_blank"
-                        data-paypal-button="true"
-                        data-paypal-onboard-complete="syliusPayPalOnboardedCallback"
-                        class="btn btn-outline-success"
-                    >
-                        {{ 'sylius.ui.yes_label'|trans }}
-                    </a>
+                    {% if failed %}
+                        <div class="alert alert-danger" data-paypal-onboarding-load-error>
+                            {{ 'sylius_paypal.could_not_load_onboarding_url'|trans }}
+                        </div>
+                        {{ button.default({ text: 'sylius.ui.yes_label'|trans, class: 'btn-outline-success', disabled: true }) }}
+                    {% elseif loading or not onboardingUrl %}
+                        {{ button.default({ text: 'sylius.ui.yes_label'|trans, class: 'btn-outline-success', disabled: true }) }}
+                    {% else %}
+                        <a
+                            href="{{ onboardingUrl }}"
+                            target="_blank"
+                            data-paypal-button="true"
+                            data-paypal-onboard-complete="syliusPayPalOnboardedCallback"
+                            class="btn btn-outline-success"
+                        >
+                            {{ 'sylius.ui.yes_label'|trans }}
+                        </a>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
-                    {% import '@SyliusAdmin/shared/helper/button.html.twig' as button %}
                     {{ button.default({ text: 'sylius.ui.no_label'|trans, attr: 'data-bs-dismiss=modal', type: 'button' }) }}
                 </div>
             </div>

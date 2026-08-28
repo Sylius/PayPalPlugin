@@ -17,6 +17,7 @@ use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
@@ -28,6 +29,12 @@ final class PayPalOnboardingModalComponent
     #[LiveProp]
     public string $onboardingUrl = '';
 
+    #[LiveProp]
+    public bool $loading = true;
+
+    #[LiveProp]
+    public bool $failed = false;
+
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceProviderInterface $sellerNonceProvider,
@@ -35,7 +42,8 @@ final class PayPalOnboardingModalComponent
     ) {
     }
 
-    public function mount(): void
+    #[LiveAction]
+    public function loadOnboardingUrl(): void
     {
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(
@@ -45,6 +53,9 @@ final class PayPalOnboardingModalComponent
             $this->logger->error(
                 sprintf('Could not generate the PayPal onboarding URL: %s', $exception->getMessage()),
             );
+            $this->failed = true;
         }
+
+        $this->loading = false;
     }
 }

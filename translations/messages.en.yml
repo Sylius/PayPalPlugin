@@ -10,6 +10,7 @@ sylius_paypal:
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     configure: 'Configure'
+    could_not_load_onboarding_url: 'Could not load the PayPal connection link. Please, close this window and try again.'
     credit_card: 'Credit Card'
     cvv: 'CVV'
     different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'

@@ -8,6 +8,7 @@ sylius_paypal:
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     configure: 'Configureren'
+    could_not_load_onboarding_url: 'Kan de PayPal-verbindingslink niet laden. Sluit dit venster en probeer het opnieuw.'
     credit_card: 'Credit Card'
     cvv: 'CVV'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
