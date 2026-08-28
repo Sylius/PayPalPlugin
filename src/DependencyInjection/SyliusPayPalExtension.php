@@ -25,10 +25,6 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 {
     public const PAYPAL_FACTORY_NAME = 'sylius_paypal';
 
-    public const PARTNER_ID = '';
-
-    public const PARTNER_CLIENT_ID = '';
-
     public const PARTNER_LOGO_URL = '';
 
     public function getAlias(): string
@@ -135,20 +131,24 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->setParameter('sylius_paypal.partner_logo_url', self::PARTNER_LOGO_URL);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
-            $container->setParameter('sylius_paypal.partner_id', '');
-            $container->setParameter('sylius_paypal.partner_client_id', '');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.sandbox.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.partner_js_url', 'https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
+            $partnerCredentialsUrl = 'https://paypal.sylius.com/partner-credentials';
         } else {
-            $container->setParameter('sylius_paypal.partner_id', self::PARTNER_ID);
-            $container->setParameter('sylius_paypal.partner_client_id', self::PARTNER_CLIENT_ID);
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
             $container->setParameter('sylius_paypal.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
+            $partnerCredentialsUrl = 'https://prod.paypal.sylius.com/partner-credentials';
         }
+
+        // TODO: remove once the real partner-credentials endpoint is in place.
+        $container->setParameter(
+            'sylius_paypal.partner_credentials_url',
+            $_ENV['SYLIUS_PAYPAL_PARTNER_CREDENTIALS_URL'] ?? $partnerCredentialsUrl,
+        );
     }
 
     private function processEnvConfig(array $configs): array

@@ -60,7 +60,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.seller_credentials'),
             service('sylius_paypal.api.authorize_client'),
             service('sylius_paypal.api.merchant_onboarding_status'),
-            '%sylius_paypal.partner_id%',
+            service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(SellerOnboardingResolverInterface::class, 'sylius_paypal.onboarding.resolver.seller');

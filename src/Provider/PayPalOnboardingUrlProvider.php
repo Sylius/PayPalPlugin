@@ -20,8 +20,7 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
 {
     public function __construct(
         private string $webUrl,
-        private string $partnerId,
-        private string $partnerClientId,
+        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
         private string $partnerLogoUrl,
         private UrlGeneratorInterface $urlGenerator,
     ) {
@@ -29,14 +28,16 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
 
     public function generate(string $sellerNonce): string
     {
+        $partnerCredentials = $this->partnerCredentialsProvider->provide();
+
         return UrlUtils::appendQueryString(
             $this->webUrl . '/bizsignup/partner/entry',
             http_build_query([
-                'partnerId' => $this->partnerId,
+                'partnerId' => $partnerCredentials->getPartnerId(),
                 'product' => 'express_checkout',
                 'integrationType' => 'FO',
                 'features' => 'payment,refund,access_merchant_information',
-                'partnerClientId' => $this->partnerClientId,
+                'partnerClientId' => $partnerCredentials->getPartnerClientId(),
                 'partnerLogoUrl' => $this->partnerLogoUrl,
                 'displayMode' => 'minibrowser',
                 'sellerNonce' => $sellerNonce,

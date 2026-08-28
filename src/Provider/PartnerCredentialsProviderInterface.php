@@ -17,14 +17,15 @@ use JsonException;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Model\PartnerCredentials;
 
-interface PayPalOnboardingUrlProviderInterface
+interface PartnerCredentialsProviderInterface
 {
     /**
      * @throws ClientExceptionInterface
-     * @throws InvalidArgumentException
      * @throws PayPalPluginException
+     * @throws InvalidArgumentException
      * @throws JsonException
      */
-    public function generate(string $sellerNonce): string;
+    public function provide(): PartnerCredentials;
 }

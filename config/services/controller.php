@@ -18,6 +18,7 @@ use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction;
 use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
+use Sylius\PayPalPlugin\Controller\PartnerCredentialsTestAction;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction;
 use Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction;
@@ -125,6 +126,8 @@ return static function (ContainerConfigurator $container) {
             service('sylius.repository.payment_method'),
             service('sylius_paypal.enabler.payment_method'),
         ]);
+
+    $services->set('sylius_paypal.controller.partner_credentials_test', PartnerCredentialsTestAction::class);
 
     $services->set('sylius_paypal.controller.complete_onboarding', CompleteOnboardingAction::class)
         ->args([

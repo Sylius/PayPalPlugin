@@ -21,7 +21,9 @@ use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Model\PartnerCredentials;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 
 final class SellerOnboardingResolverTest extends TestCase
 {
@@ -33,6 +35,8 @@ final class SellerOnboardingResolverTest extends TestCase
 
     private MerchantOnboardingStatusApiInterface&MockObject $merchantOnboardingStatusApi;
 
+    private PartnerCredentialsProviderInterface&MockObject $partnerCredentialsProvider;
+
     private SellerOnboardingResolver $resolver;
 
     protected function setUp(): void
@@ -42,13 +46,17 @@ final class SellerOnboardingResolverTest extends TestCase
         $this->sellerCredentialsApi = $this->createMock(SellerCredentialsApiInterface::class);
         $this->authorizeClientApi = $this->createMock(AuthorizeClientApiInterface::class);
         $this->merchantOnboardingStatusApi = $this->createMock(MerchantOnboardingStatusApiInterface::class);
+        $this->partnerCredentialsProvider = $this->createMock(PartnerCredentialsProviderInterface::class);
+        $this->partnerCredentialsProvider
+            ->method('provide')
+            ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
 
         $this->resolver = new SellerOnboardingResolver(
             $this->onboardingTokenApi,
             $this->sellerCredentialsApi,
             $this->authorizeClientApi,
             $this->merchantOnboardingStatusApi,
-            'PARTNER-ID',
+            $this->partnerCredentialsProvider,
         );
     }
 

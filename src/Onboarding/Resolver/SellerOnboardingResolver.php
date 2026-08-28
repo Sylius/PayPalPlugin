@@ -18,6 +18,7 @@ use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 
 final readonly class SellerOnboardingResolver implements SellerOnboardingResolverInterface
 {
@@ -26,19 +27,21 @@ final readonly class SellerOnboardingResolver implements SellerOnboardingResolve
         private SellerCredentialsApiInterface $sellerCredentialsApi,
         private AuthorizeClientApiInterface $authorizeClientApi,
         private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
-        private string $partnerId,
+        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
     ) {
     }
 
     public function resolve(string $authCode, string $sharedId, string $sellerNonce): SellerOnboardingResult
     {
+        $partnerId = $this->partnerCredentialsProvider->provide()->getPartnerId();
+
         $onboardingToken = $this->onboardingTokenApi->getFromAuthorizationCode($sharedId, $authCode, $sellerNonce);
 
-        $credentials = $this->sellerCredentialsApi->get($onboardingToken, $this->partnerId);
+        $credentials = $this->sellerCredentialsApi->get($onboardingToken, $partnerId);
 
         $sellerToken = $this->authorizeClientApi->authorize($credentials['client_id'], $credentials['client_secret']);
 
-        $status = $this->merchantOnboardingStatusApi->get($sellerToken, $this->partnerId, $credentials['payer_id']);
+        $status = $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $credentials['payer_id']);
 
         return new SellerOnboardingResult(
             $credentials['client_id'],

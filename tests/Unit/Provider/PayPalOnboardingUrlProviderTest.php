@@ -16,6 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\PayPalPlugin\Model\PartnerCredentials;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -24,17 +26,22 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
 {
     private UrlGeneratorInterface&MockObject $urlGenerator;
 
+    private PartnerCredentialsProviderInterface&MockObject $partnerCredentialsProvider;
+
     private PayPalOnboardingUrlProvider $payPalOnboardingUrlProvider;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $this->partnerCredentialsProvider = $this->createMock(PartnerCredentialsProviderInterface::class);
+        $this->partnerCredentialsProvider
+            ->method('provide')
+            ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
 
         $this->payPalOnboardingUrlProvider = new PayPalOnboardingUrlProvider(
             'https://www.sandbox.paypal.com',
-            'PARTNER-ID',
-            'PARTNER-CLIENT-ID',
+            $this->partnerCredentialsProvider,
             'https://shop.example.com/logo.png',
             $this->urlGenerator,
         );
