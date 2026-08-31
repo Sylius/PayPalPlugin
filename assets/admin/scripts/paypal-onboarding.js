@@ -13,9 +13,15 @@ function loadPartnerJs(partnerJsUrl) {
     }
 
     if (document.querySelector('script[data-paypal-partner-js]') !== null) {
-        if (window.PAYPAL && window.PAYPAL.apps && window.PAYPAL.apps.Signup
-            && typeof window.PAYPAL.apps.Signup.render === 'function') {
-            window.PAYPAL.apps.Signup.render();
+        const signup = window.PAYPAL && window.PAYPAL.apps && window.PAYPAL.apps.Signup;
+
+        if (signup && typeof signup.setup === 'function') {
+            // Partners ramped to the zoid mini-browser (the current default) expose `setup()`,
+            // which re-queries `[data-paypal-button]` and re-binds the click handler.
+            signup.setup();
+        } else if (signup && typeof signup.render === 'function') {
+            // Partners still on the legacy lightbox/signup.js flow expose `render()` for the same purpose.
+            signup.render();
         }
 
         return;
