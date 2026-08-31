@@ -59,17 +59,27 @@ final class SellerNonceProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_consumes_the_generated_nonce_once(): void
+    public function it_returns_the_generated_nonce_without_removing_it(): void
     {
         $nonce = $this->sellerNonceProvider->generate();
 
-        self::assertSame($nonce, $this->sellerNonceProvider->consume());
-        self::assertNull($this->sellerNonceProvider->consume());
+        self::assertSame($nonce, $this->sellerNonceProvider->get());
+        self::assertSame($nonce, $this->sellerNonceProvider->get());
+    }
+
+    #[Test]
+    public function it_removes_the_stored_nonce(): void
+    {
+        $this->sellerNonceProvider->generate();
+
+        $this->sellerNonceProvider->remove();
+
+        self::assertNull($this->sellerNonceProvider->get());
     }
 
     #[Test]
     public function it_returns_null_when_nothing_was_generated(): void
     {
-        self::assertNull($this->sellerNonceProvider->consume());
+        self::assertNull($this->sellerNonceProvider->get());
     }
 }

@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -93,8 +92,8 @@ final class PayPalPaymentMethodListenerTest extends TestCase
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
-            ->method('provide')
-            ->willReturn($paymentMethod);
+            ->method('exists')
+            ->willReturn(true);
 
         $flashBag
             ->expects(self::once())
@@ -152,8 +151,8 @@ final class PayPalPaymentMethodListenerTest extends TestCase
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
-            ->method('provide')
-            ->willThrowException(new PayPalPaymentMethodNotFoundException());
+            ->method('exists')
+            ->willReturn(false);
 
         $event
             ->expects($this->never())

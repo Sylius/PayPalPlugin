@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
@@ -59,13 +58,13 @@ final readonly class CompleteOnboardingAction
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($this->isTherePayPalPaymentMethod()) {
+        if ($this->payPalPaymentMethodProvider->exists()) {
             $flashBag->add('error', 'sylius_paypal.more_than_one_seller_not_allowed');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        $sellerNonce = $this->sellerNonceProvider->consume();
+        $sellerNonce = $this->sellerNonceProvider->get();
         if (null === $sellerNonce) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
 
@@ -82,6 +81,8 @@ final readonly class CompleteOnboardingAction
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
+        $this->sellerNonceProvider->remove();
+
         if (!$paymentMethod->isEnabled()) {
             $flashBag->add('warning', 'sylius_paypal.seller_onboarding_incomplete');
         }
@@ -89,16 +90,5 @@ final readonly class CompleteOnboardingAction
         return new JsonResponse([
             'redirectUrl' => $this->urlGenerator->generate('sylius_admin_payment_method_update', ['id' => $paymentMethod->getId()]),
         ]);
-    }
-
-    private function isTherePayPalPaymentMethod(): bool
-    {
-        try {
-            $this->payPalPaymentMethodProvider->provide();
-        } catch (PayPalPaymentMethodNotFoundException) {
-            return false;
-        }
-
-        return true;
     }
 }

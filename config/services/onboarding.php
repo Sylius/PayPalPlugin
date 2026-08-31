@@ -34,7 +34,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             '%sylius_paypal.web_url%',
             service('sylius_paypal.provider.partner_credentials'),
-            '%sylius_paypal.partner_logo_url%',
             service('router'),
         ]);
 
