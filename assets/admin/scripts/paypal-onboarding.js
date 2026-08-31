@@ -8,7 +8,16 @@
  */
 
 function loadPartnerJs(partnerJsUrl) {
-    if (!partnerJsUrl || document.querySelector('script[data-paypal-partner-js]') !== null) {
+    if (!partnerJsUrl) {
+        return;
+    }
+
+    if (document.querySelector('script[data-paypal-partner-js]') !== null) {
+        if (window.PAYPAL && window.PAYPAL.apps && window.PAYPAL.apps.Signup
+            && typeof window.PAYPAL.apps.Signup.render === 'function') {
+            window.PAYPAL.apps.Signup.render();
+        }
+
         return;
     }
 
@@ -66,7 +75,6 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
 
     const observer = new MutationObserver(() => {
         if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
-            observer.disconnect();
             loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
         }
     });
