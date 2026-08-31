@@ -37,12 +37,11 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
         $this->partnerCredentialsProvider = $this->createMock(PartnerCredentialsProviderInterface::class);
         $this->partnerCredentialsProvider
             ->method('provide')
-            ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
+            ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID', 'https://shop.example.com/logo.png'));
 
         $this->payPalOnboardingUrlProvider = new PayPalOnboardingUrlProvider(
             'https://www.sandbox.paypal.com',
             $this->partnerCredentialsProvider,
-            'https://shop.example.com/logo.png',
             $this->urlGenerator,
         );
     }

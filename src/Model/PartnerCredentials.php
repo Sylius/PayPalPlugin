@@ -18,6 +18,7 @@ final readonly class PartnerCredentials
     public function __construct(
         private string $partnerId,
         private string $partnerClientId,
+        private string $partnerLogoUrl = '',
     ) {
     }
 
@@ -29,5 +30,10 @@ final readonly class PartnerCredentials
     public function getPartnerClientId(): string
     {
         return $this->partnerClientId;
+    }
+
+    public function getPartnerLogoUrl(): string
+    {
+        return $this->partnerLogoUrl;
     }
 }

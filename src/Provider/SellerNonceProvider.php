@@ -32,7 +32,7 @@ final readonly class SellerNonceProvider implements SellerNonceProviderInterface
         return $nonce;
     }
 
-    public function consume(): ?string
+    public function get(): ?string
     {
         $session = $this->requestStack->getSession();
 
@@ -40,9 +40,11 @@ final readonly class SellerNonceProvider implements SellerNonceProviderInterface
             return null;
         }
 
-        $nonce = (string) $session->get(self::SESSION_KEY);
-        $session->remove(self::SESSION_KEY);
+        return (string) $session->get(self::SESSION_KEY);
+    }
 
-        return $nonce;
+    public function remove(): void
+    {
+        $this->requestStack->getSession()->remove(self::SESSION_KEY);
     }
 }

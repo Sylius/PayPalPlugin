@@ -23,6 +23,7 @@ final class PartnerCredentialsTestAction
         return new JsonResponse([
             'partner_id' => '',
             'partner_client_id' => '',
+            'partner_logo_url' => '',
         ]);
     }
 }

@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Listener;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -43,7 +42,7 @@ final readonly class PayPalPaymentMethodListener
             return;
         }
 
-        if (!$this->isTherePayPalPaymentMethod()) {
+        if (!$this->payPalPaymentMethodProvider->exists()) {
             return;
         }
 
@@ -59,16 +58,5 @@ final readonly class PayPalPaymentMethodListener
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
         return $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME;
-    }
-
-    private function isTherePayPalPaymentMethod(): bool
-    {
-        try {
-            $this->payPalPaymentMethodProvider->provide();
-        } catch (PayPalPaymentMethodNotFoundException $exception) {
-            return false;
-        }
-
-        return true;
     }
 }

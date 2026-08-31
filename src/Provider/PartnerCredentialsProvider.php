@@ -37,10 +37,14 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
     {
         $item = $this->cache->getItem(self::CACHE_KEY);
         if ($item->isHit()) {
-            /** @var array{partner_id: string, partner_client_id: string} $cached */
+            /** @var array{partner_id: string, partner_client_id: string, partner_logo_url?: string} $cached */
             $cached = $item->get();
 
-            return new PartnerCredentials($cached['partner_id'], $cached['partner_client_id']);
+            return new PartnerCredentials(
+                $cached['partner_id'],
+                $cached['partner_client_id'],
+                $cached['partner_logo_url'] ?? '',
+            );
         }
 
         $request = $this->requestFactory->createRequest(Request::METHOD_GET, $this->partnerCredentialsUrl)
@@ -51,15 +55,20 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
 
         $partnerId = (string) ($content['partner_id'] ?? '');
         $partnerClientId = (string) ($content['partner_client_id'] ?? '');
+        $partnerLogoUrl = (string) ($content['partner_logo_url'] ?? '');
 
         if ('' === $partnerId || '' === $partnerClientId) {
             throw new PayPalPluginException('partner_id/partner_client_id is missing in response');
         }
 
-        $item->set(['partner_id' => $partnerId, 'partner_client_id' => $partnerClientId]);
+        $item->set([
+            'partner_id' => $partnerId,
+            'partner_client_id' => $partnerClientId,
+            'partner_logo_url' => $partnerLogoUrl,
+        ]);
         $item->expiresAfter($this->cacheTtl);
         $this->cache->save($item);
 
-        return new PartnerCredentials($partnerId, $partnerClientId);
+        return new PartnerCredentials($partnerId, $partnerClientId, $partnerLogoUrl);
     }
 }

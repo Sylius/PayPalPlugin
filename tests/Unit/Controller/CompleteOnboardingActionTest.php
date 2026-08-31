@@ -20,7 +20,6 @@ use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
@@ -85,10 +84,11 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
-            ->method('provide')
-            ->willThrowException(new PayPalPaymentMethodNotFoundException());
+            ->method('exists')
+            ->willReturn(false);
 
-        $this->sellerNonceProvider->expects(self::once())->method('consume')->willReturn('SELLER-NONCE');
+        $this->sellerNonceProvider->expects(self::once())->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceProvider->expects(self::once())->method('remove');
 
         $this->sellerOnboardingResolver
             ->expects(self::once())
@@ -118,14 +118,13 @@ final class CompleteOnboardingActionTest extends TestCase
     public function it_returns_bad_request_when_a_paypal_payment_method_already_exists(): void
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
-        $existingPaymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
-            ->method('provide')
-            ->willReturn($existingPaymentMethod);
+            ->method('exists')
+            ->willReturn(true);
 
         $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
 
@@ -147,10 +146,11 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
-            ->method('provide')
-            ->willThrowException(new PayPalPaymentMethodNotFoundException());
+            ->method('exists')
+            ->willReturn(false);
 
-        $this->sellerNonceProvider->expects(self::once())->method('consume')->willReturn(null);
+        $this->sellerNonceProvider->expects(self::once())->method('get')->willReturn(null);
+        $this->sellerNonceProvider->expects(self::never())->method('remove');
         $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
 
         $response = ($this->action)($request);
@@ -167,10 +167,11 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
-            ->method('provide')
-            ->willThrowException(new PayPalPaymentMethodNotFoundException());
+            ->method('exists')
+            ->willReturn(false);
 
-        $this->sellerNonceProvider->expects(self::once())->method('consume')->willReturn('SELLER-NONCE');
+        $this->sellerNonceProvider->expects(self::once())->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceProvider->expects(self::never())->method('remove');
 
         $this->sellerOnboardingResolver
             ->expects(self::once())
@@ -191,7 +192,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
 
-        $this->payPalPaymentMethodProvider->expects(self::never())->method('provide');
+        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
 
         $response = ($this->action)($request);
 
@@ -206,7 +207,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
 
-        $this->payPalPaymentMethodProvider->expects(self::never())->method('provide');
+        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
 
         $response = ($this->action)($request);
 

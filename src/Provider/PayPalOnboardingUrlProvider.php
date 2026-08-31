@@ -21,7 +21,6 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
     public function __construct(
         private string $webUrl,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
-        private string $partnerLogoUrl,
         private UrlGeneratorInterface $urlGenerator,
     ) {
     }
@@ -38,7 +37,7 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
                 'integrationType' => 'FO',
                 'features' => 'payment,refund,access_merchant_information',
                 'partnerClientId' => $partnerCredentials->getPartnerClientId(),
-                'partnerLogoUrl' => $this->partnerLogoUrl,
+                'partnerLogoUrl' => $partnerCredentials->getPartnerLogoUrl(),
                 'displayMode' => 'minibrowser',
                 'sellerNonce' => $sellerNonce,
                 'returnToPartnerUrl' => $this->urlGenerator->generate(

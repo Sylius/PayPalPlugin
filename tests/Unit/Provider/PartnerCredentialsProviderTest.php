@@ -69,9 +69,17 @@ final class PartnerCredentialsProviderTest extends TestCase
             ->expects(self::once())
             ->method('execute')
             ->with($request, 'Partner credentials')
-            ->willReturn(['partner_id' => 'PARTNER-ID', 'partner_client_id' => 'PARTNER-CLIENT-ID']);
+            ->willReturn([
+                'partner_id' => 'PARTNER-ID',
+                'partner_client_id' => 'PARTNER-CLIENT-ID',
+                'partner_logo_url' => 'https://shop.example.com/logo.png',
+            ]);
 
-        $item->expects(self::once())->method('set')->with(['partner_id' => 'PARTNER-ID', 'partner_client_id' => 'PARTNER-CLIENT-ID'])->willReturn($item);
+        $item->expects(self::once())->method('set')->with([
+            'partner_id' => 'PARTNER-ID',
+            'partner_client_id' => 'PARTNER-CLIENT-ID',
+            'partner_logo_url' => 'https://shop.example.com/logo.png',
+        ])->willReturn($item);
         $item->expects(self::once())->method('expiresAfter')->willReturn($item);
         $this->cache->expects(self::once())->method('save')->with($item);
 
@@ -79,6 +87,34 @@ final class PartnerCredentialsProviderTest extends TestCase
 
         self::assertSame('PARTNER-ID', $credentials->getPartnerId());
         self::assertSame('PARTNER-CLIENT-ID', $credentials->getPartnerClientId());
+        self::assertSame('https://shop.example.com/logo.png', $credentials->getPartnerLogoUrl());
+    }
+
+    #[Test]
+    public function it_defaults_the_partner_logo_url_to_an_empty_string_when_absent(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $item = $this->createMock(CacheItemInterface::class);
+
+        $this->cache->method('getItem')->willReturn($item);
+        $item->method('isHit')->willReturn(false);
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+
+        $this->requestExecutor
+            ->method('execute')
+            ->willReturn(['partner_id' => 'PARTNER-ID', 'partner_client_id' => 'PARTNER-CLIENT-ID']);
+
+        $item->expects(self::once())->method('set')->with([
+            'partner_id' => 'PARTNER-ID',
+            'partner_client_id' => 'PARTNER-CLIENT-ID',
+            'partner_logo_url' => '',
+        ])->willReturn($item);
+        $item->method('expiresAfter')->willReturn($item);
+
+        $credentials = $this->provider->provide();
+
+        self::assertSame('', $credentials->getPartnerLogoUrl());
     }
 
     #[Test]
