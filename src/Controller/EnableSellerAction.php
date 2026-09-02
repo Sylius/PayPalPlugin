@@ -40,11 +40,11 @@ final readonly class EnableSellerAction
 
         try {
             $this->paymentMethodEnabler->enable($paymentMethod);
-        } catch (PaymentMethodCouldNotBeEnabledException $exception) {
+        } catch (PaymentMethodCouldNotBeEnabledException) {
             $flashBag->add('error', 'sylius_paypal.payment_not_enabled');
 
             return new RedirectResponse((string) $request->headers->get('referer'));
-        } catch (PayPalWebhookUrlNotValidException $exception) {
+        } catch (PayPalWebhookUrlNotValidException) {
             $flashBag->add('error', 'sylius_paypal.webhook_url_not_valid');
 
             return new RedirectResponse((string) $request->headers->get('referer'));

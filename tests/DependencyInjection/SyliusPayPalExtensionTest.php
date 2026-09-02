@@ -74,18 +74,6 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
             'https://api.sandbox.paypal.com/',
         ];
 
-        yield 'production mode facilitator url' => [
-            false,
-            'sylius_paypal.facilitator_url',
-            'https://prod.paypal.sylius.com',
-        ];
-
-        yield 'sandbox mode facilitator url' => [
-            true,
-            'sylius_paypal.facilitator_url',
-            'https://paypal.sylius.com',
-        ];
-
         yield 'production mode sftp host' => [
             false,
             'sylius.pay_pal.reports_sftp_host',
@@ -96,18 +84,6 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
             true,
             'sylius.pay_pal.reports_sftp_host',
             'reports.sandbox.paypal.com',
-        ];
-
-        yield 'production mode aliased facilitator url' => [
-            false,
-            'sylius.pay_pal.facilitator_url',
-            'https://prod.paypal.sylius.com',
-        ];
-
-        yield 'sandbox mode aliased facilitator url' => [
-            true,
-            'sylius.pay_pal.facilitator_url',
-            'https://paypal.sylius.com',
         ];
 
         yield 'production mode aliased api base url' => [
@@ -176,8 +152,7 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
 
     private function clearEnvVars(): void
     {
-        unset($_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED']);
-        unset($_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
+        unset($_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'], $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
     }
 
     private function restoreEnvVars(): void

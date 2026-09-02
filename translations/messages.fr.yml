@@ -3,6 +3,7 @@ sylius_paypal:
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    could_not_load_onboarding_url: "Impossible de charger le lien de connexion PayPal. Veuillez fermer cette fenêtre et réessayer."
     credit_card: 'Carte de crédit'
     credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
@@ -16,6 +17,7 @@ sylius_paypal:
     merchant_id: 'ID marchand'
     missing_billing_address_content: 'Merci de renseignez votre adresse'
     missing_billing_address_header: 'Impossible de récupérer une adresse de facturation depuis PayPal'
+    onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
     report: 'Rapport'

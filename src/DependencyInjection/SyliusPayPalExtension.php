@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
@@ -92,16 +93,38 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
         $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
+        $container->setParameter('sylius_paypal.partner_attribution_id', PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
-            $container->setParameter('sylius_paypal.facilitator_url', 'https://paypal.sylius.com');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.sandbox.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
+            $container->setParameter('sylius_paypal.web_url', 'https://www.sandbox.paypal.com');
+            $container->setParameter('sylius_paypal.partner_js_url', 'https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
+            $partnerCredentialsUrl = 'https://paypal.sylius.com/partner-credentials';
         } else {
-            $container->setParameter('sylius_paypal.facilitator_url', 'https://prod.paypal.sylius.com');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
+            $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
+            $container->setParameter('sylius_paypal.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
+            $partnerCredentialsUrl = 'https://prod.paypal.sylius.com/partner-credentials';
         }
+
+        // TODO: remove once the real partner-credentials endpoint is in place.
+        $container->setParameter(
+            'sylius_paypal.partner_credentials_url',
+            $_ENV['SYLIUS_PAYPAL_PARTNER_CREDENTIALS_URL'] ?? $partnerCredentialsUrl,
+        );
+
+        // partner_id/partner_client_id are static and identical for every store; configuring these lets
+        // onboarding survive a failing/slow partner-credentials call instead of hard-failing.
+        $container->setParameter(
+            'sylius_paypal.partner_credentials.fallback_partner_id',
+            $_ENV['SYLIUS_PAYPAL_FALLBACK_PARTNER_ID'] ?? '',
+        );
+        $container->setParameter(
+            'sylius_paypal.partner_credentials.fallback_partner_client_id',
+            $_ENV['SYLIUS_PAYPAL_FALLBACK_PARTNER_CLIENT_ID'] ?? '',
+        );
     }
 
     private function processEnvConfig(array $configs): array

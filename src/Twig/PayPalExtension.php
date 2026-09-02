@@ -21,8 +21,10 @@ use Twig\TwigFunction;
 
 final class PayPalExtension extends AbstractExtension
 {
-    public function __construct(private readonly bool $sandbox)
-    {
+    public function __construct(
+        private readonly bool $sandbox,
+        private readonly string $partnerJsUrl = '',
+    ) {
     }
 
     public function getFunctions(): array
@@ -30,12 +32,18 @@ final class PayPalExtension extends AbstractExtension
         return [
             new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
             new TwigFunction('sylius_is_paypal_sandbox', [$this, 'isSandbox']),
+            new TwigFunction('sylius_paypal_partner_js_url', [$this, 'getPartnerJsUrl']),
         ];
     }
 
     public function isSandbox(): bool
     {
         return $this->sandbox;
+    }
+
+    public function getPartnerJsUrl(): string
+    {
+        return $this->partnerJsUrl;
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool

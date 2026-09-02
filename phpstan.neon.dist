@@ -14,5 +14,3 @@ parameters:
 
     ignoreErrors:
         - identifier: missingType.iterableValue
-
-        - '/Dead catch - Sylius\\PayPalPlugin\\Exception\\PayPalWebhookUrlNotValidException is never thrown in the try block\./' # architectural smell
