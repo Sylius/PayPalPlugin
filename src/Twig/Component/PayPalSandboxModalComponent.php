@@ -44,11 +44,6 @@ final class PayPalSandboxModalComponent
     #[LiveProp]
     public ?string $type = null;
 
-    /**
-     * Tracks that the modal is open so a re-render (e.g. on a validation error) keeps rendering it in
-     * its shown state; otherwise the live-component morph would reset the Bootstrap-managed "show" class
-     * and inline display, closing it.
-     */
     #[LiveProp]
     public bool $opened = false;
 
