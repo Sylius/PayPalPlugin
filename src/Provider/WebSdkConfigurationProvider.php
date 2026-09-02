@@ -19,15 +19,15 @@ final readonly class WebSdkConfigurationProvider implements WebSdkConfigurationP
 {
     public function __construct(
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private string $webUrl,
-        private bool $sandbox,
+        private PayPalHostProviderInterface $hostProvider,
+        private PayPalActiveModeProviderInterface $activeModeProvider,
         private ?string $testBuyerCountry,
     ) {
     }
 
     public function getScriptUrl(): string
     {
-        return sprintf('%s/web-sdk/v6/core', $this->webUrl);
+        return sprintf('%s/web-sdk/v6/core', $this->hostProvider->getWebUrl());
     }
 
     public function getInstanceConfig(
@@ -49,7 +49,7 @@ final readonly class WebSdkConfigurationProvider implements WebSdkConfigurationP
 
         // Only ever simulate a buyer location in sandbox - PayPal support: this must never be sent in
         // production, so the sandbox flag is a hard gate, not just a default.
-        if ($this->sandbox && $this->testBuyerCountry !== null) {
+        if (null !== $this->testBuyerCountry && $this->activeModeProvider->isSandbox()) {
             $instanceConfig['testBuyerCountry'] = $this->testBuyerCountry;
         }
 

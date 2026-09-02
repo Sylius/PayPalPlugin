@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
@@ -21,6 +22,7 @@ use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
@@ -36,12 +38,13 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
         private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
         private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         private EntityManagerInterface $entityManager,
+        private PayPalCredentialsManagerInterface $credentialsManager,
     ) {
     }
 
     public function process(string $authCode, string $sharedId): OnboardingCompletionResult
     {
-        if ($this->payPalPaymentMethodProvider->exists()) {
+        if ($this->isProductionSellerOnboarded()) {
             throw new PayPalPaymentMethodAlreadyExistsException();
         }
 
@@ -77,5 +80,17 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
         }
 
         return true;
+    }
+
+    private function isProductionSellerOnboarded(): bool
+    {
+        if (!$this->payPalPaymentMethodProvider->exists()) {
+            return false;
+        }
+
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $this->payPalPaymentMethodProvider->provide()->getGatewayConfig();
+
+        return $this->credentialsManager->hasCredentials($gatewayConfig->getConfig(), false);
     }
 }

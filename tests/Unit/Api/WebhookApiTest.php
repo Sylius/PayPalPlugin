@@ -23,10 +23,13 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 
 final class WebhookApiTest extends TestCase
 {
     private ClientInterface&MockObject $client;
+
+    private PayPalHostProviderInterface&MockObject $hostProvider;
 
     private RequestFactoryInterface&MockObject $requestFactory;
 
@@ -38,12 +41,14 @@ final class WebhookApiTest extends TestCase
     {
         parent::setUp();
         $this->client = $this->createMock(ClientInterface::class);
+        $this->hostProvider = $this->createMock(PayPalHostProviderInterface::class);
+        $this->hostProvider->method('getApiBaseUrl')->willReturn('http://base-url.com/');
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
 
         $this->webhookApi = new WebhookApi(
             $this->client,
-            'http://base-url.com/',
+            $this->hostProvider,
             $this->requestFactory,
             $this->streamFactory,
         );

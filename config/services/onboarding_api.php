@@ -79,7 +79,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.api.onboarding_token'),
             service('sylius_paypal.api.seller_credentials'),
-            service('sylius_paypal.api.authorize_client'),
+            service('sylius_paypal.api.authorize_client.onboarding'),
             service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius_paypal.provider.partner_credentials'),
         ]);

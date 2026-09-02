@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -42,12 +43,16 @@ final class WebhookIdProviderTest extends TestCase
 
     private UrlGeneratorInterface&MockObject $urlGenerator;
 
+    private PayPalHostProviderInterface&MockObject $hostProvider;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->genericApi = $this->createMock(GenericApiInterface::class);
         $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $this->hostProvider = $this->createMock(PayPalHostProviderInterface::class);
+        $this->hostProvider->method('getApiBaseUrl')->willReturn(self::API_BASE_URL);
     }
 
     #[Test]
@@ -254,7 +259,7 @@ final class WebhookIdProviderTest extends TestCase
             $this->genericApi,
             $this->authorizeClientApi,
             $this->urlGenerator,
-            self::API_BASE_URL,
+            $this->hostProvider,
             $webhookBaseUrl,
         );
     }

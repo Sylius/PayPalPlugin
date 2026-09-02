@@ -18,8 +18,6 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
 {
-    private ?string $originalSandboxEnv = null;
-
     private ?string $originalLoggingEnv = null;
 
     protected function setUp(): void
@@ -48,120 +46,56 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
     }
 
     /**
-     * @dataProvider sandboxModeParametersProvider
+     * @dataProvider productionCommunicationParametersProvider
      */
-    public function test_it_sets_parameters_based_on_sandbox_mode(
-        bool $sandboxEnabled,
+    public function test_it_always_sets_production_communication_parameters(
         string $parameterName,
         string $expectedValue,
     ): void {
-        $this->load(['sandbox' => $sandboxEnabled]);
-
-        $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
-    }
-
-    public static function sandboxModeParametersProvider(): iterable
-    {
-        yield 'production mode api base url' => [
-            false,
-            'sylius_paypal.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'sandbox mode api base url' => [
-            true,
-            'sylius_paypal.api_base_url',
-            'https://api.sandbox.paypal.com/',
-        ];
-
-        yield 'production mode sftp host' => [
-            false,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.paypal.com',
-        ];
-
-        yield 'sandbox mode sftp host' => [
-            true,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.sandbox.paypal.com',
-        ];
-
-        yield 'production mode aliased api base url' => [
-            false,
-            'sylius.pay_pal.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'sandbox mode aliased api base url' => [
-            true,
-            'sylius.pay_pal.api_base_url',
-            'https://api.sandbox.paypal.com/',
-        ];
-
-        yield 'production mode aliased sftp host' => [
-            false,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.paypal.com',
-        ];
-
-        yield 'sandbox mode aliased sftp host' => [
-            true,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.sandbox.paypal.com',
-        ];
-    }
-
-    /**
-     * @dataProvider environmentVariablesProvider
-     */
-    public function test_it_respects_environment_variables(
-        string $envVarName,
-        string $envVarValue,
-        string $parameterName,
-        mixed $expectedValue,
-    ): void {
-        $this->setEnvVar($envVarName, $envVarValue);
-
         $this->load();
 
         $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
     }
 
-    public static function environmentVariablesProvider(): iterable
+    public static function productionCommunicationParametersProvider(): iterable
     {
-        yield 'sandbox mode disabled via env' => [
-            'SYLIUS_PAYPAL_SANDBOX_ENABLED',
-            'false',
+        yield 'api base url' => [
             'sylius_paypal.api_base_url',
             'https://api.paypal.com/',
         ];
 
-        yield 'logging increased enabled via env' => [
-            'SYLIUS_PAYPAL_LOGGING_INCREASED',
-            'true',
-            'sylius_paypal.logging.increased',
-            true,
+        yield 'web url' => [
+            'sylius_paypal.web_url',
+            'https://www.paypal.com',
         ];
+
+        yield 'partner js url' => [
+            'sylius_paypal.partner_js_url',
+            'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js',
+        ];
+    }
+
+    public function test_it_increases_logging_via_env(): void
+    {
+        $this->setEnvVar('SYLIUS_PAYPAL_LOGGING_INCREASED', 'true');
+
+        $this->load();
+
+        $this->assertContainerBuilderHasParameter('sylius_paypal.logging.increased', true);
     }
 
     private function saveEnvVars(): void
     {
-        $this->originalSandboxEnv = $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] ?? null;
         $this->originalLoggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;
     }
 
     private function clearEnvVars(): void
     {
-        unset($_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'], $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
+        unset($_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
     }
 
     private function restoreEnvVars(): void
     {
-        if ($this->originalSandboxEnv !== null) {
-            $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] = $this->originalSandboxEnv;
-        } else {
-            unset($_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED']);
-        }
         if ($this->originalLoggingEnv !== null) {
             $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] = $this->originalLoggingEnv;
         } else {

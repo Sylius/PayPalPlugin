@@ -52,6 +52,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.creator.onboarding_payment_method'),
             service('sylius_paypal.registrar.seller_webhook'),
             service('doctrine.orm.entity_manager'),
+            service('sylius_paypal.manager.credentials'),
         ]);
 
     $services->alias(OnboardingCompletionProcessorInterface::class, 'sylius_paypal.onboarding.processor.completion');

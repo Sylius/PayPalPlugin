@@ -22,11 +22,17 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Downloader\PayoutsReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
+use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Model\Report;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 
 final class SftpPayoutsReportDownloaderTest extends TestCase
 {
     private SFTP&MockObject $sftp;
+
+    private SftpClientFactoryInterface&MockObject $sftpClientFactory;
+
+    private PayPalHostProviderInterface&MockObject $hostProvider;
 
     private SftpPayoutsReportDownloader $sftpPayoutsReportDownloader;
 
@@ -34,7 +40,14 @@ final class SftpPayoutsReportDownloaderTest extends TestCase
     {
         parent::setUp();
         $this->sftp = $this->createMock(SFTP::class);
-        $this->sftpPayoutsReportDownloader = new SftpPayoutsReportDownloader($this->sftp);
+        $this->sftpClientFactory = $this->createMock(SftpClientFactoryInterface::class);
+        $this->hostProvider = $this->createMock(PayPalHostProviderInterface::class);
+        $this->hostProvider->method('getReportsSftpHostForMode')->willReturn('reports.paypal.com');
+        $this->sftpClientFactory->method('createForHost')->willReturn($this->sftp);
+        $this->sftpPayoutsReportDownloader = new SftpPayoutsReportDownloader(
+            $this->sftpClientFactory,
+            $this->hostProvider,
+        );
     }
 
     #[Test]
@@ -58,6 +71,7 @@ final class SftpPayoutsReportDownloaderTest extends TestCase
             ->expects(self::once())
             ->method('getConfig')
             ->willReturn([
+                'sandbox' => false,
                 'partner_attribution_id' => 'PARTNER-ID',
                 'reports_sftp_username' => 'SFTP-USERNAME',
                 'reports_sftp_password' => 'SFTP-PASSWORD',
@@ -118,6 +132,7 @@ final class SftpPayoutsReportDownloaderTest extends TestCase
             ->expects(self::once())
             ->method('getConfig')
             ->willReturn([
+                'sandbox' => false,
                 'partner_attribution_id' => 'PARTNER-ID',
                 'reports_sftp_username' => 'SFTP-USERNAME',
                 'reports_sftp_password' => 'SFTP-PASSWORD',
@@ -149,6 +164,7 @@ final class SftpPayoutsReportDownloaderTest extends TestCase
             ->expects(self::once())
             ->method('getConfig')
             ->willReturn([
+                'sandbox' => false,
                 'partner_attribution_id' => 'PARTNER-ID',
                 'reports_sftp_username' => 'SFTP-USERNAME',
                 'reports_sftp_password' => 'SFTP-PASSWORD',

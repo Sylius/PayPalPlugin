@@ -39,6 +39,20 @@ final class PayPalSandboxModalComponent
     use ComponentWithFormTrait;
 
     #[LiveProp]
+    public ?string $modalId = null;
+
+    #[LiveProp]
+    public ?string $type = null;
+
+    /**
+     * Tracks that the modal is open so a re-render (e.g. on a validation error) keeps rendering it in
+     * its shown state; otherwise the live-component morph would reset the Bootstrap-managed "show" class
+     * and inline display, closing it.
+     */
+    #[LiveProp]
+    public bool $opened = false;
+
+    #[LiveProp]
     public ?PayPalSandboxCredentialsType $paypalSandboxCredentials = null;
 
     public function __construct(
@@ -53,8 +67,10 @@ final class PayPalSandboxModalComponent
     #[LiveAction]
     public function submit(): ?RedirectResponse
     {
+        $this->opened = true;
+
         $this->submitForm();
-        if (!$this->form->isSubmitted() && !$this->form->isValid()) {
+        if (!$this->form->isSubmitted() || !$this->form->isValid()) {
             return null;
         }
 
@@ -67,7 +83,10 @@ final class PayPalSandboxModalComponent
         try {
             $paymentMethod = $this->sandboxPaymentMethodCreator->create($clientId, $clientSecret, $merchantId);
         } catch (\Throwable $exception) {
-            $this->logger->error($exception->getMessage());
+            $this->logger->error(
+                sprintf('Could not create the sandbox PayPal payment method: %s', $exception->getMessage()),
+                ['exception' => $exception],
+            );
 
             FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)->add('error', 'sylius_paypal.could_not_create_paypal_payment_method');
 
@@ -75,6 +94,8 @@ final class PayPalSandboxModalComponent
                 $this->router->generate(self::INDEX_ROUTE),
             );
         }
+
+        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)->add('success', 'sylius_paypal.sandbox_connected_successfully');
 
         return new RedirectResponse(
             $this->router->generate(
