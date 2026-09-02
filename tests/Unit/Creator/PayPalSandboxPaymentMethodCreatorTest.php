@@ -20,6 +20,8 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
+use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
 final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
 {
@@ -29,17 +31,42 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $clientSecret = 'test_client_secret';
         $merchantId = 'test_merchant_id';
 
+        $storedConfig = [
+            'use_authorize' => 1,
+            'reports_sftp_password' => null,
+            'reports_sftp_username' => null,
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'merchant_id' => $merchantId,
+            'sylius_merchant_id' => 'sandbox_merchant_id',
+            'partner_attribution_id' => 'PARTNER-ID',
+            'sandbox' => true,
+        ];
+
         /** @var FactoryInterface&MockObject $gatewayFactory */
         $gatewayFactory = $this->createMock(FactoryInterface::class);
         /** @var FactoryInterface&MockObject $paymentMethodFactory */
         $paymentMethodFactory = $this->createMock(FactoryInterface::class);
         /** @var EntityManagerInterface&MockObject $entityManager */
         $entityManager = $this->createMock(EntityManagerInterface::class);
+        /** @var PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider */
+        $payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
+        /** @var PayPalCredentialsManagerInterface&MockObject $credentialsManager */
+        $credentialsManager = $this->createMock(PayPalCredentialsManagerInterface::class);
 
         /** @var GatewayConfigInterface&MockObject $gatewayConfig */
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
         /** @var PaymentMethodInterface&MockObject $paymentMethod */
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $payPalPaymentMethodProvider->expects(self::once())
+            ->method('exists')
+            ->willReturn(false);
+
+        $credentialsManager->expects(self::once())
+            ->method('store')
+            ->with(self::anything(), true, self::anything())
+            ->willReturn($storedConfig);
 
         $gatewayFactory->expects(self::once())
             ->method('createNew')
@@ -53,16 +80,7 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
             ->with('sylius_paypal_sandbox');
         $gatewayConfig->expects(self::once())
             ->method('setConfig')
-            ->with(self::callback(function ($config) use ($clientId, $clientSecret, $merchantId) {
-                return $config['client_id'] === $clientId &&
-                    $config['client_secret'] === $clientSecret &&
-                    $config['merchant_id'] === $merchantId &&
-                    $config['use_authorize'] === 1 &&
-                    isset($config['sylius_merchant_id']) &&
-                    array_key_exists('reports_sftp_password', $config) &&
-                    array_key_exists('reports_sftp_username', $config) &&
-                    isset($config['partner_attribution_id']);
-            }));
+            ->with($storedConfig);
 
         $paymentMethodFactory->expects(self::once())
             ->method('createNew')
@@ -91,6 +109,8 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
             $gatewayFactory,
             $paymentMethodFactory,
             $entityManager,
+            $payPalPaymentMethodProvider,
+            $credentialsManager,
         );
 
         $result = $creator->create($clientId, $clientSecret, $merchantId);

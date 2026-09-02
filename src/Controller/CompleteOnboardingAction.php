@@ -74,6 +74,10 @@ final readonly class CompleteOnboardingAction
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
+        if ($result->getPaymentMethod()->isEnabled()) {
+            $flashBag->add('success', 'sylius_paypal.production_connected_successfully');
+        }
+
         foreach ($this->onboardingStatusMessagesProvider->provide($result->getStatus()) as $message) {
             $flashBag->add('warning', $message);
         }

@@ -13,15 +13,20 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
+use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalMode;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PayPalConfigurationType extends AbstractType
 {
@@ -32,11 +37,30 @@ final class PayPalConfigurationType extends AbstractType
         PayPalGatewayConfig::USE_AUTHORIZE,
     ];
 
+    private const SANDBOX_MODE_FIELD = 'sandbox_mode';
+
+    public function __construct(
+        private readonly PayPalCredentialsManagerInterface $credentialsManager,
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $originalData = [];
 
         $builder
+            ->add(self::SANDBOX_MODE_FIELD, ChoiceType::class, [
+                'label' => 'sylius_paypal.mode',
+                'mapped' => false,
+                'expanded' => false,
+                'multiple' => false,
+                'choices' => [
+                    'sylius_paypal.mode_production' => false,
+                    'sylius_paypal.mode_sandbox' => true,
+                ],
+                'choice_value' => static fn (?bool $mode): string => (true === $mode ? PayPalMode::Sandbox : PayPalMode::Production)->value,
+            ])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
@@ -70,6 +94,13 @@ final class PayPalConfigurationType extends AbstractType
             }
         });
 
+        $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
+            $data = $event->getData();
+            if (is_array($data)) {
+                $event->getForm()->get(self::SANDBOX_MODE_FIELD)->setData((bool) ($data[PayPalCredentialsManagerInterface::MODE_KEY] ?? false));
+            }
+        });
+
         $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) use (&$originalData): void {
             $submitted = $event->getData() ?? [];
 
@@ -84,5 +115,40 @@ final class PayPalConfigurationType extends AbstractType
 
             $event->setData($submitted);
         });
+
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event): void {
+            $config = $event->getData();
+            if (!is_array($config)) {
+                return;
+            }
+
+            $event->setData($this->applyModeSwitch($event, $config));
+        });
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @return array<string, mixed>
+     */
+    private function applyModeSwitch(FormEvent $event, array $config): array
+    {
+        $currentSandbox = (bool) ($config[PayPalCredentialsManagerInterface::MODE_KEY] ?? false);
+        $requestedSandbox = (bool) $event->getForm()->get(self::SANDBOX_MODE_FIELD)->getData();
+        $config = $this->credentialsManager->store($config, $currentSandbox, $config);
+
+        if ($requestedSandbox === $currentSandbox) {
+            return $config;
+        }
+
+        if (!$this->credentialsManager->hasCredentials($config, $requestedSandbox)) {
+            $event->getForm()->get(self::SANDBOX_MODE_FIELD)->addError(
+                new FormError($this->translator->trans('sylius_paypal.mode_not_configured')),
+            );
+
+            return $config;
+        }
+
+        return $this->credentialsManager->switchTo($config, $requestedSandbox);
     }
 }
