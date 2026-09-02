@@ -168,4 +168,50 @@ final class PartnerCredentialsProviderTest extends TestCase
 
         $this->provider->provide();
     }
+
+    #[Test]
+    public function it_falls_back_to_the_configured_credentials_when_the_request_fails_and_a_fallback_is_configured(): void
+    {
+        $provider = new PartnerCredentialsProvider(
+            $this->requestExecutor,
+            $this->requestFactory,
+            $this->cache,
+            'https://partner.example.com/partner-credentials',
+            3600,
+            'FALLBACK-PARTNER-ID',
+            'FALLBACK-PARTNER-CLIENT-ID',
+        );
+
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('withHeader')->willReturn($request);
+        $item = $this->createMock(CacheItemInterface::class);
+        $this->cache->method('getItem')->willReturn($item);
+        $item->method('isHit')->willReturn(false);
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $this->requestExecutor->method('execute')->willThrowException(new \RuntimeException('Timed out'));
+
+        $item->expects(self::never())->method('set');
+        $this->cache->expects(self::never())->method('save');
+
+        $credentials = $provider->provide();
+
+        self::assertSame('FALLBACK-PARTNER-ID', $credentials->getPartnerId());
+        self::assertSame('FALLBACK-PARTNER-CLIENT-ID', $credentials->getPartnerClientId());
+    }
+
+    #[Test]
+    public function it_rethrows_when_the_request_fails_and_no_fallback_is_configured(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('withHeader')->willReturn($request);
+        $item = $this->createMock(CacheItemInterface::class);
+        $this->cache->method('getItem')->willReturn($item);
+        $item->method('isHit')->willReturn(false);
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $this->requestExecutor->method('execute')->willThrowException(new \RuntimeException('Timed out'));
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->provider->provide();
+    }
 }

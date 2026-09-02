@@ -43,6 +43,10 @@ final readonly class CompleteOnboardingAction
         $flashBag = $request->getSession()->getBag('flashes');
         $indexUrl = $this->urlGenerator->generate('sylius_admin_payment_method_index');
 
+        if (!str_starts_with((string) $request->headers->get('Content-Type'), 'application/json')) {
+            return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
+        }
+
         try {
             $data = (array) json_decode(
                 json: $request->getContent(),

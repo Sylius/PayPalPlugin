@@ -14,13 +14,23 @@ use Sylius\PayPalPlugin\Api\SellerCredentialsApi;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\Psr18Client;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
 
+    $services->set('sylius_paypal.http_client.onboarding', Psr18Client::class)
+        ->private()
+        ->args([
+            inline_service(HttpClient::class)
+                ->factory([HttpClient::class, 'create'])
+                ->args([['timeout' => 2, 'max_duration' => 2]]),
+        ]);
+
     $services->set('sylius_paypal.api.onboarding_request_executor', PayPalOnboardingRequestExecutor::class)
         ->args([
-            service('sylius.http_client'),
+            service('sylius_paypal.http_client.onboarding'),
             service('monolog.logger.paypal'),
         ]);
 
