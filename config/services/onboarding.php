@@ -26,6 +26,9 @@ return static function (ContainerConfigurator $container) {
             service(RequestFactoryInterface::class),
             service('cache.app'),
             '%sylius_paypal.partner_credentials_url%',
+            3600,
+            '%sylius_paypal.partner_credentials.fallback_partner_id%',
+            '%sylius_paypal.partner_credentials.fallback_partner_client_id%',
         ]);
 
     $services->alias(PartnerCredentialsProviderInterface::class, 'sylius_paypal.provider.partner_credentials');

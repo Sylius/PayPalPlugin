@@ -30,6 +30,8 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
         private CacheItemPoolInterface $cache,
         private string $partnerCredentialsUrl,
         private int $cacheTtl = 3600,
+        private string $fallbackPartnerId = '',
+        private string $fallbackPartnerClientId = '',
     ) {
     }
 
@@ -47,18 +49,28 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
             );
         }
 
-        $request = $this->requestFactory->createRequest(Request::METHOD_GET, $this->partnerCredentialsUrl)
-            ->withHeader('Accept', 'application/json')
-        ;
+        try {
+            $request = $this->requestFactory->createRequest(Request::METHOD_GET, $this->partnerCredentialsUrl)
+                ->withHeader('Accept', 'application/json')
+            ;
 
-        $content = $this->requestExecutor->execute($request, 'Partner credentials');
+            $content = $this->requestExecutor->execute($request, 'Partner credentials');
 
-        $partnerId = (string) ($content['partner_id'] ?? '');
-        $partnerClientId = (string) ($content['partner_client_id'] ?? '');
-        $partnerLogoUrl = (string) ($content['partner_logo_url'] ?? '');
+            $partnerId = (string) ($content['partner_id'] ?? '');
+            $partnerClientId = (string) ($content['partner_client_id'] ?? '');
+            $partnerLogoUrl = (string) ($content['partner_logo_url'] ?? '');
 
-        if ('' === $partnerId || '' === $partnerClientId) {
-            throw new PayPalPluginException('partner_id/partner_client_id is missing in response');
+            if ('' === $partnerId || '' === $partnerClientId) {
+                throw new PayPalPluginException('partner_id/partner_client_id is missing in response');
+            }
+        } catch (\Throwable $exception) {
+            // partner_id/partner_client_id are static and identical for every store, so a failing/slow
+            // partner-credentials call should not break onboarding or re-enabling an existing seller.
+            if ('' === $this->fallbackPartnerId || '' === $this->fallbackPartnerClientId) {
+                throw $exception;
+            }
+
+            return new PartnerCredentials($this->fallbackPartnerId, $this->fallbackPartnerClientId);
         }
 
         $item->set([

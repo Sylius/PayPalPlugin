@@ -214,10 +214,35 @@ final class CompleteOnboardingActionTest extends TestCase
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
 
+    #[Test]
+    public function it_returns_bad_request_when_the_content_type_is_not_application_json(): void
+    {
+        $request = Request::create(
+            '/onboarding/complete',
+            'POST',
+            content: (string) json_encode(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']),
+            server: ['CONTENT_TYPE' => 'text/plain'],
+        );
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
+
+        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
     /** @param array<string, mixed> $body */
     private function requestWithBody(array $body): Request
     {
-        $request = Request::create('/onboarding/complete', 'POST', content: (string) json_encode($body));
+        $request = Request::create(
+            '/onboarding/complete',
+            'POST',
+            content: (string) json_encode($body),
+            server: ['CONTENT_TYPE' => 'application/json'],
+        );
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         return $request;

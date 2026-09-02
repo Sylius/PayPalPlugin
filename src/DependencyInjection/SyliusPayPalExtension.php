@@ -146,6 +146,17 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
             'sylius_paypal.partner_credentials_url',
             $_ENV['SYLIUS_PAYPAL_PARTNER_CREDENTIALS_URL'] ?? $partnerCredentialsUrl,
         );
+
+        // partner_id/partner_client_id are static and identical for every store; configuring these lets
+        // onboarding survive a failing/slow partner-credentials call instead of hard-failing.
+        $container->setParameter(
+            'sylius_paypal.partner_credentials.fallback_partner_id',
+            $_ENV['SYLIUS_PAYPAL_FALLBACK_PARTNER_ID'] ?? '',
+        );
+        $container->setParameter(
+            'sylius_paypal.partner_credentials.fallback_partner_client_id',
+            $_ENV['SYLIUS_PAYPAL_FALLBACK_PARTNER_CLIENT_ID'] ?? '',
+        );
     }
 
     private function processEnvConfig(array $configs): array
