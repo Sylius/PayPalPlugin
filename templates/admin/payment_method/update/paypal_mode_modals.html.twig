@@ -1,0 +1,16 @@
+{% set paymentMethod = hookable_metadata.context.resource ?? null %}
+
+{% if
+    paymentMethod is not null and
+    paymentMethod.gatewayConfig is not null and
+    paymentMethod.gatewayConfig.factoryName == 'sylius_paypal'
+%}
+    {% component 'sylius_paypal:create_onboarding_modal' with {modalId: 'confirmation-modal-create-pay-pal', type: 'create-pay-pal'} %}
+    {% endcomponent %}
+
+    {% component 'sylius_paypal:create_sandbox_modal' with {
+        modalId: 'confirmation-modal-create-paypal-sandbox',
+        type: 'sylius-create-paypal-sandbox'
+    } %}
+    {% endcomponent %}
+{% endif %}

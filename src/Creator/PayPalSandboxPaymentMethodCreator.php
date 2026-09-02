@@ -18,6 +18,8 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
 final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxPaymentMethodCreatorInterface
 {
@@ -25,12 +27,36 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         private FactoryInterface $gatewayFactory,
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
+        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private PayPalCredentialsManagerInterface $credentialsManager,
     ) {
     }
 
     public function create(string $clientId, string $clientSecret, string $merchantId): PaymentMethodInterface
     {
-        $gatewayConfig = $this->createGatewayConfig($clientId, $clientSecret, $merchantId);
+        $credentials = [
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'merchant_id' => $merchantId,
+            'sylius_merchant_id' => self::SYLIUS_SANDBOX_MERCHANT_ID,
+            'partner_attribution_id' => self::PARTNER_ATTRIBUTION_ID,
+        ];
+
+        if ($this->payPalPaymentMethodProvider->exists()) {
+            $paymentMethod = $this->payPalPaymentMethodProvider->provide();
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
+            $gatewayConfig->setConfig(
+                $this->credentialsManager->store($gatewayConfig->getConfig(), true, $credentials),
+            );
+            $paymentMethod->setEnabled(true);
+
+            $this->entityManager->flush();
+
+            return $paymentMethod;
+        }
+
+        $gatewayConfig = $this->createGatewayConfig($credentials);
         $paymentMethod = $this->createPaymentMethod($gatewayConfig);
 
         $this->entityManager->persist($paymentMethod);
@@ -39,23 +65,21 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         return $paymentMethod;
     }
 
-    private function createGatewayConfig(string $clientId, string $clientSecret, string $merchantId): GatewayConfigInterface
+    /**
+     * @param array<string, mixed> $credentials
+     */
+    private function createGatewayConfig(array $credentials): GatewayConfigInterface
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $this->gatewayFactory->createNew();
         $gatewayConfig->setFactoryName(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
         $gatewayConfig->setGatewayName(self::GATEWAY_NAME);
 
-        $gatewayConfig->setConfig([
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'merchant_id' => $merchantId,
+        $gatewayConfig->setConfig($this->credentialsManager->store([
             'use_authorize' => 1,
-            'sylius_merchant_id' => self::SYLIUS_SANDBOX_MERCHANT_ID,
             'reports_sftp_password' => null,
             'reports_sftp_username' => null,
-            'partner_attribution_id' => self::PARTNER_ATTRIBUTION_ID,
-        ]);
+        ], true, $credentials));
 
         return $gatewayConfig;
     }

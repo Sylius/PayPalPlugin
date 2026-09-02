@@ -1,0 +1,38 @@
+{% set form = hookable_metadata.context.form.gatewayConfig.config %}
+{% set paymentMethod = hookable_metadata.context.resource ?? null %}
+{% set config = (paymentMethod is not null and paymentMethod.gatewayConfig is not null) ? paymentMethod.gatewayConfig.config : {} %}
+{% set view = sylius_paypal_mode_switch_view(config) %}
+
+<div
+    class="col-12"
+    data-paypal-mode-switch
+    data-sandbox-configured="{{ view.sandboxConfigured ? '1' : '0' }}"
+    data-production-configured="{{ view.productionConfigured ? '1' : '0' }}"
+    data-paypal-credentials="{{ view.credentialsPreview|json_encode|e('html_attr') }}"
+>
+    {{ form_row(form.sandbox_mode) }}
+
+    {% if app.environment == 'prod' %}
+        <div class="alert alert-danger d-flex align-items-center{{ view.sandboxMode ? '' : ' d-none' }}" role="alert" data-paypal-sandbox-warning>
+            {{ ux_icon('tabler:alert-triangle-filled', {class: 'me-2 flex-shrink-0', width: 24, height: 24}) }}
+            <span>{{ 'sylius_paypal.sandbox_on_production_warning'|trans }}</span>
+        </div>
+    {% endif %}
+
+    {% if not view.productionConfigured or not view.sandboxConfigured %}
+        <div class="d-flex flex-wrap gap-2 mt-2">
+            {% if not view.productionConfigured %}
+                <button type="button" data-paypal-setup-mode="production" class="btn btn-outline-primary mb-3{{ view.sandboxMode ? ' d-none' : '' }}" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-pay-pal">
+                    {{ ux_icon('tabler:brand-paypal-filled', {class: 'me-1', width: 16, height: 16}) }}
+                    {{ 'sylius_paypal.set_up_production'|trans }}
+                </button>
+            {% endif %}
+            {% if not view.sandboxConfigured %}
+                <button type="button" data-paypal-setup-mode="sandbox" class="btn btn-outline-secondary mb-3{{ view.sandboxMode ? '' : ' d-none' }}" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-paypal-sandbox">
+                    {{ ux_icon('tabler:flask', {class: 'me-1', width: 16, height: 16}) }}
+                    {{ 'sylius_paypal.set_up_sandbox'|trans }}
+                </button>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

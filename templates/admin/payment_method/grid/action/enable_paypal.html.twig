@@ -5,21 +5,18 @@
             {{ 'sylius_paypal.enable_paypal'|trans }}
         </button>
         <ul class="dropdown-menu">
-            {% if sylius_is_paypal_sandbox() %}
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-paypal-sandbox">
-                        {{ ux_icon('tabler:flask') }}
-                        {{ 'sylius_paypal.enable_paypal_sandbox'|trans }}
-                    </a>
-                </li>
-            {% else %}
-                <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-pay-pal">
-                        {{ ux_icon('tabler:brand-paypal-filled') }}
-                        {{ 'sylius_paypal.enable_paypal_production'|trans }}
-                    </a>
-                </li>
-            {% endif %}
+            <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-pay-pal">
+                    {{ ux_icon('tabler:brand-paypal-filled') }}
+                    {{ 'sylius_paypal.enable_paypal_production'|trans }}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-paypal-sandbox">
+                    {{ ux_icon('tabler:flask') }}
+                    {{ 'sylius_paypal.enable_paypal_sandbox'|trans }}
+                </a>
+            </li>
         </ul>
     </div>
 {% endif %}

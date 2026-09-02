@@ -84,6 +84,16 @@
             <argument type="service" id="sylius_paypal.enabler.payment_method" />
         </service>
 
+        <service id="sylius_paypal.controller.partner_credentials_test" class="Sylius\PayPalPlugin\Controller\PartnerCredentialsTestAction" />
+
+        <service id="sylius_paypal.controller.complete_onboarding" class="Sylius\PayPalPlugin\Controller\CompleteOnboardingAction">
+            <argument type="service" id="sylius_paypal.onboarding.resolver.seller" />
+            <argument type="service" id="sylius_paypal.creator.onboarding_payment_method" />
+            <argument type="service" id="sylius_paypal.provider.seller_nonce" />
+            <argument type="service" id="router" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+
         <service id="sylius_paypal.controller.create_paypal_order" class="Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction">
             <argument type="service" id="sylius_paypal.manager.payment_state" />
             <argument type="service" id="sylius_paypal.provider.order" />

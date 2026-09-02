@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
@@ -90,28 +92,22 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     private function setCommunicationParameters(ContainerBuilder $container, array $config): void
     {
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
-        $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
+        $container->setParameter('sylius_paypal.partner_attribution_id', PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID);
+        $container->setParameter('sylius_paypal.api_base_url', PayPalHostProviderInterface::PRODUCTION_API_BASE_URL);
+        $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
+        $container->setParameter('sylius_paypal.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
 
-        if ($container->getParameter('sylius_paypal.sandbox')) {
-            $container->setParameter('sylius_paypal.facilitator_url', 'https://paypal.sylius.com');
-            $container->setParameter('sylius_paypal.api_base_url', 'https://api.sandbox.paypal.com/');
-            $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
-        } else {
-            $container->setParameter('sylius_paypal.facilitator_url', 'https://prod.paypal.sylius.com');
-            $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
-            $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
-        }
+        // TODO: remove once the real partner-credentials endpoint is in place.
+        $container->setParameter(
+            'sylius_paypal.partner_credentials_url',
+            $_ENV['SYLIUS_PAYPAL_PARTNER_CREDENTIALS_URL'] ?? 'https://prod.paypal.sylius.com/partner-credentials',
+        );
     }
 
     private function processEnvConfig(array $configs): array
     {
         $envConfig = [];
-
-        $sandboxEnv = $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] ?? null;
-        if ($sandboxEnv !== null) {
-            $envConfig['sandbox'] = filter_var($sandboxEnv, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE) ?? false;
-        }
 
         $loggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;
         if ($loggingEnv !== null) {

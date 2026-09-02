@@ -18,24 +18,32 @@
 >
     <services>
         <service
-            id="sylius_paypal.onboarding.initiator"
-            class="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiator"
+            id="sylius_paypal.provider.seller_nonce"
+            class="Sylius\PayPalPlugin\Provider\SellerNonceProvider"
         >
-            <argument type="service" id="router" />
-            <argument type="service" id="security.helper" />
-            <argument>%sylius_paypal.facilitator_url%</argument>
+            <argument type="service" id="request_stack" />
         </service>
-        <service id="Sylius\PayPalPlugin\Onboarding\Initiator\OnboardingInitiatorInterface" alias="sylius_paypal.onboarding.initiator" />
+        <service id="Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface" alias="sylius_paypal.provider.seller_nonce" />
 
         <service
-            id="sylius_paypal.onboarding.processor.basic"
-            class="Sylius\PayPalPlugin\Onboarding\Processor\BasicOnboardingProcessor"
+            id="sylius_paypal.provider.partner_credentials"
+            class="Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument type="service" id="sylius_paypal.registrar.seller_webhook" />
-            <argument>%sylius_paypal.facilitator_url%</argument>
+            <argument type="service" id="sylius_paypal.api.onboarding_request_executor" />
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="cache.app" />
+            <argument>%sylius_paypal.partner_credentials_url%</argument>
         </service>
-        <service id="Sylius\PayPalPlugin\Onboarding\Processor\OnboardingProcessorInterface" alias="sylius_paypal.onboarding.processor.basic" />
+        <service id="Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface" alias="sylius_paypal.provider.partner_credentials" />
+
+        <service
+            id="sylius_paypal.provider.onboarding_url"
+            class="Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider"
+        >
+            <argument>%sylius_paypal.web_url%</argument>
+            <argument type="service" id="sylius_paypal.provider.partner_credentials" />
+            <argument type="service" id="router" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface" alias="sylius_paypal.provider.onboarding_url" />
     </services>
 </container>

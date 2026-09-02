@@ -44,7 +44,8 @@
         </service>
 
         <service id="sylius_paypal.form.type.paypal_configuration" class="Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType">
-            <argument>%sylius_paypal.sandbox%</argument>
+            <argument type="service" id="sylius_paypal.manager.credentials" />
+            <argument type="service" id="translator" />
 
             <tag name="form.type" />
             <tag name="sylius.gateway_configuration_type" type="sylius_paypal" label="sylius_paypal.label" />
@@ -67,11 +68,9 @@
         </service>
 
         <service id="sylius_paypal.listener.paypal_payment_method" class="Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener">
-            <argument type="service" id="sylius_paypal.onboarding.initiator" />
             <argument type="service" id="router" />
             <argument type="service" id="request_stack" />
             <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
-            <argument>%sylius_paypal.sandbox%</argument>
             <tag name="kernel.event_listener" event="sylius.payment_method.initialize_create" method="initializeCreate" />
         </service>
 
@@ -84,11 +83,6 @@
             <argument type="service" id="sylius_paypal.processor.payment_complete" />
         </service>
         <service id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" alias="sylius_paypal.manager.payment_state" />
-
-        <service id="sylius_paypal.factory.paypal_payment_method_new_resource" class="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
-            <argument type="service" id=".inner" />
-            <argument type="service" id="sylius_paypal.onboarding.processor.basic" />
-        </service>
 
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
@@ -126,6 +120,28 @@
             <argument type="service" id="sylius.repository.payment_method" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface" alias="sylius_paypal.provider.paypal_payment_method" />
+
+        <service
+            id="sylius_paypal.provider.active_mode"
+            class="Sylius\PayPalPlugin\Provider\PayPalActiveModeProvider"
+        >
+            <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalActiveModeProviderInterface" alias="sylius_paypal.provider.active_mode" />
+
+        <service
+            id="sylius_paypal.provider.host"
+            class="Sylius\PayPalPlugin\Provider\PayPalHostProvider"
+        >
+            <argument type="service" id="sylius_paypal.provider.active_mode" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface" alias="sylius_paypal.provider.host" />
+
+        <!-- No active-mode provider argument: this instance always resolves to the production host (used by onboarding). -->
+        <service id="sylius_paypal.provider.host.production" class="Sylius\PayPalPlugin\Provider\PayPalHostProvider" />
+
+        <service id="sylius_paypal.manager.credentials" class="Sylius\PayPalPlugin\Manager\PayPalCredentialsManager" />
+        <service id="Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface" alias="sylius_paypal.manager.credentials" />
 
         <service
             id="sylius_paypal.provider.paypal_refund_data"
@@ -243,15 +259,15 @@
         />
         <service id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" alias="sylius_paypal.provider.uuid" />
 
-        <service id="sylius_paypal.client.sftp" class="phpseclib3\Net\SFTP">
-            <argument>%sylius_paypal.reports_sftp_host%</argument>
-        </service>
+        <service id="sylius_paypal.factory.sftp_client" class="Sylius\PayPalPlugin\Factory\SftpClientFactory" />
+        <service id="Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface" alias="sylius_paypal.factory.sftp_client" />
 
         <service
             id="sylius_paypal.downloader.report"
             class="Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader"
         >
-            <argument type="service" id="sylius_paypal.client.sftp" />
+            <argument type="service" id="sylius_paypal.factory.sftp_client" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface" />
         </service>
         <service id="Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface" alias="sylius_paypal.downloader.report" />
 
@@ -272,11 +288,11 @@
             id="sylius_paypal.enabler.payment_method"
             class="Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler"
         >
-            <argument type="service" id="sylius.http_client" />
-            <argument>%sylius_paypal.facilitator_url%</argument>
+            <argument type="service" id="sylius_paypal.api.authorize_client" />
+            <argument type="service" id="sylius_paypal.api.merchant_onboarding_status" />
             <argument type="service" id="sylius.manager.payment_method" />
             <argument type="service" id="sylius_paypal.registrar.seller_webhook" />
-            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="sylius_paypal.provider.partner_credentials" />
         </service>
         <service id="Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface" alias="sylius_paypal.enabler.payment_method" />
 
@@ -315,10 +331,28 @@
             <argument type="service" id="sylius.factory.gateway_config" />
             <argument type="service" id="sylius.factory.payment_method" />
             <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
+            <argument type="service" id="sylius_paypal.manager.credentials" />
         </service>
 
+        <service id="sylius_paypal.creator.onboarding_payment_method" class="Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator">
+            <argument type="service" id="sylius_paypal.registrar.seller_webhook" />
+            <argument type="service" id="sylius.factory.gateway_config" />
+            <argument type="service" id="sylius.factory.payment_method" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument>%sylius_paypal.partner_attribution_id%</argument>
+            <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
+            <argument type="service" id="sylius_paypal.manager.credentials" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface" alias="sylius_paypal.creator.onboarding_payment_method" />
+
+        <service id="sylius_paypal.factory.mode_switch_view" class="Sylius\PayPalPlugin\Factory\PayPalModeSwitchViewFactory" />
+        <service id="Sylius\PayPalPlugin\Factory\PayPalModeSwitchViewFactoryInterface" alias="sylius_paypal.factory.mode_switch_view" />
+
         <service id="sylius_paypal.twig.extension.paypal" class="Sylius\PayPalPlugin\Twig\PayPalExtension">
-            <argument>%sylius_paypal.sandbox%</argument>
+            <argument type="service" id="sylius_paypal.provider.active_mode" />
+            <argument type="service" id="sylius_paypal.factory.mode_switch_view" />
+            <argument>%sylius_paypal.partner_js_url%</argument>
             <tag name="twig.extension" />
         </service>
 
@@ -340,6 +374,21 @@
                     name="sylius.live_component.admin"
                     key="sylius_paypal:create_sandbox_modal"
                     template="@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig"
+            />
+        </service>
+
+        <service
+                id="sylius_paypal.twig.component.paypal_onboarding_modal"
+                class="Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent"
+        >
+            <argument type="service" id="sylius_paypal.provider.onboarding_url" />
+            <argument type="service" id="sylius_paypal.provider.seller_nonce" />
+            <argument type="service" id="monolog.logger.paypal" />
+
+            <tag
+                    name="sylius.live_component.admin"
+                    key="sylius_paypal:create_onboarding_modal"
+                    template="@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig"
             />
         </service>
 

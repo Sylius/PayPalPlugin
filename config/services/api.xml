@@ -31,7 +31,7 @@
             <argument type="service" id="sylius_paypal.provider.uuid" />
             <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
             <argument type="service" id="sylius.context.channel" />
-            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface" />
             <argument>%sylius_paypal.request_trials_limit%</argument>
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
@@ -46,6 +46,30 @@
             <argument type="service" id="sylius_paypal.client.paypal" />
         </service>
         <service id="Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface" alias="sylius_paypal.api.authorize_client" />
+
+        <!-- Onboarding authorizes freshly onboarded seller credentials, which are always production. -->
+        <service
+            id="sylius_paypal.client.paypal.onboarding"
+            class="Sylius\PayPalPlugin\Client\PayPalClient"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="monolog.logger.paypal" />
+            <argument type="service" id="sylius_paypal.provider.uuid" />
+            <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
+            <argument type="service" id="sylius.context.channel" />
+            <argument type="service" id="sylius_paypal.provider.host.production" />
+            <argument>%sylius_paypal.request_trials_limit%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
+            <argument>%sylius_paypal.logging.increased%</argument>
+        </service>
+
+        <service
+            id="sylius_paypal.api.authorize_client.onboarding"
+            class="Sylius\PayPalPlugin\Api\AuthorizeClientApi"
+        >
+            <argument type="service" id="sylius_paypal.client.paypal.onboarding" />
+        </service>
 
         <service
             id="sylius_paypal.repository.paypal_credentials"
@@ -114,7 +138,7 @@
             class="Sylius\PayPalPlugin\Api\WebhookApi"
         >
             <argument type="service" id="sylius.http_client" />
-            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface" />
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
         </service>
@@ -125,7 +149,7 @@
             class="Sylius\PayPalPlugin\Api\WebhookSignatureVerifier"
         >
             <argument type="service" id="sylius.http_client" />
-            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface" />
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
         </service>
@@ -138,7 +162,7 @@
             <argument type="service" id="sylius_paypal.api.generic" />
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="router" />
-            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface" />
             <argument>%sylius_paypal.webhook_base_url%</argument>
         </service>
 

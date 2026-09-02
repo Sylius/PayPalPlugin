@@ -33,7 +33,6 @@ final class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->booleanNode('sandbox')->defaultTrue()->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()
                     ->children()

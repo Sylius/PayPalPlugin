@@ -3,6 +3,7 @@ sylius_paypal:
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    could_not_load_onboarding_url: "Impossible de charger le lien de connexion PayPal. Veuillez fermer cette fenêtre et réessayer."
     credit_card: 'Carte de crédit'
     credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
@@ -14,11 +15,19 @@ sylius_paypal:
     invalid_form: 'Le formulaire est invalide'
     label: 'PayPal'
     merchant_id: 'ID marchand'
+    mode: 'Mode'
+    mode_production: 'Production'
+    mode_sandbox: 'Sandbox'
+    mode_not_configured: "Les identifiants pour ce mode ne sont pas encore configurés. Veuillez les configurer avant de changer de mode."
     missing_billing_address_content: 'Merci de renseignez votre adresse'
     missing_billing_address_header: 'Impossible de récupérer une adresse de facturation depuis PayPal'
+    onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
     report: 'Rapport'
+    sandbox_on_production_warning: "Attention : vous activez le Sandbox PayPal sur un environnement de production. Le Sandbox utilise des identifiants de test et ne traitera pas de vrais paiements. Ne continuez que si cela est intentionnel."
+    set_up_production: 'Configurer la production'
+    set_up_sandbox: 'Configurer le sandbox'
     sftp_password: 'Mot de passe SFTP'
     sftp_username: 'Identifiant SFTP'
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"

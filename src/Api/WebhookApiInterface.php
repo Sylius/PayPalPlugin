@@ -13,7 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Psr\Http\Client\ClientExceptionInterface;
+
 interface WebhookApiInterface
 {
+    /**
+     * @throws ClientExceptionInterface
+     * @throws \JsonException
+     */
     public function register(string $token, string $webhookUrl): array;
 }

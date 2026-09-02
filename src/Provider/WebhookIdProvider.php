@@ -24,7 +24,7 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         private GenericApiInterface $genericApi,
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
-        private string $baseUrl,
+        private PayPalHostProviderInterface $hostProvider,
         private string $webhookBaseUrl = '',
     ) {
     }
@@ -35,7 +35,7 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 
         $webhookUrl = $this->webhookUrl();
 
-        $data = $this->genericApi->get($token, $this->baseUrl . 'v1/notifications/webhooks');
+        $data = $this->genericApi->get($token, $this->hostProvider->getApiBaseUrl() . 'v1/notifications/webhooks');
 
         /** @var array<array{id?: string, url?: string}> $webhooks */
         $webhooks = $data['webhooks'] ?? [];

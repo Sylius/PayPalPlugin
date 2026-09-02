@@ -1,8 +1,7 @@
 {% import '@SyliusAdmin/shared/helper/button.html.twig' as button %}
-{% props modal_id = null, type = null%}
 
 <div {{ attributes }} {{ sylius_test_html_attribute('modal', type) }}>
-    <div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal{{ opened ? ' show' : '' }}" id="{{ modalId }}" tabindex="-1" {% if opened %}style="display: block;" aria-modal="true" role="dialog"{% else %}aria-hidden="true"{% endif %}>
         <div class="modal-dialog modal-dialog-centered">
             {% block content %}
                 <div class="modal-content">
@@ -10,6 +9,13 @@
                             <h1 class="modal-title py-5">{{ 'sylius_paypal.share_data_consent_confirmation'|trans }}</h1>
                     </div>
                     <div class="modal-body">
+                            {% if app.environment == 'prod' %}
+                                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                    {{ ux_icon('tabler:alert-triangle-filled', {class: 'me-2 flex-shrink-0', width: 24, height: 24}) }}
+                                    <span>{{ 'sylius_paypal.sandbox_on_production_warning'|trans }}</span>
+                                </div>
+                            {% endif %}
+
                             {% set form = this.formView %}
                             {% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
 
