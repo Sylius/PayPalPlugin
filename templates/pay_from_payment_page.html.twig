@@ -1,61 +1,14 @@
-<div style="width:250px">
-    <paypal-button id="paypal-button" type="pay" class="paypal-gold" hidden></paypal-button>
+<div
+    {{ stimulus_controller('@sylius/paypal-plugin/paypal-web-sdk', {
+        scriptUrl: webSdkScriptUrl,
+        instanceConfig: webSdkInstanceConfig,
+        currencyCode: currency,
+        createOrderUrl: createPayPalOrderFromPaymentPageUrl,
+        captureOrderUrl: completePayPalOrderFromPaymentPageUrl,
+        cancelOrderUrl: cancelPayPalPaymentUrl,
+        errorUrl: errorPayPalPaymentUrl,
+    }) }}
+    style="width:250px"
+>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
 </div>
-
-{% include '@SyliusPayPalPlugin/_paypal_web_sdk.html.twig' %}
-
-<script>
-    (function () {
-        let createPayPalOrderFromPaymentPageUrl = "{{ createPayPalOrderFromPaymentPageUrl }}";
-        let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
-        let cancelPayPalPaymentUrl = "{{ cancelPayPalPaymentUrl }}";
-        let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
-
-        function createOrder() {
-            return fetch(createPayPalOrderFromPaymentPageUrl, {
-                method: 'post',
-            })
-            .then(function (res) {
-                return res.status === 400 ? window.location.reload() : res.json();
-            })
-            .then(function (data) {
-                return { orderId: data.orderId };
-            });
-        }
-
-        function onApprove() {
-            return fetch(completePayPalOrderFromPaymentPageUrl, {
-                method: 'post',
-            })
-            .then(function (res) { return res.json(); })
-            .then(function (details) { window.location.href = details.return_url; });
-        }
-
-        function onCancel(data) {
-            return fetch(cancelPayPalPaymentUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderId }),
-            }).then(function () { window.location.reload(); });
-        }
-
-        function onError(error) {
-            return fetch(errorPayPalPaymentUrl, {
-                method: 'post',
-                headers: {},
-                body: error,
-            }).then(function () { window.location.reload(); });
-        }
-
-        initPayPalWebSdk({
-            scriptUrl: "{{ webSdkScriptUrl }}",
-            instanceConfig: {{ webSdkInstanceConfig|json_encode|raw }},
-            currencyCode: "{{ currency }}",
-        }, {
-            createOrder: createOrder,
-            onApprove: onApprove,
-            onCancel: onCancel,
-            onError: onError,
-        });
-    })();
-</script>

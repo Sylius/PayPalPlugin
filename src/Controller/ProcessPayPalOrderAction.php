@@ -32,6 +32,7 @@ use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ProcessPayPalOrderAction
 {
@@ -51,6 +52,7 @@ final readonly class ProcessPayPalOrderAction
         private OrderDetailsApiInterface $orderDetailsApi,
         private OrderProviderInterface $orderProvider,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
+        private ?UrlGeneratorInterface $router = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -60,6 +62,15 @@ final readonly class ProcessPayPalOrderAction
                     'Not passing $paymentAmountVerifier to "%s" constructor is deprecated and will be prohibited in 3.0',
                     self::class,
                 ),
+            );
+        }
+        if (null === $this->router) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                UrlGeneratorInterface::class,
+                self::class,
             );
         }
     }
@@ -76,7 +87,11 @@ final readonly class ProcessPayPalOrderAction
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
         if (null === $payment) {
-            return new JsonResponse(['syliusOrderId' => $orderId, 'orderId' => $payPalOrderId]);
+            return new JsonResponse([
+                'syliusOrderId' => $orderId,
+                'orderId' => $payPalOrderId,
+                'return_url' => $this->getReturnUrl('sylius_shop_checkout_complete'),
+            ]);
         }
 
         $data = $this->getOrderDetails($payPalOrderId, $payment);
@@ -142,10 +157,25 @@ final readonly class ProcessPayPalOrderAction
         } catch (PaymentAmountMismatchException) {
             $this->paymentStateManager->cancel($payment);
 
-            return new JsonResponse(['syliusOrderId' => $orderId, 'orderId' => $payPalOrderId, 'status' => $payment->getState()]);
+            return new JsonResponse([
+                'syliusOrderId' => $orderId,
+                'orderId' => $payPalOrderId,
+                'status' => $payment->getState(),
+                'return_url' => $this->getReturnUrl('sylius_shop_checkout_complete'),
+            ]);
         }
 
-        return new JsonResponse(['syliusOrderId' => $orderId, 'orderId' => $payPalOrderId, 'status' => $payment->getState()]);
+        return new JsonResponse([
+            'syliusOrderId' => $orderId,
+            'orderId' => $payPalOrderId,
+            'status' => $payment->getState(),
+            'return_url' => $this->getReturnUrl('sylius_shop_order_thank_you'),
+        ]);
+    }
+
+    private function getReturnUrl(string $route): ?string
+    {
+        return $this->router?->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     private function getOrderCustomer(array $customerData): CustomerInterface

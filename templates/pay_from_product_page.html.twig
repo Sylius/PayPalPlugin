@@ -1,72 +1,16 @@
-<div>
-    <paypal-button id="paypal-button" type="pay" class="paypal-gold" hidden></paypal-button>
+<div
+    {{ stimulus_controller('@sylius/paypal-plugin/paypal-web-sdk', {
+        scriptUrl: webSdkScriptUrl,
+        instanceConfig: webSdkInstanceConfig,
+        currencyCode: sylius.currencyCode,
+        createOrderUrl: createPayPalOrderFromProductUrl,
+        addToCartFormSelector: '[name="sylius_shop_add_to_cart"]',
+        captureOrderUrl: processPayPalOrderUrl,
+        cancelOrderUrl: path('sylius_paypal_shop_cancel_order'),
+        errorUrl: errorPayPalPaymentUrl,
+        completeUrl: completeUrl,
+        loadingSelector: '[data-live-name-value="sylius_shop:product:add_to_cart_form"] [data-loading]',
+    }) }}
+>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
 </div>
-
-{% include '@SyliusPayPalPlugin/_paypal_web_sdk.html.twig' %}
-
-<script>
-    (function () {
-        let syliusOrderId = null;
-
-        let completeUrl = "{{ completeUrl }}";
-        let createPayPalOrderFromProductUrl = "{{ createPayPalOrderFromProductUrl }}";
-        let processPayPalOrderUrl = "{{ processPayPalOrderUrl }}";
-        let cancelPayPalOrderUrl = "{{ path('sylius_paypal_shop_cancel_order') }}";
-        let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
-
-        function createOrder() {
-            let formData = new FormData(document.getElementsByName('sylius_shop_add_to_cart')[0]);
-
-            return fetch(createPayPalOrderFromProductUrl, {
-                method: 'post',
-                body: formData,
-            })
-            .then(function (res) {
-                document.querySelector('[data-live-name-value="sylius_shop:product:add_to_cart_form"] [data-loading]').style.display = 'block';
-                return res.status === 400 ? window.location.reload() : res.json();
-            })
-            .then(function (data) {
-                syliusOrderId = data.id;
-
-                return { orderId: data.orderId };
-            });
-        }
-
-        function onApprove(data) {
-            return fetch(processPayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderId, orderId: syliusOrderId }),
-            })
-            .then(function (res) { return res.json(); })
-            .then(function () { window.location.href = completeUrl; });
-        }
-
-        function onCancel(data) {
-            return fetch(cancelPayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderId }),
-            }).then(function () { window.location.reload(); });
-        }
-
-        function onError(error) {
-            return fetch(errorPayPalPaymentUrl, {
-                method: 'post',
-                headers: {},
-                body: error,
-            }).then(function () { window.location.reload(); });
-        }
-
-        initPayPalWebSdk({
-            scriptUrl: "{{ webSdkScriptUrl }}",
-            instanceConfig: {{ webSdkInstanceConfig|json_encode|raw }},
-            currencyCode: "{{ sylius.currencyCode }}",
-        }, {
-            createOrder: createOrder,
-            onApprove: onApprove,
-            onCancel: onCancel,
-            onError: onError,
-        });
-    })();
-</script>
