@@ -1,0 +1,29 @@
+Sylius\Component\Core\Model\Order:
+    new_cart_without_customer:
+        channel: "@channel_web"
+        items: ["@sw_mug_item_no_customer"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        state: "cart"
+        checkoutState: "cart"
+        tokenValue: "TOKEN_NO_CUSTOMER"
+        payments: ["@paypal_payment_no_customer"]
+
+Sylius\Component\Core\Model\OrderItem:
+    sw_mug_item_no_customer:
+        units: ["@sw_mug_item_unit1_no_customer", "@sw_mug_item_unit2_no_customer"]
+        variant: "@mug_sw"
+        order: "@new_cart_without_customer"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    sw_mug_item_unit1_no_customer:
+        __construct: ["@sw_mug_item_no_customer"]
+    sw_mug_item_unit2_no_customer:
+        __construct: ["@sw_mug_item_no_customer"]
+
+Sylius\Component\Core\Model\Payment:
+    paypal_payment_no_customer:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 60
+        state: "cart"

@@ -132,6 +132,8 @@
             <argument type="service" id="sylius_paypal.api.order_details" />
             <argument type="service" id="sylius_paypal.provider.order" />
             <argument type="service" id="sylius_paypal.verifier.payment_amount" />
+            <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.completer.express_order" />
         </service>
 
         <service id="sylius_paypal.controller.update_paypal_order" class="Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction">
