@@ -106,6 +106,59 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame('15559876543', $customer->getPhoneNumber());
     }
 
+    public function test_it_frees_the_order_and_returns_the_buyer_to_checkout_when_the_amount_does_not_match(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $originalPayment */
+        $originalPayment = $fixtures['paypal_payment'];
+        $originalPaymentId = $originalPayment->getId();
+
+        $this->mockOrderDetailsApi([
+            'payer' => [
+                'email_address' => 'oliver.queen@star-city.com',
+                'name' => ['given_name' => 'Oliver', 'surname' => 'Queen'],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => '999.00'],
+                'shipping' => [
+                    'name' => ['full_name' => 'Oliver Queen'],
+                    'address' => [
+                        'address_line_1' => '1 Star City Plaza',
+                        'admin_area_2' => 'Star City',
+                        'postal_code' => '10001',
+                        'country_code' => 'US',
+                    ],
+                ],
+            ]],
+        ]);
+
+        $orderId = $order->getId();
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertNotSame('completed', $order->getCheckoutState());
+
+        /** @var PaymentInterface|null $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertNotNull($payment);
+        $this->assertNotSame($originalPaymentId, $payment->getId());
+    }
+
+    public function test_it_returns_the_buyer_to_the_thank_you_page_when_the_order_is_already_completed(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_order'];
+
+        $content = $this->processPayPalOrder($order->getId());
+
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+    }
+
     /** @return array<string, mixed> */
     private function processPayPalOrder(int $orderId): array
     {
