@@ -18,6 +18,5 @@ use Sylius\Component\Core\Model\PaymentInterface;
 
 interface PayPalExpressOrderCompleterInterface
 {
-    // Callers must verify the payment amount before calling this; the correct check differs per flow.
     public function complete(OrderInterface $order, PaymentInterface $payment): void;
 }
