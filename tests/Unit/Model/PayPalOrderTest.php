@@ -331,13 +331,15 @@ final class PayPalOrderTest extends TestCase
 
         $result = $payPalOrder->toArray();
 
-        self::assertSame(['shipping_preference' => 'GET_FROM_FILE'], $result['application_context']);
         self::assertSame(
             [
-                'callback_events' => ['SHIPPING_ADDRESS'],
-                'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+                'shipping_preference' => 'GET_FROM_FILE',
+                'order_update_callback_config' => [
+                    'callback_events' => ['SHIPPING_ADDRESS'],
+                    'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+                ],
             ],
-            $result['payment_source']['paypal']['experience_context']['order_update_callback_config'],
+            $result['application_context'],
         );
     }
 
@@ -359,7 +361,6 @@ final class PayPalOrderTest extends TestCase
         $result = $payPalOrder->toArray();
 
         self::assertSame(['shipping_preference' => 'SET_PROVIDED_ADDRESS'], $result['application_context']);
-        self::assertArrayNotHasKey('payment_source', $result);
     }
 
     #[Test]
@@ -372,6 +373,5 @@ final class PayPalOrderTest extends TestCase
         $result = $this->payPalOrder->toArray();
 
         self::assertSame(['shipping_preference' => 'GET_FROM_FILE'], $result['application_context']);
-        self::assertArrayNotHasKey('payment_source', $result);
     }
 }

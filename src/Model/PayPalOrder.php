@@ -47,36 +47,37 @@ class PayPalOrder
     {
         $shippingPreference = $this->getShippingPreference();
 
-        $result = [
-            'intent' => $this->intent,
-            'purchase_units' => [
-                $this->payPalPurchaseUnit->toArray(),
-            ],
-            'application_context' => [
-                'shipping_preference' => $shippingPreference,
-            ],
+        $applicationContext = [
+            'shipping_preference' => $shippingPreference,
         ];
 
         // Only the "shortcut" (cart/product page) placements have no shipping address yet at
         // create-order time, which is exactly when PayPal needs a live shipping-options callback -
         // the checkout payment step already has one, so it never sets $shippingCallbackUrl.
         //
-        // PayPal only honors order_update_callback_config under payment_source.paypal.experience_context,
-        // not under the legacy top-level application_context used above for shipping_preference.
+        // KNOWN GAP, confirmed live (2026-09-04): nesting this under the documented
+        // payment_source.paypal.experience_context path instead makes PayPal treat the order as an
+        // explicitly-selected payment source, returning status=PAYER_ACTION_REQUIRED with a redirect
+        // "payer-action" link instead of the SDK-managed flow this app's Payum action expects - it
+        // broke order creation entirely (confirmed via a live sandbox request/response capture).
+        // Keeping it under application_context here instead: unconfirmed whether PayPal actually reads
+        // it from this legacy location, but it does not break the working flow. Needs real
+        // investigation (or a PayPal support answer) into how to get a working callback without
+        // switching the order into a payer-action/redirect flow, before this is revisited.
         if (self::PAYPAL_ADDRESS === $shippingPreference && null !== $this->shippingCallbackUrl) {
-            $result['payment_source'] = [
-                'paypal' => [
-                    'experience_context' => [
-                        'order_update_callback_config' => [
-                            'callback_events' => ['SHIPPING_ADDRESS'],
-                            'callback_url' => $this->shippingCallbackUrl,
-                        ],
-                    ],
-                ],
+            $applicationContext['order_update_callback_config'] = [
+                'callback_events' => ['SHIPPING_ADDRESS'],
+                'callback_url' => $this->shippingCallbackUrl,
             ];
         }
 
-        return $result;
+        return [
+            'intent' => $this->intent,
+            'purchase_units' => [
+                $this->payPalPurchaseUnit->toArray(),
+            ],
+            'application_context' => $applicationContext,
+        ];
     }
 
     private function getShippingPreference(): string

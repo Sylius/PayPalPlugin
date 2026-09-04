@@ -360,7 +360,7 @@ final class CreateOrderApiTest extends TestCase
                 'v2/checkout/orders',
                 'TOKEN',
                 $this->callback(function (array $data): bool {
-                    return $data['payment_source']['paypal']['experience_context']['order_update_callback_config']['callback_url']
+                    return $data['application_context']['order_update_callback_config']['callback_url']
                         === 'https://shop.example.com/pay-pal-order-shipping-callback';
                 }),
             )
