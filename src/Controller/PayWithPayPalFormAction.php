@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -22,6 +23,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\IdentityApiInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Twig\Environment;
@@ -36,6 +38,7 @@ final readonly class PayWithPayPalFormAction
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private IdentityApiInterface $identityApi,
         private ?LocaleProcessorInterface $localeProcessor = null,
+        private ?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null,
     ) {
         if (null === $this->localeProcessor) {
             trigger_deprecation(
@@ -46,10 +49,26 @@ final readonly class PayWithPayPalFormAction
                 self::class,
             );
         }
+        if (null === $this->payPalConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
+        trigger_deprecation(
+            'sylius/paypal-plugin',
+            '2.1',
+            'The "sylius_paypal_shop_pay_with_paypal_form" route is deprecated and will be removed in 3.0.' .
+            ' Use PayPalButtonsController::renderPaymentPageButtonsAction() (the v6 Web SDK payment-page placement) instead.',
+        );
+
         $paymentId = (string) $request->attributes->get('paymentId');
         $orderToken = (string) $request->attributes->get('orderToken');
 
@@ -62,11 +81,15 @@ final readonly class PayWithPayPalFormAction
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         /** @var string $clientId */
         $clientId = $gatewayConfig->getConfig()['client_id'];
-        /** @var string $partnerAttributionId */
-        $partnerAttributionId = $gatewayConfig->getConfig()['partner_attribution_id'];
 
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
+        /** @var ChannelInterface $channel */
+        $channel = $order->getChannel();
+
+        $partnerAttributionId = null !== $this->payPalConfigurationProvider
+            ? $this->payPalConfigurationProvider->getPartnerAttributionId($channel)
+            : (string) $gatewayConfig->getConfig()['partner_attribution_id'];
 
         $token = $this->authorizeClientApi->authorize($paymentMethod);
         $clientToken = $this->identityApi->generateToken($token);

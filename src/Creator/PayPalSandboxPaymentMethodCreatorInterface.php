@@ -19,6 +19,8 @@ interface PayPalSandboxPaymentMethodCreatorInterface
 {
     public const GATEWAY_NAME = 'sylius_paypal_sandbox';
 
+    // TODO: PayPal's SDD specifies "Sylius_MP_PPCP" for this value; not yet confirmed by PayPal
+    // as the correct BN code to send (blocked on an open question to PayPal), so left unchanged.
     public const PARTNER_ATTRIBUTION_ID = 'sylius-ppcp4p-bn-code';
 
     public const PAYMENT_METHOD_CODE = 'PAYPAL';

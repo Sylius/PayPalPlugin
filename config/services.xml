@@ -63,6 +63,7 @@
         <service id="sylius_paypal.api_platform.paypal_payment" class="Sylius\PayPalPlugin\ApiPlatform\PayPalPayment">
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.provider.available_countries" />
+            <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
             <tag name="sylius.api.payment_method_handler" />
         </service>
 
