@@ -1,62 +1,61 @@
-<div id="paypal-button-container" style="width:250px"></div>
-<script src="https://www.paypal.com/sdk/js?client-id={{ clientId }}&locale={{ locale }}&currency={{ currency }}" data-partner-attribution-id="{{ partnerAttributionId }}"></script>
-<script>
-    let createPayPalOrderFromPaymentPageUrl = "{{ createPayPalOrderFromPaymentPageUrl }}";
-    let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
-    let cancelPayPalPaymentUrl = "{{ cancelPayPalPaymentUrl }}";
-    let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
-    let availableCountries = {{ available_countries|json_encode|raw }};
-    let updatePayPalOrderUrl = "{{ path('sylius_paypal_shop_update_paypal_order') }}";
+<div style="width:250px">
+    <paypal-button id="paypal-button" type="pay" class="paypal-gold" hidden></paypal-button>
+</div>
 
-    paypal.Buttons({
-        style: {
-            color: 'gold',
-            layout: 'horizontal',
-            label: 'checkout',
-        },
-        locale: '{{ locale }}',
-        createOrder: function(data, actions) {
+{% include '@SyliusPayPalPlugin/_paypal_web_sdk.html.twig' %}
+
+<script>
+    (function () {
+        let createPayPalOrderFromPaymentPageUrl = "{{ createPayPalOrderFromPaymentPageUrl }}";
+        let completePayPalOrderFromPaymentPageUrl = "{{ completePayPalOrderFromPaymentPageUrl }}";
+        let cancelPayPalPaymentUrl = "{{ cancelPayPalPaymentUrl }}";
+        let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
+
+        function createOrder() {
             return fetch(createPayPalOrderFromPaymentPageUrl, {
-                method: 'post'
-            }).then(function(res) {
+                method: 'post',
+            })
+            .then(function (res) {
                 return res.status === 400 ? window.location.reload() : res.json();
-            }).then(data => data.order_id);
-        },
-        onApprove: function(data, actions) {
+            })
+            .then(function (data) {
+                return { orderId: data.order_id };
+            });
+        }
+
+        function onApprove() {
             return fetch(completePayPalOrderFromPaymentPageUrl, {
-                method: 'post'
-            }).then(res => res.json()).then(details => window.location.href = details.return_url);
-        },
-        onCancel: function (data, actions) {
+                method: 'post',
+            })
+            .then(function (res) { return res.json(); })
+            .then(function (details) { window.location.href = details.return_url; });
+        }
+
+        function onCancel(data) {
             return fetch(cancelPayPalPaymentUrl, {
                 method: 'post',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderID })
-            }).then(window.location.reload());
-        },
-        onError: function (error) {
+                body: JSON.stringify({ payPalOrderId: data.orderId }),
+            }).then(function () { window.location.reload(); });
+        }
+
+        function onError(error) {
             return fetch(errorPayPalPaymentUrl, {
                 method: 'post',
                 headers: {},
-                body: error
-            }).then(window.location.reload());
-        },
-        onShippingChange: function(data, actions) {
-            if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
-                return actions.reject();
-            }
-
-            return fetch(updatePayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(data)
-            }).then(res => {
-                if (!res || res.error) {
-                    return actions.reject();
-                }
-
-                return actions.resolve();
-            });
+                body: error,
+            }).then(function () { window.location.reload(); });
         }
-    }).render('#paypal-button-container');
+
+        initPayPalWebSdk({
+            scriptUrl: "{{ webSdkScriptUrl }}",
+            instanceConfig: {{ webSdkInstanceConfig|json_encode|raw }},
+            currencyCode: "{{ currency }}",
+        }, {
+            createOrder: createOrder,
+            onApprove: onApprove,
+            onCancel: onCancel,
+            onError: onError,
+        });
+    })();
 </script>

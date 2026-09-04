@@ -108,6 +108,7 @@
             <argument type="service" id="sylius.repository.order" />
             <argument type="service" id="sylius_paypal.provider.available_countries" />
             <argument type="service" id="sylius_paypal.processor.locale" />
+            <argument type="service" id="sylius_paypal.provider.paypal_web_sdk_configuration" />
         </service>
 
         <service id="sylius_paypal.controller.pay_with_paypal_form" class="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">
@@ -139,6 +140,14 @@
             <argument type="service" id="sylius.factory.address" />
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius_paypal.repository.query.paypal_payment" />
+        </service>
+
+        <service id="sylius_paypal.controller.paypal_order_shipping_callback" class="Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction">
+            <argument type="service" id="sylius_paypal.repository.query.paypal_payment" />
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius_paypal.provider.available_countries" />
+            <argument type="service" id="sylius.resolver.shipping_methods" />
+            <argument type="service" id="sylius.calculator.shipping" />
         </service>
 
         <service id="sylius_paypal.controller.complete_paypal_order_from_payment_page" class="Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction">

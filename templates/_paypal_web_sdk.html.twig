@@ -1,0 +1,72 @@
+{#
+    Shared PayPal v6 Web SDK bootstrap, included once by each of the three button placements
+    (pay_from_cart_page.html.twig, pay_from_product_page.html.twig, pay_from_payment_page.html.twig).
+
+    Each placement defines its own `createOrder`/`onApprove`/`onCancel`/`onError` callbacks (their
+    request/response shapes genuinely differ per placement) and calls `initPayPalWebSdk(config, callbacks)`.
+#}
+<script>
+    function loadPayPalWebSdkOnce(src) {
+        return new Promise(function (resolve, reject) {
+            if (document.querySelector('script[data-paypal-web-sdk]') !== null) {
+                if (window.paypal) {
+                    resolve();
+                } else {
+                    document.querySelector('script[data-paypal-web-sdk]').addEventListener('load', resolve);
+                }
+
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.dataset.paypalWebSdk = 'true';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
+    }
+
+    function setupPayPalWebSdkButton(paymentSession, button, createOrder) {
+        if (button === null) {
+            return;
+        }
+
+        button.removeAttribute('hidden');
+        button.addEventListener('click', async function () {
+            try {
+                await paymentSession.start({ presentationMode: 'auto' }, createOrder());
+            } catch (error) {
+                console.error('paymentSession.start() failed:', error);
+            }
+        });
+    }
+
+    async function initPayPalWebSdk(config, callbacks) {
+        await loadPayPalWebSdkOnce(config.scriptUrl);
+
+        const sdkInstance = await window.paypal.createInstance({
+            clientId: config.instanceConfig.clientId,
+            components: config.instanceConfig.components,
+            pageType: config.instanceConfig.pageType,
+            partnerAttributionId: config.instanceConfig.partnerAttributionId,
+        });
+
+        const paymentMethods = await sdkInstance.findEligibleMethods({ currencyCode: config.currencyCode });
+
+        const paymentSessionOptions = {
+            onApprove: callbacks.onApprove,
+            onCancel: callbacks.onCancel,
+            onError: callbacks.onError,
+        };
+
+        if (paymentMethods.isEligible('paypal')) {
+            setupPayPalWebSdkButton(
+                sdkInstance.createPayPalOneTimePaymentSession(paymentSessionOptions),
+                document.querySelector('#paypal-button'),
+                callbacks.createOrder,
+            );
+        }
+    }
+</script>

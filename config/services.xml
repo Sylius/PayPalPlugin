@@ -238,6 +238,15 @@
         <service id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_configuration" />
 
         <service
+            id="sylius_paypal.provider.paypal_web_sdk_configuration"
+            class="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProvider"
+        >
+            <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
+            <argument>%sylius_paypal.web_url%</argument>
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />
+
+        <service
             id="sylius_paypal.provider.uuid"
             class="Sylius\PayPalPlugin\Provider\UuidProvider"
         />

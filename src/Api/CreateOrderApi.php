@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
@@ -33,6 +34,7 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
         private PayPalItemDataProviderInterface $payPalItemDataProvider,
+        private ?UrlGeneratorInterface $router = null,
     ) {
     }
 
@@ -74,7 +76,13 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             shippingDiscountValue: $shippingDiscount,
         );
 
-        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);
+        $shippingCallbackUrl = $this->router?->generate(
+            'sylius_paypal_shop_order_shipping_callback',
+            [],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
+
+        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE, $shippingCallbackUrl);
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }

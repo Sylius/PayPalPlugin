@@ -314,4 +314,64 @@ final class PayPalOrderTest extends TestCase
             ],
         ], $result);
     }
+
+    #[Test]
+    public function it_includes_the_shipping_callback_config_when_there_is_no_shipping_address_yet_and_a_callback_url_was_given(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
+
+        $payPalOrder = new PayPalOrder(
+            $this->order,
+            $this->payPalPurchaseUnit,
+            'CAPTURE',
+            'https://shop.example.com/pay-pal-order-shipping-callback',
+        );
+
+        $result = $payPalOrder->toArray();
+
+        self::assertSame(['shipping_preference' => 'GET_FROM_FILE'], $result['application_context']);
+        self::assertSame(
+            [
+                'callback_events' => ['SHIPPING_ADDRESS'],
+                'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+            ],
+            $result['payment_source']['paypal']['experience_context']['order_update_callback_config'],
+        );
+    }
+
+    #[Test]
+    public function it_does_not_include_the_shipping_callback_config_when_a_shipping_address_is_already_set(): void
+    {
+        $shippingAddress = $this->createMock(AddressInterface::class);
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn($shippingAddress);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
+
+        $payPalOrder = new PayPalOrder(
+            $this->order,
+            $this->payPalPurchaseUnit,
+            'CAPTURE',
+            'https://shop.example.com/pay-pal-order-shipping-callback',
+        );
+
+        $result = $payPalOrder->toArray();
+
+        self::assertSame(['shipping_preference' => 'SET_PROVIDED_ADDRESS'], $result['application_context']);
+        self::assertArrayNotHasKey('payment_source', $result);
+    }
+
+    #[Test]
+    public function it_does_not_include_the_shipping_callback_config_when_no_callback_url_was_given(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
+
+        $result = $this->payPalOrder->toArray();
+
+        self::assertSame(['shipping_preference' => 'GET_FROM_FILE'], $result['application_context']);
+        self::assertArrayNotHasKey('payment_source', $result);
+    }
 }

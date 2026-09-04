@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CreateOrderApiTest extends TestCase
 {
@@ -304,6 +305,68 @@ final class CreateOrderApiTest extends TestCase
             ->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $result = $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
+
+        self::assertEquals(['status' => 'CREATED', 'id' => 123], $result);
+    }
+
+    #[Test]
+    public function it_includes_a_shipping_callback_url_when_a_router_is_configured_and_there_is_no_shipping_address_yet(): void
+    {
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router
+            ->expects(self::once())
+            ->method('generate')
+            ->with('sylius_paypal_shop_order_shipping_callback', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://shop.example.com/pay-pal-order-shipping-callback');
+
+        $createOrderApi = new CreateOrderApi(
+            $this->client,
+            $this->paymentReferenceNumberProvider,
+            $this->payPalItemDataProvider,
+            $router,
+        );
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(10000);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getShippingAddress')->willReturn(null);
+        $order->method('getShippingTotal')->willReturn(1000);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getOrderPromotionTotal')->willReturn(0);
+        $order->method('getAdjustmentsTotalRecursively')->willReturn(0);
+
+        $this->payPalItemDataProvider->method('provide')->willReturn([
+            'items' => [],
+            'total_item_value' => '90.00',
+            'total_tax' => '0.00',
+        ]);
+
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getConfig')->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+        );
+        $this->paymentReferenceNumberProvider->method('provide')->willReturn('REFERENCE-NUMBER');
+
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with(
+                'v2/checkout/orders',
+                'TOKEN',
+                $this->callback(function (array $data): bool {
+                    return $data['payment_source']['paypal']['experience_context']['order_update_callback_config']['callback_url']
+                        === 'https://shop.example.com/pay-pal-order-shipping-callback';
+                }),
+            )
+            ->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $result = $createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
 
         self::assertEquals(['status' => 'CREATED', 'id' => 123], $result);
     }
