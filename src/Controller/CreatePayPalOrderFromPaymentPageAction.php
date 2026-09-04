@@ -60,7 +60,9 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         $this->paymentStateManager->process($payment);
 
         return new JsonResponse([
-            'order_id' => $payment->getDetails()['paypal_order_id'],
+            'id' => $order->getId(),
+            'orderId' => $payment->getDetails()['paypal_order_id'],
+            'status' => $payment->getState(),
         ]);
     }
 }

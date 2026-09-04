@@ -22,7 +22,7 @@
                 return res.status === 400 ? window.location.reload() : res.json();
             })
             .then(function (data) {
-                return { orderId: data.orderID };
+                return { orderId: data.orderId };
             });
         }
 

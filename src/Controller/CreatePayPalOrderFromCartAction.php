@@ -85,7 +85,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         return new JsonResponse([
             'id' => $order->getId(),
-            'orderID' => $payment->getDetails()['paypal_order_id'],
+            'orderId' => $payment->getDetails()['paypal_order_id'],
             'status' => $payment->getState(),
         ]);
     }

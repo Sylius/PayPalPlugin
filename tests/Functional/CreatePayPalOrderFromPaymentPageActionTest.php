@@ -29,6 +29,6 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         $response = $this->client->getResponse();
         $content = (array) json_decode($response->getContent(), true);
 
-        $this->assertSame($content['order_id'], 'PAYPAL_ORDER_ID');
+        $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
     }
 }

@@ -68,6 +68,7 @@ final readonly class ProcessPayPalOrderAction
     {
         $payload = $request->getPayload();
         $orderId = $payload->getInt('orderId');
+        $payPalOrderId = $payload->getString('payPalOrderId');
 
         $order = $this->orderProvider->provideOrderById($orderId);
 
@@ -75,10 +76,10 @@ final readonly class ProcessPayPalOrderAction
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
         if (null === $payment) {
-            return new JsonResponse(['orderID' => $orderId]);
+            return new JsonResponse(['syliusOrderId' => $orderId, 'orderId' => $payPalOrderId]);
         }
 
-        $data = $this->getOrderDetails($payload->getString('payPalOrderId'), $payment);
+        $data = $this->getOrderDetails($payPalOrderId, $payment);
 
         /** @var CustomerInterface|null $customer */
         $customer = $order->getCustomer();
@@ -141,10 +142,10 @@ final readonly class ProcessPayPalOrderAction
         } catch (PaymentAmountMismatchException) {
             $this->paymentStateManager->cancel($payment);
 
-            return new JsonResponse(['orderID' => $orderId]);
+            return new JsonResponse(['syliusOrderId' => $orderId, 'orderId' => $payPalOrderId, 'status' => $payment->getState()]);
         }
 
-        return new JsonResponse(['orderID' => $orderId]);
+        return new JsonResponse(['syliusOrderId' => $orderId, 'orderId' => $payPalOrderId, 'status' => $payment->getState()]);
     }
 
     private function getOrderCustomer(array $customerData): CustomerInterface
