@@ -95,6 +95,7 @@ final readonly class ProcessPayPalOrderAction
         $purchaseUnit = (array) $data['purchase_units'][0];
 
         $address = $this->addressFactory->createNew();
+        $address->setPhoneNumber($data['payer']['phone']['phone_number']['national_number'] ?? null);
 
         if ($order->isShippingRequired()) {
             $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
@@ -180,6 +181,7 @@ final readonly class ProcessPayPalOrderAction
         $customer->setEmail($customerData['email_address']);
         $customer->setFirstName($customerData['name']['given_name']);
         $customer->setLastName($customerData['name']['surname']);
+        $customer->setPhoneNumber($customerData['phone']['phone_number']['national_number'] ?? null);
 
         return $customer;
     }
