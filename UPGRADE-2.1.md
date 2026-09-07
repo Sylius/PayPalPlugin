@@ -71,15 +71,23 @@
 
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
-   All three "create order" endpoints (`CreatePayPalOrderFromCartAction`, `CreatePayPalOrderFromPaymentPageAction`)
-   now return `{"id": <sylius order id>, "orderId": <paypal order id>, "status": <payment state>}` — previously
-   the cart placement returned `orderID` and the payment-page placement returned `order_id`. All "capture"
-   endpoints (`ProcessPayPalOrderAction`, `CompletePayPalOrderFromPaymentPageAction`) now include `orderId` and
-   `status` in their response. `ProcessPayPalOrderAction`'s response key that carries the *Sylius* order id
-   (previously also confusingly named `orderID`) is now `syliusOrderId`.
+   The same value used to be spelled three different ways, and `orderID` meant two different things depending
+   on the endpoint — the PayPal order id from the cart placement, the *Sylius* order id from
+   `ProcessPayPalOrderAction`. The v6 placements now use one spelling throughout:
 
-   If you have JavaScript overriding or extending the three button templates and reading these response keys
-   directly, update it to the new names.
+   | Endpoint | New keys | Old key, still sent |
+   |---|---|---|
+   | `CreatePayPalOrderFromCartAction` | `id`, `orderId`, `status` | `orderID` (PayPal order id) |
+   | `CreatePayPalOrderFromPaymentPageAction` | `id`, `orderId`, `status` | `order_id` (PayPal order id) |
+   | `ProcessPayPalOrderAction` | `syliusOrderId`, `orderId`, `status` | `orderID` (**Sylius** order id) |
+   | `CompletePayPalOrderFromPaymentPageAction` | `orderId`, `status` added next to `return_url` | — nothing renamed |
+
+   **This is not a break in 2.1.** Every old key is still sent alongside its replacement, with the same value
+   and the same meaning it had in 2.0, so JavaScript reading the old names keeps working. The old keys are
+   deprecated and **will be removed in 3.0** — move your code to the new names before then.
+
+   The `orderID` returned by the deprecated `sylius_paypal_shop_create_paypal_order` route is unchanged and not
+   part of this: that route serves the legacy `pay_with_paypal.html.twig` page, which still reads it.
 
 1. #### The BN code (`PayPal-Partner-Attribution-Id`) is read through one place, `PayPalConfigurationProviderInterface::getPartnerAttributionId()`, everywhere it previously wasn't
    (`PayWithPayPalFormAction`, the API-Platform payment configuration, `PayPalClient`). The stored value itself

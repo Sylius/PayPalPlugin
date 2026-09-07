@@ -79,6 +79,8 @@ final readonly class ProcessPayPalOrderAction
             return new JsonResponse([
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
+                // BC with 2.0, where this key carried the Sylius order id. Deprecated, removed in 3.0.
+                'orderID' => $orderId,
             ]);
         }
 
@@ -149,6 +151,8 @@ final readonly class ProcessPayPalOrderAction
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
                 'status' => $payment->getState(),
+                // BC with 2.0, where this key carried the Sylius order id. Deprecated, removed in 3.0.
+                'orderID' => $orderId,
             ]);
         }
 
@@ -161,6 +165,8 @@ final readonly class ProcessPayPalOrderAction
             'syliusOrderId' => $orderId,
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
+            // BC with 2.0, where this key carried the Sylius order id. Deprecated, removed in 3.0.
+            'orderID' => $orderId,
         ]);
     }
 

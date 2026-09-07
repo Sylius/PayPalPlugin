@@ -62,6 +62,8 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         return new JsonResponse([
             'id' => $order->getId(),
             'orderId' => $payment->getDetails()['paypal_order_id'],
+            // BC with 2.0, where this key was spelled "order_id". Deprecated, removed in 3.0.
+            'order_id' => $payment->getDetails()['paypal_order_id'],
             'status' => $payment->getState(),
         ]);
     }
