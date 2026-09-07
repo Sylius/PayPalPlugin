@@ -39,8 +39,17 @@ final readonly class PayPalButtonsController
         private OrderRepositoryInterface $orderRepository,
         private AvailableCountriesProviderInterface $availableCountriesProvider,
         private LocaleProcessorInterface $localeProcessor,
-        private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
+        private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
     ) {
+        if (null === $this->webSdkConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalWebSdkConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -58,8 +67,8 @@ final readonly class PayPalButtonsController
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process($this->localeContext->getLocaleCode()),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
-                'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig($channel, 'product-details'),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details'),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -86,8 +95,8 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
-                'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig($channel, 'cart'),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart'),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -114,11 +123,23 @@ final readonly class PayPalButtonsController
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
-                'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig($channel, 'checkout'),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout'),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
+    }
+
+    private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface
+    {
+        if (null === $this->webSdkConfigurationProvider) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to render the v6 Web SDK placements.',
+                PayPalWebSdkConfigurationProviderInterface::class,
+            ));
+        }
+
+        return $this->webSdkConfigurationProvider;
     }
 }

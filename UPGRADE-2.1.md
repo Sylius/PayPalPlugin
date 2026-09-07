@@ -14,8 +14,32 @@
    behind it** — the button will not appear, or will appear inert, with no error. Diff your override against
    the new templates in this release and update it, or remove the override if it's no longer needed.
 
-   A new shared template, `templates/_paypal_web_sdk.html.twig`, is included by all three placements and is not
-   meant to be included or overridden on its own.
+1. #### The button JavaScript now ships as a Stimulus controller, which your shop has to build.
+
+   The placements render `data-controller="sylius--paypal-plugin--paypal-web-sdk"` instead of an inline
+   `<script>` block. The controller lives in this package's own npm package (`assets/shop`), so **an existing
+   shop will render the attribute and nothing will happen — no button, no error — until the package is part of
+   your asset build.** Two steps, both one-time:
+
+   1. Add the package to your app's `package.json`:
+
+      ```json
+      "dependencies": {
+          "@sylius/paypal-plugin": "file:vendor/sylius/paypal-plugin/assets/shop"
+      }
+      ```
+
+   2. Register the controller in whichever `controllers.json` your shop build passes to
+      `Encore.enableStimulusBridge()` (typically `assets/shop/controllers.json`):
+
+      ```json
+      "@sylius/paypal-plugin": {
+          "paypal-web-sdk": { "enabled": true, "fetch": "lazy" }
+      }
+      ```
+
+   Then `yarn install && yarn build`. Verify by loading a product page and checking that the browser fetches
+   the controller chunk and the PayPal button loses its `hidden` attribute.
 
 1. #### The shipping-address callback keeps working, under its v6 name.
 
@@ -25,15 +49,11 @@
    route is **not** deprecated and remains the mechanism that keeps the PayPal order total in line with the
    address the buyer picks inside the wallet.
 
-   If your shop overrode any of the three placement templates, the override must pass the controller's
-   `updateOrderUrl` and `availableCountries` values, or the buyer's address change will no longer be priced -
-   PayPal then captures a total that no longer matches the Sylius order, and the payment is rejected on return.
-
-1. #### Per-channel toggles for Pay Later, Venmo and messaging.
-
-   Three new gateway-config fields — `paylater_enabled`, `venmo_enabled`, `messaging_enabled` — default to
-   `true` for both new and existing (pre-2.1) payment methods. Eligibility (from PayPal's own API) remains the
-   primary gate for all three; these are merchant opt-outs, editable from the payment method's admin form.
+   Only the cart and product ("shortcut") placements register it, because only they reach PayPal without a
+   shipping address. If your shop overrode either of those two templates, the override must pass the
+   controller's `updateOrderUrl` and `availableCountries` values, or the buyer's address change will no longer
+   be priced - PayPal then captures a total that no longer matches the Sylius order, and the payment is
+   rejected on return.
 
 1. #### The following routes are deprecated and will be removed in 3.0.
 
@@ -48,10 +68,6 @@
    | `sylius_paypal_shop_complete_paypal_order` | `sylius_paypal_shop_process_paypal_order` / `..._complete_paypal_order_from_payment_page` |
    | `sylius_paypal_shop_cancel_checkout_payment` | `sylius_paypal_shop_cancel_payment` / `..._cancel_order` |
    | `sylius_paypal_shop_cancel_last_payment` | none — no longer needed once the legacy page is removed |
-
-   `Sylius\PayPalPlugin\Api\UpdateOrderAddressApi`, used only by the legacy Payum-redirect completion flow
-   (`Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction`), is deprecated for the same reason and will be
-   removed alongside it in 3.0 — it is not deleted in 2.1.
 
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
@@ -76,9 +92,13 @@
 
    `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment`: `?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null`
 
+   `Sylius\PayPalPlugin\Controller\PayPalButtonsController`: `?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null`
+   — unlike the other two this one has no usable fallback: the v6 placements cannot be rendered without it, so
+   a controller constructed without it throws a `\RuntimeException` when a placement is rendered. If you
+   instantiate or decorate this class yourself, pass `sylius_paypal.provider.paypal_web_sdk_configuration`.
+
 ## Still open for a future 2.1.x / 2.2
 
-- Moving the button JavaScript out of Twig `<script>` blocks into Stimulus controllers.
 - Migrating `pay_with_paypal.html.twig` from Hosted Fields to the v6 `card-fields` component, with 3D Secure
   handling. PayPal's SDD does not currently document a plain one-time card payment + 3DS flow (only a
   save-card/vault variant), so this needs a confirmed API shape before it can start.

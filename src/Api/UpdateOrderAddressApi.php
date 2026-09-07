@@ -29,13 +29,6 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
         string $referenceId,
         AddressInterface $shippingAddress,
     ): void {
-        trigger_deprecation(
-            'sylius/paypal-plugin',
-            '2.1',
-            '%s is deprecated and will be removed in 3.0, along with the legacy Payum-redirect checkout flow it supports.',
-            self::class,
-        );
-
         $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
             $token,
