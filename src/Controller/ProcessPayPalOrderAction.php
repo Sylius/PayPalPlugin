@@ -32,7 +32,6 @@ use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ProcessPayPalOrderAction
 {
@@ -52,7 +51,6 @@ final readonly class ProcessPayPalOrderAction
         private OrderDetailsApiInterface $orderDetailsApi,
         private OrderProviderInterface $orderProvider,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
-        private ?UrlGeneratorInterface $router = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -62,15 +60,6 @@ final readonly class ProcessPayPalOrderAction
                     'Not passing $paymentAmountVerifier to "%s" constructor is deprecated and will be prohibited in 3.0',
                     self::class,
                 ),
-            );
-        }
-        if (null === $this->router) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.1',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                UrlGeneratorInterface::class,
-                self::class,
             );
         }
     }
@@ -90,7 +79,6 @@ final readonly class ProcessPayPalOrderAction
             return new JsonResponse([
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
-                'return_url' => $this->getReturnUrl('sylius_shop_checkout_complete'),
             ]);
         }
 
@@ -161,21 +149,19 @@ final readonly class ProcessPayPalOrderAction
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
                 'status' => $payment->getState(),
-                'return_url' => $this->getReturnUrl('sylius_shop_checkout_complete'),
             ]);
         }
 
+        // Deliberately no "return_url" here, unlike CompletePayPalOrderFromPaymentPageAction: this action
+        // stops at the select-payment transition and neither completes the order nor captures the PayPal
+        // payment, so the buyer has to land back on the checkout's complete step and place the order from
+        // there - which is what the placements' "completeUrl" points at. Capturing inside the wallet, and
+        // the thank-you redirect that follows from it, is https://github.com/Sylius/PayPalPlugin/pull/680.
         return new JsonResponse([
             'syliusOrderId' => $orderId,
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
-            'return_url' => $this->getReturnUrl('sylius_shop_order_thank_you'),
         ]);
-    }
-
-    private function getReturnUrl(string $route): ?string
-    {
-        return $this->router?->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     private function getOrderCustomer(array $customerData): CustomerInterface
