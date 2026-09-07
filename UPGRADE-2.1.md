@@ -17,18 +17,17 @@
    A new shared template, `templates/_paypal_web_sdk.html.twig`, is included by all three placements and is not
    meant to be included or overridden on its own.
 
-1. #### New server-side shipping-options callback for the cart/product ("shortcut") placements.
+1. #### The shipping-address callback keeps working, under its v6 name.
 
-   PayPal's v6 Web SDK has no client-side `onShippingChange` equivalent. A new route,
-   `sylius_paypal_shop_order_shipping_callback` (`POST /pay-pal-order-shipping-callback`, controller
-   `Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction`), replaces it: PayPal calls this endpoint
-   server-to-server while the buyer is choosing a shipping address inside the PayPal wallet, and it returns the
-   available shipping options for that address.
+   v5's single `onShippingChange` handler is split in v6 into `onShippingAddressChange` and
+   `onShippingOptionsChange`, passed to the payment session instead of to `paypal.Buttons()`. The placements
+   register `onShippingAddressChange`, which still posts to `sylius_paypal_shop_update_paypal_order` — that
+   route is **not** deprecated and remains the mechanism that keeps the PayPal order total in line with the
+   address the buyer picks inside the wallet.
 
-   **Known limitation**: as of this release, PayPal has not been confirmed to actually invoke this callback for
-   an SDK-managed (non-payment_source-selected) PayPal order — the documented request shape for this exact
-   combination did not work in testing (see the inline comment on `PayPalOrder::toArray()`). The endpoint is in
-   place and unit-tested, but end-to-end delivery from PayPal is not yet verified.
+   If your shop overrode any of the three placement templates, the override must pass the controller's
+   `updateOrderUrl` and `availableCountries` values, or the buyer's address change will no longer be priced -
+   PayPal then captures a total that no longer matches the Sylius order, and the payment is rejected on return.
 
 1. #### Per-channel toggles for Pay Later, Venmo and messaging.
 
@@ -47,7 +46,6 @@
    | `sylius_paypal_shop_pay_with_paypal_form` | `PayPalButtonsController::renderPaymentPageButtonsAction` (the v6 payment-page placement) |
    | `sylius_paypal_shop_create_paypal_order` | `sylius_paypal_shop_create_paypal_order_from_cart` / `..._from_payment_page` |
    | `sylius_paypal_shop_complete_paypal_order` | `sylius_paypal_shop_process_paypal_order` / `..._complete_paypal_order_from_payment_page` |
-   | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_shop_order_shipping_callback` |
    | `sylius_paypal_shop_cancel_checkout_payment` | `sylius_paypal_shop_cancel_payment` / `..._cancel_order` |
    | `sylius_paypal_shop_cancel_last_payment` | none — no longer needed once the legacy page is removed |
 

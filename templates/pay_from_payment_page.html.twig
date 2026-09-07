@@ -4,6 +4,8 @@
         instanceConfig: webSdkInstanceConfig,
         currencyCode: currency,
         createOrderUrl: createPayPalOrderFromPaymentPageUrl,
+        updateOrderUrl: path('sylius_paypal_shop_update_paypal_order'),
+        availableCountries: available_countries,
         captureOrderUrl: completePayPalOrderFromPaymentPageUrl,
         cancelOrderUrl: cancelPayPalPaymentUrl,
         errorUrl: errorPayPalPaymentUrl,
