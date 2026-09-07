@@ -18,3 +18,12 @@ sylius_twig_hooks:
             reports_sftp_password:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_password.html.twig'
                 priority: -400
+            paylater_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/paylater_enabled.html.twig'
+                priority: -500
+            venmo_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/venmo_enabled.html.twig'
+                priority: -600
+            messaging_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/messaging_enabled.html.twig'
+                priority: -700

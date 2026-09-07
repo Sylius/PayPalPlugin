@@ -21,6 +21,7 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -40,7 +41,17 @@ final readonly class PayPalButtonsController
         private AvailableCountriesProviderInterface $availableCountriesProvider,
         private LocaleProcessorInterface $localeProcessor,
         private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalFundingSourcesConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
         if (null === $this->webSdkConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
@@ -68,6 +79,7 @@ final readonly class PayPalButtonsController
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details'),
+                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -95,6 +107,7 @@ final readonly class PayPalButtonsController
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart'),
+                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -123,6 +136,7 @@ final readonly class PayPalButtonsController
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout'),
+                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -139,5 +153,17 @@ final readonly class PayPalButtonsController
         }
 
         return $this->webSdkConfigurationProvider;
+    }
+
+    private function getFundingSourcesConfigurationProvider(): PayPalFundingSourcesConfigurationProviderInterface
+    {
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to render the v6 Web SDK placements.',
+                PayPalFundingSourcesConfigurationProviderInterface::class,
+            ));
+        }
+
+        return $this->fundingSourcesConfigurationProvider;
     }
 }

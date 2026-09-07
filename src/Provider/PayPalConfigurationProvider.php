@@ -20,7 +20,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Webmozart\Assert\Assert;
 
-final readonly class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface
+final readonly class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface, PayPalFundingSourcesConfigurationProviderInterface
 {
     /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
     public function __construct(private PaymentMethodRepositoryInterface $paymentMethodRepository)
@@ -41,6 +41,21 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
         Assert::keyExists($config, 'partner_attribution_id');
 
         return (string) $config['partner_attribution_id'];
+    }
+
+    public function isPayLaterEnabled(ChannelInterface $channel): bool
+    {
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['paylater_enabled'] ?? true);
+    }
+
+    public function isVenmoEnabled(ChannelInterface $channel): bool
+    {
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['venmo_enabled'] ?? true);
+    }
+
+    public function isMessagingEnabled(ChannelInterface $channel): bool
+    {
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['messaging_enabled'] ?? true);
     }
 
     private function getPayPalPaymentMethodConfig(ChannelInterface $channel): array
