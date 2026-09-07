@@ -18,6 +18,7 @@ use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
+use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPageInterface;
 use Webmozart\Assert\Assert;
@@ -76,7 +77,7 @@ final class PaymentPayPalContext implements Context
         $paymentMethod->getGatewayConfig()->setConfig([
             'client_id' => $this->clientId,
             'client_secret' => 'SECRET',
-            'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
+            'partner_attribution_id' => PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',
             'reports_sftp_username' => 'USERNAME',
             'reports_sftp_password' => 'PASSWORD',

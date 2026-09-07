@@ -1,0 +1,5 @@
+{
+    "dependencies": {
+        "@sylius/paypal-plugin": "file:../../../assets/shop"
+    }
+}

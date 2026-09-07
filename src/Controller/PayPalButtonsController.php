@@ -21,6 +21,7 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -38,7 +39,17 @@ final readonly class PayPalButtonsController
         private OrderRepositoryInterface $orderRepository,
         private AvailableCountriesProviderInterface $availableCountriesProvider,
         private LocaleProcessorInterface $localeProcessor,
+        private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
     ) {
+        if (null === $this->webSdkConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalWebSdkConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -50,11 +61,14 @@ final readonly class PayPalButtonsController
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
+                'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_shop_add_to_cart', ['productId' => $request->attributes->getInt('productId')]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process($this->localeContext->getLocaleCode()),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details'),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -81,6 +95,8 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart'),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -107,9 +123,23 @@ final readonly class PayPalButtonsController
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout'),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
+    }
+
+    private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface
+    {
+        if (null === $this->webSdkConfigurationProvider) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to render the v6 Web SDK placements.',
+                PayPalWebSdkConfigurationProviderInterface::class,
+            ));
+        }
+
+        return $this->webSdkConfigurationProvider;
     }
 }

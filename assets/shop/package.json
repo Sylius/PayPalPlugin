@@ -1,0 +1,14 @@
+{
+    "name": "@sylius/paypal-plugin",
+    "version": "0.1.0",
+    "symfony": {
+        "controllers": {
+            "paypal-web-sdk": {
+                "main": "controllers/PaypalWebSdkController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            }
+        }
+    }
+}

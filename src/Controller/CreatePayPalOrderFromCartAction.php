@@ -83,9 +83,12 @@ final readonly class CreatePayPalOrderFromCartAction
 
         $this->paymentManager->flush();
 
+        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+
         return new JsonResponse([
             'id' => $order->getId(),
-            'orderID' => $payment->getDetails()['paypal_order_id'],
+            'orderId' => $payPalOrderId,
+            'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
             'status' => $payment->getState(),
         ]);
     }

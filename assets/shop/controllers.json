@@ -1,4 +1,8 @@
 {
-    "controllers": [],
+    "controllers": {
+        "@sylius/paypal-plugin": {
+            "paypal-web-sdk": { "enabled": true, "fetch": "lazy" }
+        }
+    },
     "entrypoints": []
 }

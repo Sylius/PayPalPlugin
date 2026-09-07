@@ -36,6 +36,13 @@ final readonly class CancelLastPayPalPaymentAction
 
     public function __invoke(Request $request): Response
     {
+        trigger_deprecation(
+            'sylius/paypal-plugin',
+            '2.1',
+            'The "sylius_paypal_shop_cancel_last_payment" route is deprecated and will be removed in 3.0,' .
+            ' along with the legacy "pay_with_paypal" checkout page it exists to support.',
+        );
+
         /** @var OrderInterface $order */
         $order = $this->orderRepository->findOneByTokenValue((string) $request->attributes->get('token'));
 

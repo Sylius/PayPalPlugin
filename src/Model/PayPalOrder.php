@@ -32,8 +32,11 @@ class PayPalOrder
     /** @var OrderInterface */
     private $order;
 
-    public function __construct(OrderInterface $order, PayPalPurchaseUnit $payPalPurchaseUnit, string $intent)
-    {
+    public function __construct(
+        OrderInterface $order,
+        PayPalPurchaseUnit $payPalPurchaseUnit,
+        string $intent,
+    ) {
         $this->payPalPurchaseUnit = $payPalPurchaseUnit;
         $this->order = $order;
         $this->intent = $intent;

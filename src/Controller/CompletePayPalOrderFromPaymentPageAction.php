@@ -63,6 +63,8 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $order = $this->orderProvider->provideOrderById($orderId);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
+        /** @var string $payPalOrderId */
+        $payPalOrderId = $payment->getDetails()['paypal_order_id'] ?? '';
 
         try {
             if ($this->paymentAmountVerifier !== null) {
@@ -80,6 +82,8 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
             $this->orderProcessor->process($order);
 
             return new JsonResponse([
+                'orderId' => $payPalOrderId,
+                'status' => $payment->getState(),
                 'return_url' => $this->router->generate('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL),
             ]);
         }
@@ -93,6 +97,8 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $request->getSession()->set('sylius_order_id', $order->getId());
 
         return new JsonResponse([
+            'orderId' => $payPalOrderId,
+            'status' => $payment->getState(),
             'return_url' => $this->router->generate('sylius_shop_order_thank_you', [], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
     }

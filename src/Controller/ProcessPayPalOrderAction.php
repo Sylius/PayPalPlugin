@@ -68,6 +68,7 @@ final readonly class ProcessPayPalOrderAction
     {
         $payload = $request->getPayload();
         $orderId = $payload->getInt('orderId');
+        $payPalOrderId = $payload->getString('payPalOrderId');
 
         $order = $this->orderProvider->provideOrderById($orderId);
 
@@ -75,10 +76,14 @@ final readonly class ProcessPayPalOrderAction
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
         if (null === $payment) {
-            return new JsonResponse(['orderID' => $orderId]);
+            return new JsonResponse([
+                'syliusOrderId' => $orderId,
+                'orderId' => $payPalOrderId,
+                'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+            ]);
         }
 
-        $data = $this->getOrderDetails($payload->getString('payPalOrderId'), $payment);
+        $data = $this->getOrderDetails($payPalOrderId, $payment);
 
         /** @var CustomerInterface|null $customer */
         $customer = $order->getCustomer();
@@ -141,10 +146,25 @@ final readonly class ProcessPayPalOrderAction
         } catch (PaymentAmountMismatchException) {
             $this->paymentStateManager->cancel($payment);
 
-            return new JsonResponse(['orderID' => $orderId]);
+            return new JsonResponse([
+                'syliusOrderId' => $orderId,
+                'orderId' => $payPalOrderId,
+                'status' => $payment->getState(),
+                'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+            ]);
         }
 
-        return new JsonResponse(['orderID' => $orderId]);
+        // Deliberately no "return_url" here, unlike CompletePayPalOrderFromPaymentPageAction: this action
+        // stops at the select-payment transition and neither completes the order nor captures the PayPal
+        // payment, so the buyer has to land back on the checkout's complete step and place the order from
+        // there - which is what the placements' "completeUrl" points at. Capturing inside the wallet, and
+        // the thank-you redirect that follows from it, is https://github.com/Sylius/PayPalPlugin/pull/680.
+        return new JsonResponse([
+            'syliusOrderId' => $orderId,
+            'orderId' => $payPalOrderId,
+            'status' => $payment->getState(),
+            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+        ]);
     }
 
     private function getOrderCustomer(array $customerData): CustomerInterface

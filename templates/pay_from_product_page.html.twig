@@ -1,79 +1,18 @@
-<div id="paypal-button-container"></div>
-<script src="https://www.paypal.com/sdk/js?client-id={{ clientId }}&locale={{ locale }}&currency={{ sylius.currencyCode }}&commit=false&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="sylius-ppcp4p-bn-code"></script>
-<script>
-    let payPalOrderId = null;
-    let orderId = null;
-
-    let completeUrl = "{{ completeUrl }}";
-    let createPayPalOrderFromProductUrl = "{{ createPayPalOrderFromProductUrl }}"
-    let processPayPalOrderUrl = "{{ processPayPalOrderUrl }}";
-    let cancelPayPalOrderUrl = "{{ path('sylius_paypal_shop_cancel_order') }}";
-    let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
-    let availableCountries = {{ available_countries|json_encode|raw }};
-    let updatePayPalOrderUrl = "{{ path('sylius_paypal_shop_update_paypal_order') }}";
-
-    paypal.Buttons({
-        locale: '{{ locale }}',
-        style: {
-            label: 'checkout'
-        },
-        createOrder: function(data, actions) {
-            let formData = new FormData(document.getElementsByName('sylius_shop_add_to_cart')[0]);
-            return fetch(createPayPalOrderFromProductUrl, {
-                method: 'post',
-                body: formData
-            })
-            .then(function(res) {
-                document.querySelector('[data-live-name-value="sylius_shop:product:add_to_cart_form"] [data-loading]').style.display = 'block';
-                return res.status === 400 ? window.location.reload() : res.json();
-            })
-            .then(data => {
-                payPalOrderId = data.orderID;
-                orderId = data.id;
-
-                return data.orderID;
-            });
-        },
-        onApprove: function(data, actions) {
-            return fetch(processPayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: payPalOrderId, orderId: orderId })
-            })
-            .then(res => res.json())
-            .then(details => window.location.href = completeUrl);
-        },
-        onCancel: function (data, actions) {
-            return fetch(cancelPayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderID })
-            })
-            .then(data => window.location.reload());
-        },
-        onError: function (error) {
-            return fetch(errorPayPalPaymentUrl, {
-                method: 'post',
-                headers: {},
-                body: error
-            }).then(window.location.reload());
-        },
-        onShippingChange: function(data, actions) {
-            if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
-                return actions.reject();
-            }
-
-            return fetch(updatePayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(data)
-            }).then(res => {
-                if (!res || res.error) {
-                    return actions.reject();
-                }
-
-                return actions.resolve();
-            });
-        }
-    }).render('#paypal-button-container');
-</script>
+<div
+    {{ stimulus_controller('@sylius/paypal-plugin/paypal-web-sdk', {
+        scriptUrl: webSdkScriptUrl,
+        instanceConfig: webSdkInstanceConfig,
+        currencyCode: sylius.currencyCode,
+        createOrderUrl: createPayPalOrderFromProductUrl,
+        updateOrderUrl: path('sylius_paypal_shop_update_paypal_order'),
+        availableCountries: available_countries,
+        addToCartFormSelector: '[name="sylius_shop_add_to_cart"]',
+        captureOrderUrl: processPayPalOrderUrl,
+        cancelOrderUrl: path('sylius_paypal_shop_cancel_order'),
+        errorUrl: errorPayPalPaymentUrl,
+        completeUrl: completeUrl,
+        loadingSelector: '[data-live-name-value="sylius_shop:product:add_to_cart_form"] [data-loading]',
+    }) }}
+>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
+</div>

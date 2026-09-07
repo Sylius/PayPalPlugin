@@ -1,68 +1,18 @@
-<div id="paypal-button-container" style="margin-top: 10px"></div>
-<script src="https://www.paypal.com/sdk/js?client-id={{ clientId }}&locale={{ locale }}&currency={{ currency }}&commit=false&disable-funding=credit,card,bancontact,blik,eps,giropay,ideal,mybank,p24,sepa,sofort,venmo" data-partner-attribution-id="{{ partnerAttributionId }}"></script>
-<script>
-    let completeUrl = "{{ completeUrl }}";
-    let createPayPalOrderFromCartUrl = "{{ createPayPalOrderFromCartUrl }}";
-    let orderId = "{{ orderId }}";
-    let processPayPalOrderUrl = "{{ processPayPalOrderUrl }}";
-    let cancelPayPalOrderUrl = "{{ path('sylius_paypal_shop_cancel_order') }}";
-    let errorPayPalPaymentUrl = "{{ errorPayPalPaymentUrl }}";
-    let availableCountries = {{ available_countries|json_encode|raw }};
-    let updatePayPalOrderUrl = "{{ path('sylius_paypal_shop_update_paypal_order') }}";
-
-    paypal.Buttons({
-        locale: '{{ locale }}',
-        style: {
-            label: 'checkout'
-        },
-        createOrder: function(data, actions) {
-            return fetch(createPayPalOrderFromCartUrl, {
-                method: 'post'
-            })
-            .then(function(res) {
-                document.querySelector('[data-live-name-value="sylius_shop:cart:form"] [data-loading]').style.display = 'block';
-                return res.status === 400 ? window.location.reload() : res.json();
-            }).then(data => data.orderID);
-        },
-        onApprove: function(data, actions) {
-            return fetch(processPayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderID, orderId: orderId })
-            })
-            .then(res => res.json())
-            .then(details => window.location.href = completeUrl);
-        },
-        onCancel: function (data, actions) {
-            return fetch(cancelPayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ payPalOrderId: data.orderID })
-            }).then(data => window.location.reload());
-        },
-        onError: function (error) {
-            return fetch(errorPayPalPaymentUrl, {
-                method: 'post',
-                headers: {},
-                body: error
-            }).then(window.location.reload());
-        },
-        onShippingChange: function(data, actions) {
-            if (!availableCountries.filter(country => country === data.shipping_address.country_code).length) {
-                return actions.reject();
-            }
-
-            return fetch(updatePayPalOrderUrl, {
-                method: 'post',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(data)
-            }).then(res => {
-                if (!res || res.error) {
-                    return actions.reject();
-                }
-
-                return actions.resolve();
-            });
-        }
-    }).render('#paypal-button-container');
-</script>
+<div
+    {{ stimulus_controller('@sylius/paypal-plugin/paypal-web-sdk', {
+        scriptUrl: webSdkScriptUrl,
+        instanceConfig: webSdkInstanceConfig,
+        currencyCode: currency,
+        createOrderUrl: createPayPalOrderFromCartUrl,
+        updateOrderUrl: path('sylius_paypal_shop_update_paypal_order'),
+        availableCountries: available_countries,
+        captureOrderUrl: processPayPalOrderUrl,
+        cancelOrderUrl: path('sylius_paypal_shop_cancel_order'),
+        errorUrl: errorPayPalPaymentUrl,
+        completeUrl: completeUrl,
+        loadingSelector: '[data-live-name-value="sylius_shop:cart:form"] [data-loading]',
+    }) }}
+    style="margin-top: 10px"
+>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
+</div>
