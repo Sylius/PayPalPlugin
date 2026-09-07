@@ -79,8 +79,11 @@
    |---|---|---|
    | `CreatePayPalOrderFromCartAction` | `id`, `orderId`, `status` | `orderID` (PayPal order id) |
    | `CreatePayPalOrderFromPaymentPageAction` | `id`, `orderId`, `status` | `order_id` (PayPal order id) |
-   | `ProcessPayPalOrderAction` | `syliusOrderId`, `orderId`, `status` | `orderID` (**Sylius** order id) |
+   | `ProcessPayPalOrderAction` | `syliusOrderId`, `orderId`, `status`\* | `orderID` (**Sylius** order id) |
    | `CompletePayPalOrderFromPaymentPageAction` | `orderId`, `status` added next to `return_url` | — nothing renamed |
+
+   \* `status` is the payment state, so `ProcessPayPalOrderAction` omits it in the one response it returns when
+   the order has no payment left in the cart state — there is no payment to report a state for.
 
    **This is not a break in 2.1.** Every old key is still sent alongside its replacement, with the same value
    and the same meaning it had in 2.0, so JavaScript reading the old names keeps working. The old keys are
