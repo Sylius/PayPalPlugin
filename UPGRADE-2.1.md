@@ -89,10 +89,6 @@
    The `orderID` returned by the deprecated `sylius_paypal_shop_create_paypal_order` route is unchanged and not
    part of this: that route serves the legacy `pay_with_paypal.html.twig` page, which still reads it.
 
-1. #### The BN code (`PayPal-Partner-Attribution-Id`) is read through one place, `PayPalConfigurationProviderInterface::getPartnerAttributionId()`, everywhere it previously wasn't
-   (`PayWithPayPalFormAction`, the API-Platform payment configuration, `PayPalClient`). The stored value itself
-   is unchanged in this release.
-
 1. #### The following constructor signatures have gained new optional (nullable) arguments, following this
    package's existing deprecation pattern — not passing them is deprecated and will be required in 3.0:
 
@@ -104,10 +100,3 @@
    — unlike the other two this one has no usable fallback: the v6 placements cannot be rendered without it, so
    a controller constructed without it throws a `\RuntimeException` when a placement is rendered. If you
    instantiate or decorate this class yourself, pass `sylius_paypal.provider.paypal_web_sdk_configuration`.
-
-## Still open for a future 2.1.x / 2.2
-
-- Migrating `pay_with_paypal.html.twig` from Hosted Fields to the v6 `card-fields` component, with 3D Secure
-  handling. PayPal's SDD does not currently document a plain one-time card payment + 3DS flow (only a
-  save-card/vault variant), so this needs a confirmed API shape before it can start.
-- Confirming the correct final BN code value (currently unchanged pending an open question to PayPal).
