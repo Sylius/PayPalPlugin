@@ -91,7 +91,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         );
     }
 
-    public function test_it_answers_with_the_shipping_options_and_the_amount_paypal_sent(): void
+    public function test_it_answers_with_the_shipping_options_and_the_cost_of_the_selected_one(): void
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US', 'CA']);
         $this->shippingAddressResolver
@@ -110,7 +110,19 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame([
             'id' => 'PAYPAL_ORDER_ID',
-            'purchase_units' => [self::PURCHASE_UNIT + ['shipping_options' => self::SHIPPING_OPTIONS]],
+            'purchase_units' => [[
+                'reference_id' => 'REFERENCE_ID',
+                'amount' => [
+                    'currency_code' => 'USD',
+                    'value' => '110.00',
+                    'breakdown' => [
+                        'item_total' => ['currency_code' => 'USD', 'value' => '90.00'],
+                        'tax_total' => ['currency_code' => 'USD', 'value' => '10.00'],
+                        'shipping' => ['currency_code' => 'USD', 'value' => '10.00'],
+                    ],
+                ],
+                'shipping_options' => self::SHIPPING_OPTIONS,
+            ]],
         ], json_decode((string) $response->getContent(), true));
     }
 
@@ -183,6 +195,41 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         self::assertSame(
             ['name' => 'UNPROCESSABLE_ENTITY', 'details' => [['issue' => $issue]]],
             json_decode((string) $response->getContent(), true),
+        );
+    }
+
+    public function test_it_leaves_an_amount_without_a_breakdown_alone(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
+        $this->shippingOptionsResolver->method('resolve')->willReturn(self::SHIPPING_OPTIONS);
+
+        $amount = ['currency_code' => 'USD', 'value' => '100.00'];
+        $response = ($this->action)($this->callbackRequest([
+            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'amount' => $amount]],
+        ]));
+
+        $content = json_decode((string) $response->getContent(), true);
+
+        self::assertSame($amount, $content['purchase_units'][0]['amount']);
+    }
+
+    public function test_it_drops_the_purchase_unit_fields_paypal_does_not_read_back(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
+        $this->shippingOptionsResolver->method('resolve')->willReturn(self::SHIPPING_OPTIONS);
+
+        $purchaseUnit = self::PURCHASE_UNIT + [
+            'payee' => ['merchant_id' => 'MERCHANT_ID'],
+            'invoice_id' => 'INVOICE_ID',
+            'soft_descriptor' => 'Sylius PayPal Payment',
+        ];
+        $response = ($this->action)($this->callbackRequest(['purchase_units' => [$purchaseUnit]]));
+
+        $content = json_decode((string) $response->getContent(), true);
+
+        self::assertSame(
+            ['reference_id', 'amount', 'shipping_options'],
+            array_keys($content['purchase_units'][0]),
         );
     }
 }

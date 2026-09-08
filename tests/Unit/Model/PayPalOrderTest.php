@@ -226,10 +226,6 @@ final class PayPalOrderTest extends TestCase
                     ],
                 ],
             ],
-            'application_context' => [
-                'shipping_preference' => 'GET_FROM_FILE',
-                'user_action' => 'PAY_NOW',
-            ],
             'payment_source' => [
                 'paypal' => [
                     'experience_context' => [
@@ -423,5 +419,18 @@ final class PayPalOrderTest extends TestCase
         $result = $this->payPalOrder->toArray();
 
         self::assertArrayNotHasKey('order_update_callback_config', $result['payment_source']['paypal']['experience_context']);
+    }
+
+    #[Test]
+    public function it_never_sends_both_context_blocks_at_once(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $this->payPalOrder->toArray();
+
+        self::assertArrayHasKey('payment_source', $result);
+        self::assertArrayNotHasKey('application_context', $result);
     }
 }

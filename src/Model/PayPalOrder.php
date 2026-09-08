@@ -58,27 +58,30 @@ class PayPalOrder
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
-            'application_context' => [
-                'shipping_preference' => $shippingPreference,
-                'user_action' => self::USER_ACTION_PAY_NOW,
-            ],
         ];
 
+        // PayPal rejects an order carrying shipping_preference or user_action in both places with
+        // INCOMPATIBLE_PARAMETER_VALUE, so the two context blocks are mutually exclusive.
         if (self::PAYPAL_ADDRESS === $shippingPreference) {
             $payPalOrder['payment_source'] = [
                 'paypal' => [
                     'experience_context' => $this->getExperienceContext($shippingPreference),
                 ],
             ];
+
+            return $payPalOrder;
         }
+
+        $payPalOrder['application_context'] = [
+            'shipping_preference' => $shippingPreference,
+            'user_action' => self::USER_ACTION_PAY_NOW,
+        ];
 
         return $payPalOrder;
     }
 
     private function getExperienceContext(string $shippingPreference): array
     {
-        // experience_context supersedes application_context for the selected payment source, so both keys
-        // above are repeated here rather than relied upon.
         $experienceContext = [
             'shipping_preference' => $shippingPreference,
             'user_action' => self::USER_ACTION_PAY_NOW,
