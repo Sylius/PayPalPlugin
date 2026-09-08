@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tests\Sylius\PayPalPlugin\Service\FakeOrderDetailsApi;
 
@@ -148,6 +149,55 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertNotSame($originalPaymentId, $payment->getId());
     }
 
+    public function test_it_refuses_the_request_when_the_pay_pal_order_id_does_not_match_the_payment(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $payment */
+        $payment = $fixtures['paypal_payment'];
+
+        $orderId = $order->getId();
+        $paymentId = $payment->getId();
+        $content = $this->processPayPalOrder($orderId, 'OTHER_PAYPAL_ORDER_ID');
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertSame('shipping_selected', $order->getCheckoutState());
+        $this->assertNull($order->getShippingAddress());
+
+        /** @var PaymentInterface|null $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertNotNull($payment);
+        $this->assertSame($paymentId, $payment->getId());
+    }
+
+    public function test_it_refuses_the_request_when_the_payment_carries_no_pay_pal_order_id(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $payment */
+        $payment = $fixtures['paypal_payment'];
+
+        $orderId = $order->getId();
+        $paymentId = $payment->getId();
+        $this->clearPaymentDetails($paymentId);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertSame('shipping_selected', $order->getCheckoutState());
+        $this->assertNull($order->getShippingAddress());
+
+        /** @var PaymentInterface|null $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertNotNull($payment);
+        $this->assertSame($paymentId, $payment->getId());
+    }
+
     public function test_it_returns_the_buyer_to_the_thank_you_page_when_the_order_is_already_completed(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
@@ -160,7 +210,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
     }
 
     /** @return array<string, mixed> */
-    private function processPayPalOrder(int $orderId): array
+    private function processPayPalOrder(int $orderId, string $payPalOrderId = 'PAYPAL_ORDER_ID'): array
     {
         $this->client->request(
             'POST',
@@ -168,10 +218,20 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            (string) json_encode(['payPalOrderId' => 'PAYPAL_ORDER_ID', 'orderId' => $orderId]),
+            (string) json_encode(['payPalOrderId' => $payPalOrderId, 'orderId' => $orderId]),
         );
 
         return (array) json_decode((string) $this->client->getResponse()->getContent(), true);
+    }
+
+    private function clearPaymentDetails(int $paymentId): void
+    {
+        $manager = self::getContainer()->get('sylius.manager.payment');
+        /** @var PaymentInterface $payment */
+        $payment = self::getContainer()->get('sylius.repository.payment')->find($paymentId);
+
+        $payment->setDetails([]);
+        $manager->flush();
     }
 
     private function refreshOrder(int $orderId): OrderInterface

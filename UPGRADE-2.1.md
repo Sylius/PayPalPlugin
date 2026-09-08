@@ -112,6 +112,13 @@
    request in an error, the payment is detached from the order, the order is reprocessed, and the buyer is
    returned to the checkout summary so the purchase can be retried.
 
+   The action also cross-references the posted `payPalOrderId` against the `paypal_order_id` the plugin itself
+   wrote onto the payment's details, and answers `422 Unprocessable Content` when the two disagree — a payment
+   carrying no `paypal_order_id` at all included. The response body is unchanged and still carries a
+   `return_url` back to the checkout summary, so the buyer is redirected as before. Nothing is fetched from
+   PayPal and nothing on the order is touched, which is what separates this from an amount mismatch: that one
+   still answers `200`, because the request *is* processed and the payment really is detached.
+
 1. #### The cart and product page button templates no longer receive `completeUrl`.
 
    `@SyliusPayPalPlugin/pay_from_cart_page.html.twig` and `@SyliusPayPalPlugin/pay_from_product_page.html.twig`

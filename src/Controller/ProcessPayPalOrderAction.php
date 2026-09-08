@@ -121,6 +121,10 @@ final readonly class ProcessPayPalOrderAction
             ]);
         }
 
+        if (($payment->getDetails()['paypal_order_id'] ?? null) !== $payPalOrderId) {
+            return $this->returnToCheckout($orderId, $payPalOrderId, $payment, Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $data = $this->getOrderDetails($payPalOrderId, $payment);
 
         /** @var CustomerInterface|null $customer */
@@ -185,13 +189,7 @@ final readonly class ProcessPayPalOrderAction
         } catch (PaymentAmountMismatchException) {
             $this->abandonPayment($order, $payment);
 
-            return new JsonResponse([
-                'syliusOrderId' => $orderId,
-                'orderId' => $payPalOrderId,
-                'status' => $payment->getState(),
-                'return_url' => $this->generateReturnUrl('sylius_shop_checkout_complete'),
-                'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
-            ]);
+            return $this->returnToCheckout($orderId, $payPalOrderId, $payment);
         }
 
         if (null === $this->orderCompleter) {
@@ -209,6 +207,21 @@ final readonly class ProcessPayPalOrderAction
             'return_url' => $this->generateReturnUrl('sylius_shop_order_thank_you'),
             'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
         ]);
+    }
+
+    private function returnToCheckout(
+        int $orderId,
+        string $payPalOrderId,
+        PaymentInterface $payment,
+        int $status = Response::HTTP_OK,
+    ): JsonResponse {
+        return new JsonResponse([
+            'syliusOrderId' => $orderId,
+            'orderId' => $payPalOrderId,
+            'status' => $payment->getState(),
+            'return_url' => $this->generateReturnUrl('sylius_shop_checkout_complete'),
+            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+        ], $status);
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void
