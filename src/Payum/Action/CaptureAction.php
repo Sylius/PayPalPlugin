@@ -24,6 +24,14 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CaptureAction implements ActionInterface
 {
+    /**
+     * PayPal answers CREATED for an order created without a selected payment source, and
+     * PAYER_ACTION_REQUIRED once payment_source.paypal.experience_context is sent. Both mean the order
+     * exists and both carry its id - treating only the former as success leaves the payment without a
+     * paypal_order_id, which breaks every step that follows.
+     */
+    private const ORDER_CREATED_STATUSES = ['CREATED', 'PAYER_ACTION_REQUIRED'];
+
     public function __construct(
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private CreateOrderApiInterface $createOrderApi,
@@ -46,7 +54,7 @@ final readonly class CaptureAction implements ActionInterface
         $referenceId = $this->uuidProvider->provide();
         $content = $this->createOrderApi->create($token, $payment, $referenceId);
 
-        if ($content['status'] === 'CREATED') {
+        if (in_array($content['status'] ?? null, self::ORDER_CREATED_STATUSES, true)) {
             $payment->setDetails([
                 'status' => StatusAction::STATUS_CAPTURED,
                 'paypal_order_id' => $content['id'],
