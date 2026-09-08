@@ -390,5 +390,23 @@
             <argument>%sylius_paypal.supported_locales%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface" alias="sylius_paypal.resolver.supported_locale" />
+
+        <service
+            id="sylius_paypal.resolver.paypal_shipping_address"
+            class="Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolver"
+        >
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius.repository.province" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_address" />
+
+        <service
+            id="sylius_paypal.resolver.paypal_shipping_options"
+            class="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolver"
+        >
+            <argument type="service" id="sylius.resolver.shipping_methods" />
+            <argument type="service" id="sylius.calculator.shipping" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_options" />
     </services>
 </container>
