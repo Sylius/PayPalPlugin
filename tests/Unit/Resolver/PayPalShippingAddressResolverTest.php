@@ -83,13 +83,24 @@ final class PayPalShippingAddressResolverTest extends TestCase
         self::assertSame('TX', $address->getProvinceCode());
     }
 
-    public function test_it_drops_a_region_that_matches_no_known_province(): void
+    public function test_it_keeps_a_region_that_matches_no_known_province_as_free_text(): void
     {
         $this->provinceRepository->method('findOneBy')->willReturn(null);
 
         $address = $this->resolver->resolve(['country_code' => 'PL', 'admin_area_1' => 'Mazowieckie']);
 
         self::assertNull($address->getProvinceCode());
+        self::assertSame('Mazowieckie', $address->getProvinceName());
+    }
+
+    public function test_it_leaves_the_region_name_out_once_it_resolves_to_a_province(): void
+    {
+        $this->provinceRepository->method('findOneBy')->willReturn($this->createMock(ProvinceInterface::class));
+
+        $address = $this->resolver->resolve(['country_code' => 'US', 'admin_area_1' => 'TX']);
+
+        self::assertSame('US-TX', $address->getProvinceCode());
+        self::assertNull($address->getProvinceName());
     }
 
     public function test_it_leaves_out_the_parts_paypal_did_not_send(): void
@@ -102,6 +113,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
         self::assertNull($address->getCity());
         self::assertNull($address->getPostcode());
         self::assertNull($address->getProvinceCode());
+        self::assertNull($address->getProvinceName());
     }
 
     public function test_it_treats_blank_values_as_absent(): void
@@ -118,5 +130,6 @@ final class PayPalShippingAddressResolverTest extends TestCase
         self::assertNull($address->getCity());
         self::assertNull($address->getPostcode());
         self::assertNull($address->getProvinceCode());
+        self::assertNull($address->getProvinceName());
     }
 }

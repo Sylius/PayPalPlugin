@@ -35,6 +35,7 @@ use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -64,6 +65,7 @@ final readonly class ProcessPayPalOrderAction
         private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?RepositoryInterface $shippingMethodRepository = null,
+        private ?PayPalShippingAddressResolverInterface $shippingAddressResolver = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -104,6 +106,14 @@ final readonly class ProcessPayPalOrderAction
                 'sylius/paypal-plugin',
                 '2.1',
                 'Not passing $shippingMethodRepository to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->shippingAddressResolver) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $shippingAddressResolver to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
         }
@@ -160,6 +170,7 @@ final readonly class ProcessPayPalOrderAction
             $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
             $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
             $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
+            $this->applyProvince($address, (array) $purchaseUnit['shipping']['address']);
 
             $order->setShippingAddress(clone $address);
             $order->setBillingAddress(clone $address);
@@ -270,6 +281,19 @@ final readonly class ProcessPayPalOrderAction
         if ($shippingMethod instanceof ShippingMethodInterface) {
             $shipment->setMethod($shippingMethod);
         }
+    }
+
+    /** @param array<string, mixed> $payPalAddress */
+    private function applyProvince(AddressInterface $address, array $payPalAddress): void
+    {
+        if (null === $this->shippingAddressResolver) {
+            return;
+        }
+
+        $resolved = $this->shippingAddressResolver->resolve($payPalAddress);
+
+        $address->setProvinceCode($resolved->getProvinceCode());
+        $address->setProvinceName($resolved->getProvinceName());
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void

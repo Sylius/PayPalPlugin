@@ -35,10 +35,11 @@ final readonly class PayPalShippingAddressResolver implements PayPalShippingAddr
         $address->setCountryCode($countryCode);
         $address->setCity($this->stringOrNull($payPalShippingAddress['admin_area_2'] ?? null));
         $address->setPostcode($this->stringOrNull($payPalShippingAddress['postal_code'] ?? null));
-        $address->setProvinceCode($this->resolveProvinceCode(
-            $countryCode,
-            $this->stringOrNull($payPalShippingAddress['admin_area_1'] ?? null),
-        ));
+        $adminArea1 = $this->stringOrNull($payPalShippingAddress['admin_area_1'] ?? null);
+        $provinceCode = $this->resolveProvinceCode($countryCode, $adminArea1);
+
+        $address->setProvinceCode($provinceCode);
+        $address->setProvinceName(null === $provinceCode ? $adminArea1 : null);
 
         return $address;
     }
