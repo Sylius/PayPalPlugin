@@ -1,0 +1,188 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
+
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+final class PayPalOrderShippingCallbackActionTest extends TestCase
+{
+    private const SHIPPING_ADDRESS = [
+        'country_code' => 'US',
+        'admin_area_1' => 'TX',
+        'admin_area_2' => 'Dallas',
+        'postal_code' => '75001',
+    ];
+
+    private const PURCHASE_UNIT = [
+        'reference_id' => 'REFERENCE_ID',
+        'amount' => [
+            'currency_code' => 'USD',
+            'value' => '100.00',
+            'breakdown' => [
+                'item_total' => ['currency_code' => 'USD', 'value' => '90.00'],
+                'tax_total' => ['currency_code' => 'USD', 'value' => '10.00'],
+                'shipping' => ['currency_code' => 'USD', 'value' => '0.00'],
+            ],
+        ],
+    ];
+
+    private const SHIPPING_OPTIONS = [
+        ['id' => 'ups', 'amount' => ['currency_code' => 'USD', 'value' => '10.00'], 'type' => 'SHIPPING', 'label' => 'UPS', 'selected' => true],
+    ];
+
+    private PaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
+
+    private ChannelAvailableCountriesProviderInterface&MockObject $availableCountriesProvider;
+
+    private PayPalShippingAddressResolverInterface&MockObject $shippingAddressResolver;
+
+    private PayPalShippingOptionsResolverInterface&MockObject $shippingOptionsResolver;
+
+    private OrderInterface&MockObject $order;
+
+    private PayPalOrderShippingCallbackAction $action;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
+        $this->availableCountriesProvider = $this->createMock(ChannelAvailableCountriesProviderInterface::class);
+        $this->shippingAddressResolver = $this->createMock(PayPalShippingAddressResolverInterface::class);
+        $this->shippingOptionsResolver = $this->createMock(PayPalShippingOptionsResolverInterface::class);
+
+        $this->order = $this->createMock(OrderInterface::class);
+        $this->order->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($this->order);
+        $this->paypalPaymentQuery
+            ->method('getForUpdateByOrderId')
+            ->willReturnCallback(fn (string $id): ?PaymentInterface => 'PAYPAL_ORDER_ID' === $id ? $payment : null);
+
+        $this->action = new PayPalOrderShippingCallbackAction(
+            $this->paypalPaymentQuery,
+            $this->availableCountriesProvider,
+            $this->shippingAddressResolver,
+            $this->shippingOptionsResolver,
+        );
+    }
+
+    public function test_it_answers_with_the_shipping_options_and_the_amount_paypal_sent(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US', 'CA']);
+        $this->shippingAddressResolver
+            ->expects(self::once())
+            ->method('resolve')
+            ->with(self::SHIPPING_ADDRESS)
+            ->willReturn($address = $this->createMock(AddressInterface::class));
+        $this->shippingOptionsResolver
+            ->expects(self::once())
+            ->method('resolve')
+            ->with($this->order, $address)
+            ->willReturn(self::SHIPPING_OPTIONS);
+
+        $response = ($this->action)($this->callbackRequest());
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame([
+            'id' => 'PAYPAL_ORDER_ID',
+            'purchase_units' => [self::PURCHASE_UNIT + ['shipping_options' => self::SHIPPING_OPTIONS]],
+        ], json_decode((string) $response->getContent(), true));
+    }
+
+    public function test_it_refuses_a_country_the_channel_does_not_sell_to(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['CA']);
+        $this->shippingOptionsResolver->expects(self::never())->method('resolve');
+
+        $response = ($this->action)($this->callbackRequest());
+
+        self::assertUnprocessableWithIssue('COUNTRY_ERROR', $response);
+    }
+
+    public function test_it_refuses_an_address_nothing_can_be_shipped_to(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
+        $this->shippingOptionsResolver->method('resolve')->willReturn([]);
+
+        $response = ($this->action)($this->callbackRequest());
+
+        self::assertUnprocessableWithIssue('ADDRESS_ERROR', $response);
+    }
+
+    public function test_it_refuses_an_order_id_it_does_not_know(): void
+    {
+        $this->availableCountriesProvider->expects(self::never())->method('provideForChannel');
+
+        $response = ($this->action)($this->callbackRequest(['id' => 'UNKNOWN']));
+
+        self::assertUnprocessableWithIssue('ADDRESS_ERROR', $response);
+    }
+
+    public function test_it_refuses_an_order_whose_payment_lookup_fails(): void
+    {
+        $paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
+        $paypalPaymentQuery->method('getForUpdateByOrderId')->willThrowException(new PaymentNotFoundException());
+
+        $action = new PayPalOrderShippingCallbackAction(
+            $paypalPaymentQuery,
+            $this->availableCountriesProvider,
+            $this->shippingAddressResolver,
+            $this->shippingOptionsResolver,
+        );
+
+        self::assertUnprocessableWithIssue('ADDRESS_ERROR', ($action)($this->callbackRequest()));
+    }
+
+    public function test_it_refuses_a_body_that_is_not_json(): void
+    {
+        $request = new Request([], [], [], [], [], ['CONTENT_TYPE' => 'application/json'], 'not json');
+
+        self::assertUnprocessableWithIssue('ADDRESS_ERROR', ($this->action)($request));
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function callbackRequest(array $overrides = []): Request
+    {
+        $payload = $overrides + [
+            'id' => 'PAYPAL_ORDER_ID',
+            'shipping_address' => self::SHIPPING_ADDRESS,
+            'purchase_units' => [self::PURCHASE_UNIT],
+        ];
+
+        return new Request([], [], [], [], [], ['CONTENT_TYPE' => 'application/json'], (string) json_encode($payload));
+    }
+
+    private static function assertUnprocessableWithIssue(string $issue, Response $response): void
+    {
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertSame(
+            ['name' => 'UNPROCESSABLE_ENTITY', 'details' => [['issue' => $issue]]],
+            json_decode((string) $response->getContent(), true),
+        );
+    }
+}

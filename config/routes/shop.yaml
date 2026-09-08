@@ -34,6 +34,12 @@ sylius_paypal_shop_update_paypal_order:
     defaults:
         _controller: sylius_paypal.controller.update_paypal_order
 
+sylius_paypal_shop_order_shipping_callback:
+    path: /pay-pal-order-shipping-callback
+    methods: [POST]
+    defaults:
+        _controller: sylius_paypal.controller.paypal_order_shipping_callback
+
 sylius_paypal_shop_create_paypal_order_from_payment_page:
     path: /pay-pal-order-payment-page/{id}/create
     methods: [POST]

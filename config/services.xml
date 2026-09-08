@@ -156,6 +156,7 @@
             <argument type="service" id="sylius.context.channel" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface" alias="sylius_paypal.provider.available_countries" />
+        <service id="Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface" alias="sylius_paypal.provider.available_countries" />
 
         <service id="sylius_paypal.resolver.capture_payment" class="Sylius\PayPalPlugin\Resolver\CapturePaymentResolver">
             <argument type="service" id="payum" />
