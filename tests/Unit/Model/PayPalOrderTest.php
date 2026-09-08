@@ -45,106 +45,53 @@ final class PayPalOrderTest extends TestCase
         $this->order->method('isShippingRequired')->willReturn(true);
         $this->order->method('getShippingAddress')->willReturn($shippingAddress);
 
+        $payPalOrder = new PayPalOrder(
+            $this->order,
+            $this->payPalPurchaseUnit,
+            'CAPTURE',
+            'BRAND_NAME',
+            'en-US',
+            'https://shop.example.com/checkout/complete',
+            'https://shop.example.com/checkout/complete',
+        );
+
         $this->payPalPurchaseUnit->method('toArray')->willReturn([
             'reference_id' => 'REFERENCE_ID',
             'invoice_id' => 'INVOICE_ID',
-            'amount' => [
-                'currency_code' => 'CURRENCY_CODE',
-                'value' => 100,
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'item_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 80,
-                    ],
-                    'tax_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'discount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 0,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => 'MERCHANT_ID',
-            ],
-            'soft_descriptor' => 'DESCRIPTION',
             'items' => [
                 ['test_item'],
             ],
-            'shipping' => [
-                'name' => [
-                    'full_name' => 'Gandalf The Grey',
-                ],
-                'address' => [
-                    'address_line_1' => 'Hobbit St. 123',
-                    'admin_area_2' => 'Minas Tirith',
-                    'postal_code' => '000',
-                    'country_code' => 'US',
-                ],
-            ],
         ]);
-
-        $result = $this->payPalOrder->toArray();
 
         self::assertEquals([
             'intent' => 'CAPTURE',
+            'payment_source' => [
+                'paypal' => [
+                    'experience_context' => [
+                        'brand_name' => 'BRAND_NAME',
+                        'locale' => 'en-US',
+                        'shipping_preference' => 'SET_PROVIDED_ADDRESS',
+                        'contact_preference' => 'RETAIN_CONTACT_INFO',
+                        'user_action' => 'PAY_NOW',
+                        'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                        'return_url' => 'https://shop.example.com/checkout/complete',
+                        'cancel_url' => 'https://shop.example.com/checkout/complete',
+                        'app_switch_preference' => [
+                            'launch_paypal_app' => true,
+                        ],
+                    ],
+                ],
+            ],
             'purchase_units' => [
                 [
                     'reference_id' => 'REFERENCE_ID',
                     'invoice_id' => 'INVOICE_ID',
-                    'amount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'item_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 80,
-                            ],
-                            'tax_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'discount' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 0,
-                            ],
-                        ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => 'MERCHANT_ID',
-                    ],
-                    'soft_descriptor' => 'DESCRIPTION',
                     'items' => [
                         ['test_item'],
                     ],
-                    'shipping' => [
-                        'name' => [
-                            'full_name' => 'Gandalf The Grey',
-                        ],
-                        'address' => [
-                            'address_line_1' => 'Hobbit St. 123',
-                            'admin_area_2' => 'Minas Tirith',
-                            'postal_code' => '000',
-                            'country_code' => 'US',
-                        ],
-                    ],
                 ],
             ],
-            'application_context' => [
-                'shipping_preference' => 'SET_PROVIDED_ADDRESS',
-                'user_action' => 'PAY_NOW',
-            ],
-        ], $result);
+        ], $payPalOrder->toArray());
     }
 
     #[Test]
@@ -153,213 +100,86 @@ final class PayPalOrderTest extends TestCase
         $this->order->method('isShippingRequired')->willReturn(true);
         $this->order->method('getShippingAddress')->willReturn(null);
 
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([
-            'reference_id' => 'REFERENCE_ID',
-            'invoice_id' => 'INVOICE_ID',
-            'amount' => [
-                'currency_code' => 'CURRENCY_CODE',
-                'value' => 100,
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'item_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 80,
-                    ],
-                    'tax_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'discount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 0,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => 'MERCHANT_ID',
-            ],
-            'soft_descriptor' => 'DESCRIPTION',
-            'items' => [
-                ['test_item'],
-            ],
-        ]);
-
-        $result = $this->payPalOrder->toArray();
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
 
         self::assertEquals([
             'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'reference_id' => 'REFERENCE_ID',
-                    'invoice_id' => 'INVOICE_ID',
-                    'amount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'item_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 80,
-                            ],
-                            'tax_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'discount' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 0,
-                            ],
-                        ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => 'MERCHANT_ID',
-                    ],
-                    'soft_descriptor' => 'DESCRIPTION',
-                    'items' => [
-                        ['test_item'],
-                    ],
-                ],
-            ],
             'payment_source' => [
                 'paypal' => [
                     'experience_context' => [
                         'shipping_preference' => 'GET_FROM_FILE',
+                        'contact_preference' => 'UPDATE_CONTACT_INFO',
                         'user_action' => 'PAY_NOW',
+                        'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                        'app_switch_preference' => [
+                            'launch_paypal_app' => true,
+                        ],
                     ],
                 ],
             ],
-        ], $result);
+            'purchase_units' => [
+                ['reference_id' => 'REFERENCE_ID'],
+            ],
+        ], $this->payPalOrder->toArray());
     }
 
     #[Test]
     public function it_returns_paypal_order_data_if_shipping_is_not_required(): void
     {
         $this->order->method('isShippingRequired')->willReturn(false);
+        $this->order->method('getShippingAddress')->willReturn(null);
 
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([
-            'reference_id' => 'REFERENCE_ID',
-            'invoice_id' => 'INVOICE_ID',
-            'amount' => [
-                'currency_code' => 'CURRENCY_CODE',
-                'value' => 100,
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'item_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 80,
-                    ],
-                    'tax_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'discount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 0,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => 'MERCHANT_ID',
-            ],
-            'soft_descriptor' => 'DESCRIPTION',
-            'items' => [
-                ['test_item'],
-            ],
-        ]);
-
-        $result = $this->payPalOrder->toArray();
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
 
         self::assertEquals([
             'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'reference_id' => 'REFERENCE_ID',
-                    'invoice_id' => 'INVOICE_ID',
-                    'amount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'item_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 80,
-                            ],
-                            'tax_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'discount' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 0,
-                            ],
+            'payment_source' => [
+                'paypal' => [
+                    'experience_context' => [
+                        'shipping_preference' => 'NO_SHIPPING',
+                        'contact_preference' => 'UPDATE_CONTACT_INFO',
+                        'user_action' => 'PAY_NOW',
+                        'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                        'app_switch_preference' => [
+                            'launch_paypal_app' => true,
                         ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => 'MERCHANT_ID',
-                    ],
-                    'soft_descriptor' => 'DESCRIPTION',
-                    'items' => [
-                        ['test_item'],
                     ],
                 ],
             ],
-            'application_context' => [
-                'shipping_preference' => 'NO_SHIPPING',
-                'user_action' => 'PAY_NOW',
+            'purchase_units' => [
+                ['reference_id' => 'REFERENCE_ID'],
             ],
-        ], $result);
+        ], $this->payPalOrder->toArray());
     }
 
     #[Test]
-    public function it_selects_the_paypal_payment_source_when_paypal_supplies_the_shipping_address(): void
+    public function it_enriches_the_experience_context_with_the_brand_name_and_locale(): void
+    {
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, 'CAPTURE', 'BRAND_NAME', 'en-US');
+
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $experienceContext = $payPalOrder->toArray()['payment_source']['paypal']['experience_context'];
+
+        self::assertSame('BRAND_NAME', $experienceContext['brand_name']);
+        self::assertSame('en-US', $experienceContext['locale']);
+    }
+
+    #[Test]
+    public function it_omits_the_enriched_fields_it_was_not_given(): void
     {
         $this->order->method('isShippingRequired')->willReturn(true);
         $this->order->method('getShippingAddress')->willReturn(null);
         $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
 
-        $result = $this->payPalOrder->toArray();
+        $experienceContext = $this->payPalOrder->toArray()['payment_source']['paypal']['experience_context'];
 
-        self::assertSame(
-            ['shipping_preference' => 'GET_FROM_FILE', 'user_action' => 'PAY_NOW'],
-            $result['payment_source']['paypal']['experience_context'],
-        );
-    }
-
-    #[Test]
-    public function it_does_not_select_a_payment_source_when_the_shipping_address_is_already_known(): void
-    {
-        $this->order->method('isShippingRequired')->willReturn(true);
-        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
-
-        $result = $this->payPalOrder->toArray();
-
-        self::assertSame(['shipping_preference' => 'SET_PROVIDED_ADDRESS', 'user_action' => 'PAY_NOW'], $result['application_context']);
-        self::assertArrayNotHasKey('payment_source', $result);
-    }
-
-    #[Test]
-    public function it_does_not_select_a_payment_source_when_shipping_is_not_required(): void
-    {
-        $this->order->method('isShippingRequired')->willReturn(false);
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
-
-        $result = $this->payPalOrder->toArray();
-
-        self::assertSame(['shipping_preference' => 'NO_SHIPPING', 'user_action' => 'PAY_NOW'], $result['application_context']);
-        self::assertArrayNotHasKey('payment_source', $result);
+        self::assertArrayNotHasKey('brand_name', $experienceContext);
+        self::assertArrayNotHasKey('locale', $experienceContext);
+        self::assertArrayNotHasKey('return_url', $experienceContext);
+        self::assertArrayNotHasKey('cancel_url', $experienceContext);
     }
 
     #[Test]
@@ -369,6 +189,8 @@ final class PayPalOrderTest extends TestCase
             $this->order,
             $this->payPalPurchaseUnit,
             'CAPTURE',
+            null,
+            null,
             'https://shop.example.com/checkout/complete',
             'https://shop.example.com/checkout/complete',
         );
@@ -377,14 +199,10 @@ final class PayPalOrderTest extends TestCase
         $this->order->method('getShippingAddress')->willReturn(null);
         $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
 
-        $result = $payPalOrder->toArray();
+        $experienceContext = $payPalOrder->toArray()['payment_source']['paypal']['experience_context'];
 
-        self::assertSame([
-            'shipping_preference' => 'GET_FROM_FILE',
-            'user_action' => 'PAY_NOW',
-            'return_url' => 'https://shop.example.com/checkout/complete',
-            'cancel_url' => 'https://shop.example.com/checkout/complete',
-        ], $result['payment_source']['paypal']['experience_context']);
+        self::assertSame('https://shop.example.com/checkout/complete', $experienceContext['return_url']);
+        self::assertSame('https://shop.example.com/checkout/complete', $experienceContext['cancel_url']);
     }
 
     #[Test]
@@ -422,10 +240,10 @@ final class PayPalOrderTest extends TestCase
     }
 
     #[Test]
-    public function it_never_sends_both_context_blocks_at_once(): void
+    public function it_always_sends_the_experience_context_and_never_the_application_context(): void
     {
         $this->order->method('isShippingRequired')->willReturn(true);
-        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
         $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
 
         $result = $this->payPalOrder->toArray();

@@ -33,6 +33,7 @@ class PayPalPurchaseUnit
         private readonly ?AddressInterface $shippingAddress = null,
         private readonly string $softDescriptor = 'Sylius PayPal Payment',
         private readonly int $shippingDiscountValue = 0,
+        private readonly ?string $customId = null,
     ) {
     }
 
@@ -74,7 +75,11 @@ class PayPalPurchaseUnit
             'items' => $this->items,
         ];
 
-        if ($this->shippingAddress !== null && $this->shippingRequired) {
+        if (null !== $this->customId) {
+            $paypalPurchaseUnit['custom_id'] = $this->customId;
+        }
+
+        if (null !== $this->shippingAddress && $this->shippingRequired) {
             $paypalPurchaseUnit['shipping'] = $this->getShippingAddress();
         }
 

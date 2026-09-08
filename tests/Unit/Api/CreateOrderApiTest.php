@@ -144,7 +144,8 @@ final class CreateOrderApiTest extends TestCase
                 $this->callback(function (array $data): bool {
                     return
                         'CAPTURE' === $data['intent'] &&
-                        'REFERENCE-NUMBER' === $data['purchase_units'][0]['invoice_id'] &&
+                        'REFERENCE-NUMBER-REFERENCE_ID' === $data['purchase_units'][0]['invoice_id'] &&
+                        'REFERENCE-NUMBER' === $data['purchase_units'][0]['custom_id'] &&
                         '100.00' === $data['purchase_units'][0]['amount']['value'] &&
                         !array_key_exists('return_url', $data['payment_source']['paypal']['experience_context']) &&
                         !array_key_exists(

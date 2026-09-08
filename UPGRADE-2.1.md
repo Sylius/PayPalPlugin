@@ -496,3 +496,43 @@
    (`sylius_paypal.provider.paypal_payment_page_context`) builds everything the page renders: the URLs it
    calls, the v6 instance configuration including the `card-fields` component, and the order being paid
    for. Decorate or replace it to change what the page receives without replacing the controller.
+
+1. #### The created PayPal order now carries full line items, an amount breakdown, `custom_id`/`invoice_id`,
+   and `experience_context`.
+
+   Following the PayPal SDD, the `v2/checkout/orders` payload - now assembled by `PayPalOrderFactory` and
+   `PayPalPurchaseUnitFactory` (see above) - changed shape:
+
+   - **`payment_source.paypal.experience_context` replaces `application_context`.** The order now sends
+     `brand_name` (the channel name), `locale`, `shipping_preference`, `contact_preference`, `user_action`,
+     `payment_method_preference`, an `app_switch_preference`, and identical `return_url`/`cancel_url` (the
+     absolute payer return URL - they must be identical for app switch to work). When PayPal can reach the
+     shipping callback, the block also carries `order_update_callback_config`. Preferences follow the flow: a
+     known shipping address yields `SET_PROVIDED_ADDRESS` + `RETAIN_CONTACT_INFO`, an unknown one (shortcut
+     placements) yields `GET_FROM_FILE` + `UPDATE_CONTACT_INFO`, and a non-shippable order yields `NO_SHIPPING`.
+   - **Each `purchase_units[].items[]` entry now includes `category`, and, when resolvable, `sku` (variant
+     code), `description` (product short description) and `url` (product page).** `category` is
+     `DIGITAL_GOODS` for orders that do not require shipping and `PHYSICAL_GOODS` otherwise. An
+     integration using the partner (platform) fee functionality must keep `PHYSICAL_GOODS` for digital goods;
+     this package does not use partner fees, so digital orders are marked `DIGITAL_GOODS`.
+   - **`custom_id` and a per-attempt-unique `invoice_id`.** `custom_id` carries the stable payment reference
+     number so PayPal notifications can be resolved back to the Sylius payment; `invoice_id` appends the
+     per-attempt reference id to that number so a retried payment never collides on the value PayPal rejects
+     when duplicated.
+
+1. #### `PayPalItemDataProvider` gained an optional `router` argument.
+
+   `Sylius\PayPalPlugin\Provider\PayPalItemDataProvider` now takes a
+   `Symfony\Component\Routing\Generator\UrlGeneratorInterface` (the `router` service) as an optional last
+   constructor argument, used to build the item product URLs. Omitting it is deprecated and the provider then
+   skips the `url` field; if you instantiate or decorate the provider yourself, pass the `router` service.
+
+1. #### `PayPalPurchaseUnit` and `PayPalOrder` model constructors gained optional arguments.
+
+   `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit` gained a trailing optional `?string $customId = null`
+   argument; existing positional calls keep working.
+
+   `Sylius\PayPalPlugin\Model\PayPalOrder` gained optional `?string $brandName`, `?string $localeCode`,
+   `?string $returnUrl`, `?string $cancelUrl` and `?string $shippingCallbackUrl` arguments after `$intent`, and
+   `toArray()` emits `payment_source.paypal.experience_context` instead of `application_context`. Existing
+   positional calls keep working; the enriched fields are simply omitted when their arguments are `null`.

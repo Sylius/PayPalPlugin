@@ -100,7 +100,8 @@ final class PayPalPurchaseUnitFactoryTest extends TestCase
         $purchaseUnit = $this->factory->create($this->payment, 'REFERENCE_ID')->toArray();
 
         self::assertSame('REFERENCE_ID', $purchaseUnit['reference_id']);
-        self::assertSame('REFERENCE-NUMBER', $purchaseUnit['invoice_id']);
+        self::assertSame('REFERENCE-NUMBER-REFERENCE_ID', $purchaseUnit['invoice_id']);
+        self::assertSame('REFERENCE-NUMBER', $purchaseUnit['custom_id']);
         self::assertSame('PLN', $purchaseUnit['amount']['currency_code']);
         self::assertSame('100.00', $purchaseUnit['amount']['value']);
         self::assertSame(

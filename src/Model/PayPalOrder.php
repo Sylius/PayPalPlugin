@@ -29,73 +29,41 @@ class PayPalOrder
 
     public const CALLBACK_EVENT_SHIPPING_ADDRESS = 'SHIPPING_ADDRESS';
 
-    /** @var string */
-    private $intent;
+    public const RETAIN_CONTACT_INFO = 'RETAIN_CONTACT_INFO';
 
-    /** @var PayPalPurchaseUnit */
-    private $payPalPurchaseUnit;
-
-    /** @var OrderInterface */
-    private $order;
+    public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';
 
     public function __construct(
-        OrderInterface $order,
-        PayPalPurchaseUnit $payPalPurchaseUnit,
-        string $intent,
+        private readonly OrderInterface $order,
+        private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
+        private readonly string $intent,
+        private readonly ?string $brandName = null,
+        private readonly ?string $localeCode = null,
         private readonly ?string $returnUrl = null,
         private readonly ?string $cancelUrl = null,
         private readonly ?string $shippingCallbackUrl = null,
     ) {
-        $this->payPalPurchaseUnit = $payPalPurchaseUnit;
-        $this->order = $order;
-        $this->intent = $intent;
     }
 
     public function toArray(): array
     {
-        $shippingPreference = $this->getShippingPreference();
-
-        $payPalOrder = [
-            'intent' => $this->intent,
-            'purchase_units' => [
-                $this->payPalPurchaseUnit->toArray(),
-            ],
-        ];
-
-        // PayPal rejects an order carrying shipping_preference or user_action in both places with
-        // INCOMPATIBLE_PARAMETER_VALUE, so the two context blocks are mutually exclusive.
-        if (self::PAYPAL_ADDRESS === $shippingPreference) {
-            $payPalOrder['payment_source'] = [
-                'paypal' => [
-                    'experience_context' => $this->getExperienceContext($shippingPreference),
+        $experienceContext = array_filter(
+            [
+                'brand_name' => $this->brandName,
+                'locale' => $this->localeCode,
+                'shipping_preference' => $this->getShippingPreference(),
+                'contact_preference' => $this->getContactPreference(),
+                'user_action' => self::USER_ACTION_PAY_NOW,
+                'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                // return_url and cancel_url must be identical for app switch to function.
+                'return_url' => $this->returnUrl,
+                'cancel_url' => $this->cancelUrl,
+                'app_switch_preference' => [
+                    'launch_paypal_app' => true,
                 ],
-            ];
-
-            return $payPalOrder;
-        }
-
-        $payPalOrder['application_context'] = [
-            'shipping_preference' => $shippingPreference,
-            'user_action' => self::USER_ACTION_PAY_NOW,
-        ];
-
-        return $payPalOrder;
-    }
-
-    private function getExperienceContext(string $shippingPreference): array
-    {
-        $experienceContext = [
-            'shipping_preference' => $shippingPreference,
-            'user_action' => self::USER_ACTION_PAY_NOW,
-        ];
-
-        if (null !== $this->returnUrl) {
-            $experienceContext['return_url'] = $this->returnUrl;
-        }
-
-        if (null !== $this->cancelUrl) {
-            $experienceContext['cancel_url'] = $this->cancelUrl;
-        }
+            ],
+            static fn (mixed $value): bool => null !== $value,
+        );
 
         if (null !== $this->shippingCallbackUrl) {
             $experienceContext['order_update_callback_config'] = [
@@ -104,13 +72,23 @@ class PayPalOrder
             ];
         }
 
-        return $experienceContext;
+        return [
+            'intent' => $this->intent,
+            'payment_source' => [
+                'paypal' => [
+                    'experience_context' => $experienceContext,
+                ],
+            ],
+            'purchase_units' => [
+                $this->payPalPurchaseUnit->toArray(),
+            ],
+        ];
     }
 
     private function getShippingPreference(): string
     {
         if ($this->order->isShippingRequired()) {
-            if ($this->order->getShippingAddress() !== null) {
+            if (null !== $this->order->getShippingAddress()) {
                 return self::PROVIDED_ADDRESS;
             }
 
@@ -118,5 +96,10 @@ class PayPalOrder
         }
 
         return self::NO_SHIPPING;
+    }
+
+    private function getContactPreference(): string
+    {
+        return null !== $this->order->getShippingAddress() ? self::RETAIN_CONTACT_INFO : self::UPDATE_CONTACT_INFO;
     }
 }
