@@ -80,6 +80,7 @@ final readonly class PayPalButtonsController
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details'),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -108,6 +109,7 @@ final readonly class PayPalButtonsController
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart'),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -137,6 +139,7 @@ final readonly class PayPalButtonsController
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout'),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');

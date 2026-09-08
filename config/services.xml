@@ -303,6 +303,7 @@
             class="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProvider"
         >
             <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
             <argument>%sylius_paypal.web_url%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />

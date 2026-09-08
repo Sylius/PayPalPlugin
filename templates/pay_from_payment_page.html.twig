@@ -8,9 +8,11 @@
         cancelOrderUrl: cancelPayPalPaymentUrl,
         errorUrl: errorPayPalPaymentUrl,
         payLaterEnabled: paylaterEnabled,
+        venmoEnabled: venmoEnabled,
     }) }}
     style="width:250px"
 >
     <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
     <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} hidden></paypal-pay-later-button>
+    <venmo-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'venmoButton') }} hidden></venmo-button>
 </div>

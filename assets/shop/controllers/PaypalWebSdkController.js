@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['paypalButton', 'payLaterButton'];
+    static targets = ['paypalButton', 'payLaterButton', 'venmoButton'];
 
     static values = {
         scriptUrl: String,
@@ -14,6 +14,7 @@ export default class extends Controller {
         errorUrl: String,
         loadingSelector: String,
         payLaterEnabled: Boolean,
+        venmoEnabled: Boolean,
     };
 
     syliusOrderId = null;
@@ -44,6 +45,10 @@ export default class extends Controller {
                 this.payLaterButtonTarget.productCode = payLaterDetails.productCode;
                 this.payLaterButtonTarget.countryCode = payLaterDetails.countryCode;
                 this.wireUpButton(this.payLaterButtonTarget, sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
+            }
+
+            if (this.venmoEnabledValue && this.hasVenmoButtonTarget && paymentMethods.isEligible('venmo')) {
+                this.wireUpButton(this.venmoButtonTarget, sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()));
             }
         } catch (error) {
             console.error('PayPal Web SDK initialization error:', error);

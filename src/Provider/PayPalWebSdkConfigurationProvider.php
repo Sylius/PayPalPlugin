@@ -19,6 +19,7 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
 {
     public function __construct(
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private string $webUrl,
     ) {
     }
@@ -30,9 +31,14 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
 
     public function getInstanceConfig(ChannelInterface $channel, string $pageType): array
     {
+        $components = ['paypal-payments'];
+        if ($this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel)) {
+            $components[] = 'venmo-payments';
+        }
+
         return [
             'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-            'components' => ['paypal-payments'],
+            'components' => $components,
             'pageType' => $pageType,
             'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
         ];

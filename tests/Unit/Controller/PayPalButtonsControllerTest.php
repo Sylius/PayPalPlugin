@@ -100,6 +100,7 @@ final class PayPalButtonsControllerTest extends TestCase
     public function it_passes_paylater_enabled_to_the_product_page_template(): void
     {
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(false);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -113,6 +114,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderProductPageButtonsAction(Request::create('/'));
 
         self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['venmoEnabled']);
     }
 
     #[Test]
@@ -122,6 +124,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $order->method('getCurrencyCode')->willReturn('USD');
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(false);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -135,6 +138,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertTrue($capturedContext['venmoEnabled']);
     }
 
     #[Test]
@@ -144,6 +148,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $order->method('getCurrencyCode')->willReturn('USD');
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -157,6 +162,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertTrue($capturedContext['venmoEnabled']);
     }
 
     #[Test]
