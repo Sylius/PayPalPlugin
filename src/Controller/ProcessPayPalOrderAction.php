@@ -21,11 +21,14 @@ use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\OrderCheckoutStates;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\Component\Resource\Repository\RepositoryInterface;
+use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
@@ -60,6 +63,7 @@ final readonly class ProcessPayPalOrderAction
         private ?UrlGeneratorInterface $router = null,
         private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
         private ?OrderProcessorInterface $orderProcessor = null,
+        private ?RepositoryInterface $shippingMethodRepository = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -92,6 +96,14 @@ final readonly class ProcessPayPalOrderAction
                 'sylius/paypal-plugin',
                 '2.1',
                 'Not passing $orderProcessor to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->shippingMethodRepository) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $shippingMethodRepository to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
         }
@@ -153,6 +165,8 @@ final readonly class ProcessPayPalOrderAction
             $order->setBillingAddress(clone $address);
 
             $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_ADDRESS);
+
+            $this->applyShippingMethodSelectedInWallet($order, $purchaseUnit);
 
             if ($this->stateMachineFactory->can($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING)) {
                 $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
@@ -222,6 +236,40 @@ final readonly class ProcessPayPalOrderAction
             'return_url' => $this->generateReturnUrl('sylius_shop_checkout_complete'),
             'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
         ], $status);
+    }
+
+    /** @param array<string, mixed> $purchaseUnit */
+    private function applyShippingMethodSelectedInWallet(OrderInterface $order, array $purchaseUnit): void
+    {
+        if (null === $this->shippingMethodRepository) {
+            return;
+        }
+
+        /** @var array<int, array<string, mixed>> $options */
+        $options = (array) ($purchaseUnit['shipping']['options'] ?? []);
+
+        $selectedCode = null;
+        foreach ($options as $option) {
+            if (true === ($option['selected'] ?? false)) {
+                $selectedCode = (string) ($option['id'] ?? '');
+
+                break;
+            }
+        }
+
+        if (null === $selectedCode || '' === $selectedCode) {
+            return;
+        }
+
+        $shipment = $order->getShipments()->first();
+        if (!$shipment instanceof ShipmentInterface) {
+            return;
+        }
+
+        $shippingMethod = $this->shippingMethodRepository->findOneBy(['code' => $selectedCode]);
+        if ($shippingMethod instanceof ShippingMethodInterface) {
+            $shipment->setMethod($shippingMethod);
+        }
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void
