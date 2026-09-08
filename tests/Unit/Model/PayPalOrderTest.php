@@ -230,6 +230,14 @@ final class PayPalOrderTest extends TestCase
                 'shipping_preference' => 'GET_FROM_FILE',
                 'user_action' => 'PAY_NOW',
             ],
+            'payment_source' => [
+                'paypal' => [
+                    'experience_context' => [
+                        'shipping_preference' => 'GET_FROM_FILE',
+                        'user_action' => 'PAY_NOW',
+                    ],
+                ],
+            ],
         ], $result);
     }
 
@@ -316,5 +324,70 @@ final class PayPalOrderTest extends TestCase
                 'user_action' => 'PAY_NOW',
             ],
         ], $result);
+    }
+
+    #[Test]
+    public function it_selects_the_paypal_payment_source_when_paypal_supplies_the_shipping_address(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $this->payPalOrder->toArray();
+
+        self::assertSame(
+            ['shipping_preference' => 'GET_FROM_FILE', 'user_action' => 'PAY_NOW'],
+            $result['payment_source']['paypal']['experience_context'],
+        );
+    }
+
+    #[Test]
+    public function it_does_not_select_a_payment_source_when_the_shipping_address_is_already_known(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $this->payPalOrder->toArray();
+
+        self::assertSame(['shipping_preference' => 'SET_PROVIDED_ADDRESS', 'user_action' => 'PAY_NOW'], $result['application_context']);
+        self::assertArrayNotHasKey('payment_source', $result);
+    }
+
+    #[Test]
+    public function it_does_not_select_a_payment_source_when_shipping_is_not_required(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(false);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $this->payPalOrder->toArray();
+
+        self::assertSame(['shipping_preference' => 'NO_SHIPPING', 'user_action' => 'PAY_NOW'], $result['application_context']);
+        self::assertArrayNotHasKey('payment_source', $result);
+    }
+
+    #[Test]
+    public function it_passes_the_return_and_cancel_urls_to_the_experience_context(): void
+    {
+        $payPalOrder = new PayPalOrder(
+            $this->order,
+            $this->payPalPurchaseUnit,
+            'CAPTURE',
+            'https://shop.example.com/checkout/complete',
+            'https://shop.example.com/checkout/complete',
+        );
+
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $payPalOrder->toArray();
+
+        self::assertSame([
+            'shipping_preference' => 'GET_FROM_FILE',
+            'user_action' => 'PAY_NOW',
+            'return_url' => 'https://shop.example.com/checkout/complete',
+            'cancel_url' => 'https://shop.example.com/checkout/complete',
+        ], $result['payment_source']['paypal']['experience_context']);
     }
 }

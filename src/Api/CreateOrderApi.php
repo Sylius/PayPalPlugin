@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
@@ -33,7 +34,16 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
         private PayPalItemDataProviderInterface $payPalItemDataProvider,
+        private ?UrlGeneratorInterface $router = null,
     ) {
+        if (null === $this->router) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $router to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function create(string $token, PaymentInterface $payment, string $referenceId): array
@@ -74,7 +84,19 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             shippingDiscountValue: $shippingDiscount,
         );
 
-        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);
+        $payerReturnUrl = $this->router?->generate(
+            'sylius_shop_checkout_complete',
+            [],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
+
+        $payPalOrder = new PayPalOrder(
+            $order,
+            $payPalPurchaseUnit,
+            self::PAYPAL_INTENT_CAPTURE,
+            $payerReturnUrl,
+            $payerReturnUrl,
+        );
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }

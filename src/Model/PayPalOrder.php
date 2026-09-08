@@ -38,6 +38,8 @@ class PayPalOrder
         OrderInterface $order,
         PayPalPurchaseUnit $payPalPurchaseUnit,
         string $intent,
+        private readonly ?string $returnUrl = null,
+        private readonly ?string $cancelUrl = null,
     ) {
         $this->payPalPurchaseUnit = $payPalPurchaseUnit;
         $this->order = $order;
@@ -46,16 +48,48 @@ class PayPalOrder
 
     public function toArray(): array
     {
-        return [
+        $shippingPreference = $this->getShippingPreference();
+
+        $payPalOrder = [
             'intent' => $this->intent,
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
             'application_context' => [
-                'shipping_preference' => $this->getShippingPreference(),
+                'shipping_preference' => $shippingPreference,
                 'user_action' => self::USER_ACTION_PAY_NOW,
             ],
         ];
+
+        if (self::PAYPAL_ADDRESS === $shippingPreference) {
+            $payPalOrder['payment_source'] = [
+                'paypal' => [
+                    'experience_context' => $this->getExperienceContext($shippingPreference),
+                ],
+            ];
+        }
+
+        return $payPalOrder;
+    }
+
+    private function getExperienceContext(string $shippingPreference): array
+    {
+        // experience_context supersedes application_context for the selected payment source, so both keys
+        // above are repeated here rather than relied upon.
+        $experienceContext = [
+            'shipping_preference' => $shippingPreference,
+            'user_action' => self::USER_ACTION_PAY_NOW,
+        ];
+
+        if (null !== $this->returnUrl) {
+            $experienceContext['return_url'] = $this->returnUrl;
+        }
+
+        if (null !== $this->cancelUrl) {
+            $experienceContext['cancel_url'] = $this->cancelUrl;
+        }
+
+        return $experienceContext;
     }
 
     private function getShippingPreference(): string

@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CreateOrderApiTest extends TestCase
 {
@@ -36,6 +37,8 @@ final class CreateOrderApiTest extends TestCase
 
     private PayPalItemDataProviderInterface&MockObject $payPalItemDataProvider;
 
+    private UrlGeneratorInterface&MockObject $router;
+
     private CreateOrderApi $createOrderApi;
 
     protected function setUp(): void
@@ -44,11 +47,18 @@ final class CreateOrderApiTest extends TestCase
         $this->client = $this->createMock(PayPalClientInterface::class);
         $this->paymentReferenceNumberProvider = $this->createMock(PaymentReferenceNumberProviderInterface::class);
         $this->payPalItemDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
+        $this->router = $this->createMock(UrlGeneratorInterface::class);
+
+        $this->router
+            ->method('generate')
+            ->with('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://shop.example.com/checkout/complete');
 
         $this->createOrderApi = new CreateOrderApi(
             $this->client,
             $this->paymentReferenceNumberProvider,
             $this->payPalItemDataProvider,
+            $this->router,
         );
     }
 
@@ -306,5 +316,97 @@ final class CreateOrderApiTest extends TestCase
         $result = $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
 
         self::assertEquals(['status' => 'CREATED', 'id' => 123], $result);
+    }
+
+    #[Test]
+    public function it_sends_the_same_return_and_cancel_url_on_orders_addressed_in_the_wallet(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(10000);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getShippingAddress')->willReturn(null);
+        $order->method('getShippingTotal')->willReturn(1000);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getOrderPromotionTotal')->willReturn(0);
+        $order->method('getAdjustmentsTotalRecursively')->willReturn(0);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getConfig')->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+        );
+
+        $this->payPalItemDataProvider->method('provide')->willReturn([
+            'items' => [],
+            'total_item_value' => '90.00',
+            'total_tax' => '0.00',
+        ]);
+        $this->paymentReferenceNumberProvider->method('provide')->willReturn('REFERENCE-NUMBER');
+
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with(
+                'v2/checkout/orders',
+                'TOKEN',
+                $this->callback(function (array $data): bool {
+                    return $data['payment_source']['paypal']['experience_context'] === [
+                        'shipping_preference' => 'GET_FROM_FILE',
+                        'user_action' => 'PAY_NOW',
+                        'return_url' => 'https://shop.example.com/checkout/complete',
+                        'cancel_url' => 'https://shop.example.com/checkout/complete',
+                    ];
+                }),
+            )
+            ->willReturn(['status' => 'PAYER_ACTION_REQUIRED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
+    }
+
+    #[Test]
+    public function it_does_not_select_a_payment_source_on_orders_that_already_carry_an_address(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $shippingAddress = $this->createMock(AddressInterface::class);
+
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(10000);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getShippingAddress')->willReturn($shippingAddress);
+        $order->method('getShippingTotal')->willReturn(1000);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getOrderPromotionTotal')->willReturn(0);
+        $order->method('getAdjustmentsTotalRecursively')->willReturn(0);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getConfig')->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+        );
+
+        $this->payPalItemDataProvider->method('provide')->willReturn([
+            'items' => [],
+            'total_item_value' => '90.00',
+            'total_tax' => '0.00',
+        ]);
+        $this->paymentReferenceNumberProvider->method('provide')->willReturn('REFERENCE-NUMBER');
+
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with(
+                'v2/checkout/orders',
+                'TOKEN',
+                $this->callback(fn (array $data): bool => !array_key_exists('payment_source', $data)),
+            )
+            ->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
     }
 }
