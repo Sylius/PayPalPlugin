@@ -25,6 +25,8 @@ class PayPalOrder
 
     public const USER_ACTION_PAY_NOW = 'PAY_NOW';
 
+    public const CALLBACK_EVENT_SHIPPING_ADDRESS = 'SHIPPING_ADDRESS';
+
     /** @var string */
     private $intent;
 
@@ -40,6 +42,7 @@ class PayPalOrder
         string $intent,
         private readonly ?string $returnUrl = null,
         private readonly ?string $cancelUrl = null,
+        private readonly ?string $shippingCallbackUrl = null,
     ) {
         $this->payPalPurchaseUnit = $payPalPurchaseUnit;
         $this->order = $order;
@@ -87,6 +90,13 @@ class PayPalOrder
 
         if (null !== $this->cancelUrl) {
             $experienceContext['cancel_url'] = $this->cancelUrl;
+        }
+
+        if (null !== $this->shippingCallbackUrl) {
+            $experienceContext['order_update_callback_config'] = [
+                'callback_events' => [self::CALLBACK_EVENT_SHIPPING_ADDRESS],
+                'callback_url' => $this->shippingCallbackUrl,
+            ];
         }
 
         return $experienceContext;

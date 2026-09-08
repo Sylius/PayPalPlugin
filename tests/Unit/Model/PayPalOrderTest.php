@@ -390,4 +390,38 @@ final class PayPalOrderTest extends TestCase
             'cancel_url' => 'https://shop.example.com/checkout/complete',
         ], $result['payment_source']['paypal']['experience_context']);
     }
+
+    #[Test]
+    public function it_declares_the_shipping_callback_on_orders_addressed_in_the_wallet(): void
+    {
+        $payPalOrder = new PayPalOrder(
+            $this->order,
+            $this->payPalPurchaseUnit,
+            'CAPTURE',
+            shippingCallbackUrl: 'https://shop.example.com/pay-pal-order-shipping-callback',
+        );
+
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $payPalOrder->toArray();
+
+        self::assertSame([
+            'callback_events' => ['SHIPPING_ADDRESS'],
+            'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+        ], $result['payment_source']['paypal']['experience_context']['order_update_callback_config']);
+    }
+
+    #[Test]
+    public function it_declares_no_shipping_callback_when_it_was_not_given_one(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $result = $this->payPalOrder->toArray();
+
+        self::assertArrayNotHasKey('order_update_callback_config', $result['payment_source']['paypal']['experience_context']);
+    }
 }

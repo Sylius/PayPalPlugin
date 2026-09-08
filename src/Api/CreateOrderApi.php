@@ -96,8 +96,24 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             self::PAYPAL_INTENT_CAPTURE,
             $payerReturnUrl,
             $payerReturnUrl,
+            $this->getShippingCallbackUrl(),
         );
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
+    }
+
+    private function getShippingCallbackUrl(): ?string
+    {
+        $callbackUrl = $this->router?->generate(
+            'sylius_paypal_shop_order_shipping_callback',
+            [],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
+
+        if (null === $callbackUrl || !str_starts_with($callbackUrl, 'https://')) {
+            return null;
+        }
+
+        return $callbackUrl;
     }
 }

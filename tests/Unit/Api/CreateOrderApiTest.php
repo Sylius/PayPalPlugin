@@ -39,6 +39,8 @@ final class CreateOrderApiTest extends TestCase
 
     private UrlGeneratorInterface&MockObject $router;
 
+    private string $shopScheme = 'https';
+
     private CreateOrderApi $createOrderApi;
 
     protected function setUp(): void
@@ -49,10 +51,7 @@ final class CreateOrderApiTest extends TestCase
         $this->payPalItemDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
         $this->router = $this->createMock(UrlGeneratorInterface::class);
 
-        $this->router
-            ->method('generate')
-            ->with('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL)
-            ->willReturn('https://shop.example.com/checkout/complete');
+        $this->router->method('generate')->willReturnCallback($this->routeUrl(...));
 
         $this->createOrderApi = new CreateOrderApi(
             $this->client,
@@ -359,6 +358,10 @@ final class CreateOrderApiTest extends TestCase
                         'user_action' => 'PAY_NOW',
                         'return_url' => 'https://shop.example.com/checkout/complete',
                         'cancel_url' => 'https://shop.example.com/checkout/complete',
+                        'order_update_callback_config' => [
+                            'callback_events' => ['SHIPPING_ADDRESS'],
+                            'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+                        ],
                     ];
                 }),
             )
@@ -408,5 +411,75 @@ final class CreateOrderApiTest extends TestCase
             ->willReturn(['status' => 'CREATED', 'id' => 123]);
 
         $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
+    }
+
+    #[Test]
+    public function it_does_not_declare_a_shipping_callback_paypal_could_not_reach(): void
+    {
+        $this->shopScheme = 'http';
+
+        $payment = $this->walletAddressedPayment();
+
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with(
+                'v2/checkout/orders',
+                'TOKEN',
+                $this->callback(function (array $data): bool {
+                    $experienceContext = $data['payment_source']['paypal']['experience_context'];
+
+                    // return_url stays: it is a browser redirect the buyer can follow on a local shop,
+                    // unlike the callback PayPal has to reach from its own network.
+                    return
+                        !array_key_exists('order_update_callback_config', $experienceContext) &&
+                        $experienceContext['return_url'] === 'http://shop.example.com/checkout/complete'
+                    ;
+                }),
+            )
+            ->willReturn(['status' => 'PAYER_ACTION_REQUIRED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
+    }
+
+    private function walletAddressedPayment(): PaymentInterface&MockObject
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(10000);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getShippingAddress')->willReturn(null);
+        $order->method('getShippingTotal')->willReturn(1000);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getOrderPromotionTotal')->willReturn(0);
+        $order->method('getAdjustmentsTotalRecursively')->willReturn(0);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getConfig')->willReturn(
+            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+        );
+
+        $this->payPalItemDataProvider->method('provide')->willReturn([
+            'items' => [],
+            'total_item_value' => '90.00',
+            'total_tax' => '0.00',
+        ]);
+        $this->paymentReferenceNumberProvider->method('provide')->willReturn('REFERENCE-NUMBER');
+
+        return $payment;
+    }
+
+    private function routeUrl(string $route): string
+    {
+        $path = match ($route) {
+            'sylius_shop_checkout_complete' => '/checkout/complete',
+            'sylius_paypal_shop_order_shipping_callback' => '/pay-pal-order-shipping-callback',
+        };
+
+        return $this->shopScheme . '://shop.example.com' . $path;
     }
 }
