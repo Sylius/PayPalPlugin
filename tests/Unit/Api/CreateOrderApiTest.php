@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\AdjustmentInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -27,6 +28,7 @@ use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CreateOrderApiTest extends TestCase
 {
@@ -36,6 +38,8 @@ final class CreateOrderApiTest extends TestCase
 
     private PayPalItemDataProviderInterface&MockObject $payPalItemDataProvider;
 
+    private UrlGeneratorInterface&MockObject $urlGenerator;
+
     private CreateOrderApi $createOrderApi;
 
     protected function setUp(): void
@@ -44,11 +48,13 @@ final class CreateOrderApiTest extends TestCase
         $this->client = $this->createMock(PayPalClientInterface::class);
         $this->paymentReferenceNumberProvider = $this->createMock(PaymentReferenceNumberProviderInterface::class);
         $this->payPalItemDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
+        $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
 
         $this->createOrderApi = new CreateOrderApi(
             $this->client,
             $this->paymentReferenceNumberProvider,
             $this->payPalItemDataProvider,
+            $this->urlGenerator,
         );
     }
 
@@ -63,13 +69,19 @@ final class CreateOrderApiTest extends TestCase
     {
         $payment = $this->createMock(PaymentInterface::class);
         $order = $this->createMock(OrderInterface::class);
+        $channel = $this->createMock(ChannelInterface::class);
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
         $payment->method('getOrder')->willReturn($order);
+        $payment->method('getId')->willReturn(1);
         $payment->method('getAmount')->willReturn(10000);
         $order->method('getCurrencyCode')->willReturn('PLN');
         $order->method('getShippingAddress')->willReturn(null);
+        $order->method('getChannel')->willReturn($channel);
+        $order->method('getLocaleCode')->willReturn('en_US');
+        $order->method('getTokenValue')->willReturn('TOKEN_VALUE');
+        $channel->method('getName')->willReturn('Web Store');
         $order->method('getItemsTotal')->willReturn(9000);
         $order->method('getShippingTotal')->willReturn(1000);
         $order->method('isShippingRequired')->willReturn(true);
@@ -94,6 +106,7 @@ final class CreateOrderApiTest extends TestCase
                             'value' => '0.00',
                             'currency_code' => 'PLN',
                         ],
+                        'category' => 'PHYSICAL_GOODS',
                     ],
                 ],
                 'total_item_value' => '90.00',
@@ -108,6 +121,15 @@ final class CreateOrderApiTest extends TestCase
             ->with($payment)
             ->willReturn('REFERENCE-NUMBER');
 
+        $this->urlGenerator
+            ->method('generate')
+            ->with(
+                'sylius_paypal_shop_pay_with_paypal_form',
+                ['orderToken' => 'TOKEN_VALUE', 'paymentId' => 1],
+                UrlGeneratorInterface::ABSOLUTE_URL,
+            )
+            ->willReturn('https://example.com/pay-with-paypal/TOKEN_VALUE/1');
+
         $gatewayConfig->method('getConfig')->willReturn(
             ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
@@ -119,17 +141,25 @@ final class CreateOrderApiTest extends TestCase
                 'v2/checkout/orders',
                 'TOKEN',
                 $this->callback(function (array $data): bool {
+                    $experienceContext = $data['payment_source']['paypal']['experience_context'];
+
                     return
                         $data['intent'] === 'CAPTURE' &&
-                        $data['purchase_units'][0]['invoice_id'] === 'REFERENCE-NUMBER' &&
+                        $data['purchase_units'][0]['invoice_id'] === 'REFERENCE-NUMBER-REFERENCE_ID' &&
+                        $data['purchase_units'][0]['custom_id'] === 'REFERENCE-NUMBER' &&
                         $data['purchase_units'][0]['amount']['value'] === '100.00' &&
                         $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                         $data['purchase_units'][0]['amount']['breakdown']['shipping']['currency_code'] === 'PLN' &&
                         $data['purchase_units'][0]['amount']['breakdown']['shipping']['value'] === '10.00' &&
                         $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
                         $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                        $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
-                        $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
+                        $experienceContext['brand_name'] === 'Web Store' &&
+                        $experienceContext['locale'] === 'en-US' &&
+                        $experienceContext['shipping_preference'] === 'GET_FROM_FILE' &&
+                        $experienceContext['contact_preference'] === 'UPDATE_CONTACT_INFO' &&
+                        $experienceContext['return_url'] === 'https://example.com/pay-with-paypal/TOKEN_VALUE/1' &&
+                        $experienceContext['return_url'] === $experienceContext['cancel_url'] &&
+                        $experienceContext['app_switch_preference']['launch_paypal_app'] === true
                     ;
                 }),
             )
@@ -145,14 +175,20 @@ final class CreateOrderApiTest extends TestCase
     {
         $payment = $this->createMock(PaymentInterface::class);
         $order = $this->createMock(OrderInterface::class);
+        $channel = $this->createMock(ChannelInterface::class);
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
         $shippingAddress = $this->createMock(AddressInterface::class);
 
         $payment->method('getOrder')->willReturn($order);
+        $payment->method('getId')->willReturn(1);
         $payment->method('getAmount')->willReturn(10000);
         $order->method('getCurrencyCode')->willReturn('PLN');
         $order->method('getShippingAddress')->willReturn($shippingAddress);
+        $order->method('getChannel')->willReturn($channel);
+        $order->method('getLocaleCode')->willReturn('en_US');
+        $order->method('getTokenValue')->willReturn('TOKEN_VALUE');
+        $channel->method('getName')->willReturn('Web Store');
         $order->method('getItemsTotal')->willReturn(9000);
         $order->method('getShippingTotal')->willReturn(1000);
         $order->method('isShippingRequired')->willReturn(true);
@@ -183,6 +219,7 @@ final class CreateOrderApiTest extends TestCase
                             'value' => '0.00',
                             'currency_code' => 'PLN',
                         ],
+                        'category' => 'PHYSICAL_GOODS',
                     ],
                 ],
                 'total_item_value' => '90.00',
@@ -197,6 +234,10 @@ final class CreateOrderApiTest extends TestCase
             ->with($payment)
             ->willReturn('REFERENCE-NUMBER');
 
+        $this->urlGenerator
+            ->method('generate')
+            ->willReturn('https://example.com/pay-with-paypal/TOKEN_VALUE/1');
+
         $gatewayConfig->method('getConfig')->willReturn(
             ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
         );
@@ -208,9 +249,12 @@ final class CreateOrderApiTest extends TestCase
                 'v2/checkout/orders',
                 'TOKEN',
                 $this->callback(function (array $data): bool {
+                    $experienceContext = $data['payment_source']['paypal']['experience_context'];
+
                     return
                         $data['intent'] === 'CAPTURE' &&
-                        $data['purchase_units'][0]['invoice_id'] === 'REFERENCE-NUMBER' &&
+                        $data['purchase_units'][0]['invoice_id'] === 'REFERENCE-NUMBER-REFERENCE_ID' &&
+                        $data['purchase_units'][0]['custom_id'] === 'REFERENCE-NUMBER' &&
                         $data['purchase_units'][0]['amount']['value'] === '100.00' &&
                         $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
                         $data['purchase_units'][0]['shipping']['name']['full_name'] === 'Gandalf The Grey' &&
@@ -218,10 +262,8 @@ final class CreateOrderApiTest extends TestCase
                         $data['purchase_units'][0]['shipping']['address']['admin_area_2'] === 'Minas Tirith' &&
                         $data['purchase_units'][0]['shipping']['address']['postal_code'] === '000' &&
                         $data['purchase_units'][0]['shipping']['address']['country_code'] === 'US' &&
-                        $data['purchase_units'][0]['items'][0]['name'] === 'PRODUCT_ONE' &&
-                        $data['purchase_units'][0]['items'][0]['quantity'] === 1 &&
-                        $data['purchase_units'][0]['items'][0]['unit_amount']['value'] === '90.00' &&
-                        $data['purchase_units'][0]['items'][0]['unit_amount']['currency_code'] === 'PLN'
+                        $experienceContext['shipping_preference'] === 'SET_PROVIDED_ADDRESS' &&
+                        $experienceContext['contact_preference'] === 'RETAIN_CONTACT_INFO'
                     ;
                 }),
             )
@@ -237,13 +279,19 @@ final class CreateOrderApiTest extends TestCase
     {
         $payment = $this->createMock(PaymentInterface::class);
         $order = $this->createMock(OrderInterface::class);
+        $channel = $this->createMock(ChannelInterface::class);
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
         $payment->method('getOrder')->willReturn($order);
+        $payment->method('getId')->willReturn(1);
         $payment->method('getAmount')->willReturn(20000);
         $order->method('getCurrencyCode')->willReturn('PLN');
         $order->method('getShippingAddress')->willReturn(null);
+        $order->method('getChannel')->willReturn($channel);
+        $order->method('getLocaleCode')->willReturn('en_US');
+        $order->method('getTokenValue')->willReturn('TOKEN_VALUE');
+        $channel->method('getName')->willReturn('Web Store');
         $order->method('getItemsTotal')->willReturn(20000);
         $order->method('getShippingTotal')->willReturn(0);
         $order->method('isShippingRequired')->willReturn(false);
@@ -268,6 +316,7 @@ final class CreateOrderApiTest extends TestCase
                             'value' => '0.00',
                             'currency_code' => 'PLN',
                         ],
+                        'category' => 'DIGITAL_GOODS',
                     ],
                 ],
                 'total_item_value' => '200.00',
@@ -286,6 +335,10 @@ final class CreateOrderApiTest extends TestCase
             ->with($payment)
             ->willReturn('REFERENCE-NUMBER');
 
+        $this->urlGenerator
+            ->method('generate')
+            ->willReturn('https://example.com/pay-with-paypal/TOKEN_VALUE/1');
+
         $this->client
             ->expects(self::once())
             ->method('post')
@@ -297,7 +350,7 @@ final class CreateOrderApiTest extends TestCase
                         $data['intent'] === 'CAPTURE' &&
                         $data['purchase_units'][0]['amount']['value'] === '200.00' &&
                         $data['purchase_units'][0]['amount']['currency_code'] === 'PLN' &&
-                        $data['application_context']['shipping_preference'] === 'NO_SHIPPING'
+                        $data['payment_source']['paypal']['experience_context']['shipping_preference'] === 'NO_SHIPPING'
                     ;
                 }),
             )

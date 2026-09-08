@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AdjustmentInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -23,6 +24,7 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
@@ -33,6 +35,7 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
         private PayPalItemDataProviderInterface $payPalItemDataProvider,
+        private UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -58,24 +61,63 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT,
         );
 
+        $paymentReferenceNumber = $this->paymentReferenceNumberProvider->provide($payment);
+
         $payPalPurchaseUnit = new PayPalPurchaseUnit(
-            $referenceId,
-            $this->paymentReferenceNumberProvider->provide($payment),
-            (string) $order->getCurrencyCode(),
-            (int) $payment->getAmount(),
-            $order->getShippingTotal() - $shippingDiscount,
-            (float) $payPalItemData['total_item_value'],
-            (float) $payPalItemData['total_tax'],
-            $order->getOrderPromotionTotal(),
-            (string) $config['merchant_id'],
-            (array) $payPalItemData['items'],
-            $order->isShippingRequired(),
-            $order->getShippingAddress(),
+            referenceId: $referenceId,
+            invoiceNumber: $paymentReferenceNumber . '-' . $referenceId,
+            currencyCode: (string) $order->getCurrencyCode(),
+            totalAmount: (int) $payment->getAmount(),
+            shippingValue: $order->getShippingTotal() - $shippingDiscount,
+            itemTotalValue: (float) $payPalItemData['total_item_value'],
+            taxTotalValue: (float) $payPalItemData['total_tax'],
+            discountValue: $order->getOrderPromotionTotal(),
+            merchantId: (string) $config['merchant_id'],
+            items: (array) $payPalItemData['items'],
+            shippingRequired: $order->isShippingRequired(),
+            shippingAddress: $order->getShippingAddress(),
             shippingDiscountValue: $shippingDiscount,
+            customId: $paymentReferenceNumber,
         );
 
-        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, self::PAYPAL_INTENT_CAPTURE);
+        $paymentPageUrl = $this->providePaymentPageUrl($order, $payment);
+
+        $payPalOrder = new PayPalOrder(
+            $order,
+            $payPalPurchaseUnit,
+            self::PAYPAL_INTENT_CAPTURE,
+            $this->provideBrandName($order),
+            $this->provideLocaleCode($order),
+            $paymentPageUrl,
+            $paymentPageUrl,
+        );
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
+    }
+
+    private function provideBrandName(OrderInterface $order): string
+    {
+        /** @var ChannelInterface|null $channel */
+        $channel = $order->getChannel();
+
+        return (string) $channel?->getName();
+    }
+
+    private function provideLocaleCode(OrderInterface $order): string
+    {
+        // PayPal expects a BCP 47 locale (e.g. "en-US"), while Sylius stores it as "en_US".
+        return str_replace('_', '-', (string) $order->getLocaleCode());
+    }
+
+    private function providePaymentPageUrl(OrderInterface $order, PaymentInterface $payment): string
+    {
+        return $this->urlGenerator->generate(
+            'sylius_paypal_shop_pay_with_paypal_form',
+            [
+                'orderToken' => $order->getTokenValue(),
+                'paymentId' => $payment->getId(),
+            ],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
     }
 }

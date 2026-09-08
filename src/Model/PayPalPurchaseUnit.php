@@ -16,23 +16,24 @@ namespace Sylius\PayPalPlugin\Model;
 use Sylius\Component\Core\Model\AddressInterface;
 use Webmozart\Assert\Assert;
 
-class PayPalPurchaseUnit
+readonly class PayPalPurchaseUnit
 {
     public function __construct(
-        private readonly string $referenceId,
-        private readonly string $invoiceNumber,
-        private readonly string $currencyCode,
-        private readonly int $totalAmount,
-        private readonly int $shippingValue,
-        private readonly float $itemTotalValue,
-        private readonly float $taxTotalValue,
-        private readonly int $discountValue,
-        private readonly string $merchantId,
-        private readonly array $items,
-        private readonly bool $shippingRequired,
-        private readonly ?AddressInterface $shippingAddress = null,
-        private readonly string $softDescriptor = 'Sylius PayPal Payment',
-        private readonly int $shippingDiscountValue = 0,
+        private string $referenceId,
+        private string $invoiceNumber,
+        private string $currencyCode,
+        private int $totalAmount,
+        private int $shippingValue,
+        private float $itemTotalValue,
+        private float $taxTotalValue,
+        private int $discountValue,
+        private string $merchantId,
+        private array $items,
+        private bool $shippingRequired,
+        private ?AddressInterface $shippingAddress = null,
+        private string $softDescriptor = 'Sylius PayPal Payment',
+        private int $shippingDiscountValue = 0,
+        private ?string $customId = null,
     ) {
     }
 
@@ -74,7 +75,11 @@ class PayPalPurchaseUnit
             'items' => $this->items,
         ];
 
-        if ($this->shippingAddress !== null && $this->shippingRequired) {
+        if (null !== $this->customId) {
+            $paypalPurchaseUnit['custom_id'] = $this->customId;
+        }
+
+        if (null !== $this->shippingAddress && $this->shippingRequired) {
             $paypalPurchaseUnit['shipping'] = $this->getShippingAddress();
         }
 

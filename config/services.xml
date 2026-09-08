@@ -127,6 +127,7 @@
             class="Sylius\PayPalPlugin\Provider\PayPalItemDataProvider"
         >
             <argument type="service" id="sylius_paypal.provider.order_item_non_neutral_tax" />
+            <argument type="service" id="router" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface" alias="sylius_paypal.provider.paypal_item_data" />
 
