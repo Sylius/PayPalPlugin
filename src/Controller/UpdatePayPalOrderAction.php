@@ -62,6 +62,14 @@ final readonly class UpdatePayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
+        trigger_deprecation(
+            'sylius/paypal-plugin',
+            '2.1',
+            'The "sylius_paypal_shop_update_paypal_order" route is deprecated and will be removed in 3.0.' .
+            ' Use "sylius_paypal_shop_order_shipping_callback", the server-side shipping callback PayPal' .
+            ' calls on its own, instead.',
+        );
+
         $payload = $request->getPayload();
         $orderId = $payload->getString('orderID');
 

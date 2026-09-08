@@ -8,8 +8,6 @@ export default class extends Controller {
         instanceConfig: Object,
         currencyCode: String,
         createOrderUrl: String,
-        updateOrderUrl: String,
-        availableCountries: Array,
         addToCartFormSelector: String,
         captureOrderUrl: String,
         cancelOrderUrl: String,
@@ -39,17 +37,11 @@ export default class extends Controller {
                 return;
             }
 
-            const sessionOptions = {
+            const paymentSession = sdkInstance.createPayPalOneTimePaymentSession({
                 onApprove: this.onApprove.bind(this),
                 onCancel: this.onCancel.bind(this),
                 onError: this.onError.bind(this),
-            };
-
-            if (this.hasUpdateOrderUrlValue && this.updateOrderUrlValue !== '') {
-                sessionOptions.onShippingAddressChange = this.onShippingAddressChange.bind(this);
-            }
-
-            const paymentSession = sdkInstance.createPayPalOneTimePaymentSession(sessionOptions);
+            });
 
             this.paypalButtonTarget.removeAttribute('hidden');
             this.paypalButtonTarget.addEventListener('click', async () => {
@@ -105,39 +97,6 @@ export default class extends Controller {
         this.syliusOrderId = data.id;
 
         return { orderId: data.orderId };
-    }
-
-    /**
-     * The v6 counterpart of the v5 buttons' onShippingChange: PayPal calls it in the browser whenever
-     * the buyer picks or changes their shipping address inside the wallet, and the order total has to be
-     * brought in line with that address before they approve - otherwise the amount PayPal captures no
-     * longer matches the Sylius order, and ProcessPayPalOrderAction rejects the payment. Throwing makes
-     * PayPal reject the address and ask the buyer for another one.
-     */
-    async onShippingAddressChange(data) {
-        const shippingAddress = data.shippingAddress ?? {};
-
-        if (!this.availableCountriesValue.includes(shippingAddress.countryCode)) {
-            throw new Error(data.errors.COUNTRY_ERROR);
-        }
-
-        const response = await fetch(this.updateOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                orderID: data.orderId,
-                shipping_address: {
-                    city: shippingAddress.city,
-                    state: shippingAddress.state,
-                    postal_code: shippingAddress.postalCode,
-                    country_code: shippingAddress.countryCode,
-                },
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error(data.errors.ADDRESS_ERROR);
-        }
     }
 
     async onApprove(data) {
