@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
+use Sylius\PayPalPlugin\Model\PayPalShippingOption;
+
 final readonly class PayPalShippingCallbackResponseFactory implements PayPalShippingCallbackResponseFactoryInterface
 {
     private const ADDED_BREAKDOWN_KEYS = ['item_total', 'tax_total', 'shipping', 'handling', 'insurance'];
@@ -29,7 +31,7 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
 
     /**
      * @param array<string, mixed> $purchaseUnit
-     * @param array<int, array<string, mixed>> $shippingOptions
+     * @param array<int, PayPalShippingOption> $shippingOptions
      *
      * @return array<string, mixed>
      */
@@ -45,14 +47,17 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
             (array) ($purchaseUnit['amount'] ?? []),
             $shippingOptions,
         );
-        $responseUnit['shipping_options'] = $shippingOptions;
+        $responseUnit['shipping_options'] = array_map(
+            static fn (PayPalShippingOption $option): array => $option->toArray(),
+            $shippingOptions,
+        );
 
         return $responseUnit;
     }
 
     /**
      * @param array<string, mixed> $amount
-     * @param array<int, array<string, mixed>> $shippingOptions
+     * @param array<int, PayPalShippingOption> $shippingOptions
      *
      * @return array<string, mixed>
      */
@@ -66,7 +71,7 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
             return $amount;
         }
 
-        $breakdown['shipping'] = (array) $selected['amount'];
+        $breakdown['shipping'] = $selected->amountToArray();
 
         $total = 0;
         foreach (self::ADDED_BREAKDOWN_KEYS as $key) {
@@ -82,15 +87,11 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
         return $amount;
     }
 
-    /**
-     * @param array<int, array<string, mixed>> $shippingOptions
-     *
-     * @return array<string, mixed>|null
-     */
-    private function getSelectedOption(array $shippingOptions): ?array
+    /** @param array<int, PayPalShippingOption> $shippingOptions */
+    private function getSelectedOption(array $shippingOptions): ?PayPalShippingOption
     {
         foreach ($shippingOptions as $option) {
-            if (true === ($option['selected'] ?? false)) {
+            if ($option->isSelected()) {
                 return $option;
             }
         }

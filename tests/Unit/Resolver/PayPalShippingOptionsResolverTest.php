@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Calculator\DelegatingCalculatorInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
+use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolver;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
 
@@ -79,10 +80,22 @@ final class PayPalShippingOptionsResolverTest extends TestCase
 
         $options = $this->resolver->resolve($this->order, $this->shippingAddress);
 
+        self::assertContainsOnlyInstancesOf(PayPalShippingOption::class, $options);
         self::assertSame([
             ['id' => 'ups', 'amount' => ['currency_code' => 'USD', 'value' => '10.00'], 'type' => 'SHIPPING', 'label' => 'UPS', 'selected' => true],
             ['id' => 'dhl', 'amount' => ['currency_code' => 'USD', 'value' => '25.50'], 'type' => 'SHIPPING', 'label' => 'DHL', 'selected' => false],
-        ], $options);
+        ], array_map(static fn (PayPalShippingOption $option): array => $option->toArray(), $options));
+    }
+
+    public function test_it_keeps_the_shipping_cost_in_minor_units(): void
+    {
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([$this->shippingMethod('ups', 'UPS')]);
+        $this->shippingCalculator->method('calculate')->willReturn(1999);
+
+        $options = $this->resolver->resolve($this->order, $this->shippingAddress);
+
+        self::assertSame(1999, $options[0]->amount());
+        self::assertSame('USD', $options[0]->currencyCode());
     }
 
     public function test_it_keeps_the_method_the_order_already_carries_selected(): void
@@ -96,7 +109,10 @@ final class PayPalShippingOptionsResolverTest extends TestCase
 
         $options = $this->resolver->resolve($this->order, $this->shippingAddress);
 
-        self::assertSame([false, true], array_column($options, 'selected'));
+        self::assertSame([false, true], array_map(
+            static fn (PayPalShippingOption $option): bool => $option->isSelected(),
+            $options,
+        ));
     }
 
     public function test_it_selects_the_cheapest_option_when_the_current_method_is_no_longer_offered(): void
@@ -109,7 +125,10 @@ final class PayPalShippingOptionsResolverTest extends TestCase
 
         $options = $this->resolver->resolve($this->order, $this->shippingAddress);
 
-        self::assertSame([false, true], array_column($options, 'selected'));
+        self::assertSame([false, true], array_map(
+            static fn (PayPalShippingOption $option): bool => $option->isSelected(),
+            $options,
+        ));
     }
 
     public function test_it_puts_the_borrowed_address_and_method_back_on_the_order(): void

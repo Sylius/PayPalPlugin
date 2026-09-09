@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
@@ -49,10 +50,6 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
                 'shipping' => ['currency_code' => 'USD', 'value' => '0.00'],
             ],
         ],
-    ];
-
-    private const SHIPPING_OPTIONS = [
-        ['id' => 'ups', 'amount' => ['currency_code' => 'USD', 'value' => '10.00'], 'type' => 'SHIPPING', 'label' => 'UPS', 'selected' => true],
     ];
 
     private PaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
@@ -108,11 +105,11 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             ->expects(self::once())
             ->method('resolve')
             ->with($this->order, $address)
-            ->willReturn(self::SHIPPING_OPTIONS);
+            ->willReturn(self::shippingOptions());
         $this->responseFactory
             ->expects(self::once())
             ->method('create')
-            ->with('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, self::SHIPPING_OPTIONS)
+            ->with('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, self::shippingOptions())
             ->willReturn(['id' => 'PAYPAL_ORDER_ID', 'purchase_units' => ['RESPONSE_UNIT']]);
 
         $response = ($this->action)($this->callbackRequest());
@@ -186,6 +183,12 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         ];
 
         return new Request([], [], [], [], [], ['CONTENT_TYPE' => 'application/json'], (string) json_encode($payload));
+    }
+
+    /** @return array<int, PayPalShippingOption> */
+    private static function shippingOptions(): array
+    {
+        return [new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true)];
     }
 
     private static function assertUnprocessableWithIssue(string $issue, Response $response): void

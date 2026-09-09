@@ -77,6 +77,11 @@
    (`item_total + tax_total + shipping + handling + insurance - discount - shipping_discount`). If you
    decorate it, keep those two invariants or PayPal rejects the callback.
 
+   The options resolver returns `Sylius\PayPalPlugin\Model\PayPalShippingOption` objects rather than arrays,
+   so a decorator adds or reprices an option without reproducing PayPal's payload keys. The object keeps its
+   price in minor units and formats it only in `toArray()`; `TYPE_PICKUP` is there for options the buyer
+   collects instead of having shipped.
+
    The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
    now also stores the region on the order's addresses — previously it was dropped.
 

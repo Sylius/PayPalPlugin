@@ -19,11 +19,10 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Calculator\DelegatingCalculatorInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
+use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 
 final readonly class PayPalShippingOptionsResolver implements PayPalShippingOptionsResolverInterface
 {
-    private const TYPE_SHIPPING = 'SHIPPING';
-
     public function __construct(
         private ShippingMethodsResolverInterface $shippingMethodsResolver,
         private DelegatingCalculatorInterface $shippingCalculator,
@@ -45,7 +44,7 @@ final readonly class PayPalShippingOptionsResolver implements PayPalShippingOpti
             $options = [];
 
             foreach ($this->shippingMethodsResolver->getSupportedMethods($shipment) as $method) {
-                $options[] = $this->buildOption($order, $shipment, $method, $originalMethod);
+                $options[] = $this->createOption($order, $shipment, $method, $originalMethod);
             }
         } finally {
             $shipment->setMethod($originalMethod);
@@ -55,46 +54,48 @@ final readonly class PayPalShippingOptionsResolver implements PayPalShippingOpti
         return $this->withExactlyOneSelected($options);
     }
 
-    /** @return array<string, mixed> */
-    private function buildOption(
+    private function createOption(
         OrderInterface $order,
         ShipmentInterface $shipment,
         ShippingMethodInterface $method,
         ?ShippingMethodInterface $currentMethod,
-    ): array {
+    ): PayPalShippingOption {
         $shipment->setMethod($method);
 
-        return [
-            'id' => (string) $method->getCode(),
-            'amount' => [
-                'currency_code' => (string) $order->getCurrencyCode(),
-                'value' => number_format($this->shippingCalculator->calculate($shipment) / 100, 2, '.', ''),
-            ],
-            'type' => self::TYPE_SHIPPING,
-            'label' => (string) $method->getName(),
-            'selected' => $method === $currentMethod,
-        ];
+        return new PayPalShippingOption(
+            (string) $method->getCode(),
+            (string) $method->getName(),
+            (string) $order->getCurrencyCode(),
+            $this->shippingCalculator->calculate($shipment),
+            $method === $currentMethod,
+        );
     }
 
     /**
-     * @param array<int, array<string, mixed>> $options
+     * @param array<int, PayPalShippingOption> $options
      *
-     * @return array<int, array<string, mixed>>
+     * @return array<int, PayPalShippingOption>
      */
     private function withExactlyOneSelected(array $options): array
     {
-        if ([] === $options || in_array(true, array_column($options, 'selected'), true)) {
+        if ([] === $options) {
             return $options;
+        }
+
+        foreach ($options as $option) {
+            if ($option->isSelected()) {
+                return $options;
+            }
         }
 
         $cheapest = array_key_first($options);
         foreach ($options as $index => $option) {
-            if ((float) $option['amount']['value'] < (float) $options[$cheapest]['amount']['value']) {
+            if ($option->amount() < $options[$cheapest]->amount()) {
                 $cheapest = $index;
             }
         }
 
-        $options[$cheapest]['selected'] = true;
+        $options[$cheapest] = $options[$cheapest]->withSelected(true);
 
         return $options;
     }
