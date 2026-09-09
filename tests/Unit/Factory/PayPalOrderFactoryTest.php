@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalOrderFactoryTest extends TestCase
@@ -30,11 +31,11 @@ final class PayPalOrderFactoryTest extends TestCase
 
     private UrlGeneratorInterface&MockObject $router;
 
+    private PayPalShippingCallbackUrlProviderInterface&MockObject $shippingCallbackUrlProvider;
+
     private OrderInterface&MockObject $order;
 
     private PaymentInterface&MockObject $payment;
-
-    private string $shopScheme = 'https';
 
     private PayPalOrderFactory $factory;
 
@@ -43,6 +44,7 @@ final class PayPalOrderFactoryTest extends TestCase
         parent::setUp();
         $this->payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
         $this->router = $this->createMock(UrlGeneratorInterface::class);
+        $this->shippingCallbackUrlProvider = $this->createMock(PayPalShippingCallbackUrlProviderInterface::class);
         $this->order = $this->createMock(OrderInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
@@ -50,10 +52,18 @@ final class PayPalOrderFactoryTest extends TestCase
         $this->order->method('isShippingRequired')->willReturn(true);
         $this->order->method('getShippingAddress')->willReturn(null);
 
-        $this->router->method('generate')->willReturnCallback($this->routeUrl(...));
+        $this->router->method('generate')->willReturn('https://shop.example.com/checkout/complete');
+        $this->shippingCallbackUrlProvider
+            ->method('provide')
+            ->willReturn('https://shop.example.com/pay-pal-order-shipping-callback')
+        ;
         $this->payPalPurchaseUnitFactory->method('create')->willReturn($this->purchaseUnit());
 
-        $this->factory = new PayPalOrderFactory($this->payPalPurchaseUnitFactory, $this->router);
+        $this->factory = new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+        );
     }
 
     public function test_it_implements_paypal_order_factory_interface(): void
@@ -111,17 +121,22 @@ final class PayPalOrderFactoryTest extends TestCase
         self::assertSame('SET_PROVIDED_ADDRESS', $payPalOrder['application_context']['shipping_preference']);
     }
 
-    public function test_it_does_not_declare_a_shipping_callback_paypal_could_not_reach(): void
+    public function test_it_declares_no_shipping_callback_when_its_provider_has_no_url_to_give(): void
     {
-        $this->shopScheme = 'http';
+        $shippingCallbackUrlProvider = $this->createMock(PayPalShippingCallbackUrlProviderInterface::class);
+        $shippingCallbackUrlProvider->method('provide')->willReturn(null);
 
-        $experienceContext = $this->factory
+        $experienceContext = (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $shippingCallbackUrlProvider,
+        ))
             ->create($this->payment, 'REFERENCE_ID')
             ->toArray()['payment_source']['paypal']['experience_context']
         ;
 
         self::assertArrayNotHasKey('order_update_callback_config', $experienceContext);
-        self::assertSame('http://shop.example.com/checkout/complete', $experienceContext['return_url']);
+        self::assertSame('https://shop.example.com/checkout/complete', $experienceContext['return_url']);
     }
 
     public function test_it_sends_no_urls_at_all_without_a_router(): void
@@ -152,15 +167,5 @@ final class PayPalOrderFactoryTest extends TestCase
             [],
             true,
         );
-    }
-
-    private function routeUrl(string $route): string
-    {
-        $path = match ($route) {
-            'sylius_shop_checkout_complete' => '/checkout/complete',
-            'sylius_paypal_shop_order_shipping_callback' => '/pay-pal-order-shipping-callback',
-        };
-
-        return $this->shopScheme . '://shop.example.com' . $path;
     }
 }

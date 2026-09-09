@@ -125,6 +125,7 @@
         >
             <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
             <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.provider.paypal_shipping_callback_url" />
         </service>
         <service id="Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface" alias="sylius_paypal.factory.paypal_order" />
 
@@ -132,6 +133,14 @@
             <argument type="service" id="sylius.repository.order" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" alias="sylius_paypal.provider.order" />
+
+        <service
+            id="sylius_paypal.provider.paypal_shipping_callback_url"
+            class="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProvider"
+        >
+            <argument type="service" id="router" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_url" />
 
         <service
             id="sylius_paypal.provider.payment"

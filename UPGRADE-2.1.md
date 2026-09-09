@@ -59,6 +59,11 @@
    development shop simply does not get wallet shipping options. Two knobs matter if the URL comes out wrong:
    `router.request_context.host` and `router.request_context.scheme`.
 
+   That rule lives in `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface`
+   (`sylius_paypal.provider.paypal_shipping_callback_url`), which returns `null` rather than a URL PayPal
+   could not call. Decorate or replace it if your shop reaches PayPal some other way — for instance behind a
+   proxy that terminates TLS in front of an `http` backend.
+
    Two services carry the work and can be decorated or replaced:
    `Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface` turns an order plus a partial
    address into PayPal's option list, and `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
@@ -282,6 +287,7 @@
    | --- | --- | --- |
    | `sylius_paypal.factory.paypal_order` | `Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface` | the whole `v2/checkout/orders` payload, including the payer return URL and the shipping callback |
    | `sylius_paypal.factory.paypal_purchase_unit` | `Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface` | one purchase unit, shared by order creation and the `PATCH` that updates it |
+   | `sylius_paypal.provider.paypal_shipping_callback_url` | `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface` | the shipping callback URL, or `null` when PayPal could not reach it |
 
    `PayPalPurchaseUnitFactoryInterface::create()` takes the merchant id as an optional third argument and
    falls back to the `merchant_id` configured on the payment's method, which is what every caller passed

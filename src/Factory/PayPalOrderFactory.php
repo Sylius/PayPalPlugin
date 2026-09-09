@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
@@ -23,6 +24,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
     public function __construct(
         private PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
         private ?UrlGeneratorInterface $router = null,
+        private ?PayPalShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
     ) {
     }
 
@@ -43,22 +45,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             PayPalOrder::INTENT_CAPTURE,
             $payerReturnUrl,
             $payerReturnUrl,
-            $this->getShippingCallbackUrl(),
+            $this->shippingCallbackUrlProvider?->provide(),
         );
-    }
-
-    private function getShippingCallbackUrl(): ?string
-    {
-        $callbackUrl = $this->router?->generate(
-            'sylius_paypal_shop_order_shipping_callback',
-            [],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
-
-        if (null === $callbackUrl || !str_starts_with($callbackUrl, 'https://')) {
-            return null;
-        }
-
-        return $callbackUrl;
     }
 }
