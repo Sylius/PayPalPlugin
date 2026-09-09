@@ -110,6 +110,24 @@
         </service>
         <service id="Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_address" />
 
+        <service
+            id="sylius_paypal.factory.paypal_purchase_unit"
+            class="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory"
+        >
+            <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
+            <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface" alias="sylius_paypal.factory.paypal_purchase_unit" />
+
+        <service
+            id="sylius_paypal.factory.paypal_order"
+            class="Sylius\PayPalPlugin\Factory\PayPalOrderFactory"
+        >
+            <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+            <argument type="service" id="router" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface" alias="sylius_paypal.factory.paypal_order" />
+
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
         </service>

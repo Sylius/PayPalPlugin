@@ -239,7 +239,7 @@
     {
         public function __construct(
             // ...
-   +        private ?UrlGeneratorInterface $router = null,
+   +        private ?PayPalOrderFactoryInterface $payPalOrderFactory = null,
         ) {
         }
    ```
@@ -247,9 +247,46 @@
    ```diff
     <service id="sylius_paypal.api.create_order" class="Sylius\PayPalPlugin\Api\CreateOrderApi">
         <!-- ... -->
-   +    <argument type="service" id="router" />
+   +    <argument type="service" id="sylius_paypal.factory.paypal_order" />
     </service>
    ```
 
-   Without it the order carries neither the return and cancel URLs nor the shipping callback, so the wallet
-   falls back to its plain flow with no shipping options.
+   ```diff
+    final readonly class UpdateOrderApi
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.api.update_order" class="Sylius\PayPalPlugin\Api\UpdateOrderApi">
+        <!-- ... -->
+   +    <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+    </service>
+   ```
+
+   Both degrade rather than throw: without the factory each API builds the same payload it built in 2.0 from
+   the providers it already holds. For `CreateOrderApi` that means an order carrying neither the return and
+   cancel URLs nor the shipping callback, so the wallet falls back to its plain flow with no shipping options.
+
+1. #### The PayPal order payload is now assembled by factories.
+
+   `Sylius\PayPalPlugin\Api\CreateOrderApi` and `Sylius\PayPalPlugin\Api\UpdateOrderApi` no longer read the
+   order, the gateway config or the router themselves — they ask a factory for the payload and send it. Two
+   new services carry that work and can be decorated or replaced:
+
+   | Service | Interface | Builds |
+   | --- | --- | --- |
+   | `sylius_paypal.factory.paypal_order` | `Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface` | the whole `v2/checkout/orders` payload, including the payer return URL and the shipping callback |
+   | `sylius_paypal.factory.paypal_purchase_unit` | `Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface` | one purchase unit, shared by order creation and the `PATCH` that updates it |
+
+   `PayPalPurchaseUnitFactoryInterface::create()` takes the merchant id as an optional third argument and
+   falls back to the `merchant_id` configured on the payment's method, which is what every caller passed
+   before. `Sylius\PayPalPlugin\Model\PayPalOrder::INTENT_CAPTURE` now holds the capture intent;
+   `CreateOrderApi::PAYPAL_INTENT_CAPTURE` is kept as an alias of it.
+
+   This is where to hook in if you need to change what reaches PayPal — overriding `CreateOrderApi` for that
+   is no longer necessary.

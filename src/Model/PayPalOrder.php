@@ -17,6 +17,8 @@ use Sylius\Component\Core\Model\OrderInterface;
 
 class PayPalOrder
 {
+    public const INTENT_CAPTURE = 'CAPTURE';
+
     public const NO_SHIPPING = 'NO_SHIPPING';
 
     public const PROVIDED_ADDRESS = 'SET_PROVIDED_ADDRESS';
