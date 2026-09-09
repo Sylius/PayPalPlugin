@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -102,5 +103,39 @@ final class PayPalOrderTest extends TestCase
         $result = $this->payPalOrder->toArray();
 
         self::assertSame('NO_SHIPPING', $result['payment_source']['paypal']['experience_context']['shipping_preference']);
+    }
+
+    #[Test]
+    #[Group('legacy')]
+    public function it_omits_optional_experience_context_keys_when_they_are_not_provided(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $payPalPurchaseUnit = $this->createMock(PayPalPurchaseUnit::class);
+        $payPalPurchaseUnit->method('toArray')->willReturn(['purchase_unit_data']);
+
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getShippingAddress')->willReturn(null);
+
+        $payPalOrder = new PayPalOrder($order, $payPalPurchaseUnit, 'CAPTURE');
+
+        self::assertSame([
+            'intent' => 'CAPTURE',
+            'payment_source' => [
+                'paypal' => [
+                    'experience_context' => [
+                        'shipping_preference' => 'GET_FROM_FILE',
+                        'contact_preference' => 'UPDATE_CONTACT_INFO',
+                        'user_action' => 'PAY_NOW',
+                        'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                        'app_switch_preference' => [
+                            'launch_paypal_app' => true,
+                        ],
+                    ],
+                ],
+            ],
+            'purchase_units' => [
+                ['purchase_unit_data'],
+            ],
+        ], $payPalOrder->toArray());
     }
 }

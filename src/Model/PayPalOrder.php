@@ -15,7 +15,7 @@ namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Core\Model\OrderInterface;
 
-readonly class PayPalOrder
+class PayPalOrder
 {
     public const NO_SHIPPING = 'NO_SHIPPING';
 
@@ -28,36 +28,40 @@ readonly class PayPalOrder
     public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';
 
     public function __construct(
-        private OrderInterface $order,
-        private PayPalPurchaseUnit $payPalPurchaseUnit,
-        private string $intent,
-        private string $brandName,
-        private string $localeCode,
-        private string $returnUrl,
-        private string $cancelUrl,
+        private readonly OrderInterface $order,
+        private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
+        private readonly string $intent,
+        private readonly ?string $brandName = null,
+        private readonly ?string $localeCode = null,
+        private readonly ?string $returnUrl = null,
+        private readonly ?string $cancelUrl = null,
     ) {
     }
 
     public function toArray(): array
     {
+        $experienceContext = array_filter(
+            [
+                'brand_name' => $this->brandName,
+                'locale' => $this->localeCode,
+                'shipping_preference' => $this->getShippingPreference(),
+                'contact_preference' => $this->getContactPreference(),
+                'user_action' => 'PAY_NOW',
+                'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+                'return_url' => $this->returnUrl,
+                'cancel_url' => $this->cancelUrl,
+                'app_switch_preference' => [
+                    'launch_paypal_app' => true,
+                ],
+            ],
+            static fn (mixed $value): bool => null !== $value,
+        );
+
         return [
             'intent' => $this->intent,
             'payment_source' => [
                 'paypal' => [
-                    'experience_context' => [
-                        'brand_name' => $this->brandName,
-                        'locale' => $this->localeCode,
-                        'shipping_preference' => $this->getShippingPreference(),
-                        'contact_preference' => $this->getContactPreference(),
-                        'user_action' => 'PAY_NOW',
-                        'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
-                        // return_url and cancel_url must be identical for app switch to function.
-                        'return_url' => $this->returnUrl,
-                        'cancel_url' => $this->cancelUrl,
-                        'app_switch_preference' => [
-                            'launch_paypal_app' => true,
-                        ],
-                    ],
+                    'experience_context' => $experienceContext,
                 ],
             ],
             'purchase_units' => [

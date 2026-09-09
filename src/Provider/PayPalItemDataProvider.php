@@ -28,8 +28,16 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
     public function __construct(
         private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
-        private UrlGeneratorInterface $urlGenerator,
+        private ?UrlGeneratorInterface $urlGenerator = null,
     ) {
+        if (null === $urlGenerator) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $urlGenerator to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                self::class,
+            );
+        }
     }
 
     public function provide(OrderInterface $order): array
@@ -128,12 +136,6 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         $itemData['items'][] = $item;
     }
 
-    /**
-     * PayPal requires the DIGITAL_GOODS category for orders that do not require shipping, so that the
-     * shipping module is skipped. Per the PayPal SDD, orders that use the partner (platform) fee
-     * functionality must stay on PHYSICAL_GOODS regardless of the shipping requirement; this plugin
-     * does not use partner fees, so digital orders are always marked as DIGITAL_GOODS.
-     */
     private function resolveCategory(OrderInterface $order): string
     {
         return $order->isShippingRequired() ? self::CATEGORY_PHYSICAL_GOODS : self::CATEGORY_DIGITAL_GOODS;
@@ -157,6 +159,10 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
     private function resolveProductUrl(?ProductInterface $product): ?string
     {
+        if (null === $this->urlGenerator) {
+            return null;
+        }
+
         $slug = $product?->getSlug();
         if ($slug === null || $slug === '') {
             return null;

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -558,5 +559,37 @@ final class PayPalItemDataProviderTest extends TestCase
         ];
 
         self::assertEquals($expected, $result);
+    }
+
+    #[Test]
+    #[Group('legacy')]
+    public function it_omits_product_url_when_url_generator_is_not_provided(): void
+    {
+        $provider = new PayPalItemDataProvider($this->orderItemNonNeutralTaxesProvider);
+
+        $order = $this->createMock(OrderInterface::class);
+        $orderItem = $this->createMock(OrderItemInterface::class);
+        $variant = $this->createMock(ProductVariantInterface::class);
+        $product = $this->createMock(ProductInterface::class);
+
+        $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+
+        $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
+        $orderItem->method('getUnitPrice')->willReturn(2000);
+        $orderItem->method('getQuantity')->willReturn(1);
+        $orderItem->method('getVariant')->willReturn($variant);
+
+        $variant->method('getCode')->willReturn('SKU_1');
+        $variant->method('getProduct')->willReturn($product);
+        $product->method('getSlug')->willReturn('product-one');
+
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->with($orderItem)->willReturn([0]);
+
+        $result = $provider->provide($order);
+
+        self::assertArrayNotHasKey('url', $result['items'][0]);
+        self::assertSame('SKU_1', $result['items'][0]['sku']);
     }
 }

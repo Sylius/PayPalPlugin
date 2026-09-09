@@ -22,6 +22,8 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Provider\InvoiceNumberProvider;
+use Sylius\PayPalPlugin\Provider\InvoiceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -31,12 +33,36 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
 {
     public const PAYPAL_INTENT_CAPTURE = 'CAPTURE';
 
+    private InvoiceNumberProviderInterface $invoiceNumberProvider;
+
     public function __construct(
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
         private PayPalItemDataProviderInterface $payPalItemDataProvider,
-        private UrlGeneratorInterface $urlGenerator,
+        private ?UrlGeneratorInterface $urlGenerator = null,
+        ?InvoiceNumberProviderInterface $invoiceNumberProvider = null,
     ) {
+        if (null === $urlGenerator) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $urlGenerator to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                self::class,
+            );
+        }
+
+        if (null === $invoiceNumberProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an $invoiceNumberProvider to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                self::class,
+            );
+
+            $invoiceNumberProvider = new InvoiceNumberProvider($paymentReferenceNumberProvider);
+        }
+
+        $this->invoiceNumberProvider = $invoiceNumberProvider;
     }
 
     public function create(string $token, PaymentInterface $payment, string $referenceId): array
@@ -65,7 +91,7 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
 
         $payPalPurchaseUnit = new PayPalPurchaseUnit(
             referenceId: $referenceId,
-            invoiceNumber: $paymentReferenceNumber . '-' . $referenceId,
+            invoiceNumber: $this->invoiceNumberProvider->provide($payment, $referenceId),
             currencyCode: (string) $order->getCurrencyCode(),
             totalAmount: (int) $payment->getAmount(),
             shippingValue: $order->getShippingTotal() - $shippingDiscount,
@@ -80,7 +106,7 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             customId: $paymentReferenceNumber,
         );
 
-        $paymentPageUrl = $this->providePaymentPageUrl($order, $payment);
+        $paymentPageUrl = null !== $this->urlGenerator ? $this->providePaymentPageUrl($order, $payment) : null;
 
         $payPalOrder = new PayPalOrder(
             $order,
@@ -111,6 +137,8 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
 
     private function providePaymentPageUrl(OrderInterface $order, PaymentInterface $payment): string
     {
+        Assert::notNull($this->urlGenerator);
+
         return $this->urlGenerator->generate(
             'sylius_paypal_shop_pay_with_paypal_form',
             [
