@@ -14,17 +14,23 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\Component\Core\Model\ProductInterface;
+use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalItemDataProviderTest extends TestCase
 {
     private OrderItemNonNeutralTaxesProviderInterface&MockObject $orderItemNonNeutralTaxesProvider;
+
+    private UrlGeneratorInterface&MockObject $urlGenerator;
 
     private PayPalItemDataProvider $provider;
 
@@ -32,8 +38,12 @@ final class PayPalItemDataProviderTest extends TestCase
     {
         parent::setUp();
         $this->orderItemNonNeutralTaxesProvider = $this->createMock(OrderItemNonNeutralTaxesProviderInterface::class);
+        $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
 
-        $this->provider = new PayPalItemDataProvider($this->orderItemNonNeutralTaxesProvider);
+        $this->provider = new PayPalItemDataProvider(
+            $this->orderItemNonNeutralTaxesProvider,
+            $this->urlGenerator,
+        );
     }
 
     #[Test]
@@ -43,6 +53,7 @@ final class PayPalItemDataProviderTest extends TestCase
         $orderItem = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
         $order->method('getCurrencyCode')->willReturn('PLN');
 
@@ -66,6 +77,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '2.00',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '20.00',
@@ -76,12 +88,91 @@ final class PayPalItemDataProviderTest extends TestCase
     }
 
     #[Test]
+    public function returns_items_with_sku_description_and_url(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $orderItem = $this->createMock(OrderItemInterface::class);
+        $variant = $this->createMock(ProductVariantInterface::class);
+        $product = $this->createMock(ProductInterface::class);
+
+        $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+
+        $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
+        $orderItem->method('getUnitPrice')->willReturn(2000);
+        $orderItem->method('getQuantity')->willReturn(1);
+        $orderItem->method('getVariant')->willReturn($variant);
+
+        $variant->method('getCode')->willReturn('SKU_1');
+        $variant->method('getProduct')->willReturn($product);
+        $product->method('getSlug')->willReturn('product-one');
+        $product->method('getShortDescription')->willReturn('A very nice product');
+
+        $this->urlGenerator
+            ->method('generate')
+            ->with('sylius_shop_product_show', ['slug' => 'product-one'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('http://localhost/products/product-one');
+
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->with($orderItem)->willReturn([0]);
+
+        $result = $this->provider->provide($order);
+
+        $expected = [
+            'items' => [
+                [
+                    'name' => 'PRODUCT_ONE',
+                    'unit_amount' => [
+                        'value' => '20.00',
+                        'currency_code' => 'PLN',
+                    ],
+                    'quantity' => 1,
+                    'tax' => [
+                        'value' => '0.00',
+                        'currency_code' => 'PLN',
+                    ],
+                    'category' => 'PHYSICAL_GOODS',
+                    'sku' => 'SKU_1',
+                    'description' => 'A very nice product',
+                    'url' => 'http://localhost/products/product-one',
+                ],
+            ],
+            'total_item_value' => '20.00',
+            'total_tax' => '0.00',
+        ];
+
+        self::assertEquals($expected, $result);
+    }
+
+    #[Test]
+    public function marks_items_as_digital_goods_when_shipping_is_not_required(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $orderItem = $this->createMock(OrderItemInterface::class);
+
+        $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(false);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+
+        $orderItem->method('getProductName')->willReturn('DIGITAL_PRODUCT');
+        $orderItem->method('getUnitPrice')->willReturn(2000);
+        $orderItem->method('getQuantity')->willReturn(1);
+
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->with($orderItem)->willReturn([0]);
+
+        $result = $this->provider->provide($order);
+
+        self::assertSame('DIGITAL_GOODS', $result['items'][0]['category']);
+    }
+
+    #[Test]
     public function returns_array_of_items_with_different_quantities_with_tax(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $orderItem = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
         $order->method('getCurrencyCode')->willReturn('PLN');
 
@@ -105,6 +196,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '2.00',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '60.00',
@@ -121,6 +213,7 @@ final class PayPalItemDataProviderTest extends TestCase
         $orderItem = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
         $order->method('getCurrencyCode')->willReturn('PLN');
 
@@ -144,6 +237,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '60.00',
@@ -161,6 +255,7 @@ final class PayPalItemDataProviderTest extends TestCase
         $orderItemTwo = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItemOne, $orderItemTwo]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItemOne->method('getProductName')->willReturn('PRODUCT_ONE');
         $orderItemOne->method('getUnitPrice')->willReturn(2000);
         $orderItemOne->method('getQuantity')->willReturn(3);
@@ -192,6 +287,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
@@ -204,6 +300,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '0.00',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '80.00',
@@ -221,6 +318,7 @@ final class PayPalItemDataProviderTest extends TestCase
         $orderItemTwo = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItemOne, $orderItemTwo]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItemOne->method('getProductName')->willReturn('PRODUCT_ONE');
         $orderItemOne->method('getUnitPrice')->willReturn(2000);
         $orderItemOne->method('getQuantity')->willReturn(3);
@@ -252,6 +350,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.00',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
@@ -264,6 +363,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.50',
                         'currency_code' => 'PLN',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '80.00',
@@ -280,6 +380,7 @@ final class PayPalItemDataProviderTest extends TestCase
         $orderItem = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItem->method('getProductName')->willReturn('PRODUCT_WITH_NON_DIVISIBLE_TAX');
         $order->method('getCurrencyCode')->willReturn('USD');
 
@@ -303,6 +404,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.66',
                         'currency_code' => 'USD',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
                 [
                     'name' => 'PRODUCT_WITH_NON_DIVISIBLE_TAX',
@@ -315,6 +417,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.68',
                         'currency_code' => 'USD',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '45.00',
@@ -335,6 +438,7 @@ final class PayPalItemDataProviderTest extends TestCase
             $orderItemOne,
             $orderItemTwo,
         ]));
+        $order->method('isShippingRequired')->willReturn(true);
 
         $orderItemOne->method('getProductName')->willReturn('PRODUCT_ONE');
         $orderItemOne->method('getUnitPrice')->willReturn(2000);
@@ -367,6 +471,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.00',
                         'currency_code' => 'EUR',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
@@ -379,6 +484,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.66',
                         'currency_code' => 'EUR',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
                 [
                     'name' => 'PRODUCT_TWO',
@@ -391,6 +497,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '1.68',
                         'currency_code' => 'EUR',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '90.00',
@@ -407,6 +514,7 @@ final class PayPalItemDataProviderTest extends TestCase
         $orderItem = $this->createMock(OrderItemInterface::class);
 
         $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
         $orderItem->method('getProductName')->willReturn('PRODUCT');
         $order->method('getCurrencyCode')->willReturn('GBP');
 
@@ -430,6 +538,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '0.50',
                         'currency_code' => 'GBP',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
                 [
                     'name' => 'PRODUCT',
@@ -442,6 +551,7 @@ final class PayPalItemDataProviderTest extends TestCase
                         'value' => '0.51',
                         'currency_code' => 'GBP',
                     ],
+                    'category' => 'PHYSICAL_GOODS',
                 ],
             ],
             'total_item_value' => '20.00',
@@ -449,5 +559,37 @@ final class PayPalItemDataProviderTest extends TestCase
         ];
 
         self::assertEquals($expected, $result);
+    }
+
+    #[Test]
+    #[Group('legacy')]
+    public function it_omits_product_url_when_url_generator_is_not_provided(): void
+    {
+        $provider = new PayPalItemDataProvider($this->orderItemNonNeutralTaxesProvider);
+
+        $order = $this->createMock(OrderInterface::class);
+        $orderItem = $this->createMock(OrderItemInterface::class);
+        $variant = $this->createMock(ProductVariantInterface::class);
+        $product = $this->createMock(ProductInterface::class);
+
+        $order->method('getItems')->willReturn(new ArrayCollection([$orderItem]));
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+
+        $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
+        $orderItem->method('getUnitPrice')->willReturn(2000);
+        $orderItem->method('getQuantity')->willReturn(1);
+        $orderItem->method('getVariant')->willReturn($variant);
+
+        $variant->method('getCode')->willReturn('SKU_1');
+        $variant->method('getProduct')->willReturn($product);
+        $product->method('getSlug')->willReturn('product-one');
+
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->with($orderItem)->willReturn([0]);
+
+        $result = $provider->provide($order);
+
+        self::assertArrayNotHasKey('url', $result['items'][0]);
+        self::assertSame('SKU_1', $result['items'][0]['sku']);
     }
 }

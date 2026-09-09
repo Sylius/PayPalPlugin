@@ -90,6 +90,8 @@
             <argument type="service" id="sylius_paypal.client.paypal" />
             <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
             <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
+            <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.provider.invoice_number" />
         </service>
         <service id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" alias="sylius_paypal.api.create_order" />
 
@@ -161,6 +163,7 @@
             <argument type="service" id="sylius_paypal.client.paypal" />
             <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
             <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
+            <argument type="service" id="sylius_paypal.provider.invoice_number" />
         </service>
         <service id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface" alias="sylius_paypal.api.update_order" />
 

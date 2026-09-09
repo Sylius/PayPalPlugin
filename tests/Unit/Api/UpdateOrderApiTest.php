@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApi;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Provider\InvoiceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
@@ -42,11 +43,14 @@ final class UpdateOrderApiTest extends TestCase
         $this->client = $this->createMock(PayPalClientInterface::class);
         $this->paymentReferenceNumberProvider = $this->createMock(PaymentReferenceNumberProviderInterface::class);
         $this->payPalItemsDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
+        $invoiceNumberProvider = $this->createMock(InvoiceNumberProviderInterface::class);
+        $invoiceNumberProvider->method('provide')->willReturn('INVOICE_ID-REFERENCE-ID');
 
         $this->updateOrderApi = new UpdateOrderApi(
             $this->client,
             $this->paymentReferenceNumberProvider,
             $this->payPalItemsDataProvider,
+            $invoiceNumberProvider,
         );
     }
 
@@ -104,7 +108,8 @@ final class UpdateOrderApiTest extends TestCase
                         $data[0]['op'] === 'replace' &&
                         $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'' &&
                         $data[0]['value']['reference_id'] === 'REFERENCE-ID' &&
-                        $data[0]['value']['invoice_id'] === 'INVOICE_ID' &&
+                        $data[0]['value']['invoice_id'] === 'INVOICE_ID-REFERENCE-ID' &&
+                        $data[0]['value']['custom_id'] === 'INVOICE_ID' &&
                         $data[0]['value']['amount']['value'] === '11.22' &&
                         $data[0]['value']['amount']['currency_code'] === 'USD' &&
                         $data[0]['value']['amount']['breakdown']['shipping']['value'] === '0.22' &&
@@ -166,7 +171,8 @@ final class UpdateOrderApiTest extends TestCase
                         $data[0]['op'] === 'replace' &&
                         $data[0]['path'] === '/purchase_units/@reference_id==\'REFERENCE-ID\'' &&
                         $data[0]['value']['reference_id'] === 'REFERENCE-ID' &&
-                        $data[0]['value']['invoice_id'] === 'INVOICE_ID' &&
+                        $data[0]['value']['invoice_id'] === 'INVOICE_ID-REFERENCE-ID' &&
+                        $data[0]['value']['custom_id'] === 'INVOICE_ID' &&
                         $data[0]['value']['amount']['value'] === '11.22' &&
                         $data[0]['value']['amount']['currency_code'] === 'USD' &&
                         $data[0]['value']['amount']['breakdown']['shipping']['value'] === '0.00' &&

@@ -18,16 +18,33 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Provider\InvoiceNumberProvider;
+use Sylius\PayPalPlugin\Provider\InvoiceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
 final readonly class UpdateOrderApi implements UpdateOrderApiInterface
 {
+    private InvoiceNumberProviderInterface $invoiceNumberProvider;
+
     public function __construct(
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
         private PayPalItemDataProviderInterface $payPalItemsDataProvider,
+        ?InvoiceNumberProviderInterface $invoiceNumberProvider = null,
     ) {
+        if (null === $invoiceNumberProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an $invoiceNumberProvider to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                self::class,
+            );
+
+            $invoiceNumberProvider = new InvoiceNumberProvider($paymentReferenceNumberProvider);
+        }
+
+        $this->invoiceNumberProvider = $invoiceNumberProvider;
     }
 
     public function update(
@@ -46,20 +63,23 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
             AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT,
         );
 
+        $paymentReferenceNumber = $this->paymentReferenceNumberProvider->provide($payment);
+
         $data = new PayPalPurchaseUnit(
-            $referenceId,
-            $this->paymentReferenceNumberProvider->provide($payment),
-            (string) $order->getCurrencyCode(),
-            (int) $payment->getAmount(),
-            $order->getShippingTotal() - $shippingDiscount,
-            (float) $payPalItemData['total_item_value'],
-            (float) $payPalItemData['total_tax'],
-            $order->getOrderPromotionTotal(),
-            $merchantId,
-            (array) $payPalItemData['items'],
-            $order->isShippingRequired(),
-            $order->getShippingAddress(),
+            referenceId: $referenceId,
+            invoiceNumber: $this->invoiceNumberProvider->provide($payment, $referenceId),
+            currencyCode: (string) $order->getCurrencyCode(),
+            totalAmount: (int) $payment->getAmount(),
+            shippingValue: $order->getShippingTotal() - $shippingDiscount,
+            itemTotalValue: (float) $payPalItemData['total_item_value'],
+            taxTotalValue: (float) $payPalItemData['total_tax'],
+            discountValue: $order->getOrderPromotionTotal(),
+            merchantId: $merchantId,
+            items: (array) $payPalItemData['items'],
+            shippingRequired: $order->isShippingRequired(),
+            shippingAddress: $order->getShippingAddress(),
             shippingDiscountValue: $shippingDiscount,
+            customId: $paymentReferenceNumber,
         );
 
         return $this->client->patch(

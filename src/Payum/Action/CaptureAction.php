@@ -46,7 +46,8 @@ final readonly class CaptureAction implements ActionInterface
         $referenceId = $this->uuidProvider->provide();
         $content = $this->createOrderApi->create($token, $payment, $referenceId);
 
-        if ($content['status'] === 'CREATED') {
+        // A successfully created order always carries an id.
+        if (isset($content['id'])) {
             $payment->setDetails([
                 'status' => StatusAction::STATUS_CAPTURED,
                 'paypal_order_id' => $content['id'],

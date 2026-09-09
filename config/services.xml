@@ -127,6 +127,7 @@
             class="Sylius\PayPalPlugin\Provider\PayPalItemDataProvider"
         >
             <argument type="service" id="sylius_paypal.provider.order_item_non_neutral_tax" />
+            <argument type="service" id="router" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface" alias="sylius_paypal.provider.paypal_item_data" />
 
@@ -305,6 +306,14 @@
             class="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider"
         />
         <service id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" alias="sylius_paypal.provider.payment_reference_number" />
+
+        <service
+            id="sylius_paypal.provider.invoice_number"
+            class="Sylius\PayPalPlugin\Provider\InvoiceNumberProvider"
+        >
+            <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\InvoiceNumberProviderInterface" alias="sylius_paypal.provider.invoice_number" />
 
         <service id="sylius_paypal.console.command.complete_paid_payments" class="Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand">
             <argument type="service" id="sylius.repository.payment" />
