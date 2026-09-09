@@ -64,12 +64,18 @@
    could not call. Decorate or replace it if your shop reaches PayPal some other way — for instance behind a
    proxy that terminates TLS in front of an `http` backend.
 
-   Two services carry the work and can be decorated or replaced:
+   Three services carry the work and can be decorated or replaced:
    `Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface` turns an order plus a partial
-   address into PayPal's option list, and `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
+   address into PayPal's option list, `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
    maps PayPal's redacted address onto a Sylius one, matching the region it sends by name against your
-   provinces. Both build on stock Sylius services, so the wallet offers the same methods and prices as the
-   normal checkout does for the same address.
+   provinces, and `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` shapes the
+   answer. The first two build on stock Sylius services, so the wallet offers the same methods and prices as
+   the normal checkout does for the same address.
+
+   The response factory exists because PayPal validates it: the answer has to carry `amount.breakdown` with
+   `shipping` matching the option marked `selected`, and `amount.value` equal to the sum of the breakdown
+   (`item_total + tax_total + shipping + handling + insurance - discount - shipping_discount`). If you
+   decorate it, keep those two invariants or PayPal rejects the callback.
 
    The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
    now also stores the region on the order's addresses — previously it was dropped.
@@ -288,6 +294,7 @@
    | `sylius_paypal.factory.paypal_order` | `Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface` | the whole `v2/checkout/orders` payload, including the payer return URL and the shipping callback |
    | `sylius_paypal.factory.paypal_purchase_unit` | `Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface` | one purchase unit, shared by order creation and the `PATCH` that updates it |
    | `sylius_paypal.provider.paypal_shipping_callback_url` | `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface` | the shipping callback URL, or `null` when PayPal could not reach it |
+   | `sylius_paypal.factory.paypal_shipping_callback_response` | `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` | the body the shipping callback answers with, including the total reconciled against the selected option |
 
    `PayPalPurchaseUnitFactoryInterface::create()` takes the merchant id as an optional third argument and
    falls back to the `merchant_id` configured on the payment's method, which is what every caller passed

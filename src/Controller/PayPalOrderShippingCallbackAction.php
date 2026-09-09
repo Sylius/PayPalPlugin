@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
@@ -35,6 +36,7 @@ final readonly class PayPalOrderShippingCallbackAction
         private ChannelAvailableCountriesProviderInterface $availableCountriesProvider,
         private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
         private PayPalShippingOptionsResolverInterface $shippingOptionsResolver,
+        private PayPalShippingCallbackResponseFactoryInterface $responseFactory,
     ) {
     }
 
@@ -79,10 +81,7 @@ final readonly class PayPalOrderShippingCallbackAction
         /** @var array<string, mixed> $purchaseUnit */
         $purchaseUnit = (array) ($purchaseUnits[0] ?? []);
 
-        return new JsonResponse([
-            'id' => $payPalOrderId,
-            'purchase_units' => [$this->buildPurchaseUnit($purchaseUnit, $shippingOptions)],
-        ]);
+        return new JsonResponse($this->responseFactory->create($payPalOrderId, $purchaseUnit, $shippingOptions));
     }
 
     private function getOrder(string $payPalOrderId): ?OrderInterface
@@ -97,70 +96,6 @@ final readonly class PayPalOrderShippingCallbackAction
         $order = $payment?->getOrder();
 
         return $order;
-    }
-
-    /**
-     * @param array<string, mixed> $purchaseUnit
-     * @param array<int, array<string, mixed>> $shippingOptions
-     *
-     * @return array<string, mixed>
-     */
-    private function buildPurchaseUnit(array $purchaseUnit, array $shippingOptions): array
-    {
-        $responseUnit = [];
-
-        if (isset($purchaseUnit['reference_id'])) {
-            $responseUnit['reference_id'] = $purchaseUnit['reference_id'];
-        }
-
-        $responseUnit['amount'] = $this->withSelectedShippingCost(
-            (array) ($purchaseUnit['amount'] ?? []),
-            $shippingOptions,
-        );
-        $responseUnit['shipping_options'] = $shippingOptions;
-
-        return $responseUnit;
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $shippingOptions
-     * @param array<string, mixed> $amount
-     *
-     * @return array<string, mixed>
-     */
-    private function withSelectedShippingCost(array $amount, array $shippingOptions): array
-    {
-        /** @var array<string, mixed>|null $selected */
-        $selected = array_values(array_filter($shippingOptions, fn (array $option): bool => true === $option['selected']))[0] ?? null;
-
-        /** @var array<string, array<string, mixed>> $breakdown */
-        $breakdown = (array) ($amount['breakdown'] ?? []);
-        if (null === $selected || [] === $breakdown) {
-            return $amount;
-        }
-
-        $breakdown['shipping'] = (array) $selected['amount'];
-
-        $total =
-            $this->minorUnits($breakdown, 'item_total') +
-            $this->minorUnits($breakdown, 'tax_total') +
-            $this->minorUnits($breakdown, 'shipping') +
-            $this->minorUnits($breakdown, 'handling') +
-            $this->minorUnits($breakdown, 'insurance') -
-            $this->minorUnits($breakdown, 'discount') -
-            $this->minorUnits($breakdown, 'shipping_discount')
-        ;
-
-        $amount['breakdown'] = $breakdown;
-        $amount['value'] = number_format($total / 100, 2, '.', '');
-
-        return $amount;
-    }
-
-    /** @param array<string, array<string, mixed>> $breakdown */
-    private function minorUnits(array $breakdown, string $key): int
-    {
-        return (int) round(((float) ($breakdown[$key]['value'] ?? 0)) * 100);
     }
 
     private function unprocessable(string $issue): JsonResponse

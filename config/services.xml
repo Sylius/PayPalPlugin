@@ -129,6 +129,12 @@
         </service>
         <service id="Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface" alias="sylius_paypal.factory.paypal_order" />
 
+        <service
+            id="sylius_paypal.factory.paypal_shipping_callback_response"
+            class="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactory"
+        />
+        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_callback_response" />
+
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
         </service>

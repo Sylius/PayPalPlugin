@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
@@ -62,6 +63,8 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
 
     private PayPalShippingOptionsResolverInterface&MockObject $shippingOptionsResolver;
 
+    private PayPalShippingCallbackResponseFactoryInterface&MockObject $responseFactory;
+
     private OrderInterface&MockObject $order;
 
     private PayPalOrderShippingCallbackAction $action;
@@ -73,6 +76,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         $this->availableCountriesProvider = $this->createMock(ChannelAvailableCountriesProviderInterface::class);
         $this->shippingAddressFactory = $this->createMock(PayPalShippingAddressFactoryInterface::class);
         $this->shippingOptionsResolver = $this->createMock(PayPalShippingOptionsResolverInterface::class);
+        $this->responseFactory = $this->createMock(PayPalShippingCallbackResponseFactoryInterface::class);
 
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
@@ -88,10 +92,11 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             $this->availableCountriesProvider,
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
+            $this->responseFactory,
         );
     }
 
-    public function test_it_answers_with_the_shipping_options_and_the_cost_of_the_selected_one(): void
+    public function test_it_answers_with_the_response_its_factory_built_for_the_resolved_options(): void
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US', 'CA']);
         $this->shippingAddressFactory
@@ -104,26 +109,19 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             ->method('resolve')
             ->with($this->order, $address)
             ->willReturn(self::SHIPPING_OPTIONS);
+        $this->responseFactory
+            ->expects(self::once())
+            ->method('create')
+            ->with('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, self::SHIPPING_OPTIONS)
+            ->willReturn(['id' => 'PAYPAL_ORDER_ID', 'purchase_units' => ['RESPONSE_UNIT']]);
 
         $response = ($this->action)($this->callbackRequest());
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame([
-            'id' => 'PAYPAL_ORDER_ID',
-            'purchase_units' => [[
-                'reference_id' => 'REFERENCE_ID',
-                'amount' => [
-                    'currency_code' => 'USD',
-                    'value' => '110.00',
-                    'breakdown' => [
-                        'item_total' => ['currency_code' => 'USD', 'value' => '90.00'],
-                        'tax_total' => ['currency_code' => 'USD', 'value' => '10.00'],
-                        'shipping' => ['currency_code' => 'USD', 'value' => '10.00'],
-                    ],
-                ],
-                'shipping_options' => self::SHIPPING_OPTIONS,
-            ]],
-        ], json_decode((string) $response->getContent(), true));
+        self::assertSame(
+            ['id' => 'PAYPAL_ORDER_ID', 'purchase_units' => ['RESPONSE_UNIT']],
+            json_decode((string) $response->getContent(), true),
+        );
     }
 
     public function test_it_refuses_a_country_the_channel_does_not_sell_to(): void
@@ -165,6 +163,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             $this->availableCountriesProvider,
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
+            $this->responseFactory,
         );
 
         self::assertUnprocessableWithIssue('ADDRESS_ERROR', ($action)($this->callbackRequest()));
@@ -195,41 +194,6 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         self::assertSame(
             ['name' => 'UNPROCESSABLE_ENTITY', 'details' => [['issue' => $issue]]],
             json_decode((string) $response->getContent(), true),
-        );
-    }
-
-    public function test_it_leaves_an_amount_without_a_breakdown_alone(): void
-    {
-        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
-        $this->shippingOptionsResolver->method('resolve')->willReturn(self::SHIPPING_OPTIONS);
-
-        $amount = ['currency_code' => 'USD', 'value' => '100.00'];
-        $response = ($this->action)($this->callbackRequest([
-            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'amount' => $amount]],
-        ]));
-
-        $content = json_decode((string) $response->getContent(), true);
-
-        self::assertSame($amount, $content['purchase_units'][0]['amount']);
-    }
-
-    public function test_it_drops_the_purchase_unit_fields_paypal_does_not_read_back(): void
-    {
-        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
-        $this->shippingOptionsResolver->method('resolve')->willReturn(self::SHIPPING_OPTIONS);
-
-        $purchaseUnit = self::PURCHASE_UNIT + [
-            'payee' => ['merchant_id' => 'MERCHANT_ID'],
-            'invoice_id' => 'INVOICE_ID',
-            'soft_descriptor' => 'Sylius PayPal Payment',
-        ];
-        $response = ($this->action)($this->callbackRequest(['purchase_units' => [$purchaseUnit]]));
-
-        $content = json_decode((string) $response->getContent(), true);
-
-        self::assertSame(
-            ['reference_id', 'amount', 'shipping_options'],
-            array_keys($content['purchase_units'][0]),
         );
     }
 }
