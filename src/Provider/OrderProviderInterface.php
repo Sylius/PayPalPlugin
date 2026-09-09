@@ -23,4 +23,7 @@ interface OrderProviderInterface
 
     /** @throws OrderNotFoundException */
     public function provideOrderByToken(string $token): OrderInterface;
+
+    /** @throws OrderNotFoundException */
+    public function provideCartByToken(string $tokenValue): OrderInterface;
 }

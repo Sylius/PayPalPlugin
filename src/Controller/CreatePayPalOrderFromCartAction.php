@@ -67,8 +67,8 @@ final readonly class CreatePayPalOrderFromCartAction
 
     public function __invoke(Request $request): Response
     {
-        $id = $request->attributes->getInt('id');
-        $order = $this->orderProvider->provideOrderById($id);
+        $tokenValue = (string) $request->attributes->get('tokenValue');
+        $order = $this->orderProvider->provideCartByToken($tokenValue);
 
         try {
             $payment = $this->getPayment($order);
@@ -87,6 +87,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         return new JsonResponse([
             'id' => $order->getId(),
+            'tokenValue' => $order->getTokenValue(),
             'orderId' => $payPalOrderId,
             'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
             'status' => $payment->getState(),

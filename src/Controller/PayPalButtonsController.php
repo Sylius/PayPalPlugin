@@ -13,10 +13,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
+use Doctrine\Persistence\ObjectManager;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
+use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
@@ -42,6 +44,8 @@ final readonly class PayPalButtonsController
         private LocaleProcessorInterface $localeProcessor,
         private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?OrderTokenAssignerInterface $orderTokenAssigner = null,
+        private ?ObjectManager $orderManager = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -58,6 +62,16 @@ final readonly class PayPalButtonsController
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalWebSdkConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->orderTokenAssigner || null === $this->orderManager) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s and an order %s to %s constructor is deprecated and will be required in 3.0.',
+                OrderTokenAssignerInterface::class,
+                ObjectManager::class,
                 self::class,
             );
         }
@@ -93,13 +107,14 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
+        $this->ensureOrderHasToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'amount' => number_format($order->getTotal() / 100, 2, '.', ''),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $orderId]),
+                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['tokenValue' => $order->getTokenValue()]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
@@ -122,6 +137,7 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
+        $this->ensureOrderHasToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -130,8 +146,8 @@ final readonly class PayPalButtonsController
                 'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment'),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'currency' => $order->getCurrencyCode(),
-                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page', ['id' => $orderId]),
-                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page', ['id' => $orderId]),
+                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page', ['tokenValue' => $order->getTokenValue()]),
+                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page', ['tokenValue' => $order->getTokenValue()]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
@@ -143,6 +159,25 @@ final readonly class PayPalButtonsController
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
+    }
+
+    // Both button-URL-generation paths below embed the order's tokenValue into the rendered page - but a
+    // cart that reached this page without going through any checkout transition yet (the normal case for
+    // the cart-page placement) never had one assigned (AssignOrderTokenListener only fires on a checkout
+    // *transition*, not on order creation). Assign and persist one now, before generating any URL that
+    // needs it, so the token embedded in this response actually resolves once the buyer clicks the button.
+    private function ensureOrderHasToken(OrderInterface $order): void
+    {
+        if (null === $this->orderTokenAssigner || null === $this->orderManager) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" and an order "%s" are required to render the v6 Web SDK placements.',
+                OrderTokenAssignerInterface::class,
+                ObjectManager::class,
+            ));
+        }
+
+        $this->orderTokenAssigner->assignTokenValueIfNotSet($order);
+        $this->orderManager->flush();
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface

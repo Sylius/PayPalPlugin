@@ -58,9 +58,9 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
 
     public function __invoke(Request $request): Response
     {
-        $orderId = $request->attributes->getInt('id');
+        $tokenValue = (string) $request->attributes->get('tokenValue');
 
-        $order = $this->orderProvider->provideOrderById($orderId);
+        $order = $this->orderProvider->provideCartByToken($tokenValue);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         /** @var string $payPalOrderId */

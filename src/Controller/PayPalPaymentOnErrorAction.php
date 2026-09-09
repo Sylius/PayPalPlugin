@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 final readonly class PayPalPaymentOnErrorAction
 {
+    private const MAX_LOGGED_CONTENT_LENGTH = 2000;
+
     public function __construct(
         private RequestStack $flashBagOrRequestStack,
         private LoggerInterface $logger,
@@ -34,11 +36,20 @@ final readonly class PayPalPaymentOnErrorAction
          */
         $content = $request->getContent();
 
-        $this->logger->error($content);
+        $this->logger->error($this->sanitizeForLogging($content));
         FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
             ->add('error', 'sylius_paypal.something_went_wrong')
         ;
 
         return new Response();
+    }
+
+    // Anonymous, unauthenticated visitors can POST here with arbitrary content - cap the length so this
+    // can't be used to flood the log, and strip newlines so it can't be used to forge fake log lines.
+    private function sanitizeForLogging(string $content): string
+    {
+        $sanitized = str_replace(["\r", "\n"], ' ', $content);
+
+        return mb_substr($sanitized, 0, self::MAX_LOGGED_CONTENT_LENGTH);
     }
 }

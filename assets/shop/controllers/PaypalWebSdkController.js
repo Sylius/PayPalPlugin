@@ -18,7 +18,7 @@ export default class extends Controller {
         payLaterEnabled: Boolean,
     };
 
-    syliusOrderId = null;
+    orderTokenValue = null;
 
     connect() {
         this.init();
@@ -89,7 +89,9 @@ export default class extends Controller {
         }
 
         const data = await response.json();
-        this.syliusOrderId = data.id;
+        if (data.tokenValue) {
+            this.orderTokenValue = data.tokenValue;
+        }
 
         return { orderId: data.orderId };
     }
@@ -98,7 +100,7 @@ export default class extends Controller {
         const response = await fetch(this.captureOrderUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId: data.orderId, orderId: this.syliusOrderId }),
+            body: JSON.stringify({ payPalOrderId: data.orderId, tokenValue: this.orderTokenValue }),
         });
         const details = await response.json();
         window.location.href = details.return_url;
