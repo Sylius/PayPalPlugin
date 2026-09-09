@@ -21,7 +21,7 @@ final readonly class PayPalShippingCallbackUrlProvider implements PayPalShipping
 
     public function __construct(
         private UrlGeneratorInterface $router,
-        private string $route = 'sylius_paypal_shop_order_shipping_callback',
+        private string $route = 'sylius_paypal_order_shipping_callback',
     ) {
     }
 

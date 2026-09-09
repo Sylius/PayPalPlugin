@@ -48,11 +48,21 @@
    a placeholder address (`Temp`/`Temp`/`Temp`) onto the real order and sent PayPal a single, default
    shipping method. It now declares a server-side callback instead, and PayPal calls it directly.
 
-   A new route, `sylius_paypal_shop_order_shipping_callback` (`POST /pay-pal-order-shipping-callback`,
+   A new route, `sylius_paypal_order_shipping_callback` (`POST /paypal/order-shipping-callback`,
    controller `Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction`), answers with every
    shipping method eligible for the address the buyer chose, each with its own price, or with a `422` naming
    the reason the order cannot be shipped there. Nothing is written to the order: the buyer has approved
    nothing yet.
+
+   It is loaded from `@SyliusPayPalPlugin/config/routes/callback.yaml`, **outside the shop's `/{_locale}`
+   prefix** — this is not a page a buyer opens but a request PayPal makes and waits on, and its URL is stored
+   with the order at PayPal for that order's lifetime. Under the locale prefix,
+   `Sylius\Bundle\ShopBundle\EventListener\NonChannelLocaleListener` answers a locale the channel no longer
+   offers with a redirect to the shop homepage, which would hand PayPal HTML where it expects JSON. The
+   path stays close to what the other PayPal integrations use for the same endpoint — WooCommerce registers
+   `paypal/v1/shipping-callback` on the REST API, Shopware `paypal/express/shipping-callback` on its
+   store-api — and keeps PayPal's own `order_update_callback_config` wording in front of it. It is a callback rather than a webhook: the refund webhook is a notification PayPal sends,
+   while this one is a synchronous call whose response drives what the wallet renders.
 
    **This endpoint has to be reachable from PayPal's servers.** It is declared on the order only when the
    generated URL is `https`, so a shop behind a tunnel or on a production domain works, and a local
@@ -81,6 +91,12 @@
    so a decorator adds or reprices an option without reproducing PayPal's payload keys. The object keeps its
    price in minor units and formats it only in `toArray()`; `TYPE_PICKUP` is there for options the buyer
    collects instead of having shipped.
+
+   Each option is labelled with the shipping method's name **in the order's locale**, read through
+   `getTranslation($order->getLocaleCode())` rather than through the locale Sylius resolves from the request.
+   That is what lets the endpoint live outside the shop's `/{_locale}` prefix: a callback PayPal makes from
+   its own network carries no buyer locale, and the order records one. A method with no translation for that
+   locale keeps the name it was loaded with.
 
    The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
    now also stores the region on the order's addresses — previously it was dropped.
@@ -114,7 +130,7 @@
    | `sylius_paypal_shop_complete_paypal_order` | `sylius_paypal_shop_process_paypal_order` / `..._complete_paypal_order_from_payment_page` |
    | `sylius_paypal_shop_cancel_checkout_payment` | `sylius_paypal_shop_cancel_payment` / `..._cancel_order` |
    | `sylius_paypal_shop_cancel_last_payment` | none — no longer needed once the legacy page is removed |
-   | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_shop_order_shipping_callback` |
+   | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_order_shipping_callback` |
 
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 

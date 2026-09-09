@@ -55,7 +55,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $this->router->method('generate')->willReturn('https://shop.example.com/checkout/complete');
         $this->shippingCallbackUrlProvider
             ->method('provide')
-            ->willReturn('https://shop.example.com/pay-pal-order-shipping-callback')
+            ->willReturn('https://shop.example.com/paypal/order-shipping-callback')
         ;
         $this->payPalPurchaseUnitFactory->method('create')->willReturn($this->purchaseUnit());
 
@@ -101,7 +101,7 @@ final class PayPalOrderFactoryTest extends TestCase
             'cancel_url' => 'https://shop.example.com/checkout/complete',
             'order_update_callback_config' => [
                 'callback_events' => ['SHIPPING_ADDRESS'],
-                'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+                'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
             ],
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
     }

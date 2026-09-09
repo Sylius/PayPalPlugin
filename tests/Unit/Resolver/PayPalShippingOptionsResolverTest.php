@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Calculator\DelegatingCalculatorInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
+use Sylius\Component\Shipping\Model\ShippingMethodTranslationInterface;
 use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolver;
@@ -177,6 +178,56 @@ final class PayPalShippingOptionsResolverTest extends TestCase
         $this->resolver->resolve($this->order, $this->shippingAddress);
     }
 
+    public function test_it_labels_the_option_with_the_method_name_in_the_locale_of_the_order(): void
+    {
+        $this->order->method('getLocaleCode')->willReturn('pl_PL');
+
+        $method = $this->shippingMethod('ups', 'UPS');
+        $method
+            ->expects(self::once())
+            ->method('getTranslation')
+            ->with('pl_PL')
+            ->willReturn($this->translation('Kurier UPS'))
+        ;
+
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([$method]);
+        $this->shippingCalculator->method('calculate')->willReturn(1000);
+
+        $options = $this->resolver->resolve($this->order, $this->shippingAddress);
+
+        self::assertSame('Kurier UPS', $options[0]->label());
+    }
+
+    public function test_it_falls_back_to_the_loaded_name_when_the_order_carries_no_locale(): void
+    {
+        $this->order->method('getLocaleCode')->willReturn(null);
+
+        $method = $this->shippingMethod('ups', 'UPS');
+        $method->expects(self::never())->method('getTranslation');
+
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([$method]);
+        $this->shippingCalculator->method('calculate')->willReturn(1000);
+
+        $options = $this->resolver->resolve($this->order, $this->shippingAddress);
+
+        self::assertSame('UPS', $options[0]->label());
+    }
+
+    public function test_it_falls_back_to_the_loaded_name_when_that_locale_has_no_translation(): void
+    {
+        $this->order->method('getLocaleCode')->willReturn('pl_PL');
+
+        $method = $this->shippingMethod('ups', 'UPS');
+        $method->method('getTranslation')->with('pl_PL')->willReturn($this->translation(null));
+
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([$method]);
+        $this->shippingCalculator->method('calculate')->willReturn(1000);
+
+        $options = $this->resolver->resolve($this->order, $this->shippingAddress);
+
+        self::assertSame('UPS', $options[0]->label());
+    }
+
     private function shippingMethod(string $code, string $name): ShippingMethodInterface&MockObject
     {
         $method = $this->createMock(ShippingMethodInterface::class);
@@ -184,5 +235,13 @@ final class PayPalShippingOptionsResolverTest extends TestCase
         $method->method('getName')->willReturn($name);
 
         return $method;
+    }
+
+    private function translation(?string $name): ShippingMethodTranslationInterface&MockObject
+    {
+        $translation = $this->createMock(ShippingMethodTranslationInterface::class);
+        $translation->method('getName')->willReturn($name);
+
+        return $translation;
     }
 }

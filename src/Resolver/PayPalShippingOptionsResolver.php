@@ -64,11 +64,24 @@ final readonly class PayPalShippingOptionsResolver implements PayPalShippingOpti
 
         return new PayPalShippingOption(
             (string) $method->getCode(),
-            (string) $method->getName(),
+            $this->getLabel($method, $order->getLocaleCode()),
             (string) $order->getCurrencyCode(),
             $this->shippingCalculator->calculate($shipment),
             $method === $currentMethod,
         );
+    }
+
+    private function getLabel(ShippingMethodInterface $method, ?string $localeCode): string
+    {
+        if (null !== $localeCode && '' !== $localeCode) {
+            $name = $method->getTranslation($localeCode)->getName();
+
+            if (null !== $name && '' !== $name) {
+                return $name;
+            }
+        }
+
+        return (string) $method->getName();
     }
 
     /**

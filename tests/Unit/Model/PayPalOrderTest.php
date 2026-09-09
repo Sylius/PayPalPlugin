@@ -394,7 +394,7 @@ final class PayPalOrderTest extends TestCase
             $this->order,
             $this->payPalPurchaseUnit,
             'CAPTURE',
-            shippingCallbackUrl: 'https://shop.example.com/pay-pal-order-shipping-callback',
+            shippingCallbackUrl: 'https://shop.example.com/paypal/order-shipping-callback',
         );
 
         $this->order->method('isShippingRequired')->willReturn(true);
@@ -405,7 +405,7 @@ final class PayPalOrderTest extends TestCase
 
         self::assertSame([
             'callback_events' => ['SHIPPING_ADDRESS'],
-            'callback_url' => 'https://shop.example.com/pay-pal-order-shipping-callback',
+            'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
         ], $result['payment_source']['paypal']['experience_context']['order_update_callback_config']);
     }
 

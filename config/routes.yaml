@@ -10,3 +10,6 @@ sylius_paypal_shop:
 
 sylius_paypal_webhook:
     resource: "@SyliusPayPalPlugin/config/routes/webhook.yaml"
+
+sylius_paypal_callback:
+    resource: "@SyliusPayPalPlugin/config/routes/callback.yaml"
