@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
@@ -32,6 +33,7 @@ final readonly class PayPalOrderShippingCallbackAction
     private const ISSUE_COUNTRY_ERROR = 'COUNTRY_ERROR';
 
     public function __construct(
+        private PayPalCallbackSignatureVerifierInterface $signatureVerifier,
         private PaypalPaymentQueryInterface $paypalPaymentQuery,
         private ChannelAvailableCountriesProviderInterface $availableCountriesProvider,
         private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
@@ -42,6 +44,10 @@ final readonly class PayPalOrderShippingCallbackAction
 
     public function __invoke(Request $request): JsonResponse
     {
+        if (!$this->signatureVerifier->verify($request)) {
+            return new JsonResponse(['error' => 'Not found'], Response::HTTP_NOT_FOUND);
+        }
+
         $payload = json_decode((string) $request->getContent(), true);
         if (!is_array($payload)) {
             return $this->unprocessable(self::ISSUE_ADDRESS_ERROR);
