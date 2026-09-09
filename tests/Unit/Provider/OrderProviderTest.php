@@ -82,4 +82,24 @@ final class OrderProviderTest extends TestCase
         $this->expectException(OrderNotFoundException::class);
         $this->provider->provideOrderByToken('token');
     }
+
+    #[Test]
+    public function provides_a_cart_by_its_token_regardless_of_order_state(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $this->orderRepository->method('findOneBy')->with(['tokenValue' => 'token-str'])->willReturn($order);
+
+        $result = $this->provider->provideCartByToken('token-str');
+
+        self::assertSame($order, $result);
+    }
+
+    #[Test]
+    public function throws_error_if_a_cart_is_not_found_by_token(): void
+    {
+        $this->orderRepository->method('findOneBy')->with(['tokenValue' => 'token'])->willReturn(null);
+
+        $this->expectException(OrderNotFoundException::class);
+        $this->provider->provideCartByToken('token');
+    }
 }

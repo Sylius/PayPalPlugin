@@ -47,4 +47,22 @@ final readonly class OrderProvider implements OrderProviderInterface
 
         return $order;
     }
+
+    public function provideCartByToken(string $tokenValue): OrderInterface
+    {
+        // Unlike provideOrderByToken()/findOneByTokenValue(), which deliberately excludes orders still in
+        // the "cart" state (it's meant for looking up an already-placed order to pay/re-pay), the v6
+        // shortcut and payment-page placements call this while the order is still being checked out - in
+        // Sylius, an order stays in the "cart" state for the whole checkout process, only flipping to "new"
+        // once it's actually placed. A plain, unfiltered lookup is what "the order I'm currently checking
+        // out, identified by its token" actually means here.
+        /** @var OrderInterface|null $order */
+        $order = $this->orderRepository->findOneBy(['tokenValue' => $tokenValue]);
+
+        if ($order === null) {
+            throw OrderNotFoundException::withToken($tokenValue);
+        }
+
+        return $order;
+    }
 }

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Symfony\Component\HttpFoundation\Response;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 {
@@ -24,12 +25,13 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         /** @var int $orderId */
         $orderId = $order['new_cart']->getId();
 
-        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/TOKEN');
 
         $response = $this->client->getResponse();
         $content = (array) json_decode($response->getContent(), true);
 
         $this->assertSame($content['id'], $orderId);
+        $this->assertSame($content['tokenValue'], 'TOKEN');
         $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
@@ -42,7 +44,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         /** @var int $orderId */
         $orderId = $order['new_cart']->getId();
 
-        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/TOKEN');
 
         $response = $this->client->getResponse();
         $content = (array) json_decode($response->getContent(), true);
@@ -51,5 +53,15 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
+    }
+
+    /** @test */
+    public function it_returns_not_found_for_a_foreign_or_unknown_token(): void
+    {
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/FOREIGN_TOKEN');
+
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }
 }

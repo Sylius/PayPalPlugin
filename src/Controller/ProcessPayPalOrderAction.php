@@ -122,10 +122,11 @@ final readonly class ProcessPayPalOrderAction
     public function __invoke(Request $request): Response
     {
         $payload = $request->getPayload();
-        $orderId = $payload->getInt('orderId');
         $payPalOrderId = $payload->getString('payPalOrderId');
+        $tokenValue = $payload->getString('tokenValue');
 
-        $order = $this->orderProvider->provideOrderById($orderId);
+        $order = $this->orderProvider->provideCartByToken($tokenValue);
+        $orderId = $order->getId();
 
         /** @var PaymentInterface|null $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);

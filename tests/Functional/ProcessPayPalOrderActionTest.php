@@ -61,7 +61,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $content = $this->processPayPalOrder($orderId);
+        $content = $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $this->assertSame($orderId, $content['orderID']);
@@ -102,7 +102,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $content = $this->processPayPalOrder($orderId);
+        $content = $this->processPayPalOrder('TOKEN_NO_CUSTOMER');
         $order = $this->refreshOrder($orderId);
 
         $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
@@ -144,7 +144,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         ]);
 
         $orderId = $order->getId();
-        $content = $this->processPayPalOrder($orderId);
+        $content = $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
@@ -166,7 +166,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
 
         $orderId = $order->getId();
         $paymentId = $payment->getId();
-        $content = $this->processPayPalOrder($orderId, 'OTHER_PAYPAL_ORDER_ID');
+        $content = $this->processPayPalOrder('TOKEN', 'OTHER_PAYPAL_ORDER_ID');
         $order = $this->refreshOrder($orderId);
 
         $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
@@ -191,7 +191,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $paymentId = $payment->getId();
         $this->clearPaymentDetails($paymentId);
-        $content = $this->processPayPalOrder($orderId);
+        $content = $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
@@ -207,11 +207,9 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
 
     public function test_it_returns_the_buyer_to_the_thank_you_page_when_the_order_is_already_completed(): void
     {
-        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
-        /** @var OrderInterface $order */
-        $order = $fixtures['new_order'];
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
-        $content = $this->processPayPalOrder($order->getId());
+        $content = $this->processPayPalOrder('TOKEN');
 
         $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
     }
@@ -236,7 +234,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $content = $this->processPayPalOrder($orderId);
+        $content = $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $shipment = $order->getShipments()->first();
@@ -265,7 +263,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $this->processPayPalOrder($orderId);
+        $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $shipment = $order->getShipments()->first();
@@ -291,7 +289,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $this->processPayPalOrder($orderId);
+        $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $shippingAddress = $order->getShippingAddress();
@@ -314,7 +312,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $this->processPayPalOrder($orderId);
+        $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $shippingAddress = $order->getShippingAddress();
@@ -364,8 +362,17 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         ];
     }
 
+    public function test_it_returns_not_found_for_a_foreign_or_unknown_token(): void
+    {
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+
+        $this->processPayPalOrder('FOREIGN_TOKEN');
+
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
     /** @return array<string, mixed> */
-    private function processPayPalOrder(int $orderId, string $payPalOrderId = 'PAYPAL_ORDER_ID'): array
+    private function processPayPalOrder(string $tokenValue, string $payPalOrderId = 'PAYPAL_ORDER_ID'): array
     {
         $this->client->request(
             'POST',
@@ -373,7 +380,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            (string) json_encode(['payPalOrderId' => $payPalOrderId, 'orderId' => $orderId]),
+            (string) json_encode(['payPalOrderId' => $payPalOrderId, 'tokenValue' => $tokenValue]),
         );
 
         return (array) json_decode((string) $this->client->getResponse()->getContent(), true);
