@@ -18,12 +18,17 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\OrderCheckoutStates;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
+use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -32,6 +37,7 @@ use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ProcessPayPalOrderAction
 {
@@ -51,6 +57,9 @@ final readonly class ProcessPayPalOrderAction
         private OrderDetailsApiInterface $orderDetailsApi,
         private OrderProviderInterface $orderProvider,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
+        private ?UrlGeneratorInterface $router = null,
+        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
+        private ?OrderProcessorInterface $orderProcessor = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -60,6 +69,30 @@ final readonly class ProcessPayPalOrderAction
                     'Not passing $paymentAmountVerifier to "%s" constructor is deprecated and will be prohibited in 3.0',
                     self::class,
                 ),
+            );
+        }
+        if (null === $this->router) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $router to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->orderCompleter) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $orderCompleter to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->orderProcessor) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $orderProcessor to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
             );
         }
     }
@@ -76,11 +109,20 @@ final readonly class ProcessPayPalOrderAction
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
 
         if (null === $payment) {
+            $route = OrderCheckoutStates::STATE_COMPLETED === $order->getCheckoutState()
+                ? 'sylius_shop_order_thank_you'
+                : 'sylius_shop_checkout_complete';
+
             return new JsonResponse([
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
+                'return_url' => $this->generateReturnUrl($route),
                 'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
             ]);
+        }
+
+        if (($payment->getDetails()['paypal_order_id'] ?? null) !== $payPalOrderId) {
+            return $this->returnToCheckout($orderId, $payPalOrderId, $payment, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $data = $this->getOrderDetails($payPalOrderId, $payment);
@@ -95,6 +137,7 @@ final readonly class ProcessPayPalOrderAction
         $purchaseUnit = (array) $data['purchase_units'][0];
 
         $address = $this->addressFactory->createNew();
+        $address->setPhoneNumber($data['payer']['phone']['phone_number']['national_number'] ?? null);
 
         if ($order->isShippingRequired()) {
             $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
@@ -144,27 +187,66 @@ final readonly class ProcessPayPalOrderAction
                 $this->verify($payment, $data);
             }
         } catch (PaymentAmountMismatchException) {
-            $this->paymentStateManager->cancel($payment);
+            $this->abandonPayment($order, $payment);
 
-            return new JsonResponse([
-                'syliusOrderId' => $orderId,
-                'orderId' => $payPalOrderId,
-                'status' => $payment->getState(),
-                'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
-            ]);
+            return $this->returnToCheckout($orderId, $payPalOrderId, $payment);
         }
 
-        // Deliberately no "return_url" here, unlike CompletePayPalOrderFromPaymentPageAction: this action
-        // stops at the select-payment transition and neither completes the order nor captures the PayPal
-        // payment, so the buyer has to land back on the checkout's complete step and place the order from
-        // there - which is what the placements' "completeUrl" points at. Capturing inside the wallet, and
-        // the thank-you redirect that follows from it, is https://github.com/Sylius/PayPalPlugin/pull/680.
+        if (null === $this->orderCompleter) {
+            throw new \RuntimeException('An order completer is required to complete the order.');
+        }
+
+        $this->orderCompleter->complete($order, $payment);
+
+        $request->getSession()->set('sylius_order_id', $order->getId());
+
         return new JsonResponse([
             'syliusOrderId' => $orderId,
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
+            'return_url' => $this->generateReturnUrl('sylius_shop_order_thank_you'),
             'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
         ]);
+    }
+
+    private function returnToCheckout(
+        int $orderId,
+        string $payPalOrderId,
+        PaymentInterface $payment,
+        int $status = Response::HTTP_OK,
+    ): JsonResponse {
+        return new JsonResponse([
+            'syliusOrderId' => $orderId,
+            'orderId' => $payPalOrderId,
+            'status' => $payment->getState(),
+            'return_url' => $this->generateReturnUrl('sylius_shop_checkout_complete'),
+            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+        ], $status);
+    }
+
+    private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void
+    {
+        // The payment is still in the cart state here, where the payment state machine has no cancel transition.
+        if ($this->stateMachineFactory->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)) {
+            $this->paymentStateManager->cancel($payment);
+        }
+
+        if (null === $this->orderProcessor) {
+            throw new \RuntimeException('An order processor is required to process the order.');
+        }
+
+        $order->removePayment($payment);
+        $this->orderProcessor->process($order);
+        $this->orderManager->flush();
+    }
+
+    private function generateReturnUrl(string $route): string
+    {
+        if (null === $this->router) {
+            throw new \RuntimeException('A router is required to generate the return URL.');
+        }
+
+        return $this->router->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     private function getOrderCustomer(array $customerData): CustomerInterface
@@ -180,6 +262,7 @@ final readonly class ProcessPayPalOrderAction
         $customer->setEmail($customerData['email_address']);
         $customer->setFirstName($customerData['name']['given_name']);
         $customer->setLastName($customerData['name']['surname']);
+        $customer->setPhoneNumber($customerData['phone']['phone_number']['national_number'] ?? null);
 
         return $customer;
     }

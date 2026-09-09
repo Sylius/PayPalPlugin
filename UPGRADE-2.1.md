@@ -79,7 +79,7 @@
    |---|---|---|
    | `CreatePayPalOrderFromCartAction` | `id`, `orderId`, `status` | `orderID` (PayPal order id) |
    | `CreatePayPalOrderFromPaymentPageAction` | `id`, `orderId`, `status` | `order_id` (PayPal order id) |
-   | `ProcessPayPalOrderAction` | `syliusOrderId`, `orderId`, `status`\* | `orderID` (**Sylius** order id) |
+   | `ProcessPayPalOrderAction` | `syliusOrderId`, `orderId`, `status`\*, plus a new `return_url` | `orderID` (**Sylius** order id) |
    | `CompletePayPalOrderFromPaymentPageAction` | `orderId`, `status` added next to `return_url` | — nothing renamed |
 
    \* `status` is the payment state, so `ProcessPayPalOrderAction` omits it in the one response it returns when
@@ -92,6 +92,47 @@
    The `orderID` returned by the deprecated `sylius_paypal_shop_create_paypal_order` route is unchanged and not
    part of this: that route serves the legacy `pay_with_paypal.html.twig` page, which still reads it.
 
+1. #### Express checkout completes the purchase in the PayPal wallet.
+
+   The PayPal buttons on the cart and product pages used to be a shortcut into the regular checkout: after the
+   buyer approved the payment in the wallet, they landed on the Sylius checkout summary and had to press
+   "Place order" a second time before anything was captured.
+
+   `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction` (route `sylius_paypal_shop_process_paypal_order`)
+   now captures the payment and completes the order in the same request, and sends the buyer straight to the
+   thank-you page. Its JSON response carries a `return_url` next to the keys described in the entry above.
+
+   Driving the payment and the order to their completed states lives in the new
+   `Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter` (service `sylius_paypal.completer.express_order`,
+   aliased by `Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface`), so it can be decorated or
+   replaced without touching the controller.
+
+   Two smaller changes come with it: the buyer's phone number from PayPal's `payer` payload is now written onto
+   the order's addresses and onto a newly created customer, and a payment amount mismatch no longer leaves the
+   request in an error, the payment is detached from the order, the order is reprocessed, and the buyer is
+   returned to the checkout summary so the purchase can be retried.
+
+   The action also cross-references the posted `payPalOrderId` against the `paypal_order_id` the plugin itself
+   wrote onto the payment's details, and answers `422 Unprocessable Content` when the two disagree — a payment
+   carrying no `paypal_order_id` at all included. The response body is unchanged and still carries a
+   `return_url` back to the checkout summary, so the buyer is redirected as before. Nothing is fetched from
+   PayPal and nothing on the order is touched, which is what separates this from an amount mismatch: that one
+   still answers `200`, because the request *is* processed and the payment really is detached.
+
+1. #### The cart and product page button templates no longer receive `completeUrl`.
+
+   `@SyliusPayPalPlugin/pay_from_cart_page.html.twig` and `@SyliusPayPalPlugin/pay_from_product_page.html.twig`
+   redirected to a hardcoded checkout summary URL after approval. They now follow the `return_url` returned by
+   the process endpoint, the same way `pay_from_payment_page.html.twig` already did, and
+   `Sylius\PayPalPlugin\Controller\PayPalButtonsController` no longer passes the `completeUrl` variable to them.
+
+   The redirect itself now lives in the Stimulus controller these two placements render, and that controller
+   takes no `completeUrl` value. An override still reading `{{ completeUrl }}` has to be rewritten against the
+   new templates anyway, as the Web SDK v6 and Stimulus entries at the top of this file describe.
+
+   Without that the buyer is sent to the checkout summary of an order that is already completed, which is no
+   longer a cart, and with `strict_variables` enabled the template fails to render on the undefined variable.
+
 1. #### The following constructor signatures have gained new optional (nullable) arguments, following this
    package's existing deprecation pattern — not passing them is deprecated and will be required in 3.0:
 
@@ -103,3 +144,11 @@
    — unlike the other two this one has no usable fallback: the v6 placements cannot be rendered without it, so
    a controller constructed without it throws a `\RuntimeException` when a placement is rendered. If you
    instantiate or decorate this class yourself, pass `sylius_paypal.provider.paypal_web_sdk_configuration`.
+
+   `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`: `?UrlGeneratorInterface $router = null`,
+   `?PayPalExpressOrderCompleterInterface $orderCompleter = null`, `?OrderProcessorInterface $orderProcessor = null`
+   — these have no usable fallback either: the action throws a `\RuntimeException` when a return URL has to be
+   generated without a router, when the order has to be completed without a completer, or when a mismatched
+   payment has to be detached without an order processor. If you have redefined the
+   `sylius_paypal.controller.process_paypal_order` service with an explicit argument list, add `router`,
+   `sylius_paypal.completer.express_order` and `sylius.order_processing.order_processor` to it.

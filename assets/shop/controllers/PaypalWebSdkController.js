@@ -14,7 +14,6 @@ export default class extends Controller {
         captureOrderUrl: String,
         cancelOrderUrl: String,
         errorUrl: String,
-        completeUrl: String,
         loadingSelector: String,
     };
 
@@ -148,7 +147,7 @@ export default class extends Controller {
             body: JSON.stringify({ payPalOrderId: data.orderId, orderId: this.syliusOrderId }),
         });
         const details = await response.json();
-        window.location.href = details.return_url || this.completeUrlValue;
+        window.location.href = details.return_url;
     }
 
     async onCancel(data) {

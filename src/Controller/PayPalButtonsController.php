@@ -62,7 +62,6 @@ final readonly class PayPalButtonsController
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
-                'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_shop_add_to_cart', ['productId' => $request->attributes->getInt('productId')]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process($this->localeContext->getLocaleCode()),
@@ -87,7 +86,6 @@ final readonly class PayPalButtonsController
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-                'completeUrl' => $this->router->generate('sylius_shop_checkout_complete'),
                 'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $orderId]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),

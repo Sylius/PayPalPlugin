@@ -86,6 +86,16 @@
         </service>
         <service id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" alias="sylius_paypal.manager.payment_state" />
 
+        <service
+            id="sylius_paypal.completer.express_order"
+            class="Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter"
+        >
+            <argument type="service" id="sylius_paypal.manager.payment_state" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
+            <argument type="service" id="sylius.manager.order" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface" alias="sylius_paypal.completer.express_order" />
+
         <service id="sylius_paypal.factory.paypal_payment_method_new_resource" class="Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory" decorates="sylius.resource_controller.new_resource_factory">
             <argument type="service" id=".inner" />
             <argument type="service" id="sylius_paypal.onboarding.processor.basic" />

@@ -142,6 +142,7 @@ final class PayPalOrderTest extends TestCase
             ],
             'application_context' => [
                 'shipping_preference' => 'SET_PROVIDED_ADDRESS',
+                'user_action' => 'PAY_NOW',
             ],
         ], $result);
     }
@@ -227,6 +228,7 @@ final class PayPalOrderTest extends TestCase
             ],
             'application_context' => [
                 'shipping_preference' => 'GET_FROM_FILE',
+                'user_action' => 'PAY_NOW',
             ],
         ], $result);
     }
@@ -311,6 +313,7 @@ final class PayPalOrderTest extends TestCase
             ],
             'application_context' => [
                 'shipping_preference' => 'NO_SHIPPING',
+                'user_action' => 'PAY_NOW',
             ],
         ], $result);
     }

@@ -23,6 +23,8 @@ class PayPalOrder
 
     public const PAYPAL_ADDRESS = 'GET_FROM_FILE';
 
+    public const USER_ACTION_PAY_NOW = 'PAY_NOW';
+
     /** @var string */
     private $intent;
 
@@ -51,6 +53,7 @@ class PayPalOrder
             ],
             'application_context' => [
                 'shipping_preference' => $this->getShippingPreference(),
+                'user_action' => self::USER_ACTION_PAY_NOW,
             ],
         ];
     }
