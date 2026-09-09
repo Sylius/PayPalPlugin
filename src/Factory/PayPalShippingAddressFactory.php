@@ -11,13 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Resolver;
+namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 
-final readonly class PayPalShippingAddressResolver implements PayPalShippingAddressResolverInterface
+final readonly class PayPalShippingAddressFactory implements PayPalShippingAddressFactoryInterface
 {
     /** @param AddressFactoryInterface<AddressInterface> $addressFactory */
     public function __construct(
@@ -26,7 +26,7 @@ final readonly class PayPalShippingAddressResolver implements PayPalShippingAddr
     ) {
     }
 
-    public function resolve(array $payPalShippingAddress): AddressInterface
+    public function create(array $payPalShippingAddress): AddressInterface
     {
         $countryCode = $this->stringOrNull($payPalShippingAddress['country_code'] ?? null);
 

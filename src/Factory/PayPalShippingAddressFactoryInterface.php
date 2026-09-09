@@ -11,12 +11,12 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Resolver;
+namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\AddressInterface;
 
-interface PayPalShippingAddressResolverInterface
+interface PayPalShippingAddressFactoryInterface
 {
     /** @param array<string, mixed> $payPalShippingAddress */
-    public function resolve(array $payPalShippingAddress): AddressInterface;
+    public function create(array $payPalShippingAddress): AddressInterface;
 }

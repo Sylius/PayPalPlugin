@@ -21,9 +21,9 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -58,7 +58,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
 
     private ChannelAvailableCountriesProviderInterface&MockObject $availableCountriesProvider;
 
-    private PayPalShippingAddressResolverInterface&MockObject $shippingAddressResolver;
+    private PayPalShippingAddressFactoryInterface&MockObject $shippingAddressFactory;
 
     private PayPalShippingOptionsResolverInterface&MockObject $shippingOptionsResolver;
 
@@ -71,7 +71,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         parent::setUp();
         $this->paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
         $this->availableCountriesProvider = $this->createMock(ChannelAvailableCountriesProviderInterface::class);
-        $this->shippingAddressResolver = $this->createMock(PayPalShippingAddressResolverInterface::class);
+        $this->shippingAddressFactory = $this->createMock(PayPalShippingAddressFactoryInterface::class);
         $this->shippingOptionsResolver = $this->createMock(PayPalShippingOptionsResolverInterface::class);
 
         $this->order = $this->createMock(OrderInterface::class);
@@ -86,7 +86,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         $this->action = new PayPalOrderShippingCallbackAction(
             $this->paypalPaymentQuery,
             $this->availableCountriesProvider,
-            $this->shippingAddressResolver,
+            $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
         );
     }
@@ -94,9 +94,9 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
     public function test_it_answers_with_the_shipping_options_and_the_cost_of_the_selected_one(): void
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US', 'CA']);
-        $this->shippingAddressResolver
+        $this->shippingAddressFactory
             ->expects(self::once())
-            ->method('resolve')
+            ->method('create')
             ->with(self::SHIPPING_ADDRESS)
             ->willReturn($address = $this->createMock(AddressInterface::class));
         $this->shippingOptionsResolver
@@ -163,7 +163,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         $action = new PayPalOrderShippingCallbackAction(
             $paypalPaymentQuery,
             $this->availableCountriesProvider,
-            $this->shippingAddressResolver,
+            $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
         );
 

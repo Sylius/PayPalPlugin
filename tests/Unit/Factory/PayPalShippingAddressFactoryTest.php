@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sylius\PayPalPlugin\Unit\Resolver;
+namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -19,16 +19,16 @@ use Sylius\Component\Addressing\Model\ProvinceInterface;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolver;
-use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface;
+use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
+use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 
-final class PayPalShippingAddressResolverTest extends TestCase
+final class PayPalShippingAddressFactoryTest extends TestCase
 {
     private AddressFactoryInterface&MockObject $addressFactory;
 
     private RepositoryInterface&MockObject $provinceRepository;
 
-    private PayPalShippingAddressResolver $resolver;
+    private PayPalShippingAddressFactory $factory;
 
     protected function setUp(): void
     {
@@ -37,19 +37,19 @@ final class PayPalShippingAddressResolverTest extends TestCase
         $this->provinceRepository = $this->createMock(RepositoryInterface::class);
         $this->addressFactory->method('createNew')->willReturnCallback(fn (): Address => new Address());
 
-        $this->resolver = new PayPalShippingAddressResolver($this->addressFactory, $this->provinceRepository);
+        $this->factory = new PayPalShippingAddressFactory($this->addressFactory, $this->provinceRepository);
     }
 
-    public function test_it_implements_paypal_shipping_address_resolver_interface(): void
+    public function test_it_implements_paypal_shipping_address_factory_interface(): void
     {
-        self::assertInstanceOf(PayPalShippingAddressResolverInterface::class, $this->resolver);
+        self::assertInstanceOf(PayPalShippingAddressFactoryInterface::class, $this->factory);
     }
 
     public function test_it_maps_the_redacted_address_paypal_sends(): void
     {
         $this->provinceRepository->method('findOneBy')->willReturn(null);
 
-        $address = $this->resolver->resolve([
+        $address = $this->factory->create([
             'country_code' => 'US',
             'admin_area_1' => 'TX',
             'admin_area_2' => 'Dallas',
@@ -66,7 +66,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
         $province = $this->createMock(ProvinceInterface::class);
         $this->provinceRepository->expects(self::once())->method('findOneBy')->with(['code' => 'US-TX'])->willReturn($province);
 
-        $address = $this->resolver->resolve(['country_code' => 'US', 'admin_area_1' => 'TX']);
+        $address = $this->factory->create(['country_code' => 'US', 'admin_area_1' => 'TX']);
 
         self::assertSame('US-TX', $address->getProvinceCode());
     }
@@ -78,7 +78,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
             ->method('findOneBy')
             ->willReturnCallback(fn (array $criteria): ?ProvinceInterface => $criteria === ['code' => 'TX'] ? $province : null);
 
-        $address = $this->resolver->resolve(['country_code' => 'US', 'admin_area_1' => 'TX']);
+        $address = $this->factory->create(['country_code' => 'US', 'admin_area_1' => 'TX']);
 
         self::assertSame('TX', $address->getProvinceCode());
     }
@@ -87,7 +87,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
     {
         $this->provinceRepository->method('findOneBy')->willReturn(null);
 
-        $address = $this->resolver->resolve(['country_code' => 'PL', 'admin_area_1' => 'Mazowieckie']);
+        $address = $this->factory->create(['country_code' => 'PL', 'admin_area_1' => 'Mazowieckie']);
 
         self::assertNull($address->getProvinceCode());
         self::assertSame('Mazowieckie', $address->getProvinceName());
@@ -97,7 +97,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
     {
         $this->provinceRepository->method('findOneBy')->willReturn($this->createMock(ProvinceInterface::class));
 
-        $address = $this->resolver->resolve(['country_code' => 'US', 'admin_area_1' => 'TX']);
+        $address = $this->factory->create(['country_code' => 'US', 'admin_area_1' => 'TX']);
 
         self::assertSame('US-TX', $address->getProvinceCode());
         self::assertNull($address->getProvinceName());
@@ -107,7 +107,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
     {
         $this->provinceRepository->expects(self::never())->method('findOneBy');
 
-        $address = $this->resolver->resolve(['country_code' => 'DE']);
+        $address = $this->factory->create(['country_code' => 'DE']);
 
         self::assertSame('DE', $address->getCountryCode());
         self::assertNull($address->getCity());
@@ -120,7 +120,7 @@ final class PayPalShippingAddressResolverTest extends TestCase
     {
         $this->provinceRepository->expects(self::never())->method('findOneBy');
 
-        $address = $this->resolver->resolve([
+        $address = $this->factory->create([
             'country_code' => 'DE',
             'admin_area_1' => '   ',
             'admin_area_2' => '',

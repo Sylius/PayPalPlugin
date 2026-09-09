@@ -33,9 +33,9 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
+use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -65,7 +65,7 @@ final readonly class ProcessPayPalOrderAction
         private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?RepositoryInterface $shippingMethodRepository = null,
-        private ?PayPalShippingAddressResolverInterface $shippingAddressResolver = null,
+        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -109,11 +109,11 @@ final readonly class ProcessPayPalOrderAction
                 self::class,
             );
         }
-        if (null === $this->shippingAddressResolver) {
+        if (null === $this->shippingAddressFactory) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
-                'Not passing $shippingAddressResolver to "%s" constructor is deprecated and will be prohibited in 3.0',
+                'Not passing $shippingAddressFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
         }
@@ -286,14 +286,14 @@ final readonly class ProcessPayPalOrderAction
     /** @param array<string, mixed> $payPalAddress */
     private function applyProvince(AddressInterface $address, array $payPalAddress): void
     {
-        if (null === $this->shippingAddressResolver) {
+        if (null === $this->shippingAddressFactory) {
             return;
         }
 
-        $resolved = $this->shippingAddressResolver->resolve($payPalAddress);
+        $payPalShippingAddress = $this->shippingAddressFactory->create($payPalAddress);
 
-        $address->setProvinceCode($resolved->getProvinceCode());
-        $address->setProvinceName($resolved->getProvinceName());
+        $address->setProvinceCode($payPalShippingAddress->getProvinceCode());
+        $address->setProvinceName($payPalShippingAddress->getProvinceName());
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void

@@ -16,9 +16,9 @@ namespace Sylius\PayPalPlugin\Controller;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,7 +33,7 @@ final readonly class PayPalOrderShippingCallbackAction
     public function __construct(
         private PaypalPaymentQueryInterface $paypalPaymentQuery,
         private ChannelAvailableCountriesProviderInterface $availableCountriesProvider,
-        private PayPalShippingAddressResolverInterface $shippingAddressResolver,
+        private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
         private PayPalShippingOptionsResolverInterface $shippingOptionsResolver,
     ) {
     }
@@ -69,7 +69,7 @@ final readonly class PayPalOrderShippingCallbackAction
 
         $shippingOptions = $this->shippingOptionsResolver->resolve(
             $order,
-            $this->shippingAddressResolver->resolve($payPalShippingAddress),
+            $this->shippingAddressFactory->create($payPalShippingAddress),
         );
 
         if ([] === $shippingOptions) {

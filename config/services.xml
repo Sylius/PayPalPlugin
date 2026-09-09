@@ -101,6 +101,15 @@
             <argument type="service" id="sylius_paypal.onboarding.processor.basic" />
         </service>
 
+        <service
+            id="sylius_paypal.factory.paypal_shipping_address"
+            class="Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory"
+        >
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius.repository.province" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_address" />
+
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
         </service>
@@ -391,15 +400,6 @@
             <argument>%sylius_paypal.supported_locales%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface" alias="sylius_paypal.resolver.supported_locale" />
-
-        <service
-            id="sylius_paypal.resolver.paypal_shipping_address"
-            class="Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolver"
-        >
-            <argument type="service" id="sylius.factory.address" />
-            <argument type="service" id="sylius.repository.province" />
-        </service>
-        <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_address" />
 
         <service
             id="sylius_paypal.resolver.paypal_shipping_options"

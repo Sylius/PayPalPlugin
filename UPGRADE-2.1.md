@@ -61,7 +61,7 @@
 
    Two services carry the work and can be decorated or replaced:
    `Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface` turns an order plus a partial
-   address into PayPal's option list, and `Sylius\PayPalPlugin\Resolver\PayPalShippingAddressResolverInterface`
+   address into PayPal's option list, and `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
    maps PayPal's redacted address onto a Sylius one, matching the region it sends by name against your
    provinces. Both build on stock Sylius services, so the wallet offers the same methods and prices as the
    normal checkout does for the same address.
@@ -212,7 +212,7 @@
    +        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
    +        private ?OrderProcessorInterface $orderProcessor = null,
    +        private ?RepositoryInterface $shippingMethodRepository = null,
-   +        private ?PayPalShippingAddressResolverInterface $shippingAddressResolver = null,
+   +        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory = null,
         ) {
         }
    ```
@@ -224,7 +224,7 @@
    +    <argument type="service" id="sylius_paypal.completer.express_order" />
    +    <argument type="service" id="sylius.order_processing.order_processor" />
    +    <argument type="service" id="sylius.repository.shipping_method" />
-   +    <argument type="service" id="sylius_paypal.resolver.paypal_shipping_address" />
+   +    <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
     </service>
    ```
 
