@@ -33,6 +33,7 @@
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="sylius_paypal.api.create_order" />
             <argument type="service" id="sylius_paypal.provider.uuid" />
+            <argument type="service" id="sylius_paypal.provider.paypal_order_created_statuses" />
             <tag name="payum.action" factory="sylius_paypal" alias="payum.action.capture" />
         </service>
 

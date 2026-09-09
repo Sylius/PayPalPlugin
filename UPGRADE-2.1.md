@@ -114,8 +114,31 @@
    `application_context` untouched.
 
    PayPal answers such an order with `PAYER_ACTION_REQUIRED` rather than `CREATED`, and
-   `Sylius\PayPalPlugin\Payum\Action\CaptureAction` accepts both. If you replaced that action, it must do
-   the same, or the payment will never receive its `paypal_order_id`.
+   `Sylius\PayPalPlugin\Payum\Action\CaptureAction` accepts both. Which statuses count as created comes from
+   `Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface`
+   (`sylius_paypal.provider.paypal_order_created_statuses`), so decorate that rather than the action if
+   PayPal starts answering with something else. If you replaced the action itself, it must accept both, or
+   the payment will never receive its `paypal_order_id`.
+
+   ```diff
+    final readonly class CaptureAction implements ActionInterface
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.payum.action.capture" class="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
+        <!-- ... -->
+   +    <argument type="service" id="sylius_paypal.provider.paypal_order_created_statuses" />
+    </service>
+   ```
+
+   Not passing it is deprecated and will be prohibited in 3.0; until then the action falls back to the
+   default provider, so it keeps accepting both statuses.
 
 1. #### The following routes are deprecated and will be removed in 3.0.
 

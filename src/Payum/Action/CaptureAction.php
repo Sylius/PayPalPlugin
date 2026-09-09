@@ -20,23 +20,26 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
+use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CaptureAction implements ActionInterface
 {
-    /**
-     * PayPal answers CREATED for an order created without a selected payment source, and
-     * PAYER_ACTION_REQUIRED once payment_source.paypal.experience_context is sent. Both mean the order
-     * exists and both carry its id - treating only the former as success leaves the payment without a
-     * paypal_order_id, which breaks every step that follows.
-     */
-    private const ORDER_CREATED_STATUSES = ['CREATED', 'PAYER_ACTION_REQUIRED'];
-
     public function __construct(
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private CreateOrderApiInterface $createOrderApi,
         private UuidProviderInterface $uuidProvider,
+        private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
     ) {
+        if (null === $this->orderCreatedStatusesProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $orderCreatedStatusesProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
     }
 
     /** @param Capture $request */
@@ -54,7 +57,7 @@ final readonly class CaptureAction implements ActionInterface
         $referenceId = $this->uuidProvider->provide();
         $content = $this->createOrderApi->create($token, $payment, $referenceId);
 
-        if (in_array($content['status'] ?? null, self::ORDER_CREATED_STATUSES, true)) {
+        if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
             $payment->setDetails([
                 'status' => StatusAction::STATUS_CAPTURED,
                 'paypal_order_id' => $content['id'],
@@ -62,6 +65,14 @@ final readonly class CaptureAction implements ActionInterface
                 'payment_amount' => $payment->getAmount(),
             ]);
         }
+    }
+
+    /** @return array<int, string> */
+    private function getOrderCreatedStatuses(): array
+    {
+        $provider = $this->orderCreatedStatusesProvider ?? new PayPalOrderCreatedStatusesProvider();
+
+        return $provider->provide();
     }
 
     public function supports($request): bool

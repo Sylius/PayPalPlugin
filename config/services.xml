@@ -149,6 +149,12 @@
         <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_url" />
 
         <service
+            id="sylius_paypal.provider.paypal_order_created_statuses"
+            class="Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider"
+        />
+        <service id="Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface" alias="sylius_paypal.provider.paypal_order_created_statuses" />
+
+        <service
             id="sylius_paypal.provider.payment"
             class="Sylius\PayPalPlugin\Provider\PaymentProvider"
         >
