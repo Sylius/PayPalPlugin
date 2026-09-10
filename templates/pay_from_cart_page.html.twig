@@ -9,7 +9,7 @@
         errorUrl: errorPayPalPaymentUrl,
         loadingSelector: '[data-live-name-value="sylius_shop:cart:form"] [data-loading]',
     }) }}
-    style="margin-top: 10px"
+    class="d-grid gap-2"
 >
-    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold w-100" hidden></paypal-button>
 </div>
