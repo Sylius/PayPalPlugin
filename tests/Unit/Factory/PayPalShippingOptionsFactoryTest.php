@@ -54,7 +54,7 @@ final class PayPalShippingOptionsFactoryTest extends TestCase
         self::assertSame([false, true], self::selectionOf($options->toArray()));
     }
 
-    public function test_it_selects_the_cheapest_option_when_none_is_selected(): void
+    public function test_it_selects_the_first_option_when_none_is_selected(): void
     {
         $options = $this->factory->create([
             new PayPalShippingOption('dhl', 'DHL', 'USD', 2550),
@@ -63,20 +63,8 @@ final class PayPalShippingOptionsFactoryTest extends TestCase
 
         $selected = $options->selected();
         self::assertNotNull($selected);
-        self::assertSame('ups', $selected->id());
-        self::assertSame([false, true], self::selectionOf($options->toArray()));
-    }
-
-    public function test_it_breaks_a_price_tie_toward_the_first_option(): void
-    {
-        $options = $this->factory->create([
-            new PayPalShippingOption('ups', 'UPS', 'USD', 1000),
-            new PayPalShippingOption('dhl', 'DHL', 'USD', 1000),
-        ]);
-
-        $selected = $options->selected();
-        self::assertNotNull($selected);
-        self::assertSame('ups', $selected->id());
+        self::assertSame('dhl', $selected->id());
+        self::assertSame([true, false], self::selectionOf($options->toArray()));
     }
 
     public function test_it_keeps_the_order_it_was_given(): void

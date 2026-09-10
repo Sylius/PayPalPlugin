@@ -22,39 +22,24 @@ final readonly class PayPalShippingOptionsFactory implements PayPalShippingOptio
     {
         $options = array_values($options);
 
-        if ([] === $options || null !== $this->getSelectedIndex($options)) {
+        if ([] === $options || $this->hasSelected($options)) {
             return new PayPalShippingOptions(...$options);
         }
 
-        $default = $this->getDefaultIndex($options);
-        $options[$default] = $options[$default]->withSelected(true);
+        $options[0] = $options[0]->withSelected(true);
 
         return new PayPalShippingOptions(...$options);
     }
 
     /** @param array<int, PayPalShippingOption> $options */
-    private function getSelectedIndex(array $options): ?int
+    private function hasSelected(array $options): bool
     {
-        foreach ($options as $index => $option) {
+        foreach ($options as $option) {
             if ($option->isSelected()) {
-                return $index;
+                return true;
             }
         }
 
-        return null;
-    }
-
-    /** @param array<int, PayPalShippingOption> $options */
-    private function getDefaultIndex(array $options): int
-    {
-        $cheapest = 0;
-
-        foreach ($options as $index => $option) {
-            if ($option->amount() < $options[$cheapest]->amount()) {
-                $cheapest = $index;
-            }
-        }
-
-        return $cheapest;
+        return false;
     }
 }
