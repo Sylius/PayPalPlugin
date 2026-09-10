@@ -18,6 +18,7 @@ use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final readonly class PayPalCallbackSignatureVerifier implements PayPalCallbackSignatureVerifierInterface
 {
@@ -103,7 +104,7 @@ final readonly class PayPalCallbackSignatureVerifier implements PayPalCallbackSi
             return null;
         }
 
-        if (200 !== $response->getStatusCode()) {
+        if (Response::HTTP_OK !== $response->getStatusCode()) {
             return null;
         }
 

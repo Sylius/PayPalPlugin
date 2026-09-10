@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 final class PayPalClient implements PayPalClientInterface
 {
@@ -54,7 +55,7 @@ final class PayPalClient implements PayPalClientInterface
             ],
         );
 
-        if ($response->getStatusCode() !== 200) {
+        if (Response::HTTP_OK !== $response->getStatusCode()) {
             throw new PayPalAuthorizationException();
         }
 
@@ -110,7 +111,7 @@ final class PayPalClient implements PayPalClientInterface
         $content = (array) json_decode($response->getBody()->getContents(), true);
 
         if (
-            (!in_array($response->getStatusCode(), [200, 204])) &&
+            (!in_array($response->getStatusCode(), [Response::HTTP_OK, Response::HTTP_NO_CONTENT], true)) &&
             isset($content['debug_id'])
         ) {
             $this
