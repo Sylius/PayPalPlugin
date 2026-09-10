@@ -20,6 +20,7 @@
         <parameter key="sylius_paypal.request_trials_limit">5</parameter>
         <parameter key="sylius_paypal.webhook_base_url"></parameter>
         <parameter key="sylius_paypal.webhook_id_refresh_cooldown">300</parameter>
+        <parameter key="sylius_paypal.callback_certificate_lifetime">86400</parameter>
     </parameters>
     <services>
         <service
@@ -138,7 +139,8 @@
         >
             <argument type="service" id="sylius.http_client" />
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
-            <argument type="service" id="cache.app" />
+            <argument type="service" id="sylius_paypal.cache" />
+            <argument>%sylius_paypal.callback_certificate_lifetime%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface" alias="sylius_paypal.api.paypal_callback_signature_verifier" />
 
@@ -160,7 +162,7 @@
         >
             <argument type="service" id=".inner" />
             <argument type="service" id="doctrine.orm.entity_manager" />
-            <argument type="service" id="cache.app" />
+            <argument type="service" id="sylius_paypal.cache" />
             <argument>%sylius_paypal.webhook_id_refresh_cooldown%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface" alias="sylius_paypal.provider.webhook_id" />

@@ -34,6 +34,8 @@ final class PayPalCallbackSignatureVerifierTest extends TestCase
 
     private const TRANSMISSION_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
+    private const CERTIFICATE_LIFETIME = 86400;
+
     private static \OpenSSLAsymmetricKey $privateKey;
 
     private static string $certificate;
@@ -75,7 +77,12 @@ final class PayPalCallbackSignatureVerifierTest extends TestCase
         $this->cacheItem->method('set')->willReturnSelf();
         $this->cacheItem->method('expiresAfter')->willReturnSelf();
 
-        $this->verifier = new PayPalCallbackSignatureVerifier($this->client, $this->requestFactory, $this->cache);
+        $this->verifier = new PayPalCallbackSignatureVerifier(
+            $this->client,
+            $this->requestFactory,
+            $this->cache,
+            self::CERTIFICATE_LIFETIME,
+        );
     }
 
     public function test_it_implements_paypal_callback_signature_verifier_interface(): void
@@ -172,6 +179,29 @@ final class PayPalCallbackSignatureVerifierTest extends TestCase
         $this->client->expects(self::never())->method('sendRequest');
 
         self::assertTrue($this->verifier->verify($this->signedRequest()));
+    }
+
+    public function test_it_caches_the_downloaded_certificate_for_the_configured_lifetime(): void
+    {
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cacheItem = $this->createMock(CacheItemInterface::class);
+
+        $cacheItem->method('isHit')->willReturn(false);
+        $cache->expects(self::once())->method('getItem')->with('sylius_paypal_callback_certificate_' . sha1(self::CERT_URL))->willReturn($cacheItem);
+        $cacheItem->expects(self::once())->method('set')->with(self::$certificate)->willReturnSelf();
+        $cacheItem->expects(self::once())->method('expiresAfter')->with(self::CERTIFICATE_LIFETIME)->willReturnSelf();
+        $cache->expects(self::once())->method('save')->with($cacheItem);
+
+        $this->mockCertificateDownload(self::$certificate);
+
+        $verifier = new PayPalCallbackSignatureVerifier(
+            $this->client,
+            $this->requestFactory,
+            $cache,
+            self::CERTIFICATE_LIFETIME,
+        );
+
+        self::assertTrue($verifier->verify($this->signedRequest()));
     }
 
     private function mockCertificateDownload(string $certificate): void
