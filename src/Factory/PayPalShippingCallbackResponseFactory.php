@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
-use Sylius\PayPalPlugin\Model\PayPalShippingOption;
+use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 
 final readonly class PayPalShippingCallbackResponseFactory implements PayPalShippingCallbackResponseFactoryInterface
 {
@@ -21,8 +21,11 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
 
     private const SUBTRACTED_BREAKDOWN_KEYS = ['discount', 'shipping_discount'];
 
-    public function create(string $payPalOrderId, array $purchaseUnit, array $shippingOptions): array
-    {
+    public function create(
+        string $payPalOrderId,
+        array $purchaseUnit,
+        PayPalShippingOptions $shippingOptions,
+    ): array {
         return [
             'id' => $payPalOrderId,
             'purchase_units' => [$this->createPurchaseUnit($purchaseUnit, $shippingOptions)],
@@ -31,11 +34,10 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
 
     /**
      * @param array<string, mixed> $purchaseUnit
-     * @param array<int, PayPalShippingOption> $shippingOptions
      *
      * @return array<string, mixed>
      */
-    private function createPurchaseUnit(array $purchaseUnit, array $shippingOptions): array
+    private function createPurchaseUnit(array $purchaseUnit, PayPalShippingOptions $shippingOptions): array
     {
         $responseUnit = [];
 
@@ -47,23 +49,19 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
             (array) ($purchaseUnit['amount'] ?? []),
             $shippingOptions,
         );
-        $responseUnit['shipping_options'] = array_map(
-            static fn (PayPalShippingOption $option): array => $option->toArray(),
-            $shippingOptions,
-        );
+        $responseUnit['shipping_options'] = $shippingOptions->toArray();
 
         return $responseUnit;
     }
 
     /**
      * @param array<string, mixed> $amount
-     * @param array<int, PayPalShippingOption> $shippingOptions
      *
      * @return array<string, mixed>
      */
-    private function withSelectedShippingCost(array $amount, array $shippingOptions): array
+    private function withSelectedShippingCost(array $amount, PayPalShippingOptions $shippingOptions): array
     {
-        $selected = $this->getSelectedOption($shippingOptions);
+        $selected = $shippingOptions->selected();
 
         /** @var array<string, array<string, mixed>> $breakdown */
         $breakdown = (array) ($amount['breakdown'] ?? []);
@@ -85,18 +83,6 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
         $amount['value'] = number_format($total / 100, 2, '.', '');
 
         return $amount;
-    }
-
-    /** @param array<int, PayPalShippingOption> $shippingOptions */
-    private function getSelectedOption(array $shippingOptions): ?PayPalShippingOption
-    {
-        foreach ($shippingOptions as $option) {
-            if ($option->isSelected()) {
-                return $option;
-            }
-        }
-
-        return null;
     }
 
     /** @param array<string, array<string, mixed>> $breakdown */

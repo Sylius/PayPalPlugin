@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
+use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 
 final class PayPalShippingCallbackResponseFactoryTest extends TestCase
 {
@@ -41,13 +42,12 @@ final class PayPalShippingCallbackResponseFactoryTest extends TestCase
         $this->factory = new PayPalShippingCallbackResponseFactory();
     }
 
-    /** @return array<int, PayPalShippingOption> */
-    private static function shippingOptions(): array
+    private static function shippingOptions(): PayPalShippingOptions
     {
-        return [
+        return new PayPalShippingOptions(
             new PayPalShippingOption('ups', 'UPS', 'USD', 1000),
             new PayPalShippingOption('dhl', 'DHL', 'USD', 2550, true),
-        ];
+        );
     }
 
     public function test_it_implements_paypal_shipping_callback_response_factory_interface(): void
@@ -110,7 +110,7 @@ final class PayPalShippingCallbackResponseFactoryTest extends TestCase
 
     public function test_it_leaves_the_amount_alone_when_no_option_is_selected(): void
     {
-        $options = [new PayPalShippingOption('ups', 'UPS', 'USD', 1000)];
+        $options = new PayPalShippingOptions(new PayPalShippingOption('ups', 'UPS', 'USD', 1000));
 
         $amount = $this->factory
             ->create('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, $options)['purchase_units'][0]['amount']

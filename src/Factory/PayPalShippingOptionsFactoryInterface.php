@@ -13,18 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
+use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 
-interface PayPalShippingCallbackResponseFactoryInterface
+interface PayPalShippingOptionsFactoryInterface
 {
-    /**
-     * @param array<string, mixed> $purchaseUnit
-     *
-     * @return array<string, mixed>
-     */
-    public function create(
-        string $payPalOrderId,
-        array $purchaseUnit,
-        PayPalShippingOptions $shippingOptions,
-    ): array;
+    /** @param array<int, PayPalShippingOption> $options */
+    public function create(array $options): PayPalShippingOptions;
 }

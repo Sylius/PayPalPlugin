@@ -74,7 +74,7 @@ final readonly class PayPalOrderShippingCallbackAction
             $this->shippingAddressFactory->create($payPalShippingAddress),
         );
 
-        if ([] === $shippingOptions) {
+        if ($shippingOptions->isEmpty()) {
             return $this->unprocessable(self::ISSUE_ADDRESS_ERROR);
         }
 
