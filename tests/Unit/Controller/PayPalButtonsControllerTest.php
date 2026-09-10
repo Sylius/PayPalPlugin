@@ -120,6 +120,7 @@ final class PayPalButtonsControllerTest extends TestCase
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(false);
 
@@ -135,6 +136,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertSame('30.50', $capturedContext['amount']);
     }
 
     #[Test]
@@ -142,6 +144,7 @@ final class PayPalButtonsControllerTest extends TestCase
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3000);
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
 
@@ -157,6 +160,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertSame('30.00', $capturedContext['amount']);
     }
 
     #[Test]

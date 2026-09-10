@@ -20,6 +20,8 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
     public function __construct(
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         private string $webUrl,
+        private bool $sandbox,
+        private ?string $testBuyerCountry,
     ) {
     }
 
@@ -43,6 +45,12 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
 
         if (null !== $locale) {
             $instanceConfig['locale'] = str_replace('_', '-', $locale);
+        }
+
+        // Only ever simulate a buyer location in sandbox - PayPal support: this must never be sent in
+        // production, so the sandbox flag is a hard gate, not just a default.
+        if ($this->sandbox && $this->testBuyerCountry !== null) {
+            $instanceConfig['testBuyerCountry'] = $this->testBuyerCountry;
         }
 
         return $instanceConfig;
