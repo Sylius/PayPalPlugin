@@ -3,12 +3,15 @@
         scriptUrl: webSdkScriptUrl,
         instanceConfig: webSdkInstanceConfig,
         currencyCode: currency,
+        amount: amount,
         createOrderUrl: createPayPalOrderFromPaymentPageUrl,
         captureOrderUrl: completePayPalOrderFromPaymentPageUrl,
         cancelOrderUrl: cancelPayPalPaymentUrl,
         errorUrl: errorPayPalPaymentUrl,
+        payLaterEnabled: paylaterEnabled,
     }) }}
     style="width:250px"
 >
     <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
+    <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} hidden></paypal-pay-later-button>
 </div>

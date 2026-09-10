@@ -1,0 +1,16 @@
+{% if sylius_paypal_is_messaging_enabled() %}
+    {#
+        TODO (SDD §6.1): the Pay Later messaging spec PayPal gave us for this integration is a
+        dead link (it points at PayPal's sandbox card-testing page, not real messaging
+        documentation). Direct inspection of the shipped web-sdk/v6/core bundle confirms
+        "paypal-messages" only exists as a components enum string
+        (PAYPAL_MESSAGES: "paypal-messages") - there is no
+        customElements.define("paypal-messages", ...) anywhere in that bundle, so the real
+        custom element isn't implemented in this core chunk and its attribute API can't be
+        verified. This slot is scaffolding only - swap in the real
+        `paypal.Message()`/`<paypal-messages>` web component call, its placement/threshold
+        rules, and its exact configuration API once PayPal provides a working spec. Do not
+        invent behavior here.
+    #}
+    <div data-paypal-messaging-placeholder></div>
+{% endif %}

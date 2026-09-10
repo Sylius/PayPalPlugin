@@ -14,8 +14,10 @@ sylius_paypal:
     invalid_form: 'Form is invalid'
     label: 'PayPal'
     merchant_id: 'Merchant ID'
+    messaging_enabled: 'Enable Pay Later messaging'
     missing_billing_address_content: 'Please, go back to the Addressing step and complete it'
     missing_billing_address_header: 'We could not fetch any billing address from PayPal'
+    paylater_enabled: 'Enable Pay Later'
     pay_with_card: 'Pay with Card'
     pay_with_paypal: 'Pay with PayPal'
     report: 'Report'
@@ -23,3 +25,4 @@ sylius_paypal:
     sftp_username: 'SFTP Username'
     share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
     tender_type: 'Refunded to the PayPal wallet'
+    venmo_enabled: 'Enable Venmo'

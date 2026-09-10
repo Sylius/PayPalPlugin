@@ -1,18 +1,20 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['paypalButton'];
+    static targets = ['paypalButton', 'payLaterButton'];
 
     static values = {
         scriptUrl: String,
         instanceConfig: Object,
         currencyCode: String,
+        amount: String,
         createOrderUrl: String,
         addToCartFormSelector: String,
         captureOrderUrl: String,
         cancelOrderUrl: String,
         errorUrl: String,
         loadingSelector: String,
+        payLaterEnabled: Boolean,
     };
 
     syliusOrderId = null;
@@ -30,30 +32,47 @@ export default class extends Controller {
                 components: this.instanceConfigValue.components,
                 pageType: this.instanceConfigValue.pageType,
                 partnerAttributionId: this.instanceConfigValue.partnerAttributionId,
+                testBuyerCountry: this.instanceConfigValue.testBuyerCountry,
             });
 
-            const paymentMethods = await sdkInstance.findEligibleMethods({ currencyCode: this.currencyCodeValue });
-            if (!paymentMethods.isEligible('paypal')) {
-                return;
+            const eligibilityRequest = { currencyCode: this.currencyCodeValue };
+            if (this.hasAmountValue && this.amountValue !== '') {
+                eligibilityRequest.amount = this.amountValue;
+            }
+            const paymentMethods = await sdkInstance.findEligibleMethods(eligibilityRequest);
+
+            if (paymentMethods.isEligible('paypal')) {
+                this.wireUpButton(this.paypalButtonTarget, sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));
             }
 
-            const paymentSession = sdkInstance.createPayPalOneTimePaymentSession({
-                onApprove: this.onApprove.bind(this),
-                onCancel: this.onCancel.bind(this),
-                onError: this.onError.bind(this),
-            });
-
-            this.paypalButtonTarget.removeAttribute('hidden');
-            this.paypalButtonTarget.addEventListener('click', async () => {
-                try {
-                    await paymentSession.start({ presentationMode: 'auto' }, this.createOrder());
-                } catch (error) {
-                    console.error('paymentSession.start() failed:', error);
-                }
-            });
+            if (this.payLaterEnabledValue && this.hasPayLaterButtonTarget && paymentMethods.isEligible('paylater')) {
+                const payLaterDetails = paymentMethods.getDetails('paylater');
+                this.payLaterButtonTarget.productCode = payLaterDetails.productCode;
+                this.payLaterButtonTarget.countryCode = payLaterDetails.countryCode;
+                this.wireUpButton(this.payLaterButtonTarget, sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
+            }
         } catch (error) {
             console.error('PayPal Web SDK initialization error:', error);
         }
+    }
+
+    buildSessionOptions() {
+        return {
+            onApprove: this.onApprove.bind(this),
+            onCancel: this.onCancel.bind(this),
+            onError: this.onError.bind(this),
+        };
+    }
+
+    wireUpButton(buttonTarget, paymentSession) {
+        buttonTarget.removeAttribute('hidden');
+        buttonTarget.addEventListener('click', async () => {
+            try {
+                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder());
+            } catch (error) {
+                console.error('paymentSession.start() failed:', error);
+            }
+        });
     }
 
     loadWebSdkOnce() {
