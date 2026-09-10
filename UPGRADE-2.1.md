@@ -77,10 +77,17 @@
    Three services carry the work and can be decorated or replaced:
    `Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface` turns an order plus a partial
    address into PayPal's option list, `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
-   maps PayPal's redacted address onto a Sylius one, matching the region it sends by name against your
-   provinces, and `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` shapes the
-   answer. The first two build on stock Sylius services, so the wallet offers the same methods and prices as
-   the normal checkout does for the same address.
+   maps PayPal's redacted address onto a Sylius one, and
+   `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` shapes the answer. The first
+   two build on stock Sylius services, so the wallet offers the same methods and prices as the normal
+   checkout does for the same address.
+
+   The region is matched **by code, not by name**. PayPal sends it in `admin_area_1`, which is a state or
+   province code for the countries it tabulates and the spelling of the region's name for the rest. Sylius
+   validates province codes as `XX-YYY` (`/^[A-Z]{2}-[A-Z0-9]{1,}$/`, e.g. `US-FL`), so the factory looks up
+   `"{country_code}-{admin_area_1}"` first, then bare `admin_area_1` for shops whose codes bypassed that
+   validation. When neither resolves, the value is stored as the address's province *name* instead, so an
+   unrecognised region is kept rather than dropped and does not block the order.
 
    The response factory exists because PayPal validates it: the answer has to carry `amount.breakdown` with
    `shipping` matching the option marked `selected`, and `amount.value` equal to the sum of the breakdown

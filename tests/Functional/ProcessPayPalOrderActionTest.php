@@ -17,6 +17,7 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +26,12 @@ use Tests\Sylius\PayPalPlugin\Service\FakeOrderDetailsApi;
 
 final class ProcessPayPalOrderActionTest extends JsonApiTestCase
 {
+    private const ITEMS_TOTAL = 40;
+
+    private const STANDARD_SHIPPING_COST = 500;
+
+    private const EXPRESS_SHIPPING_COST = 2000;
+
     public function test_it_completes_the_order_in_one_call_when_the_buyer_approves_in_the_wallet(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
@@ -207,6 +214,154 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $content = $this->processPayPalOrder($order->getId());
 
         $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+    }
+
+    public function test_it_applies_the_shipping_method_the_buyer_picked_in_the_wallet(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails(
+            shippingOptions: [
+                ['id' => 'STANDARD', 'amount' => ['currency_code' => 'USD', 'value' => '5.00'], 'selected' => false],
+                ['id' => 'EXPRESS', 'amount' => ['currency_code' => 'USD', 'value' => '20.00'], 'selected' => true],
+            ],
+            shippingTotal: self::EXPRESS_SHIPPING_COST,
+        ));
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shipment = $order->getShipments()->first();
+        $this->assertInstanceOf(ShipmentInterface::class, $shipment);
+
+        $shippingMethod = $shipment->getMethod();
+        $this->assertNotNull($shippingMethod);
+        $this->assertSame('EXPRESS', $shippingMethod->getCode());
+        $this->assertSame(self::EXPRESS_SHIPPING_COST, $order->getShippingTotal());
+        $this->assertSame(self::ITEMS_TOTAL, $order->getItemsTotal());
+        $this->assertSame(self::ITEMS_TOTAL + self::EXPRESS_SHIPPING_COST, $order->getTotal());
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+    }
+
+    public function test_it_keeps_the_default_shipping_method_when_the_wallet_sends_no_options(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shipment = $order->getShipments()->first();
+        $this->assertInstanceOf(ShipmentInterface::class, $shipment);
+
+        $shippingMethod = $shipment->getMethod();
+        $this->assertNotNull($shippingMethod);
+        $this->assertSame('STANDARD', $shippingMethod->getCode());
+        $this->assertSame(self::STANDARD_SHIPPING_COST, $order->getShippingTotal());
+    }
+
+    public function test_it_stores_the_region_of_the_pay_pal_shipping_address_as_a_province_code(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails(adminArea1: 'TX'));
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertSame('US-TX', $shippingAddress->getProvinceCode());
+        $this->assertNull($shippingAddress->getProvinceName());
+    }
+
+    public function test_it_keeps_an_unknown_region_as_a_province_name(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails(adminArea1: 'Nowhere County'));
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertNull($shippingAddress->getProvinceCode());
+        $this->assertSame('Nowhere County', $shippingAddress->getProvinceName());
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $shippingOptions
+     *
+     * @return array<string, mixed>
+     */
+    private function orderDetails(
+        array $shippingOptions = [],
+        ?string $adminArea1 = null,
+        int $shippingTotal = self::STANDARD_SHIPPING_COST,
+    ): array {
+        $address = [
+            'address_line_1' => '1 Star City Plaza',
+            'admin_area_2' => 'Star City',
+            'postal_code' => '10001',
+            'country_code' => 'US',
+        ];
+
+        if (null !== $adminArea1) {
+            $address['admin_area_1'] = $adminArea1;
+        }
+
+        $shipping = ['name' => ['full_name' => 'Oliver Queen'], 'address' => $address];
+
+        if ([] !== $shippingOptions) {
+            $shipping['options'] = $shippingOptions;
+        }
+
+        return [
+            'payer' => [
+                'email_address' => 'oliver.queen@star-city.com',
+                'name' => ['given_name' => 'Oliver', 'surname' => 'Queen'],
+                'phone' => ['phone_number' => ['national_number' => '15551234567']],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => number_format((self::ITEMS_TOTAL + $shippingTotal) / 100, 2, '.', '')],
+                'shipping' => $shipping,
+            ]],
+        ];
     }
 
     /** @return array<string, mixed> */
