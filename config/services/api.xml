@@ -133,6 +133,16 @@
         <service id="Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface" alias="sylius_paypal.api.webhook_signature_verifier" />
 
         <service
+            id="sylius_paypal.api.paypal_callback_signature_verifier"
+            class="Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifier"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="cache.app" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface" alias="sylius_paypal.api.paypal_callback_signature_verifier" />
+
+        <service
             id="sylius_paypal.provider.webhook_id"
             class="Sylius\PayPalPlugin\Provider\WebhookIdProvider"
         >

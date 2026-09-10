@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
@@ -53,6 +54,8 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         ],
     ];
 
+    private PayPalCallbackSignatureVerifierInterface&MockObject $signatureVerifier;
+
     private PaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
     private ChannelAvailableCountriesProviderInterface&MockObject $availableCountriesProvider;
@@ -70,6 +73,8 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->signatureVerifier = $this->createMock(PayPalCallbackSignatureVerifierInterface::class);
+        $this->signatureVerifier->method('verify')->willReturn(true);
         $this->paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
         $this->availableCountriesProvider = $this->createMock(ChannelAvailableCountriesProviderInterface::class);
         $this->shippingAddressFactory = $this->createMock(PayPalShippingAddressFactoryInterface::class);
@@ -86,6 +91,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             ->willReturnCallback(fn (string $id): ?PaymentInterface => 'PAYPAL_ORDER_ID' === $id ? $payment : null);
 
         $this->action = new PayPalOrderShippingCallbackAction(
+            $this->signatureVerifier,
             $this->paypalPaymentQuery,
             $this->availableCountriesProvider,
             $this->shippingAddressFactory,
@@ -157,6 +163,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         $paypalPaymentQuery->method('getForUpdateByOrderId')->willThrowException(new PaymentNotFoundException());
 
         $action = new PayPalOrderShippingCallbackAction(
+            $this->signatureVerifier,
             $paypalPaymentQuery,
             $this->availableCountriesProvider,
             $this->shippingAddressFactory,
@@ -198,5 +205,29 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             ['name' => 'UNPROCESSABLE_ENTITY', 'details' => [['issue' => $issue]]],
             json_decode((string) $response->getContent(), true),
         );
+    }
+
+    public function test_it_answers_not_found_when_the_request_is_not_signed_by_paypal(): void
+    {
+        $signatureVerifier = $this->createMock(PayPalCallbackSignatureVerifierInterface::class);
+        $signatureVerifier->method('verify')->willReturn(false);
+
+        $this->paypalPaymentQuery->expects(self::never())->method('getForUpdateByOrderId');
+        $this->shippingOptionsResolver->expects(self::never())->method('resolve');
+        $this->responseFactory->expects(self::never())->method('create');
+
+        $action = new PayPalOrderShippingCallbackAction(
+            $signatureVerifier,
+            $this->paypalPaymentQuery,
+            $this->availableCountriesProvider,
+            $this->shippingAddressFactory,
+            $this->shippingOptionsResolver,
+            $this->responseFactory,
+        );
+
+        $response = ($action)($this->callbackRequest());
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+        self::assertSame(['error' => 'Not found'], json_decode((string) $response->getContent(), true));
     }
 }
