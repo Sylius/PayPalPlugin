@@ -9,10 +9,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-openssl": "*",
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "php-http/discovery": "^1.20",
         "phpseclib/phpseclib": "^3.0",
-        "psr/cache": "^1.0 || ^2.0 || ^3.0",
+        "psr/cache": "^3.0",
         "psr/http-client": "^1.0",
         "sylius-labs/doctrine-migrations-extra-bundle": "^0.2 || ^0.3",
         "sylius/sylius": "^2.0.1",
