@@ -26,12 +26,11 @@ final readonly class PayPalCallbackSignatureVerifier implements PayPalCallbackSi
 
     private const MAX_AGE_IN_SECONDS = 300;
 
-    private const CERTIFICATE_LIFETIME_IN_SECONDS = 86400;
-
     public function __construct(
         private ClientInterface $client,
         private RequestFactoryInterface $requestFactory,
         private CacheItemPoolInterface $cache,
+        private int $certificateLifetime,
     ) {
     }
 
@@ -114,7 +113,7 @@ final readonly class PayPalCallbackSignatureVerifier implements PayPalCallbackSi
         }
 
         $item->set($certificate);
-        $item->expiresAfter(self::CERTIFICATE_LIFETIME_IN_SECONDS);
+        $item->expiresAfter($this->certificateLifetime);
         $this->cache->save($item);
 
         return $certificate;

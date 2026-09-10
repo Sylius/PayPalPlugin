@@ -361,3 +361,31 @@
 
    This is where to hook in if you need to change what reaches PayPal — overriding `CreateOrderApi` for that
    is no longer necessary.
+
+1. #### The plugin now caches in its own pool instead of the application's `cache.app`.
+
+   Both places where the plugin caches — the PayPal callback certificates used to verify the shipping
+   callback signature, and the cooldown that rate-limits webhook id re-resolution — wrote to `cache.app`,
+   mixing the plugin's entries into your shop's own cache. They now go through `sylius_paypal.cache`,
+   a private pool parented to `cache.app` and tagged `cache.pool`.
+
+   **No action is required.** The pool inherits whatever adapter you configured in `framework.cache.app`,
+   so the plugin follows your Redis, Memcached or filesystem setup as before — it just gets its own
+   namespace inside it, and its own `bin/console cache:pool:clear sylius_paypal.cache` target.
+
+   Two consequences worth knowing:
+
+   - Existing entries are not migrated. The new namespace starts cold, which costs one extra certificate
+     download and resets the webhook id refresh cooldown once.
+   - Clearing `sylius_paypal.cache` drops both the certificates and the cooldown locks, which allows one
+     additional webhook id refresh burst. Clear it per concern only if you split the pool yourself.
+
+   To put the plugin's cache on a different backend than the rest of the application, redefine the service
+   in your own configuration:
+
+   ```yaml
+   services:
+       sylius_paypal.cache:
+           parent: cache.adapter.redis
+           tags: ['cache.pool']
+   ```
