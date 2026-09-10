@@ -94,10 +94,17 @@
    (`item_total + tax_total + shipping + handling + insurance - discount - shipping_discount`). If you
    decorate it, keep those two invariants or PayPal rejects the callback.
 
-   The options resolver returns `Sylius\PayPalPlugin\Model\PayPalShippingOption` objects rather than arrays,
-   so a decorator adds or reprices an option without reproducing PayPal's payload keys. The object keeps its
-   price in minor units and formats it only in `toArray()`; `TYPE_PICKUP` is there for options the buyer
-   collects instead of having shipped.
+   The options resolver returns a `Sylius\PayPalPlugin\Model\PayPalShippingOptions` collection of
+   `Sylius\PayPalPlugin\Model\PayPalShippingOption` objects rather than arrays, so a decorator adds or
+   reprices an option without reproducing PayPal's payload keys. Each option keeps its price in minor units
+   and formats it only in `toArray()`; `TYPE_PICKUP` is there for options the buyer collects instead of having
+   shipped. The collection answers `isEmpty()` and `selected()`, so nothing downstream has to scan the list to
+   find the chosen option.
+
+   Which option is selected when the buyer has not chosen one is decided by
+   `Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactoryInterface`
+   (`sylius_paypal.factory.paypal_shipping_options`) — decorate that to change the default, without touching
+   the resolver.
 
    Each option is labelled with the shipping method's name **in the order's locale**, read through
    `getTranslation($order->getLocaleCode())` rather than through the locale Sylius resolves from the request.

@@ -19,21 +19,24 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Calculator\DelegatingCalculatorInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
+use Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
+use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 
 final readonly class PayPalShippingOptionsResolver implements PayPalShippingOptionsResolverInterface
 {
     public function __construct(
         private ShippingMethodsResolverInterface $shippingMethodsResolver,
         private DelegatingCalculatorInterface $shippingCalculator,
+        private PayPalShippingOptionsFactoryInterface $payPalShippingOptionsFactory,
     ) {
     }
 
-    public function resolve(OrderInterface $order, AddressInterface $shippingAddress): array
+    public function resolve(OrderInterface $order, AddressInterface $shippingAddress): PayPalShippingOptions
     {
         $shipment = $order->getShipments()->first();
         if (!$shipment instanceof ShipmentInterface) {
-            return [];
+            return $this->payPalShippingOptionsFactory->create([]);
         }
 
         $originalShippingAddress = $order->getShippingAddress();
@@ -51,7 +54,7 @@ final readonly class PayPalShippingOptionsResolver implements PayPalShippingOpti
             $order->setShippingAddress($originalShippingAddress);
         }
 
-        return $this->withExactlyOneSelected($options);
+        return $this->payPalShippingOptionsFactory->create($options);
     }
 
     private function createOption(
@@ -82,34 +85,5 @@ final readonly class PayPalShippingOptionsResolver implements PayPalShippingOpti
         }
 
         return (string) $method->getName();
-    }
-
-    /**
-     * @param array<int, PayPalShippingOption> $options
-     *
-     * @return array<int, PayPalShippingOption>
-     */
-    private function withExactlyOneSelected(array $options): array
-    {
-        if ([] === $options) {
-            return $options;
-        }
-
-        foreach ($options as $option) {
-            if ($option->isSelected()) {
-                return $options;
-            }
-        }
-
-        $cheapest = array_key_first($options);
-        foreach ($options as $index => $option) {
-            if ($option->amount() < $options[$cheapest]->amount()) {
-                $cheapest = $index;
-            }
-        }
-
-        $options[$cheapest] = $options[$cheapest]->withSelected(true);
-
-        return $options;
     }
 }

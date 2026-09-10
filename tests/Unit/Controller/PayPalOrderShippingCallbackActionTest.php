@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
+use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
@@ -134,7 +135,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
     public function test_it_refuses_an_address_nothing_can_be_shipped_to(): void
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
-        $this->shippingOptionsResolver->method('resolve')->willReturn([]);
+        $this->shippingOptionsResolver->method('resolve')->willReturn(new PayPalShippingOptions());
 
         $response = ($this->action)($this->callbackRequest());
 
@@ -185,10 +186,9 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         return new Request([], [], [], [], [], ['CONTENT_TYPE' => 'application/json'], (string) json_encode($payload));
     }
 
-    /** @return array<int, PayPalShippingOption> */
-    private static function shippingOptions(): array
+    private static function shippingOptions(): PayPalShippingOptions
     {
-        return [new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true)];
+        return new PayPalShippingOptions(new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true));
     }
 
     private static function assertUnprocessableWithIssue(string $issue, Response $response): void

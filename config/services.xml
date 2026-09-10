@@ -135,6 +135,12 @@
         />
         <service id="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_callback_response" />
 
+        <service
+            id="sylius_paypal.factory.paypal_shipping_options"
+            class="Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactory"
+        />
+        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_options" />
+
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
         </service>
@@ -446,6 +452,7 @@
         >
             <argument type="service" id="sylius.resolver.shipping_methods" />
             <argument type="service" id="sylius.calculator.shipping" />
+            <argument type="service" id="sylius_paypal.factory.paypal_shipping_options" />
         </service>
         <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_options" />
     </services>

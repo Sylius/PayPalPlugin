@@ -15,10 +15,9 @@ namespace Sylius\PayPalPlugin\Resolver;
 
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\PayPalPlugin\Model\PayPalShippingOption;
+use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 
 interface PayPalShippingOptionsResolverInterface
 {
-    /** @return array<int, PayPalShippingOption> */
-    public function resolve(OrderInterface $order, AddressInterface $shippingAddress): array;
+    public function resolve(OrderInterface $order, AddressInterface $shippingAddress): PayPalShippingOptions;
 }
