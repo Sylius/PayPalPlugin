@@ -4,3 +4,6 @@ sylius_twig_hooks:
             paypal_checkout:
                 template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_checkout.html.twig'
                 priority: 50
+            paypal_messaging:
+                template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_messaging.html.twig'
+                priority: 40

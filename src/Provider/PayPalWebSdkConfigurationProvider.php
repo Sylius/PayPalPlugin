@@ -19,7 +19,10 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
 {
     public function __construct(
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private string $webUrl,
+        private bool $sandbox,
+        private ?string $testBuyerCountry,
     ) {
     }
 
@@ -30,11 +33,24 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
 
     public function getInstanceConfig(ChannelInterface $channel, string $pageType): array
     {
-        return [
+        $components = ['paypal-payments'];
+        if ($this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel)) {
+            $components[] = 'venmo-payments';
+        }
+
+        $config = [
             'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-            'components' => ['paypal-payments'],
+            'components' => $components,
             'pageType' => $pageType,
             'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
         ];
+
+        // Only ever simulate a buyer location in sandbox - PayPal support: this must never be sent in
+        // production, so the sandbox flag is a hard gate, not just a default.
+        if ($this->sandbox && $this->testBuyerCountry !== null) {
+            $config['testBuyerCountry'] = $this->testBuyerCountry;
+        }
+
+        return $config;
     }
 }

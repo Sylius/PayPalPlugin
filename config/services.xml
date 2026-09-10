@@ -296,13 +296,17 @@
             <argument type="service" id="sylius.repository.payment_method" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_configuration" />
+        <service id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_configuration" />
 
         <service
             id="sylius_paypal.provider.paypal_web_sdk_configuration"
             class="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProvider"
         >
             <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
             <argument>%sylius_paypal.web_url%</argument>
+            <argument>%sylius_paypal.sandbox%</argument>
+            <argument>%sylius_paypal.test_buyer_country%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />
 
@@ -388,6 +392,8 @@
 
         <service id="sylius_paypal.twig.extension.paypal" class="Sylius\PayPalPlugin\Twig\PayPalExtension">
             <argument>%sylius_paypal.sandbox%</argument>
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
+            <argument type="service" id="sylius.context.channel" />
             <tag name="twig.extension" />
         </service>
 
