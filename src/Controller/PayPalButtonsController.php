@@ -98,6 +98,7 @@ final readonly class PayPalButtonsController
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
+                'amount' => number_format($order->getTotal() / 100, 2, '.', ''),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $orderId]),
                 'currency' => $order->getCurrencyCode(),
@@ -127,6 +128,7 @@ final readonly class PayPalButtonsController
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
+                'amount' => number_format($order->getTotal() / 100, 2, '.', ''),
                 'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment'),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'currency' => $order->getCurrencyCode(),

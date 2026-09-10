@@ -305,6 +305,8 @@
             <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
             <argument>%sylius_paypal.web_url%</argument>
+            <argument>%sylius_paypal.sandbox%</argument>
+            <argument>%sylius_paypal.test_buyer_country%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />
 

@@ -122,6 +122,7 @@ final class PayPalButtonsControllerTest extends TestCase
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(false);
         $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
@@ -139,6 +140,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertTrue($capturedContext['venmoEnabled']);
+        self::assertSame('30.50', $capturedContext['amount']);
     }
 
     #[Test]
@@ -146,6 +148,7 @@ final class PayPalButtonsControllerTest extends TestCase
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3000);
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
         $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
@@ -163,6 +166,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertTrue($capturedContext['paylaterEnabled']);
         self::assertTrue($capturedContext['venmoEnabled']);
+        self::assertSame('30.00', $capturedContext['amount']);
     }
 
     #[Test]

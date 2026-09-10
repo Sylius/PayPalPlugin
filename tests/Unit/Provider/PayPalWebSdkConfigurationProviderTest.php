@@ -39,6 +39,8 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
             $this->payPalConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
             'https://www.sandbox.paypal.com',
+            true,
+            null,
         );
     }
 
@@ -75,5 +77,62 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
         $config = $this->provider->getInstanceConfig($channel, 'cart');
 
         self::assertSame(['paypal-payments', 'venmo-payments'], $config['components']);
+    }
+
+    #[Test]
+    public function it_includes_the_test_buyer_country_in_sandbox_when_configured(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+
+        $provider = new PayPalWebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            'https://www.sandbox.paypal.com',
+            true,
+            'US',
+        );
+
+        $config = $provider->getInstanceConfig($channel, 'cart');
+
+        self::assertSame('US', $config['testBuyerCountry']);
+    }
+
+    #[Test]
+    public function it_omits_the_test_buyer_country_in_sandbox_when_not_configured(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+
+        $provider = new PayPalWebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            'https://www.sandbox.paypal.com',
+            true,
+            null,
+        );
+
+        $config = $provider->getInstanceConfig($channel, 'cart');
+
+        self::assertArrayNotHasKey('testBuyerCountry', $config);
+    }
+
+    #[Test]
+    public function it_never_includes_the_test_buyer_country_outside_sandbox_even_when_configured(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+
+        $provider = new PayPalWebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            'https://www.paypal.com',
+            false,
+            'US',
+        );
+
+        $config = $provider->getInstanceConfig($channel, 'cart');
+
+        self::assertArrayNotHasKey('testBuyerCountry', $config);
     }
 }
