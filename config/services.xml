@@ -101,10 +101,58 @@
             <argument type="service" id="sylius_paypal.onboarding.processor.basic" />
         </service>
 
+        <service
+            id="sylius_paypal.factory.paypal_shipping_address"
+            class="Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory"
+        >
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius.repository.province" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_address" />
+
+        <service
+            id="sylius_paypal.factory.paypal_purchase_unit"
+            class="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory"
+        >
+            <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
+            <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface" alias="sylius_paypal.factory.paypal_purchase_unit" />
+
+        <service
+            id="sylius_paypal.factory.paypal_order"
+            class="Sylius\PayPalPlugin\Factory\PayPalOrderFactory"
+        >
+            <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+            <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.provider.paypal_shipping_callback_url" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface" alias="sylius_paypal.factory.paypal_order" />
+
+        <service
+            id="sylius_paypal.factory.paypal_shipping_callback_response"
+            class="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactory"
+        />
+        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_callback_response" />
+
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" alias="sylius_paypal.provider.order" />
+
+        <service
+            id="sylius_paypal.provider.paypal_shipping_callback_url"
+            class="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProvider"
+        >
+            <argument type="service" id="router" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_url" />
+
+        <service
+            id="sylius_paypal.provider.paypal_order_created_statuses"
+            class="Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider"
+        />
+        <service id="Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface" alias="sylius_paypal.provider.paypal_order_created_statuses" />
 
         <service
             id="sylius_paypal.provider.payment"
@@ -156,6 +204,7 @@
             <argument type="service" id="sylius.context.channel" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface" alias="sylius_paypal.provider.available_countries" />
+        <service id="Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface" alias="sylius_paypal.provider.available_countries" />
 
         <service id="sylius_paypal.resolver.capture_payment" class="Sylius\PayPalPlugin\Resolver\CapturePaymentResolver">
             <argument type="service" id="payum" />
@@ -390,5 +439,14 @@
             <argument>%sylius_paypal.supported_locales%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface" alias="sylius_paypal.resolver.supported_locale" />
+
+        <service
+            id="sylius_paypal.resolver.paypal_shipping_options"
+            class="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolver"
+        >
+            <argument type="service" id="sylius.resolver.shipping_methods" />
+            <argument type="service" id="sylius.calculator.shipping" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_options" />
     </services>
 </container>

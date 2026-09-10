@@ -41,19 +41,111 @@
    Then `yarn install && yarn build`. Verify by loading a product page and checking that the browser fetches
    the controller chunk and the PayPal button loses its `hidden` attribute.
 
-1. #### The shipping-address callback keeps working, under its v6 name.
+1. #### PayPal now offers the shop's real shipping methods inside the wallet.
 
-   v5's single `onShippingChange` handler is split in v6 into `onShippingAddressChange` and
-   `onShippingOptionsChange`, passed to the payment session instead of to `paypal.Buttons()`. The placements
-   register `onShippingAddressChange`, which still posts to `sylius_paypal_shop_update_paypal_order` — that
-   route is **not** deprecated and remains the mechanism that keeps the PayPal order total in line with the
-   address the buyer picks inside the wallet.
+   The cart and product ("shortcut") placements reach PayPal without a shipping address, so the buyer picks
+   one inside the wallet. Until now the plugin priced that address through a client-side handler that wrote
+   a placeholder address (`Temp`/`Temp`/`Temp`) onto the real order and sent PayPal a single, default
+   shipping method. It now declares a server-side callback instead, and PayPal calls it directly.
 
-   Only the cart and product ("shortcut") placements register it, because only they reach PayPal without a
-   shipping address. If your shop overrode either of those two templates, the override must pass the
-   controller's `updateOrderUrl` and `availableCountries` values, or the buyer's address change will no longer
-   be priced - PayPal then captures a total that no longer matches the Sylius order, and the payment is
-   rejected on return.
+   A new route, `sylius_paypal_order_shipping_callback` (`POST /paypal/order-shipping-callback`,
+   controller `Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction`), answers with every
+   shipping method eligible for the address the buyer chose, each with its own price, or with a `422` naming
+   the reason the order cannot be shipped there. Nothing is written to the order: the buyer has approved
+   nothing yet.
+
+   It is loaded from `@SyliusPayPalPlugin/config/routes/callback.yaml`, **outside the shop's `/{_locale}`
+   prefix** — this is not a page a buyer opens but a request PayPal makes and waits on, and its URL is stored
+   with the order at PayPal for that order's lifetime. Under the locale prefix,
+   `Sylius\Bundle\ShopBundle\EventListener\NonChannelLocaleListener` answers a locale the channel no longer
+   offers with a redirect to the shop homepage, which would hand PayPal HTML where it expects JSON. The
+   path stays close to what the other PayPal integrations use for the same endpoint — WooCommerce registers
+   `paypal/v1/shipping-callback` on the REST API, Shopware `paypal/express/shipping-callback` on its
+   store-api — and keeps PayPal's own `order_update_callback_config` wording in front of it. It is a callback rather than a webhook: the refund webhook is a notification PayPal sends,
+   while this one is a synchronous call whose response drives what the wallet renders.
+
+   **This endpoint has to be reachable from PayPal's servers.** It is declared on the order only when the
+   generated URL is `https`, so a shop behind a tunnel or on a production domain works, and a local
+   development shop simply does not get wallet shipping options. Two knobs matter if the URL comes out wrong:
+   `router.request_context.host` and `router.request_context.scheme`.
+
+   That rule lives in `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface`
+   (`sylius_paypal.provider.paypal_shipping_callback_url`), which returns `null` rather than a URL PayPal
+   could not call. Decorate or replace it if your shop reaches PayPal some other way — for instance behind a
+   proxy that terminates TLS in front of an `http` backend.
+
+   Three services carry the work and can be decorated or replaced:
+   `Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface` turns an order plus a partial
+   address into PayPal's option list, `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
+   maps PayPal's redacted address onto a Sylius one, and
+   `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` shapes the answer. The first
+   two build on stock Sylius services, so the wallet offers the same methods and prices as the normal
+   checkout does for the same address.
+
+   The region is matched **by code, not by name**. PayPal sends it in `admin_area_1`, which is a state or
+   province code for the countries it tabulates and the spelling of the region's name for the rest. Sylius
+   validates province codes as `XX-YYY` (`/^[A-Z]{2}-[A-Z0-9]{1,}$/`, e.g. `US-FL`), so the factory looks up
+   `"{country_code}-{admin_area_1}"` first, then bare `admin_area_1` for shops whose codes bypassed that
+   validation. When neither resolves, the value is stored as the address's province *name* instead, so an
+   unrecognised region is kept rather than dropped and does not block the order.
+
+   The response factory exists because PayPal validates it: the answer has to carry `amount.breakdown` with
+   `shipping` matching the option marked `selected`, and `amount.value` equal to the sum of the breakdown
+   (`item_total + tax_total + shipping + handling + insurance - discount - shipping_discount`). If you
+   decorate it, keep those two invariants or PayPal rejects the callback.
+
+   The options resolver returns `Sylius\PayPalPlugin\Model\PayPalShippingOption` objects rather than arrays,
+   so a decorator adds or reprices an option without reproducing PayPal's payload keys. The object keeps its
+   price in minor units and formats it only in `toArray()`; `TYPE_PICKUP` is there for options the buyer
+   collects instead of having shipped.
+
+   Each option is labelled with the shipping method's name **in the order's locale**, read through
+   `getTranslation($order->getLocaleCode())` rather than through the locale Sylius resolves from the request.
+   That is what lets the endpoint live outside the shop's `/{_locale}` prefix: a callback PayPal makes from
+   its own network carries no buyer locale, and the order records one. A method with no translation for that
+   locale keeps the name it was loaded with.
+
+   The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
+   now also stores the region on the order's addresses — previously it was dropped.
+
+   If your shop overrode `pay_from_cart_page.html.twig` or `pay_from_product_page.html.twig`, drop the
+   `updateOrderUrl` and `availableCountries` values from the `stimulus_controller()` call; they are no longer
+   read. Leaving them in place is harmless.
+
+1. #### Orders addressed in the PayPal wallet now name their payment source.
+
+   Cart and product placements send `payment_source.paypal.experience_context` instead of the deprecated
+   `application_context`, because PayPal reads the shipping callback configuration only from there. The two
+   are mutually exclusive — sending `shipping_preference` or `user_action` in both makes PayPal reject the
+   order — so every other flow, including the checkout payment page and the legacy card page, keeps using
+   `application_context` untouched.
+
+   PayPal answers such an order with `PAYER_ACTION_REQUIRED` rather than `CREATED`, and
+   `Sylius\PayPalPlugin\Payum\Action\CaptureAction` accepts both. Which statuses count as created comes from
+   `Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface`
+   (`sylius_paypal.provider.paypal_order_created_statuses`), so decorate that rather than the action if
+   PayPal starts answering with something else. If you replaced the action itself, it must accept both, or
+   the payment will never receive its `paypal_order_id`.
+
+   ```diff
+    final readonly class CaptureAction implements ActionInterface
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.payum.action.capture" class="Sylius\PayPalPlugin\Payum\Action\CaptureAction" public="true">
+        <!-- ... -->
+   +    <argument type="service" id="sylius_paypal.provider.paypal_order_created_statuses" />
+    </service>
+   ```
+
+   Not passing it is deprecated and will be prohibited in 3.0; until then the action falls back to the
+   default provider, so it keeps accepting both statuses.
 
 1. #### The following routes are deprecated and will be removed in 3.0.
 
@@ -68,6 +160,7 @@
    | `sylius_paypal_shop_complete_paypal_order` | `sylius_paypal_shop_process_paypal_order` / `..._complete_paypal_order_from_payment_page` |
    | `sylius_paypal_shop_cancel_checkout_payment` | `sylius_paypal_shop_cancel_payment` / `..._cancel_order` |
    | `sylius_paypal_shop_cancel_last_payment` | none — no longer needed once the legacy page is removed |
+   | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_order_shipping_callback` |
 
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
@@ -133,22 +226,131 @@
    Without that the buyer is sent to the checkout summary of an order that is already completed, which is no
    longer a cart, and with `strict_variables` enabled the template fails to render on the undefined variable.
 
-1. #### The following constructor signatures have gained new optional (nullable) arguments, following this
-   package's existing deprecation pattern — not passing them is deprecated and will be required in 3.0:
+1. #### The following constructor signatures have gained new optional (nullable) arguments.
 
-   `Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction`: `?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null`
+   Following this package's existing deprecation pattern, not passing them is deprecated and will be
+   required in 3.0. If you instantiate, decorate, or redefine any of these services with an explicit
+   argument list, add the new argument.
 
-   `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment`: `?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null`
+   ```diff
+    final readonly class PayWithPayPalFormAction
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null,
+        ) {
+        }
+   ```
 
-   `Sylius\PayPalPlugin\Controller\PayPalButtonsController`: `?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null`
-   — unlike the other two this one has no usable fallback: the v6 placements cannot be rendered without it, so
-   a controller constructed without it throws a `\RuntimeException` when a placement is rendered. If you
-   instantiate or decorate this class yourself, pass `sylius_paypal.provider.paypal_web_sdk_configuration`.
+   ```diff
+    final class PayPalPayment
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null,
+        ) {
+        }
+   ```
 
-   `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`: `?UrlGeneratorInterface $router = null`,
-   `?PayPalExpressOrderCompleterInterface $orderCompleter = null`, `?OrderProcessorInterface $orderProcessor = null`
-   — these have no usable fallback either: the action throws a `\RuntimeException` when a return URL has to be
-   generated without a router, when the order has to be completed without a completer, or when a mismatched
-   payment has to be detached without an order processor. If you have redefined the
-   `sylius_paypal.controller.process_paypal_order` service with an explicit argument list, add `router`,
-   `sylius_paypal.completer.express_order` and `sylius.order_processing.order_processor` to it.
+   ```diff
+    final readonly class PayPalButtonsController
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+        ) {
+        }
+   ```
+
+   Unlike the two above, this one has no usable fallback: the v6 placements cannot be rendered without it,
+   so a controller constructed without it throws a `\RuntimeException` when a placement is rendered.
+
+   ```diff
+    final readonly class ProcessPayPalOrderAction
+    {
+        public function __construct(
+            // ...
+   +        private ?UrlGeneratorInterface $router = null,
+   +        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
+   +        private ?OrderProcessorInterface $orderProcessor = null,
+   +        private ?RepositoryInterface $shippingMethodRepository = null,
+   +        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.controller.process_paypal_order" class="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
+        <!-- ... -->
+   +    <argument type="service" id="router" />
+   +    <argument type="service" id="sylius_paypal.completer.express_order" />
+   +    <argument type="service" id="sylius.order_processing.order_processor" />
+   +    <argument type="service" id="sylius.repository.shipping_method" />
+   +    <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
+    </service>
+   ```
+
+   The first three throw a `\RuntimeException` when they are actually needed — generating a return URL,
+   completing the order, or detaching a mismatched payment. The last two degrade instead: the action behaves
+   as it did in 2.0, which means the shipping method the buyer chose in the wallet is not applied and the
+   region is not stored. The first of those two fails the amount check and sends the buyer back to the
+   checkout instead of the thank-you page.
+
+   ```diff
+    final readonly class CreateOrderApi
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalOrderFactoryInterface $payPalOrderFactory = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.api.create_order" class="Sylius\PayPalPlugin\Api\CreateOrderApi">
+        <!-- ... -->
+   +    <argument type="service" id="sylius_paypal.factory.paypal_order" />
+    </service>
+   ```
+
+   ```diff
+    final readonly class UpdateOrderApi
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.api.update_order" class="Sylius\PayPalPlugin\Api\UpdateOrderApi">
+        <!-- ... -->
+   +    <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+    </service>
+   ```
+
+   Both degrade rather than throw: without the factory each API builds the same payload it built in 2.0 from
+   the providers it already holds. For `CreateOrderApi` that means an order carrying neither the return and
+   cancel URLs nor the shipping callback, so the wallet falls back to its plain flow with no shipping options.
+
+1. #### The PayPal order payload is now assembled by factories.
+
+   `Sylius\PayPalPlugin\Api\CreateOrderApi` and `Sylius\PayPalPlugin\Api\UpdateOrderApi` no longer read the
+   order, the gateway config or the router themselves — they ask a factory for the payload and send it. Two
+   new services carry that work and can be decorated or replaced:
+
+   | Service | Interface | Builds |
+   | --- | --- | --- |
+   | `sylius_paypal.factory.paypal_order` | `Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface` | the whole `v2/checkout/orders` payload, including the payer return URL and the shipping callback |
+   | `sylius_paypal.factory.paypal_purchase_unit` | `Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface` | one purchase unit, shared by order creation and the `PATCH` that updates it |
+   | `sylius_paypal.provider.paypal_shipping_callback_url` | `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface` | the shipping callback URL, or `null` when PayPal could not reach it |
+   | `sylius_paypal.factory.paypal_shipping_callback_response` | `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` | the body the shipping callback answers with, including the total reconciled against the selected option |
+
+   `PayPalPurchaseUnitFactoryInterface::create()` takes the merchant id as an optional third argument and
+   falls back to the `merchant_id` configured on the payment's method, which is what every caller passed
+   before. `Sylius\PayPalPlugin\Model\PayPalOrder::INTENT_CAPTURE` now holds the capture intent;
+   `CreateOrderApi::PAYPAL_INTENT_CAPTURE` is kept as an alias of it.
+
+   This is where to hook in if you need to change what reaches PayPal — overriding `CreateOrderApi` for that
+   is no longer necessary.

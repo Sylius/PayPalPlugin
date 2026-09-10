@@ -28,6 +28,8 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\CaptureAction;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
+use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class CaptureActionTest extends TestCase
@@ -51,6 +53,7 @@ final class CaptureActionTest extends TestCase
             $this->authorizeClientApi,
             $this->createOrderApi,
             $this->uuidProvider,
+            new PayPalOrderCreatedStatusesProvider(),
         );
     }
 
@@ -87,6 +90,83 @@ final class CaptureActionTest extends TestCase
         ]);
 
         $this->captureAction->execute($request);
+    }
+
+    #[Test]
+    public function it_sets_order_response_data_on_payment_when_paypal_asks_for_a_payer_action(): void
+    {
+        $request = $this->createMock(Capture::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getAmount')->willReturn(1000);
+        $payment->method('getOrder')->willReturn($order);
+        $order->method('getCurrencyCode')->willReturn('USD');
+
+        $this->uuidProvider->method('provide')->willReturn('UUID');
+
+        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('ACCESS_TOKEN');
+        $this->createOrderApi->method('create')->with('ACCESS_TOKEN', $payment, 'UUID')->willReturn(['status' => 'PAYER_ACTION_REQUIRED', 'id' => '123123']);
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => StatusAction::STATUS_CAPTURED,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'UUID',
+            'payment_amount' => 1000,
+        ]);
+
+        $this->captureAction->execute($request);
+    }
+
+    #[Test]
+    public function it_does_not_set_order_response_data_on_payment_when_paypal_does_not_confirm_the_order(): void
+    {
+        $request = $this->createMock(Capture::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+
+        $this->uuidProvider->method('provide')->willReturn('UUID');
+
+        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('ACCESS_TOKEN');
+        $this->createOrderApi->method('create')->with('ACCESS_TOKEN', $payment, 'UUID')->willReturn(['name' => 'UNPROCESSABLE_ENTITY']);
+
+        $payment->expects(self::never())->method('setDetails');
+
+        $this->captureAction->execute($request);
+    }
+
+    #[Test]
+    public function it_treats_as_created_only_the_statuses_its_provider_names(): void
+    {
+        $orderCreatedStatusesProvider = $this->createMock(PayPalOrderCreatedStatusesProviderInterface::class);
+        $orderCreatedStatusesProvider->method('provide')->willReturn(['SOME_OTHER_STATUS']);
+
+        $captureAction = new CaptureAction(
+            $this->authorizeClientApi,
+            $this->createOrderApi,
+            $this->uuidProvider,
+            $orderCreatedStatusesProvider,
+        );
+
+        $request = $this->createMock(Capture::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('ACCESS_TOKEN');
+        $this->uuidProvider->method('provide')->willReturn('UUID');
+        $this->createOrderApi->method('create')->willReturn(['status' => 'CREATED', 'id' => '123123']);
+
+        $payment->expects(self::never())->method('setDetails');
+
+        $captureAction->execute($request);
     }
 
     #[Test]
