@@ -7,6 +7,7 @@ export default class extends Controller {
         scriptUrl: String,
         instanceConfig: Object,
         currencyCode: String,
+        amount: String,
         createOrderUrl: String,
         addToCartFormSelector: String,
         captureOrderUrl: String,
@@ -31,9 +32,14 @@ export default class extends Controller {
                 components: this.instanceConfigValue.components,
                 pageType: this.instanceConfigValue.pageType,
                 partnerAttributionId: this.instanceConfigValue.partnerAttributionId,
+                testBuyerCountry: this.instanceConfigValue.testBuyerCountry,
             });
 
-            const paymentMethods = await sdkInstance.findEligibleMethods({ currencyCode: this.currencyCodeValue });
+            const eligibilityRequest = { currencyCode: this.currencyCodeValue };
+            if (this.hasAmountValue && this.amountValue !== '') {
+                eligibilityRequest.amount = this.amountValue;
+            }
+            const paymentMethods = await sdkInstance.findEligibleMethods(eligibilityRequest);
 
             if (paymentMethods.isEligible('paypal')) {
                 this.wireUpButton(this.paypalButtonTarget, sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));

@@ -34,6 +34,8 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
         $this->provider = new PayPalWebSdkConfigurationProvider(
             $this->payPalConfigurationProvider,
             'https://www.sandbox.paypal.com',
+            true,
+            null,
         );
     }
 
@@ -56,5 +58,56 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
         self::assertSame('CLIENT_ID', $config['clientId']);
         self::assertSame('Sylius_MP_PPCP', $config['partnerAttributionId']);
         self::assertSame('checkout', $config['pageType']);
+    }
+
+    #[Test]
+    public function it_includes_the_test_buyer_country_in_sandbox_when_configured(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+
+        $provider = new PayPalWebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            'https://www.sandbox.paypal.com',
+            true,
+            'US',
+        );
+
+        $config = $provider->getInstanceConfig($channel, 'cart');
+
+        self::assertSame('US', $config['testBuyerCountry']);
+    }
+
+    #[Test]
+    public function it_omits_the_test_buyer_country_in_sandbox_when_not_configured(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+
+        $provider = new PayPalWebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            'https://www.sandbox.paypal.com',
+            true,
+            null,
+        );
+
+        $config = $provider->getInstanceConfig($channel, 'cart');
+
+        self::assertArrayNotHasKey('testBuyerCountry', $config);
+    }
+
+    #[Test]
+    public function it_never_includes_the_test_buyer_country_outside_sandbox_even_when_configured(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+
+        $provider = new PayPalWebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            'https://www.paypal.com',
+            false,
+            'US',
+        );
+
+        $config = $provider->getInstanceConfig($channel, 'cart');
+
+        self::assertArrayNotHasKey('testBuyerCountry', $config);
     }
 }
