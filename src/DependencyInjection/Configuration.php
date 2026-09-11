@@ -34,6 +34,7 @@ final class Configuration implements ConfigurationInterface
         $rootNode
             ->children()
                 ->booleanNode('sandbox')->defaultTrue()->end()
+                ->booleanNode('legacy_id_routes_enabled')->defaultFalse()->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()
                     ->children()

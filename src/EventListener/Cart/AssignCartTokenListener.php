@@ -20,9 +20,6 @@ use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Webmozart\Assert\Assert;
 
-// Core's own (non-PayPal) add-to-cart LiveComponent never assigns an order token either - it only
-// happens on checkout completion - so a cart built entirely through it would otherwise still have
-// none by the time the v6 cart-page placement is rendered.
 final class AssignCartTokenListener
 {
     public function __construct(

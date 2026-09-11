@@ -131,12 +131,6 @@ final readonly class PayPalButtonsController
         }
     }
 
-    // A token is expected to already be assigned by now - AssignCartTokenListener (on adding the first
-    // item to a cart) and AssignOrderTokenOnCheckoutListener (on the address/shipping checkout steps)
-    // cover every path that reaches these two placements. If this ever fires, one of those listeners was
-    // bypassed (e.g. a shop removed this plugin's listener wiring) - fail loudly rather than silently
-    // assigning one here, since doing so would be exactly the GET-triggered write this class no longer
-    // performs on its own.
     private function assertOrderHasToken(OrderInterface $order): void
     {
         if (null === $order->getTokenValue()) {

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Symfony\Component\HttpFoundation\Response;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
@@ -63,5 +64,47 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/FOREIGN_TOKEN');
 
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    /** @test */
+    public function it_returns_not_found_for_the_legacy_id_route_when_the_flag_is_disabled(): void
+    {
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var int $orderId */
+        $orderId = $order['new_cart']->getId();
+
+        $this->client->request('POST', sprintf('/en_US/create-pay-pal-order-from-cart/%d', $orderId));
+
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    /** @test */
+    public function it_creates_paypal_order_from_the_legacy_id_route_when_the_flag_is_enabled(): void
+    {
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var int $orderId */
+        $orderId = $order['new_cart']->getId();
+        $this->enableLegacyIdRoutes();
+
+        $this->client->request('POST', sprintf('/en_US/create-pay-pal-order-from-cart/%d', $orderId));
+
+        $response = $this->client->getResponse();
+        $content = (array) json_decode((string) $response->getContent(), true);
+
+        $this->assertSame($content['id'], $orderId);
+        $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
+    }
+
+    private function enableLegacyIdRoutes(): void
+    {
+        self::getContainer()->set('sylius_paypal.controller.create_paypal_order_from_cart', new CreatePayPalOrderFromCartAction(
+            self::getContainer()->get('sylius.manager.payment'),
+            self::getContainer()->get('sylius_paypal.provider.order'),
+            self::getContainer()->get('sylius_paypal.resolver.capture_payment'),
+            self::getContainer()->get('sylius.remover.payment.order'),
+            self::getContainer()->get('sylius.order_processing.order_processor'),
+            self::getContainer()->get('sylius_paypal.resolver.paypal_payment_methods'),
+            true,
+        ));
     }
 }

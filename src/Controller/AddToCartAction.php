@@ -93,17 +93,11 @@ final readonly class AddToCartAction
 
         $this->orderModifier->addToOrder($addToCartCommand->getCart(), $addToCartCommand->getCartItem());
 
-        // A brand-new cart only gets its tokenValue assigned by AssignOrderTokenListener, which fires on
-        // an order *checkout* transition - a plain add-to-order never triggers one, so a cart created by
-        // this very request would otherwise still have no token to redirect with.
         $this->getOrderTokenAssigner()->assignTokenValueIfNotSet($cart);
 
         $this->cartManager->persist($cart);
         $this->cartManager->flush();
 
-        // 307 (not the default 302) so the browser's fetch() preserves POST across the redirect - the
-        // target route only accepts POST (see UPGRADE-2.1.md: GET was dropped, it existed only to let this
-        // redirect's auto-followed request through, which made the target reachable from a plain <img> tag).
         return new RedirectResponse(
             $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['tokenValue' => $cart->getTokenValue()]),
             Response::HTTP_TEMPORARY_REDIRECT,

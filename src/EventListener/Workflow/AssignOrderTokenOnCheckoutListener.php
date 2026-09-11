@@ -19,10 +19,6 @@ use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
 use Symfony\Component\Workflow\Event\CompletedEvent;
 use Webmozart\Assert\Assert;
 
-// Core only assigns an order token once checkout fully completes - the address/select-shipping/
-// skip-shipping transitions this listens on are the earliest point every order genuinely passes
-// through before checkout's payment step can ever be reached, so a token is guaranteed to exist by
-// the time the v6 payment-page placement is rendered.
 final class AssignOrderTokenOnCheckoutListener
 {
     public function __construct(

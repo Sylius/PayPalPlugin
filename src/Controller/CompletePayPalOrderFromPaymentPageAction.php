@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
@@ -25,6 +26,7 @@ use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class CompletePayPalOrderFromPaymentPageAction
@@ -37,6 +39,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private ObjectManager $orderManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?OrderProcessorInterface $orderProcessor = null,
+        private ?bool $legacyIdRoutesEnabled = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -54,13 +57,19 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
                 OrderProcessorInterface::class,
             );
         }
+        if (null === $this->legacyIdRoutesEnabled) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $legacyIdRoutesEnabled to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
-        $tokenValue = (string) $request->attributes->get('tokenValue');
-
-        $order = $this->orderProvider->provideCartByToken($tokenValue);
+        $order = $this->resolveOrder($request);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         /** @var string $payPalOrderId */
@@ -117,5 +126,19 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $details = $payment->getDetails();
 
         return $details['payment_amount'] ?? 0;
+    }
+
+    private function resolveOrder(Request $request): OrderInterface
+    {
+        $tokenValue = $request->attributes->get('tokenValue');
+        if (is_string($tokenValue) && '' !== $tokenValue) {
+            return $this->orderProvider->provideCartByToken($tokenValue);
+        }
+
+        if (true !== $this->legacyIdRoutesEnabled) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->orderProvider->provideOrderById($request->attributes->getInt('id'));
     }
 }

@@ -228,8 +228,8 @@
    and knowing it was enough to overwrite a stranger's addresses and customer, cancel their payment, or read
    out their PayPal order id.
 
-   **This is a security fix, not a deprecation: there is no `{id}`-accepting alias kept for 3.0.** The four
-   routes now resolve the order by its `tokenValue` instead:
+   **This is a security fix, not a deprecation.** The four routes now resolve the order by its `tokenValue`
+   instead:
 
    | Route | Was | Now |
    |---|---|---|
@@ -242,8 +242,32 @@
    `AddToCartAction`'s redirect could reach it, which made a state-mutating, PayPal-calling endpoint reachable
    from a plain `<img>` tag. If you overrode any of the three v6 button templates, or call these routes
    directly (custom JS, an API client, a test), you must switch to generating the URL from
-   `$order->getTokenValue()` and drop any raw id you were passing — the old calling convention now answers
-   `404 Not Found`, not a deprecation notice.
+   `$order->getTokenValue()` and drop any raw id you were passing — by default the old calling convention now
+   answers `404 Not Found`, not a deprecation notice.
+
+   **If you cannot update the caller immediately**, an opt-in escape hatch keeps the old, id-based calling
+   convention working: set `sylius_paypal.legacy_id_routes_enabled` to `true` (or the
+   `SYLIUS_PAYPAL_LEGACY_ID_ROUTES_ENABLED` env var), and each of the four routes gains a matching legacy
+   variant that takes the raw Sylius order id again, exactly as it did in 2.0:
+
+   ```yaml
+   # config/packages/sylius_paypal.yaml
+   sylius_paypal:
+       legacy_id_routes_enabled: true
+   ```
+
+   | Legacy route | Path/body |
+   |---|---|
+   | `sylius_paypal_shop_create_paypal_order_from_cart_legacy` | `.../{id}` |
+   | `sylius_paypal_shop_create_paypal_order_from_payment_page_legacy` | `.../{id}/create` |
+   | `sylius_paypal_shop_complete_paypal_order_from_payment_page_legacy` | `.../{id}/complete` |
+   | `sylius_paypal_shop_process_paypal_order` | body `{"orderId": <int>}` (same route as the modern shape — disambiguated by the payload) |
+
+   This flag is **off by default and reopens the exact IDOR this fix closes** — anyone who knows or guesses an
+   order id can act on it again. Only turn it on as a temporary bridge while you migrate callers, and turn it
+   back off once they are updated. The legacy `{id}` routes are always registered; when the flag is off, they
+   resolve to a `404 Not Found` rather than not existing, so the behavior at the HTTP layer is the same either
+   way from a caller's perspective — the flag only decides whether the id is actually honored.
 
    `Sylius\PayPalPlugin\Provider\OrderProviderInterface` gained two new methods for this:
    - `provideCartByToken(string $tokenValue): OrderInterface`, used by the create/complete-from-cart and
@@ -350,6 +374,7 @@
    +        private ?OrderProcessorInterface $orderProcessor = null,
    +        private ?RepositoryInterface $shippingMethodRepository = null,
    +        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory = null,
+   +        private ?bool $legacyIdRoutesEnabled = null,
         ) {
         }
    ```
@@ -362,14 +387,71 @@
    +    <argument type="service" id="sylius.order_processing.order_processor" />
    +    <argument type="service" id="sylius.repository.shipping_method" />
    +    <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
+   +    <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
     </service>
    ```
 
    The first three throw a `\RuntimeException` when they are actually needed — generating a return URL,
-   completing the order, or detaching a mismatched payment. The last two degrade instead: the action behaves
+   completing the order, or detaching a mismatched payment. The next two degrade instead: the action behaves
    as it did in 2.0, which means the shipping method the buyer chose in the wallet is not applied and the
    region is not stored. The first of those two fails the amount check and sends the buyer back to the
-   checkout instead of the thank-you page.
+   checkout instead of the thank-you page. `$legacyIdRoutesEnabled` is treated as `false` when not passed, the
+   same secure default as an explicit `false` — see the legacy-routes entry above.
+
+   ```diff
+    final readonly class CreatePayPalOrderFromCartAction
+    {
+        public function __construct(
+            // ...
+   +        private ?bool $legacyIdRoutesEnabled = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.controller.create_paypal_order_from_cart" class="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction">
+        <!-- ... -->
+   +    <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
+    </service>
+   ```
+
+   ```diff
+    final readonly class CreatePayPalOrderFromPaymentPageAction
+    {
+        public function __construct(
+            // ...
+   +        private ?bool $legacyIdRoutesEnabled = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.controller.create_paypal_order_from_payment_page" class="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction">
+        <!-- ... -->
+   +    <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
+    </service>
+   ```
+
+   ```diff
+    final readonly class CompletePayPalOrderFromPaymentPageAction
+    {
+        public function __construct(
+            // ...
+   +        private ?bool $legacyIdRoutesEnabled = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.controller.complete_paypal_order_from_payment_page" class="Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction">
+        <!-- ... -->
+   +    <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
+    </service>
+   ```
+
+   All four fall back to `false` when not passed — the same secure default as an explicit `false` — so an
+   existing explicit service redefinition simply keeps rejecting the legacy id-based calling convention until
+   you opt in.
 
    ```diff
     final readonly class CreateOrderApi

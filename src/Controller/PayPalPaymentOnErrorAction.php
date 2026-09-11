@@ -44,8 +44,6 @@ final readonly class PayPalPaymentOnErrorAction
         return new Response();
     }
 
-    // Anonymous, unauthenticated visitors can POST here with arbitrary content - cap the length so this
-    // can't be used to flood the log, and strip newlines so it can't be used to forge fake log lines.
     private function sanitizeForLogging(string $content): string
     {
         $sanitized = str_replace(["\r", "\n"], ' ', $content);
