@@ -42,6 +42,8 @@ final readonly class PayPalGatewayConfig
 
     public const MESSAGING_ENABLED = 'messaging_enabled';
 
+    public const VENMO_ENABLED = 'venmo_enabled';
+
     public const GOOGLE_PAY_ENABLED = 'google_pay_enabled';
 
     public const APPLE_PAY_ENABLED = 'apple_pay_enabled';

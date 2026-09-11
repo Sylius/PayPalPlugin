@@ -48,6 +48,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::MESSAGING_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
+            ->add(PayPalGatewayConfig::VENMO_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.venmo_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::GOOGLE_PAY_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::APPLE_PAY_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.apple_pay_enabled', 'required' => false])
             ->add(RedirectPaymentSource::Trustly->configurationKey(), CheckboxType::class, ['label' => 'sylius_paypal.trustly_enabled', 'required' => false])
@@ -59,6 +60,7 @@ final class PayPalConfigurationType extends AbstractType
                 $originalData = $data;
                 $data[PayPalGatewayConfig::PAY_LATER_ENABLED] ??= true;
                 $data[PayPalGatewayConfig::MESSAGING_ENABLED] ??= true;
+                $data[PayPalGatewayConfig::VENMO_ENABLED] ??= false;
                 $data[PayPalGatewayConfig::GOOGLE_PAY_ENABLED] ??= false;
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
