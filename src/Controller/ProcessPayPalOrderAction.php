@@ -125,7 +125,7 @@ final readonly class ProcessPayPalOrderAction
         $payPalOrderId = $payload->getString('payPalOrderId');
         $tokenValue = $payload->getString('tokenValue');
 
-        $order = $this->orderProvider->provideCartByToken($tokenValue);
+        $order = $this->orderProvider->provideOrderByTokenIncludingCart($tokenValue);
         $orderId = $order->getId();
 
         /** @var PaymentInterface|null $payment */

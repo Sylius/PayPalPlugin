@@ -145,11 +145,6 @@ final readonly class PayPalButtonsController
         }
     }
 
-    // Both button-URL-generation paths below embed the order's tokenValue into the rendered page - but a
-    // cart that reached this page without going through any checkout transition yet (the normal case for
-    // the cart-page placement) never had one assigned (AssignOrderTokenListener only fires on a checkout
-    // *transition*, not on order creation). Assign and persist one now, before generating any URL that
-    // needs it, so the token embedded in this response actually resolves once the buyer clicks the button.
     private function ensureOrderHasToken(OrderInterface $order): void
     {
         if (null === $this->orderTokenAssigner || null === $this->orderManager) {
@@ -158,6 +153,10 @@ final readonly class PayPalButtonsController
                 OrderTokenAssignerInterface::class,
                 ObjectManager::class,
             ));
+        }
+
+        if (null !== $order->getTokenValue()) {
+            return;
         }
 
         $this->orderTokenAssigner->assignTokenValueIfNotSet($order);
