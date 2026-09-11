@@ -19,6 +19,7 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
 {
     public function __construct(
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private string $webUrl,
         private bool $sandbox,
         private ?string $testBuyerCountry,
@@ -36,6 +37,10 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
         array $components = self::DEFAULT_COMPONENTS,
         ?string $locale = null,
     ): array {
+        if ($this->fundingSourcesConfigurationProvider->isMessagingEnabled($channel)) {
+            $components[] = 'paypal-messages';
+        }
+
         $instanceConfig = [
             'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
             'components' => $components,

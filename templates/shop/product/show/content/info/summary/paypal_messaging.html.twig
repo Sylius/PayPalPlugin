@@ -1,7 +1,9 @@
-{% if sylius_paypal_is_messaging_enabled() %}
-    {#
-        TODO (SDD §6.1): see paypal_messaging.html.twig under cart/index for the full note.
-        This slot is scaffolding only, pending a working messaging spec from PayPal.
-    #}
-    <div data-paypal-messaging-placeholder></div>
+{% set variant = hookable_metadata.context.variant|default(null) %}
+
+{% if variant is not null and sylius_paypal_is_messaging_enabled() %}
+    <paypal-message
+        auto-bootstrap
+        amount="{{ (variant|sylius_calculate_price({'channel': sylius.channel}) / 100)|number_format(2, '.', '') }}"
+        currency-code="{{ sylius.channel.baseCurrency.code }}"
+    ></paypal-message>
 {% endif %}

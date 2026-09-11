@@ -18,11 +18,14 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProvider;
 
 final class PayPalWebSdkConfigurationProviderTest extends TestCase
 {
     private PayPalConfigurationProviderInterface&MockObject $payPalConfigurationProvider;
+
+    private PayPalFundingSourcesConfigurationProviderInterface&MockObject $fundingSourcesConfigurationProvider;
 
     private PayPalWebSdkConfigurationProvider $provider;
 
@@ -30,9 +33,11 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
     {
         parent::setUp();
         $this->payPalConfigurationProvider = $this->createMock(PayPalConfigurationProviderInterface::class);
+        $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
 
         $this->provider = new PayPalWebSdkConfigurationProvider(
             $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
             'https://www.sandbox.paypal.com',
             true,
             null,
@@ -51,6 +56,7 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
         $channel = $this->createMock(ChannelInterface::class);
         $this->payPalConfigurationProvider->method('getClientId')->with($channel)->willReturn('CLIENT_ID');
         $this->payPalConfigurationProvider->method('getPartnerAttributionId')->with($channel)->willReturn('Sylius_MP_PPCP');
+        $this->fundingSourcesConfigurationProvider->method('isMessagingEnabled')->with($channel)->willReturn(false);
 
         $config = $this->provider->getInstanceConfig($channel, 'checkout');
 
@@ -105,12 +111,24 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_requests_the_messages_component_when_messaging_is_enabled_for_the_channel(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->fundingSourcesConfigurationProvider->method('isMessagingEnabled')->with($channel)->willReturn(true);
+
+        $config = $this->provider->getInstanceConfig($channel, 'checkout');
+
+        self::assertSame(['paypal-payments', 'paypal-messages'], $config['components']);
+    }
+
+    #[Test]
     public function it_includes_the_test_buyer_country_in_sandbox_when_configured(): void
     {
         $channel = $this->createMock(ChannelInterface::class);
 
         $provider = new PayPalWebSdkConfigurationProvider(
             $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
             'https://www.sandbox.paypal.com',
             true,
             'US',
@@ -128,6 +146,7 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
 
         $provider = new PayPalWebSdkConfigurationProvider(
             $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
             'https://www.sandbox.paypal.com',
             true,
             null,
@@ -145,6 +164,7 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
 
         $provider = new PayPalWebSdkConfigurationProvider(
             $this->payPalConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
             'https://www.paypal.com',
             false,
             'US',
