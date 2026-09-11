@@ -245,20 +245,47 @@
    `$order->getTokenValue()` and drop any raw id you were passing — the old calling convention now answers
    `404 Not Found`, not a deprecation notice.
 
-   `Sylius\PayPalPlugin\Provider\OrderProviderInterface` gained a new method for this,
-   `provideCartByToken(string $tokenValue): OrderInterface`. It is deliberately not the same as the existing
-   `provideOrderByToken()`: that one excludes orders still in the `cart` state (it backs the older, already
-   token-based v5 routes, which only ever look up an *already placed* order to pay or re-pay), while these
-   four v6 actions run *during* checkout, while the order is still `state=cart` the whole time in Sylius — a
-   plain, state-agnostic lookup is what "the order I'm currently checking out" actually means here.
+   `Sylius\PayPalPlugin\Provider\OrderProviderInterface` gained two new methods for this:
+   - `provideCartByToken(string $tokenValue): OrderInterface`, used by the create/complete-from-cart and
+     create/complete-from-payment-page actions, delegates to Sylius core's own
+     `OrderRepositoryInterface::findCartByTokenValue()` (`state=cart AND tokenValue=...`) — these actions
+     only ever run before checkout completes.
+   - `provideOrderByTokenIncludingCart(string $tokenValue): OrderInterface`, used only by
+     `ProcessPayPalOrderAction`, does a plain, state-agnostic lookup instead. That action must also resolve
+     an order that just completed, in case the buyer's capture request is retried after it already
+     succeeded — `provideCartByToken()`'s cart-only filter would 404 on exactly that retry.
 
    Two smaller, related changes ship in the same fix:
    - `Sylius\PayPalPlugin\Exception\OrderNotFoundException` now implements Symfony's `HttpExceptionInterface`
      and answers `404` instead of an uncaught `500` — this also applies to the pre-existing
-     `provideOrderById()`/`provideOrderByToken()` call sites, not just the new one.
+     `provideOrderById()`/`provideOrderByToken()` call sites, not just the new ones.
    - The Stimulus controller no longer holds or sends a Sylius order id at all (`syliusOrderId` is gone from
      `PaypalWebSdkController.js`); `PayPalButtonsController` already builds every one of these URLs
      server-side from a real order, so the browser never needed one.
+
+1. #### An order token is now assigned as soon as checkout starts, or as soon as an item is added to the cart.
+
+   The cart-page and payment-page placements above embed the order's `tokenValue` into every URL they
+   generate, but a cart normally has none yet — Sylius core only assigns one once checkout fully completes
+   (`AssignOrderTokenListener` fires on the `sylius_order` workflow's `create` transition, itself only
+   applied on `workflow.sylius_order_checkout.completed.complete`). Two new listeners close that gap, each
+   assigning one the moment it's first needed rather than as a side effect of rendering a page:
+
+   - `Sylius\PayPalPlugin\EventListener\Cart\AssignCartTokenListener` (service
+     `sylius_paypal.listener.cart.assign_cart_token`), on Sylius's own `sylius.cart_item_add` event — fires
+     whenever an item is added to a cart through the shop's normal (non-PayPal) add-to-cart form, which is
+     itself always a POST (a Symfony UX LiveComponent action).
+   - `Sylius\PayPalPlugin\EventListener\Workflow\AssignOrderTokenOnCheckoutListener` (service
+     `sylius_paypal.listener.workflow.assign_order_token_on_checkout`), on the checkout workflow's
+     `address`, `select_shipping` and `skip_shipping` transitions — every order passes through `address`
+     and then one of the two shipping transitions before the payment step can ever be reached, so a token
+     is guaranteed to exist by the time the payment-page placement is rendered.
+
+   `PayPalButtonsController` no longer assigns a token itself: it only asserts one is already present,
+   throwing a `\RuntimeException` if not (which would mean one of the two listeners above was bypassed —
+   for example if a shop's own configuration removes this plugin's listener wiring). If you disable or
+   override `config/services/listeners/cart.xml` or `config/services/listeners/workflow.xml`, keep these
+   two listeners registered, or assign a token to the cart yourself before either placement renders.
 
 1. #### The cart and product page button templates no longer receive `completeUrl`.
 
@@ -306,19 +333,12 @@
         public function __construct(
             // ...
    +        private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
-   +        private ?OrderTokenAssignerInterface $orderTokenAssigner = null,
-   +        private ?Doctrine\Persistence\ObjectManager $orderManager = null,
         ) {
         }
    ```
 
-   None of these have a usable fallback: the v6 placements cannot be rendered without a
-   `PayPalWebSdkConfigurationProviderInterface`, and a cart reaching the cart or payment page placement
-   without having started checkout has no token either — both placements now embed one in every URL they
-   generate, so a controller constructed without `OrderTokenAssignerInterface`/`ObjectManager` throws a
-   `\RuntimeException` when a placement is rendered. If you have redefined the
-   `sylius_paypal.controller.paypal_buttons` service with an explicit argument list, add
-   `Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface` and `sylius.manager.order` to it.
+   This one has no usable fallback: the v6 placements cannot be rendered without it, so a controller
+   constructed without it throws a `\RuntimeException` when a placement is rendered.
 
    ```diff
     final readonly class ProcessPayPalOrderAction

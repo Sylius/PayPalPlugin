@@ -13,12 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
-use Doctrine\Persistence\ObjectManager;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
-use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
@@ -42,8 +40,6 @@ final readonly class PayPalButtonsController
         private AvailableCountriesProviderInterface $availableCountriesProvider,
         private LocaleProcessorInterface $localeProcessor,
         private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
-        private ?OrderTokenAssignerInterface $orderTokenAssigner = null,
-        private ?ObjectManager $orderManager = null,
     ) {
         if (null === $this->webSdkConfigurationProvider) {
             trigger_deprecation(
@@ -51,16 +47,6 @@ final readonly class PayPalButtonsController
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalWebSdkConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
-        if (null === $this->orderTokenAssigner || null === $this->orderManager) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.1',
-                'Not passing an instance of %s and an order %s to %s constructor is deprecated and will be required in 3.0.',
-                OrderTokenAssignerInterface::class,
-                ObjectManager::class,
                 self::class,
             );
         }
@@ -95,7 +81,7 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
-        $this->ensureOrderHasToken($order);
+        $this->assertOrderHasToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
@@ -123,7 +109,7 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
-        $this->ensureOrderHasToken($order);
+        $this->assertOrderHasToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -145,22 +131,20 @@ final readonly class PayPalButtonsController
         }
     }
 
-    private function ensureOrderHasToken(OrderInterface $order): void
+    // A token is expected to already be assigned by now - AssignCartTokenListener (on adding the first
+    // item to a cart) and AssignOrderTokenOnCheckoutListener (on the address/shipping checkout steps)
+    // cover every path that reaches these two placements. If this ever fires, one of those listeners was
+    // bypassed (e.g. a shop removed this plugin's listener wiring) - fail loudly rather than silently
+    // assigning one here, since doing so would be exactly the GET-triggered write this class no longer
+    // performs on its own.
+    private function assertOrderHasToken(OrderInterface $order): void
     {
-        if (null === $this->orderTokenAssigner || null === $this->orderManager) {
+        if (null === $order->getTokenValue()) {
             throw new \RuntimeException(sprintf(
-                'An instance of "%s" and an order "%s" are required to render the v6 Web SDK placements.',
-                OrderTokenAssignerInterface::class,
-                ObjectManager::class,
+                'Order #%d has no token value. Expected AssignCartTokenListener/AssignOrderTokenOnCheckoutListener to have assigned one before this placement is rendered.',
+                (int) $order->getId(),
             ));
         }
-
-        if (null !== $order->getTokenValue()) {
-            return;
-        }
-
-        $this->orderTokenAssigner->assignTokenValueIfNotSet($order);
-        $this->orderManager->flush();
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface
