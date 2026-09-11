@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class CreatePayPalOrderFromPaymentPageAction
 {
@@ -32,14 +34,21 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private PaymentStateManagerInterface $paymentStateManager,
         private OrderProviderInterface $orderProvider,
         private CapturePaymentResolverInterface $capturePaymentResolver,
+        private ?bool $legacyIdRoutesEnabled = null,
     ) {
+        if (null === $this->legacyIdRoutesEnabled) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $legacyIdRoutesEnabled to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
-        $id = $request->attributes->getInt('id');
-
-        $order = $this->orderProvider->provideOrderById($id);
+        $order = $this->resolveOrder($request);
 
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
@@ -64,8 +73,22 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         return new JsonResponse([
             'id' => $order->getId(),
             'orderId' => $payPalOrderId,
-            'order_id' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
+            'order_id' => $payPalOrderId,
             'status' => $payment->getState(),
         ]);
+    }
+
+    private function resolveOrder(Request $request): OrderInterface
+    {
+        $tokenValue = $request->attributes->get('tokenValue');
+        if (is_string($tokenValue) && '' !== $tokenValue) {
+            return $this->orderProvider->provideCartByToken($tokenValue);
+        }
+
+        if (true !== $this->legacyIdRoutesEnabled) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->orderProvider->provideOrderById($request->attributes->getInt('id'));
     }
 }

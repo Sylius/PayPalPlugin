@@ -47,4 +47,28 @@ final readonly class OrderProvider implements OrderProviderInterface
 
         return $order;
     }
+
+    public function provideCartByToken(string $tokenValue): OrderInterface
+    {
+        /** @var OrderInterface|null $order */
+        $order = $this->orderRepository->findCartByTokenValue($tokenValue);
+
+        if ($order === null) {
+            throw OrderNotFoundException::withToken($tokenValue);
+        }
+
+        return $order;
+    }
+
+    public function provideOrderByTokenIncludingCart(string $tokenValue): OrderInterface
+    {
+        /** @var OrderInterface|null $order */
+        $order = $this->orderRepository->findOneBy(['tokenValue' => $tokenValue]);
+
+        if ($order === null) {
+            throw OrderNotFoundException::withToken($tokenValue);
+        }
+
+        return $order;
+    }
 }

@@ -81,12 +81,13 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
+        $this->assertOrderHasToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $orderId]),
+                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['tokenValue' => $order->getTokenValue()]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
@@ -108,6 +109,7 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
+        $this->assertOrderHasToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -115,8 +117,8 @@ final readonly class PayPalButtonsController
                 'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment'),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'currency' => $order->getCurrencyCode(),
-                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page', ['id' => $orderId]),
-                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page', ['id' => $orderId]),
+                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page', ['tokenValue' => $order->getTokenValue()]),
+                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page', ['tokenValue' => $order->getTokenValue()]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
@@ -126,6 +128,16 @@ final readonly class PayPalButtonsController
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
+        }
+    }
+
+    private function assertOrderHasToken(OrderInterface $order): void
+    {
+        if (null === $order->getTokenValue()) {
+            throw new \RuntimeException(sprintf(
+                'Order #%d has no token value. Expected AssignCartTokenListener/AssignOrderTokenOnCheckoutListener to have assigned one before this placement is rendered.',
+                (int) $order->getId(),
+            ));
         }
     }
 

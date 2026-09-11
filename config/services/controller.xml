@@ -72,6 +72,7 @@
             <argument type="service" id="sylius_paypal.manager.payment_state" />
             <argument type="service" id="sylius_paypal.provider.order" />
             <argument type="service" id="sylius_paypal.resolver.capture_payment" />
+            <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
         </service>
 
         <service id="sylius_paypal.controller.download_payouts_report" class="Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction">
@@ -97,6 +98,7 @@
             <argument type="service" id="sylius.remover.payment.order" />
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius_paypal.resolver.paypal_payment_methods" />
+            <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
         </service>
 
         <service id="sylius_paypal.controller.paypal_buttons" class="Sylius\PayPalPlugin\Controller\PayPalButtonsController">
@@ -137,6 +139,7 @@
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius.repository.shipping_method" />
             <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
+            <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
         </service>
 
         <service id="sylius_paypal.controller.update_paypal_order" class="Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction">
@@ -165,6 +168,7 @@
             <argument type="service" id="sylius.manager.order" />
             <argument type="service" id="sylius_paypal.verifier.payment_amount" />
             <argument type="service" id="sylius.order_processing.order_processor" />
+            <argument>%sylius_paypal.legacy_id_routes_enabled%</argument>
         </service>
 
         <service id="sylius_paypal.controller.paypal_payment_on_error" class="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
@@ -189,6 +193,7 @@
             <argument type="service" id="sylius.modifier.order" />
             <argument type="service" id="sylius.resource_controller.request_configuration_factory" />
             <argument type="service" id="router" />
+            <argument type="service" id="Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface" />
         </service>
 
     </services>

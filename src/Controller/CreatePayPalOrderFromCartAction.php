@@ -28,6 +28,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final readonly class CreatePayPalOrderFromCartAction
 {
@@ -38,6 +39,7 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
+        private ?bool $legacyIdRoutesEnabled = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -63,12 +65,19 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->legacyIdRoutesEnabled) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $legacyIdRoutesEnabled to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
-        $id = $request->attributes->getInt('id');
-        $order = $this->orderProvider->provideOrderById($id);
+        $order = $this->resolveOrder($request);
 
         try {
             $payment = $this->getPayment($order);
@@ -87,6 +96,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         return new JsonResponse([
             'id' => $order->getId(),
+            'tokenValue' => $order->getTokenValue(),
             'orderId' => $payPalOrderId,
             'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
             'status' => $payment->getState(),
@@ -121,5 +131,19 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         return $payment;
+    }
+
+    private function resolveOrder(Request $request): OrderInterface
+    {
+        $tokenValue = $request->attributes->get('tokenValue');
+        if (is_string($tokenValue) && '' !== $tokenValue) {
+            return $this->orderProvider->provideCartByToken($tokenValue);
+        }
+
+        if (true !== $this->legacyIdRoutesEnabled) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->orderProvider->provideOrderById($request->attributes->getInt('id'));
     }
 }
