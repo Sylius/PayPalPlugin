@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 
 final class PayPalExtensionTest extends TestCase
@@ -27,6 +28,8 @@ final class PayPalExtensionTest extends TestCase
 
     private ChannelContextInterface&MockObject $channelContext;
 
+    private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+
     private PayPalExtension $extension;
 
     protected function setUp(): void
@@ -34,7 +37,13 @@ final class PayPalExtensionTest extends TestCase
         parent::setUp();
         $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
         $this->channelContext = $this->createMock(ChannelContextInterface::class);
-        $this->extension = new PayPalExtension(true, $this->fundingSourcesConfigurationProvider, $this->channelContext);
+        $this->webSdkConfigurationProvider = $this->createMock(PayPalWebSdkConfigurationProviderInterface::class);
+        $this->extension = new PayPalExtension(
+            true,
+            $this->fundingSourcesConfigurationProvider,
+            $this->channelContext,
+            $this->webSdkConfigurationProvider,
+        );
     }
 
     #[Test]
@@ -65,5 +74,57 @@ final class PayPalExtensionTest extends TestCase
         $extension = new PayPalExtension(true);
 
         self::assertFalse($extension->isMessagingEnabled());
+    }
+
+    #[Test]
+    public function it_returns_the_web_sdk_script_url(): void
+    {
+        $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn('https://www.sandbox.paypal.com/web-sdk/v6/core');
+
+        self::assertSame('https://www.sandbox.paypal.com/web-sdk/v6/core', $this->extension->getWebSdkScriptUrl());
+    }
+
+    #[Test]
+    public function it_returns_an_empty_script_url_when_constructed_without_the_new_dependency(): void
+    {
+        $extension = new PayPalExtension(true);
+
+        self::assertSame('', $extension->getWebSdkScriptUrl());
+    }
+
+    #[Test]
+    public function it_returns_the_web_sdk_instance_config_for_the_current_channel(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->channelContext->method('getChannel')->willReturn($channel);
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->with($channel, 'cart')
+            ->willReturn(['clientId' => 'CLIENT_ID', 'components' => ['paypal-payments']]);
+
+        self::assertSame(
+            ['clientId' => 'CLIENT_ID', 'components' => ['paypal-payments']],
+            $this->extension->getWebSdkInstanceConfig('cart'),
+        );
+    }
+
+    #[Test]
+    public function it_returns_an_empty_instance_config_when_no_pay_pal_payment_method_is_configured_for_the_channel(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->channelContext->method('getChannel')->willReturn($channel);
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+
+        self::assertSame([], $this->extension->getWebSdkInstanceConfig('cart'));
+    }
+
+    #[Test]
+    public function it_returns_an_empty_instance_config_when_constructed_without_the_new_dependencies(): void
+    {
+        $extension = new PayPalExtension(true);
+
+        self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));
     }
 }

@@ -39,10 +39,6 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
-        // an unchecked checkbox is simply absent from the submitted payload - not a bug to
-        // special-case, this is how HTML forms work. clearMissing must stay true (the default,
-        // matching a real POST submission) for that omission to actually register as "false"
-        // rather than "unchanged".
         $form->submit($this->submittedFields());
 
         self::assertTrue($form->isValid());

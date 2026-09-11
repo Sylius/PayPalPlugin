@@ -44,14 +44,6 @@ final class PayPalConfigurationType extends AbstractType
             ->add('use_authorize', HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add('reports_sftp_username', TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add('reports_sftp_password', TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
-            // Eligibility (from PayPal's own API) remains the primary gate for both - these are
-            // merchant opt-outs, not opt-ins, so they default to checked/true for both new and existing
-            // (pre-2.1.0) payment methods, whose stored config simply won't have these keys yet.
-            //
-            // The default is applied via PRE_SET_DATA below (backfilling the missing key), not via a
-            // 'data' option here: 'data' locks the field's value (Symfony's $dataLocked), which would
-            // make the checkbox permanently ignore whatever is actually stored and always render as
-            // checked, so unchecking it would never visibly persist.
             ->add('paylater_enabled', CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
             ->add('messaging_enabled', CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
         ;

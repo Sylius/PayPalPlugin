@@ -28,13 +28,7 @@ export default class extends Controller {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
-            const sdkInstance = await window.paypal.createInstance({
-                clientId: this.instanceConfigValue.clientId,
-                components: this.instanceConfigValue.components,
-                pageType: this.instanceConfigValue.pageType,
-                partnerAttributionId: this.instanceConfigValue.partnerAttributionId,
-                testBuyerCountry: this.instanceConfigValue.testBuyerCountry,
-            });
+            const sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
 
             const eligibilityRequest = { currencyCode: this.currencyCodeValue };
             if (this.hasAmountValue && this.amountValue !== '') {

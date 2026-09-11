@@ -426,6 +426,7 @@
             <argument>%sylius_paypal.sandbox%</argument>
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
             <argument type="service" id="sylius.context.channel" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" />
             <tag name="twig.extension" />
         </service>
 

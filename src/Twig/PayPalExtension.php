@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -28,6 +29,7 @@ final class PayPalExtension extends AbstractExtension
         private readonly bool $sandbox,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         private readonly ?ChannelContextInterface $channelContext = null,
+        private readonly ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -45,6 +47,14 @@ final class PayPalExtension extends AbstractExtension
                 self::class,
             );
         }
+        if (null === $this->webSdkConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $webSdkConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function getFunctions(): array
@@ -53,6 +63,8 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
             new TwigFunction('sylius_is_paypal_sandbox', [$this, 'isSandbox']),
             new TwigFunction('sylius_paypal_is_messaging_enabled', [$this, 'isMessagingEnabled']),
+            new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
+            new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
         ];
     }
 
@@ -74,6 +86,32 @@ final class PayPalExtension extends AbstractExtension
             return $this->fundingSourcesConfigurationProvider->isMessagingEnabled($channel);
         } catch (\InvalidArgumentException) {
             return false;
+        }
+    }
+
+    public function getWebSdkScriptUrl(): string
+    {
+        if (null === $this->webSdkConfigurationProvider) {
+            return '';
+        }
+
+        return $this->webSdkConfigurationProvider->getScriptUrl();
+    }
+
+    /** @return array<string, mixed> */
+    public function getWebSdkInstanceConfig(string $pageType): array
+    {
+        if (null === $this->webSdkConfigurationProvider || null === $this->channelContext) {
+            return [];
+        }
+
+        try {
+            /** @var ChannelInterface $channel */
+            $channel = $this->channelContext->getChannel();
+
+            return $this->webSdkConfigurationProvider->getInstanceConfig($channel, $pageType);
+        } catch (\InvalidArgumentException) {
+            return [];
         }
     }
 
