@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
-use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -21,7 +20,6 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
-use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
@@ -56,10 +54,6 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private PayPalFundingSourcesConfigurationProviderInterface&MockObject $fundingSourcesConfigurationProvider;
 
-    private OrderTokenAssignerInterface&MockObject $orderTokenAssigner;
-
-    private ObjectManager&MockObject $orderManager;
-
     private ChannelInterface&MockObject $channel;
 
     private PayPalButtonsController $controller;
@@ -78,8 +72,6 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
         $this->webSdkConfigurationProvider = $this->createMock(PayPalWebSdkConfigurationProviderInterface::class);
         $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
-        $this->orderTokenAssigner = $this->createMock(OrderTokenAssignerInterface::class);
-        $this->orderManager = $this->createMock(ObjectManager::class);
 
         $this->channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($this->channel);
@@ -101,8 +93,6 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->localeProcessor,
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
-            $this->orderTokenAssigner,
-            $this->orderManager,
         );
     }
 
@@ -188,54 +178,52 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     /** @test */
-    public function it_assigns_and_persists_a_token_when_the_cart_page_order_has_none(): void
-    {
-        $order = $this->createMock(OrderInterface::class);
-        $order->method('getTokenValue')->willReturn(null);
-        $this->orderRepository->method('find')->willReturn($order);
-
-        $this->orderTokenAssigner->expects(self::once())->method('assignTokenValueIfNotSet')->with($order);
-        $this->orderManager->expects(self::once())->method('flush');
-
-        $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
-    }
-
-    /** @test */
-    public function it_does_not_flush_when_the_cart_page_order_already_has_a_token(): void
+    public function it_renders_the_cart_page_placement_when_the_order_already_has_a_token(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getTokenValue')->willReturn('EXISTING_TOKEN');
         $this->orderRepository->method('find')->willReturn($order);
 
-        $this->orderTokenAssigner->expects(self::never())->method('assignTokenValueIfNotSet');
-        $this->orderManager->expects(self::never())->method('flush');
+        $response = $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
-        $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+        self::assertSame(200, $response->getStatusCode());
     }
 
     /** @test */
-    public function it_assigns_and_persists_a_token_when_the_payment_page_order_has_none(): void
+    public function it_throws_when_the_cart_page_order_has_no_token(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getTokenValue')->willReturn(null);
+        $order->method('getId')->willReturn(42);
         $this->orderRepository->method('find')->willReturn($order);
 
-        $this->orderTokenAssigner->expects(self::once())->method('assignTokenValueIfNotSet')->with($order);
-        $this->orderManager->expects(self::once())->method('flush');
+        $this->expectException(\RuntimeException::class);
 
-        $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+        $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 42]));
     }
 
     /** @test */
-    public function it_does_not_flush_when_the_payment_page_order_already_has_a_token(): void
+    public function it_renders_the_payment_page_placement_when_the_order_already_has_a_token(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getTokenValue')->willReturn('EXISTING_TOKEN');
         $this->orderRepository->method('find')->willReturn($order);
 
-        $this->orderTokenAssigner->expects(self::never())->method('assignTokenValueIfNotSet');
-        $this->orderManager->expects(self::never())->method('flush');
+        $response = $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
-        $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+        self::assertSame(200, $response->getStatusCode());
+    }
+
+    /** @test */
+    public function it_throws_when_the_payment_page_order_has_no_token(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getTokenValue')->willReturn(null);
+        $order->method('getId')->willReturn(42);
+        $this->orderRepository->method('find')->willReturn($order);
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 42]));
     }
 }

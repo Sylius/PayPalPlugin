@@ -28,5 +28,14 @@
 
             <tag name="kernel.event_listener" event="workflow.sylius_payment.transition.refund" priority="100" />
         </service>
+
+        <service id="sylius_paypal.listener.workflow.assign_order_token_on_checkout" class="Sylius\PayPalPlugin\EventListener\Workflow\AssignOrderTokenOnCheckoutListener">
+            <argument type="service" id="Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface" />
+            <argument type="service" id="sylius.manager.order" />
+
+            <tag name="kernel.event_listener" event="workflow.sylius_order_checkout.completed.address" priority="100" />
+            <tag name="kernel.event_listener" event="workflow.sylius_order_checkout.completed.select_shipping" priority="100" />
+            <tag name="kernel.event_listener" event="workflow.sylius_order_checkout.completed.skip_shipping" priority="100" />
+        </service>
     </services>
 </container>
