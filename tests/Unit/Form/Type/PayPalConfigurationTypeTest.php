@@ -31,6 +31,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
         self::assertTrue($form->get('pay_later_enabled')->getData());
+        self::assertTrue($form->get('venmo_enabled')->getData());
         self::assertTrue($form->get('messaging_enabled')->getData());
     }
 
@@ -43,6 +44,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
 
         self::assertTrue($form->isValid());
         self::assertFalse($form->getData()['pay_later_enabled']);
+        self::assertFalse($form->getData()['venmo_enabled']);
         self::assertFalse($form->getData()['messaging_enabled']);
     }
 
@@ -53,11 +55,13 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
 
         $form->submit(array_merge($this->submittedFields(), [
             'pay_later_enabled' => '1',
+            'venmo_enabled' => '1',
             'messaging_enabled' => '1',
         ]));
 
         self::assertTrue($form->isValid());
         self::assertTrue($form->getData()['pay_later_enabled']);
+        self::assertTrue($form->getData()['venmo_enabled']);
         self::assertTrue($form->getData()['messaging_enabled']);
     }
 

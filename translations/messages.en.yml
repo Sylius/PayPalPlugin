@@ -25,3 +25,4 @@ sylius_paypal:
     sftp_username: 'SFTP Username'
     share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
     tender_type: 'Refunded to the PayPal wallet'
+    venmo_enabled: 'Enable Venmo'
