@@ -26,9 +26,25 @@ final class PayPalExtension extends AbstractExtension
 {
     public function __construct(
         private readonly bool $sandbox,
-        private readonly PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
-        private readonly ChannelContextInterface $channelContext,
+        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private readonly ?ChannelContextInterface $channelContext = null,
     ) {
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $fundingSourcesConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->channelContext) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $channelContext to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function getFunctions(): array
@@ -47,13 +63,16 @@ final class PayPalExtension extends AbstractExtension
 
     public function isMessagingEnabled(): bool
     {
+        if (null === $this->fundingSourcesConfigurationProvider || null === $this->channelContext) {
+            return false;
+        }
+
         try {
             /** @var ChannelInterface $channel */
             $channel = $this->channelContext->getChannel();
 
             return $this->fundingSourcesConfigurationProvider->isMessagingEnabled($channel);
         } catch (\InvalidArgumentException) {
-            // No PayPal payment method configured for this channel yet.
             return false;
         }
     }

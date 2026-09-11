@@ -58,4 +58,12 @@ final class PayPalExtensionTest extends TestCase
 
         self::assertFalse($this->extension->isMessagingEnabled());
     }
+
+    #[Test]
+    public function it_returns_false_when_constructed_without_the_new_dependencies(): void
+    {
+        $extension = new PayPalExtension(true);
+
+        self::assertFalse($extension->isMessagingEnabled());
+    }
 }
