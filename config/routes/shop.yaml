@@ -13,6 +13,16 @@ sylius_paypal_shop_create_paypal_order:
 sylius_paypal_shop_create_paypal_order_from_cart:
     path: /create-pay-pal-order-from-cart/{tokenValue}
     methods: [POST]
+    requirements:
+        tokenValue: '(?!\d+(?:/|$)).+'
+    defaults:
+        _controller: sylius_paypal.controller.create_paypal_order_from_cart
+
+sylius_paypal_shop_create_paypal_order_from_cart_legacy:
+    path: /create-pay-pal-order-from-cart/{id}
+    methods: [POST]
+    requirements:
+        id: '\d+'
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_cart
 
@@ -37,12 +47,32 @@ sylius_paypal_shop_update_paypal_order:
 sylius_paypal_shop_create_paypal_order_from_payment_page:
     path: /pay-pal-order-payment-page/{tokenValue}/create
     methods: [POST]
+    requirements:
+        tokenValue: '(?!\d+(?:/|$)).+'
+    defaults:
+        _controller: sylius_paypal.controller.create_paypal_order_from_payment_page
+
+sylius_paypal_shop_create_paypal_order_from_payment_page_legacy:
+    path: /pay-pal-order-payment-page/{id}/create
+    methods: [POST]
+    requirements:
+        id: '\d+'
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_payment_page
 
 sylius_paypal_shop_complete_paypal_order_from_payment_page:
     path: /pay-pal-order-payment-page/{tokenValue}/complete
     methods: [POST]
+    requirements:
+        tokenValue: '(?!\d+(?:/|$)).+'
+    defaults:
+        _controller: sylius_paypal.controller.complete_paypal_order_from_payment_page
+
+sylius_paypal_shop_complete_paypal_order_from_payment_page_legacy:
+    path: /pay-pal-order-payment-page/{id}/complete
+    methods: [POST]
+    requirements:
+        id: '\d+'
     defaults:
         _controller: sylius_paypal.controller.complete_paypal_order_from_payment_page
 

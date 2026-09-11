@@ -39,9 +39,11 @@ use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Sylius\Resource\Factory\FactoryInterface;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ProcessPayPalOrderAction
@@ -69,6 +71,7 @@ final readonly class ProcessPayPalOrderAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?RepositoryInterface $shippingMethodRepository = null,
         ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+        private ?bool $legacyIdRoutesEnabled = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -120,6 +123,14 @@ final readonly class ProcessPayPalOrderAction
                 self::class,
             );
         }
+        if (null === $this->legacyIdRoutesEnabled) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $legacyIdRoutesEnabled to "%s" constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
 
         $this->expressOrderAddressFactory = $expressOrderAddressFactory ?? new ExpressOrderAddressFactory($this->addressFactory, null);
     }
@@ -130,7 +141,7 @@ final readonly class ProcessPayPalOrderAction
         $payPalOrderId = $payload->getString('payPalOrderId');
         $tokenValue = $payload->getString('tokenValue');
 
-        $order = $this->orderProvider->provideOrderByTokenIncludingCart($tokenValue);
+        $order = $this->resolveOrder($payload, $tokenValue);
         $orderId = $order->getId();
 
         /** @var PaymentInterface|null $payment */
@@ -355,5 +366,19 @@ final readonly class ProcessPayPalOrderAction
         }
 
         return $totalAmount;
+    }
+
+    /** @param InputBag<bool|float|int|string|null> $payload */
+    private function resolveOrder(InputBag $payload, string $tokenValue): OrderInterface
+    {
+        if ('' !== $tokenValue) {
+            return $this->orderProvider->provideOrderByTokenIncludingCart($tokenValue);
+        }
+
+        if (true !== $this->legacyIdRoutesEnabled) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->orderProvider->provideOrderById($payload->getInt('orderId'));
     }
 }

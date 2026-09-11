@@ -35,6 +35,7 @@ final class Configuration implements ConfigurationInterface
             ->children()
                 ->booleanNode('sandbox')->defaultTrue()->end()
                 ->scalarNode('test_buyer_country')->defaultNull()->end()
+                ->booleanNode('legacy_id_routes_enabled')->defaultFalse()->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()
                     ->children()

@@ -62,9 +62,6 @@ final readonly class OrderProvider implements OrderProviderInterface
 
     public function provideOrderByTokenIncludingCart(string $tokenValue): OrderInterface
     {
-        // Unlike provideOrderByToken() (excludes cart state) and provideCartByToken() (cart state only),
-        // ProcessPayPalOrderAction must also resolve an order that just completed, in case the buyer's
-        // capture request is retried after it already succeeded - so this one is deliberately unfiltered.
         /** @var OrderInterface|null $order */
         $order = $this->orderRepository->findOneBy(['tokenValue' => $tokenValue]);
 
