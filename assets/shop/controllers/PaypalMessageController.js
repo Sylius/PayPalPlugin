@@ -3,7 +3,7 @@ import { loadWebSdkOnce } from '../scripts/paypal-web-sdk';
 
 export default class extends Controller {
     static values = {
-        amount: Number,
+        amount: String,
         currencyCode: String,
         scriptUrl: String,
         instanceConfig: Object,
