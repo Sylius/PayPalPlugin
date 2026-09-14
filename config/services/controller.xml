@@ -113,10 +113,15 @@
         </service>
 
         <service id="sylius_paypal.controller.pay_with_paypal_form" class="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">
-            <argument key="$twig" type="service" id="twig" />
-            <argument key="$paymentRepository" type="service" id="sylius.repository.payment" />
-            <argument key="$contextProvider" type="service" id="sylius_paypal.provider.paypal_payment_page_context" />
-            <argument key="$router" type="service" id="router" />
+            <argument type="service" id="twig" />
+            <argument type="service" id="sylius.repository.payment" />
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument type="service" id="sylius_paypal.provider.paypal_payment_page_context" />
+            <argument type="service" id="router" />
         </service>
 
         <service id="sylius_paypal.controller.process_paypal_order" class="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
