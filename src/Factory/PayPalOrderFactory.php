@@ -13,20 +13,25 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
-use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 {
+    private ExperienceContextProviderInterface $experienceContextProvider;
+
     public function __construct(
         private PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
         private ?UrlGeneratorInterface $router = null,
         private ?PayPalShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
+        ?ExperienceContextProviderInterface $experienceContextProvider = null,
     ) {
+        $this->experienceContextProvider = $experienceContextProvider ?? new ExperienceContextProvider();
     }
 
     public function create(PaymentInterface $payment, string $referenceId): PayPalOrder
@@ -40,34 +45,17 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
 
-        return new PayPalOrder(
+        $experienceContext = $this->experienceContextProvider->provide(
             $order,
-            $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
-            PayPalOrder::INTENT_CAPTURE,
-            $this->provideBrandName($order),
-            $this->provideLocaleCode($order),
             $payerReturnUrl,
             $payerReturnUrl,
             $this->shippingCallbackUrlProvider?->provide(),
         );
-    }
 
-    private function provideBrandName(OrderInterface $order): ?string
-    {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-
-        return $channel?->getName();
-    }
-
-    private function provideLocaleCode(OrderInterface $order): ?string
-    {
-        $localeCode = $order->getLocaleCode();
-        if (null === $localeCode) {
-            return null;
-        }
-
-        // PayPal expects a BCP 47 locale (e.g. "en-US"), while Sylius stores it as "en_US".
-        return str_replace('_', '-', $localeCode);
+        return new PayPalOrder(
+            $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
+            PayPalOrder::INTENT_CAPTURE,
+            $experienceContext,
+        );
     }
 }

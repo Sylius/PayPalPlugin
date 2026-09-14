@@ -111,15 +111,11 @@ final class PayPalOrderFactoryTest extends TestCase
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
     }
 
-    public function test_it_enriches_the_experience_context_with_the_channel_name_and_normalised_locale(): void
+    public function test_it_omits_the_brand_name_and_normalises_the_locale(): void
     {
-        $channel = $this->createMock(\Sylius\Component\Core\Model\ChannelInterface::class);
-        $channel->method('getName')->willReturn('BRAND_NAME');
-
         $order = $this->createMock(OrderInterface::class);
         $order->method('isShippingRequired')->willReturn(true);
         $order->method('getShippingAddress')->willReturn(null);
-        $order->method('getChannel')->willReturn($channel);
         $order->method('getLocaleCode')->willReturn('en_US');
 
         $payment = $this->createMock(PaymentInterface::class);
@@ -130,11 +126,11 @@ final class PayPalOrderFactoryTest extends TestCase
             ->toArray()['payment_source']['paypal']['experience_context']
         ;
 
-        self::assertSame('BRAND_NAME', $experienceContext['brand_name']);
+        self::assertArrayNotHasKey('brand_name', $experienceContext);
         self::assertSame('en-US', $experienceContext['locale']);
     }
 
-    public function test_it_always_addresses_the_order_through_the_experience_context(): void
+    public function test_it_keeps_the_legacy_application_context_when_the_address_is_already_provided(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('isShippingRequired')->willReturn(true);
@@ -145,14 +141,10 @@ final class PayPalOrderFactoryTest extends TestCase
 
         $payPalOrder = $this->factory->create($payment, 'REFERENCE_ID')->toArray();
 
-        self::assertArrayNotHasKey('application_context', $payPalOrder);
+        self::assertArrayNotHasKey('payment_source', $payPalOrder);
         self::assertSame(
-            'SET_PROVIDED_ADDRESS',
-            $payPalOrder['payment_source']['paypal']['experience_context']['shipping_preference'],
-        );
-        self::assertSame(
-            'RETAIN_CONTACT_INFO',
-            $payPalOrder['payment_source']['paypal']['experience_context']['contact_preference'],
+            ['shipping_preference' => 'SET_PROVIDED_ADDRESS', 'user_action' => 'PAY_NOW'],
+            $payPalOrder['application_context'],
         );
     }
 

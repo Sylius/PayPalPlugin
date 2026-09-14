@@ -14,7 +14,7 @@
    behind it** — the button will not appear, or will appear inert, with no error. Diff your override against
    the new templates in this release and update it, or remove the override if it's no longer needed.
 
-1. #### The button JavaScript now ships as a Stimulus controller, which your shop has to build.
+2. #### The button JavaScript now ships as a Stimulus controller, which your shop has to build.
 
    The placements render `data-controller="sylius--paypal-plugin--paypal-web-sdk"` instead of an inline
    `<script>` block. The controller lives in this package's own npm package (`assets/shop`), so **an existing
@@ -41,7 +41,7 @@
    Then `yarn install && yarn build`. Verify by loading a product page and checking that the browser fetches
    the controller chunk and the PayPal button loses its `hidden` attribute.
 
-1. #### PayPal now offers the shop's real shipping methods inside the wallet.
+3. #### PayPal now offers the shop's real shipping methods inside the wallet.
 
    The cart and product ("shortcut") placements reach PayPal without a shipping address, so the buyer picks
    one inside the wallet. Until now the plugin priced that address through a client-side handler that wrote
@@ -119,7 +119,7 @@
    `updateOrderUrl` and `availableCountries` values from the `stimulus_controller()` call; they are no longer
    read. Leaving them in place is harmless.
 
-1. #### Orders addressed in the PayPal wallet now name their payment source.
+4. #### Orders addressed in the PayPal wallet now name their payment source.
 
    Cart and product placements send `payment_source.paypal.experience_context` instead of the deprecated
    `application_context`, because PayPal reads the shipping callback configuration only from there. The two
@@ -154,7 +154,7 @@
    Not passing it is deprecated and will be prohibited in 3.0; until then the action falls back to the
    default provider, so it keeps accepting both statuses.
 
-1. #### The following routes are deprecated and will be removed in 3.0.
+5. #### The following routes are deprecated and will be removed in 3.0.
 
    Both are superseded and have no caller left in the package. They keep working unchanged in 2.1 and only
    emit a deprecation notice.
@@ -164,7 +164,7 @@
    | `sylius_paypal_shop_cancel_last_payment` | none — the payment page no longer reaps abandoned attempts from the browser |
    | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_order_shipping_callback` |
 
-1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
+6. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
    The same value used to be spelled three different ways, and `orderID` meant two different things depending
    on the endpoint — the PayPal order id from the cart placement, the *Sylius* order id from
@@ -187,7 +187,7 @@
    `sylius_paypal_shop_create_paypal_order` follows the same pattern: it gained `orderId` next to the
    `orderID` it has always returned, with the same value and the same meaning.
 
-1. #### Express checkout completes the purchase in the PayPal wallet.
+7. #### Express checkout completes the purchase in the PayPal wallet.
 
    The PayPal buttons on the cart and product pages used to be a shortcut into the regular checkout: after the
    buyer approved the payment in the wallet, they landed on the Sylius checkout summary and had to press
@@ -214,7 +214,7 @@
    PayPal and nothing on the order is touched, which is what separates this from an amount mismatch: that one
    still answers `200`, because the request *is* processed and the payment really is detached.
 
-1. #### The cart and product page button templates no longer receive `completeUrl`.
+8. #### The cart and product page button templates no longer receive `completeUrl`.
 
    `@SyliusPayPalPlugin/pay_from_cart_page.html.twig` and `@SyliusPayPalPlugin/pay_from_product_page.html.twig`
    redirected to a hardcoded checkout summary URL after approval. They now follow the `return_url` returned by
@@ -228,7 +228,7 @@
    Without that the buyer is sent to the checkout summary of an order that is already completed, which is no
    longer a cart, and with `strict_variables` enabled the template fails to render on the undefined variable.
 
-1. #### The following constructor signatures have gained new optional (nullable) arguments.
+9. #### The following constructor signatures have gained new optional (nullable) arguments.
 
    Following this package's existing deprecation pattern, not passing them is deprecated and will be
    required in 3.0. If you instantiate, decorate, or redefine any of these services with an explicit
@@ -336,7 +336,7 @@
    the providers it already holds. For `CreateOrderApi` that means an order carrying neither the return and
    cancel URLs nor the shipping callback, so the wallet falls back to its plain flow with no shipping options.
 
-1. #### The PayPal order payload is now assembled by factories.
+10. #### The PayPal order payload is now assembled by factories.
 
    `Sylius\PayPalPlugin\Api\CreateOrderApi` and `Sylius\PayPalPlugin\Api\UpdateOrderApi` no longer read the
    order, the gateway config or the router themselves — they ask a factory for the payload and send it. Two
@@ -357,7 +357,7 @@
    This is where to hook in if you need to change what reaches PayPal — overriding `CreateOrderApi` for that
    is no longer necessary.
 
-1. #### The plugin now caches in its own pool instead of the application's `cache.app`.
+11. #### The plugin now caches in its own pool instead of the application's `cache.app`.
 
    Both places where the plugin caches — the PayPal callback certificates used to verify the shipping
    callback signature, and the cooldown that rate-limits webhook id re-resolution — wrote to `cache.app`,
@@ -370,9 +370,10 @@
 
    Two consequences worth knowing:
 
-   - Existing entries are not migrated. The new namespace starts cold, which costs one extra certificate
+   Existing entries are not migrated. The new namespace starts cold, which costs one extra certificate
      download and resets the webhook id refresh cooldown once.
-   - Clearing `sylius_paypal.cache` drops both the certificates and the cooldown locks, which allows one
+
+   Clearing `sylius_paypal.cache` drops both the certificates and the cooldown locks, which allows one
      additional webhook id refresh burst. Clear it per concern only if you split the pool yourself.
 
    To put the plugin's cache on a different backend than the rest of the application, redefine the service
@@ -498,41 +499,53 @@
    for. Decorate or replace it to change what the page receives without replacing the controller.
 
 1. #### The created PayPal order now carries full line items, an amount breakdown, `custom_id`/`invoice_id`,
-   and `experience_context`.
+   and an enriched `experience_context`.
 
    Following the PayPal SDD, the `v2/checkout/orders` payload - now assembled by `PayPalOrderFactory` and
    `PayPalPurchaseUnitFactory` (see above) - changed shape:
 
-   - **`payment_source.paypal.experience_context` replaces `application_context`.** The order now sends
-     `brand_name` (the channel name), `locale`, `shipping_preference`, `contact_preference`, `user_action`,
-     `payment_method_preference`, an `app_switch_preference`, and identical `return_url`/`cancel_url` (the
-     absolute payer return URL - they must be identical for app switch to work). When PayPal can reach the
-     shipping callback, the block also carries `order_update_callback_config`. Preferences follow the flow: a
-     known shipping address yields `SET_PROVIDED_ADDRESS` + `RETAIN_CONTACT_INFO`, an unknown one (shortcut
-     placements) yields `GET_FROM_FILE` + `UPDATE_CONTACT_INFO`, and a non-shippable order yields `NO_SHIPPING`.
-   - **Each `purchase_units[].items[]` entry now includes `category`, and, when resolvable, `sku` (variant
+   **The wallet flow uses an enriched `payment_source.paypal.experience_context`; every other flow keeps
+     `application_context`.** When PayPal supplies the shipping address (the shortcut placements, shipping
+     preference `GET_FROM_FILE`) the order sends `experience_context` with `locale`, `shipping_preference`,
+     `contact_preference`, `user_action`, `payment_method_preference`, an `app_switch_preference`, identical
+     `return_url`/`cancel_url` (the absolute payer return URL - they must be identical for app switch to work)
+     and, when PayPal can reach it, `order_update_callback_config`. Every other case - a known shipping
+     address (`SET_PROVIDED_ADDRESS`, including the on-page card fields) or a non-shippable order
+     (`NO_SHIPPING`) - keeps the legacy `application_context` with `shipping_preference` + `user_action`, so
+     the standard checkout is unaffected. The two blocks are mutually exclusive; PayPal rejects an order that
+     carries both.
+   
+   **`brand_name` is not sent by default.** PayPal then shows the business name registered on the merchant's
+     account. The whole `experience_context` is built by
+     `Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface`
+     (`sylius_paypal.provider.experience_context`); decorate it to add a `brand_name` or override any other key
+     without reimplementing order creation.
+   
+   **Each `purchase_units[].items[]` entry now includes `category`, and, when resolvable, `sku` (variant
      code), `description` (product short description) and `url` (product page).** `category` is
      `DIGITAL_GOODS` for orders that do not require shipping and `PHYSICAL_GOODS` otherwise. An
      integration using the partner (platform) fee functionality must keep `PHYSICAL_GOODS` for digital goods;
      this package does not use partner fees, so digital orders are marked `DIGITAL_GOODS`.
-   - **`custom_id` and a per-attempt-unique `invoice_id`.** `custom_id` carries the stable payment reference
+   
+   **`custom_id` and a per-attempt-unique `invoice_id`.** `custom_id` carries the stable payment reference
      number so PayPal notifications can be resolved back to the Sylius payment; `invoice_id` appends the
      per-attempt reference id to that number so a retried payment never collides on the value PayPal rejects
      when duplicated.
 
-1. #### `PayPalItemDataProvider` gained an optional `router` argument.
+13. #### `PayPalItemDataProvider` gained an optional `router` argument.
 
    `Sylius\PayPalPlugin\Provider\PayPalItemDataProvider` now takes a
    `Symfony\Component\Routing\Generator\UrlGeneratorInterface` (the `router` service) as an optional last
    constructor argument, used to build the item product URLs. Omitting it is deprecated and the provider then
    skips the `url` field; if you instantiate or decorate the provider yourself, pass the `router` service.
 
-1. #### `PayPalPurchaseUnit` and `PayPalOrder` model constructors gained optional arguments.
+14. #### `PayPalPurchaseUnit` and `PayPalOrder` model constructors changed.
 
    `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit` gained a trailing optional `?string $customId = null`
    argument; existing positional calls keep working.
 
-   `Sylius\PayPalPlugin\Model\PayPalOrder` gained optional `?string $brandName`, `?string $localeCode`,
-   `?string $returnUrl`, `?string $cancelUrl` and `?string $shippingCallbackUrl` arguments after `$intent`, and
-   `toArray()` emits `payment_source.paypal.experience_context` instead of `application_context`. Existing
-   positional calls keep working; the enriched fields are simply omitted when their arguments are `null`.
+   `Sylius\PayPalPlugin\Model\PayPalOrder` no longer takes the order and the individual context fields. It is
+   now constructed with `(PayPalPurchaseUnit $payPalPurchaseUnit, string $intent, array $experienceContext = [])`
+   and its `toArray()` chooses `payment_source.paypal.experience_context` (when the context's
+   `shipping_preference` is `GET_FROM_FILE`) or `application_context` otherwise. Build the `experienceContext`
+   through `ExperienceContextProviderInterface`. If you construct `PayPalOrder` yourself, update the call.

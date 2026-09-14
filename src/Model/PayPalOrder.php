@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
-use Sylius\Component\Core\Model\OrderInterface;
-
 class PayPalOrder
 {
     public const INTENT_CAPTURE = 'CAPTURE';
@@ -27,79 +25,52 @@ class PayPalOrder
 
     public const USER_ACTION_PAY_NOW = 'PAY_NOW';
 
+    public const PAYMENT_METHOD_PREFERENCE_IMMEDIATE = 'IMMEDIATE_PAYMENT_REQUIRED';
+
     public const CALLBACK_EVENT_SHIPPING_ADDRESS = 'SHIPPING_ADDRESS';
+
+    public const KEY_SHIPPING_PREFERENCE = 'shipping_preference';
 
     public const RETAIN_CONTACT_INFO = 'RETAIN_CONTACT_INFO';
 
     public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';
 
+    /**
+     * @param array<string, mixed> $experienceContext
+     */
     public function __construct(
-        private readonly OrderInterface $order,
         private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
         private readonly string $intent,
-        private readonly ?string $brandName = null,
-        private readonly ?string $localeCode = null,
-        private readonly ?string $returnUrl = null,
-        private readonly ?string $cancelUrl = null,
-        private readonly ?string $shippingCallbackUrl = null,
+        private readonly array $experienceContext = [],
     ) {
     }
 
     public function toArray(): array
     {
-        $experienceContext = array_filter(
-            [
-                'brand_name' => $this->brandName,
-                'locale' => $this->localeCode,
-                'shipping_preference' => $this->getShippingPreference(),
-                'contact_preference' => $this->getContactPreference(),
-                'user_action' => self::USER_ACTION_PAY_NOW,
-                'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
-                // return_url and cancel_url must be identical for app switch to function.
-                'return_url' => $this->returnUrl,
-                'cancel_url' => $this->cancelUrl,
-                'app_switch_preference' => [
-                    'launch_paypal_app' => true,
-                ],
-            ],
-            static fn (mixed $value): bool => null !== $value,
-        );
-
-        if (null !== $this->shippingCallbackUrl) {
-            $experienceContext['order_update_callback_config'] = [
-                'callback_events' => [self::CALLBACK_EVENT_SHIPPING_ADDRESS],
-                'callback_url' => $this->shippingCallbackUrl,
-            ];
-        }
-
-        return [
+        $payPalOrder = [
             'intent' => $this->intent,
-            'payment_source' => [
-                'paypal' => [
-                    'experience_context' => $experienceContext,
-                ],
-            ],
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
         ];
-    }
 
-    private function getShippingPreference(): string
-    {
-        if ($this->order->isShippingRequired()) {
-            if (null !== $this->order->getShippingAddress()) {
-                return self::PROVIDED_ADDRESS;
-            }
+        $shippingPreference = $this->experienceContext[self::KEY_SHIPPING_PREFERENCE] ?? self::NO_SHIPPING;
 
-            return self::PAYPAL_ADDRESS;
+        if (self::PAYPAL_ADDRESS === $shippingPreference) {
+            $payPalOrder['payment_source'] = [
+                'paypal' => [
+                    'experience_context' => $this->experienceContext,
+                ],
+            ];
+
+            return $payPalOrder;
         }
 
-        return self::NO_SHIPPING;
-    }
+        $payPalOrder['application_context'] = [
+            self::KEY_SHIPPING_PREFERENCE => $shippingPreference,
+            'user_action' => self::USER_ACTION_PAY_NOW,
+        ];
 
-    private function getContactPreference(): string
-    {
-        return null !== $this->order->getShippingAddress() ? self::RETAIN_CONTACT_INFO : self::UPDATE_CONTACT_INFO;
+        return $payPalOrder;
     }
 }
