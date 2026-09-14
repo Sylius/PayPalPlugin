@@ -414,8 +414,8 @@
    ```json
    "@sylius/paypal-plugin": {
        "paypal-web-sdk": { "enabled": true, "fetch": "lazy" },
-       "paypal-wallet-button": { "enabled": true, "fetch": "lazy" },
-       "paypal-card-fields": { "enabled": true, "fetch": "lazy" }
+       "paypal-payment-wallet-button": { "enabled": true, "fetch": "lazy" },
+       "paypal-payment-card-fields": { "enabled": true, "fetch": "lazy" }
    }
    ```
 

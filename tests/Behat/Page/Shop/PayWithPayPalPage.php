@@ -45,9 +45,9 @@ final class PayWithPayPalPage extends SyliusPage
     protected function getDefinedElements(): array
     {
         return array_merge(parent::getDefinedElements(), [
-            'card_fields' => '[data-controller~="sylius--paypal-plugin--paypal-card-fields"]',
+            'card_fields' => '[data-controller~="sylius--paypal-plugin--paypal-payment-card-fields"]',
             'legacy_paypal_sdk' => 'script[src*="paypal.com/sdk/js"]',
-            'paypal_button' => '[data-controller~="sylius--paypal-plugin--paypal-wallet-button"]',
+            'paypal_button' => '[data-controller~="sylius--paypal-plugin--paypal-payment-wallet-button"]',
             'shop_layout_body' => 'body[data-route="sylius_paypal_shop_pay_with_paypal_form"]',
         ]);
     }

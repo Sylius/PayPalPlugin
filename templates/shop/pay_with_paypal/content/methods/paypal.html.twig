@@ -1,7 +1,7 @@
 {% set context = hookable_metadata.context %}
 
 <div
-    {{ stimulus_controller('@sylius/paypal-plugin/paypal-wallet-button', {
+    {{ stimulus_controller('@sylius/paypal-plugin/paypal-payment-wallet-button', {
         scriptUrl: context.webSdkScriptUrl,
         instanceConfig: context.webSdkInstanceConfig,
         currencyCode: context.currency,
@@ -13,7 +13,7 @@
     class="mb-4"
 >
     <paypal-button
-        {{ stimulus_target('@sylius/paypal-plugin/paypal-wallet-button', 'button') }}
+        {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-wallet-button', 'button') }}
         type="pay"
         class="paypal-gold"
         hidden
