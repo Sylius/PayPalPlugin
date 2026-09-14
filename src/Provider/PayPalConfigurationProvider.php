@@ -45,7 +45,7 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
 
     public function isPayLaterEnabled(ChannelInterface $channel): bool
     {
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['paylater_enabled'] ?? true);
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['pay_later_enabled'] ?? true);
     }
 
     public function isMessagingEnabled(ChannelInterface $channel): bool

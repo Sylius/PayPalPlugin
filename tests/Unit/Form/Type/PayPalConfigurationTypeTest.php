@@ -30,7 +30,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
-        self::assertTrue($form->get('paylater_enabled')->getData());
+        self::assertTrue($form->get('pay_later_enabled')->getData());
         self::assertTrue($form->get('messaging_enabled')->getData());
     }
 
@@ -42,7 +42,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form->submit($this->submittedFields());
 
         self::assertTrue($form->isValid());
-        self::assertFalse($form->getData()['paylater_enabled']);
+        self::assertFalse($form->getData()['pay_later_enabled']);
         self::assertFalse($form->getData()['messaging_enabled']);
     }
 
@@ -52,12 +52,12 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
         $form->submit(array_merge($this->submittedFields(), [
-            'paylater_enabled' => '1',
+            'pay_later_enabled' => '1',
             'messaging_enabled' => '1',
         ]));
 
         self::assertTrue($form->isValid());
-        self::assertTrue($form->getData()['paylater_enabled']);
+        self::assertTrue($form->getData()['pay_later_enabled']);
         self::assertTrue($form->getData()['messaging_enabled']);
     }
 

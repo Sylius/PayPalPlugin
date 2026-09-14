@@ -6,7 +6,7 @@
 
     <paypal-message
         {{ stimulus_controller('@sylius/paypal-plugin/paypal-message', {
-            amount: order.total / 100,
+            amount: (order.total / 100)|number_format(2, '.', ''),
             currencyCode: order.currencyCode,
             scriptUrl: sylius_paypal_web_sdk_script_url(),
             instanceConfig: sylius_paypal_web_sdk_instance_config('checkout'),

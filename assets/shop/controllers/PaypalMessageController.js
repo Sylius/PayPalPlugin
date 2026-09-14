@@ -17,12 +17,13 @@ export default class extends Controller {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
+            const sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
+
             await customElements.whenDefined('paypal-message');
             await this.element.updateComplete;
             this.element.amount = this.amountValue;
             this.element.currencyCode = this.currencyCodeValue;
 
-            const sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
             const messagesInstance = sdkInstance.createPayPalMessages();
 
             await messagesInstance.fetchContent(this.element.getFetchContentOptions());
