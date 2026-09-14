@@ -313,6 +313,16 @@
         <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />
 
         <service
+            id="sylius_paypal.provider.paypal_payment_page_context"
+            class="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider"
+        >
+            <argument type="service" id="sylius_paypal.provider.paypal_web_sdk_configuration" />
+            <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.processor.locale" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface" alias="sylius_paypal.provider.paypal_payment_page_context" />
+
+        <service
             id="sylius_paypal.provider.uuid"
             class="Sylius\PayPalPlugin\Provider\UuidProvider"
         />

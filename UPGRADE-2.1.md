@@ -483,9 +483,16 @@
         }
    ```
 
-   `PayWithPayPalFormAction` gained `?PayPalWebSdkConfigurationProviderInterface` and a `?UrlGeneratorInterface`,
-   both required to render the page. Four of its existing arguments — `AvailableCountriesProviderInterface`,
-   `CacheAuthorizeClientApiInterface`, `IdentityApiInterface` and `PayPalConfigurationProviderInterface` —
-   are no longer used, because the page neither mints a Hosted Fields client token nor prices shipping in
-   the browser. They became nullable, **passing them is deprecated** and they will be removed in 3.0. Its
-   service definition now uses named arguments, so dropping them does not shift the remaining positions.
+   `PayWithPayPalFormAction` gained `?PayPalPaymentPageContextProviderInterface` and a
+   `?UrlGeneratorInterface`, both required to render the page. Five of its existing arguments —
+   `AvailableCountriesProviderInterface`, `CacheAuthorizeClientApiInterface`, `IdentityApiInterface`,
+   `LocaleProcessorInterface` and `PayPalConfigurationProviderInterface` — are no longer used, because the
+   page neither mints a Hosted Fields client token nor prices shipping in the browser, and everything it
+   renders now comes from the context provider. They became nullable, **passing them is deprecated** and
+   they will be removed in 3.0. Its service definition uses named arguments, so dropping them does not
+   shift the remaining positions.
+
+   `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface`
+   (`sylius_paypal.provider.paypal_payment_page_context`) builds everything the page renders: the URLs it
+   calls, the v6 instance configuration including the `card-fields` component, and the order being paid
+   for. Decorate or replace it to change what the page receives without replacing the controller.

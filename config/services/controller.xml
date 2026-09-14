@@ -115,8 +115,7 @@
         <service id="sylius_paypal.controller.pay_with_paypal_form" class="Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction">
             <argument key="$twig" type="service" id="twig" />
             <argument key="$paymentRepository" type="service" id="sylius.repository.payment" />
-            <argument key="$localeProcessor" type="service" id="sylius_paypal.processor.locale" />
-            <argument key="$webSdkConfigurationProvider" type="service" id="sylius_paypal.provider.paypal_web_sdk_configuration" />
+            <argument key="$contextProvider" type="service" id="sylius_paypal.provider.paypal_payment_page_context" />
             <argument key="$router" type="service" id="router" />
         </service>
 
