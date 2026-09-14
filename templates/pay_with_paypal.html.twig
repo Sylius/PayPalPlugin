@@ -3,16 +3,18 @@
 {% block title %}{{ 'sylius_paypal.pay_with_paypal'|trans }} | {{ parent() }}{% endblock %}
 
 {% block content %}
-    {% hook 'sylius_paypal.shop.pay_with_paypal.content' with {
-        billingAddress: billingAddress,
-        cancelPayPalPaymentUrl: cancelPayPalPaymentUrl,
-        completePayPalOrderUrl: completePayPalOrderUrl,
-        createPayPalOrderUrl: createPayPalOrderUrl,
-        currency: currency,
-        errorPayPalPaymentUrl: errorPayPalPaymentUrl,
-        order: order,
-        payment: payment,
-        webSdkInstanceConfig: webSdkInstanceConfig,
-        webSdkScriptUrl: webSdkScriptUrl,
-    } %}
+    <div class="pe-lg-5">
+        {% hook 'sylius_paypal.shop.pay_with_paypal.content' with {
+            billingAddress: billingAddress,
+            cancelPayPalPaymentUrl: cancelPayPalPaymentUrl,
+            completePayPalOrderUrl: completePayPalOrderUrl,
+            createPayPalOrderUrl: createPayPalOrderUrl,
+            currency: currency,
+            errorPayPalPaymentUrl: errorPayPalPaymentUrl,
+            order: order,
+            payment: payment,
+            webSdkInstanceConfig: webSdkInstanceConfig,
+            webSdkScriptUrl: webSdkScriptUrl,
+        } %}
+    </div>
 {% endblock %}
