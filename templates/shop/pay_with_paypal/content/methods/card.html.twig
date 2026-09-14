@@ -26,6 +26,7 @@
             countryCode: billingAddress.countryCode,
         },
     }) }}
+    class="position-relative"
     hidden
 >
     <form {{ stimulus_target('@sylius/paypal-plugin/paypal-card-fields', 'form') }}>
@@ -38,20 +39,28 @@
         </div>
 
         <div class="row">
-            <div class="col-6 mb-4">
+            <div class="col-6 mb-3">
                 <label class="form-label">{{ 'sylius_paypal.expiration_date'|trans }}</label>
                 <div
                     class="paypal-card-field"
                     {{ stimulus_target('@sylius/paypal-plugin/paypal-card-fields', 'expiry') }}
                 ></div>
             </div>
-            <div class="col-6 mb-4">
+            <div class="col-6 mb-3">
                 <label class="form-label">{{ 'sylius_paypal.cvv'|trans }}</label>
                 <div
                     class="paypal-card-field"
                     {{ stimulus_target('@sylius/paypal-plugin/paypal-card-fields', 'cvv') }}
                 ></div>
             </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">{{ 'sylius.form.credit_card.cardholder_name'|trans }}</label>
+            <div
+                class="paypal-card-field"
+                {{ stimulus_target('@sylius/paypal-plugin/paypal-card-fields', 'name') }}
+            ></div>
         </div>
 
         <div class="btn-list">
@@ -65,4 +74,16 @@
             ) }}
         </div>
     </form>
+
+    <div
+        {{ stimulus_target('@sylius/paypal-plugin/paypal-card-fields', 'loader') }}
+        class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75"
+        hidden
+    >
+        <div class="d-flex align-items-center justify-content-center h-100">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">{{ 'sylius.ui.loading'|trans }}</span>
+            </div>
+        </div>
+    </div>
 </div>

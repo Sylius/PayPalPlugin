@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import { paymentPageSession } from '../scripts/paypal-payment-page';
 
 export default class extends Controller {
-    static targets = ['form', 'number', 'expiry', 'cvv'];
+    static targets = ['form', 'loader', 'number', 'expiry', 'cvv', 'name'];
 
     static values = {
         scriptUrl: String,
@@ -44,6 +44,7 @@ export default class extends Controller {
         this.numberTarget.appendChild(this.cardSession.createCardFieldsComponent({ type: 'number' }));
         this.expiryTarget.appendChild(this.cardSession.createCardFieldsComponent({ type: 'expiry' }));
         this.cvvTarget.appendChild(this.cardSession.createCardFieldsComponent({ type: 'cvv' }));
+        this.nameTarget.appendChild(this.cardSession.createCardFieldsComponent({ type: 'name' }));
     }
 
     async submit(session) {
@@ -110,6 +111,10 @@ export default class extends Controller {
         const submitButton = this.formTarget.querySelector('button[type="submit"]');
         if (submitButton !== null) {
             submitButton.disabled = submitting;
+        }
+
+        if (this.hasLoaderTarget) {
+            this.loaderTarget.hidden = !submitting;
         }
     }
 }
