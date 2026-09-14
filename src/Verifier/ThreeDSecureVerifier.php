@@ -35,6 +35,10 @@ final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
 
     public const LIABILITY_SHIFT_NO = 'NO';
 
+    public const LIABILITY_SHIFT_POSSIBLE = 'POSSIBLE';
+
+    public const LIABILITY_SHIFT_UNKNOWN = 'UNKNOWN';
+
     public function verify(array $paypalOrderDetails): void
     {
         $authenticationResult = $paypalOrderDetails['payment_source']['card']['authentication_result'] ?? null;

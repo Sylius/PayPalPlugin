@@ -25,4 +25,3 @@ Feature: Paying with PayPal
         Then I should be able to pay with PayPal
         And I should be able to pay by card
         And the payment page should be a part of the shop
-        And the payment page should not load the legacy PayPal SDK

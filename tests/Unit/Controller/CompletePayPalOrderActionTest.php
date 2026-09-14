@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -35,9 +36,9 @@ final class CompletePayPalOrderActionTest extends TestCase
 {
     private PaymentStateManagerInterface&MockObject $paymentStateManager;
 
-    private OrderProviderInterface&MockObject $orderProvider;
+    private OrderProviderInterface&Stub $orderProvider;
 
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
+    private CacheAuthorizeClientApiInterface&Stub $authorizeClientApi;
 
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
 
@@ -45,21 +46,21 @@ final class CompletePayPalOrderActionTest extends TestCase
 
     private FlashBagInterface&MockObject $flashBag;
 
-    private OrderInterface&MockObject $order;
+    private OrderInterface&Stub $order;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->paymentStateManager = $this->createMock(PaymentStateManagerInterface::class);
-        $this->orderProvider = $this->createMock(OrderProviderInterface::class);
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
+        $this->orderProvider = $this->createStub(OrderProviderInterface::class);
+        $this->authorizeClientApi = $this->createStub(CacheAuthorizeClientApiInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
         $this->threeDSecureVerifier = $this->createMock(ThreeDSecureVerifierInterface::class);
         $this->flashBag = $this->createMock(FlashBagInterface::class);
 
         $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
 
-        $this->order = $this->createMock(OrderInterface::class);
+        $this->order = $this->createStub(OrderInterface::class);
         $this->order->method('getTokenValue')->willReturn('ORDER_TOKEN');
         $this->orderProvider->method('provideOrderByToken')->with('ORDER_TOKEN')->willReturn($this->order);
     }
@@ -199,9 +200,9 @@ final class CompletePayPalOrderActionTest extends TestCase
         return new CompletePayPalOrderAction($this->paymentStateManager, $this->router(), $this->orderProvider);
     }
 
-    private function router(): UrlGeneratorInterface&MockObject
+    private function router(): UrlGeneratorInterface&Stub
     {
-        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router = $this->createStub(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(static fn (string $route): string => match ($route) {
             'sylius_shop_order_thank_you' => 'THANK_YOU_URL',
             'sylius_shop_order_show' => 'ORDER_SHOW_URL',
@@ -223,11 +224,11 @@ final class CompletePayPalOrderActionTest extends TestCase
         );
     }
 
-    private function payment(int $id = 1, string $state = PaymentInterface::STATE_COMPLETED): PaymentInterface&MockObject
+    private function payment(int $id = 1, string $state = PaymentInterface::STATE_COMPLETED): PaymentInterface&Stub
     {
-        $payment = $this->createMock(PaymentInterface::class);
+        $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getId')->willReturn($id);
-        $payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
+        $payment->method('getMethod')->willReturn($this->createStub(PaymentMethodInterface::class));
         $payment->method('getState')->willReturn($state);
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
 
@@ -236,7 +237,7 @@ final class CompletePayPalOrderActionTest extends TestCase
 
     private function request(?string $payPalOrderId = null): Request
     {
-        $session = $this->createMock(SessionInterface::class);
+        $session = $this->createStub(SessionInterface::class);
         $session->method('getBag')->with('flashes')->willReturn($this->flashBag);
 
         $request = new Request(

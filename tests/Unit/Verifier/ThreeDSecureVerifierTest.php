@@ -49,65 +49,121 @@ final class ThreeDSecureVerifierTest extends TestCase
 
     public function test_it_accepts_a_successful_authentication(): void
     {
-        $this->verifier->verify($this->orderDetails('Y', 'Y', 'POSSIBLE'));
+        $this->verifier->verify($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_SUCCEEDED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_POSSIBLE,
+        ));
 
         $this->expectNotToPerformAssertions();
     }
 
     public function test_it_accepts_an_attempted_authentication(): void
     {
-        $this->verifier->verify($this->orderDetails('Y', 'A', 'POSSIBLE'));
+        $this->verifier->verify($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_ATTEMPTED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_POSSIBLE,
+        ));
 
         $this->expectNotToPerformAssertions();
     }
 
     public function test_it_rejects_a_failed_authentication(): void
     {
-        self::assertFalse($this->rejectionOf($this->orderDetails('Y', 'N', 'NO'))->isRetryable());
+        $rejection = $this->rejectionOf($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_FAILED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+        ));
+
+        self::assertFalse($rejection->isRetryable());
     }
 
     public function test_it_rejects_an_authentication_the_issuer_refused(): void
     {
-        self::assertFalse($this->rejectionOf($this->orderDetails('Y', 'R', 'NO'))->isRetryable());
+        $rejection = $this->rejectionOf($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_REFUSED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+        ));
+
+        self::assertFalse($rejection->isRetryable());
     }
 
     public function test_it_asks_to_retry_an_authentication_that_could_not_be_completed(): void
     {
-        self::assertTrue($this->rejectionOf($this->orderDetails('Y', 'U', 'UNKNOWN'))->isRetryable());
+        $rejection = $this->rejectionOf($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            'U',
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+        ));
+
+        self::assertTrue($rejection->isRetryable());
     }
 
     public function test_it_asks_to_retry_a_challenge_the_buyer_did_not_finish(): void
     {
-        self::assertTrue($this->rejectionOf($this->orderDetails('Y', 'C', 'UNKNOWN'))->isRetryable());
+        $rejection = $this->rejectionOf($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            'C',
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+        ));
+
+        self::assertTrue($rejection->isRetryable());
     }
 
     public function test_it_asks_to_retry_an_unrecognised_authentication_status(): void
     {
-        self::assertTrue($this->rejectionOf($this->orderDetails('Y', 'I', 'UNKNOWN'))->isRetryable());
+        $rejection = $this->rejectionOf($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            'I',
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+        ));
+
+        self::assertTrue($rejection->isRetryable());
     }
 
     public function test_it_accepts_a_card_that_is_not_enrolled(): void
     {
-        $this->verifier->verify($this->orderDetails('N', null, 'NO'));
+        $this->verifier->verify($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_NOT_READY,
+            null,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+        ));
 
         $this->expectNotToPerformAssertions();
     }
 
     public function test_it_accepts_an_unavailable_authentication_system(): void
     {
-        $this->verifier->verify($this->orderDetails('U', null, 'NO'));
+        $this->verifier->verify($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_SYSTEM_UNAVAILABLE,
+            null,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+        ));
 
         $this->expectNotToPerformAssertions();
     }
 
     public function test_it_asks_to_retry_an_unavailable_authentication_system_without_liability_shift(): void
     {
-        self::assertTrue($this->rejectionOf($this->orderDetails('U', null, 'UNKNOWN'))->isRetryable());
+        $rejection = $this->rejectionOf($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_SYSTEM_UNAVAILABLE,
+            null,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+        ));
+
+        self::assertTrue($rejection->isRetryable());
     }
 
     public function test_it_accepts_a_bypassed_authentication(): void
     {
-        $this->verifier->verify($this->orderDetails('B', null, 'NO'));
+        $this->verifier->verify($this->orderDetails(
+            ThreeDSecureVerifier::ENROLLMENT_BYPASSED,
+            null,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+        ));
 
         $this->expectNotToPerformAssertions();
     }

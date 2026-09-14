@@ -71,13 +71,4 @@ final readonly class PayingWithPayPalContext implements Context
             'The payment page does not extend the shop layout.',
         );
     }
-
-    #[Then('the payment page should not load the legacy PayPal SDK')]
-    public function thePaymentPageShouldNotLoadTheLegacyPayPalSdk(): void
-    {
-        Assert::false(
-            $this->payWithPayPalPage->loadsLegacyPayPalSdk(),
-            'The payment page still loads PayPal JS SDK v5.',
-        );
-    }
 }

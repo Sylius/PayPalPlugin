@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -31,11 +32,11 @@ final class CreatePayPalOrderActionTest extends TestCase
 {
     private PaymentStateManagerInterface&MockObject $paymentStateManager;
 
-    private OrderProviderInterface&MockObject $orderProvider;
+    private OrderProviderInterface&Stub $orderProvider;
 
     private CapturePaymentResolverInterface&MockObject $capturePaymentResolver;
 
-    private OrderInterface&MockObject $order;
+    private OrderInterface&Stub $order;
 
     private CreatePayPalOrderAction $action;
 
@@ -43,9 +44,9 @@ final class CreatePayPalOrderActionTest extends TestCase
     {
         parent::setUp();
         $this->paymentStateManager = $this->createMock(PaymentStateManagerInterface::class);
-        $this->orderProvider = $this->createMock(OrderProviderInterface::class);
+        $this->orderProvider = $this->createStub(OrderProviderInterface::class);
         $this->capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
-        $this->order = $this->createMock(OrderInterface::class);
+        $this->order = $this->createStub(OrderInterface::class);
 
         $this->orderProvider->method('provideOrderByToken')->with('ORDER_TOKEN')->willReturn($this->order);
 
@@ -122,15 +123,15 @@ final class CreatePayPalOrderActionTest extends TestCase
         );
     }
 
-    private function payment(string $factoryName): PaymentInterface&MockObject
+    private function payment(string $factoryName): PaymentInterface&Stub
     {
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
         $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
 
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        $payment = $this->createMock(PaymentInterface::class);
+        $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getMethod')->willReturn($paymentMethod);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_NEW);
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
