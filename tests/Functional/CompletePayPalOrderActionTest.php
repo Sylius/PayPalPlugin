@@ -55,6 +55,19 @@ final class CompletePayPalOrderActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_keeps_the_order_payable_when_paypal_refuses_the_capture(): void
+    {
+        $orderId = $this->loadProcessingOrder();
+        $this->mockOrderDetailsApi($this->authenticationResult('Y', 'Y', 'POSSIBLE'));
+
+        $content = $this->completePayPalOrder();
+        $order = $this->refreshOrder($orderId);
+
+        self::assertNotSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+        self::assertNull($order->getLastPayment(PaymentInterface::STATE_COMPLETED));
+        self::assertNotNull($order->getLastPayment(PaymentInterface::STATE_NEW));
+    }
+
     public function test_it_refuses_to_capture_when_the_authentication_failed(): void
     {
         $orderId = $this->loadProcessingOrder();
@@ -79,6 +92,21 @@ final class CompletePayPalOrderActionTest extends JsonApiTestCase
         $content = $this->completePayPalOrder();
 
         self::assertStringContainsString('/pay-with-paypal/TOKEN/', $content['return_url']);
+    }
+
+    public function test_it_tells_the_buyer_on_the_payment_page_why_the_payment_did_not_go_through(): void
+    {
+        $this->loadProcessingOrder();
+        $this->mockOrderDetailsApi($this->authenticationResult('Y', 'C', 'UNKNOWN'));
+
+        $content = $this->completePayPalOrder();
+        $this->client->request('GET', $content['return_url']);
+
+        self::assertStringContainsString(
+            'data-test-sylius-flash-message',
+            (string) $this->client->getResponse()->getContent(),
+            'The payment page did not render the flash message explaining the failure.',
+        );
     }
 
     public function test_it_refuses_a_paypal_order_id_that_does_not_match_the_payment(): void

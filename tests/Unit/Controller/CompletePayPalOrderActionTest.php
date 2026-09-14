@@ -129,6 +129,18 @@ final class CompletePayPalOrderActionTest extends TestCase
         $this->action()($this->request());
     }
 
+    public function test_it_does_not_send_the_buyer_to_the_thank_you_page_when_the_capture_was_refused(): void
+    {
+        $payment = $this->payment(state: PaymentInterface::STATE_PROCESSING);
+        $this->payments(processing: $payment, new: $this->payment(id: 42));
+
+        $this->paymentStateManager->expects(self::once())->method('cancel')->with($payment);
+
+        $content = json_decode((string) $this->action()($this->request())->getContent(), true);
+
+        self::assertSame('PAY_PAGE_URL', $content['return_url']);
+    }
+
     public function test_it_answers_with_a_conflict_when_no_payment_is_being_processed(): void
     {
         $this->payments(processing: null, new: null);
@@ -211,12 +223,12 @@ final class CompletePayPalOrderActionTest extends TestCase
         );
     }
 
-    private function payment(int $id = 1): PaymentInterface&MockObject
+    private function payment(int $id = 1, string $state = PaymentInterface::STATE_COMPLETED): PaymentInterface&MockObject
     {
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getId')->willReturn($id);
         $payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
-        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $payment->method('getState')->willReturn($state);
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
 
         return $payment;

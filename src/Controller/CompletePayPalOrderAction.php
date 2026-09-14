@@ -75,7 +75,10 @@ final readonly class CompletePayPalOrderAction
             $this->verifyAuthenticationResult($payment, $payPalOrderId);
         } catch (ThreeDSecureAuthenticationFailedException $exception) {
             $this->paymentStateManager->cancel($payment);
-            $this->addErrorFlash($request, $exception);
+            $this->addErrorFlash(
+                $request,
+                $exception->isRetryable() ? 'sylius_paypal.three_d_secure_retry' : 'sylius_paypal.three_d_secure_declined',
+            );
 
             return $this->response(
                 $payment,
@@ -85,6 +88,13 @@ final readonly class CompletePayPalOrderAction
         }
 
         $this->paymentStateManager->complete($payment);
+
+        if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
+            $this->paymentStateManager->cancel($payment);
+            $this->addErrorFlash($request, 'sylius_paypal.something_went_wrong');
+
+            return $this->response($payment, $payPalOrderId, $this->payPalPageUrl($order));
+        }
 
         return $this->response(
             $payment,
@@ -111,15 +121,12 @@ final readonly class CompletePayPalOrderAction
         );
     }
 
-    private function addErrorFlash(Request $request, ThreeDSecureAuthenticationFailedException $exception): void
+    private function addErrorFlash(Request $request, string $message): void
     {
         /** @var FlashBagInterface $flashBag */
         $flashBag = $request->getSession()->getBag('flashes');
 
-        $flashBag->add(
-            'error',
-            $exception->isRetryable() ? 'sylius_paypal.three_d_secure_retry' : 'sylius_paypal.three_d_secure_declined',
-        );
+        $flashBag->add('error', $message);
     }
 
     private function payPalPageUrl(OrderInterface $order): string

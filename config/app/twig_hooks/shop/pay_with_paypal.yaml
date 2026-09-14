@@ -1,9 +1,17 @@
 sylius_twig_hooks:
     hooks:
         'sylius_paypal.shop.pay_with_paypal.content':
+            flashes:
+                template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/flashes.html.twig'
+                priority: 200
             paypal:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/paypal.html.twig'
-                priority: 0
+                priority: 100
             card:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/card.html.twig'
-                priority: -100
+                priority: 0
+
+        'sylius_paypal.shop.pay_with_paypal.content.flashes':
+            messages:
+                template: '@SyliusShop/shared/flashes.html.twig'
+                priority: 0

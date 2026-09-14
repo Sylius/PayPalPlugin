@@ -1,7 +1,7 @@
 {% import '@SyliusShop/shared/buttons.html.twig' as buttons %}
 
 {% set context = hookable_metadata.context %}
-{% set billingAddress = context.billingAddress %}
+{% set billingAddress = context.billingAddress|default(null) %}
 
 <style>
     .paypal-card-field > * {
