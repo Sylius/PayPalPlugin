@@ -96,6 +96,7 @@ final class PayPalOrderTest extends TestCase
     public function it_sends_the_fallback_experience_context_when_shipping_is_not_required(): void
     {
         $this->order->method('isShippingRequired')->willReturn(false);
+        $this->order->method('getShippingAddress')->willReturn(null);
         $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
 
         $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
@@ -104,7 +105,13 @@ final class PayPalOrderTest extends TestCase
 
         self::assertArrayNotHasKey('application_context', $result);
         self::assertSame(
-            ['shipping_preference' => 'NO_SHIPPING', 'user_action' => 'PAY_NOW'],
+            [
+                'shipping_preference' => 'NO_SHIPPING',
+                'contact_preference' => PayPalOrder::UPDATE_CONTACT_INFO,
+                'user_action' => 'PAY_NOW',
+                'payment_method_preference' => PayPalOrder::PAYMENT_METHOD_PREFERENCE_IMMEDIATE,
+                'app_switch_preference' => ['launch_paypal_app' => true],
+            ],
             $result['payment_source']['paypal']['experience_context'],
         );
     }
@@ -146,9 +153,12 @@ final class PayPalOrderTest extends TestCase
 
         self::assertSame([
             'shipping_preference' => 'GET_FROM_FILE',
+            'contact_preference' => PayPalOrder::UPDATE_CONTACT_INFO,
             'user_action' => 'PAY_NOW',
+            'payment_method_preference' => PayPalOrder::PAYMENT_METHOD_PREFERENCE_IMMEDIATE,
             'return_url' => 'https://shop.example.com/checkout/complete',
             'cancel_url' => 'https://shop.example.com/checkout/complete',
+            'app_switch_preference' => ['launch_paypal_app' => true],
         ], $payPalOrder->toArray()['payment_source']['paypal']['experience_context']);
     }
 

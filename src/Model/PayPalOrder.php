@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 
 class PayPalOrder
 {
@@ -37,6 +39,8 @@ class PayPalOrder
 
     public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';
 
+    private readonly ExperienceContextProviderInterface $experienceContextProvider;
+
     /**
      * @param array<string, mixed> $experienceContext
      */
@@ -48,7 +52,18 @@ class PayPalOrder
         private readonly ?string $cancelUrl = null,
         private readonly ?string $shippingCallbackUrl = null,
         private readonly array $experienceContext = [],
+        ?ExperienceContextProviderInterface $experienceContextProvider = null,
     ) {
+        if (null === $experienceContextProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $experienceContextProvider to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                self::class,
+            );
+        }
+
+        $this->experienceContextProvider = $experienceContextProvider ?? new ExperienceContextProvider();
     }
 
     public function toArray(): array
@@ -61,51 +76,15 @@ class PayPalOrder
             'payment_source' => [
                 'paypal' => [
                     'experience_context' => [] === $this->experienceContext
-                        ? $this->getExperienceContext($this->getShippingPreference())
+                        ? $this->experienceContextProvider->provide(
+                            $this->order,
+                            $this->returnUrl,
+                            $this->cancelUrl,
+                            $this->shippingCallbackUrl,
+                        )
                         : $this->experienceContext,
                 ],
             ],
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getExperienceContext(string $shippingPreference): array
-    {
-        $experienceContext = [
-            self::KEY_SHIPPING_PREFERENCE => $shippingPreference,
-            'user_action' => self::USER_ACTION_PAY_NOW,
-        ];
-
-        if (null !== $this->returnUrl) {
-            $experienceContext['return_url'] = $this->returnUrl;
-        }
-
-        if (null !== $this->cancelUrl) {
-            $experienceContext['cancel_url'] = $this->cancelUrl;
-        }
-
-        if (null !== $this->shippingCallbackUrl && self::PAYPAL_ADDRESS === $shippingPreference) {
-            $experienceContext['order_update_callback_config'] = [
-                'callback_events' => [self::CALLBACK_EVENT_SHIPPING_ADDRESS],
-                'callback_url' => $this->shippingCallbackUrl,
-            ];
-        }
-
-        return $experienceContext;
-    }
-
-    private function getShippingPreference(): string
-    {
-        if ($this->order->isShippingRequired()) {
-            if (null !== $this->order->getShippingAddress()) {
-                return self::PROVIDED_ADDRESS;
-            }
-
-            return self::PAYPAL_ADDRESS;
-        }
-
-        return self::NO_SHIPPING;
     }
 }
