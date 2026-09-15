@@ -570,16 +570,28 @@
    `web-sdk/v6/core` bundle's own component source directly. Two non-obvious requirements, in case you
    maintain a custom messaging placement of your own:
 
-   - The element's `amount` must be a string with exactly two decimal places (e.g. `"29.41"`), not a
-     JavaScript number or an unformatted division result — the component's own content-delivery round-trip
-     silently drops a numeric amount, and PayPal's own validation rejects anything without exactly two
-     decimals.
+   - The element's `amount` must be a string with up to two decimal places (e.g. `"29.41"` or `"29.4"`), not
+     a JavaScript number or an unformatted division result — the component's own content-delivery round-trip
+     silently drops a numeric amount, and PayPal's own SDK validation warns when the string has more than two
+     decimal places.
    - The SDK instance must be created (`createInstance()`, with `paypal-messages` in its `components`)
      *before* awaiting `customElements.whenDefined('paypal-message')` — the component itself, along with
      `createPayPalMessages()`, `fetchContent()`, and `getFetchContentOptions()`, is only defined as a side
      effect of that call; none of it exists in the base `web-sdk/v6/core` bundle. Waiting on the definition
      first only happens to work when another controller on the same page creates an instance with
      `paypal-messages` first — remove or move that other placement and the wait never resolves.
+
+   `<paypal-message>` ships as its own new Stimulus controller,
+   `data-controller="sylius--paypal-plugin--paypal-message"`, alongside the existing `paypal-web-sdk` one —
+   it needs the same one-time registration described above, or it renders nothing and errors silently just
+   like an unregistered `paypal-web-sdk` would:
+
+   ```json
+   "@sylius/paypal-plugin": {
+       "paypal-web-sdk": { "enabled": true, "fetch": "lazy" },
+       "paypal-message": { "enabled": true, "fetch": "lazy" }
+   }
+   ```
 
    `Sylius\PayPalPlugin\Twig\PayPalExtension` gained three new nullable constructor arguments for this,
    following the same deprecation pattern as the rest of this document:

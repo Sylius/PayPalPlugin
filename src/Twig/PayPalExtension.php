@@ -109,7 +109,7 @@ final class PayPalExtension extends AbstractExtension
             /** @var ChannelInterface $channel */
             $channel = $this->channelContext->getChannel();
 
-            return $this->webSdkConfigurationProvider->getInstanceConfig($channel, $pageType);
+            return $this->webSdkConfigurationProvider->getInstanceConfig($channel, $pageType, ['paypal-messages']);
         } catch (\InvalidArgumentException) {
             return [];
         }
