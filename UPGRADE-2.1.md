@@ -121,12 +121,6 @@
 
 1. #### Orders addressed in the PayPal wallet now name their payment source.
 
-   Cart and product placements send `payment_source.paypal.experience_context` instead of the deprecated
-   `application_context`, because PayPal reads the shipping callback configuration only from there. The two
-   are mutually exclusive — sending `shipping_preference` or `user_action` in both makes PayPal reject the
-   order — so every other flow, including the checkout payment step and the PayPal payment page, keeps using
-   `application_context` untouched.
-
    PayPal answers such an order with `PAYER_ACTION_REQUIRED` rather than `CREATED`, and
    `Sylius\PayPalPlugin\Payum\Action\CaptureAction` accepts both. Which statuses count as created comes from
    `Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface`
