@@ -55,6 +55,10 @@ Sylius\Component\Core\Model\Channel:
         color: "black"
         enabled: true
         taxCalculationStrategy: "order_items_based"
+        channelPriceHistoryConfig: "@channel_web_price_history_config"
+
+Sylius\Component\Core\Model\ChannelPriceHistoryConfig:
+    channel_web_price_history_config: ~
 
 Sylius\Component\Currency\Model\Currency:
     currency:
