@@ -89,7 +89,7 @@ export default class extends Controller {
         }
 
         const data = await response.json();
-        if (data.tokenValue) {
+        if (data.tokenValue && !this.orderTokenValue) {
             this.orderTokenValue = data.tokenValue;
         }
 

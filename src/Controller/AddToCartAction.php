@@ -99,7 +99,7 @@ final readonly class AddToCartAction
         $this->cartManager->flush();
 
         return new RedirectResponse(
-            $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['tokenValue' => $cart->getTokenValue()]),
+            $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart_by_token', ['tokenValue' => $cart->getTokenValue()]),
             Response::HTTP_TEMPORARY_REDIRECT,
         );
     }

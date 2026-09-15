@@ -36,7 +36,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         $this->preparePaymentForCompletion($payment->getId(), $order->getId());
         $this->mockSuccessfulPaymentCompleteProcessor();
 
-        $this->client->request('POST', '/en_US/pay-pal-order-payment-page/TOKEN/complete');
+        $this->client->request('POST', '/en_US/paypal/complete-order-from-payment-page/TOKEN');
 
         $response = $this->client->getResponse();
         $content = (array) json_decode((string) $response->getContent(), true);
@@ -63,7 +63,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
 
         $this->preparePaymentForCompletion($payment->getId(), $order->getId());
 
-        $this->client->request('POST', '/en_US/pay-pal-order-payment-page/FOREIGN_TOKEN/complete');
+        $this->client->request('POST', '/en_US/paypal/complete-order-from-payment-page/FOREIGN_TOKEN');
 
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }

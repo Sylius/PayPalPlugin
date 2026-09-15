@@ -26,7 +26,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         /** @var int $orderId */
         $orderId = $order['new_cart']->getId();
 
-        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/TOKEN');
+        $this->client->request('POST', '/en_US/paypal/create-order-from-cart/TOKEN');
 
         $response = $this->client->getResponse();
         $content = (array) json_decode($response->getContent(), true);
@@ -45,7 +45,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         /** @var int $orderId */
         $orderId = $order['new_cart']->getId();
 
-        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/TOKEN');
+        $this->client->request('POST', '/en_US/paypal/create-order-from-cart/TOKEN');
 
         $response = $this->client->getResponse();
         $content = (array) json_decode($response->getContent(), true);
@@ -61,7 +61,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
 
-        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/FOREIGN_TOKEN');
+        $this->client->request('POST', '/en_US/paypal/create-order-from-cart/FOREIGN_TOKEN');
 
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }

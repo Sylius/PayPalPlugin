@@ -39,7 +39,7 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
-        private ?bool $legacyIdRoutesEnabled = null,
+        private ?bool $legacyIdRoutesEnabled = false,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -65,12 +65,11 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
-        if (null === $this->legacyIdRoutesEnabled) {
+        if (true === $this->legacyIdRoutesEnabled) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
-                'Not passing $legacyIdRoutesEnabled to %s constructor is deprecated and will be required in 3.0',
-                self::class,
+                '$legacyIdRoutesEnabled and the legacy, id-based routes it gates are deprecated and will be removed in 3.0',
             );
         }
     }

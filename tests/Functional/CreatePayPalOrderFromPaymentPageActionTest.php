@@ -24,7 +24,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
     {
         $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
 
-        $this->client->request('POST', '/en_US/pay-pal-order-payment-page/TOKEN/create');
+        $this->client->request('POST', '/en_US/paypal/create-order-from-payment-page/TOKEN');
 
         $response = $this->client->getResponse();
         $content = (array) json_decode($response->getContent(), true);
@@ -38,7 +38,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
     {
         $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
 
-        $this->client->request('POST', '/en_US/pay-pal-order-payment-page/FOREIGN_TOKEN/create');
+        $this->client->request('POST', '/en_US/paypal/create-order-from-payment-page/FOREIGN_TOKEN');
 
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }
