@@ -494,6 +494,10 @@
    the time a buyer approves the payment, `CreatePayPalOrderFromPaymentPageAction` has already assigned one;
    this action only ever needs to resolve the same cart again, not assign anything itself.
 
+   All four fall back to `false` when not passed — the same secure default as an explicit `false` — so an
+   existing explicit service redefinition simply keeps rejecting the legacy id-based calling convention until
+   you opt in.
+
    ```diff
     final readonly class CreateOrderApi
     {
@@ -751,7 +755,7 @@
    (`sylius_paypal.provider.experience_context`) the way `PayPalOrderFactory` does; constructing a
    `PayPalOrder` without `$experienceContext` now sends an empty experience context.
 
-19. #### Pay Later has a real button, and `<paypal-message>` finally renders real content.
+1. #### Pay Later has a real button, and `<paypal-message>` finally renders real content.
 
    The Pay Later payment method now has its own v6 button (`createPayLaterOneTimePaymentSession`), shown on
    the product, cart, and checkout payment-page placements whenever `findEligibleMethods()` says the buyer

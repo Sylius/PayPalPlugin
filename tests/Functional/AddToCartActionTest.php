@@ -55,16 +55,17 @@ final class AddToCartActionTest extends JsonApiTestCase
 
         $response = $this->client->getResponse();
 
-        self::assertSame(Response::HTTP_FOUND, $response->getStatusCode());
+        self::assertSame(Response::HTTP_TEMPORARY_REDIRECT, $response->getStatusCode());
         self::assertMatchesRegularExpression(
-            '#/en_US/create-pay-pal-order-from-cart/\d+$#',
+            '#/en_US/paypal/create-order-from-cart/.+$#',
             (string) $response->headers->get('Location'),
         );
 
+        $tokenValue = (string) strrchr((string) $response->headers->get('Location'), '/');
+        $tokenValue = substr($tokenValue, 1);
+
         /** @var OrderInterface $cart */
-        $cart = self::getContainer()->get('sylius.repository.order')->find(
-            (int) substr((string) strrchr((string) $response->headers->get('Location'), '/'), 1),
-        );
+        $cart = self::getContainer()->get('sylius.repository.order')->findCartByTokenValue($tokenValue);
 
         self::assertCount(1, $cart->getItems());
 

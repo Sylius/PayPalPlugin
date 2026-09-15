@@ -336,7 +336,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
-        $this->processPayPalOrder($orderId);
+        $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $shippingAddress = $order->getShippingAddress();
@@ -373,7 +373,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $shippingAddressId = $order->getShippingAddress()?->getId();
         $billingAddressId = $order->getBillingAddress()?->getId();
 
-        $this->processPayPalOrder($orderId);
+        $this->processPayPalOrder('TOKEN');
         $order = $this->refreshOrder($orderId);
 
         $shippingAddress = $order->getShippingAddress();
@@ -498,7 +498,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
             self::getContainer()->get('sylius_paypal.completer.express_order'),
             self::getContainer()->get('sylius.order_processing.order_processor'),
             self::getContainer()->get('sylius.repository.shipping_method'),
-            self::getContainer()->get('sylius_paypal.factory.paypal_shipping_address'),
+            self::getContainer()->get('sylius_paypal.factory.express_order_address'),
             true,
         ));
     }

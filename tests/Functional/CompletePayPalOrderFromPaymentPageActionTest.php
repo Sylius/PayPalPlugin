@@ -16,10 +16,14 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
@@ -50,6 +54,31 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         /** @var PaymentInterface $payment */
         $payment = self::getContainer()->get('sylius.repository.payment')->find($payment->getId());
         $this->assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+    }
+
+    /** @test */
+    public function it_completes_the_order_from_the_current_cart_when_no_token_is_given(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $payment */
+        $payment = $fixtures['paypal_payment'];
+
+        $this->preparePaymentForCompletion($payment->getId(), $order->getId());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+        $this->seedCurrentCart($order);
+
+        $this->client->request('POST', '/en_US/paypal/complete-order-from-payment-page');
+
+        $response = $this->client->getResponse();
+        $content = (array) json_decode((string) $response->getContent(), true);
+
+        $this->assertSame('PAYPAL_ORDER_ID', $content['orderId']);
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+
+        $order = $this->refreshOrder($order->getId());
+        $this->assertSame('completed', $order->getCheckoutState());
     }
 
     /** @test */
@@ -158,5 +187,19 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         $router = self::getContainer()->get('router');
 
         return $router->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
+    }
+
+    private function seedCurrentCart(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        self::getContainer()->get('request_stack')->push(new Request());
+        self::getContainer()->get('request_stack')->getCurrentRequest()->setSession($session);
+        self::getContainer()->get(CartStorageInterface::class)->setForChannel($order->getChannel(), $order);
+        $session->save();
+        self::getContainer()->get('request_stack')->pop();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
     }
 }

@@ -17,7 +17,9 @@ sylius_paypal_shop_create_paypal_order_from_cart_by_token:
         tokenValue: '(?!\d+(?:/|$)).+'
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_cart
+        tokenValue: null
 
+# Deprecated since 2.1, gated behind sylius_paypal.legacy_id_routes_enabled — will be removed in 3.0.
 sylius_paypal_shop_create_paypal_order_from_cart:
     path: /create-pay-pal-order-from-cart/{id}
     methods: [POST]
@@ -51,7 +53,9 @@ sylius_paypal_shop_create_paypal_order_from_payment_page_by_token:
         tokenValue: '(?!\d+(?:/|$)).+'
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_payment_page
+        tokenValue: null
 
+# Deprecated since 2.1, gated behind sylius_paypal.legacy_id_routes_enabled — will be removed in 3.0.
 sylius_paypal_shop_create_paypal_order_from_payment_page:
     path: /pay-pal-order-payment-page/{id}/create
     methods: [POST]
@@ -67,7 +71,9 @@ sylius_paypal_shop_complete_paypal_order_from_payment_page_by_token:
         tokenValue: '(?!\d+(?:/|$)).+'
     defaults:
         _controller: sylius_paypal.controller.complete_paypal_order_from_payment_page
+        tokenValue: null
 
+# Deprecated since 2.1, gated behind sylius_paypal.legacy_id_routes_enabled — will be removed in 3.0.
 sylius_paypal_shop_complete_paypal_order_from_payment_page:
     path: /pay-pal-order-payment-page/{id}/complete
     methods: [POST]

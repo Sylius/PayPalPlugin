@@ -18,6 +18,7 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
+use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -40,6 +41,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?bool $legacyIdRoutesEnabled = false,
+        private ?CartContextInterface $cartContext = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -62,6 +64,14 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
                 'sylius/paypal-plugin',
                 '2.1',
                 '$legacyIdRoutesEnabled and the legacy, id-based routes it gates are deprecated and will be removed in 3.0',
+            );
+        }
+        if (null === $this->cartContext) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $cartContext to %s constructor is deprecated and will be required in 3.0',
+                self::class,
             );
         }
     }
@@ -132,6 +142,20 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $tokenValue = $request->attributes->get('tokenValue');
         if (is_string($tokenValue) && '' !== $tokenValue) {
             return $this->orderProvider->provideCartByToken($tokenValue);
+        }
+
+        if (!$request->attributes->has('id')) {
+            if (null === $this->cartContext) {
+                throw new \RuntimeException(sprintf(
+                    'An instance of "%s" is required to complete a PayPal order from the current cart.',
+                    CartContextInterface::class,
+                ));
+            }
+
+            /** @var OrderInterface $cart */
+            $cart = $this->cartContext->getCart();
+
+            return $cart;
         }
 
         if (true !== $this->legacyIdRoutesEnabled) {

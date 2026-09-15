@@ -13,12 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
-use Doctrine\Persistence\ObjectManager;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
-use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
@@ -44,8 +42,6 @@ final readonly class PayPalButtonsController
         private LocaleProcessorInterface $localeProcessor,
         private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
-        private ?OrderTokenAssignerInterface $orderTokenAssigner = null,
-        private ?ObjectManager $orderManager = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -62,15 +58,6 @@ final readonly class PayPalButtonsController
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalWebSdkConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
-        if (null === $this->orderTokenAssigner || null === $this->orderManager) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.1',
-                'Not passing an instance of %s and an order ObjectManager to %s constructor is deprecated and will be required in 3.0.',
-                OrderTokenAssignerInterface::class,
                 self::class,
             );
         }
@@ -106,14 +93,13 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
-        $this->assignOrderToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'amount' => number_format($order->getTotal() / 100, 2, '.', ''),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart_by_token', ['tokenValue' => $order->getTokenValue()]),
+                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart_by_token'),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
@@ -136,7 +122,6 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
         /** @var OrderInterface $order */
         $order = $this->orderRepository->find($orderId);
-        $this->assignOrderToken($order);
 
         try {
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -145,8 +130,8 @@ final readonly class PayPalButtonsController
                 'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment'),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'currency' => $order->getCurrencyCode(),
-                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page_by_token', ['tokenValue' => $order->getTokenValue()]),
-                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page_by_token', ['tokenValue' => $order->getTokenValue()]),
+                'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page_by_token'),
+                'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page_by_token'),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
                 'orderId' => $orderId,
@@ -158,24 +143,6 @@ final readonly class PayPalButtonsController
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
-    }
-
-    private function assignOrderToken(OrderInterface $order): void
-    {
-        if (null !== $order->getTokenValue()) {
-            return;
-        }
-
-        if (null === $this->orderTokenAssigner || null === $this->orderManager) {
-            throw new \RuntimeException(sprintf(
-                'Order #%d has no token value, and no %s/ObjectManager was provided to assign one before this placement is rendered.',
-                (int) $order->getId(),
-                OrderTokenAssignerInterface::class,
-            ));
-        }
-
-        $this->orderTokenAssigner->assignTokenValueIfNotSet($order);
-        $this->orderManager->flush();
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface

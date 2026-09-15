@@ -40,7 +40,7 @@ final class Configuration implements ConfigurationInterface
                     ->setDeprecated(
                         'sylius/paypal-plugin',
                         '2.1',
-                        'The "%path%.%node%" option is a temporary migration bridge for the IDOR fix and will be removed in 3.0, along with the legacy, id-based routes it gates.',
+                        'The "%path%.%node%" option is a temporary migration bridge and will be removed in 3.0, along with the legacy, id-based routes it gates.',
                     )
                 ->end()
                 ->arrayNode('logging')

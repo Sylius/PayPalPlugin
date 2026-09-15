@@ -19,6 +19,8 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
+use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
+use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -40,6 +42,8 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
         private ?bool $legacyIdRoutesEnabled = false,
+        private ?CartContextInterface $cartContext = null,
+        private ?OrderTokenAssignerInterface $orderTokenAssigner = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -70,6 +74,14 @@ final readonly class CreatePayPalOrderFromCartAction
                 'sylius/paypal-plugin',
                 '2.1',
                 '$legacyIdRoutesEnabled and the legacy, id-based routes it gates are deprecated and will be removed in 3.0',
+            );
+        }
+        if (null === $this->cartContext || null === $this->orderTokenAssigner) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $cartContext and an $orderTokenAssigner to %s constructor is deprecated and will be required in 3.0',
+                self::class,
             );
         }
     }
@@ -139,10 +151,31 @@ final readonly class CreatePayPalOrderFromCartAction
             return $this->orderProvider->provideCartByToken($tokenValue);
         }
 
+        if (!$request->attributes->has('id')) {
+            return $this->resolveCurrentCart();
+        }
+
         if (true !== $this->legacyIdRoutesEnabled) {
             throw new NotFoundHttpException();
         }
 
         return $this->orderProvider->provideOrderById($request->attributes->getInt('id'));
+    }
+
+    private function resolveCurrentCart(): OrderInterface
+    {
+        if (null === $this->cartContext || null === $this->orderTokenAssigner) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" and "%s" is required to create a PayPal order from the current cart.',
+                CartContextInterface::class,
+                OrderTokenAssignerInterface::class,
+            ));
+        }
+
+        /** @var OrderInterface $cart */
+        $cart = $this->cartContext->getCart();
+        $this->orderTokenAssigner->assignTokenValueIfNotSet($cart);
+
+        return $cart;
     }
 }

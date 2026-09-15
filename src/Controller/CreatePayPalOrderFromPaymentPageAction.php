@@ -18,6 +18,8 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
+use Sylius\Component\Core\TokenAssigner\OrderTokenAssignerInterface;
+use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
@@ -35,12 +37,22 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private OrderProviderInterface $orderProvider,
         private CapturePaymentResolverInterface $capturePaymentResolver,
         private ?bool $legacyIdRoutesEnabled = false,
+        private ?CartContextInterface $cartContext = null,
+        private ?OrderTokenAssignerInterface $orderTokenAssigner = null,
     ) {
         if (true === $this->legacyIdRoutesEnabled) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
                 '$legacyIdRoutesEnabled and the legacy, id-based routes it gates are deprecated and will be removed in 3.0',
+            );
+        }
+        if (null === $this->cartContext || null === $this->orderTokenAssigner) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $cartContext and an $orderTokenAssigner to %s constructor is deprecated and will be required in 3.0',
+                self::class,
             );
         }
     }
@@ -71,6 +83,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         return new JsonResponse([
             'id' => $order->getId(),
+            'tokenValue' => $order->getTokenValue(),
             'orderId' => $payPalOrderId,
             'order_id' => $payPalOrderId,
             'status' => $payment->getState(),
@@ -84,10 +97,31 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
             return $this->orderProvider->provideCartByToken($tokenValue);
         }
 
+        if (!$request->attributes->has('id')) {
+            return $this->resolveCurrentCart();
+        }
+
         if (true !== $this->legacyIdRoutesEnabled) {
             throw new NotFoundHttpException();
         }
 
         return $this->orderProvider->provideOrderById($request->attributes->getInt('id'));
+    }
+
+    private function resolveCurrentCart(): OrderInterface
+    {
+        if (null === $this->cartContext || null === $this->orderTokenAssigner) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" and "%s" is required to create a PayPal order from the current cart.',
+                CartContextInterface::class,
+                OrderTokenAssignerInterface::class,
+            ));
+        }
+
+        /** @var OrderInterface $cart */
+        $cart = $this->cartContext->getCart();
+        $this->orderTokenAssigner->assignTokenValueIfNotSet($cart);
+
+        return $cart;
     }
 }

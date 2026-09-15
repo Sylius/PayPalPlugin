@@ -14,8 +14,13 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 {
@@ -54,6 +59,29 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
+    }
+
+    /** @test */
+    public function it_creates_paypal_order_from_the_current_cart_and_assigns_it_a_token_when_none_is_given(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        $order->setTokenValue(null);
+
+        $objectManager = self::getContainer()->get('sylius.manager.order');
+        $objectManager->flush();
+
+        $this->seedCurrentCart($order);
+
+        $this->client->request('POST', '/en_US/paypal/create-order-from-cart');
+
+        $response = $this->client->getResponse();
+        $content = (array) json_decode((string) $response->getContent(), true);
+
+        $this->assertSame($content['id'], $order->getId());
+        $this->assertNotEmpty($content['tokenValue']);
+        $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
     }
 
     /** @test */
@@ -106,5 +134,19 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
             self::getContainer()->get('sylius_paypal.resolver.paypal_payment_methods'),
             true,
         ));
+    }
+
+    private function seedCurrentCart(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        self::getContainer()->get('request_stack')->push(new Request());
+        self::getContainer()->get('request_stack')->getCurrentRequest()->setSession($session);
+        self::getContainer()->get(CartStorageInterface::class)->setForChannel($order->getChannel(), $order);
+        $session->save();
+        self::getContainer()->get('request_stack')->pop();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
     }
 }
