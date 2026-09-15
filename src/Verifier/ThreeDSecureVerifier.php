@@ -14,35 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
+use Sylius\PayPalPlugin\Model\ThreeDSecureAuthenticationStatus;
+use Sylius\PayPalPlugin\Model\ThreeDSecureEnrollmentStatus;
+use Sylius\PayPalPlugin\Model\ThreeDSecureLiabilityShift;
 
 final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
 {
-    public const ENROLLMENT_READY = 'Y';
-
-    public const ENROLLMENT_NOT_READY = 'N';
-
-    public const ENROLLMENT_SYSTEM_UNAVAILABLE = 'U';
-
-    public const ENROLLMENT_BYPASSED = 'B';
-
-    public const AUTHENTICATION_SUCCEEDED = 'Y';
-
-    public const AUTHENTICATION_ATTEMPTED = 'A';
-
-    public const AUTHENTICATION_FAILED = 'N';
-
-    public const AUTHENTICATION_REFUSED = 'R';
-
-    public const AUTHENTICATION_INCOMPLETE = 'U';
-
-    public const AUTHENTICATION_CHALLENGE_REQUIRED = 'C';
-
-    public const LIABILITY_SHIFT_NO = 'NO';
-
-    public const LIABILITY_SHIFT_POSSIBLE = 'POSSIBLE';
-
-    public const LIABILITY_SHIFT_UNKNOWN = 'UNKNOWN';
-
     public function verify(array $paypalOrderDetails): void
     {
         $authenticationResult = $paypalOrderDetails['payment_source']['card']['authentication_result'] ?? null;
@@ -53,28 +30,47 @@ final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
 
         $threeDSecure = $authenticationResult['three_d_secure'] ?? [];
 
-        match ($threeDSecure['enrollment_status'] ?? null) {
-            self::ENROLLMENT_NOT_READY, self::ENROLLMENT_BYPASSED => null,
-            self::ENROLLMENT_READY => $this->verifyAuthenticationStatus($threeDSecure['authentication_status'] ?? null),
-            self::ENROLLMENT_SYSTEM_UNAVAILABLE => $this->verifyLiabilityShift($authenticationResult['liability_shift'] ?? null),
+        match ($this->toEnum(ThreeDSecureEnrollmentStatus::class, $threeDSecure['enrollment_status'] ?? null)) {
+            ThreeDSecureEnrollmentStatus::NotReady, ThreeDSecureEnrollmentStatus::Bypassed => null,
+            ThreeDSecureEnrollmentStatus::Ready => $this->verifyAuthenticationStatus(
+                $this->toEnum(ThreeDSecureAuthenticationStatus::class, $threeDSecure['authentication_status'] ?? null),
+            ),
+            ThreeDSecureEnrollmentStatus::SystemUnavailable => $this->verifyLiabilityShift(
+                $this->toEnum(ThreeDSecureLiabilityShift::class, $authenticationResult['liability_shift'] ?? null),
+            ),
             default => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
         };
     }
 
-    private function verifyAuthenticationStatus(mixed $authenticationStatus): void
+    private function verifyAuthenticationStatus(?ThreeDSecureAuthenticationStatus $authenticationStatus): void
     {
         match ($authenticationStatus) {
-            self::AUTHENTICATION_SUCCEEDED, self::AUTHENTICATION_ATTEMPTED => null,
-            self::AUTHENTICATION_FAILED, self::AUTHENTICATION_REFUSED => throw new ThreeDSecureAuthenticationFailedException(retryable: false),
-            self::AUTHENTICATION_INCOMPLETE, self::AUTHENTICATION_CHALLENGE_REQUIRED => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
+            ThreeDSecureAuthenticationStatus::Succeeded, ThreeDSecureAuthenticationStatus::Attempted => null,
+            ThreeDSecureAuthenticationStatus::Failed, ThreeDSecureAuthenticationStatus::Refused => throw new ThreeDSecureAuthenticationFailedException(retryable: false),
+            ThreeDSecureAuthenticationStatus::Incomplete,
+            ThreeDSecureAuthenticationStatus::ChallengeRequired,
+            ThreeDSecureAuthenticationStatus::InformationOnly,
+            ThreeDSecureAuthenticationStatus::Decoupled => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
             default => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
         };
     }
 
-    private function verifyLiabilityShift(mixed $liabilityShift): void
+    private function verifyLiabilityShift(?ThreeDSecureLiabilityShift $liabilityShift): void
     {
-        if (self::LIABILITY_SHIFT_NO !== $liabilityShift) {
+        if (ThreeDSecureLiabilityShift::No !== $liabilityShift) {
             throw new ThreeDSecureAuthenticationFailedException(retryable: true);
         }
+    }
+
+    /**
+     * @template T of \BackedEnum
+     *
+     * @param class-string<T> $enum
+     *
+     * @return T|null
+     */
+    private function toEnum(string $enum, mixed $value): ?\BackedEnum
+    {
+        return is_string($value) ? $enum::tryFrom($value) : null;
     }
 }
