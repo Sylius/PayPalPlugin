@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\PayPalPlugin\Provider\PayPalRegionProvider;
 use Webmozart\Assert\Assert;
 
 class PayPalPurchaseUnit
@@ -97,7 +98,7 @@ class PayPalPurchaseUnit
             'country_code' => $this->shippingAddress->getCountryCode(),
         ];
 
-        $region = $this->getRegion();
+        $region = PayPalRegionProvider::provide($this->shippingAddress);
         if (null !== $region) {
             $address['admin_area_1'] = $region;
         }
@@ -106,21 +107,5 @@ class PayPalPurchaseUnit
             'name' => ['full_name' => (string) $this->shippingAddress->getFullName()],
             'address' => $address,
         ];
-    }
-
-    private function getRegion(): ?string
-    {
-        Assert::isInstanceOf($this->shippingAddress, AddressInterface::class);
-
-        $provinceCode = trim((string) $this->shippingAddress->getProvinceCode());
-        if ('' !== $provinceCode) {
-            $prefix = $this->shippingAddress->getCountryCode() . '-';
-
-            return str_starts_with($provinceCode, $prefix) ? substr($provinceCode, strlen($prefix)) : $provinceCode;
-        }
-
-        $provinceName = trim((string) $this->shippingAddress->getProvinceName());
-
-        return '' !== $provinceName ? $provinceName : null;
     }
 }

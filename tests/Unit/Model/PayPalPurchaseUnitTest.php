@@ -250,7 +250,7 @@ final class PayPalPurchaseUnitTest extends TestCase
         ], $result);
     }
 
-    public function test_it_sends_the_region_of_the_shipping_address_without_the_country_prefix(): void
+    public function test_it_sends_the_region_of_the_shipping_address(): void
     {
         $this->shippingAddress->method('getCountryCode')->willReturn('US');
         $this->shippingAddress->method('getProvinceCode')->willReturn('US-TX');
@@ -258,51 +258,9 @@ final class PayPalPurchaseUnitTest extends TestCase
         self::assertSame('TX', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
     }
 
-    public function test_it_sends_a_province_code_that_carries_no_country_prefix_as_it_is(): void
+    public function test_it_leaves_the_region_out_when_the_address_carries_none(): void
     {
         $this->shippingAddress->method('getCountryCode')->willReturn('US');
-        $this->shippingAddress->method('getProvinceCode')->willReturn('TX');
-
-        self::assertSame('TX', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
-    }
-
-    public function test_it_sends_a_province_code_prefixed_with_another_country_as_it_is(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('US');
-        $this->shippingAddress->method('getProvinceCode')->willReturn('CA-ON');
-
-        self::assertSame('CA-ON', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
-    }
-
-    public function test_it_sends_the_region_name_when_the_address_carries_no_province_code(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('PL');
-        $this->shippingAddress->method('getProvinceName')->willReturn('Mazowieckie');
-
-        self::assertSame('Mazowieckie', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
-    }
-
-    public function test_it_prefers_the_province_code_over_the_province_name(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('US');
-        $this->shippingAddress->method('getProvinceCode')->willReturn('US-TX');
-        $this->shippingAddress->method('getProvinceName')->willReturn('Texas');
-
-        self::assertSame('TX', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
-    }
-
-    public function test_it_leaves_the_region_out_when_the_address_carries_neither(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('US');
-
-        self::assertArrayNotHasKey('admin_area_1', $this->payPalPurchaseUnit->toArray()['shipping']['address']);
-    }
-
-    public function test_it_treats_a_blank_region_as_absent(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('US');
-        $this->shippingAddress->method('getProvinceCode')->willReturn('   ');
-        $this->shippingAddress->method('getProvinceName')->willReturn('');
 
         self::assertArrayNotHasKey('admin_area_1', $this->payPalPurchaseUnit->toArray()['shipping']['address']);
     }

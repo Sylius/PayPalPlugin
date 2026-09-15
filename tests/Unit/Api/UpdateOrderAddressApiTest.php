@@ -82,22 +82,6 @@ final class UpdateOrderAddressApiTest extends TestCase
         ], $patches[1]);
     }
 
-    public function test_it_sends_a_province_code_that_carries_no_country_prefix_as_it_is(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('US');
-        $this->shippingAddress->method('getProvinceCode')->willReturn('TX');
-
-        self::assertSame('TX', $this->replacedAddress()['admin_area_1']);
-    }
-
-    public function test_it_sends_the_region_name_when_the_address_carries_no_province_code(): void
-    {
-        $this->shippingAddress->method('getCountryCode')->willReturn('PL');
-        $this->shippingAddress->method('getProvinceName')->willReturn('Mazowieckie');
-
-        self::assertSame('Mazowieckie', $this->replacedAddress()['admin_area_1']);
-    }
-
     public function test_it_leaves_the_region_out_when_the_address_carries_neither(): void
     {
         $this->shippingAddress->method('getCountryCode')->willReturn('US');

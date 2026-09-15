@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Provider\PayPalRegionProvider;
 
 final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
 {
@@ -36,7 +37,7 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
             'country_code' => $shippingAddress->getCountryCode(),
         ];
 
-        $region = $this->getRegion($shippingAddress);
+        $region = PayPalRegionProvider::provide($shippingAddress);
         if (null !== $region) {
             $address['admin_area_1'] = $region;
         }
@@ -66,19 +67,5 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
                 ],
             ],
         );
-    }
-
-    private function getRegion(AddressInterface $shippingAddress): ?string
-    {
-        $provinceCode = trim((string) $shippingAddress->getProvinceCode());
-        if ('' !== $provinceCode) {
-            $prefix = $shippingAddress->getCountryCode() . '-';
-
-            return str_starts_with($provinceCode, $prefix) ? substr($provinceCode, strlen($prefix)) : $provinceCode;
-        }
-
-        $provinceName = trim((string) $shippingAddress->getProvinceName());
-
-        return '' !== $provinceName ? $provinceName : null;
     }
 }
