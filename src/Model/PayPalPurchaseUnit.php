@@ -90,14 +90,37 @@ class PayPalPurchaseUnit
     {
         Assert::isInstanceOf($this->shippingAddress, AddressInterface::class);
 
+        $address = [
+            'address_line_1' => $this->shippingAddress->getStreet(),
+            'admin_area_2' => $this->shippingAddress->getCity(),
+            'postal_code' => $this->shippingAddress->getPostcode(),
+            'country_code' => $this->shippingAddress->getCountryCode(),
+        ];
+
+        $region = $this->getRegion();
+        if (null !== $region) {
+            $address['admin_area_1'] = $region;
+        }
+
         return [
             'name' => ['full_name' => (string) $this->shippingAddress->getFullName()],
-            'address' => [
-                'address_line_1' => $this->shippingAddress->getStreet(),
-                'admin_area_2' => $this->shippingAddress->getCity(),
-                'postal_code' => $this->shippingAddress->getPostcode(),
-                'country_code' => $this->shippingAddress->getCountryCode(),
-            ],
+            'address' => $address,
         ];
+    }
+
+    private function getRegion(): ?string
+    {
+        Assert::isInstanceOf($this->shippingAddress, AddressInterface::class);
+
+        $provinceCode = trim((string) $this->shippingAddress->getProvinceCode());
+        if ('' !== $provinceCode) {
+            $prefix = $this->shippingAddress->getCountryCode() . '-';
+
+            return str_starts_with($provinceCode, $prefix) ? substr($provinceCode, strlen($prefix)) : $provinceCode;
+        }
+
+        $provinceName = trim((string) $this->shippingAddress->getProvinceName());
+
+        return '' !== $provinceName ? $provinceName : null;
     }
 }

@@ -115,6 +115,15 @@
    The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
    now also stores the region on the order's addresses — previously it was dropped.
 
+   The region now travels the other way too. Both payloads that carry a shipping address to PayPal — the
+   purchase unit built by `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit` and the pre-capture address patch
+   in `Sylius\PayPalPlugin\Api\UpdateOrderAddressApi` — send it as `admin_area_1`, which they did not do
+   before. The value is the address's province code with the country prefix stripped (`US-TX` on a `US`
+   address is sent as `TX`, the spelling PayPal's state and province tables use), or the province name when
+   the address carries no code. An address with neither leaves the key out entirely. This is what lets a
+   region survive the round trip: PayPal echoes `admin_area_1` back, and
+   `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface` resolves it to a province again.
+
    If your shop overrode `pay_from_cart_page.html.twig` or `pay_from_product_page.html.twig`, drop the
    `updateOrderUrl` and `availableCountries` values from the `stimulus_controller()` call; they are no longer
    read. Leaving them in place is harmless.

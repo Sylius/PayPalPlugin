@@ -29,6 +29,18 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
         string $referenceId,
         AddressInterface $shippingAddress,
     ): void {
+        $address = [
+            'address_line_1' => $shippingAddress->getStreet(),
+            'admin_area_2' => $shippingAddress->getCity(),
+            'postal_code' => $shippingAddress->getPostcode(),
+            'country_code' => $shippingAddress->getCountryCode(),
+        ];
+
+        $region = $this->getRegion($shippingAddress);
+        if (null !== $region) {
+            $address['admin_area_1'] = $region;
+        }
+
         $this->client->patch(
             sprintf('v2/checkout/orders/%s', $orderId),
             $token,
@@ -36,12 +48,7 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
                 [
                     'op' => 'replace',
                     'path' => sprintf('/purchase_units/@reference_id==\'%s\'/shipping/address', $referenceId),
-                    'value' => [
-                        'address_line_1' => $shippingAddress->getStreet(),
-                        'admin_area_2' => $shippingAddress->getCity(),
-                        'postal_code' => $shippingAddress->getPostcode(),
-                        'country_code' => $shippingAddress->getCountryCode(),
-                    ],
+                    'value' => $address,
                 ],
             ],
         );
@@ -59,5 +66,19 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
                 ],
             ],
         );
+    }
+
+    private function getRegion(AddressInterface $shippingAddress): ?string
+    {
+        $provinceCode = trim((string) $shippingAddress->getProvinceCode());
+        if ('' !== $provinceCode) {
+            $prefix = $shippingAddress->getCountryCode() . '-';
+
+            return str_starts_with($provinceCode, $prefix) ? substr($provinceCode, strlen($prefix)) : $provinceCode;
+        }
+
+        $provinceName = trim((string) $shippingAddress->getProvinceName());
+
+        return '' !== $provinceName ? $provinceName : null;
     }
 }
