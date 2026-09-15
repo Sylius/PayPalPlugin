@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Form\Type;
 
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -43,12 +44,17 @@ final class PayPalConfigurationType extends AbstractType
             ->add('use_authorize', HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add('reports_sftp_username', TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add('reports_sftp_password', TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
+            ->add('pay_later_enabled', CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
+            ->add('messaging_enabled', CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
         ;
 
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData): void {
             $data = $event->getData();
             if (is_array($data)) {
                 $originalData = $data;
+                $data['pay_later_enabled'] ??= true;
+                $data['messaging_enabled'] ??= true;
+                $event->setData($data);
             }
         });
 

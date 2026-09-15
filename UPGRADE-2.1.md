@@ -550,3 +550,64 @@
    and its `toArray()` chooses `payment_source.paypal.experience_context` (when the context's
    `shipping_preference` is `GET_FROM_FILE`) or `application_context` otherwise. Build the `experienceContext`
    through `ExperienceContextProviderInterface`. If you construct `PayPalOrder` yourself, update the call.
+
+19. #### Pay Later has a real button, and `<paypal-message>` finally renders real content.
+
+   The Pay Later payment method now has its own v6 button (`createPayLaterOneTimePaymentSession`), shown on
+   the product, cart, and checkout payment-page placements whenever `findEligibleMethods()` says the buyer
+   is eligible. Two new, opt-out admin toggles on the PayPal payment method's gateway config control this:
+
+   - `pay_later_enabled` — hides the Pay Later button when off.
+   - `messaging_enabled` — hides the `<paypal-message>` financing message (see below) when off.
+
+   Both default to `true`, including for existing (pre-2.1) payment methods, whose stored config simply
+   won't have these keys yet — these are merchant opt-outs, not opt-ins.
+
+   `<paypal-message>` (e.g. "Pay in 4 interest-free payments of $X") now renders real content on the
+   product, cart, and checkout pages, and its "Learn more" link opens a populated modal with the real
+   installment breakdown — both are genuinely new. PayPal's own documentation never describes what's
+   actually required to make either one fetch content, so this was root-caused by reading the shipped
+   `web-sdk/v6/core` bundle's own component source directly. Two non-obvious requirements, in case you
+   maintain a custom messaging placement of your own:
+
+   - The element's `amount` must be a string with up to two decimal places (e.g. `"29.41"` or `"29.4"`), not
+     a JavaScript number or an unformatted division result — the component's own content-delivery round-trip
+     silently drops a numeric amount, and PayPal's own SDK validation warns when the string has more than two
+     decimal places.
+   - The SDK instance must be created (`createInstance()`, with `paypal-messages` in its `components`)
+     *before* awaiting `customElements.whenDefined('paypal-message')` — the component itself, along with
+     `createPayPalMessages()`, `fetchContent()`, and `getFetchContentOptions()`, is only defined as a side
+     effect of that call; none of it exists in the base `web-sdk/v6/core` bundle. Waiting on the definition
+     first only happens to work when another controller on the same page creates an instance with
+     `paypal-messages` first — remove or move that other placement and the wait never resolves.
+
+   `<paypal-message>` ships as its own new Stimulus controller,
+   `data-controller="sylius--paypal-plugin--paypal-message"`, alongside the existing `paypal-web-sdk` one —
+   it needs the same one-time registration described above, or it renders nothing and errors silently just
+   like an unregistered `paypal-web-sdk` would:
+
+   ```json
+   "@sylius/paypal-plugin": {
+       "paypal-web-sdk": { "enabled": true, "fetch": "lazy" },
+       "paypal-message": { "enabled": true, "fetch": "lazy" }
+   }
+   ```
+
+   `Sylius\PayPalPlugin\Twig\PayPalExtension` gained three new nullable constructor arguments for this,
+   following the same deprecation pattern as the rest of this document:
+
+   ```diff
+    final class PayPalExtension extends AbstractExtension
+    {
+        public function __construct(
+            private readonly bool $sandbox,
+   +        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+   +        private readonly ?ChannelContextInterface $channelContext = null,
+   +        private readonly ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+        ) {
+        }
+   ```
+
+   Without them, `sylius_paypal_is_messaging_enabled()` returns `false`, and
+   `sylius_paypal_web_sdk_script_url()`/`sylius_paypal_web_sdk_instance_config()` return an empty
+   string/array — the messaging placement degrades to rendering nothing rather than erroring.

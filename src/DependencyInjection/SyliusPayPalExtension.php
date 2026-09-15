@@ -91,6 +91,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     {
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
         $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
+        $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
@@ -113,6 +114,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $sandboxEnv = $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] ?? null;
         if ($sandboxEnv !== null) {
             $envConfig['sandbox'] = filter_var($sandboxEnv, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE) ?? false;
+        }
+
+        $testBuyerCountryEnv = $_ENV['SYLIUS_PAYPAL_TEST_BUYER_COUNTRY'] ?? null;
+        if ($testBuyerCountryEnv !== null) {
+            $envConfig['test_buyer_country'] = $testBuyerCountryEnv;
         }
 
         $loggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;
