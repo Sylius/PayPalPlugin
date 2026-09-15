@@ -64,6 +64,8 @@ default:
                 - sylius.behat.context.ui.shop.homepage
                 - sylius.behat.context.ui.shop.locale
 
+                - Tests\Sylius\PayPalPlugin\Behat\Context\Ui\Shop\PayingWithPayPalContext
+
             filters:
                 tags: "@checkout&&@ui"
         ui_managing_payment_methods:

@@ -50,5 +50,17 @@
         </service>
 
         <service id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage" parent="sylius.behat.page.shop.checkout.select_payment" public="false"/>
+
+        <service
+            id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage"
+            class="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage"
+            parent="sylius.behat.symfony_page"
+            public="false"
+        />
+
+        <service id="Tests\Sylius\PayPalPlugin\Behat\Context\Ui\Shop\PayingWithPayPalContext">
+            <argument type="service" id="sylius.behat.shared_storage" />
+            <argument type="service" id="Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage" />
+        </service>
     </services>
 </container>

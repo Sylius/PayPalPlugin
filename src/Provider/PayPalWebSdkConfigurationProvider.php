@@ -28,13 +28,23 @@ final readonly class PayPalWebSdkConfigurationProvider implements PayPalWebSdkCo
         return sprintf('%s/web-sdk/v6/core', $this->webUrl);
     }
 
-    public function getInstanceConfig(ChannelInterface $channel, string $pageType): array
-    {
-        return [
+    public function getInstanceConfig(
+        ChannelInterface $channel,
+        string $pageType,
+        array $components = self::DEFAULT_COMPONENTS,
+        ?string $locale = null,
+    ): array {
+        $instanceConfig = [
             'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-            'components' => ['paypal-payments'],
+            'components' => $components,
             'pageType' => $pageType,
             'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
         ];
+
+        if (null !== $locale) {
+            $instanceConfig['locale'] = str_replace('_', '-', $locale);
+        }
+
+        return $instanceConfig;
     }
 }

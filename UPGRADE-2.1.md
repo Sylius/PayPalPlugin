@@ -124,7 +124,7 @@
    Cart and product placements send `payment_source.paypal.experience_context` instead of the deprecated
    `application_context`, because PayPal reads the shipping callback configuration only from there. The two
    are mutually exclusive — sending `shipping_preference` or `user_action` in both makes PayPal reject the
-   order — so every other flow, including the checkout payment page and the legacy card page, keeps using
+   order — so every other flow, including the checkout payment step and the PayPal payment page, keeps using
    `application_context` untouched.
 
    PayPal answers such an order with `PAYER_ACTION_REQUIRED` rather than `CREATED`, and
@@ -156,17 +156,12 @@
 
 1. #### The following routes are deprecated and will be removed in 3.0.
 
-   Each is superseded by a v6 Web SDK equivalent and exists only to support the legacy, full-page
-   `pay_with_paypal.html.twig` checkout (itself planned for a v6 `card-fields` + 3D Secure rework in a future
-   release). They keep working unchanged in 2.1 and only emit a deprecation notice.
+   Both are superseded and have no caller left in the package. They keep working unchanged in 2.1 and only
+   emit a deprecation notice.
 
    | Deprecated route | Replacement |
    |---|---|
-   | `sylius_paypal_shop_pay_with_paypal_form` | `PayPalButtonsController::renderPaymentPageButtonsAction` (the v6 payment-page placement) |
-   | `sylius_paypal_shop_create_paypal_order` | `sylius_paypal_shop_create_paypal_order_from_cart` / `..._from_payment_page` |
-   | `sylius_paypal_shop_complete_paypal_order` | `sylius_paypal_shop_process_paypal_order` / `..._complete_paypal_order_from_payment_page` |
-   | `sylius_paypal_shop_cancel_checkout_payment` | `sylius_paypal_shop_cancel_payment` / `..._cancel_order` |
-   | `sylius_paypal_shop_cancel_last_payment` | none — no longer needed once the legacy page is removed |
+   | `sylius_paypal_shop_cancel_last_payment` | none — the payment page no longer reaps abandoned attempts from the browser |
    | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_order_shipping_callback` |
 
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
@@ -189,8 +184,8 @@
    and the same meaning it had in 2.0, so JavaScript reading the old names keeps working. The old keys are
    deprecated and **will be removed in 3.0** — move your code to the new names before then.
 
-   The `orderID` returned by the deprecated `sylius_paypal_shop_create_paypal_order` route is unchanged and not
-   part of this: that route serves the legacy `pay_with_paypal.html.twig` page, which still reads it.
+   `sylius_paypal_shop_create_paypal_order` follows the same pattern: it gained `orderId` next to the
+   `orderID` it has always returned, with the same value and the same meaning.
 
 1. #### Express checkout completes the purchase in the PayPal wallet.
 
@@ -389,3 +384,115 @@
            parent: cache.adapter.redis
            tags: ['cache.pool']
    ```
+
+1. #### The PayPal payment page now runs on Web SDK v6, inside the shop layout.
+
+   `@SyliusPayPalPlugin/pay_with_paypal.html.twig` was a standalone HTML document that loaded PayPal's JS
+   SDK v5 and built a PayPal button and Hosted Fields from inline script. It now extends
+   `@SyliusShop/shared/layout/base.html.twig` and renders two funding sources — PayPal and card — through
+   PayPal's Web SDK v6. **This was the last JS SDK v5 in the package; no template loads it any more.**
+
+   The two methods are hookables on `sylius_paypal.shop.pay_with_paypal.content`, so a shop can reorder
+   them, remove one, or add its own without overriding the page:
+
+   ```yaml
+   sylius_twig_hooks:
+       hooks:
+           'sylius_paypal.shop.pay_with_paypal.content':
+               card:
+                   enabled: false
+   ```
+
+   **If your shop overrode `pay_with_paypal.html.twig`, that override now renders v5 markup with no SDK
+   behind it** — no button, no card form, no error. Diff it against the new template and rewrite it, or
+   drop the override.
+
+   **Two new Stimulus controllers have to be part of your asset build**, the same way `paypal-web-sdk`
+   already is (see the entry near the top of this file). Without them the page renders and nothing
+   happens:
+
+   ```json
+   "@sylius/paypal-plugin": {
+       "paypal-web-sdk": { "enabled": true, "fetch": "lazy" },
+       "paypal-payment-wallet-button": { "enabled": true, "fetch": "lazy" },
+       "paypal-payment-card-fields": { "enabled": true, "fetch": "lazy" }
+   }
+   ```
+
+   Then `yarn install && yarn build`.
+
+1. #### Card payments are now refused when 3D Secure does not authorise them.
+
+   The card path used to decide the authentication outcome in the browser and the capture endpoint trusted
+   it, so a capture could be requested without passing the challenge. `sylius_paypal_shop_complete_paypal_order`
+   now fetches the order from PayPal before capturing and hands the result to
+   `Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface`, which implements PayPal's published
+   decision table over `enrollment_status`, `authentication_status` and `liability_shift`.
+
+   A refused authentication cancels the payment — the order stays payable — flashes the reason and returns
+   a `return_url` back to the payment page when the buyer can retry, or to the order otherwise. An order
+   that carries no `authentication_result` at all, which is every wallet payment and every card that needed
+   no challenge, is captured as before.
+
+   Decorate or replace `sylius_paypal.verifier.three_d_secure` to change the policy. The plugin does not
+   send `payment_source.card.attributes.verification`, so PayPal's own default applies.
+
+   The endpoint also answers `409` when no payment is being processed, and `422` when the caller names a
+   PayPal order the payment does not carry. The identity check is skipped when the request body does not
+   name one, so existing callers that post no body are unaffected.
+
+1. #### `sylius_paypal_shop_create_paypal_order` now ends the previous payment attempt.
+
+   The payment page carries two funding sources, so a buyer can start a PayPal attempt, abandon it and then
+   submit the card form. Starting an attempt now cancels a PayPal payment left in `processing` before
+   creating a new PayPal order, which the payment state machine replaces with a fresh payment in `new`.
+   Only a PayPal payment is cancelled, so an order carrying another gateway's processing payment is
+   untouched.
+
+   When no payment awaits payment the endpoint answers `409` instead of raising a `TypeError`, and the
+   response carries `orderId` next to the existing `orderID`, with the same value.
+
+1. #### The following signatures changed.
+
+   `PayPalWebSdkConfigurationProviderInterface::getInstanceConfig()` takes the SDK component list and an
+   optional locale. Both are optional and default to what the three button placements already send, so
+   their configuration is unchanged:
+
+   ```diff
+    public function getInstanceConfig(
+        ChannelInterface $channel,
+        string $pageType,
+   +    array $components = self::DEFAULT_COMPONENTS,
+   +    ?string $locale = null,
+    ): array;
+   ```
+
+   `CompletePayPalOrderAction` gained three nullable arguments, which together enable the 3D Secure check.
+   Not passing them is deprecated and will be prohibited in 3.0; without them the capture behaves as it did
+   in 2.0.
+
+   ```diff
+    final readonly class CompletePayPalOrderAction
+    {
+        public function __construct(
+            // ...
+   +        private ?CacheAuthorizeClientApiInterface $authorizeClientApi = null,
+   +        private ?OrderDetailsApiInterface $orderDetailsApi = null,
+   +        private ?ThreeDSecureVerifierInterface $threeDSecureVerifier = null,
+        ) {
+        }
+   ```
+
+   `PayWithPayPalFormAction` gained `?PayPalPaymentPageContextProviderInterface` and a
+   `?UrlGeneratorInterface`, both required to render the page. Five of its existing arguments —
+   `AvailableCountriesProviderInterface`, `CacheAuthorizeClientApiInterface`, `IdentityApiInterface`,
+   `LocaleProcessorInterface` and `PayPalConfigurationProviderInterface` — are no longer used, because the
+   page neither mints a Hosted Fields client token nor prices shipping in the browser, and everything it
+   renders now comes from the context provider. They became nullable, **passing them is deprecated** and
+   they will be removed in 3.0. Its service definition uses named arguments, so dropping them does not
+   shift the remaining positions.
+
+   `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface`
+   (`sylius_paypal.provider.paypal_payment_page_context`) builds everything the page renders: the URLs it
+   calls, the v6 instance configuration including the `card-fields` component, and the order being paid
+   for. Decorate or replace it to change what the page receives without replacing the controller.

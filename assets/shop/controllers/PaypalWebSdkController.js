@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { loadWebSdkOnce } from '../scripts/paypal-web-sdk';
 
 export default class extends Controller {
     static targets = ['paypalButton'];
@@ -23,7 +24,7 @@ export default class extends Controller {
 
     async init() {
         try {
-            await this.loadWebSdkOnce();
+            await loadWebSdkOnce(this.scriptUrlValue);
 
             const sdkInstance = await window.paypal.createInstance({
                 clientId: this.instanceConfigValue.clientId,
@@ -54,25 +55,6 @@ export default class extends Controller {
         } catch (error) {
             console.error('PayPal Web SDK initialization error:', error);
         }
-    }
-
-    loadWebSdkOnce() {
-        return new Promise((resolve, reject) => {
-            const existing = document.querySelector('script[data-paypal-web-sdk]');
-            if (existing !== null) {
-                window.paypal ? resolve() : existing.addEventListener('load', resolve);
-
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = this.scriptUrlValue;
-            script.async = true;
-            script.dataset.paypalWebSdk = 'true';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.body.appendChild(script);
-        });
     }
 
     async createOrder() {

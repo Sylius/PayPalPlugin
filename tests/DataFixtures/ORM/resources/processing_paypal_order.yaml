@@ -1,0 +1,32 @@
+Sylius\Component\Core\Model\Order:
+    processing_order:
+        channel: "@channel_web"
+        items: ["@processing_mug_item"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        state: "new"
+        checkoutState: "completed"
+        tokenValue: "TOKEN"
+        payments: ["@processing_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    processing_mug_item:
+        units: ["@processing_mug_item_unit"]
+        variant: "@mug_sw"
+        order: "@processing_order"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    processing_mug_item_unit:
+        __construct: ["@processing_mug_item"]
+
+Sylius\Component\Core\Model\Payment:
+    processing_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 20
+        state: "processing"
+        details:
+            status: "CAPTURED"
+            paypal_order_id: "PAYPAL_ORDER_ID"
+            payment_amount: 20

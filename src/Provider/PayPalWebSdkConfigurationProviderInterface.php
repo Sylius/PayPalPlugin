@@ -17,8 +17,19 @@ use Sylius\Component\Core\Model\ChannelInterface;
 
 interface PayPalWebSdkConfigurationProviderInterface
 {
+    public const DEFAULT_COMPONENTS = ['paypal-payments'];
+
     public function getScriptUrl(): string;
 
-    /** @return array<string, mixed> */
-    public function getInstanceConfig(ChannelInterface $channel, string $pageType): array;
+    /**
+     * @param array<int, string> $components
+     *
+     * @return array<string, mixed>
+     */
+    public function getInstanceConfig(
+        ChannelInterface $channel,
+        string $pageType,
+        array $components = self::DEFAULT_COMPONENTS,
+        ?string $locale = null,
+    ): array;
 }

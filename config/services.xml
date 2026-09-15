@@ -313,6 +313,16 @@
         <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />
 
         <service
+            id="sylius_paypal.provider.paypal_payment_page_context"
+            class="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider"
+        >
+            <argument type="service" id="sylius_paypal.provider.paypal_web_sdk_configuration" />
+            <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.processor.locale" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface" alias="sylius_paypal.provider.paypal_payment_page_context" />
+
+        <service
             id="sylius_paypal.provider.uuid"
             class="Sylius\PayPalPlugin\Provider\UuidProvider"
         />
@@ -420,6 +430,9 @@
 
         <service id="sylius_paypal.verifier.payment_amount" class="Sylius\PayPalPlugin\Verifier\PaymentAmountVerifier" />
         <service id="Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface" alias="sylius_paypal.verifier.payment_amount" />
+
+        <service id="sylius_paypal.verifier.three_d_secure" class="Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier" />
+        <service id="Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface" alias="sylius_paypal.verifier.three_d_secure" />
 
         <service
             id="sylius_paypal.repository.query.paypal_payment"

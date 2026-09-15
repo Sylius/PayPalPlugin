@@ -7,4 +7,6 @@ sylius_paypal:
     payment_enabled: 'PayPal betaling is zojuist ingeschakeld.'
     payment_not_enabled: 'PayPal betaling kon niet worden ingeschakeld. Probeer het later nog eens.'
     something_went_wrong: 'Er is iets fout gegaan. Probeer het alstublieft opnieuw.'
+    three_d_secure_declined: 'Uw kaart kon niet worden geverifieerd. Gebruik alstublieft een andere betaalmethode.'
+    three_d_secure_retry: 'De verificatie van de kaart kon niet worden voltooid. Probeer het alstublieft opnieuw.'
     webhook_url_not_valid: 'PayPal kan de opgegeven webhook-URL niet verifiëren. Zorg ervoor dat het https is en probeer het opnieuw.'

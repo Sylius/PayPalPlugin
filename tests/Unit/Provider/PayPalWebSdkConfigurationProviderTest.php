@@ -57,4 +57,48 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
         self::assertSame('Sylius_MP_PPCP', $config['partnerAttributionId']);
         self::assertSame('checkout', $config['pageType']);
     }
+
+    #[Test]
+    public function it_builds_the_instance_config_with_the_given_components(): void
+    {
+        $config = $this->provider->getInstanceConfig(
+            $this->createMock(ChannelInterface::class),
+            'checkout',
+            ['paypal-payments', 'card-fields'],
+        );
+
+        self::assertSame(['paypal-payments', 'card-fields'], $config['components']);
+    }
+
+    #[Test]
+    public function it_builds_the_instance_config_with_the_given_locale(): void
+    {
+        $config = $this->provider->getInstanceConfig(
+            $this->createMock(ChannelInterface::class),
+            'checkout',
+            locale: 'en-US',
+        );
+
+        self::assertSame('en-US', $config['locale']);
+    }
+
+    #[Test]
+    public function it_hands_the_sdk_a_locale_it_understands(): void
+    {
+        $config = $this->provider->getInstanceConfig(
+            $this->createMock(ChannelInterface::class),
+            'checkout',
+            locale: 'en_US',
+        );
+
+        self::assertSame('en-US', $config['locale']);
+    }
+
+    #[Test]
+    public function it_builds_the_instance_config_without_a_locale_when_none_is_given(): void
+    {
+        $config = $this->provider->getInstanceConfig($this->createMock(ChannelInterface::class), 'checkout');
+
+        self::assertArrayNotHasKey('locale', $config);
+    }
 }

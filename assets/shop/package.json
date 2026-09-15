@@ -8,6 +8,18 @@
                 "webpackMode": "lazy",
                 "fetch": "lazy",
                 "enabled": true
+            },
+            "paypal-payment-wallet-button": {
+                "main": "controllers/PaymentPageWalletButtonController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-payment-card-fields": {
+                "main": "controllers/PaymentPageCardFieldsController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
             }
         }
     }
