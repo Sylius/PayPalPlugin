@@ -16,11 +16,27 @@ namespace Sylius\PayPalPlugin\Provider;
 use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
+use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 
 final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInterface
 {
-    public function __construct(private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider)
-    {
+    public const CATEGORY_PHYSICAL_GOODS = 'PHYSICAL_GOODS';
+
+    public const CATEGORY_DIGITAL_GOODS = 'DIGITAL_GOODS';
+
+    public function __construct(
+        private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
+        private ?PayPalItemFactoryInterface $itemFactory = null,
+    ) {
+        if (null === $itemFactory) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $itemFactory to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                self::class,
+            );
+        }
     }
 
     public function provide(OrderInterface $order): array
@@ -32,30 +48,30 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         ];
 
         $currencyCode = (string) $order->getCurrencyCode();
+        $category = $this->resolveCategory($order);
 
         /** @var Collection<int, OrderItemInterface> $orderItems */
         $orderItems = $order->getItems();
 
         foreach ($orderItems as $orderItem) {
-            $productName = $this->truncateProductName($orderItem->getProductName());
             $quantity = $orderItem->getQuantity();
             if ($quantity <= 0) {
                 continue;
             }
 
-            $itemValue = $orderItem->getUnitPrice();
+            $unitPrice = $orderItem->getUnitPrice();
 
             $nonNeutralTaxes = $this->orderItemNonNeutralTaxesProvider->provide($orderItem);
-            $totalTax = $nonNeutralTaxes !== [] ? array_sum($nonNeutralTaxes) : 0;
+            $totalTax = [] !== $nonNeutralTaxes ? array_sum($nonNeutralTaxes) : 0;
 
             $baseTax = (int) floor($totalTax / $quantity);
             $remainder = $totalTax % $quantity;
 
-            if ($remainder === 0 || $quantity === 1) {
-                $this->addItem($itemData, $productName, $quantity, $itemValue, $baseTax, $currencyCode);
+            if (0 === $remainder || 1 === $quantity) {
+                $this->addItem($itemData, $orderItem, $quantity, $unitPrice, $baseTax, $currencyCode, $category);
             } else {
-                $this->addItem($itemData, $productName, $quantity - 1, $itemValue, $baseTax, $currencyCode);
-                $this->addItem($itemData, $productName, 1, $itemValue, $baseTax + $remainder, $currencyCode);
+                $this->addItem($itemData, $orderItem, $quantity - 1, $unitPrice, $baseTax, $currencyCode, $category);
+                $this->addItem($itemData, $orderItem, 1, $unitPrice, $baseTax + $remainder, $currencyCode, $category);
             }
         }
 
@@ -67,33 +83,33 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
     private function addItem(
         array &$itemData,
-        string $productName,
+        OrderItemInterface $orderItem,
         int $quantity,
-        int $itemValue,
+        int $unitPrice,
         int $tax,
         string $currencyCode,
+        string $category,
     ): void {
-        $itemData['total_item_value'] += $itemValue * $quantity;
+        $itemData['total_item_value'] += $unitPrice * $quantity;
         $itemData['total_tax'] += $tax * $quantity;
 
-        $itemData['items'][] = [
-            'name' => $productName,
-            'unit_amount' => [
-                'value' => number_format($itemValue / 100, 2, '.', ''),
-                'currency_code' => $currencyCode,
-            ],
-            'quantity' => $quantity,
-            'tax' => [
-                'value' => number_format($tax / 100, 2, '.', ''),
-                'currency_code' => $currencyCode,
-            ],
-        ];
+        $itemData['items'][] = $this->getItemFactory()->create(
+            $orderItem,
+            $quantity,
+            $unitPrice,
+            $tax,
+            $currencyCode,
+            $category,
+        )->toArray();
     }
 
-    private function truncateProductName(string $productName): string
+    private function resolveCategory(OrderInterface $order): string
     {
-        return mb_strlen($productName) > 127
-            ? mb_substr($productName, 0, 124) . '...'
-            : $productName;
+        return $order->isShippingRequired() ? self::CATEGORY_PHYSICAL_GOODS : self::CATEGORY_DIGITAL_GOODS;
+    }
+
+    private function getItemFactory(): PayPalItemFactoryInterface
+    {
+        return $this->itemFactory ?? new PayPalItemFactory();
     }
 }

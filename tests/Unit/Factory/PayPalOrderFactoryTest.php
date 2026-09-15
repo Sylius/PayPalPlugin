@@ -96,9 +96,14 @@ final class PayPalOrderFactoryTest extends TestCase
 
         self::assertSame([
             'shipping_preference' => 'GET_FROM_FILE',
+            'contact_preference' => 'UPDATE_CONTACT_INFO',
             'user_action' => 'PAY_NOW',
+            'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
             'return_url' => 'https://shop.example.com/checkout/complete',
             'cancel_url' => 'https://shop.example.com/checkout/complete',
+            'app_switch_preference' => [
+                'launch_paypal_app' => true,
+            ],
             'order_update_callback_config' => [
                 'callback_events' => ['SHIPPING_ADDRESS'],
                 'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
@@ -106,7 +111,26 @@ final class PayPalOrderFactoryTest extends TestCase
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
     }
 
-    public function test_it_does_not_select_a_payment_source_on_orders_that_already_carry_an_address(): void
+    public function test_it_omits_the_brand_name_and_normalises_the_locale(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getShippingAddress')->willReturn(null);
+        $order->method('getLocaleCode')->willReturn('en_US');
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
+        $experienceContext = $this->factory
+            ->create($payment, 'REFERENCE_ID')
+            ->toArray()['payment_source']['paypal']['experience_context']
+        ;
+
+        self::assertArrayNotHasKey('brand_name', $experienceContext);
+        self::assertSame('en-US', $experienceContext['locale']);
+    }
+
+    public function test_it_sends_the_experience_context_when_the_address_is_already_provided(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('isShippingRequired')->willReturn(true);
@@ -117,8 +141,18 @@ final class PayPalOrderFactoryTest extends TestCase
 
         $payPalOrder = $this->factory->create($payment, 'REFERENCE_ID')->toArray();
 
-        self::assertArrayNotHasKey('payment_source', $payPalOrder);
-        self::assertSame('SET_PROVIDED_ADDRESS', $payPalOrder['application_context']['shipping_preference']);
+        self::assertArrayNotHasKey('application_context', $payPalOrder);
+        self::assertSame([
+            'shipping_preference' => 'SET_PROVIDED_ADDRESS',
+            'contact_preference' => 'RETAIN_CONTACT_INFO',
+            'user_action' => 'PAY_NOW',
+            'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+            'return_url' => 'https://shop.example.com/checkout/complete',
+            'cancel_url' => 'https://shop.example.com/checkout/complete',
+            'app_switch_preference' => [
+                'launch_paypal_app' => true,
+            ],
+        ], $payPalOrder['payment_source']['paypal']['experience_context']);
     }
 
     public function test_it_declares_no_shipping_callback_when_its_provider_has_no_url_to_give(): void
@@ -148,7 +182,12 @@ final class PayPalOrderFactoryTest extends TestCase
 
         self::assertSame([
             'shipping_preference' => 'GET_FROM_FILE',
+            'contact_preference' => 'UPDATE_CONTACT_INFO',
             'user_action' => 'PAY_NOW',
+            'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+            'app_switch_preference' => [
+                'launch_paypal_app' => true,
+            ],
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
     }
 

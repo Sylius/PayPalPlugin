@@ -45,9 +45,11 @@ final readonly class PayPalPurchaseUnitFactory implements PayPalPurchaseUnitFact
             AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT,
         );
 
+        $paymentReferenceNumber = $this->paymentReferenceNumberProvider->provide($payment);
+
         return new PayPalPurchaseUnit(
             $referenceId,
-            $this->paymentReferenceNumberProvider->provide($payment),
+            $paymentReferenceNumber . '-' . $referenceId,
             (string) $order->getCurrencyCode(),
             (int) $payment->getAmount(),
             $order->getShippingTotal() - $shippingDiscount,
@@ -59,6 +61,7 @@ final readonly class PayPalPurchaseUnitFactory implements PayPalPurchaseUnitFact
             $order->isShippingRequired(),
             $order->getShippingAddress(),
             shippingDiscountValue: $shippingDiscount,
+            customId: $paymentReferenceNumber,
         );
     }
 

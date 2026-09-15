@@ -126,8 +126,15 @@
             <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.provider.paypal_shipping_callback_url" />
+            <argument type="service" id="sylius_paypal.provider.experience_context" />
         </service>
         <service id="Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface" alias="sylius_paypal.factory.paypal_order" />
+
+        <service
+            id="sylius_paypal.provider.experience_context"
+            class="Sylius\PayPalPlugin\Provider\ExperienceContextProvider"
+        />
+        <service id="Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface" alias="sylius_paypal.provider.experience_context" />
 
         <service
             id="sylius_paypal.factory.paypal_shipping_callback_response"
@@ -181,8 +188,17 @@
             class="Sylius\PayPalPlugin\Provider\PayPalItemDataProvider"
         >
             <argument type="service" id="sylius_paypal.provider.order_item_non_neutral_tax" />
+            <argument type="service" id="sylius_paypal.factory.paypal_item" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface" alias="sylius_paypal.provider.paypal_item_data" />
+
+        <service
+            id="sylius_paypal.factory.paypal_item"
+            class="Sylius\PayPalPlugin\Factory\PayPalItemFactory"
+        >
+            <argument type="service" id="router" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface" alias="sylius_paypal.factory.paypal_item" />
 
         <service
             id="sylius_paypal.provider.paypal_payment_method"

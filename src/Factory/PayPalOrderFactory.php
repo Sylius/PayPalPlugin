@@ -16,16 +16,22 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 {
+    private ExperienceContextProviderInterface $experienceContextProvider;
+
     public function __construct(
         private PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
         private ?UrlGeneratorInterface $router = null,
         private ?PayPalShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
+        ?ExperienceContextProviderInterface $experienceContextProvider = null,
     ) {
+        $this->experienceContextProvider = $experienceContextProvider ?? new ExperienceContextProvider();
     }
 
     public function create(PaymentInterface $payment, string $referenceId): PayPalOrder
@@ -39,13 +45,18 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
 
-        return new PayPalOrder(
+        $experienceContext = $this->experienceContextProvider->provide(
             $order,
-            $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
-            PayPalOrder::INTENT_CAPTURE,
             $payerReturnUrl,
             $payerReturnUrl,
             $this->shippingCallbackUrlProvider?->provide(),
+        );
+
+        return new PayPalOrder(
+            order: $order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
+            intent: PayPalOrder::INTENT_CAPTURE,
+            experienceContext: $experienceContext,
         );
     }
 }
