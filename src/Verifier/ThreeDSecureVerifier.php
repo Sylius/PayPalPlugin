@@ -33,6 +33,10 @@ final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
 
     public const AUTHENTICATION_REFUSED = 'R';
 
+    public const AUTHENTICATION_INCOMPLETE = 'U';
+
+    public const AUTHENTICATION_CHALLENGE_REQUIRED = 'C';
+
     public const LIABILITY_SHIFT_NO = 'NO';
 
     public const LIABILITY_SHIFT_POSSIBLE = 'POSSIBLE';
@@ -62,6 +66,7 @@ final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
         match ($authenticationStatus) {
             self::AUTHENTICATION_SUCCEEDED, self::AUTHENTICATION_ATTEMPTED => null,
             self::AUTHENTICATION_FAILED, self::AUTHENTICATION_REFUSED => throw new ThreeDSecureAuthenticationFailedException(retryable: false),
+            self::AUTHENTICATION_INCOMPLETE, self::AUTHENTICATION_CHALLENGE_REQUIRED => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
             default => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
         };
     }

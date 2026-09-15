@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Verifier;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier;
@@ -47,130 +48,119 @@ final class ThreeDSecureVerifierTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
-    public function test_it_accepts_a_successful_authentication(): void
+    public function test_it_asks_to_retry_an_authentication_result_carrying_no_enrollment_status(): void
     {
-        $this->verifier->verify($this->orderDetails(
+        $rejection = $this->rejectionOf(['payment_source' => ['card' => ['authentication_result' => []]]]);
+
+        self::assertTrue($rejection->isRetryable());
+    }
+
+    #[DataProvider('acceptedResultProvider')]
+    public function test_it_accepts_an_authentication_result(
+        string $enrollmentStatus,
+        ?string $authenticationStatus,
+        string $liabilityShift,
+    ): void {
+        $this->verifier->verify($this->orderDetails($enrollmentStatus, $authenticationStatus, $liabilityShift));
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[DataProvider('refusedResultProvider')]
+    public function test_it_refuses_an_authentication_result(
+        string $enrollmentStatus,
+        ?string $authenticationStatus,
+        string $liabilityShift,
+        bool $retryable,
+    ): void {
+        $rejection = $this->rejectionOf($this->orderDetails($enrollmentStatus, $authenticationStatus, $liabilityShift));
+
+        self::assertSame($retryable, $rejection->isRetryable());
+    }
+
+    public static function acceptedResultProvider(): iterable
+    {
+        yield 'authenticated, liability shifts' => [
             ThreeDSecureVerifier::ENROLLMENT_READY,
             ThreeDSecureVerifier::AUTHENTICATION_SUCCEEDED,
             ThreeDSecureVerifier::LIABILITY_SHIFT_POSSIBLE,
-        ));
+        ];
 
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function test_it_accepts_an_attempted_authentication(): void
-    {
-        $this->verifier->verify($this->orderDetails(
+        yield 'authentication attempted, liability shifts' => [
             ThreeDSecureVerifier::ENROLLMENT_READY,
             ThreeDSecureVerifier::AUTHENTICATION_ATTEMPTED,
             ThreeDSecureVerifier::LIABILITY_SHIFT_POSSIBLE,
-        ));
+        ];
 
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function test_it_rejects_a_failed_authentication(): void
-    {
-        $rejection = $this->rejectionOf($this->orderDetails(
-            ThreeDSecureVerifier::ENROLLMENT_READY,
-            ThreeDSecureVerifier::AUTHENTICATION_FAILED,
-            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
-        ));
-
-        self::assertFalse($rejection->isRetryable());
-    }
-
-    public function test_it_rejects_an_authentication_the_issuer_refused(): void
-    {
-        $rejection = $this->rejectionOf($this->orderDetails(
-            ThreeDSecureVerifier::ENROLLMENT_READY,
-            ThreeDSecureVerifier::AUTHENTICATION_REFUSED,
-            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
-        ));
-
-        self::assertFalse($rejection->isRetryable());
-    }
-
-    public function test_it_asks_to_retry_an_authentication_that_could_not_be_completed(): void
-    {
-        $rejection = $this->rejectionOf($this->orderDetails(
-            ThreeDSecureVerifier::ENROLLMENT_READY,
-            'U',
-            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
-        ));
-
-        self::assertTrue($rejection->isRetryable());
-    }
-
-    public function test_it_asks_to_retry_a_challenge_the_buyer_did_not_finish(): void
-    {
-        $rejection = $this->rejectionOf($this->orderDetails(
-            ThreeDSecureVerifier::ENROLLMENT_READY,
-            'C',
-            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
-        ));
-
-        self::assertTrue($rejection->isRetryable());
-    }
-
-    public function test_it_asks_to_retry_an_unrecognised_authentication_status(): void
-    {
-        $rejection = $this->rejectionOf($this->orderDetails(
-            ThreeDSecureVerifier::ENROLLMENT_READY,
-            'I',
-            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
-        ));
-
-        self::assertTrue($rejection->isRetryable());
-    }
-
-    public function test_it_accepts_a_card_that_is_not_enrolled(): void
-    {
-        $this->verifier->verify($this->orderDetails(
+        yield 'card not enrolled' => [
             ThreeDSecureVerifier::ENROLLMENT_NOT_READY,
             null,
             ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
-        ));
+        ];
 
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function test_it_accepts_an_unavailable_authentication_system(): void
-    {
-        $this->verifier->verify($this->orderDetails(
+        yield 'enrollment system unavailable' => [
             ThreeDSecureVerifier::ENROLLMENT_SYSTEM_UNAVAILABLE,
             null,
             ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
-        ));
+        ];
 
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function test_it_asks_to_retry_an_unavailable_authentication_system_without_liability_shift(): void
-    {
-        $rejection = $this->rejectionOf($this->orderDetails(
-            ThreeDSecureVerifier::ENROLLMENT_SYSTEM_UNAVAILABLE,
-            null,
-            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
-        ));
-
-        self::assertTrue($rejection->isRetryable());
-    }
-
-    public function test_it_accepts_a_bypassed_authentication(): void
-    {
-        $this->verifier->verify($this->orderDetails(
+        yield 'authentication bypassed' => [
             ThreeDSecureVerifier::ENROLLMENT_BYPASSED,
             null,
             ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
-        ));
-
-        $this->expectNotToPerformAssertions();
+        ];
     }
 
-    public function test_it_asks_to_retry_an_authentication_result_carrying_no_enrollment_status(): void
+    public static function refusedResultProvider(): iterable
     {
-        self::assertTrue($this->rejectionOf(['payment_source' => ['card' => ['authentication_result' => []]]])->isRetryable());
+        yield 'authentication failed' => [
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_FAILED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+            false,
+        ];
+
+        yield 'issuer refused authentication' => [
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_REFUSED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_NO,
+            false,
+        ];
+
+        yield 'authentication could not be completed' => [
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_INCOMPLETE,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+            true,
+        ];
+
+        yield 'challenge the buyer did not finish' => [
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            ThreeDSecureVerifier::AUTHENTICATION_CHALLENGE_REQUIRED,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+            true,
+        ];
+
+        yield 'authentication status PayPal defines no action for' => [
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            'D',
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+            true,
+        ];
+
+        yield 'enrolled card with no authentication status' => [
+            ThreeDSecureVerifier::ENROLLMENT_READY,
+            null,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+            true,
+        ];
+
+        yield 'enrollment system unavailable, liability stays with the merchant' => [
+            ThreeDSecureVerifier::ENROLLMENT_SYSTEM_UNAVAILABLE,
+            null,
+            ThreeDSecureVerifier::LIABILITY_SHIFT_UNKNOWN,
+            true,
+        ];
     }
 
     private function rejectionOf(array $paypalOrderDetails): ThreeDSecureAuthenticationFailedException
