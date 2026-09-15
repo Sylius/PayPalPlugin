@@ -157,23 +157,26 @@ final readonly class ProcessPayPalOrderAction
         }
 
         $purchaseUnit = (array) $data['purchase_units'][0];
-
-        $address = $this->addressFactory->createNew();
-        $address->setPhoneNumber($data['payer']['phone']['phone_number']['national_number'] ?? null);
+        $payerPhoneNumber = $data['payer']['phone']['phone_number']['national_number'] ?? null;
 
         if ($order->isShippingRequired()) {
-            $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
-            /** @phpstan-ignore-next-line false positive */
-            $address->setLastName(array_pop($name) ?? '');
-            $address->setFirstName(implode(' ', $name));
-            $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
-            $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
-            $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
-            $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
-            $this->applyProvince($address, (array) $purchaseUnit['shipping']['address']);
+            if (null === $order->getShippingAddress()) {
+                $address = $this->addressFactory->createNew();
+                $address->setPhoneNumber($payerPhoneNumber);
 
-            $order->setShippingAddress(clone $address);
-            $order->setBillingAddress(clone $address);
+                $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
+                /** @phpstan-ignore-next-line false positive */
+                $address->setLastName(array_pop($name) ?? '');
+                $address->setFirstName(implode(' ', $name));
+                $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
+                $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
+                $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
+                $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
+                $this->applyProvince($address, (array) $purchaseUnit['shipping']['address']);
+
+                $order->setShippingAddress(clone $address);
+                $order->setBillingAddress(clone $address);
+            }
 
             $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_ADDRESS);
 
@@ -183,18 +186,22 @@ final readonly class ProcessPayPalOrderAction
                 $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
             }
         } else {
-            $address->setFirstName($customer->getFirstName());
-            $address->setLastName($customer->getLastName());
+            if (null === $order->getShippingAddress() && null === $order->getBillingAddress()) {
+                $address = $this->addressFactory->createNew();
+                $address->setPhoneNumber($payerPhoneNumber);
+                $address->setFirstName($customer->getFirstName());
+                $address->setLastName($customer->getLastName());
 
-            $defaultAddress = $customer->getDefaultAddress();
+                $defaultAddress = $customer->getDefaultAddress();
 
-            $address->setStreet($defaultAddress ? $defaultAddress->getStreet() : '');
-            $address->setCity($defaultAddress ? $defaultAddress->getCity() : '');
-            $address->setPostcode($defaultAddress ? $defaultAddress->getPostcode() : '');
-            $address->setCountryCode($data['payer']['address']['country_code']);
+                $address->setStreet($defaultAddress ? $defaultAddress->getStreet() : '');
+                $address->setCity($defaultAddress ? $defaultAddress->getCity() : '');
+                $address->setPostcode($defaultAddress ? $defaultAddress->getPostcode() : '');
+                $address->setCountryCode($data['payer']['address']['country_code']);
 
-            $order->setShippingAddress(clone $address);
-            $order->setBillingAddress(clone $address);
+                $order->setShippingAddress(clone $address);
+                $order->setBillingAddress(clone $address);
+            }
 
             $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_ADDRESS);
         }

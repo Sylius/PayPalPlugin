@@ -115,6 +115,14 @@
    The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
    now also stores the region on the order's addresses — previously it was dropped.
 
+   It no longer replaces addresses the buyer entered in the Sylius checkout. An order that reaches the wallet
+   with a shipping address is sent to PayPal as `SET_PROVIDED_ADDRESS`, which the buyer cannot edit there, so
+   rebuilding the order's addresses from PayPal's echo could only lose what PayPal does not carry — the
+   region, the company, a separate billing address, a phone number typed in the checkout — and leave the
+   previous rows behind unreferenced. Such an order now keeps its addresses untouched. Addresses are still
+   built from the echo for an order that carried none, which is the case where the buyer picked the address
+   in the wallet.
+
    The region now travels the other way too. Both payloads that carry a shipping address to PayPal — the
    purchase unit built by `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit` and the pre-capture address patch
    in `Sylius\PayPalPlugin\Api\UpdateOrderAddressApi` — send it as `admin_area_1`, which they did not do
