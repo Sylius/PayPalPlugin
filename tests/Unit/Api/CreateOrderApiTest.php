@@ -68,12 +68,15 @@ final class CreateOrderApiTest extends TestCase
     public function it_posts_the_order_its_factory_built_for_the_payment(): void
     {
         $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('isShippingRequired')->willReturn(false);
 
         $this->payPalOrderFactory
             ->expects(self::once())
             ->method('create')
             ->with($payment, 'REFERENCE_ID')
             ->willReturn($payPalOrder = new PayPalOrder(
+                $order,
                 $this->purchaseUnit(),
                 PayPalOrder::INTENT_CAPTURE,
             ))

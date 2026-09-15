@@ -16,9 +16,8 @@ namespace Sylius\PayPalPlugin\Provider;
 use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
-use Sylius\Component\Core\Model\ProductInterface as CoreProductInterface;
-use Sylius\Component\Product\Model\ProductInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
+use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 
 final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInterface
 {
@@ -28,13 +27,13 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
     public function __construct(
         private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
-        private ?UrlGeneratorInterface $urlGenerator = null,
+        private ?PayPalItemFactoryInterface $itemFactory = null,
     ) {
-        if (null === $urlGenerator) {
+        if (null === $itemFactory) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
-                'Not passing a $urlGenerator to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                'Not passing a $itemFactory to "%s" constructor is deprecated and will be prohibited in 3.0.',
                 self::class,
             );
         }
@@ -55,34 +54,24 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         $orderItems = $order->getItems();
 
         foreach ($orderItems as $orderItem) {
-            $productName = $this->truncateProductName($orderItem->getProductName());
             $quantity = $orderItem->getQuantity();
             if ($quantity <= 0) {
                 continue;
             }
 
-            $itemValue = $orderItem->getUnitPrice();
-
-            $variant = $orderItem->getVariant();
-            $product = $variant?->getProduct();
-            $itemDetails = [
-                'category' => $category,
-                'sku' => $variant?->getCode(),
-                'description' => $this->resolveDescription($product),
-                'url' => $this->resolveProductUrl($product),
-            ];
+            $unitPrice = $orderItem->getUnitPrice();
 
             $nonNeutralTaxes = $this->orderItemNonNeutralTaxesProvider->provide($orderItem);
-            $totalTax = $nonNeutralTaxes !== [] ? array_sum($nonNeutralTaxes) : 0;
+            $totalTax = [] !== $nonNeutralTaxes ? array_sum($nonNeutralTaxes) : 0;
 
             $baseTax = (int) floor($totalTax / $quantity);
             $remainder = $totalTax % $quantity;
 
-            if ($remainder === 0 || $quantity === 1) {
-                $this->addItem($itemData, $productName, $quantity, $itemValue, $baseTax, $currencyCode, $itemDetails);
+            if (0 === $remainder || 1 === $quantity) {
+                $this->addItem($itemData, $orderItem, $quantity, $unitPrice, $baseTax, $currencyCode, $category);
             } else {
-                $this->addItem($itemData, $productName, $quantity - 1, $itemValue, $baseTax, $currencyCode, $itemDetails);
-                $this->addItem($itemData, $productName, 1, $itemValue, $baseTax + $remainder, $currencyCode, $itemDetails);
+                $this->addItem($itemData, $orderItem, $quantity - 1, $unitPrice, $baseTax, $currencyCode, $category);
+                $this->addItem($itemData, $orderItem, 1, $unitPrice, $baseTax + $remainder, $currencyCode, $category);
             }
         }
 
@@ -92,103 +81,35 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         return $itemData;
     }
 
-    /**
-     * @param array{category: string, sku: string|null, description: string|null, url: string|null} $itemDetails
-     */
     private function addItem(
         array &$itemData,
-        string $productName,
+        OrderItemInterface $orderItem,
         int $quantity,
-        int $itemValue,
+        int $unitPrice,
         int $tax,
         string $currencyCode,
-        array $itemDetails,
+        string $category,
     ): void {
-        $itemData['total_item_value'] += $itemValue * $quantity;
+        $itemData['total_item_value'] += $unitPrice * $quantity;
         $itemData['total_tax'] += $tax * $quantity;
 
-        $item = [
-            'name' => $productName,
-            'unit_amount' => [
-                'value' => number_format($itemValue / 100, 2, '.', ''),
-                'currency_code' => $currencyCode,
-            ],
-            'quantity' => $quantity,
-            'tax' => [
-                'value' => number_format($tax / 100, 2, '.', ''),
-                'currency_code' => $currencyCode,
-            ],
-            'category' => $itemDetails['category'],
-        ];
-
-        if (null !== $itemDetails['sku']) {
-            $item['sku'] = $itemDetails['sku'];
-        }
-
-        if (null !== $itemDetails['description']) {
-            $item['description'] = $itemDetails['description'];
-        }
-
-        if (null !== $itemDetails['url']) {
-            $item['url'] = $itemDetails['url'];
-        }
-
-        $itemData['items'][] = $item;
+        $itemData['items'][] = $this->getItemFactory()->create(
+            $orderItem,
+            $quantity,
+            $unitPrice,
+            $tax,
+            $currencyCode,
+            $category,
+        )->toArray();
     }
 
-    /**
-     * PayPal requires the DIGITAL_GOODS category for orders that do not require shipping, so that the
-     * shipping module is skipped. Per the PayPal SDD, orders that use the partner (platform) fee
-     * functionality must stay on PHYSICAL_GOODS regardless of the shipping requirement; this plugin
-     * does not use partner fees, so digital orders are always marked as DIGITAL_GOODS.
-     */
     private function resolveCategory(OrderInterface $order): string
     {
         return $order->isShippingRequired() ? self::CATEGORY_PHYSICAL_GOODS : self::CATEGORY_DIGITAL_GOODS;
     }
 
-    private function resolveDescription(?ProductInterface $product): ?string
+    private function getItemFactory(): PayPalItemFactoryInterface
     {
-        if (!$product instanceof CoreProductInterface) {
-            return null;
-        }
-
-        $shortDescription = $product->getShortDescription();
-        if ($shortDescription === null || $shortDescription === '') {
-            return null;
-        }
-
-        return mb_strlen($shortDescription) > 127
-            ? mb_substr($shortDescription, 0, 124) . '...'
-            : $shortDescription;
-    }
-
-    private function resolveProductUrl(?ProductInterface $product): ?string
-    {
-        if (null === $this->urlGenerator) {
-            return null;
-        }
-
-        $slug = $product?->getSlug();
-        if ($slug === null || $slug === '') {
-            return null;
-        }
-
-        try {
-            return $this->urlGenerator->generate(
-                'sylius_shop_product_show',
-                ['slug' => $slug],
-                UrlGeneratorInterface::ABSOLUTE_URL,
-            );
-        } catch (\Throwable) {
-            return null;
-        }
-    }
-
-    private function truncateProductName(string $productName): string
-    {
-        return mb_strlen($productName) > 127
-            ? mb_substr($productName, 0, 124) . '...'
-            : $productName;
+        return $this->itemFactory ?? new PayPalItemFactory();
     }
 }

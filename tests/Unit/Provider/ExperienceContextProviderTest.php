@@ -64,6 +64,39 @@ final class ExperienceContextProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_omits_the_shipping_callback_when_the_address_is_already_provided(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+
+        $experienceContext = $this->provider->provide(
+            $this->order,
+            'https://shop.example.com/checkout/complete',
+            'https://shop.example.com/checkout/complete',
+            'https://shop.example.com/paypal/order-shipping-callback',
+        );
+
+        self::assertSame('SET_PROVIDED_ADDRESS', $experienceContext['shipping_preference']);
+        self::assertArrayNotHasKey('order_update_callback_config', $experienceContext);
+    }
+
+    #[Test]
+    public function it_omits_the_shipping_callback_when_shipping_is_not_required(): void
+    {
+        $this->order->method('isShippingRequired')->willReturn(false);
+
+        $experienceContext = $this->provider->provide(
+            $this->order,
+            'https://shop.example.com/checkout/complete',
+            'https://shop.example.com/checkout/complete',
+            'https://shop.example.com/paypal/order-shipping-callback',
+        );
+
+        self::assertSame('NO_SHIPPING', $experienceContext['shipping_preference']);
+        self::assertArrayNotHasKey('order_update_callback_config', $experienceContext);
+    }
+
+    #[Test]
     public function it_omits_the_brand_name_by_default(): void
     {
         $this->order->method('isShippingRequired')->willReturn(true);

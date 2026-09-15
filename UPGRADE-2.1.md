@@ -386,7 +386,7 @@
            tags: ['cache.pool']
    ```
 
-1. #### The PayPal payment page now runs on Web SDK v6, inside the shop layout.
+12. #### The PayPal payment page now runs on Web SDK v6, inside the shop layout.
 
    `@SyliusPayPalPlugin/pay_with_paypal.html.twig` was a standalone HTML document that loaded PayPal's JS
    SDK v5 and built a PayPal button and Hosted Fields from inline script. It now extends
@@ -422,7 +422,7 @@
 
    Then `yarn install && yarn build`.
 
-1. #### Card payments are now refused when 3D Secure does not authorise them.
+13. #### Card payments are now refused when 3D Secure does not authorise them.
 
    The card path used to decide the authentication outcome in the browser and the capture endpoint trusted
    it, so a capture could be requested without passing the challenge. `sylius_paypal_shop_complete_paypal_order`
@@ -442,7 +442,7 @@
    PayPal order the payment does not carry. The identity check is skipped when the request body does not
    name one, so existing callers that post no body are unaffected.
 
-1. #### `sylius_paypal_shop_create_paypal_order` now ends the previous payment attempt.
+14. #### `sylius_paypal_shop_create_paypal_order` now ends the previous payment attempt.
 
    The payment page carries two funding sources, so a buyer can start a PayPal attempt, abandon it and then
    submit the card form. Starting an attempt now cancels a PayPal payment left in `processing` before
@@ -453,7 +453,7 @@
    When no payment awaits payment the endpoint answers `409` instead of raising a `TypeError`, and the
    response carries `orderId` next to the existing `orderID`, with the same value.
 
-1. #### The following signatures changed.
+15. #### The following signatures changed.
 
    `PayPalWebSdkConfigurationProviderInterface::getInstanceConfig()` takes the SDK component list and an
    optional locale. Both are optional and default to what the three button placements already send, so
@@ -498,22 +498,23 @@
    calls, the v6 instance configuration including the `card-fields` component, and the order being paid
    for. Decorate or replace it to change what the page receives without replacing the controller.
 
-1. #### The created PayPal order now carries full line items, an amount breakdown, `custom_id`/`invoice_id`,
+16. #### The created PayPal order now carries full line items, an amount breakdown, `custom_id`/`invoice_id`,
    and an enriched `experience_context`.
 
    Following the PayPal SDD, the `v2/checkout/orders` payload - now assembled by `PayPalOrderFactory` and
    `PayPalPurchaseUnitFactory` (see above) - changed shape:
 
-   **The wallet flow uses an enriched `payment_source.paypal.experience_context`; every other flow keeps
-     `application_context`.** When PayPal supplies the shipping address (the shortcut placements, shipping
-     preference `GET_FROM_FILE`) the order sends `experience_context` with `locale`, `shipping_preference`,
-     `contact_preference`, `user_action`, `payment_method_preference`, an `app_switch_preference`, identical
-     `return_url`/`cancel_url` (the absolute payer return URL - they must be identical for app switch to work)
-     and, when PayPal can reach it, `order_update_callback_config`. Every other case - a known shipping
-     address (`SET_PROVIDED_ADDRESS`, including the on-page card fields) or a non-shippable order
-     (`NO_SHIPPING`) - keeps the legacy `application_context` with `shipping_preference` + `user_action`, so
-     the standard checkout is unaffected. The two blocks are mutually exclusive; PayPal rejects an order that
-     carries both.
+   **The order sends an enriched `payment_source.paypal.experience_context` in place of the deprecated
+     `application_context`, on every flow.** It carries `locale`, `shipping_preference`, `contact_preference`,
+     `user_action`, `payment_method_preference`, an `app_switch_preference` and identical `return_url`/`cancel_url`
+     (the absolute payer return URL - they must be identical for app switch to work). The `shipping_preference`
+     follows the flow: shortcut placements with no known address yield `GET_FROM_FILE` + `UPDATE_CONTACT_INFO`,
+     a known shipping address yields `SET_PROVIDED_ADDRESS` + `RETAIN_CONTACT_INFO`, and a non-shippable order
+     yields `NO_SHIPPING`. `order_update_callback_config` is added only on the `GET_FROM_FILE` flow, when PayPal
+     can reach the callback URL - PayPal rejects it (`SHIPPING_CALLBACK_CONFIG_NOT_SUPPORTED`) together with
+     `SET_PROVIDED_ADDRESS` or `NO_SHIPPING`. The choice no longer depends on the shipping preference - the v6
+     card fields introduced in this release work against an order that carries `experience_context`, so
+     `application_context` is not sent any more.
    
    **`brand_name` is not sent by default.** PayPal then shows the business name registered on the merchant's
      account. The whole `experience_context` is built by
@@ -532,14 +533,14 @@
      per-attempt reference id to that number so a retried payment never collides on the value PayPal rejects
      when duplicated.
 
-13. #### `PayPalItemDataProvider` gained an optional `router` argument.
+17. #### `PayPalItemDataProvider` gained an optional `router` argument.
 
    `Sylius\PayPalPlugin\Provider\PayPalItemDataProvider` now takes a
    `Symfony\Component\Routing\Generator\UrlGeneratorInterface` (the `router` service) as an optional last
    constructor argument, used to build the item product URLs. Omitting it is deprecated and the provider then
    skips the `url` field; if you instantiate or decorate the provider yourself, pass the `router` service.
 
-14. #### `PayPalPurchaseUnit` and `PayPalOrder` model constructors changed.
+18. #### `PayPalPurchaseUnit` and `PayPalOrder` model constructors changed.
 
    `Sylius\PayPalPlugin\Model\PayPalPurchaseUnit` gained a trailing optional `?string $customId = null`
    argument; existing positional calls keep working.

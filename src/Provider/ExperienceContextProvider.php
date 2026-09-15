@@ -24,16 +24,15 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
         ?string $cancelUrl = null,
         ?string $shippingCallbackUrl = null,
     ): array {
-        // brand_name is intentionally omitted: PayPal then falls back to the business name registered on
-        // the merchant's account. Decorate this provider to send a custom one.
+        $shippingPreference = $this->getShippingPreference($order);
+
         $experienceContext = array_filter(
             [
                 'locale' => $this->provideLocaleCode($order),
-                PayPalOrder::KEY_SHIPPING_PREFERENCE => $this->getShippingPreference($order),
+                PayPalOrder::KEY_SHIPPING_PREFERENCE => $shippingPreference,
                 'contact_preference' => $this->getContactPreference($order),
                 'user_action' => PayPalOrder::USER_ACTION_PAY_NOW,
                 'payment_method_preference' => PayPalOrder::PAYMENT_METHOD_PREFERENCE_IMMEDIATE,
-                // return_url and cancel_url must be identical for app switch to function.
                 'return_url' => $returnUrl,
                 'cancel_url' => $cancelUrl,
                 'app_switch_preference' => [
@@ -43,7 +42,7 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
             static fn (mixed $value): bool => null !== $value,
         );
 
-        if (null !== $shippingCallbackUrl) {
+        if (null !== $shippingCallbackUrl && PayPalOrder::PAYPAL_ADDRESS === $shippingPreference) {
             $experienceContext['order_update_callback_config'] = [
                 'callback_events' => [PayPalOrder::CALLBACK_EVENT_SHIPPING_ADDRESS],
                 'callback_url' => $shippingCallbackUrl,
@@ -60,7 +59,6 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
             return null;
         }
 
-        // PayPal expects a BCP 47 locale (e.g. "en-US"), while Sylius stores it as "en_US".
         return str_replace('_', '-', $localeCode);
     }
 
