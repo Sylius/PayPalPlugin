@@ -15,6 +15,7 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, createOr
     const eligibleMethods = await sdkInstance.findEligibleMethods({ currencyCode });
 
     let busy = false;
+    let orderId = null;
 
     return {
         sdkInstance,
@@ -23,12 +24,15 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, createOr
 
         isBusy: () => busy,
 
+        currentOrderId: () => orderId,
+
         release: () => {
             busy = false;
         },
 
         startAttempt: async () => {
             busy = true;
+            orderId = null;
 
             const response = await fetch(createOrderUrl, { method: 'post' });
             if (!response.ok) {
@@ -38,8 +42,9 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, createOr
             }
 
             const data = await response.json();
+            orderId = data.orderId;
 
-            return { orderId: data.orderId };
+            return { orderId };
         },
     };
 }

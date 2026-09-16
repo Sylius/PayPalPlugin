@@ -504,6 +504,27 @@
    `error` flash, `sylius_paypal.order_total_changed`, which is new in `flashes.en.yml`, `flashes.fr.yml`
    and `flashes.nl.yml`.
 
+1. #### `sylius_paypal_shop_payment_error` now releases the attempt the wallet window failed on.
+
+   `onError` was the one wallet callback that told the shop nothing it could act on: the endpoint logged the
+   message and flashed `sylius_paypal.something_went_wrong`, and the payment stayed in `processing` until
+   the buyer started another attempt. The Stimulus controllers now post `{"error": …, "payPalOrderId": …}`
+   as JSON, and the endpoint cancels the payment that PayPal order belongs to and re-processes the order,
+   the way `sylius_paypal_shop_cancel_payment` does on cancel — with the error flash instead of the success
+   one.
+
+   A payment that cannot take the `cancel` transition is left alone, so a card attempt still in `cart` and
+   a payment already completed are untouched, and an unknown PayPal order id is ignored.
+
+   **A request body that is not a JSON object is still read as plain text**, so a template overridden in 2.0
+   or 2.1 that posts the raw error string keeps working — it only misses the new cancellation.
+
+   `PayPalPaymentOnErrorAction` gained four nullable arguments — a `PaypalPaymentQueryInterface`, a
+   `StateMachineInterface`, an `OrderProcessorInterface` wired to
+   `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which together
+   perform the cancellation. Not passing them is deprecated and will be prohibited in 3.0; without them the
+   endpoint only logs and flashes, as it did in 2.0.
+
 1. #### The following signatures changed.
 
    `PayPalWebSdkConfigurationProviderInterface::getInstanceConfig()` takes the SDK component list and an

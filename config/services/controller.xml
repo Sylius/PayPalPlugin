@@ -176,6 +176,10 @@
         <service id="sylius_paypal.controller.paypal_payment_on_error" class="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
             <argument type="service" id="request_stack" />
             <argument type="service" id="monolog.logger.paypal" />
+            <argument type="service" id="sylius_paypal.repository.query.paypal_payment" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
+            <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
 
         <service id="sylius_paypal.controller.add_to_cart" class="Sylius\PayPalPlugin\Controller\AddToCartAction">
