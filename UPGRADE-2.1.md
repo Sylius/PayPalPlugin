@@ -469,6 +469,25 @@
    When no payment awaits payment the endpoint answers `409` instead of raising a `TypeError`, and the
    response carries `orderId` next to the existing `orderID`, with the same value.
 
+1. #### `sylius_paypal_shop_complete_paypal_order_from_payment_page` now leaves the order payable after an amount mismatch.
+
+   When the cart changes while the wallet window is open, the captured amount no longer matches the order
+   total. The endpoint cancelled the payment but never persisted what came after, so the order was left
+   with nothing to pay with. It now cancels the payment, reprocesses the order and **flushes**, which puts a
+   fresh payment in `cart` on the new total back on the order.
+
+   The cancelled payment is no longer detached from the order. `Order::payments` is mapped with orphan
+   removal, so detaching it deleted the record of the attempt outright. Keeping it attached also lets
+   `OrderPaymentProvider` copy PayPal onto the new payment from the cancelled one, which is what keeps
+   PayPal selected on the summary once `sylius_paypal.prioritize_paypal_as_default_method` is turned off
+   or `PayPalDefaultPaymentMethodResolver` is gone in 3.0. `Place order` then leads straight back to the
+   payment page.
+
+   Two consequences for overridden templates: an order can now carry a cancelled payment next to the new
+   one, and the shop summary lists every payment, so both rows are rendered. The buyer also gets an
+   `error` flash, `sylius_paypal.order_total_changed`, which is new in `flashes.en.yml`, `flashes.fr.yml`
+   and `flashes.nl.yml`.
+
 1. #### The following signatures changed.
 
    `PayPalWebSdkConfigurationProviderInterface::getInstanceConfig()` takes the SDK component list and an

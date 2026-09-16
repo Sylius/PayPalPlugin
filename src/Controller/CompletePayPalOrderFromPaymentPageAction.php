@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class CompletePayPalOrderFromPaymentPageAction
@@ -74,12 +75,16 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
             }
         } catch (PaymentAmountMismatchException) {
             $this->paymentStateManager->cancel($payment);
-            $order->removePayment($payment);
 
             if (null === $this->orderProcessor) {
                 throw new \RuntimeException('Order processor is required to process the order.');
             }
             $this->orderProcessor->process($order);
+            $this->orderManager->flush();
+
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.order_total_changed');
 
             return new JsonResponse([
                 'orderId' => $payPalOrderId,

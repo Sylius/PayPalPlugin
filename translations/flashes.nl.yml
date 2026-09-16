@@ -3,6 +3,7 @@ sylius_paypal:
     invalid_paypal_sandbox_credentials: 'Ongeldige PayPal Sandbox referenties. Controleer uw configuratie.'
     more_than_one_seller_not_allowed: 'U kunt niet meer dan één PayPal verkoper instellen!'
     order_cancelled: 'PayPal bestelling is geannuleerd'
+    order_total_changed: 'Het totaalbedrag van uw bestelling is gewijzigd sinds de betaling werd gestart. Controleer uw bestelling en betaal opnieuw.'
     payment_cancelled: 'PayPal betaling is geannuleerd'
     payment_enabled: 'PayPal betaling is zojuist ingeschakeld.'
     payment_not_enabled: 'PayPal betaling kon niet worden ingeschakeld. Probeer het later nog eens.'
