@@ -1,0 +1,33 @@
+Sylius\Component\Core\Model\Order:
+    abandoned_attempt_cart:
+        channel: "@channel_web"
+        items: ["@abandoned_mug_item"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        state: "cart"
+        checkoutState: "shipping_selected"
+        tokenValue: "TOKEN"
+        payments: ["@abandoned_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    abandoned_mug_item:
+        variant: "@mug_sw"
+        order: "@abandoned_attempt_cart"
+        unitPrice: 20
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    abandoned_mug_item_unit1:
+        __construct: ["@abandoned_mug_item"]
+    abandoned_mug_item_unit2:
+        __construct: ["@abandoned_mug_item"]
+
+Sylius\Component\Core\Model\Payment:
+    abandoned_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 40
+        state: "processing"
+        details:
+            status: "CREATED"
+            paypal_order_id: "PAYPAL_ORDER_ID"

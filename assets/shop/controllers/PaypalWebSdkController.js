@@ -82,7 +82,7 @@ export default class extends Controller {
             document.querySelector(this.loadingSelectorValue)?.style.setProperty('display', 'block');
         }
 
-        if (response.status === 400) {
+        if (!response.ok) {
             window.location.reload();
 
             return;

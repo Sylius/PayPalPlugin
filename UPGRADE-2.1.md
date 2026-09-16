@@ -469,6 +469,22 @@
    When no payment awaits payment the endpoint answers `409` instead of raising a `TypeError`, and the
    response carries `orderId` next to the existing `orderID`, with the same value.
 
+1. #### `sylius_paypal_shop_create_paypal_order_from_payment_page` now ends the previous payment attempt.
+
+   The checkout payment step leaves the buyer on the page when the wallet window fails or expires, and the
+   payment stays in `processing`, so the next click reached an order with no payment in `cart` and raised a
+   `TypeError`. Starting an attempt now cancels that payment, re-processes the order so it carries a fresh
+   payment in `cart` for the current total, and only then creates the new PayPal order. The payment method
+   is preserved, and only a PayPal payment is cancelled, so an order carrying another gateway's processing
+   payment is untouched.
+
+   When the order has no payment to pay with, the endpoint answers `409` instead of raising a `TypeError`.
+
+   `CreatePayPalOrderFromPaymentPageAction` gained two nullable arguments — an `OrderProcessorInterface`,
+   wired to `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which
+   together replace the cancelled payment. Not passing them is deprecated and will be prohibited in 3.0;
+   without them the endpoint still cancels the abandoned attempt and answers `409` instead of failing.
+
 1. #### `sylius_paypal_shop_complete_paypal_order_from_payment_page` now leaves the order payable after an amount mismatch.
 
    When the cart changes while the wallet window is open, the captured amount no longer matches the order
