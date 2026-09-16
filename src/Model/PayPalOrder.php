@@ -39,14 +39,13 @@ class PayPalOrder
 
     /**
      * @param array<string, mixed> $experienceContext
+     *
+     * @deprecated the $order argument is unused since Sylius/PayPalPlugin 2.1 and will be removed in Sylius/PayPalPlugin 3.0.
      */
     public function __construct(
-        private readonly OrderInterface $order,
+        OrderInterface $order,
         private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
         private readonly string $intent,
-        private readonly ?string $returnUrl = null,
-        private readonly ?string $cancelUrl = null,
-        private readonly ?string $shippingCallbackUrl = null,
         private readonly array $experienceContext = [],
     ) {
     }
@@ -60,52 +59,9 @@ class PayPalOrder
             ],
             'payment_source' => [
                 'paypal' => [
-                    'experience_context' => [] === $this->experienceContext
-                        ? $this->getExperienceContext($this->getShippingPreference())
-                        : $this->experienceContext,
+                    'experience_context' => $this->experienceContext,
                 ],
             ],
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getExperienceContext(string $shippingPreference): array
-    {
-        $experienceContext = [
-            self::KEY_SHIPPING_PREFERENCE => $shippingPreference,
-            'user_action' => self::USER_ACTION_PAY_NOW,
-        ];
-
-        if (null !== $this->returnUrl) {
-            $experienceContext['return_url'] = $this->returnUrl;
-        }
-
-        if (null !== $this->cancelUrl) {
-            $experienceContext['cancel_url'] = $this->cancelUrl;
-        }
-
-        if (null !== $this->shippingCallbackUrl && self::PAYPAL_ADDRESS === $shippingPreference) {
-            $experienceContext['order_update_callback_config'] = [
-                'callback_events' => [self::CALLBACK_EVENT_SHIPPING_ADDRESS],
-                'callback_url' => $this->shippingCallbackUrl,
-            ];
-        }
-
-        return $experienceContext;
-    }
-
-    private function getShippingPreference(): string
-    {
-        if ($this->order->isShippingRequired()) {
-            if (null !== $this->order->getShippingAddress()) {
-                return self::PROVIDED_ADDRESS;
-            }
-
-            return self::PAYPAL_ADDRESS;
-        }
-
-        return self::NO_SHIPPING;
     }
 }

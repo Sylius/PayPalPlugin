@@ -25,9 +25,11 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
     public const CATEGORY_DIGITAL_GOODS = 'DIGITAL_GOODS';
 
+    private PayPalItemFactoryInterface $itemFactory;
+
     public function __construct(
         private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
-        private ?PayPalItemFactoryInterface $itemFactory = null,
+        ?PayPalItemFactoryInterface $itemFactory = null,
     ) {
         if (null === $itemFactory) {
             trigger_deprecation(
@@ -37,6 +39,8 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
                 self::class,
             );
         }
+
+        $this->itemFactory = $itemFactory ?? new PayPalItemFactory();
     }
 
     public function provide(OrderInterface $order): array
@@ -93,7 +97,7 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         $itemData['total_item_value'] += $unitPrice * $quantity;
         $itemData['total_tax'] += $tax * $quantity;
 
-        $itemData['items'][] = $this->getItemFactory()->create(
+        $itemData['items'][] = $this->itemFactory->create(
             $orderItem,
             $quantity,
             $unitPrice,
@@ -106,10 +110,5 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
     private function resolveCategory(OrderInterface $order): string
     {
         return $order->isShippingRequired() ? self::CATEGORY_PHYSICAL_GOODS : self::CATEGORY_DIGITAL_GOODS;
-    }
-
-    private function getItemFactory(): PayPalItemFactoryInterface
-    {
-        return $this->itemFactory ?? new PayPalItemFactory();
     }
 }
