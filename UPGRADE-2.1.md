@@ -631,3 +631,75 @@
    Without them, `sylius_paypal_is_messaging_enabled()` returns `false`, and
    `sylius_paypal_web_sdk_script_url()`/`sylius_paypal_web_sdk_instance_config()` return an empty
    string/array — the messaging placement degrades to rendering nothing rather than erroring.
+
+1. #### PayPal Package Tracking: shipping an order now sends tracking to PayPal (server-side, opt-in per shipment).
+
+   When a shipment transitions to *shipped*, the plugin calls PayPal's Add Tracking API
+   (`POST /v2/checkout/orders/{id}/track`) for that parcel, using the order and capture identifiers already
+   stored in the payment details and the items belonging to that shipment. PayPal then tracks the parcel
+   onward from the carrier network - no ongoing status updates are pushed from Sylius. This builds on the
+   enriched order payload above: the tracking items are matched to the order items by the same `sku`
+   (`ProductVariant::getCode()`).
+
+   **New database table.** A plugin-owned table `sylius_paypal_plugin_shipment_tracking` (keyed by shipment,
+   holding the carrier, PayPal tracker id and sync state) is added - **no change to the core `Shipment`
+   entity**. Run migrations:
+
+   ```bash
+   bin/console doctrine:migrations:migrate
+   ```
+
+   **Admin.** For orders paid with PayPal, the shipment ship form gains a carrier selector (with an `OTHER`
+   fallback that reveals a free-text carrier name). A carrier is required whenever a tracking number is entered.
+   Each shipment on the order page shows its PayPal sync state (pending / synced / failed). Orders paid with any
+   other method keep the stock Sylius ship form, untouched.
+
+   **Configuring the carriers.** The selector is driven by `sylius_paypal.tracking.carriers`, which defaults to a
+   curated subset of the codes accepted by the [PayPal Add Tracking API](https://developer.paypal.com/docs/tracking/reference/carriers/).
+   Listing your own codes **replaces** that default, so a shop using three carriers ends up with a three-entry
+   selector rather than the full list:
+
+   ```yaml
+   # config/packages/sylius_paypal.yaml
+   sylius_paypal:
+       tracking:
+           carriers:
+               - INPOST_PACZKOMATY
+               - DPD_POLAND
+               - POCZTA_POLSKA
+   ```
+
+   `OTHER` is always appended, so the free-text fallback cannot be configured away. Labels come from the
+   `sylius_paypal.carrier.<CODE>` translation keys; a code without a translation falls back to the raw code, so
+   adding a carrier outside the curated list only requires a translation entry to make it pretty.
+
+   **Failure isolation.** Sending tracking is a courtesy to PayPal, not a precondition for shipping: the call
+   never blocks or reverts shipping. The guarantee lives in `ShipmentTrackingDispatcher`, which logs anything
+   thrown while dispatching to the `paypal` channel instead of letting it reach the ship transition.
+
+   **Permanent vs. transient failures.** A failure PayPal will never accept on a retry - an order status that is
+   not eligible for tracking, a missing tracking number or carrier, an unresolvable capture id - is recorded on
+   the tracking record (state `failed`, with the error) and not retried. Anything else (HTTP errors, timeouts,
+   PayPal 5xx) is recorded *and rethrown*, so that when the message is routed to an async transport Messenger's
+   own retry strategy can take over. Either way the record can be retried by hand with:
+
+   ```bash
+   bin/console sylius-paypal:send-shipment-tracking
+   ```
+
+   Note that a shipment which is not in the `shipped` state yet raises `ShipmentTrackingNotReadyException`
+   instead of being marked as failed. Under an async transport the message can reach a worker before the
+   shipping request commits its transaction, and without this the worker would read the pre-transition row and
+   fail permanently with "Shipment has no tracking number"; raising instead lets the retry pick it up once the
+   commit has landed.
+
+   **Optional async.** The call is dispatched as the `Sylius\PayPalPlugin\Message\SendShipmentTracking`
+   message. With no messenger routing configured it is handled synchronously; route it to an async transport
+   for full off-request processing:
+
+   ```yaml
+   framework:
+       messenger:
+           routing:
+               'Sylius\PayPalPlugin\Message\SendShipmentTracking': async
+   ```
