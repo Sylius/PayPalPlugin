@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -141,10 +142,26 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->invoke();
     }
 
+    public function test_it_answers_with_a_conflict_when_no_payment_is_being_processed(): void
+    {
+        $this->paymentAmountVerifier->expects(self::never())->method('verify');
+        $this->paymentStateManager->expects(self::never())->method('complete');
+        $this->paymentStateManager->expects(self::never())->method('cancel');
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->orderManager->expects(self::never())->method('flush');
+
+        self::assertSame(Response::HTTP_CONFLICT, ($this->action())($this->request())->getStatusCode());
+    }
+
     /** @return array<string, mixed> */
     private function invoke(): array
     {
-        $action = new CompletePayPalOrderFromPaymentPageAction(
+        return (array) json_decode((string) ($this->action())($this->request())->getContent(), true);
+    }
+
+    private function action(): CompletePayPalOrderFromPaymentPageAction
+    {
+        return new CompletePayPalOrderFromPaymentPageAction(
             $this->paymentStateManager,
             $this->router(),
             $this->orderProvider,
@@ -153,8 +170,6 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->paymentAmountVerifier,
             $this->orderProcessor,
         );
-
-        return (array) json_decode((string) $action($this->request())->getContent(), true);
     }
 
     private function amountDoesNotMatch(): void

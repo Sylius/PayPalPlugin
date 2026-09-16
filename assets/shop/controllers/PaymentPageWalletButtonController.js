@@ -27,6 +27,8 @@ export default class extends Controller {
                 return;
             }
 
+            this.session = session;
+
             const paymentSession = session.sdkInstance.createPayPalOneTimePaymentSession({
                 onApprove: this.onApprove.bind(this),
                 onCancel: this.onCancel.bind(this),
@@ -80,7 +82,11 @@ export default class extends Controller {
     }
 
     async onError(error) {
-        await fetch(this.errorUrlValue, { method: 'post', body: String(error) });
+        await fetch(this.errorUrlValue, {
+            method: 'post',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ error: String(error), payPalOrderId: this.session?.currentOrderId() ?? null }),
+        });
         window.location.reload();
     }
 }

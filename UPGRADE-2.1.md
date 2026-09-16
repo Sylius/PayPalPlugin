@@ -469,6 +469,23 @@
    When no payment awaits payment the endpoint answers `409` instead of raising a `TypeError`, and the
    response carries `orderId` next to the existing `orderID`, with the same value.
 
+1. #### `sylius_paypal_shop_create_paypal_order_from_payment_page` now ends the previous payment attempt.
+
+   The checkout payment step leaves the buyer on the page when the wallet window fails or expires, and the
+   payment stays in `processing`, so the next click reached an order with no payment in `cart` and raised a
+   `TypeError`. Starting an attempt now cancels that payment, re-processes the order so it carries a fresh
+   payment in `cart` for the current total, and only then creates the new PayPal order. The payment method
+   is preserved, and only a PayPal payment is cancelled, so an order carrying another gateway's processing
+   payment is untouched.
+
+   When the order has no payment to pay with, the endpoint answers `409` instead of raising a `TypeError`.
+
+   `CreatePayPalOrderFromPaymentPageAction` gained two nullable arguments — an `OrderProcessorInterface`,
+   wired to `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which
+   together replace the cancelled payment. Not passing them is deprecated and will be prohibited in 3.0;
+   without them the endpoint leaves the abandoned attempt untouched and answers `409` rather than raising a
+   `TypeError`, so the order keeps a payment that `sylius-paypal:complete-payments` can still reconcile.
+
 1. #### `sylius_paypal_shop_complete_paypal_order_from_payment_page` now leaves the order payable after an amount mismatch.
 
    When the cart changes while the wallet window is open, the captured amount no longer matches the order
@@ -487,6 +504,32 @@
    one, and the shop summary lists every payment, so both rows are rendered. The buyer also gets an
    `error` flash, `sylius_paypal.order_total_changed`, which is new in `flashes.en.yml`, `flashes.fr.yml`
    and `flashes.nl.yml`.
+
+   The endpoint also answers `409` when the order has no payment in `processing`. It used to read
+   `$order->getLastPayment(PaymentInterface::STATE_PROCESSING)` behind a `@var` annotation that claimed it
+   was never null and dereferenced it on the next line, so a second submit, a reload or a second tab raised
+   an `Error` and answered `500`. `sylius_paypal_shop_complete_paypal_order` already behaved this way.
+
+1. #### `sylius_paypal_shop_payment_error` now releases the attempt the wallet window failed on.
+
+   `onError` was the one wallet callback that told the shop nothing it could act on: the endpoint logged the
+   message and flashed `sylius_paypal.something_went_wrong`, and the payment stayed in `processing` until
+   the buyer started another attempt. The Stimulus controllers now post `{"error": …, "payPalOrderId": …}`
+   as JSON, and the endpoint cancels the payment that PayPal order belongs to and re-processes the order,
+   the way `sylius_paypal_shop_cancel_payment` does on cancel — with the error flash instead of the success
+   one.
+
+   A payment that cannot take the `cancel` transition is left alone, so a card attempt still in `cart` and
+   a payment already completed are untouched, and an unknown PayPal order id is ignored.
+
+   **A request body that is not a JSON object is still read as plain text**, so a template overridden in 2.0
+   or 2.1 that posts the raw error string keeps working — it only misses the new cancellation.
+
+   `PayPalPaymentOnErrorAction` gained four nullable arguments — a `PaypalPaymentQueryInterface`, a
+   `StateMachineInterface`, an `OrderProcessorInterface` wired to
+   `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which together
+   perform the cancellation. Not passing them is deprecated and will be prohibited in 3.0; without them the
+   endpoint only logs and flashes, as it did in 2.0.
 
 1. #### The following signatures changed.
 
