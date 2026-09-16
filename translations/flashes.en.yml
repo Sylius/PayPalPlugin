@@ -3,6 +3,7 @@ sylius_paypal:
     invalid_paypal_sandbox_credentials: 'Invalid PayPal sandbox credentials. Please, check your configuration.'
     more_than_one_seller_not_allowed: 'You cannot onboard more than one PayPal seller!'
     order_cancelled: 'PayPal order has been cancelled'
+    order_total_changed: 'Your order total has changed since the payment was started. Please, review your order and pay again.'
     payment_cancelled: 'PayPal payment has been cancelled'
     payment_enabled: 'PayPal payment has just been enabled.'
     payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'

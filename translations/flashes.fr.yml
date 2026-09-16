@@ -3,6 +3,7 @@ sylius_paypal:
     invalid_paypal_sandbox_credentials: 'Identifiants PayPal Sandbox invalides. Merci de vérifier votre configuration.'
     more_than_one_seller_not_allowed: 'Vous ne pouvez ajouter plus d''un vendeur PayPal !'
     order_cancelled: 'La commande PayPal a été annulée'
+    order_total_changed: 'Le total de votre commande a changé depuis le début du paiement. Merci de vérifier votre commande et de payer à nouveau.'
     payment_cancelled: 'Le paiement PayPal a été annulé'
     payment_enabled: 'Le paiement PayPal payment vient d''être activé.'
     payment_not_enabled: 'Impossible d''activer le paiement PayPal. Merci de réessayer plus tard.'
