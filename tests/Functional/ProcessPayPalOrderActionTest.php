@@ -323,6 +323,76 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame('Nowhere County', $shippingAddress->getProvinceName());
     }
 
+    public function test_it_builds_both_addresses_from_what_the_buyer_picked_in_the_wallet(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertSame('Oliver', $shippingAddress->getFirstName());
+        $this->assertSame('Queen', $shippingAddress->getLastName());
+        $this->assertSame('1 Star City Plaza', $shippingAddress->getStreet());
+        $this->assertSame('Star City', $shippingAddress->getCity());
+        $this->assertSame('10001', $shippingAddress->getPostcode());
+        $this->assertSame('US', $shippingAddress->getCountryCode());
+        $this->assertSame('15551234567', $shippingAddress->getPhoneNumber());
+
+        $billingAddress = $order->getBillingAddress();
+        $this->assertNotNull($billingAddress);
+        $this->assertNotSame($shippingAddress->getId(), $billingAddress->getId());
+        $this->assertSame('1 Star City Plaza', $billingAddress->getStreet());
+        $this->assertSame('15551234567', $billingAddress->getPhoneNumber());
+    }
+
+    public function test_it_keeps_the_addresses_the_buyer_entered_in_checkout(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/addressed_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['addressed_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $shippingAddressId = $order->getShippingAddress()?->getId();
+        $billingAddressId = $order->getBillingAddress()?->getId();
+
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertSame($shippingAddressId, $shippingAddress->getId());
+        $this->assertSame('1 Main St', $shippingAddress->getStreet());
+        $this->assertSame('Dallas', $shippingAddress->getCity());
+        $this->assertSame('75001', $shippingAddress->getPostcode());
+        $this->assertSame('US-TX', $shippingAddress->getProvinceCode());
+        $this->assertNull($shippingAddress->getProvinceName());
+        $this->assertNull($shippingAddress->getPhoneNumber());
+
+        $billingAddress = $order->getBillingAddress();
+        $this->assertNotNull($billingAddress);
+        $this->assertSame($billingAddressId, $billingAddress->getId());
+        $this->assertSame('US-TX', $billingAddress->getProvinceCode());
+    }
+
     /**
      * @param array<int, array<string, mixed>> $shippingOptions
      *

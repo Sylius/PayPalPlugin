@@ -249,4 +249,19 @@ final class PayPalPurchaseUnitTest extends TestCase
             ],
         ], $result);
     }
+
+    public function test_it_sends_the_region_of_the_shipping_address(): void
+    {
+        $this->shippingAddress->method('getCountryCode')->willReturn('US');
+        $this->shippingAddress->method('getProvinceCode')->willReturn('US-TX');
+
+        self::assertSame('TX', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
+    }
+
+    public function test_it_leaves_the_region_out_when_the_address_carries_none(): void
+    {
+        $this->shippingAddress->method('getCountryCode')->willReturn('US');
+
+        self::assertArrayNotHasKey('admin_area_1', $this->payPalPurchaseUnit->toArray()['shipping']['address']);
+    }
 }

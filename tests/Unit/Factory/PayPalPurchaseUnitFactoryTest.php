@@ -138,6 +138,7 @@ final class PayPalPurchaseUnitFactoryTest extends TestCase
         $shippingAddress->method('getCity')->willReturn('Minas Tirith');
         $shippingAddress->method('getPostcode')->willReturn('000');
         $shippingAddress->method('getCountryCode')->willReturn('US');
+        $shippingAddress->method('getProvinceCode')->willReturn('US-TX');
 
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('PLN');
@@ -171,6 +172,7 @@ final class PayPalPurchaseUnitFactoryTest extends TestCase
         self::assertSame('Minas Tirith', $purchaseUnit['shipping']['address']['admin_area_2']);
         self::assertSame('000', $purchaseUnit['shipping']['address']['postal_code']);
         self::assertSame('US', $purchaseUnit['shipping']['address']['country_code']);
+        self::assertSame('TX', $purchaseUnit['shipping']['address']['admin_area_1']);
     }
 
     public function test_it_fails_when_the_gateway_config_carries_no_merchant_id(): void
