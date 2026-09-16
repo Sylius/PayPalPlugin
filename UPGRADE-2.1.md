@@ -483,7 +483,8 @@
    `CreatePayPalOrderFromPaymentPageAction` gained two nullable arguments — an `OrderProcessorInterface`,
    wired to `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which
    together replace the cancelled payment. Not passing them is deprecated and will be prohibited in 3.0;
-   without them the endpoint still cancels the abandoned attempt and answers `409` instead of failing.
+   without them the endpoint leaves the abandoned attempt untouched and answers `409` rather than raising a
+   `TypeError`, so the order keeps a payment that `sylius-paypal:complete-payments` can still reconcile.
 
 1. #### `sylius_paypal_shop_complete_paypal_order_from_payment_page` now leaves the order payable after an amount mismatch.
 

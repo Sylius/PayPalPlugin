@@ -134,6 +134,22 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         self::assertSame(Response::HTTP_CONFLICT, ($this->action)($this->request())->getStatusCode());
     }
 
+    public function test_it_leaves_the_abandoned_attempt_alone_without_the_cancelling_collaborators(): void
+    {
+        $action = new CreatePayPalOrderFromPaymentPageAction(
+            $this->stateMachine,
+            $this->paymentStateManager,
+            $this->orderProvider,
+            $this->capturePaymentResolver,
+        );
+        $this->payments(processing: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME), cart: null);
+
+        $this->paymentStateManager->expects(self::never())->method('cancel');
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+
+        self::assertSame(Response::HTTP_CONFLICT, $action($this->request())->getStatusCode());
+    }
+
     public function test_it_answers_with_a_bad_request_when_paypal_is_unreachable(): void
     {
         $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));

@@ -99,6 +99,10 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
     private function cancelLiveAttempt(OrderInterface $order): void
     {
+        if (null === $this->orderPaymentProcessor || null === $this->objectManager) {
+            return;
+        }
+
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
 
         if (null === $payment || !$this->isPayPalPayment($payment)) {
@@ -106,11 +110,6 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         }
 
         $this->paymentStateManager->cancel($payment);
-
-        if (null === $this->orderPaymentProcessor || null === $this->objectManager) {
-            return;
-        }
-
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
     }
