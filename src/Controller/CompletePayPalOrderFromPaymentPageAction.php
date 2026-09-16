@@ -62,10 +62,13 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $orderId = $request->attributes->getInt('id');
 
         $order = $this->orderProvider->provideOrderById($orderId);
-        /** @var PaymentInterface $payment */
+
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
-        /** @var string $payPalOrderId */
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'] ?? '';
+        if (null === $payment) {
+            return new JsonResponse([], Response::HTTP_CONFLICT);
+        }
+
+        $payPalOrderId = (string) ($payment->getDetails()['paypal_order_id'] ?? '');
 
         try {
             if ($this->paymentAmountVerifier !== null) {

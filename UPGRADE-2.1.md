@@ -505,6 +505,11 @@
    `error` flash, `sylius_paypal.order_total_changed`, which is new in `flashes.en.yml`, `flashes.fr.yml`
    and `flashes.nl.yml`.
 
+   The endpoint also answers `409` when the order has no payment in `processing`. It used to read
+   `$order->getLastPayment(PaymentInterface::STATE_PROCESSING)` behind a `@var` annotation that claimed it
+   was never null and dereferenced it on the next line, so a second submit, a reload or a second tab raised
+   an `Error` and answered `500`. `sylius_paypal_shop_complete_paypal_order` already behaved this way.
+
 1. #### `sylius_paypal_shop_payment_error` now releases the attempt the wallet window failed on.
 
    `onError` was the one wallet callback that told the shop nothing it could act on: the endpoint logged the
