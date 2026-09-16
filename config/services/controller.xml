@@ -189,6 +189,7 @@
         <service id="sylius_paypal.controller.add_to_cart" class="Sylius\PayPalPlugin\Controller\AddToCartAction">
             <argument type="service" id="sylius.factory.add_to_cart_command" />
             <argument type="service" id="sylius.context.cart.new" />
+            <argument type="service" id="Sylius\Component\Core\Storage\CartStorageInterface" />
             <argument type="service" id="doctrine.orm.entity_manager" />
             <argument type="service" id="sylius.factory.order_item" />
             <argument type="service" id="form.factory" />

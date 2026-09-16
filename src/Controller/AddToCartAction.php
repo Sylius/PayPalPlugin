@@ -18,7 +18,9 @@ use Sylius\Bundle\OrderBundle\Controller\AddToCartCommandInterface;
 use Sylius\Bundle\OrderBundle\Factory\AddToCartCommandFactoryInterface;
 use Sylius\Bundle\ResourceBundle\Controller\NewResourceFactoryInterface;
 use Sylius\Bundle\ResourceBundle\Controller\RequestConfigurationFactoryInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Modifier\OrderItemQuantityModifierInterface;
 use Sylius\Component\Order\Modifier\OrderModifierInterface;
@@ -35,6 +37,7 @@ final readonly class AddToCartAction
     public function __construct(
         private AddToCartCommandFactoryInterface $addToCartCommandFactory,
         private CartContextInterface $cartContext,
+        private CartStorageInterface $cartStorage,
         private EntityManagerInterface $cartManager,
         private FactoryInterface $factory,
         private FormFactoryInterface $formFactory,
@@ -49,6 +52,7 @@ final readonly class AddToCartAction
 
     public function __invoke(Request $request): Response
     {
+        /** @var OrderInterface $cart */
         $cart = $this->cartContext->getCart();
         $configuration = $this->requestConfigurationFactory->create($this->metadata, $request);
 
@@ -82,6 +86,8 @@ final readonly class AddToCartAction
 
         $this->cartManager->persist($cart);
         $this->cartManager->flush();
+
+        $this->cartStorage->setForChannel($cart->getChannel(), $cart);
 
         return new RedirectResponse($this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $cart->getId()]));
     }

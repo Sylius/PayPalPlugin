@@ -37,6 +37,20 @@ final class AddToCartActionTest extends JsonApiTestCase
         self::assertSame('MUG_LOTR', $item->getVariant()->getCode());
         self::assertSame(3, $item->getQuantity());
         self::assertCount(3, $item->getUnits());
+
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+
+        // Follow the real redirect on the same client/session - no session seeding,
+        // this is the guest "buy now" flow exactly as the browser performs it. Guards
+        // against the cart this action creates ever becoming unresolvable as the
+        // caller's own cart on the very next request.
+        $this->client->request('POST', $location);
+
+        $response = $this->client->getResponse();
+        self::assertNotSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+
+        $content = (array) json_decode((string) $response->getContent(), true);
+        self::assertSame('PAYPAL_ORDER_ID', $content['orderId']);
     }
 
     private function addToCartForm(): Form
