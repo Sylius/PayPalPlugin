@@ -57,7 +57,6 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
             intent: PayPalOrder::INTENT_CAPTURE,
             experienceContext: $experienceContext,
-            experienceContextProvider: $this->experienceContextProvider,
         );
     }
 }
