@@ -41,6 +41,26 @@
    Then `yarn install && yarn build`. Verify by loading a product page and checking that the browser fetches
    the controller chunk and the PayPal button loses its `hidden` attribute.
 
+1. #### The PayPal app behind your client id has to have the `JavaScript SDK v6` feature enabled.
+
+   Web SDK v6 is gated per REST app, and an app created before it existed does not have the feature. Its
+   client id keeps working everywhere else, so nothing in the shop says anything is wrong: the server-side
+   REST calls — onboarding, creating the order, capturing it, refunds — are unaffected, and no shop log
+   records the failure. **What breaks is the browser**: `findEligibleMethods()` answers
+   `403 NOT_AUTHORIZED` / `PERMISSION_DENIED`, the SDK throws `SdkInitError`, and every placement gives up
+   in its `catch` block with nothing but a `console.error`:
+
+   - the product and cart buttons stay `hidden`, exactly as they do when the Stimulus controller is missing
+     from the asset build;
+   - the checkout payment step renders **neither the wallet button nor the card fields** — both controllers
+     share one memoized SDK session, so the rejected one takes down both;
+   - Pay Later messaging stays hidden.
+
+   Enable the feature on the app in the PayPal Developer Dashboard. Sandbox and live are separate apps, so
+   it has to be enabled on each of them, and a shop that pastes sandbox credentials by hand needs it on the
+   app those credentials come from. Verify it the same way as the asset build above: load a product page and
+   check that the button loses its `hidden` attribute and that the console carries no `403`.
+
 1. #### PayPal now offers the shop's real shipping methods inside the wallet.
 
    The cart and product ("shortcut") placements reach PayPal without a shipping address, so the buyer picks
