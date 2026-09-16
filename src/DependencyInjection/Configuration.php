@@ -26,6 +26,19 @@ final class Configuration implements ConfigurationInterface
         'zh_TW', 'zh_XC',
     ];
 
+    /**
+     * @see https://developer.paypal.com/docs/tracking/reference/carriers/
+     */
+    private const DEFAULT_TRACKING_CARRIERS = [
+        'FEDEX', 'UPS', 'USPS', 'DHL', 'DHL_EXPRESS', 'DHL_GLOBAL_MAIL', 'DPD', 'DPD_LOCAL',
+        'GLS', 'TNT', 'ARAMEX', 'AMAZON_MCF', 'DEUTSCHE_POST', 'DHL_DEUTSCHE_POST', 'HERMES',
+        'ROYAL_MAIL', 'PARCELFORCE', 'COLISSIMO', 'CHRONOPOST_FRANCE', 'POCZTA_POLSKA',
+        'INPOST_PACZKOMATY', 'DPD_POLAND', 'CORREOS_SPAIN', 'POSTNL', 'BPOST',
+        'POSTNORD_SVERIGE', 'POSTEN_NORGE', 'AUSTRIAN_POST', 'SWISS_POST', 'POSTE_ITALIANE',
+        'CANADA_POST', 'PUROLATOR', 'AUSTRALIA_POST', 'JAPAN_POST', 'CHINA_POST', 'SF_EXPRESS',
+        'INDIA_POST',
+    ];
+
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('sylius_paypal');
@@ -47,6 +60,16 @@ final class Configuration implements ConfigurationInterface
                     ->scalarPrototype()->end()
                     ->defaultValue(self::ALL_PAYPAL_SUPPORTED_LOCALES)
                     ->performNoDeepMerging()
+                ->end()
+                ->arrayNode('tracking')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('carriers')
+                            ->scalarPrototype()->end()
+                            ->defaultValue(self::DEFAULT_TRACKING_CARRIERS)
+                            ->performNoDeepMerging()
+                        ->end()
+                    ->end()
                 ->end()
             ->end()
         ;

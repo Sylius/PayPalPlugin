@@ -1,0 +1,31 @@
+{% set order = hookable_metadata.context.resource %}
+
+<div class="py-3">
+    {% if order.hasShipments %}
+        <div class="table-responsive">
+            <table class="table table-vcenter table-borderless table-sm card-table">
+                <tbody>
+                {% for shipment in order.shipments %}
+                    <tr {{ sylius_test_html_attribute('shipment') }}>
+                        {% hook 'item' with { shipment } %}
+                    </tr>
+                    {% if sylius_sm_can(shipment, 'sylius_shipment', 'ship') and sylius_paypal_shipment_is_paid_with_paypal(shipment) %}
+                        <tr>
+                            <td colspan="3">
+                                {{ component('sylius_admin:shipment:ship_form', {
+                                    resource: shipment,
+                                    path: 'sylius_admin_order_shipment_ship',
+                                    pathParameters: { id: shipment.id, orderId: order.id },
+                                    template: '@SyliusPayPalPlugin/admin/shipment/component/ship.html.twig',
+                                }) }}
+                            </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <span class="px-3 text-secondary italic">{{ 'sylius.ui.there_are_no_shipments_to_display'|trans }}</span>
+    {% endif %}
+</div>
