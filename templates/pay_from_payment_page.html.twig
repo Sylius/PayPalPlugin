@@ -10,6 +10,7 @@
         errorUrl: errorPayPalPaymentUrl,
         payLaterEnabled: paylaterEnabled,
     }) }}
+    class="d-grid gap-2"
     style="width:250px"
 >
     <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>

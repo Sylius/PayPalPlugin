@@ -2,6 +2,7 @@
 
 {% if variant is not null and sylius_paypal_is_messaging_enabled() %}
     <paypal-message
+        class="d-block mb-3"
         {{ stimulus_controller('@sylius/paypal-plugin/paypal-message', {
             amount: (variant|sylius_calculate_price({'channel': sylius.channel}) / 100)|number_format(2, '.', ''),
             currencyCode: sylius.channel.baseCurrency.code,

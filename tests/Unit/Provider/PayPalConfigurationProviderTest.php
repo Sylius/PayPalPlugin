@@ -83,6 +83,14 @@ final class PayPalConfigurationProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_considers_messaging_disabled_when_pay_later_is_disabled_even_if_messaging_is_explicitly_enabled(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['pay_later_enabled' => false, 'messaging_enabled' => true]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isMessagingEnabled($channel));
+    }
+
+    #[Test]
     public function it_returns_client_id_from_payment_method_config(): void
     {
         $channel = $this->createMock(ChannelInterface::class);

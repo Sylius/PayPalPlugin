@@ -50,6 +50,10 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
 
     public function isMessagingEnabled(ChannelInterface $channel): bool
     {
+        if (!$this->isPayLaterEnabled($channel)) {
+            return false;
+        }
+
         return (bool) ($this->getPayPalPaymentMethodConfig($channel)['messaging_enabled'] ?? true);
     }
 

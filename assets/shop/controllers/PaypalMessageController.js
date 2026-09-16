@@ -19,6 +19,17 @@ export default class extends Controller {
 
             const sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
 
+            const paymentMethods = await sdkInstance.findEligibleMethods({
+                currencyCode: this.currencyCodeValue,
+                amount: this.amountValue,
+            });
+
+            if (!paymentMethods.isEligible('paylater')) {
+                this.element.setAttribute('hidden', '');
+
+                return;
+            }
+
             await customElements.whenDefined('paypal-message');
             await this.element.updateComplete;
             this.element.amount = this.amountValue;
