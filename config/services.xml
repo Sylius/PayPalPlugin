@@ -111,6 +111,15 @@
         <service id="Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_address" />
 
         <service
+            id="sylius_paypal.factory.express_order_address"
+            class="Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory"
+        >
+            <argument type="service" id="sylius.factory.address" />
+            <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface" alias="sylius_paypal.factory.express_order_address" />
+
+        <service
             id="sylius_paypal.factory.paypal_purchase_unit"
             class="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory"
         >

@@ -33,7 +33,8 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
-use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
+use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
@@ -45,6 +46,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ProcessPayPalOrderAction
 {
+    private ExpressOrderAddressFactoryInterface $expressOrderAddressFactory;
+
     /**
      * @param CustomerRepositoryInterface<CustomerInterface> $customerRepository
      * @param FactoryInterface<CustomerInterface> $customerFactory
@@ -65,7 +68,7 @@ final readonly class ProcessPayPalOrderAction
         private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?RepositoryInterface $shippingMethodRepository = null,
-        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory = null,
+        ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -109,14 +112,16 @@ final readonly class ProcessPayPalOrderAction
                 self::class,
             );
         }
-        if (null === $this->shippingAddressFactory) {
+        if (null === $expressOrderAddressFactory) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
-                'Not passing $shippingAddressFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
+                'Not passing $expressOrderAddressFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
         }
+
+        $this->expressOrderAddressFactory = $expressOrderAddressFactory ?? new ExpressOrderAddressFactory($this->addressFactory, null);
     }
 
     public function __invoke(Request $request): Response
@@ -161,18 +166,7 @@ final readonly class ProcessPayPalOrderAction
 
         if ($order->isShippingRequired()) {
             if (null === $order->getShippingAddress()) {
-                $address = $this->addressFactory->createNew();
-                $address->setPhoneNumber($payerPhoneNumber);
-
-                $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
-                /** @phpstan-ignore-next-line false positive */
-                $address->setLastName(array_pop($name) ?? '');
-                $address->setFirstName(implode(' ', $name));
-                $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
-                $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
-                $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
-                $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
-                $this->applyProvince($address, (array) $purchaseUnit['shipping']['address']);
+                $address = $this->expressOrderAddressFactory->createFromPurchaseUnit($purchaseUnit, $payerPhoneNumber);
 
                 $order->setShippingAddress(clone $address);
                 $order->setBillingAddress(clone $address);
@@ -187,17 +181,11 @@ final readonly class ProcessPayPalOrderAction
             }
         } else {
             if (null === $order->getShippingAddress() && null === $order->getBillingAddress()) {
-                $address = $this->addressFactory->createNew();
-                $address->setPhoneNumber($payerPhoneNumber);
-                $address->setFirstName($customer->getFirstName());
-                $address->setLastName($customer->getLastName());
-
-                $defaultAddress = $customer->getDefaultAddress();
-
-                $address->setStreet($defaultAddress ? $defaultAddress->getStreet() : '');
-                $address->setCity($defaultAddress ? $defaultAddress->getCity() : '');
-                $address->setPostcode($defaultAddress ? $defaultAddress->getPostcode() : '');
-                $address->setCountryCode($data['payer']['address']['country_code']);
+                $address = $this->expressOrderAddressFactory->createFromCustomer(
+                    $customer,
+                    $data['payer']['address']['country_code'],
+                    $payerPhoneNumber,
+                );
 
                 $order->setShippingAddress(clone $address);
                 $order->setBillingAddress(clone $address);
@@ -288,19 +276,6 @@ final readonly class ProcessPayPalOrderAction
         if ($shippingMethod instanceof ShippingMethodInterface) {
             $shipment->setMethod($shippingMethod);
         }
-    }
-
-    /** @param array<string, mixed> $payPalAddress */
-    private function applyProvince(AddressInterface $address, array $payPalAddress): void
-    {
-        if (null === $this->shippingAddressFactory) {
-            return;
-        }
-
-        $payPalShippingAddress = $this->shippingAddressFactory->create($payPalAddress);
-
-        $address->setProvinceCode($payPalShippingAddress->getProvinceCode());
-        $address->setProvinceName($payPalShippingAddress->getProvinceName());
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void

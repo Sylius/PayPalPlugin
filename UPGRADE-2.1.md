@@ -113,7 +113,12 @@
    locale keeps the name it was loaded with.
 
    The buyer's choice is written back by `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`, which
-   now also stores the region on the order's addresses — previously it was dropped.
+   now also stores the region on the order's addresses — previously it was dropped. The action no longer
+   builds those addresses itself: another decoratable service,
+   `Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface`
+   (`sylius_paypal.factory.express_order_address`), turns the approved purchase unit — or, for an order that
+   needs no shipping, the customer — into the address the order is given. Decorate that one to change what
+   lands on the order after the buyer approves, rather than the controller.
 
    It no longer replaces addresses the buyer entered in the Sylius checkout. An order that reaches the wallet
    with a shipping address is sent to PayPal as `SET_PROVIDED_ADDRESS`, which the buyer cannot edit there, so
@@ -293,7 +298,7 @@
    +        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
    +        private ?OrderProcessorInterface $orderProcessor = null,
    +        private ?RepositoryInterface $shippingMethodRepository = null,
-   +        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory = null,
+   +        private ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
         ) {
         }
    ```
@@ -305,15 +310,15 @@
    +    <argument type="service" id="sylius_paypal.completer.express_order" />
    +    <argument type="service" id="sylius.order_processing.order_processor" />
    +    <argument type="service" id="sylius.repository.shipping_method" />
-   +    <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
+   +    <argument type="service" id="sylius_paypal.factory.express_order_address" />
     </service>
    ```
 
    The first three throw a `\RuntimeException` when they are actually needed — generating a return URL,
    completing the order, or detaching a mismatched payment. The last two degrade instead: the action behaves
-   as it did in 2.0, which means the shipping method the buyer chose in the wallet is not applied and the
-   region is not stored. The first of those two fails the amount check and sends the buyer back to the
-   checkout instead of the thank-you page.
+   as it did in 2.0, which means the shipping method the buyer chose in the wallet is not applied, and the
+   region is not stored because the action falls back to an address factory that resolves none. The first of
+   those two fails the amount check and sends the buyer back to the checkout instead of the thank-you page.
 
    ```diff
     final readonly class CreateOrderApi
