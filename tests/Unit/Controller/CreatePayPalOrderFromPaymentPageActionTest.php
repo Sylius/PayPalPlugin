@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -41,6 +42,8 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
     private PaymentStateManagerInterface&MockObject $paymentStateManager;
 
     private OrderProviderInterface&Stub $orderProvider;
+
+    private OrderOwnershipVerifierInterface&Stub $orderOwnershipVerifier;
 
     private CapturePaymentResolverInterface&MockObject $capturePaymentResolver;
 
@@ -58,6 +61,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->stateMachine = $this->createStub(StateMachineInterface::class);
         $this->paymentStateManager = $this->createMock(PaymentStateManagerInterface::class);
         $this->orderProvider = $this->createStub(OrderProviderInterface::class);
+        $this->orderOwnershipVerifier = $this->createStub(OrderOwnershipVerifierInterface::class);
         $this->capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
         $this->orderPaymentProcessor = $this->createMock(OrderProcessorInterface::class);
         $this->objectManager = $this->createMock(ObjectManager::class);
@@ -69,6 +73,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->stateMachine,
             $this->paymentStateManager,
             $this->orderProvider,
+            $this->orderOwnershipVerifier,
             $this->capturePaymentResolver,
             $this->orderPaymentProcessor,
             $this->objectManager,
@@ -140,6 +145,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->stateMachine,
             $this->paymentStateManager,
             $this->orderProvider,
+            $this->orderOwnershipVerifier,
             $this->capturePaymentResolver,
         );
         $this->payments(processing: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME), cart: null);

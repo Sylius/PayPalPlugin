@@ -37,6 +37,7 @@ use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -63,6 +64,7 @@ final readonly class ProcessPayPalOrderAction
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private OrderProviderInterface $orderProvider,
+        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?UrlGeneratorInterface $router = null,
         private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
@@ -131,6 +133,7 @@ final readonly class ProcessPayPalOrderAction
         $payPalOrderId = $payload->getString('payPalOrderId');
 
         $order = $this->orderProvider->provideOrderById($orderId);
+        $this->orderOwnershipVerifier->verify($order, $request);
 
         /** @var PaymentInterface|null $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
