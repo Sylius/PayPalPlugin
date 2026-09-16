@@ -92,6 +92,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
         $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
         $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
+        $container->setParameter('sylius_paypal.legacy_id_routes_enabled', (bool) $config['legacy_id_routes_enabled']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
@@ -119,6 +120,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $testBuyerCountryEnv = $_ENV['SYLIUS_PAYPAL_TEST_BUYER_COUNTRY'] ?? null;
         if ($testBuyerCountryEnv !== null) {
             $envConfig['test_buyer_country'] = $testBuyerCountryEnv;
+        }
+
+        $legacyIdRoutesEnabledEnv = $_ENV['SYLIUS_PAYPAL_LEGACY_ID_ROUTES_ENABLED'] ?? null;
+        if ($legacyIdRoutesEnabledEnv !== null) {
+            $envConfig['legacy_id_routes_enabled'] = filter_var($legacyIdRoutesEnabledEnv, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE) ?? false;
         }
 
         $loggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;

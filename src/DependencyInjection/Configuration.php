@@ -35,6 +35,14 @@ final class Configuration implements ConfigurationInterface
             ->children()
                 ->booleanNode('sandbox')->defaultTrue()->end()
                 ->scalarNode('test_buyer_country')->defaultNull()->end()
+                ->booleanNode('legacy_id_routes_enabled')
+                    ->defaultFalse()
+                    ->setDeprecated(
+                        'sylius/paypal-plugin',
+                        '2.1',
+                        'The "%path%.%node%" option is a temporary migration bridge and will be removed in 3.0, along with the legacy, id-based routes it gates.',
+                    )
+                ->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()
                     ->children()

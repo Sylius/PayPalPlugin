@@ -121,6 +121,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getTotal')->willReturn(3050);
+        $order->method('getTokenValue')->willReturn('EXISTING_TOKEN');
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(false);
 
@@ -145,6 +146,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getTotal')->willReturn(3000);
+        $order->method('getTokenValue')->willReturn('EXISTING_TOKEN');
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
 
@@ -173,5 +175,57 @@ final class PayPalButtonsControllerTest extends TestCase
         $response = $this->controller->renderProductPageButtonsAction(Request::create('/'));
 
         self::assertSame('', $response->getContent());
+    }
+
+    /** @test */
+    public function it_renders_the_cart_page_placement_when_the_order_already_has_a_token(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getTokenValue')->willReturn('EXISTING_TOKEN');
+        $this->orderRepository->method('find')->willReturn($order);
+
+        $response = $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame(200, $response->getStatusCode());
+    }
+
+    /** @test */
+    public function it_renders_the_cart_page_placement_without_touching_the_database_when_the_order_has_no_token_yet(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getTokenValue')->willReturn(null);
+        $order->method('getId')->willReturn(42);
+        $this->orderRepository->method('find')->willReturn($order);
+        $order->expects(self::never())->method('setTokenValue');
+
+        $response = $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 42]));
+
+        self::assertSame(200, $response->getStatusCode());
+    }
+
+    /** @test */
+    public function it_renders_the_payment_page_placement_when_the_order_already_has_a_token(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getTokenValue')->willReturn('EXISTING_TOKEN');
+        $this->orderRepository->method('find')->willReturn($order);
+
+        $response = $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame(200, $response->getStatusCode());
+    }
+
+    /** @test */
+    public function it_renders_the_payment_page_placement_without_touching_the_database_when_the_order_has_no_token_yet(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getTokenValue')->willReturn(null);
+        $order->method('getId')->willReturn(42);
+        $this->orderRepository->method('find')->willReturn($order);
+        $order->expects(self::never())->method('setTokenValue');
+
+        $response = $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 42]));
+
+        self::assertSame(200, $response->getStatusCode());
     }
 }

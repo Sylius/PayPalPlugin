@@ -15,8 +15,10 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
+use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -25,6 +27,7 @@ use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class CompletePayPalOrderFromPaymentPageAction
@@ -37,6 +40,8 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private ObjectManager $orderManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?OrderProcessorInterface $orderProcessor = null,
+        private ?bool $legacyIdRoutesEnabled = false,
+        private ?CartContextInterface $cartContext = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -54,13 +59,26 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
                 OrderProcessorInterface::class,
             );
         }
+        if (true === $this->legacyIdRoutesEnabled) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                '$legacyIdRoutesEnabled and the legacy, id-based routes it gates are deprecated and will be removed in 3.0',
+            );
+        }
+        if (null === $this->cartContext) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing a $cartContext to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
-        $orderId = $request->attributes->getInt('id');
-
-        $order = $this->orderProvider->provideOrderById($orderId);
+        $order = $this->resolveOrder($request);
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         /** @var string $payPalOrderId */
@@ -117,5 +135,33 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $details = $payment->getDetails();
 
         return $details['payment_amount'] ?? 0;
+    }
+
+    private function resolveOrder(Request $request): OrderInterface
+    {
+        $tokenValue = $request->attributes->get('tokenValue');
+        if (is_string($tokenValue) && '' !== $tokenValue) {
+            return $this->orderProvider->provideCartByToken($tokenValue);
+        }
+
+        if (!$request->attributes->has('id')) {
+            if (null === $this->cartContext) {
+                throw new \RuntimeException(sprintf(
+                    'An instance of "%s" is required to complete a PayPal order from the current cart.',
+                    CartContextInterface::class,
+                ));
+            }
+
+            /** @var OrderInterface $cart */
+            $cart = $this->cartContext->getCart();
+
+            return $cart;
+        }
+
+        if (true !== $this->legacyIdRoutesEnabled) {
+            throw new NotFoundHttpException();
+        }
+
+        return $this->orderProvider->provideOrderById($request->attributes->getInt('id'));
     }
 }
