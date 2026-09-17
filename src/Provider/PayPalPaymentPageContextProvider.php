@@ -57,6 +57,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
             'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
+            'languageCode' => $this->languageCode($locale),
             'order' => $order,
             'payment' => $payment,
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
@@ -67,6 +68,11 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
         ];
+    }
+
+    private function languageCode(string $locale): string
+    {
+        return strtolower(preg_split('/[_-]/', trim($locale))[0] ?? '');
     }
 
     /** @return array<int, string> */

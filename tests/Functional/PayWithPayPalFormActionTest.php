@@ -65,6 +65,10 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
 
         self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-google-pay', $content);
         self::assertStringContainsString('googlepay-payments', $content);
+        self::assertStringContainsString(
+            'data-sylius--paypal-plugin--paypal-payment-google-pay-language-code-value="en"',
+            $content,
+        );
     }
 
     private function requestPaymentPage(bool $googlePayEnabled = false): void

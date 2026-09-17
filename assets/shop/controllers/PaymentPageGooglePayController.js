@@ -12,6 +12,7 @@ export default class extends Controller {
         instanceConfig: Object,
         currencyCode: String,
         amount: String,
+        languageCode: String,
         sandbox: Boolean,
         createOrderUrl: String,
         completeOrderUrl: String,
@@ -55,6 +56,7 @@ export default class extends Controller {
 
             this.buttonTarget.appendChild(paymentsClient.createButton({
                 onClick: () => this.start(paymentsClient, config),
+                ...(this.languageCodeValue === '' ? {} : { buttonLocale: this.languageCodeValue }),
             }));
         } catch (error) {
             console.error('Google Pay initialization error:', error);
