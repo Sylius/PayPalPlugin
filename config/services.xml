@@ -136,6 +136,7 @@
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.provider.paypal_shipping_callback_url" />
             <argument type="service" id="sylius_paypal.provider.experience_context" />
+            <argument type="service" id="sylius_paypal.provider.paypal_payment_source" />
         </service>
         <service id="Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface" alias="sylius_paypal.factory.paypal_order" />
 
@@ -144,6 +145,12 @@
             class="Sylius\PayPalPlugin\Provider\ExperienceContextProvider"
         />
         <service id="Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface" alias="sylius_paypal.provider.experience_context" />
+
+        <service
+            id="sylius_paypal.provider.paypal_payment_source"
+            class="Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider"
+        />
+        <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface" alias="sylius_paypal.provider.paypal_payment_source" />
 
         <service
             id="sylius_paypal.factory.paypal_shipping_callback_response"

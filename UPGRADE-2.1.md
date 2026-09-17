@@ -644,14 +644,14 @@
    argument; existing positional calls keep working.
 
    `Sylius\PayPalPlugin\Model\PayPalOrder` keeps its existing `$order`, `$payPalPurchaseUnit` and `$intent`
-   arguments and gains a trailing optional `array $experienceContext = []` one; existing positional calls
-   keep working, although `$order` is now unused - it is deprecated and will be removed in 3.0. The model no
-   longer assembles the experience context itself - it only carries the one it is given - so its `toArray()`
-   always sends that array under `payment_source.paypal.experience_context`, never the legacy
-   `application_context`. Build the context with
-   `Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface`
-   (`sylius_paypal.provider.experience_context`) the way `PayPalOrderFactory` does; constructing a
-   `PayPalOrder` without `$experienceContext` now sends an empty experience context.
+   arguments and gains a required trailing `array $paymentSource` one, although `$order` is now unused - it
+   is deprecated and will be removed in 3.0. The model no longer assembles the payment source itself - it
+   only carries the one it is given - so its `toArray()` always sends that array as `payment_source`, never
+   the legacy `application_context`. Build the payment source with
+   `Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface`
+   (`sylius_paypal.provider.paypal_payment_source`) the way `PayPalOrderFactory` does; it wraps the
+   experience context built by `Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface`
+   (`sylius_paypal.provider.experience_context`) under the `paypal` key.
 
 19. #### Pay Later has a real button, and `<paypal-message>` finally renders real content.
 

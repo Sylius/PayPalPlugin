@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
 {
@@ -42,9 +43,13 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         }
     }
 
-    public function create(string $token, PaymentInterface $payment, string $referenceId): array
-    {
-        $payPalOrder = $this->getPayPalOrderFactory()->create($payment, $referenceId);
+    public function create(
+        string $token,
+        PaymentInterface $payment,
+        string $referenceId,
+        string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+    ): array {
+        $payPalOrder = $this->getPayPalOrderFactory()->create($payment, $referenceId, $paymentSource);
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }

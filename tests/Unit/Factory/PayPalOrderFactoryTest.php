@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -189,6 +190,30 @@ final class PayPalOrderFactoryTest extends TestCase
                 'launch_paypal_app' => true,
             ],
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
+    }
+
+    public function test_it_builds_the_payment_source_through_its_provider(): void
+    {
+        $paymentSourceProvider = $this->createMock(PayPalPaymentSourceProviderInterface::class);
+        $paymentSourceProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($this->order, 'google_pay', self::isType('array'))
+            ->willReturn(['google_pay' => ['attributes' => []]])
+        ;
+
+        $payPalOrder = (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+            null,
+            $paymentSourceProvider,
+        ))
+            ->create($this->payment, 'REFERENCE_ID', 'google_pay')
+            ->toArray()
+        ;
+
+        self::assertSame(['google_pay' => ['attributes' => []]], $payPalOrder['payment_source']);
     }
 
     private function purchaseUnit(): PayPalPurchaseUnit
