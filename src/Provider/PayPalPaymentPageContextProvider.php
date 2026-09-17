@@ -43,6 +43,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         $channel = $order->getChannel();
 
         return [
+            'amount' => number_format($payment->getAmount() / 100, 2, '.', ''),
             'billingAddress' => $order->getBillingAddress(),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_checkout_payment'),
             'completePayPalOrderUrl' => $this->router->generate(
@@ -55,6 +56,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             ),
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
+            'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
             'order' => $order,
             'payment' => $payment,
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(

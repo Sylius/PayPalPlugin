@@ -63,6 +63,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($order);
+        $this->payment->method('getAmount')->willReturn(12345);
 
         $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
 
@@ -111,6 +112,18 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         self::assertSame(['clientId' => 'CLIENT_ID'], $context['webSdkInstanceConfig']);
         self::assertSame(self::SCRIPT_URL, $context['webSdkScriptUrl']);
+    }
+
+    public function test_it_provides_the_amount_google_pay_shows_the_buyer(): void
+    {
+        self::assertSame('123.45', $this->provider->provide($this->payment, 'en_US')['amount']);
+    }
+
+    public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+
+        self::assertTrue($this->provider->provide($this->payment, 'en_US')['googlePayEnabled']);
     }
 
     public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void

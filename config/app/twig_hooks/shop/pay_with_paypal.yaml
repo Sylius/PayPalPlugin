@@ -3,9 +3,12 @@ sylius_twig_hooks:
         'sylius_paypal.shop.pay_with_paypal.content':
             flashes:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/flashes.html.twig'
-                priority: 200
+                priority: 300
             paypal:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/paypal.html.twig'
+                priority: 200
+            google_pay:
+                template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/google_pay.html.twig'
                 priority: 100
             card:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/card.html.twig'

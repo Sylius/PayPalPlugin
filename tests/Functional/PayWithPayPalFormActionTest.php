@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\Model\OrderItemInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,10 +35,33 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
-    private function requestPaymentPage(): void
+    public function test_it_renders_no_google_pay_tile_until_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertStringNotContainsString(
+            'sylius--paypal-plugin--paypal-payment-google-pay',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
+    public function test_it_renders_the_google_pay_tile_once_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage(googlePayEnabled: true);
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-google-pay', $content);
+        self::assertStringContainsString('googlepay-payments', $content);
+    }
+
+    private function requestPaymentPage(bool $googlePayEnabled = false): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
+
+        if ($googlePayEnabled) {
+            $this->enableGooglePay();
+        }
 
         /** @var OrderInterface $order */
         $order = self::getContainer()->get('sylius.repository.order')->find($orderId);
@@ -53,5 +77,15 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         $payment = $order->getLastPayment();
 
         $this->client->request('GET', sprintf('/en_US/pay-with-paypal/%s/%s', $order->getTokenValue(), $payment->getId()));
+    }
+
+    private function enableGooglePay(): void
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = self::getContainer()->get('sylius.repository.payment_method')->findOneBy(['code' => 'PAYPAL']);
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['google_pay_enabled' => true]));
+
+        self::getContainer()->get('doctrine.orm.entity_manager')->flush();
     }
 }
