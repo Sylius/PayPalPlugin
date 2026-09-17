@@ -354,6 +354,7 @@
             <argument type="service" id="sylius_paypal.provider.paypal_web_sdk_configuration" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.processor.locale" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface" alias="sylius_paypal.provider.paypal_payment_page_context" />
 

@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
@@ -31,6 +32,8 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     private const SCRIPT_URL = 'https://www.sandbox.paypal.com/web-sdk/v6/core';
 
     private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+
+    private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
 
     private PayPalPaymentPageContextProvider $provider;
 
@@ -61,10 +64,13 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($order);
 
+        $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
+
         $this->provider = new PayPalPaymentPageContextProvider(
             $this->webSdkConfigurationProvider,
             $router,
             $localeProcessor,
+            $this->fundingSourcesConfigurationProvider,
         );
     }
 
@@ -105,5 +111,19 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         self::assertSame(['clientId' => 'CLIENT_ID'], $context['webSdkInstanceConfig']);
         self::assertSame(self::SCRIPT_URL, $context['webSdkScriptUrl']);
+    }
+
+    public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'googlepay-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, 'en_US');
     }
 }

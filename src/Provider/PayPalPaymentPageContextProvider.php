@@ -25,10 +25,13 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
     public const CARD_FIELDS_COMPONENT = 'card-fields';
 
+    public const GOOGLE_PAY_COMPONENT = 'googlepay-payments';
+
     public function __construct(
         private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private UrlGeneratorInterface $router,
         private LocaleProcessorInterface $localeProcessor,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
     ) {
     }
 
@@ -57,10 +60,22 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
-                [...PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT],
+                $this->components($channel),
                 $this->localeProcessor->process($locale),
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
         ];
+    }
+
+    /** @return array<int, string> */
+    private function components(ChannelInterface $channel): array
+    {
+        $components = [...PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT];
+
+        if ($this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel)) {
+            $components[] = self::GOOGLE_PAY_COMPONENT;
+        }
+
+        return $components;
     }
 }
