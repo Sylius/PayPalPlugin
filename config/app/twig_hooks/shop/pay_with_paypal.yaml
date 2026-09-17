@@ -7,6 +7,9 @@ sylius_twig_hooks:
             paypal:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/paypal.html.twig'
                 priority: 300
+            paypal_messaging:
+                template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/paypal_messaging.html.twig'
+                priority: 250
             google_pay:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/google_pay.html.twig'
                 priority: 200

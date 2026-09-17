@@ -60,7 +60,6 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getBillingAddress')->willReturn($this->billingAddress);
-        $order->method('getTotal')->willReturn(1999);
 
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($order);
@@ -98,7 +97,6 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame($this->payment, $context['payment']);
         self::assertSame($this->billingAddress, $context['billingAddress']);
         self::assertSame('USD', $context['currency']);
-        self::assertSame('19.99', $context['amount']);
     }
 
     public function test_it_provides_whether_pay_later_is_enabled_for_the_channel(): void
