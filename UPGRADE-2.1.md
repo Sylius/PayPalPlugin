@@ -713,3 +713,118 @@
    Without them, `sylius_paypal_is_messaging_enabled()` returns `false`, and
    `sylius_paypal_web_sdk_script_url()`/`sylius_paypal_web_sdk_instance_config()` return an empty
    string/array — the messaging placement degrades to rendering nothing rather than erroring.
+
+1. #### The PayPal order now names the payment source the buyer chose.
+
+   Every order the plugin created carried `payment_source.paypal`, whichever button started it.
+   `Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface`
+   (`sylius_paypal.provider.paypal_payment_source`) now builds that node per method, and the buyer's choice
+   travels with the order from the button to the API call. Decorate it to teach the plugin a method of your
+   own.
+
+   The two factory signatures gained a trailing optional argument that defaults to `paypal`, so existing
+   positional calls keep working:
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\CreateOrderApiInterface
+    public function create(
+        string $token,
+        PaymentInterface $payment,
+        string $referenceId,
+   +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+    ): array;
+
+    // Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface
+    public function create(
+        PaymentInterface $payment,
+        string $referenceId,
+   +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+    ): PayPalOrder;
+   ```
+
+   `CreatePayPalOrderAction` gained a nullable `?PayPalPaymentSourceProviderInterface`. Not passing it is
+   deprecated and will be prohibited in 3.0; without it the endpoint accepts `paypal` and nothing else.
+
+   `PayPalPaymentPageContextProvider` gained a **required** `PayPalFundingSourcesConfigurationProviderInterface`,
+   because it decides which SDK components the page asks for. That class is new in 2.1 and has no released
+   signature to preserve; if you build it yourself, pass `sylius_paypal.provider.paypal_configuration`.
+
+   `PayPalFundingSourcesConfigurationProviderInterface` gained `isGooglePayEnabled(ChannelInterface $channel)`.
+   Implement it if you implement that interface from scratch rather than decorating the shipped provider.
+
+   `sylius_paypal_shop_create_paypal_order` now reads an optional JSON body naming the source:
+
+   ```json
+   { "paymentSource": "google_pay" }
+   ```
+
+   A body that is absent, empty or not valid JSON still means `paypal`, so callers that post nothing behave
+   exactly as before. A source the provider does not recognise is answered with `422 Unprocessable Entity`,
+   and no payment is created or cancelled.
+
+   The chosen source is then stored as `payment_source` in `Payment::getDetails()` and carried through
+   capture and completion, so anything reading those details should expect the extra key.
+
+1. #### Google Pay is available on the PayPal payment page.
+
+   A new tile on `/pay-with-paypal/{orderToken}/{paymentId}`, between the PayPal wallet and the card fields.
+   One new, **opt-in** admin toggle on the PayPal payment method's gateway config controls it:
+
+   - `google_pay_enabled` — defaults to `false`, including for existing payment methods.
+
+   This is the opposite default from `pay_later_enabled` and `messaging_enabled`, which are opt-outs. Pay
+   Later was already running in production when its toggle arrived; Google Pay has never run, the merchant
+   has to enable the Google Pay capability on their PayPal account for it to work at all, and SDD §4.1.4
+   asks for the methods a merchant has opted into. Turning it on in the back office is the same decision
+   they already have to make on PayPal's side.
+
+   Google Pay is not a PayPal web component. The button is drawn by **Google's own SDK**, which the page
+   loads from `https://pay.google.com/gp/p/js/pay.js` — a second third-party script alongside PayPal's.
+
+   **If your shop sends a Content-Security-Policy**, allow `pay.google.com` in `script-src`, and
+   `pay.google.com google.com account.google.com www.google.com` in `connect-src`, which is what Google
+   documents for its API. Otherwise the tile silently renders nothing. A strict CSP built on nonces needs
+   more than that: Google injects its own `<style>` and `<script>` elements, including the button's styles,
+   and expects the nonce both on the `pay.js` tag and on `PaymentsClient`. The plugin does not pass one,
+   because Sylius has no nonce for it to read; a shop on a nonce-based CSP has to override the tile
+   template and the controller.
+
+   It ships as its own Stimulus controller and needs the same one-time registration as the others:
+
+   ```json
+   "@sylius/paypal-plugin": {
+       "paypal-payment-google-pay": { "enabled": true, "fetch": "lazy" }
+   }
+   ```
+
+   Orders created for Google Pay carry `payment_source.google_pay.attributes.verification.method` set to
+   `SCA_WHEN_REQUIRED`, so 3D Secure runs where regulation or the card network demands it.
+   `ThreeDSecureVerifier` now finds `authentication_result` under any payment source, directly or nested
+   under `card`, because a wallet nests it one level deeper than a card does. Card payments are unaffected.
+
+   **Known limitation.** If PayPal answers `confirmOrder()` with `PAYER_ACTION_REQUIRED`, the payment is
+   failed rather than captured. PayPal documents the branch where that status is absent and not the one
+   where it is present, and capturing a payment the buyer has not finished authorising is not a guess worth
+   making. Reachable in the EEA; to be revisited once PayPal documents it.
+
+1. #### The payment page now tells the payer that PayPal processes their data.
+
+   SDD §4.1.4 requires the payer to be told, by one of two routes: the prescribed sentence plus a link to
+   PayPal's privacy notice at checkout, or a longer prescribed paragraph in the store's own privacy notice
+   shown before payment. The plugin ships the first, so a shop is compliant without editing anything. The
+   wording is PayPal's and is deliberately not paraphrased; only the English translation key is filled in,
+   and `fr`/`nl` fall back to it rather than carry a translation nobody has approved.
+
+   If you take the privacy-notice route instead, drop the hook:
+
+   ```yaml
+   sylius_twig_hooks:
+       hooks:
+           'sylius_paypal.shop.pay_with_paypal.content':
+               privacy_notice:
+                   enabled: false
+   ```
+
+   The priorities on that hook were renumbered to fit the two new templates in — `flashes` 400, `paypal`
+   300, `google_pay` 200, `card` 100, `privacy_notice` 0. If you added a tile of your own with an explicit
+   priority, check where it now lands.
