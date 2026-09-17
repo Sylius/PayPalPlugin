@@ -83,10 +83,11 @@ final readonly class PayPalButtonsController
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
                     'product-details',
-                    PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS,
+                    $this->getWebSdkComponents($channel),
                     $locale,
                 ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -119,10 +120,11 @@ final readonly class PayPalButtonsController
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
                     'cart',
-                    PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS,
+                    $this->getWebSdkComponents($channel),
                     $locale,
                 ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -156,14 +158,27 @@ final readonly class PayPalButtonsController
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
                     'checkout',
-                    PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS,
+                    $this->getWebSdkComponents($channel),
                     $locale,
                 ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
+    }
+
+    /** @return array<int, string> */
+    private function getWebSdkComponents(ChannelInterface $channel): array
+    {
+        $components = PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
+
+        if ($this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel)) {
+            $components[] = 'venmo-payments';
+        }
+
+        return $components;
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface

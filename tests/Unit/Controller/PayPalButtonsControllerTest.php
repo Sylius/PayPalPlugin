@@ -109,6 +109,7 @@ final class PayPalButtonsControllerTest extends TestCase
     public function it_passes_paylater_enabled_to_the_product_page_template(): void
     {
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(false);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -122,6 +123,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderProductPageButtonsAction(Request::create('/'));
 
         self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['venmoEnabled']);
     }
 
     #[Test]
@@ -132,6 +134,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $order->method('getTotal')->willReturn(3050);
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(false);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -146,6 +149,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertSame('30.50', $capturedContext['amount']);
+        self::assertTrue($capturedContext['venmoEnabled']);
     }
 
     #[Test]
@@ -156,6 +160,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $order->method('getTotal')->willReturn(3000);
         $this->orderRepository->method('find')->willReturn($order);
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -170,6 +175,45 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertTrue($capturedContext['paylaterEnabled']);
         self::assertSame('30.00', $capturedContext['amount']);
+        self::assertTrue($capturedContext['venmoEnabled']);
+    }
+
+    #[Test]
+    public function it_requests_the_venmo_payments_component_when_venmo_is_enabled(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with($this->channel, 'cart', ['paypal-payments', 'venmo-payments'], '')
+            ->willReturn(['clientId' => 'CLIENT_ID']);
+
+        $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+    }
+
+    #[Test]
+    public function it_does_not_request_the_venmo_payments_component_when_venmo_is_disabled(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(false);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with($this->channel, 'cart', ['paypal-payments'], '')
+            ->willReturn(['clientId' => 'CLIENT_ID']);
+
+        $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
     }
 
     #[Test]
