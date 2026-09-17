@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
+use Sylius\PayPalPlugin\Model\PayPalOrder;
 
 final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
 {
@@ -22,12 +23,15 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     {
         return match ($paymentSource) {
             self::PAYPAL => [self::PAYPAL => ['experience_context' => $experienceContext]],
+            self::GOOGLE_PAY => [self::GOOGLE_PAY => [
+                'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
+            ]],
             default => throw new UnsupportedPayPalPaymentSourceException($paymentSource),
         };
     }
 
     public function supports(string $paymentSource): bool
     {
-        return self::PAYPAL === $paymentSource;
+        return in_array($paymentSource, [self::PAYPAL, self::GOOGLE_PAY], true);
     }
 }

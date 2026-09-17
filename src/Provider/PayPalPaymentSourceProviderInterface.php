@@ -20,6 +20,8 @@ interface PayPalPaymentSourceProviderInterface
 {
     public const PAYPAL = 'paypal';
 
+    public const GOOGLE_PAY = 'google_pay';
+
     /**
      * @param array<string, mixed> $experienceContext
      *

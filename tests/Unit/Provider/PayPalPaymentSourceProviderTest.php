@@ -48,9 +48,33 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         );
     }
 
+    public function test_it_asks_for_regulatory_authentication_on_google_pay(): void
+    {
+        self::assertSame(
+            ['google_pay' => ['attributes' => ['verification' => ['method' => 'SCA_WHEN_REQUIRED']]]],
+            $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::GOOGLE_PAY, []),
+        );
+    }
+
+    public function test_it_sends_no_experience_context_with_google_pay(): void
+    {
+        $googlePay = $this->provider->provide(
+            $this->order,
+            PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+            ['locale' => 'en-US', 'return_url' => 'https://shop.example.com/checkout/complete'],
+        );
+
+        self::assertArrayNotHasKey('experience_context', $googlePay['google_pay']);
+    }
+
     public function test_it_supports_the_paypal_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::PAYPAL));
+    }
+
+    public function test_it_supports_the_google_pay_payment_source(): void
+    {
+        self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::GOOGLE_PAY));
     }
 
     public function test_it_does_not_support_an_unknown_payment_source(): void
