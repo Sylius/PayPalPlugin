@@ -60,6 +60,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getBillingAddress')->willReturn($this->billingAddress);
+        $order->method('getTotal')->willReturn(1999);
 
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($order);
@@ -97,6 +98,25 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame($this->payment, $context['payment']);
         self::assertSame($this->billingAddress, $context['billingAddress']);
         self::assertSame('USD', $context['currency']);
+        self::assertSame('19.99', $context['amount']);
+    }
+
+    public function test_it_provides_whether_pay_later_is_enabled_for_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertTrue($context['paylaterEnabled']);
+    }
+
+    public function test_it_provides_pay_later_as_disabled_when_the_channel_does_not_allow_it(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertFalse($context['paylaterEnabled']);
     }
 
     public function test_it_asks_the_sdk_instance_for_the_card_fields_component(): void

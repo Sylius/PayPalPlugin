@@ -8,11 +8,15 @@ export function paymentPageSession(config) {
     return session;
 }
 
-async function createSession({ scriptUrl, instanceConfig, currencyCode, createOrderUrl }) {
+async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, createOrderUrl }) {
     await loadWebSdkOnce(scriptUrl);
 
     const sdkInstance = await window.paypal.createInstance(instanceConfig);
-    const eligibleMethods = await sdkInstance.findEligibleMethods({ currencyCode });
+    const eligibilityRequest = { currencyCode };
+    if (amount) {
+        eligibilityRequest.amount = amount;
+    }
+    const eligibleMethods = await sdkInstance.findEligibleMethods(eligibilityRequest);
 
     let busy = false;
     let orderId = null;
@@ -21,6 +25,8 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, createOr
         sdkInstance,
 
         isEligible: (fundingSource) => eligibleMethods.isEligible(fundingSource),
+
+        getDetails: (fundingSource) => eligibleMethods.getDetails(fundingSource),
 
         isBusy: () => busy,
 

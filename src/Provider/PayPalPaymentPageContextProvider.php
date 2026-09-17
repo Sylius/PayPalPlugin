@@ -60,6 +60,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'languageCode' => $this->languageCode($locale),
             'order' => $order,
             'payment' => $payment,
+            'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
