@@ -56,6 +56,7 @@ export default class extends Controller {
 
             this.buttonTarget.appendChild(paymentsClient.createButton({
                 onClick: () => this.start(paymentsClient, config),
+                buttonSizeMode: 'fill',
                 ...(this.languageCodeValue === '' ? {} : { buttonLocale: this.languageCodeValue }),
             }));
         } catch (error) {

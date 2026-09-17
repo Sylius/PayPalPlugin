@@ -10,12 +10,13 @@
         cancelOrderUrl: context.cancelPayPalPaymentUrl,
         errorUrl: context.errorPayPalPaymentUrl,
     }) }}
-    class="mb-4"
+    class="mb-3"
 >
     <paypal-button
         {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-wallet-button', 'button') }}
         type="pay"
         class="paypal-gold"
+        style="display: block; width: 100%"
         hidden
     ></paypal-button>
 </div>

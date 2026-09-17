@@ -26,12 +26,12 @@
             countryCode: billingAddress.countryCode,
         },
     }) }}
-    class="position-relative"
+    class="position-relative border-top pt-4"
     hidden
 >
     <form {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-card-fields', 'form') }}>
         <div class="mb-3">
-            <label class="form-label">{{ 'sylius_paypal.credit_card_number'|trans }}</label>
+            <label class="form-label">{{ 'sylius_paypal.card_number'|trans }}</label>
             <div
                 class="paypal-card-field"
                 {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-card-fields', 'number') }}
@@ -56,7 +56,7 @@
         </div>
 
         <div class="mb-4">
-            <label class="form-label">{{ 'sylius.form.credit_card.cardholder_name'|trans }}</label>
+            <label class="form-label">{{ 'sylius_paypal.cardholder_name'|trans }}</label>
             <div
                 class="paypal-card-field"
                 {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-card-fields', 'name') }}

@@ -15,6 +15,9 @@
         }) }}
         class="mb-4"
     >
-        <div {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-google-pay', 'button') }}></div>
+        <div
+            {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-google-pay', 'button') }}
+            style="height: 45px"
+        ></div>
     </div>
 {% endif %}

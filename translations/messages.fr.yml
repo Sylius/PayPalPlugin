@@ -1,10 +1,11 @@
 sylius_paypal:
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
+    card_number: 'Numéro de carte'
+    cardholder_name: 'Nom du titulaire de la carte'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     credit_card: 'Carte de crédit'
-    credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
     different_amount: 'Ceci est le montant autorisé. Etant donné que vous avez modifié la commande après son autorisation, vous paierez le montant indiqué comme "Total"'
     enable_paypal: 'Activer PayPal'

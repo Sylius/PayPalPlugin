@@ -1,10 +1,11 @@
 sylius_paypal:
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
+    card_number: 'Card number'
+    cardholder_name: 'Cardholder name'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     credit_card: 'Credit Card'
-    credit_card_number: 'Credit Card number'
     cvv: 'CVV'
     different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
     enable_paypal: 'Enable PayPal'
