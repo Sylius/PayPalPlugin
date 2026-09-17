@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class CompleteOrderAction implements ActionInterface
@@ -75,6 +76,9 @@ final readonly class CompleteOrderAction implements ActionInterface
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $details = $payment->getDetails();
+        $paymentSource = is_string($details['payment_source'] ?? null)
+            ? $details['payment_source']
+            : PayPalPaymentSourceProviderInterface::PAYPAL;
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
@@ -110,6 +114,7 @@ final readonly class CompleteOrderAction implements ActionInterface
             'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
             'paypal_order_id' => $orderDetails['id'],
             'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
+            'payment_source' => $paymentSource,
         ];
         if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
             $details = array_merge(

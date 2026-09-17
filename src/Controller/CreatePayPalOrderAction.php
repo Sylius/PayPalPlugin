@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,11 +32,26 @@ final readonly class CreatePayPalOrderAction
         private PaymentStateManagerInterface $paymentStateManager,
         private OrderProviderInterface $orderProvider,
         private CapturePaymentResolverInterface $capturePaymentResolver,
+        private ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
     ) {
+        if (null === $this->paymentSourceProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalPaymentSourceProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
+        $paymentSource = $this->resolvePaymentSource($request);
+        if (null === $paymentSource) {
+            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $token = (string) $request->attributes->get('token');
         $order = $this->orderProvider->provideOrderByToken($token);
 
@@ -45,6 +61,8 @@ final readonly class CreatePayPalOrderAction
         if (null === $payment) {
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
+
+        $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
 
         $this->capturePaymentResolver->resolve($payment);
 
@@ -57,6 +75,28 @@ final readonly class CreatePayPalOrderAction
             'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
             'status' => $payment->getState(),
         ]);
+    }
+
+    private function resolvePaymentSource(Request $request): ?string
+    {
+        $payload = json_decode($request->getContent(), true);
+        $paymentSource = is_array($payload) ? ($payload['paymentSource'] ?? null) : null;
+
+        if (null === $paymentSource) {
+            return PayPalPaymentSourceProviderInterface::PAYPAL;
+        }
+
+        if (!is_string($paymentSource) || !$this->supportsPaymentSource($paymentSource)) {
+            return null;
+        }
+
+        return $paymentSource;
+    }
+
+    private function supportsPaymentSource(string $paymentSource): bool
+    {
+        return $this->paymentSourceProvider?->supports($paymentSource)
+            ?? PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource;
     }
 
     private function cancelLiveAttempt(OrderInterface $order): void
