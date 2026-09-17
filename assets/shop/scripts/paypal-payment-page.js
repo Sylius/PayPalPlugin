@@ -30,11 +30,17 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, createOr
             busy = false;
         },
 
-        startAttempt: async () => {
+        startAttempt: async (paymentSource = null) => {
             busy = true;
             orderId = null;
 
-            const response = await fetch(createOrderUrl, { method: 'post' });
+            const response = await fetch(createOrderUrl, {
+                method: 'post',
+                ...(paymentSource === null ? {} : {
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentSource }),
+                }),
+            });
             if (!response.ok) {
                 busy = false;
 
