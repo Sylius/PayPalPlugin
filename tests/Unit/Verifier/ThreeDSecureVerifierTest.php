@@ -51,6 +51,28 @@ final class ThreeDSecureVerifierTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    public function test_it_reads_an_authentication_result_nested_under_a_wallet(): void
+    {
+        $rejection = $this->rejectionOf(['payment_source' => ['google_pay' => ['card' => [
+            'authentication_result' => [
+                'liability_shift' => ThreeDSecureLiabilityShift::No->value,
+                'three_d_secure' => [
+                    'enrollment_status' => ThreeDSecureEnrollmentStatus::Ready->value,
+                    'authentication_status' => ThreeDSecureAuthenticationStatus::Failed->value,
+                ],
+            ],
+        ]]]]);
+
+        self::assertFalse($rejection->isRetryable());
+    }
+
+    public function test_it_accepts_a_wallet_payment_source_carrying_no_authentication_result(): void
+    {
+        $this->verifier->verify(['payment_source' => ['google_pay' => ['card' => ['last_digits' => '1111']]]]);
+
+        $this->expectNotToPerformAssertions();
+    }
+
     public function test_it_asks_to_retry_an_authentication_result_carrying_no_enrollment_status(): void
     {
         $rejection = $this->rejectionOf(['payment_source' => ['card' => ['authentication_result' => []]]]);

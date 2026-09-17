@@ -22,9 +22,9 @@ final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
 {
     public function verify(array $paypalOrderDetails): void
     {
-        $authenticationResult = $paypalOrderDetails['payment_source']['card']['authentication_result'] ?? null;
+        $authenticationResult = $this->findAuthenticationResult($paypalOrderDetails['payment_source'] ?? null);
 
-        if (!is_array($authenticationResult)) {
+        if (null === $authenticationResult) {
             return;
         }
 
@@ -40,6 +40,26 @@ final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
             ),
             default => throw new ThreeDSecureAuthenticationFailedException(retryable: true),
         };
+    }
+
+    private function findAuthenticationResult(mixed $paymentSource): ?array
+    {
+        if (!is_array($paymentSource)) {
+            return null;
+        }
+
+        foreach ($paymentSource as $source) {
+            if (!is_array($source)) {
+                continue;
+            }
+
+            $authenticationResult = $source['authentication_result'] ?? $source['card']['authentication_result'] ?? null;
+            if (is_array($authenticationResult)) {
+                return $authenticationResult;
+            }
+        }
+
+        return null;
     }
 
     private function verifyAuthenticationStatus(?ThreeDSecureAuthenticationStatus $authenticationStatus): void
