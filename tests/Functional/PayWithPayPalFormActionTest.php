@@ -35,6 +35,19 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_tells_the_payer_that_paypal_processes_their_data(): void
+    {
+        $this->requestPaymentPage();
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString(
+            'By paying with your card, you acknowledge that PayPal will process your data according to the PayPal Privacy Statement available at PayPal.com.',
+            $content,
+            'The payment page is missing the wording PayPal prescribes in SDD 4.1.4.',
+        );
+        self::assertStringContainsString('https://www.paypal.com/myaccount/privacy/privacyhub', $content);
+    }
+
     public function test_it_renders_no_google_pay_tile_until_the_channel_opts_in(): void
     {
         $this->requestPaymentPage();
