@@ -11,6 +11,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Production'
     expiration_date: 'Expiration date'
+    google_pay_enabled: 'Enable Google Pay'
     invalid_form: 'Form is invalid'
     label: 'PayPal'
     merchant_id: 'Merchant ID'
