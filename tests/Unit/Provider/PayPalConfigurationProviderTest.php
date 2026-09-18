@@ -90,6 +90,20 @@ final class PayPalConfigurationProviderTest extends TestCase
         self::assertFalse($this->payPalConfigurationProvider->isMessagingEnabled($channel));
     }
 
+    public function test_it_considers_google_pay_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isGooglePayEnabled($channel));
+    }
+
+    public function test_it_considers_google_pay_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['google_pay_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isGooglePayEnabled($channel));
+    }
+
     #[Test]
     public function it_returns_client_id_from_payment_method_config(): void
     {

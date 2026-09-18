@@ -25,10 +25,13 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
     public const CARD_FIELDS_COMPONENT = 'card-fields';
 
+    public const GOOGLE_PAY_COMPONENT = 'googlepay-payments';
+
     public function __construct(
         private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private UrlGeneratorInterface $router,
         private LocaleProcessorInterface $localeProcessor,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
     ) {
     }
 
@@ -40,6 +43,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         $channel = $order->getChannel();
 
         return [
+            'amount' => number_format($payment->getAmount() / 100, 2, '.', ''),
             'billingAddress' => $order->getBillingAddress(),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_checkout_payment'),
             'completePayPalOrderUrl' => $this->router->generate(
@@ -52,15 +56,34 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             ),
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
+            'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
+            'languageCode' => $this->languageCode($locale),
             'order' => $order,
             'payment' => $payment,
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
-                [...PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT],
+                $this->components($channel),
                 $this->localeProcessor->process($locale),
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
         ];
+    }
+
+    private function languageCode(string $locale): string
+    {
+        return strtolower(preg_split('/[_-]/', trim($locale))[0] ?? '');
+    }
+
+    /** @return array<int, string> */
+    private function components(ChannelInterface $channel): array
+    {
+        $components = [...PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT];
+
+        if ($this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel)) {
+            $components[] = self::GOOGLE_PAY_COMPONENT;
+        }
+
+        return $components;
     }
 }

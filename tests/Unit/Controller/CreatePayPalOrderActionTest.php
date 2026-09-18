@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,6 +37,8 @@ final class CreatePayPalOrderActionTest extends TestCase
 
     private CapturePaymentResolverInterface&MockObject $capturePaymentResolver;
 
+    private PayPalPaymentSourceProviderInterface&Stub $paymentSourceProvider;
+
     private OrderInterface&Stub $order;
 
     private CreatePayPalOrderAction $action;
@@ -46,7 +49,13 @@ final class CreatePayPalOrderActionTest extends TestCase
         $this->paymentStateManager = $this->createMock(PaymentStateManagerInterface::class);
         $this->orderProvider = $this->createStub(OrderProviderInterface::class);
         $this->capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
+        $this->paymentSourceProvider = $this->createStub(PayPalPaymentSourceProviderInterface::class);
         $this->order = $this->createStub(OrderInterface::class);
+
+        $this->paymentSourceProvider
+            ->method('supports')
+            ->willReturnCallback(static fn (string $paymentSource): bool => in_array($paymentSource, ['paypal', 'google_pay'], true))
+        ;
 
         $this->orderProvider->method('provideOrderByToken')->with('ORDER_TOKEN')->willReturn($this->order);
 
@@ -54,6 +63,7 @@ final class CreatePayPalOrderActionTest extends TestCase
             $this->paymentStateManager,
             $this->orderProvider,
             $this->capturePaymentResolver,
+            $this->paymentSourceProvider,
         );
     }
 
@@ -112,6 +122,61 @@ final class CreatePayPalOrderActionTest extends TestCase
         self::assertSame(Response::HTTP_CONFLICT, ($this->action)($this->request())->getStatusCode());
     }
 
+    public function test_it_records_the_requested_payment_source_on_the_payment(): void
+    {
+        $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
+        $this->payments(processing: null, new: $payment);
+
+        $payment
+            ->expects(self::once())
+            ->method('setDetails')
+            ->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'google_pay'])
+        ;
+
+        ($this->action)($this->request('{"paymentSource":"google_pay"}'));
+    }
+
+    public function test_it_records_paypal_as_the_payment_source_when_the_request_names_none(): void
+    {
+        $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
+        $this->payments(processing: null, new: $payment);
+
+        $payment
+            ->expects(self::once())
+            ->method('setDetails')
+            ->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'paypal'])
+        ;
+
+        ($this->action)($this->request());
+    }
+
+    public function test_it_falls_back_to_paypal_when_the_request_body_is_not_valid_json(): void
+    {
+        $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
+        $this->payments(processing: null, new: $payment);
+
+        $payment
+            ->expects(self::once())
+            ->method('setDetails')
+            ->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'paypal'])
+        ;
+
+        self::assertSame(Response::HTTP_OK, ($this->action)($this->request('not json'))->getStatusCode());
+    }
+
+    public function test_it_answers_with_an_unprocessable_entity_when_the_payment_source_is_not_supported(): void
+    {
+        $this->payments(processing: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME), new: null);
+
+        $this->paymentStateManager->expects(self::never())->method('cancel');
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+
+        self::assertSame(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            ($this->action)($this->request('{"paymentSource":"bitcoin"}'))->getStatusCode(),
+        );
+    }
+
     private function payments(?PaymentInterface $processing, ?PaymentInterface $new): void
     {
         $this->order->method('getLastPayment')->willReturnCallback(
@@ -123,7 +188,7 @@ final class CreatePayPalOrderActionTest extends TestCase
         );
     }
 
-    private function payment(string $factoryName): PaymentInterface&Stub
+    private function payment(string $factoryName): PaymentInterface&MockObject
     {
         $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
         $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
@@ -131,7 +196,7 @@ final class CreatePayPalOrderActionTest extends TestCase
         $paymentMethod = $this->createStub(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        $payment = $this->createStub(PaymentInterface::class);
+        $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getMethod')->willReturn($paymentMethod);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_NEW);
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
@@ -139,8 +204,8 @@ final class CreatePayPalOrderActionTest extends TestCase
         return $payment;
     }
 
-    private function request(): Request
+    private function request(?string $content = null): Request
     {
-        return new Request([], [], ['token' => 'ORDER_TOKEN']);
+        return new Request([], [], ['token' => 'ORDER_TOKEN'], [], [], [], $content);
     }
 }

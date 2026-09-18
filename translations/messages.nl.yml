@@ -1,10 +1,11 @@
 sylius_paypal:
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
+    card_number: 'Credit Card nummer'
+    cardholder_name: 'Kaarthouder Naam'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     credit_card: 'Credit Card'
-    credit_card_number: 'Credit Card nummer'
     cvv: 'CVV'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
     enable_paypal: 'PayPal inschakelen'

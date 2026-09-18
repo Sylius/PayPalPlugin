@@ -79,6 +79,7 @@ final class CreateOrderApiTest extends TestCase
                 $order,
                 $this->purchaseUnit(),
                 PayPalOrder::INTENT_CAPTURE,
+                ['paypal' => ['experience_context' => []]],
             ))
         ;
 
@@ -93,6 +94,23 @@ final class CreateOrderApiTest extends TestCase
             ['status' => 'CREATED', 'id' => 123],
             $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID'),
         );
+    }
+
+    public function test_it_forwards_the_chosen_payment_source_to_the_order_factory(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+
+        $this->payPalOrderFactory
+            ->expects(self::once())
+            ->method('create')
+            ->with($payment, 'REFERENCE_ID', 'google_pay')
+            ->willReturn(new PayPalOrder($order, $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []))
+        ;
+
+        $this->client->method('post')->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID', 'google_pay');
     }
 
     #[Test]

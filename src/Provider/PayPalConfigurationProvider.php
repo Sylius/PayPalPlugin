@@ -57,6 +57,11 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
         return (bool) ($this->getPayPalPaymentMethodConfig($channel)['messaging_enabled'] ?? true);
     }
 
+    public function isGooglePayEnabled(ChannelInterface $channel): bool
+    {
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['google_pay_enabled'] ?? false);
+    }
+
     private function getPayPalPaymentMethodConfig(ChannelInterface $channel): array
     {
         $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);

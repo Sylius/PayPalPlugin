@@ -24,3 +24,6 @@ sylius_twig_hooks:
             messaging_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/messaging_enabled.html.twig'
                 priority: -600
+            google_pay_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/google_pay_enabled.html.twig'
+                priority: -700

@@ -29,6 +29,8 @@ class PayPalOrder
 
     public const PAYMENT_METHOD_PREFERENCE_IMMEDIATE = 'IMMEDIATE_PAYMENT_REQUIRED';
 
+    public const VERIFICATION_METHOD_SCA_WHEN_REQUIRED = 'SCA_WHEN_REQUIRED';
+
     public const CALLBACK_EVENT_SHIPPING_ADDRESS = 'SHIPPING_ADDRESS';
 
     public const KEY_SHIPPING_PREFERENCE = 'shipping_preference';
@@ -38,7 +40,7 @@ class PayPalOrder
     public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';
 
     /**
-     * @param array<string, mixed> $experienceContext
+     * @param array<string, mixed> $paymentSource
      *
      * @deprecated the $order argument is unused since Sylius/PayPalPlugin 2.1 and will be removed in Sylius/PayPalPlugin 3.0.
      */
@@ -46,7 +48,7 @@ class PayPalOrder
         OrderInterface $order,
         private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
         private readonly string $intent,
-        private readonly array $experienceContext = [],
+        private readonly array $paymentSource,
     ) {
     }
 
@@ -57,11 +59,7 @@ class PayPalOrder
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
-            'payment_source' => [
-                'paypal' => [
-                    'experience_context' => $this->experienceContext,
-                ],
-            ],
+            'payment_source' => $this->paymentSource,
         ];
     }
 }

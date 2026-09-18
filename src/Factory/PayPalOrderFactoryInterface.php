@@ -15,8 +15,13 @@ namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 interface PayPalOrderFactoryInterface
 {
-    public function create(PaymentInterface $payment, string $referenceId): PayPalOrder;
+    public function create(
+        PaymentInterface $payment,
+        string $referenceId,
+        string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+    ): PayPalOrder;
 }

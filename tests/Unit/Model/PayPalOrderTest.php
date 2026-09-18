@@ -13,10 +13,8 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
-use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
@@ -34,76 +32,53 @@ final class PayPalOrderTest extends TestCase
         $this->payPalPurchaseUnit = $this->createMock(PayPalPurchaseUnit::class);
     }
 
-    #[Test]
-    public function it_sends_the_given_experience_context_under_the_paypal_payment_source(): void
+    public function test_it_sends_the_given_payment_source_as_it_is(): void
     {
-        $this->order->method('isShippingRequired')->willReturn(true);
-        $this->order->method('getShippingAddress')->willReturn(null);
         $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
 
-        $experienceContext = [
-            'locale' => 'en-US',
-            'shipping_preference' => PayPalOrder::PAYPAL_ADDRESS,
-            'contact_preference' => PayPalOrder::UPDATE_CONTACT_INFO,
-            'user_action' => PayPalOrder::USER_ACTION_PAY_NOW,
-            'payment_method_preference' => PayPalOrder::PAYMENT_METHOD_PREFERENCE_IMMEDIATE,
-            'app_switch_preference' => ['launch_paypal_app' => true],
-        ];
+        $paymentSource = ['paypal' => ['experience_context' => ['locale' => 'en-US', 'user_action' => 'PAY_NOW']]];
 
         $payPalOrder = new PayPalOrder(
             order: $this->order,
             payPalPurchaseUnit: $this->payPalPurchaseUnit,
             intent: PayPalOrder::INTENT_CAPTURE,
-            experienceContext: $experienceContext,
+            paymentSource: $paymentSource,
         );
 
-        self::assertEquals([
+        self::assertSame([
             'intent' => 'CAPTURE',
             'purchase_units' => [
                 ['reference_id' => 'REFERENCE_ID'],
             ],
-            'payment_source' => [
-                'paypal' => [
-                    'experience_context' => $experienceContext,
-                ],
-            ],
+            'payment_source' => $paymentSource,
         ], $payPalOrder->toArray());
     }
 
-    #[Test]
-    public function it_sends_the_experience_context_when_the_address_is_already_provided(): void
+    public function test_it_carries_a_payment_source_other_than_paypal(): void
     {
-        $this->order->method('isShippingRequired')->willReturn(true);
-        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
-        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
 
-        $experienceContext = ['shipping_preference' => PayPalOrder::PROVIDED_ADDRESS];
+        $paymentSource = ['google_pay' => ['attributes' => ['verification' => ['method' => 'SCA_WHEN_REQUIRED']]]];
 
         $payPalOrder = new PayPalOrder(
             order: $this->order,
             payPalPurchaseUnit: $this->payPalPurchaseUnit,
             intent: PayPalOrder::INTENT_CAPTURE,
-            experienceContext: $experienceContext,
+            paymentSource: $paymentSource,
         );
 
-        $result = $payPalOrder->toArray();
-
-        self::assertArrayNotHasKey('application_context', $result);
-        self::assertSame($experienceContext, $result['payment_source']['paypal']['experience_context']);
+        self::assertSame($paymentSource, $payPalOrder->toArray()['payment_source']);
     }
 
-    #[Test]
-    public function it_never_sends_the_legacy_application_context(): void
+    public function test_it_never_sends_the_legacy_application_context(): void
     {
-        $this->order->method('isShippingRequired')->willReturn(true);
-        $this->order->method('getShippingAddress')->willReturn(null);
         $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
 
         $payPalOrder = new PayPalOrder(
             order: $this->order,
             payPalPurchaseUnit: $this->payPalPurchaseUnit,
             intent: PayPalOrder::INTENT_CAPTURE,
-            experienceContext: ['shipping_preference' => PayPalOrder::PAYPAL_ADDRESS],
+            paymentSource: ['paypal' => ['experience_context' => []]],
         );
 
         $result = $payPalOrder->toArray();

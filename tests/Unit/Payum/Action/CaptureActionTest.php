@@ -87,6 +87,39 @@ final class CaptureActionTest extends TestCase
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,
+            'payment_source' => 'paypal',
+        ]);
+
+        $this->captureAction->execute($request);
+    }
+
+    public function test_it_creates_the_order_with_the_payment_source_recorded_on_the_payment(): void
+    {
+        $request = $this->createMock(Capture::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getAmount')->willReturn(1000);
+        $payment->method('getDetails')->willReturn(['status' => 'CREATED', 'payment_source' => 'google_pay']);
+
+        $this->uuidProvider->method('provide')->willReturn('UUID');
+        $this->authorizeClientApi->method('authorize')->willReturn('ACCESS_TOKEN');
+
+        $this->createOrderApi
+            ->expects(self::once())
+            ->method('create')
+            ->with('ACCESS_TOKEN', $payment, 'UUID', 'google_pay')
+            ->willReturn(['status' => 'CREATED', 'id' => '123123'])
+        ;
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => StatusAction::STATUS_CAPTURED,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'UUID',
+            'payment_amount' => 1000,
+            'payment_source' => 'google_pay',
         ]);
 
         $this->captureAction->execute($request);
@@ -116,6 +149,7 @@ final class CaptureActionTest extends TestCase
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,
+            'payment_source' => 'paypal',
         ]);
 
         $this->captureAction->execute($request);

@@ -5,12 +5,15 @@
 {% block content %}
     <div class="pe-lg-5">
         {% hook 'sylius_paypal.shop.pay_with_paypal.content' with {
+            amount: amount,
             billingAddress: billingAddress,
             cancelPayPalPaymentUrl: cancelPayPalPaymentUrl,
             completePayPalOrderUrl: completePayPalOrderUrl,
             createPayPalOrderUrl: createPayPalOrderUrl,
             currency: currency,
             errorPayPalPaymentUrl: errorPayPalPaymentUrl,
+            googlePayEnabled: googlePayEnabled,
+            languageCode: languageCode,
             order: order,
             payment: payment,
             webSdkInstanceConfig: webSdkInstanceConfig,

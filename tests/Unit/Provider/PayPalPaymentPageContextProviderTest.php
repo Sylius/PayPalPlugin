@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
@@ -31,6 +32,8 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     private const SCRIPT_URL = 'https://www.sandbox.paypal.com/web-sdk/v6/core';
 
     private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+
+    private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
 
     private PayPalPaymentPageContextProvider $provider;
 
@@ -60,11 +63,15 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($order);
+        $this->payment->method('getAmount')->willReturn(12345);
+
+        $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
 
         $this->provider = new PayPalPaymentPageContextProvider(
             $this->webSdkConfigurationProvider,
             $router,
             $localeProcessor,
+            $this->fundingSourcesConfigurationProvider,
         );
     }
 
@@ -105,5 +112,38 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         self::assertSame(['clientId' => 'CLIENT_ID'], $context['webSdkInstanceConfig']);
         self::assertSame(self::SCRIPT_URL, $context['webSdkScriptUrl']);
+    }
+
+    public function test_it_provides_the_amount_google_pay_shows_the_buyer(): void
+    {
+        self::assertSame('123.45', $this->provider->provide($this->payment, 'en_US')['amount']);
+    }
+
+    public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+
+        self::assertTrue($this->provider->provide($this->payment, 'en_US')['googlePayEnabled']);
+    }
+
+    public function test_it_provides_the_language_the_shop_is_being_browsed_in(): void
+    {
+        self::assertSame('en', $this->provider->provide($this->payment, 'en_US')['languageCode']);
+        self::assertSame('pl', $this->provider->provide($this->payment, 'pl_PL')['languageCode']);
+        self::assertSame('de', $this->provider->provide($this->payment, 'de')['languageCode']);
+    }
+
+    public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'googlepay-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, 'en_US');
     }
 }

@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CaptureAction implements ActionInterface
@@ -55,7 +56,8 @@ final readonly class CaptureAction implements ActionInterface
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $referenceId = $this->uuidProvider->provide();
-        $content = $this->createOrderApi->create($token, $payment, $referenceId);
+        $paymentSource = $this->resolvePaymentSource($payment);
+        $content = $this->createOrderApi->create($token, $payment, $referenceId, $paymentSource);
 
         if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
             $payment->setDetails([
@@ -63,8 +65,16 @@ final readonly class CaptureAction implements ActionInterface
                 'paypal_order_id' => $content['id'],
                 'reference_id' => $referenceId,
                 'payment_amount' => $payment->getAmount(),
+                'payment_source' => $paymentSource,
             ]);
         }
+    }
+
+    private function resolvePaymentSource(PaymentInterface $payment): string
+    {
+        $paymentSource = $payment->getDetails()['payment_source'] ?? null;
+
+        return is_string($paymentSource) ? $paymentSource : PayPalPaymentSourceProviderInterface::PAYPAL;
     }
 
     /** @return array<int, string> */
