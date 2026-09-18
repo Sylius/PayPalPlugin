@@ -78,8 +78,9 @@ final readonly class PayPalButtonsController
                 'locale' => $this->localeProcessor->process($this->localeContext->getLocaleCode()),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details'),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details', $this->getWebSdkComponents($channel)),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -107,8 +108,9 @@ final readonly class PayPalButtonsController
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart'),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart', $this->getWebSdkComponents($channel)),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -137,12 +139,25 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout'),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout', $this->getWebSdkComponents($channel)),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
         }
+    }
+
+    /** @return array<int, string> */
+    private function getWebSdkComponents(ChannelInterface $channel): array
+    {
+        $components = PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
+
+        if ($this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel)) {
+            $components[] = 'venmo-payments';
+        }
+
+        return $components;
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface

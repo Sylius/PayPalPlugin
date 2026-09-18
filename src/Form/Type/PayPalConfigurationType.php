@@ -45,6 +45,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add('reports_sftp_username', TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add('reports_sftp_password', TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add('pay_later_enabled', CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
+            ->add('venmo_enabled', CheckboxType::class, ['label' => 'sylius_paypal.venmo_enabled', 'required' => false])
             ->add('messaging_enabled', CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
             ->add('google_pay_enabled', CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
         ;
@@ -54,6 +55,7 @@ final class PayPalConfigurationType extends AbstractType
             if (is_array($data)) {
                 $originalData = $data;
                 $data['pay_later_enabled'] ??= true;
+                $data['venmo_enabled'] ??= true;
                 $data['messaging_enabled'] ??= true;
                 $data['google_pay_enabled'] ??= false;
                 $event->setData($data);
