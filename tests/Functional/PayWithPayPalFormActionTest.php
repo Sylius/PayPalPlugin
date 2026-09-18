@@ -71,13 +71,42 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
-    private function requestPaymentPage(bool $googlePayEnabled = false): void
+    public function test_it_renders_no_apple_pay_tile_until_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertStringNotContainsString(
+            'sylius--paypal-plugin--paypal-payment-apple-pay',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
+    public function test_it_renders_the_apple_pay_tile_once_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage(applePayEnabled: true);
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-apple-pay', $content);
+        self::assertStringContainsString('applepay-payments', $content);
+        self::assertStringContainsString('<apple-pay-button', $content);
+        self::assertStringContainsString(
+            'data-sylius--paypal-plugin--paypal-payment-apple-pay-store-name-value="Web Channel"',
+            $content,
+        );
+        self::assertStringContainsString('locale="en-US"', $content);
+    }
+
+    private function requestPaymentPage(bool $googlePayEnabled = false, bool $applePayEnabled = false): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
 
         if ($googlePayEnabled) {
-            $this->enableGooglePay();
+            $this->enableFundingSource('google_pay_enabled');
+        }
+
+        if ($applePayEnabled) {
+            $this->enableFundingSource('apple_pay_enabled');
         }
 
         /** @var OrderInterface $order */
@@ -96,12 +125,12 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         $this->client->request('GET', sprintf('/en_US/pay-with-paypal/%s/%s', $order->getTokenValue(), $payment->getId()));
     }
 
-    private function enableGooglePay(): void
+    private function enableFundingSource(string $configKey): void
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = self::getContainer()->get('sylius.repository.payment_method')->findOneBy(['code' => 'PAYPAL']);
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['google_pay_enabled' => true]));
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [$configKey => true]));
 
         self::getContainer()->get('doctrine.orm.entity_manager')->flush();
     }

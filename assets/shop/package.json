@@ -32,6 +32,12 @@
                 "webpackMode": "lazy",
                 "fetch": "lazy",
                 "enabled": true
+            },
+            "paypal-payment-apple-pay": {
+                "main": "controllers/PaymentPageApplePayController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
             }
         }
     }
