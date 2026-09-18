@@ -51,6 +51,9 @@
         "symfony/web-profiler-bundle": "^6.4 || ^7.1",
         "symfony/webpack-encore-bundle": "^2.2"
     },
+    "conflict": {
+        "twig/twig": "3.29.*"
+    },
     "autoload": {
         "psr-4": {
             "Sylius\\PayPalPlugin\\": "src/",
