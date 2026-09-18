@@ -1,4 +1,5 @@
 sylius_paypal:
+    apple_pay_enabled: 'Enable Apple Pay'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
     card_number: 'Card number'
