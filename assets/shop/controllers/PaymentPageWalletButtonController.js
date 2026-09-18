@@ -22,13 +22,13 @@ export default class extends Controller {
                 scriptUrl: this.scriptUrlValue,
                 instanceConfig: this.instanceConfigValue,
                 currencyCode: this.currencyCodeValue,
-                amount: this.hasAmountValue ? this.amountValue : undefined,
+                amount: this.amountValue,
                 createOrderUrl: this.createOrderUrlValue,
             });
 
             this.session = session;
 
-            if (session.isEligible('paypal')) {
+            if (this.hasButtonTarget && session.isEligible('paypal')) {
                 const paymentSession = session.sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions());
 
                 this.buttonTarget.removeAttribute('hidden');

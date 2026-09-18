@@ -151,6 +151,11 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame('de', $this->provider->provide($this->payment, 'de')['languageCode']);
     }
 
+    public function test_it_provides_the_processed_locale(): void
+    {
+        self::assertSame('en_US', $this->provider->provide($this->payment, 'en_US')['locale']);
+    }
+
     public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
     {
         $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);

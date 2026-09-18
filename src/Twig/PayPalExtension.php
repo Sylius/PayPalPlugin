@@ -99,7 +99,7 @@ final class PayPalExtension extends AbstractExtension
     }
 
     /** @return array<string, mixed> */
-    public function getWebSdkInstanceConfig(string $pageType): array
+    public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null): array
     {
         if (null === $this->webSdkConfigurationProvider || null === $this->channelContext) {
             return [];
@@ -109,7 +109,7 @@ final class PayPalExtension extends AbstractExtension
             /** @var ChannelInterface $channel */
             $channel = $this->channelContext->getChannel();
 
-            return $this->webSdkConfigurationProvider->getInstanceConfig($channel, $pageType, ['paypal-messages']);
+            return $this->webSdkConfigurationProvider->getInstanceConfig($channel, $pageType, ['paypal-messages'], $locale);
         } catch (\InvalidArgumentException) {
             return [];
         }
