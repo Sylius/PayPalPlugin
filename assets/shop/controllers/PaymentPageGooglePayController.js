@@ -30,6 +30,7 @@ export default class extends Controller {
                     scriptUrl: this.scriptUrlValue,
                     instanceConfig: this.instanceConfigValue,
                     currencyCode: this.currencyCodeValue,
+                    amount: this.amountValue,
                     createOrderUrl: this.createOrderUrlValue,
                 }),
                 loadGooglePaySdkOnce(),

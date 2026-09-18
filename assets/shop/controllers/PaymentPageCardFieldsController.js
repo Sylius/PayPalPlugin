@@ -8,6 +8,7 @@ export default class extends Controller {
         scriptUrl: String,
         instanceConfig: Object,
         currencyCode: String,
+        amount: String,
         createOrderUrl: String,
         completeOrderUrl: String,
         errorUrl: String,
@@ -20,6 +21,7 @@ export default class extends Controller {
                 scriptUrl: this.scriptUrlValue,
                 instanceConfig: this.instanceConfigValue,
                 currencyCode: this.currencyCodeValue,
+                amount: this.amountValue,
                 createOrderUrl: this.createOrderUrlValue,
             });
 

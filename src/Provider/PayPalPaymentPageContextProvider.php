@@ -42,6 +42,8 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
+        $processedLocale = $this->localeProcessor->process($locale);
+
         return [
             'amount' => number_format($payment->getAmount() / 100, 2, '.', ''),
             'billingAddress' => $order->getBillingAddress(),
@@ -58,13 +60,15 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
             'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
             'languageCode' => $this->languageCode($locale),
+            'locale' => $processedLocale,
             'order' => $order,
             'payment' => $payment,
+            'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
                 $this->components($channel),
-                $this->localeProcessor->process($locale),
+                $processedLocale,
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
         ];
