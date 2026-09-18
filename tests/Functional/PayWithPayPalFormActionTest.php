@@ -94,6 +94,10 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
             $content,
         );
         self::assertStringContainsString('locale="en-US"', $content);
+        self::assertStringContainsString(
+            'data-sylius--paypal-plugin--paypal-payment-apple-pay-country-code-value="US"',
+            $content,
+        );
     }
 
     private function requestPaymentPage(bool $googlePayEnabled = false, bool $applePayEnabled = false): void

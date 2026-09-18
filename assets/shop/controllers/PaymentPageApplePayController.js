@@ -14,6 +14,7 @@ export default class extends Controller {
         instanceConfig: Object,
         currencyCode: String,
         amount: String,
+        countryCode: String,
         storeName: String,
         createOrderUrl: String,
         completeOrderUrl: String,
@@ -39,8 +40,15 @@ export default class extends Controller {
             this.session = session;
             this.applePaySession = session.sdkInstance.createApplePayOneTimePaymentSession();
             this.config = await this.applePaySession.config();
+            this.countryCode = this.config.countryCode ?? this.countryCodeValue;
 
             if (!this.config.isEligible) {
+                return;
+            }
+
+            if (this.countryCode === '') {
+                console.error('Apple Pay needs a merchant country code, but neither the PayPal SDK nor the channel provided one. Fill in the shop billing data on the channel.');
+
                 return;
             }
 
@@ -51,23 +59,27 @@ export default class extends Controller {
         }
     }
 
-    start() {
+    async start() {
         if (this.session.isBusy()) {
             return;
         }
 
-        const sheet = new window.ApplePaySession(APPLE_PAY_VERSION, this.paymentRequest());
+        try {
+            const sheet = new window.ApplePaySession(APPLE_PAY_VERSION, this.paymentRequest());
 
-        sheet.onvalidatemerchant = (event) => this.validateMerchant(sheet, event);
-        sheet.onpaymentauthorized = (event) => this.authorize(sheet, event);
-        sheet.oncancel = () => this.session.release();
+            sheet.onvalidatemerchant = (event) => this.validateMerchant(sheet, event);
+            sheet.onpaymentauthorized = (event) => this.authorize(sheet, event);
+            sheet.oncancel = () => this.session.release();
 
-        sheet.begin();
+            sheet.begin();
+        } catch (error) {
+            await this.fail(error);
+        }
     }
 
     paymentRequest() {
         return {
-            countryCode: this.config.countryCode,
+            countryCode: this.countryCode,
             currencyCode: this.currencyCodeValue,
             merchantCapabilities: this.config.merchantCapabilities,
             supportedNetworks: this.config.supportedNetworks,

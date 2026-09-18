@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\ShopBillingDataInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
@@ -41,6 +42,8 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     private AddressInterface&Stub $billingAddress;
 
+    private ChannelInterface&Stub $channel;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -55,8 +58,10 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         $this->billingAddress = $this->createStub(AddressInterface::class);
 
+        $this->channel = $this->createStub(ChannelInterface::class);
+
         $order = $this->createStub(OrderInterface::class);
-        $order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $order->method('getChannel')->willReturn($this->channel);
         $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getBillingAddress')->willReturn($this->billingAddress);
@@ -131,6 +136,22 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
 
         self::assertTrue($this->provider->provide($this->payment, 'en_US')['applePayEnabled']);
+    }
+
+    public function test_it_takes_the_country_apple_pay_needs_from_the_shop_billing_data(): void
+    {
+        $shopBillingData = $this->createStub(ShopBillingDataInterface::class);
+        $shopBillingData->method('getCountryCode')->willReturn('DE');
+        $this->channel->method('getShopBillingData')->willReturn($shopBillingData);
+
+        self::assertSame('DE', $this->provider->provide($this->payment, 'en_US')['countryCode']);
+    }
+
+    public function test_it_never_takes_the_country_apple_pay_needs_from_the_buyer(): void
+    {
+        $this->billingAddress->method('getCountryCode')->willReturn('FR');
+
+        self::assertNull($this->provider->provide($this->payment, 'en_US')['countryCode']);
     }
 
     public function test_it_provides_the_language_the_shop_is_being_browsed_in(): void

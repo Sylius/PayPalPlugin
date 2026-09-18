@@ -53,6 +53,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
                 'sylius_paypal_shop_complete_paypal_order',
                 ['token' => $order->getTokenValue()],
             ),
+            'countryCode' => $channel->getShopBillingData()?->getCountryCode(),
             'createPayPalOrderUrl' => $this->router->generate(
                 'sylius_paypal_shop_create_paypal_order',
                 ['token' => $order->getTokenValue()],

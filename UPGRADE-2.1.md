@@ -840,6 +840,13 @@
    capability on their PayPal account and register their domains before it can work at all, and SDD §4.1.4
    asks for the methods a merchant has opted into.
 
+   **The channel needs its shop billing data filled in**, specifically the country. Apple's payment sheet
+   requires `countryCode` — the *merchant's* two-letter ISO 3166 code, the country the payment is processed
+   in — and the PayPal SDK's `config()` does not return it in the v6 Apple Pay flow. The plugin reads it from
+   `Channel::getShopBillingData()`, and deliberately does not fall back to the buyer's billing address: that
+   is a different country, it would vary from order to order for one merchant, and it would quietly hide the
+   missing configuration. A channel without it renders no tile and logs why to the browser console.
+
    **The tile only ever appears in Safari**, on macOS 10.14.1 or iOS 12.1 and later, and only once the
    buyer's device reports it can pay. Everywhere else the controller returns before unhiding anything, so
    there is no empty slot and no layout shift. A channel that has not opted in renders neither the tile nor
