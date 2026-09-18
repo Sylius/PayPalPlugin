@@ -72,6 +72,16 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_renders_no_apple_pay_tile_until_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertStringNotContainsString(
+            'sylius--paypal-plugin--paypal-payment-apple-pay',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
     public function test_it_renders_no_trustly_tile_until_the_channel_opts_in(): void
     {
         $this->requestPaymentPage();
@@ -80,6 +90,21 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
             'sylius--paypal-plugin--paypal-payment-redirect-button',
             (string) $this->client->getResponse()->getContent(),
         );
+    }
+
+    public function test_it_renders_the_apple_pay_tile_once_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage(applePayEnabled: true);
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-apple-pay', $content);
+        self::assertStringContainsString('applepay-payments', $content);
+        self::assertStringContainsString('<apple-pay-button', $content);
+        self::assertStringContainsString(
+            'data-sylius--paypal-plugin--paypal-payment-apple-pay-store-name-value="Web Channel"',
+            $content,
+        );
+        self::assertStringContainsString('locale="en-US"', $content);
     }
 
     public function test_it_renders_the_trustly_tile_once_the_channel_opts_in_and_paypal_says_it_is_eligible(): void
@@ -113,13 +138,20 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
-    private function requestPaymentPage(bool $googlePayEnabled = false, bool $trustlyEnabled = false): void
-    {
+    private function requestPaymentPage(
+        bool $googlePayEnabled = false,
+        bool $applePayEnabled = false,
+        bool $trustlyEnabled = false,
+    ): void {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
 
         if ($googlePayEnabled) {
             $this->enableGatewayConfig(['google_pay_enabled' => true]);
+        }
+
+        if ($applePayEnabled) {
+            $this->enableGatewayConfig(['apple_pay_enabled' => true]);
         }
 
         if ($trustlyEnabled) {

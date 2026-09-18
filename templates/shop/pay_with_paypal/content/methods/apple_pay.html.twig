@@ -1,0 +1,33 @@
+{% set context = hookable_metadata.context %}
+
+{% if context.applePayEnabled %}
+    <style>
+        apple-pay-button {
+            --apple-pay-button-width: 100%;
+            --apple-pay-button-height: 45px;
+            --apple-pay-button-border-radius: 4px;
+        }
+    </style>
+
+    <div
+        {{ stimulus_controller('@sylius/paypal-plugin/paypal-payment-apple-pay', {
+            scriptUrl: context.webSdkScriptUrl,
+            instanceConfig: context.webSdkInstanceConfig,
+            currencyCode: context.currency,
+            amount: context.amount,
+            storeName: context.order.channel.name,
+            createOrderUrl: context.createPayPalOrderUrl,
+            completeOrderUrl: context.completePayPalOrderUrl,
+            errorUrl: context.errorPayPalPaymentUrl,
+        }) }}
+        class="mb-4"
+        hidden
+    >
+        <apple-pay-button
+            {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-apple-pay', 'button') }}
+            buttonstyle="black"
+            type="pay"
+            locale="{{ context.webSdkInstanceConfig.locale|default(context.languageCode) }}"
+        ></apple-pay-button>
+    </div>
+{% endif %}
