@@ -97,7 +97,7 @@ export default class extends Controller {
             sheet.completeMerchantValidation(merchantSession);
         } catch (error) {
             sheet.abort();
-            await this.fail(error);
+            await this.fail(error, `validationUrl=${event.validationURL}`);
         }
     }
 
@@ -125,6 +125,22 @@ export default class extends Controller {
         }
     }
 
+    describe(error, context = null) {
+        const described = [String(error)];
+
+        for (const key of ['code', 'correlationId', 'debugId', 'debug_id']) {
+            if (error?.[key] !== undefined) {
+                described.push(`${key}=${error[key]}`);
+            }
+        }
+
+        if (context !== null) {
+            described.push(context);
+        }
+
+        return described.join(' | ');
+    }
+
     async complete(payPalOrderId) {
         const response = await fetch(this.completeOrderUrlValue, {
             method: 'post',
@@ -136,14 +152,14 @@ export default class extends Controller {
         return details.return_url ?? null;
     }
 
-    async fail(error) {
+    async fail(error, context = null) {
         console.error('Apple Pay payment failed:', error);
 
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
-                error: String(error),
+                error: this.describe(error, context),
                 payPalOrderId: this.session?.currentOrderId() ?? null,
             }),
         });
