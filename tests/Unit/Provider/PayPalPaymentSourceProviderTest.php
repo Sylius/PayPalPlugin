@@ -70,6 +70,18 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertArrayNotHasKey('experience_context', $googlePay['google_pay']);
     }
 
+    public function test_it_sends_no_payment_source_node_with_apple_pay(): void
+    {
+        self::assertSame(
+            [],
+            $this->provider->provide(
+                $this->order,
+                PayPalPaymentSourceProviderInterface::APPLE_PAY,
+                ['locale' => 'en-US', 'return_url' => 'https://shop.example.com/checkout/complete'],
+            ),
+        );
+    }
+
     public function test_it_identifies_the_payer_to_trustly_from_the_billing_address_and_the_customer(): void
     {
         $this->orderIsBilledTo('Patrick Watson', 'NL', 'patrick.watson@example.com');
@@ -217,6 +229,11 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_supports_the_google_pay_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::GOOGLE_PAY));
+    }
+
+    public function test_it_supports_the_apple_pay_payment_source(): void
+    {
+        self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::APPLE_PAY));
     }
 
     public function test_it_supports_the_card_payment_source(): void

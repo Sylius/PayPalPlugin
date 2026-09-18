@@ -28,6 +28,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
             self::GOOGLE_PAY => [self::GOOGLE_PAY => [
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
             ]],
+            self::APPLE_PAY => [],
             self::TRUSTLY => [self::TRUSTLY => $this->trustly($order, $experienceContext)],
             self::CARD => [self::CARD => [
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
@@ -44,7 +45,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     {
         return in_array(
             $paymentSource,
-            [self::PAYPAL, self::GOOGLE_PAY, self::CARD, ...RedirectPaymentSource::values()],
+            [self::PAYPAL, self::GOOGLE_PAY, self::APPLE_PAY, self::CARD, ...RedirectPaymentSource::values()],
             true,
         );
     }
