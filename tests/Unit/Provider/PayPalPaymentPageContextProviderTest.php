@@ -126,6 +126,13 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertTrue($this->provider->provide($this->payment, 'en_US')['googlePayEnabled']);
     }
 
+    public function test_it_tells_the_page_whether_the_channel_has_apple_pay_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+
+        self::assertTrue($this->provider->provide($this->payment, 'en_US')['applePayEnabled']);
+    }
+
     public function test_it_provides_the_language_the_shop_is_being_browsed_in(): void
     {
         self::assertSame('en', $this->provider->provide($this->payment, 'en_US')['languageCode']);
@@ -141,6 +148,40 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->expects(self::once())
             ->method('getInstanceConfig')
             ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'googlepay-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, 'en_US');
+    }
+
+    public function test_it_asks_for_the_apple_pay_component_only_when_the_channel_has_it_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'applepay-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, 'en_US');
+    }
+
+    public function test_it_asks_for_both_wallet_components_when_the_channel_has_both_enabled(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(
+                self::anything(),
+                'checkout',
+                ['paypal-payments', 'card-fields', 'googlepay-payments', 'applepay-payments'],
+                'en_US',
+            )
             ->willReturn([])
         ;
 

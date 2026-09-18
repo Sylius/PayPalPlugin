@@ -27,6 +27,8 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
     public const GOOGLE_PAY_COMPONENT = 'googlepay-payments';
 
+    public const APPLE_PAY_COMPONENT = 'applepay-payments';
+
     public function __construct(
         private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private UrlGeneratorInterface $router,
@@ -44,6 +46,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
         return [
             'amount' => number_format($payment->getAmount() / 100, 2, '.', ''),
+            'applePayEnabled' => $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
             'billingAddress' => $order->getBillingAddress(),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_checkout_payment'),
             'completePayPalOrderUrl' => $this->router->generate(
@@ -82,6 +85,10 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
         if ($this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel)) {
             $components[] = self::GOOGLE_PAY_COMPONENT;
+        }
+
+        if ($this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel)) {
+            $components[] = self::APPLE_PAY_COMPONENT;
         }
 
         return $components;

@@ -6,6 +6,7 @@
     <div class="pe-lg-5">
         {% hook 'sylius_paypal.shop.pay_with_paypal.content' with {
             amount: amount,
+            applePayEnabled: applePayEnabled,
             billingAddress: billingAddress,
             cancelPayPalPaymentUrl: cancelPayPalPaymentUrl,
             completePayPalOrderUrl: completePayPalOrderUrl,
