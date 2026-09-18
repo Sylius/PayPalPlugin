@@ -23,5 +23,7 @@ interface PayPalFundingSourcesConfigurationProviderInterface
 
     public function isGooglePayEnabled(ChannelInterface $channel): bool;
 
+    public function isApplePayEnabled(ChannelInterface $channel): bool;
+
     public function isTrustlyEnabled(ChannelInterface $channel): bool;
 }

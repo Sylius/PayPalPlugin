@@ -63,6 +63,11 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
         return (bool) ($this->getPayPalPaymentMethodConfig($channel)['google_pay_enabled'] ?? false);
     }
 
+    public function isApplePayEnabled(ChannelInterface $channel): bool
+    {
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['apple_pay_enabled'] ?? false);
+    }
+
     public function isTrustlyEnabled(ChannelInterface $channel): bool
     {
         return (bool) ($this->getPayPalPaymentMethodConfig($channel)[RedirectPaymentSource::Trustly->configurationKey()] ?? false);
