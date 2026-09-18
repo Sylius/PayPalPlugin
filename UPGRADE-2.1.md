@@ -858,9 +858,9 @@
                    enabled: false
    ```
 
-   The priorities on that hook were renumbered to fit the two new templates in — `flashes` 400, `paypal`
-   300, `google_pay` 200, `card` 100, `privacy_notice` 0. If you added a tile of your own with an explicit
-   priority, check where it now lands.
+   That hook is new in 2.1, and its tiles are spaced a hundred apart so there is room between any two of
+   them — `flashes` 700, `paypal` 600, `paypal_messaging` 500, `google_pay` 400, `apple_pay` 300,
+   `redirect_methods` 200, `card` 100, `privacy_notice` 0. That is the ladder a tile of your own lands in.
 
 1. #### PayPal Package Tracking: shipping an order now sends tracking to PayPal (server-side, opt-in per shipment).
 
@@ -979,8 +979,7 @@
    }
    ```
 
-   The tile sits at hook priority `150`, between `google_pay` (200) and `card` (100). **No existing priority
-   changed.**
+   The tile sits at hook priority `200`, between `apple_pay` (300) and `card` (100).
 
    **Settlement is asynchronous, and this is the part to read twice.** PayPal captures the order itself, on
    approval, because the order is created with
@@ -1222,3 +1221,72 @@
      `sylius_paypal.web_url` parameter. It scopes the `Permissions-Policy` header that delegates WebAuthn to
      PayPal's card fields iframe to the configured origin instead of both. Not passing it is deprecated and
      falls back to allowing both the production and sandbox origins.
+
+1. #### Apple Pay is available on the PayPal payment page.
+
+   Another tile on `/pay-with-paypal/{orderToken}/{paymentId}`, between Google Pay and the redirect methods.
+   One new, **opt-in** admin toggle on the PayPal payment method's gateway config controls it:
+
+   - `apple_pay_enabled` — defaults to `false`, including for existing payment methods.
+
+   Same reasoning as `google_pay_enabled`: Apple Pay has never run, the merchant has to enable the Apple Pay
+   capability on their PayPal account and register their domains before it can work at all, and SDD §4.1.4
+   asks for the methods a merchant has opted into.
+
+   **The tile only ever appears in Safari**, on macOS 10.14.1 or iOS 12.1 and later, and only once the
+   buyer's device reports it can pay. Everywhere else the controller returns before unhiding anything, so
+   there is no empty slot and no layout shift. A channel that has not opted in renders neither the tile nor
+   the `applepay-payments` SDK component.
+
+   The button is Apple's `<apple-pay-button>` custom element, which the page loads from
+   `https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js` — a third third-party script alongside
+   PayPal's and Google's.
+
+   **If your shop sends a Content-Security-Policy**, allow `applepay.cdn-apple.com` in `script-src`.
+   Merchant validation itself goes to PayPal, not to Apple, so `connect-src` needs nothing beyond the PayPal
+   origins the plugin already requires. Without the `script-src` entry the element never upgrades and the
+   tile silently renders nothing.
+
+   It ships as its own Stimulus controller and needs the same one-time registration as the others:
+
+   ```json
+   "@sylius/paypal-plugin": {
+       "paypal-payment-apple-pay": { "enabled": true, "fetch": "lazy" }
+   }
+   ```
+
+   `PayPalFundingSourcesConfigurationProviderInterface` gained `isApplePayEnabled(ChannelInterface): bool`.
+   If you implement that interface yourself rather than decorating
+   `sylius_paypal.provider.paypal_configuration`, add the method.
+
+   **Orders created for Apple Pay carry no `payment_source` node at all.** PayPal's Orders v2 schema has
+   nothing to put in `payment_source.apple_pay` for this flow — it accepts only `customer` and `vault` under
+   `attributes`, and its `experience_context` belongs to the redirect integration — and the browser attaches
+   the Apple Pay token through `confirmOrder()` anyway. `PayPalPaymentSourceProvider::provide()` therefore
+   returns an empty array for `apple_pay`, and **`PayPalOrder::toArray()` now omits `payment_source`
+   entirely when it is empty** instead of sending `"payment_source": []`. Orders for `paypal` and
+   `google_pay` are byte-for-byte unchanged. The buyer's choice is still recorded as `payment_source` in
+   `Payment::getDetails()`, so reporting and refunds see `apple_pay` as they see the other two.
+
+   `ThreeDSecureVerifier` needed no change: it already reads `authentication_result` from whichever payment
+   source carries it, and Apple Pay nests it the way Google Pay does.
+
+   **Three things the shop must do before this works in production, and the plugin cannot do any of them:**
+
+   - Enable the Apple Pay capability on the PayPal account.
+   - Register, in PayPal's Apple Pay settings, every high-level domain and subdomain that shows the button —
+     `example.com` and `checkout.example.com` are two registrations, not one.
+   - Serve PayPal's domain association file at
+     `/.well-known/apple-developer-merchantid-domain-association`, over HTTPS, with
+     `Content-Type: application/octet-stream`, and **not** behind a `3XX` redirect — Apple does not follow
+     redirects for this file.
+
+   An Apple Developer Program membership is *not* required to go live, because PayPal is the merchant of
+   record. It *is* required to test in sandbox, because that is what issues the sandbox tester whose Wallet
+   holds PayPal's Apple Pay test cards.
+
+   **Known limitation.** As with Google Pay, if PayPal answers `confirmOrder()` with `PAYER_ACTION_REQUIRED`
+   the payment is failed rather than captured, for the same reason: PayPal documents the branch where that
+   status is absent and not the one where it is present.
+
+   The tile sits at hook priority `300`, between `google_pay` (400) and `redirect_methods` (200).
