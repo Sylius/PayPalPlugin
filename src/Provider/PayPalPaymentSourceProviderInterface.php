@@ -22,6 +22,8 @@ interface PayPalPaymentSourceProviderInterface
 
     public const GOOGLE_PAY = 'google_pay';
 
+    public const APPLE_PAY = 'apple_pay';
+
     /**
      * @param array<string, mixed> $experienceContext
      *

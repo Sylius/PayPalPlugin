@@ -47,6 +47,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add('pay_later_enabled', CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
             ->add('messaging_enabled', CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
             ->add('google_pay_enabled', CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
+            ->add('apple_pay_enabled', CheckboxType::class, ['label' => 'sylius_paypal.apple_pay_enabled', 'required' => false])
         ;
 
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData): void {
@@ -56,6 +57,7 @@ final class PayPalConfigurationType extends AbstractType
                 $data['pay_later_enabled'] ??= true;
                 $data['messaging_enabled'] ??= true;
                 $data['google_pay_enabled'] ??= false;
+                $data['apple_pay_enabled'] ??= false;
                 $event->setData($data);
             }
         });

@@ -54,12 +54,17 @@ class PayPalOrder
 
     public function toArray(): array
     {
-        return [
+        $payPalOrder = [
             'intent' => $this->intent,
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
-            'payment_source' => $this->paymentSource,
         ];
+
+        if ([] !== $this->paymentSource) {
+            $payPalOrder['payment_source'] = $this->paymentSource;
+        }
+
+        return $payPalOrder;
     }
 }

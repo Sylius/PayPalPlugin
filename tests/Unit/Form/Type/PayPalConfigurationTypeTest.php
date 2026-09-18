@@ -51,6 +51,23 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->getData()['google_pay_enabled']);
     }
 
+    public function test_the_apple_pay_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->get('apple_pay_enabled')->getData());
+    }
+
+    public function test_the_apple_pay_toggle_stays_true_after_being_resubmitted(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit(array_merge($this->submittedFields(), ['apple_pay_enabled' => '1']));
+
+        self::assertTrue($form->isValid());
+        self::assertTrue($form->getData()['apple_pay_enabled']);
+    }
+
     #[Test]
     public function an_unchecked_toggle_is_correctly_submitted_as_false(): void
     {
@@ -62,6 +79,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertFalse($form->getData()['pay_later_enabled']);
         self::assertFalse($form->getData()['messaging_enabled']);
         self::assertFalse($form->getData()['google_pay_enabled']);
+        self::assertFalse($form->getData()['apple_pay_enabled']);
     }
 
     #[Test]

@@ -56,6 +56,11 @@ Sylius\Component\Core\Model\Channel:
         enabled: true
         taxCalculationStrategy: "order_items_based"
         channelPriceHistoryConfig: "@channel_web_price_history_config"
+        shopBillingData: "@channel_web_shop_billing_data"
+
+Sylius\Component\Core\Model\ShopBillingData:
+    channel_web_shop_billing_data:
+        countryCode: "US"
 
 Sylius\Component\Core\Model\ChannelPriceHistoryConfig:
     channel_web_price_history_config: ~
