@@ -26,12 +26,13 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
             self::GOOGLE_PAY => [self::GOOGLE_PAY => [
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
             ]],
+            self::APPLE_PAY => [],
             default => throw new UnsupportedPayPalPaymentSourceException($paymentSource),
         };
     }
 
     public function supports(string $paymentSource): bool
     {
-        return in_array($paymentSource, [self::PAYPAL, self::GOOGLE_PAY], true);
+        return in_array($paymentSource, [self::PAYPAL, self::GOOGLE_PAY, self::APPLE_PAY], true);
     }
 }

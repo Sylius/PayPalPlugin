@@ -70,6 +70,20 @@ final class PayPalOrderTest extends TestCase
         self::assertSame($paymentSource, $payPalOrder->toArray()['payment_source']);
     }
 
+    public function test_it_omits_the_payment_source_when_there_is_nothing_to_send(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: [],
+        );
+
+        self::assertArrayNotHasKey('payment_source', $payPalOrder->toArray());
+    }
+
     public function test_it_never_sends_the_legacy_application_context(): void
     {
         $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
