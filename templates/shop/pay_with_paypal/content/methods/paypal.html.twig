@@ -11,6 +11,7 @@
         cancelOrderUrl: context.cancelPayPalPaymentUrl,
         errorUrl: context.errorPayPalPaymentUrl,
         payLaterEnabled: context.paylaterEnabled,
+        venmoEnabled: context.venmoEnabled,
     }) }}
     class="d-grid gap-2 mb-3"
 >
@@ -26,4 +27,8 @@
         style="display: block; width: 100%"
         hidden
     ></paypal-pay-later-button>
+    <venmo-button
+        {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-wallet-button', 'venmoButton') }}
+        hidden
+    ></venmo-button>
 </div>
