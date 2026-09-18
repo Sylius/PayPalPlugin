@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +35,7 @@ final readonly class CreatePayPalOrderFromCartAction
     public function __construct(
         private ObjectManager $paymentManager,
         private OrderProviderInterface $orderProvider,
+        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private CapturePaymentResolverInterface $capturePaymentResolver,
         private ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
         private ?OrderProcessorInterface $orderProcessor = null,
@@ -69,6 +71,7 @@ final readonly class CreatePayPalOrderFromCartAction
     {
         $id = $request->attributes->getInt('id');
         $order = $this->orderProvider->provideOrderById($id);
+        $this->orderOwnershipVerifier->verify($order, $request);
 
         try {
             $payment = $this->getPayment($order);

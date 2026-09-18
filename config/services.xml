@@ -473,6 +473,11 @@
         <service id="sylius_paypal.verifier.three_d_secure" class="Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier" />
         <service id="Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface" alias="sylius_paypal.verifier.three_d_secure" />
 
+        <service id="sylius_paypal.verifier.order_ownership" class="Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifier">
+            <argument type="service" id="sylius.context.cart" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface" alias="sylius_paypal.verifier.order_ownership" />
+
         <service
             id="sylius_paypal.repository.query.paypal_payment"
             class="Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery"

@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Exception;
 
-final class OrderNotFoundException extends \Exception
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+
+final class OrderNotFoundException extends \Exception implements HttpExceptionInterface
 {
     public function __construct(?string $message = null)
     {
@@ -28,5 +30,15 @@ final class OrderNotFoundException extends \Exception
     public static function withId(int $id): self
     {
         return new self(sprintf('Order with id %d not found', $id));
+    }
+
+    public function getStatusCode(): int
+    {
+        return 404;
+    }
+
+    public function getHeaders(): array
+    {
+        return [];
     }
 }

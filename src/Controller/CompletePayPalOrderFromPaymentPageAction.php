@@ -21,6 +21,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -34,6 +35,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private PaymentStateManagerInterface $paymentStateManager,
         private UrlGeneratorInterface $router,
         private OrderProviderInterface $orderProvider,
+        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private StateMachineInterface $stateMachine,
         private ObjectManager $orderManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
@@ -62,6 +64,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $orderId = $request->attributes->getInt('id');
 
         $order = $this->orderProvider->provideOrderById($orderId);
+        $this->orderOwnershipVerifier->verify($order, $request);
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         if (null === $payment) {

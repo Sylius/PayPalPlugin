@@ -223,6 +223,34 @@
    `sylius_paypal_shop_create_paypal_order` follows the same pattern: it gained `orderId` next to the
    `orderID` it has always returned, with the same value and the same meaning.
 
+1. #### The four v6 order actions now verify the caller actually owns the order before acting on it.
+
+   `CreatePayPalOrderFromCartAction`, `CreatePayPalOrderFromPaymentPageAction`,
+   `CompletePayPalOrderFromPaymentPageAction`, and `ProcessPayPalOrderAction` take a plain Sylius order id
+   (as an `{id}` path segment for the first three, `orderId` in the JSON body for the fourth) — always have,
+   still do, **no route, path, or request shape changes here**. What's new: none of the four checked that the
+   caller had any right to that order, so a guessable id was enough to overwrite a stranger's addresses and
+   customer, cancel their payment, or read out their PayPal order id. They now reject the request with a
+   `404 Not Found` unless the resolved order is one the caller's own session can be shown to own.
+
+   `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface` (`sylius_paypal.verifier.order_ownership`)
+   does the check, immediately after the order is resolved by id and before anything about it is read or
+   changed. An order counts as owned when either is true:
+   - it's the order `sylius.context.cart` resolves for the current session (the normal case, while checkout
+     is still in progress), or
+   - its id matches the session's `sylius_order_id` key — set by `CompletePayPalOrderFromPaymentPageAction`
+     and `ProcessPayPalOrderAction` themselves on a successful completion, for the thank-you page — which
+     covers a buyer's capture confirmation being retried after the order already left the `cart` state (a
+     completed order is no longer what `sylius.context.cart` resolves).
+
+   Each of the four actions gained a new, required constructor argument,
+   `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface`, right after the existing
+   `Sylius\PayPalPlugin\Provider\OrderProviderInterface` one. Unlike most constructor additions in this
+   document, it is **not** optional/deprecated-when-absent — none of these four classes has shipped in a
+   release yet, so there is no BC surface to preserve, and skipping an ownership check on a security-relevant
+   action isn't a sensible fallback. If you've redefined any of the four services with an explicit argument
+   list, add `sylius_paypal.verifier.order_ownership` to it.
+
 1. #### Express checkout completes the purchase in the PayPal wallet.
 
    The PayPal buttons on the cart and product pages used to be a shortcut into the regular checkout: after the

@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private StateMachineInterface $stateMachineFactory,
         private PaymentStateManagerInterface $paymentStateManager,
         private OrderProviderInterface $orderProvider,
+        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private CapturePaymentResolverInterface $capturePaymentResolver,
         private ?OrderProcessorInterface $orderPaymentProcessor = null,
         private ?ObjectManager $objectManager = null,
@@ -64,6 +66,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         $id = $request->attributes->getInt('id');
 
         $order = $this->orderProvider->provideOrderById($id);
+        $this->orderOwnershipVerifier->verify($order, $request);
 
         $this->cancelLiveAttempt($order);
 

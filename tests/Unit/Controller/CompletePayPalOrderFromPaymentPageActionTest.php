@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,8 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
     private PaymentStateManagerInterface&MockObject $paymentStateManager;
 
     private OrderProviderInterface&Stub $orderProvider;
+
+    private OrderOwnershipVerifierInterface&Stub $orderOwnershipVerifier;
 
     private StateMachineInterface&MockObject $stateMachine;
 
@@ -55,6 +58,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
         parent::setUp();
         $this->paymentStateManager = $this->createMock(PaymentStateManagerInterface::class);
         $this->orderProvider = $this->createStub(OrderProviderInterface::class);
+        $this->orderOwnershipVerifier = $this->createStub(OrderOwnershipVerifierInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->orderManager = $this->createMock(ObjectManager::class);
         $this->paymentAmountVerifier = $this->createMock(PaymentAmountVerifierInterface::class);
@@ -165,6 +169,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->paymentStateManager,
             $this->router(),
             $this->orderProvider,
+            $this->orderOwnershipVerifier,
             $this->stateMachine,
             $this->orderManager,
             $this->paymentAmountVerifier,
