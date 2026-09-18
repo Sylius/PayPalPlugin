@@ -105,6 +105,10 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
             $content,
         );
         self::assertStringContainsString('locale="en-US"', $content);
+        self::assertStringContainsString(
+            'data-sylius--paypal-plugin--paypal-payment-apple-pay-country-code-value="US"',
+            $content,
+        );
     }
 
     public function test_it_renders_the_trustly_tile_once_the_channel_opts_in_and_paypal_says_it_is_eligible(): void
