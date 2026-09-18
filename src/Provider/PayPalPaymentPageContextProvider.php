@@ -29,6 +29,8 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
     public const APPLE_PAY_COMPONENT = 'applepay-payments';
 
+    public const VENMO_COMPONENT = 'venmo-payments';
+
     public function __construct(
         private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private UrlGeneratorInterface $router,
@@ -70,6 +72,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'payment' => $payment,
             'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
             'redirectPaymentSources' => $this->redirectPaymentSources($payment),
+            'venmoEnabled' => $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
@@ -108,6 +111,10 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
         if ($this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel)) {
             $components[] = self::APPLE_PAY_COMPONENT;
+        }
+
+        if ($this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel)) {
+            $components[] = self::VENMO_COMPONENT;
         }
 
         return $components;
