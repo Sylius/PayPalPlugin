@@ -69,16 +69,23 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
 
         try {
+            $locale = $this->localeProcessor->process($this->localeContext->getLocaleCode());
+
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_shop_add_to_cart', ['productId' => $request->attributes->getInt('productId')]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
-                'locale' => $this->localeProcessor->process($this->localeContext->getLocaleCode()),
+                'locale' => $locale,
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'product-details'),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
+                    $channel,
+                    'product-details',
+                    PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS,
+                    $locale,
+                ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -95,6 +102,8 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
+            $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'amount' => number_format($order->getTotal() / 100, 2, '.', ''),
@@ -102,12 +111,17 @@ final readonly class PayPalButtonsController
                 'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $orderId]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
-                'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
+                'locale' => $locale,
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'cart'),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
+                    $channel,
+                    'cart',
+                    PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS,
+                    $locale,
+                ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -124,6 +138,8 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
+            $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'amount' => number_format($order->getTotal() / 100, 2, '.', ''),
@@ -133,11 +149,16 @@ final readonly class PayPalButtonsController
                 'completePayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_complete_paypal_order_from_payment_page', ['id' => $orderId]),
                 'createPayPalOrderFromPaymentPageUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_payment_page', ['id' => $orderId]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
-                'locale' => $this->localeProcessor->process((string) $order->getLocaleCode()),
+                'locale' => $locale,
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig($channel, 'checkout'),
+                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
+                    $channel,
+                    'checkout',
+                    PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS,
+                    $locale,
+                ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
             ]));
         } catch (\InvalidArgumentException $exception) {
