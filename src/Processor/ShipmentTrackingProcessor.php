@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Api\AddTrackingApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Entity\ShipmentTrackingInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\Exception\ShipmentTrackingNotReadyException;
 use Sylius\PayPalPlugin\Provider\CarrierProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderPayPalPaymentProviderInterface;
@@ -87,6 +88,9 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $this->entityManager->flush();
     }
 
+    /**
+     * @throws PayPalApiErrorException
+     */
     private function sendTracking(
         ShipmentInterface $shipment,
         ShipmentTrackingInterface $tracking,
@@ -120,7 +124,11 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
         $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
 
-        $status = (string) ($orderDetails['status'] ?? '');
+        if (!isset($orderDetails['status'])) {
+            throw new PayPalApiErrorException(sprintf('GET v2/checkout/orders/%s', $payPalOrderId), $orderDetails);
+        }
+
+        $status = (string) $orderDetails['status'];
         if (!in_array($status, self::ELIGIBLE_ORDER_STATUSES, true)) {
             $tracking->markAsFailed(sprintf('PayPal order status "%s" is not eligible for tracking.', $status));
 
@@ -147,6 +155,10 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         }
 
         $response = $this->addTrackingApi->add($token, $payPalOrderId, $body);
+
+        if (isset($response['name']) || isset($response['debug_id'])) {
+            throw new PayPalApiErrorException(sprintf('POST v2/checkout/orders/%s/track', $payPalOrderId), $response);
+        }
 
         $tracking->markAsSynced($this->extractTrackerId($response, $trackingNumber));
     }

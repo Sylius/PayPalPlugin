@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Entity\ShipmentTracking;
 use Sylius\PayPalPlugin\Entity\ShipmentTrackingInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\Exception\ShipmentTrackingNotReadyException;
 use Sylius\PayPalPlugin\Processor\ShipmentTrackingProcessor;
 use Sylius\PayPalPlugin\Provider\CarrierProvider;
@@ -138,6 +139,61 @@ final class ShipmentTrackingProcessorTest extends TestCase
         $this->processor->process($shipment);
 
         self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $tracking->getState());
+    }
+
+    #[Test]
+    public function it_reports_the_real_error_when_paypal_no_longer_knows_the_order(): void
+    {
+        $shipment = $this->shipment('TRACK1');
+        $tracking = $this->trackingFor($shipment, 'FEDEX');
+
+        $this->repository->method('findOneByShipment')->willReturn($tracking);
+        $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->orderDetailsApi->method('get')->willReturn([
+            'name' => 'RESOURCE_NOT_FOUND',
+            'message' => 'The specified resource does not exist.',
+            'debug_id' => '9afb818786905',
+        ]);
+
+        $this->addTrackingApi->expects(self::never())->method('add');
+
+        try {
+            $this->processor->process($shipment);
+
+            self::fail('Expected the PayPal error to be rethrown.');
+        } catch (PayPalApiErrorException $exception) {
+            self::assertStringContainsString('RESOURCE_NOT_FOUND', $exception->getMessage());
+            self::assertStringContainsString('9afb818786905', $exception->getMessage());
+        }
+
+        self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
+        self::assertStringContainsString('RESOURCE_NOT_FOUND', (string) $tracking->getLastError());
+    }
+
+    #[Test]
+    public function it_does_not_mark_the_tracking_as_synced_when_paypal_rejects_the_tracking_call(): void
+    {
+        $shipment = $this->shipment('TRACK1');
+        $tracking = $this->trackingFor($shipment, 'FEDEX');
+
+        $this->repository->method('findOneByShipment')->willReturn($tracking);
+        $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->orderDetailsApi->method('get')->willReturn(['status' => 'COMPLETED']);
+        $this->itemsProvider->method('provide')->willReturn([]);
+        $this->addTrackingApi->method('add')->willReturn([
+            'name' => 'UNPROCESSABLE_ENTITY',
+            'debug_id' => 'aa11bb22cc33',
+        ]);
+
+        $this->expectException(PayPalApiErrorException::class);
+
+        try {
+            $this->processor->process($shipment);
+        } finally {
+            self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
+        }
     }
 
     #[Test]

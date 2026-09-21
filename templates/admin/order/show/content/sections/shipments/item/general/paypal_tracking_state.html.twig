@@ -23,7 +23,7 @@
         {% endif %}
 
         {% if tracking.state == state_failed and tracking.lastError is not empty %}
-            <div class="text-danger small">{{ tracking.lastError }}</div>
+            <div class="text-danger small text-wrap text-break">{{ tracking.lastError }}</div>
         {% endif %}
 
         {% if tracking.attempts > 0 %}
