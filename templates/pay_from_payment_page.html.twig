@@ -14,7 +14,7 @@
     class="d-grid gap-2"
     style="width:250px"
 >
-    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
-    <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} hidden></paypal-pay-later-button>
-    <venmo-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'venmoButton') }} hidden></venmo-button>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" style="display: block; width: 100%" hidden></paypal-button>
+    <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} style="display: block; width: 100%" hidden></paypal-pay-later-button>
+    <venmo-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'venmoButton') }} style="display: block; width: 100%" hidden></venmo-button>
 </div>
