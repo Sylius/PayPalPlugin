@@ -9,17 +9,46 @@ export default class extends Controller {
         instanceConfig: Object,
     };
 
-    connect() {
-        this.init();
-    }
+    initialized = false;
 
-    async init() {
+    async connect() {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
-            const sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
+            this.sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
+            this.messagesInstance = this.sdkInstance.createPayPalMessages();
 
-            const paymentMethods = await sdkInstance.findEligibleMethods({
+            await customElements.whenDefined('paypal-message');
+            await this.element.updateComplete;
+
+            await this.refresh();
+        } catch (error) {
+            console.error('PayPal Pay Later messaging initialization error:', error);
+            this.element.setAttribute('hidden', '');
+        } finally {
+            this.initialized = true;
+        }
+    }
+
+    amountValueChanged() {
+        if (!this.initialized) {
+            return;
+        }
+
+        this.refresh();
+    }
+
+    currencyCodeValueChanged() {
+        if (!this.initialized) {
+            return;
+        }
+
+        this.refresh();
+    }
+
+    async refresh() {
+        try {
+            const paymentMethods = await this.sdkInstance.findEligibleMethods({
                 currencyCode: this.currencyCodeValue,
                 amount: this.amountValue,
             });
@@ -30,16 +59,15 @@ export default class extends Controller {
                 return;
             }
 
-            await customElements.whenDefined('paypal-message');
-            await this.element.updateComplete;
             this.element.amount = this.amountValue;
             this.element.currencyCode = this.currencyCodeValue;
 
-            const messagesInstance = sdkInstance.createPayPalMessages();
+            await this.messagesInstance.fetchContent(this.element.getFetchContentOptions());
 
-            await messagesInstance.fetchContent(this.element.getFetchContentOptions());
+            this.element.removeAttribute('hidden');
         } catch (error) {
-            console.error('PayPal Pay Later messaging initialization error:', error);
+            console.error('PayPal Pay Later messaging refresh error:', error);
+            this.element.setAttribute('hidden', '');
         }
     }
 }

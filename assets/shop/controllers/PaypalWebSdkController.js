@@ -22,34 +22,79 @@ export default class extends Controller {
 
     payPalOrderId = null;
 
-    connect() {
-        this.init();
-    }
+    initialized = false;
 
-    async init() {
+    wiredTargets = new Set();
+
+    async connect() {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
-            const sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
+            this.sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
 
-            const eligibilityRequest = { currencyCode: this.currencyCodeValue };
-            if (this.hasAmountValue && this.amountValue !== '') {
-                eligibilityRequest.amount = this.amountValue;
+            await this.refreshEligibility();
+        } catch (error) {
+            console.error('PayPal Web SDK initialization error:', error);
+        } finally {
+            this.initialized = true;
+        }
+    }
+
+    amountValueChanged() {
+        if (!this.initialized) {
+            return;
+        }
+
+        this.refreshEligibility();
+    }
+
+    currencyCodeValueChanged() {
+        if (!this.initialized) {
+            return;
+        }
+
+        this.refreshEligibility();
+    }
+
+    async refreshEligibility() {
+        const eligibilityRequest = { currencyCode: this.currencyCodeValue };
+        if (this.hasAmountValue && this.amountValue !== '') {
+            eligibilityRequest.amount = this.amountValue;
+        }
+
+        let paymentMethods;
+        try {
+            paymentMethods = await this.sdkInstance.findEligibleMethods(eligibilityRequest);
+        } catch (error) {
+            console.error('PayPal eligibility check error:', error);
+
+            return;
+        }
+
+        try {
+            if (!this.wiredTargets.has('paypal') && paymentMethods.isEligible('paypal')) {
+                this.wiredTargets.add('paypal');
+                this.wireUpButton(this.paypalButtonTarget, this.sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));
             }
-            const paymentMethods = await sdkInstance.findEligibleMethods(eligibilityRequest);
+        } catch (error) {
+            console.error('PayPal button setup error:', error);
+        }
 
-            if (paymentMethods.isEligible('paypal')) {
-                this.wireUpButton(this.paypalButtonTarget, sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));
-            }
-
-            if (this.payLaterEnabledValue && this.hasPayLaterButtonTarget && paymentMethods.isEligible('paylater')) {
+        try {
+            if (
+                !this.wiredTargets.has('paylater') &&
+                this.payLaterEnabledValue &&
+                this.hasPayLaterButtonTarget &&
+                paymentMethods.isEligible('paylater')
+            ) {
+                this.wiredTargets.add('paylater');
                 const payLaterDetails = paymentMethods.getDetails('paylater');
                 this.payLaterButtonTarget.productCode = payLaterDetails.productCode;
                 this.payLaterButtonTarget.countryCode = payLaterDetails.countryCode;
-                this.wireUpButton(this.payLaterButtonTarget, sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
+                this.wireUpButton(this.payLaterButtonTarget, this.sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
             }
         } catch (error) {
-            console.error('PayPal Web SDK initialization error:', error);
+            console.error('Pay Later button setup error:', error);
         }
     }
 
