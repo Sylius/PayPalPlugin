@@ -62,7 +62,15 @@ export default class extends Controller {
             this.element.amount = this.amountValue;
             this.element.currencyCode = this.currencyCodeValue;
 
-            await this.messagesInstance.fetchContent(this.element.getFetchContentOptions());
+            const content = await this.messagesInstance.fetchContent(this.element.getFetchContentOptions());
+
+            // PayPal swallows a failed fetch (e.g. a 422 CONTENT_UNAVAILABLE) instead of
+            // rejecting this promise - it resolves with empty messageItems instead.
+            if (!content?.messageItems?.mainItems?.length) {
+                this.element.setAttribute('hidden', '');
+
+                return;
+            }
 
             this.element.removeAttribute('hidden');
         } catch (error) {
