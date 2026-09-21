@@ -83,6 +83,8 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
             throw $exception;
         }
+
+        $this->entityManager->flush();
     }
 
     private function sendTracking(
@@ -93,7 +95,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $trackingNumber = $shipment->getTracking();
         if (null === $trackingNumber || '' === $trackingNumber) {
             $tracking->markAsFailed('Shipment has no tracking number.');
-            $this->entityManager->flush();
 
             return;
         }
@@ -101,7 +102,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $carrier = $tracking->getCarrier();
         if (null === $carrier || '' === $carrier) {
             $tracking->markAsFailed('No carrier selected for the shipment.');
-            $this->entityManager->flush();
 
             return;
         }
@@ -110,7 +110,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $payPalOrderId = (string) ($details['paypal_order_id'] ?? '');
         if ('' === $payPalOrderId) {
             $tracking->markAsFailed('Payment details do not carry a PayPal order id.');
-            $this->entityManager->flush();
 
             return;
         }
@@ -124,7 +123,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $status = (string) ($orderDetails['status'] ?? '');
         if (!in_array($status, self::ELIGIBLE_ORDER_STATUSES, true)) {
             $tracking->markAsFailed(sprintf('PayPal order status "%s" is not eligible for tracking.', $status));
-            $this->entityManager->flush();
 
             return;
         }
@@ -132,7 +130,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $captureId = $this->resolveCaptureId($details, $orderDetails);
         if (null === $captureId) {
             $tracking->markAsFailed('Could not resolve the PayPal capture id from the payment details.');
-            $this->entityManager->flush();
 
             return;
         }
@@ -152,7 +149,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $response = $this->addTrackingApi->add($token, $payPalOrderId, $body);
 
         $tracking->markAsSynced($this->extractTrackerId($response, $trackingNumber));
-        $this->entityManager->flush();
     }
 
     /**

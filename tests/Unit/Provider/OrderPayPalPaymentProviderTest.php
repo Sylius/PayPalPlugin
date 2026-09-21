@@ -21,6 +21,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\PayPalPlugin\Provider\OrderPayPalPaymentProvider;
 
 final class OrderPayPalPaymentProviderTest extends TestCase
@@ -37,8 +38,8 @@ final class OrderPayPalPaymentProviderTest extends TestCase
     #[Test]
     public function it_provides_the_last_completed_paypal_payment_when_an_earlier_attempt_was_never_captured(): void
     {
-        $abandonedPayment = $this->payPalPayment('ORDER-OLD', PaymentInterface::STATE_NEW);
-        $completedPayment = $this->payPalPayment('ORDER-NEW', PaymentInterface::STATE_COMPLETED);
+        $abandonedPayment = $this->payPalPayment('ORDER-OLD', BasePaymentInterface::STATE_NEW);
+        $completedPayment = $this->payPalPayment('ORDER-NEW', BasePaymentInterface::STATE_COMPLETED);
 
         $order = $this->createMock(OrderInterface::class);
         $order->method('getPayments')->willReturn(new ArrayCollection([$abandonedPayment, $completedPayment]));
@@ -49,9 +50,21 @@ final class OrderPayPalPaymentProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_provides_the_most_recent_one_when_several_paypal_payments_are_completed(): void
+    {
+        $earlierPayment = $this->payPalPayment('ORDER-OLD', BasePaymentInterface::STATE_COMPLETED);
+        $latestPayment = $this->payPalPayment('ORDER-NEW', BasePaymentInterface::STATE_COMPLETED);
+
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getPayments')->willReturn(new ArrayCollection([$earlierPayment, $latestPayment]));
+
+        self::assertSame($latestPayment, $this->orderPayPalPaymentProvider->provide($order));
+    }
+
+    #[Test]
     public function it_provides_null_when_no_paypal_payment_is_completed(): void
     {
-        $abandonedPayment = $this->payPalPayment('ORDER-OLD', PaymentInterface::STATE_NEW);
+        $abandonedPayment = $this->payPalPayment('ORDER-OLD', BasePaymentInterface::STATE_NEW);
 
         $order = $this->createMock(OrderInterface::class);
         $order->method('getPayments')->willReturn(new ArrayCollection([$abandonedPayment]));
@@ -66,7 +79,7 @@ final class OrderPayPalPaymentProviderTest extends TestCase
         $paymentMethod->method('getGatewayConfig')->willReturn(null);
 
         $offlinePayment = $this->createMock(PaymentInterface::class);
-        $offlinePayment->method('getState')->willReturn(PaymentInterface::STATE_COMPLETED);
+        $offlinePayment->method('getState')->willReturn(BasePaymentInterface::STATE_COMPLETED);
         $offlinePayment->method('getMethod')->willReturn($paymentMethod);
 
         $order = $this->createMock(OrderInterface::class);

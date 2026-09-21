@@ -16,114 +16,92 @@ namespace Sylius\PayPalPlugin\Form\Extension;
 use Sylius\Bundle\AdminBundle\Form\Type\ShipmentShipType;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\PayPalPlugin\Form\Type\ShipmentTrackingType;
 use Sylius\PayPalPlugin\Manager\ShipmentTrackingManagerInterface;
-use Sylius\PayPalPlugin\Provider\CarrierProviderInterface;
+use Sylius\PayPalPlugin\Model\ShipmentTrackingData;
 use Sylius\PayPalPlugin\Provider\OrderPayPalPaymentProviderInterface;
 use Sylius\PayPalPlugin\Repository\ShipmentTrackingRepositoryInterface;
 use Symfony\Component\Form\AbstractTypeExtension;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Translation\TranslatorBagInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ShipmentShipTypeExtension extends AbstractTypeExtension
 {
-    private const CARRIER_LABEL_PREFIX = 'sylius_paypal.carrier.';
-
-    private const TRANSLATION_DOMAIN = 'messages';
+    public const TRACKING_FIELD_NAME = 'paypal_tracking';
 
     private const LIVE_COMPONENT_ROUTE = 'ux_live_component';
 
     public function __construct(
-        private readonly CarrierProviderInterface $carrierProvider,
         private readonly ShipmentTrackingRepositoryInterface $shipmentTrackingRepository,
         private readonly ShipmentTrackingManagerInterface $shipmentTrackingManager,
         private readonly OrderPayPalPaymentProviderInterface $orderPayPalPaymentProvider,
-        private readonly TranslatorInterface&TranslatorBagInterface $translator,
         private readonly RequestStack $requestStack,
     ) {
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder
-            ->add('carrier', ChoiceType::class, [
-                'label' => 'sylius_paypal.form.shipment.carrier',
-                'mapped' => false,
-                'required' => false,
-                'placeholder' => 'sylius_paypal.form.shipment.select_carrier',
-                'choices' => $this->getCarrierChoices(),
-                'choice_translation_domain' => self::TRANSLATION_DOMAIN,
-            ])
-            ->add('carrier_name_other', TextType::class, [
-                'label' => 'sylius_paypal.form.shipment.carrier_name_other',
-                'mapped' => false,
-                'required' => false,
-            ])
-        ;
-
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, [$this, 'prefillCarrier']);
-        $builder->addEventListener(FormEvents::POST_SUBMIT, [$this, 'validateAndPersistCarrier'], -10);
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, [$this, 'addTrackingFields']);
+        $builder->addEventListener(FormEvents::POST_SUBMIT, [$this, 'synchroniseTrackingNumber'], 10);
+        $builder->addEventListener(FormEvents::POST_SUBMIT, [$this, 'persistCarrier'], -10);
     }
 
-    public function prefillCarrier(FormEvent $event): void
+    public function addTrackingFields(FormEvent $event): void
     {
         $shipment = $event->getData();
-        if (!$shipment instanceof ShipmentInterface) {
+        if (!$this->isPaidWithPayPal($shipment)) {
             return;
         }
 
+        /** @var ShipmentInterface $shipment */
         $tracking = $this->shipmentTrackingRepository->findOneByShipment($shipment);
-        if (null === $tracking) {
-            return;
-        }
 
-        $form = $event->getForm();
-        $form->get('carrier')->setData($tracking->getCarrier());
-        $form->get('carrier_name_other')->setData($tracking->getCarrierNameOther());
+        $event->getForm()->add(self::TRACKING_FIELD_NAME, ShipmentTrackingType::class, [
+            'mapped' => false,
+            'data' => new ShipmentTrackingData(
+                $tracking?->getCarrier(),
+                $tracking?->getCarrierNameOther(),
+                $shipment->getTracking(),
+            ),
+        ]);
     }
 
-    public function validateAndPersistCarrier(FormEvent $event): void
+    public function synchroniseTrackingNumber(FormEvent $event): void
     {
-        $form = $event->getForm();
         $shipment = $event->getData();
-        if (!$shipment instanceof ShipmentInterface || !$form->isValid()) {
+        $trackingData = $this->getTrackingData($event);
+
+        if (!$shipment instanceof ShipmentInterface || null === $trackingData) {
             return;
         }
 
-        if ($this->isLiveComponentRerender()) {
+        $trackingData->setTrackingNumber($shipment->getTracking());
+    }
+
+    public function persistCarrier(FormEvent $event): void
+    {
+        $shipment = $event->getData();
+        $trackingData = $this->getTrackingData($event);
+
+        if (!$shipment instanceof ShipmentInterface || null === $trackingData) {
             return;
         }
 
-        $order = $shipment->getOrder();
-        if (!$order instanceof OrderInterface || null === $this->orderPayPalPaymentProvider->provide($order)) {
+        if (!$event->getForm()->isValid() || $this->isLiveComponentRerender()) {
             return;
         }
 
-        $trackingNumber = $shipment->getTracking();
-        $carrier = $this->stringOrNull($form->get('carrier')->getData());
-        $carrierNameOther = $this->stringOrNull($form->get('carrier_name_other')->getData());
-
-        if (null !== $trackingNumber && '' !== $trackingNumber && null === $carrier) {
-            $form->get('carrier')->addError(new FormError('sylius_paypal.shipment_tracking.carrier_required'));
-
+        if (null === $trackingData->getCarrier()) {
             return;
         }
 
-        if (null !== $carrier && null === $carrierNameOther && $this->carrierProvider->isOther($carrier)) {
-            $form->get('carrier_name_other')->addError(new FormError('sylius_paypal.shipment_tracking.carrier_name_other_required'));
-
-            return;
-        }
-
-        if (null !== $carrier) {
-            $this->shipmentTrackingManager->updateCarrier($shipment, $carrier, $carrierNameOther);
-        }
+        $this->shipmentTrackingManager->updateCarrier(
+            $shipment,
+            $trackingData->getCarrier(),
+            $trackingData->getCarrierNameOther(),
+        );
     }
 
     public static function getExtendedTypes(): iterable
@@ -131,35 +109,36 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
         yield ShipmentShipType::class;
     }
 
+    private function getTrackingData(FormEvent $event): ?ShipmentTrackingData
+    {
+        $form = $event->getForm();
+        if (!$form->has(self::TRACKING_FIELD_NAME)) {
+            return null;
+        }
+
+        $trackingData = $form->get(self::TRACKING_FIELD_NAME)->getData();
+
+        return $trackingData instanceof ShipmentTrackingData ? $trackingData : null;
+    }
+
+    private function isPaidWithPayPal(mixed $shipment): bool
+    {
+        if (!$shipment instanceof ShipmentInterface) {
+            return false;
+        }
+
+        $order = $shipment->getOrder();
+        if (!$order instanceof OrderInterface) {
+            return false;
+        }
+
+        return null !== $this->orderPayPalPaymentProvider->provide($order);
+    }
+
     private function isLiveComponentRerender(): bool
     {
         $request = $this->requestStack->getCurrentRequest();
 
         return null !== $request && self::LIVE_COMPONENT_ROUTE === $request->attributes->get('_route');
-    }
-
-    /** @return array<string, string> */
-    private function getCarrierChoices(): array
-    {
-        $catalogue = $this->translator->getCatalogue();
-        $choices = [];
-
-        foreach ($this->carrierProvider->getCarrierCodes() as $code) {
-            $label = self::CARRIER_LABEL_PREFIX . $code;
-            $choices[$catalogue->has($label, self::TRANSLATION_DOMAIN) ? $label : $code] = $code;
-        }
-
-        return $choices;
-    }
-
-    private function stringOrNull(mixed $value): ?string
-    {
-        if (!is_string($value)) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return '' === $value ? null : $value;
     }
 }

@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Dispatcher\ShipmentTrackingDispatcher;
 use Sylius\PayPalPlugin\Message\SendShipmentTracking;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final class ShipmentTrackingDispatcherTest extends TestCase
 {
@@ -49,9 +50,31 @@ final class ShipmentTrackingDispatcherTest extends TestCase
             ->expects(self::once())
             ->method('dispatch')
             ->with(self::callback(
-                fn (SendShipmentTracking $message): bool => 42 === $message->shipmentId,
+                function (Envelope $envelope): bool {
+                    $message = $envelope->getMessage();
+
+                    return $message instanceof SendShipmentTracking && 42 === $message->shipmentId;
+                },
             ))
             ->willReturn(new Envelope(new SendShipmentTracking(42)));
+
+        $this->dispatcher->dispatch($shipment);
+    }
+
+    #[Test]
+    public function it_defers_the_dispatch_until_the_current_bus_is_done(): void
+    {
+        $shipment = $this->createMock(ShipmentInterface::class);
+        $shipment->method('getId')->willReturn(42);
+
+        $this->messageBus
+            ->expects(self::once())
+            ->method('dispatch')
+            ->with(self::callback(
+                fn (Envelope $envelope): bool => null !== $envelope->last(DispatchAfterCurrentBusStamp::class),
+            ))
+            ->willReturn(new Envelope(new SendShipmentTracking(42)))
+        ;
 
         $this->dispatcher->dispatch($shipment);
     }

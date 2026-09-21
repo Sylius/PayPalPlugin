@@ -20,35 +20,17 @@ final class Version20260909120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Add sylius_paypal_plugin_shipment_tracking table (MySQL)';
+        return 'Add ShipmentTracking table';
     }
 
     public function up(Schema $schema): void
     {
-        $table = $schema->createTable('sylius_paypal_plugin_shipment_tracking');
-        $table->addColumn('id', 'integer', ['autoincrement' => true]);
-        $table->addColumn('shipment_id', 'integer', ['notnull' => true]);
-        $table->addColumn('carrier', 'string', ['length' => 255, 'notnull' => false]);
-        $table->addColumn('carrier_name_other', 'string', ['length' => 255, 'notnull' => false]);
-        $table->addColumn('paypal_tracker_id', 'string', ['length' => 255, 'notnull' => false]);
-        $table->addColumn('state', 'string', ['length' => 32]);
-        $table->addColumn('attempts', 'integer', ['notnull' => true, 'default' => 0]);
-        $table->addColumn('last_error', 'text', ['notnull' => false]);
-        $table->addColumn('created_at', 'datetime', ['notnull' => true]);
-        $table->addColumn('updated_at', 'datetime', ['notnull' => false]);
-        $table->setPrimaryKey(['id']);
-        $table->addUniqueIndex(['shipment_id'], 'UNIQ_paypal_shipment_tracking_shipment');
-        $table->addForeignKeyConstraint(
-            'sylius_shipment',
-            ['shipment_id'],
-            ['id'],
-            ['onDelete' => 'CASCADE'],
-            'FK_paypal_shipment_tracking_shipment',
-        );
+        $this->addSql('CREATE TABLE sylius_paypal_plugin_shipment_tracking (id INT AUTO_INCREMENT NOT NULL, shipment_id INT NOT NULL, carrier VARCHAR(255) DEFAULT NULL, carrier_name_other VARCHAR(255) DEFAULT NULL, paypal_tracker_id VARCHAR(255) DEFAULT NULL, state VARCHAR(32) NOT NULL, attempts INT DEFAULT 0 NOT NULL, last_error LONGTEXT DEFAULT NULL, created_at DATETIME NOT NULL, updated_at DATETIME DEFAULT NULL, UNIQUE INDEX UNIQ_D2A2F8D67BE036FC (shipment_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB');
+        $this->addSql('ALTER TABLE sylius_paypal_plugin_shipment_tracking ADD CONSTRAINT FK_D2A2F8D67BE036FC FOREIGN KEY (shipment_id) REFERENCES sylius_shipment (id) ON DELETE CASCADE');
     }
 
     public function down(Schema $schema): void
     {
-        $schema->dropTable('sylius_paypal_plugin_shipment_tracking');
+        $this->addSql('DROP TABLE sylius_paypal_plugin_shipment_tracking');
     }
 }

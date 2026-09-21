@@ -4,6 +4,7 @@
 {% set path_parameters = path_parameters|default({id: resource.id}) %}
 {% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
 {% set other_carrier_code = constant('Sylius\\PayPalPlugin\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
+{% set paypal_tracking = form.paypal_tracking is defined ? form.paypal_tracking : null %}
 
 {% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
     <div {{ attributes }}>
@@ -13,13 +14,15 @@
             <div class="col-12 col-md">
                 {{ form_row(form.tracking, sylius_test_form_attribute('shipment-tracking')|sylius_merge_recursive({'attr': {'placeholder': tracking_placeholder}})) }}
             </div>
-            <div class="col-12 col-md">
-                {{ form_row(form.carrier, sylius_test_form_attribute('shipment-carrier')|sylius_merge_recursive({'attr': {'data-model': 'on(change)|' ~ form.carrier.vars.full_name}})) }}
-            </div>
-            {% if form.carrier.vars.data == other_carrier_code %}
+            {% if paypal_tracking is not null %}
                 <div class="col-12 col-md">
-                    {{ form_row(form.carrier_name_other, sylius_test_form_attribute('shipment-carrier-name-other')) }}
+                    {{ form_row(paypal_tracking.carrier, sylius_test_form_attribute('shipment-carrier')|sylius_merge_recursive({'attr': {'data-model': 'on(change)|' ~ paypal_tracking.carrier.vars.full_name}})) }}
                 </div>
+                {% if paypal_tracking.carrier.vars.data == other_carrier_code %}
+                    <div class="col-12 col-md">
+                        {{ form_row(paypal_tracking.carrier_name_other, sylius_test_form_attribute('shipment-carrier-name-other')) }}
+                    </div>
+                {% endif %}
             {% endif %}
             <div class="col-12 col-md-auto">
                 <label class="form-label d-none d-md-block invisible">&nbsp;</label>

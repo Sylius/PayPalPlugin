@@ -17,20 +17,19 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 final class OrderPayPalPaymentProvider implements OrderPayPalPaymentProviderInterface
 {
     public function provide(OrderInterface $order): ?PaymentInterface
     {
-        $payPalPayment = null;
-
-        foreach ($order->getPayments() as $payment) {
+        foreach (array_reverse($order->getPayments()->toArray()) as $payment) {
             if (!$payment instanceof PaymentInterface) {
                 continue;
             }
 
-            if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
+            if (BasePaymentInterface::STATE_COMPLETED !== $payment->getState()) {
                 continue;
             }
 
@@ -53,9 +52,9 @@ final class OrderPayPalPaymentProvider implements OrderPayPalPaymentProviderInte
                 continue;
             }
 
-            $payPalPayment = $payment;
+            return $payment;
         }
 
-        return $payPalPayment;
+        return null;
     }
 }

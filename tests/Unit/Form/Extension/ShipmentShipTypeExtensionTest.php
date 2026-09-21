@@ -15,23 +15,38 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Form\Extension;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\AdminBundle\Form\Type\ShipmentShipType;
+use Sylius\Bundle\ShippingBundle\Form\Type\ShipmentShipType as BaseShipmentShipType;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\Shipment;
 use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\PayPalPlugin\Entity\ShipmentTracking;
 use Sylius\PayPalPlugin\Form\Extension\ShipmentShipTypeExtension;
+use Sylius\PayPalPlugin\Form\Type\ShipmentTrackingType;
 use Sylius\PayPalPlugin\Manager\ShipmentTrackingManagerInterface;
 use Sylius\PayPalPlugin\Provider\CarrierProvider;
+use Sylius\PayPalPlugin\Provider\CarrierProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderPayPalPaymentProviderInterface;
 use Sylius\PayPalPlugin\Repository\ShipmentTrackingRepositoryInterface;
-use Symfony\Component\Form\FormEvent;
+use Sylius\PayPalPlugin\Validator\Constraints\ShipmentTrackingCarrier;
+use Sylius\PayPalPlugin\Validator\Constraints\ShipmentTrackingCarrierValidator;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\PreloadedExtension;
+use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\TranslatorBagInterface;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ConstraintValidatorFactory;
+use Symfony\Component\Validator\ConstraintValidatorFactoryInterface;
+use Symfony\Component\Validator\ConstraintValidatorInterface;
+use Symfony\Component\Validator\Validation;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-final class ShipmentShipTypeExtensionTest extends TestCase
+final class ShipmentShipTypeExtensionTest extends TypeTestCase
 {
     private ShipmentTrackingRepositoryInterface&MockObject $shipmentTrackingRepository;
 
@@ -41,61 +56,119 @@ final class ShipmentShipTypeExtensionTest extends TestCase
 
     private RequestStack $requestStack;
 
-    private ShipmentShipTypeExtension $shipmentShipTypeExtension;
-
-    protected function setUp(): void
+    protected function getExtensions(): array
     {
-        parent::setUp();
-
         $this->shipmentTrackingRepository = $this->createMock(ShipmentTrackingRepositoryInterface::class);
         $this->shipmentTrackingManager = $this->createMock(ShipmentTrackingManagerInterface::class);
         $this->orderPayPalPaymentProvider = $this->createMock(OrderPayPalPaymentProviderInterface::class);
         $this->requestStack = new RequestStack();
 
-        $this->shipmentShipTypeExtension = new ShipmentShipTypeExtension(
-            new CarrierProvider(['FEDEX']),
-            $this->shipmentTrackingRepository,
-            $this->shipmentTrackingManager,
-            $this->orderPayPalPaymentProvider,
-            $this->createMockForIntersectionOfInterfaces([TranslatorInterface::class, TranslatorBagInterface::class]),
-            $this->requestStack,
+        $carrierProvider = new CarrierProvider(['FEDEX']);
+
+        $validator = Validation::createValidatorBuilder()
+            ->addXmlMapping(__DIR__ . '/../../../../config/validation/ShipmentTrackingData.xml')
+            ->setConstraintValidatorFactory($this->constraintValidatorFactory($carrierProvider))
+            ->getValidator()
+        ;
+
+        return [
+            new ValidatorExtension($validator),
+            new PreloadedExtension(
+                [
+                    new BaseShipmentShipType(Shipment::class, ['sylius']),
+                    new ShipmentShipType(),
+                    new ShipmentTrackingType($carrierProvider, $this->translator()),
+                ],
+                [
+                    ShipmentShipType::class => [new ShipmentShipTypeExtension(
+                        $this->shipmentTrackingRepository,
+                        $this->shipmentTrackingManager,
+                        $this->orderPayPalPaymentProvider,
+                        $this->requestStack,
+                    )],
+                ],
+            ),
+        ];
+    }
+
+    #[Test]
+    public function it_does_not_add_the_carrier_fields_when_the_order_was_not_paid_with_paypal(): void
+    {
+        $shipment = $this->shipment();
+        $this->orderPayPalPaymentProvider->method('provide')->willReturn(null);
+
+        $form = $this->factory->create(ShipmentShipType::class, $shipment);
+
+        self::assertFalse($form->has(ShipmentShipTypeExtension::TRACKING_FIELD_NAME));
+    }
+
+    #[Test]
+    public function it_prefills_the_carrier_fields_from_the_existing_tracking(): void
+    {
+        $shipment = $this->shipment();
+        $this->payPalPaidOrder();
+
+        $tracking = new ShipmentTracking($shipment);
+        $tracking->setCarrier(CarrierProviderInterface::OTHER_CARRIER_CODE);
+        $tracking->setCarrierNameOther('Pigeon Post');
+        $this->shipmentTrackingRepository->method('findOneByShipment')->with($shipment)->willReturn($tracking);
+
+        $form = $this->factory->create(ShipmentShipType::class, $shipment);
+        $trackingData = $form->get(ShipmentShipTypeExtension::TRACKING_FIELD_NAME)->getData();
+
+        self::assertSame(CarrierProviderInterface::OTHER_CARRIER_CODE, $trackingData->getCarrier());
+        self::assertSame('Pigeon Post', $trackingData->getCarrierNameOther());
+    }
+
+    #[Test]
+    public function it_adds_a_validation_error_instead_of_persisting_when_the_carrier_is_missing(): void
+    {
+        $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
+
+        self::assertFalse($form->isValid());
+        self::assertSame(
+            'sylius_paypal.shipment_tracking.carrier_required',
+            (string) $form->get('paypal_tracking')->get('carrier')->getErrors()[0]->getMessage(),
         );
     }
 
     #[Test]
-    public function it_does_not_require_a_carrier_when_the_order_was_not_paid_with_paypal(): void
+    public function it_adds_a_validation_error_when_the_other_carrier_has_no_name(): void
     {
-        $order = $this->createMock(OrderInterface::class);
-        $shipment = $this->shipment($order, 'TRACK1');
+        $form = $this->submit([
+            'tracking' => 'TRACK1',
+            'paypal_tracking' => ['carrier' => CarrierProviderInterface::OTHER_CARRIER_CODE, 'carrier_name_other' => ''],
+        ]);
 
-        $this->orderPayPalPaymentProvider->method('provide')->with($order)->willReturn(null);
-
-        $carrierField = $this->createMock(FormInterface::class);
-        $carrierField->expects(self::never())->method('addError');
-
-        $form = $this->form(true, $carrierField, null);
-
-        $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
-
-        $this->shipmentShipTypeExtension->validateAndPersistCarrier(new FormEvent($form, $shipment));
+        self::assertFalse($form->isValid());
+        self::assertSame(
+            'sylius_paypal.shipment_tracking.carrier_name_other_required',
+            (string) $form->get('paypal_tracking')->get('carrier_name_other')->getErrors()[0]->getMessage(),
+        );
     }
 
     #[Test]
-    public function it_requires_a_carrier_when_tracking_is_set_for_a_paypal_paid_order(): void
+    public function it_does_not_require_a_carrier_when_no_tracking_number_is_given(): void
     {
-        $order = $this->createMock(OrderInterface::class);
-        $shipment = $this->shipment($order, 'TRACK1');
-
-        $this->orderPayPalPaymentProvider->method('provide')->with($order)->willReturn($this->createMock(PaymentInterface::class));
-
-        $carrierField = $this->createMock(FormInterface::class);
-        $carrierField->expects(self::once())->method('addError');
-
-        $form = $this->form(true, $carrierField, null);
-
         $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
 
-        $this->shipmentShipTypeExtension->validateAndPersistCarrier(new FormEvent($form, $shipment));
+        $form = $this->submit(['tracking' => '', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
+
+        self::assertTrue($form->isValid());
+    }
+
+    #[Test]
+    public function it_persists_the_carrier_for_a_paypal_paid_order(): void
+    {
+        $this->shipmentTrackingManager
+            ->expects(self::once())
+            ->method('updateCarrier')
+            ->with(self::isInstanceOf(ShipmentInterface::class), 'FEDEX', null)
+        ;
+
+        $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
+
+        self::assertTrue($form->isValid());
     }
 
     #[Test]
@@ -105,62 +178,63 @@ final class ShipmentShipTypeExtensionTest extends TestCase
         $request->attributes->set('_route', 'ux_live_component');
         $this->requestStack->push($request);
 
-        $order = $this->createMock(OrderInterface::class);
-        $shipment = $this->shipment($order, 'TRACK1');
-
-        $this->orderPayPalPaymentProvider->method('provide')->willReturn($this->createMock(PaymentInterface::class));
-
-        $carrierField = $this->createMock(FormInterface::class);
-        $carrierField->expects(self::never())->method('addError');
-
-        $form = $this->form(true, $carrierField, 'FEDEX');
-
         $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
 
-        $this->shipmentShipTypeExtension->validateAndPersistCarrier(new FormEvent($form, $shipment));
+        $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
     }
 
-    #[Test]
-    public function it_persists_the_carrier_for_a_paypal_paid_order(): void
+    /** @param array<string, mixed> $data */
+    private function submit(array $data): FormInterface
     {
-        $order = $this->createMock(OrderInterface::class);
-        $shipment = $this->shipment($order, 'TRACK1');
+        $this->payPalPaidOrder();
+        $this->shipmentTrackingRepository->method('findOneByShipment')->willReturn(null);
 
-        $this->orderPayPalPaymentProvider->method('provide')->with($order)->willReturn($this->createMock(PaymentInterface::class));
+        $form = $this->factory->create(ShipmentShipType::class, $this->shipment());
+        $form->submit($data);
 
-        $carrierField = $this->createMock(FormInterface::class);
-        $carrierField->expects(self::never())->method('addError');
-
-        $form = $this->form(true, $carrierField, 'FEDEX');
-
-        $this->shipmentTrackingManager->expects(self::once())->method('updateCarrier')->with($shipment, 'FEDEX', null);
-
-        $this->shipmentShipTypeExtension->validateAndPersistCarrier(new FormEvent($form, $shipment));
+        return $form;
     }
 
-    private function shipment(OrderInterface $order, string $trackingNumber): ShipmentInterface&MockObject
+    private function shipment(): ShipmentInterface
     {
-        $shipment = $this->createMock(ShipmentInterface::class);
-        $shipment->method('getOrder')->willReturn($order);
-        $shipment->method('getTracking')->willReturn($trackingNumber);
+        $shipment = new Shipment();
+        $shipment->setOrder($this->createMock(OrderInterface::class));
 
         return $shipment;
     }
 
-    private function form(bool $isValid, FormInterface&MockObject $carrierField, ?string $carrierData): FormInterface&MockObject
+    private function payPalPaidOrder(): void
     {
-        $carrierField->method('getData')->willReturn($carrierData);
+        $this->orderPayPalPaymentProvider->method('provide')->willReturn($this->createMock(PaymentInterface::class));
+    }
 
-        $carrierNameOtherField = $this->createMock(FormInterface::class);
-        $carrierNameOtherField->method('getData')->willReturn(null);
+    private function translator(): TranslatorInterface&TranslatorBagInterface
+    {
+        /** @var TranslatorInterface&TranslatorBagInterface&MockObject $translator */
+        $translator = $this->createMockForIntersectionOfInterfaces([TranslatorInterface::class, TranslatorBagInterface::class]);
+        $translator->method('getCatalogue')->willReturn(new MessageCatalogue('en'));
 
-        $form = $this->createMock(FormInterface::class);
-        $form->method('isValid')->willReturn($isValid);
-        $form->method('get')->willReturnMap([
-            ['carrier', $carrierField],
-            ['carrier_name_other', $carrierNameOtherField],
-        ]);
+        return $translator;
+    }
 
-        return $form;
+    private function constraintValidatorFactory(CarrierProvider $carrierProvider): ConstraintValidatorFactoryInterface
+    {
+        return new class($carrierProvider) implements ConstraintValidatorFactoryInterface {
+            private ConstraintValidatorFactory $defaultFactory;
+
+            public function __construct(private readonly CarrierProvider $carrierProvider)
+            {
+                $this->defaultFactory = new ConstraintValidatorFactory();
+            }
+
+            public function getInstance(Constraint $constraint): ConstraintValidatorInterface
+            {
+                if ($constraint instanceof ShipmentTrackingCarrier) {
+                    return new ShipmentTrackingCarrierValidator($this->carrierProvider);
+                }
+
+                return $this->defaultFactory->getInstance($constraint);
+            }
+        };
     }
 }

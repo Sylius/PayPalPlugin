@@ -16,7 +16,9 @@ namespace Sylius\PayPalPlugin\Dispatcher;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Message\SendShipmentTracking;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final readonly class ShipmentTrackingDispatcher implements ShipmentTrackingDispatcherInterface
 {
@@ -34,7 +36,7 @@ final readonly class ShipmentTrackingDispatcher implements ShipmentTrackingDispa
         }
 
         try {
-            $this->messageBus->dispatch(new SendShipmentTracking($shipmentId));
+            $this->messageBus->dispatch(new Envelope(new SendShipmentTracking($shipmentId), [new DispatchAfterCurrentBusStamp()]));
         } catch (\Throwable $exception) {
             $this->logger->error(
                 sprintf('Failed to send PayPal tracking for shipment #%s: %s', (string) $shipmentId, $exception->getMessage()),

@@ -34,6 +34,9 @@
         </service>
         <service id="Sylius\PayPalPlugin\Provider\CarrierProviderInterface" alias="sylius_paypal.provider.carrier" />
 
+        <service id="sylius_paypal.factory.shipment_tracking" class="Sylius\PayPalPlugin\Factory\ShipmentTrackingFactory" />
+        <service id="Sylius\PayPalPlugin\Factory\ShipmentTrackingFactoryInterface" alias="sylius_paypal.factory.shipment_tracking" />
+
         <service id="sylius_paypal.provider.shipment_tracking_items" class="Sylius\PayPalPlugin\Provider\ShipmentTrackingItemsProvider" />
         <service id="Sylius\PayPalPlugin\Provider\ShipmentTrackingItemsProviderInterface" alias="sylius_paypal.provider.shipment_tracking_items" />
 
@@ -55,6 +58,7 @@
 
         <service id="sylius_paypal.manager.shipment_tracking" class="Sylius\PayPalPlugin\Manager\ShipmentTrackingManager">
             <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.factory.shipment_tracking" />
             <argument type="service" id="sylius_paypal.provider.carrier" />
             <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
@@ -80,12 +84,23 @@
             <tag name="console.command" />
         </service>
 
-        <service id="sylius_paypal.form.extension.shipment_ship" class="Sylius\PayPalPlugin\Form\Extension\ShipmentShipTypeExtension">
+        <service id="sylius_paypal.validator.shipment_tracking_carrier" class="Sylius\PayPalPlugin\Validator\Constraints\ShipmentTrackingCarrierValidator">
             <argument type="service" id="sylius_paypal.provider.carrier" />
+
+            <tag name="validator.constraint_validator" />
+        </service>
+
+        <service id="sylius_paypal.form.type.shipment_tracking" class="Sylius\PayPalPlugin\Form\Type\ShipmentTrackingType">
+            <argument type="service" id="sylius_paypal.provider.carrier" />
+            <argument type="service" id="translator" />
+
+            <tag name="form.type" />
+        </service>
+
+        <service id="sylius_paypal.form.extension.shipment_ship" class="Sylius\PayPalPlugin\Form\Extension\ShipmentShipTypeExtension">
             <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
             <argument type="service" id="sylius_paypal.manager.shipment_tracking" />
             <argument type="service" id="sylius_paypal.provider.order_paypal_payment" />
-            <argument type="service" id="translator" />
             <argument type="service" id="request_stack" />
 
             <tag name="form.type_extension" />

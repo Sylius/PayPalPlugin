@@ -851,6 +851,13 @@
    Each shipment on the order page shows its PayPal sync state (pending / synced / failed). Orders paid with any
    other method keep the stock Sylius ship form, untouched.
 
+   The selector is added as an unmapped `paypal_tracking` sub-form (`ShipmentTrackingType`, backed by the
+   `ShipmentTrackingData` model), and only for shipments whose order was paid with PayPal - so a template
+   overriding `@SyliusPayPalPlugin/admin/shipment/component/ship.html.twig` reaches the fields as
+   `form.paypal_tracking.carrier` and `form.paypal_tracking.carrier_name_other`. Both rules above are enforced by
+   the `ShipmentTrackingCarrier` constraint (`config/validation/ShipmentTrackingData.xml`, validation group
+   `sylius`), so they surface as regular field-level validation messages and the ship transition is not applied.
+
    **Configuring the carriers.** The selector is driven by `sylius_paypal.tracking.carriers`, which defaults to a
    curated subset of the codes accepted by the [PayPal Add Tracking API](https://developer.paypal.com/docs/tracking/reference/carriers/).
    Listing your own codes **replaces** that default, so a shop using three carriers ends up with a three-entry

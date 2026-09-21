@@ -15,7 +15,7 @@ namespace Sylius\PayPalPlugin\Manager;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
-use Sylius\PayPalPlugin\Entity\ShipmentTracking;
+use Sylius\PayPalPlugin\Factory\ShipmentTrackingFactoryInterface;
 use Sylius\PayPalPlugin\Provider\CarrierProviderInterface;
 use Sylius\PayPalPlugin\Repository\ShipmentTrackingRepositoryInterface;
 
@@ -23,6 +23,7 @@ final readonly class ShipmentTrackingManager implements ShipmentTrackingManagerI
 {
     public function __construct(
         private ShipmentTrackingRepositoryInterface $shipmentTrackingRepository,
+        private ShipmentTrackingFactoryInterface $shipmentTrackingFactory,
         private CarrierProviderInterface $carrierProvider,
         private EntityManagerInterface $entityManager,
     ) {
@@ -33,7 +34,7 @@ final readonly class ShipmentTrackingManager implements ShipmentTrackingManagerI
         $tracking = $this->shipmentTrackingRepository->findOneByShipment($shipment);
 
         if (null === $tracking) {
-            $tracking = new ShipmentTracking($shipment);
+            $tracking = $this->shipmentTrackingFactory->createForShipment($shipment);
             $this->entityManager->persist($tracking);
         }
 
