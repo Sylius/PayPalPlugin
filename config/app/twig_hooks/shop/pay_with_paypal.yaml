@@ -13,6 +13,9 @@ sylius_twig_hooks:
             google_pay:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/google_pay.html.twig'
                 priority: 200
+            redirect_methods:
+                template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/redirect.html.twig'
+                priority: 150
             card:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/card.html.twig'
                 priority: 100

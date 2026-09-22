@@ -1,0 +1,21 @@
+{% set context = hookable_metadata.context %}
+
+{% for paymentSource in context.redirectPaymentSources %}
+    <div
+        {{ stimulus_controller('@sylius/paypal-plugin/paypal-payment-redirect-button', {
+            paymentSource: paymentSource,
+            createOrderUrl: context.createPayPalOrderUrl,
+            errorUrl: context.errorPayPalPaymentUrl,
+        }) }}
+        class="mb-3"
+    >
+        <button
+            type="button"
+            class="btn btn-outline-secondary w-100"
+            {{ stimulus_action('@sylius/paypal-plugin/paypal-payment-redirect-button', 'start') }}
+            {{ sylius_test_html_attribute('paypal-redirect-button', paymentSource) }}
+        >
+            {{ ('sylius_paypal.pay_with_' ~ paymentSource)|trans }}
+        </button>
+    </div>
+{% endfor %}

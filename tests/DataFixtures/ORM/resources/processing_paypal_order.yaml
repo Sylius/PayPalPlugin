@@ -1,3 +1,12 @@
+Sylius\Component\Core\Model\Address:
+    processing_billing_address:
+        firstName: "Oliver"
+        lastName: "Queen"
+        street: "1 Main St"
+        city: "Dallas"
+        postcode: "75001"
+        countryCode: "US"
+
 Sylius\Component\Core\Model\Order:
     processing_order:
         channel: "@channel_web"
@@ -8,6 +17,7 @@ Sylius\Component\Core\Model\Order:
         state: "new"
         checkoutState: "completed"
         tokenValue: "TOKEN"
+        billingAddress: "@processing_billing_address"
         payments: ["@processing_paypal_payment"]
 
 Sylius\Component\Core\Model\OrderItem:

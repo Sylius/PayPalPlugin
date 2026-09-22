@@ -22,6 +22,7 @@ sylius_paypal:
     paylater_enabled: 'Enable Pay Later'
     pay_with_card: 'Pay with Card'
     pay_with_paypal: 'Pay with PayPal'
+    pay_with_trustly: 'Pay with Trustly'
     privacy_notice: 'By paying with your card, you acknowledge that PayPal will process your data according to the PayPal Privacy Statement available at PayPal.com.'
     privacy_statement: 'PayPal Privacy Statement'
     report: 'Report'

@@ -177,6 +177,60 @@ final class CreatePayPalOrderActionTest extends TestCase
         );
     }
 
+    public function test_it_hands_the_browser_the_link_paypal_wants_the_payer_sent_to(): void
+    {
+        $this->payments(processing: null, new: $this->payment(
+            SyliusPayPalExtension::PAYPAL_FACTORY_NAME,
+            ['payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID'],
+        ));
+
+        $content = json_decode((string) ($this->action)($this->request())->getContent(), true);
+
+        self::assertSame(
+            'https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID',
+            $content['payerActionUrl'],
+        );
+    }
+
+    public function test_it_sends_no_payer_action_url_for_a_payment_that_has_none(): void
+    {
+        $this->payments(processing: null, new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        $content = json_decode((string) ($this->action)($this->request())->getContent(), true);
+
+        self::assertArrayNotHasKey('payerActionUrl', $content);
+    }
+
+    public function test_it_refuses_to_send_the_browser_anywhere_but_paypal(): void
+    {
+        foreach ([
+            'https://paypal.com.evil.example.com/payment/trustly',
+            'http://www.paypal.com/payment/trustly',
+            'https://evil.example.com/payment/trustly',
+        ] as $url) {
+            $order = $this->createStub(OrderInterface::class);
+            $order->method('getLastPayment')->willReturnCallback(
+                fn (?string $state = null): ?PaymentInterface => PaymentInterface::STATE_NEW === $state
+                    ? $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME, ['payer_action_url' => $url])
+                    : null,
+            );
+
+            $orderProvider = $this->createStub(OrderProviderInterface::class);
+            $orderProvider->method('provideOrderByToken')->willReturn($order);
+
+            $action = new CreatePayPalOrderAction(
+                $this->paymentStateManager,
+                $orderProvider,
+                $this->capturePaymentResolver,
+                $this->paymentSourceProvider,
+            );
+
+            $content = json_decode((string) $action($this->request())->getContent(), true);
+
+            self::assertArrayNotHasKey('payerActionUrl', $content, $url);
+        }
+    }
+
     private function payments(?PaymentInterface $processing, ?PaymentInterface $new): void
     {
         $this->order->method('getLastPayment')->willReturnCallback(
@@ -188,7 +242,8 @@ final class CreatePayPalOrderActionTest extends TestCase
         );
     }
 
-    private function payment(string $factoryName): PaymentInterface&MockObject
+    /** @param array<string, mixed> $details */
+    private function payment(string $factoryName, array $details = []): PaymentInterface&MockObject
     {
         $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
         $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
@@ -199,7 +254,7 @@ final class CreatePayPalOrderActionTest extends TestCase
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getMethod')->willReturn($paymentMethod);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_NEW);
-        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $payment->method('getDetails')->willReturn(array_merge(['paypal_order_id' => 'PAYPAL_ORDER_ID'], $details));
 
         return $payment;
     }

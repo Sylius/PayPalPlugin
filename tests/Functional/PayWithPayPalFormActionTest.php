@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\Model\OrderItemInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Tests\Sylius\PayPalPlugin\Service\FakeFindEligibleMethodsApi;
 
 final class PayWithPayPalFormActionTest extends JsonApiTestCase
 {
@@ -71,13 +72,54 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
-    private function requestPaymentPage(bool $googlePayEnabled = false): void
+    public function test_it_renders_no_trustly_tile_until_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertStringNotContainsString(
+            'sylius--paypal-plugin--paypal-payment-redirect-button',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
+    public function test_it_renders_the_trustly_tile_once_the_channel_opts_in_and_paypal_says_it_is_eligible(): void
+    {
+        FakeFindEligibleMethodsApi::$eligibleMethods = ['trustly' => []];
+
+        $this->requestPaymentPage(trustlyEnabled: true);
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-redirect-button', $content);
+        self::assertStringContainsString(
+            'data-sylius--paypal-plugin--paypal-payment-redirect-button-payment-source-value="trustly"',
+            $content,
+        );
+        self::assertStringContainsString('Pay with Trustly', $content);
+    }
+
+    public function test_it_renders_no_trustly_tile_when_paypal_says_it_is_not_eligible(): void
+    {
+        FakeFindEligibleMethodsApi::$eligibleMethods = [];
+
+        $this->requestPaymentPage(trustlyEnabled: true);
+
+        self::assertStringNotContainsString(
+            'sylius--paypal-plugin--paypal-payment-redirect-button',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
+    private function requestPaymentPage(bool $googlePayEnabled = false, bool $trustlyEnabled = false): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
 
         if ($googlePayEnabled) {
-            $this->enableGooglePay();
+            $this->enableGatewayConfig(['google_pay_enabled' => true]);
+        }
+
+        if ($trustlyEnabled) {
+            $this->enableGatewayConfig(['trustly_enabled' => true]);
         }
 
         /** @var OrderInterface $order */
@@ -96,12 +138,13 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         $this->client->request('GET', sprintf('/en_US/pay-with-paypal/%s/%s', $order->getTokenValue(), $payment->getId()));
     }
 
-    private function enableGooglePay(): void
+    /** @param array<string, mixed> $config */
+    private function enableGatewayConfig(array $config): void
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = self::getContainer()->get('sylius.repository.payment_method')->findOneBy(['code' => 'PAYPAL']);
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['google_pay_enabled' => true]));
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), $config));
 
         self::getContainer()->get('doctrine.orm.entity_manager')->flush();
     }

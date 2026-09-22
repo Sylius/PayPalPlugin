@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Setup;
 
 use Behat\Behat\Context\Context;
+use Behat\Step\Given;
 use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -43,6 +44,18 @@ final class PaymentPayPalContext implements Context
     public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, ?int $position = 0)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
+    }
+
+    #[Given('the store allows paying with Trustly through PayPal')]
+    public function theStoreAllowsPayingWithTrustlyThroughPayPal(): void
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $this->sharedStorage->get('payment_method');
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['trustly_enabled' => true]));
+
+        $this->paymentMethodRepository->add($paymentMethod);
     }
 
     /**
