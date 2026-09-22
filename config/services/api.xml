@@ -131,6 +131,17 @@
         <service id="Sylius\PayPalPlugin\Api\WebhookApiInterface" alias="sylius_paypal.api.webhook" />
 
         <service
+            id="sylius_paypal.api.update_webhook"
+            class="Sylius\PayPalPlugin\Api\UpdateWebhookApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface" alias="sylius_paypal.api.update_webhook" />
+
+        <service
             id="sylius_paypal.api.webhook_signature_verifier"
             class="Sylius\PayPalPlugin\Api\WebhookSignatureVerifier"
         >

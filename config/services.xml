@@ -456,6 +456,19 @@
         </service>
         <service id="Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface" alias="sylius_paypal.processor.payment_settlement" />
 
+        <service id="sylius_paypal.registrar.seller_webhook_event_types" class="Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar">
+            <argument type="service" id="sylius_paypal.provider.webhook_id" />
+            <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
+            <argument type="service" id="sylius_paypal.api.update_webhook" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface" alias="sylius_paypal.registrar.seller_webhook_event_types" />
+
+        <service id="sylius_paypal.console.command.register_webhook_event_types" class="Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand">
+            <argument type="service" id="sylius.repository.payment_method" />
+            <argument type="service" id="sylius_paypal.registrar.seller_webhook_event_types" />
+            <tag name="console.command" />
+        </service>
+
         <service id="sylius_paypal.console.command.complete_paid_payments" class="Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand">
             <argument type="service" id="sylius.repository.payment" />
             <argument type="service" id="sylius_paypal.processor.payment_settlement" />
