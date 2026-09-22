@@ -2,6 +2,6 @@
 {% set order = hookable_metadata.context.order %}
 {% set lastPayment = order.payments.last() %}
 
-{% if lastPayment.state != constant('Sylius\\Component\\Payment\\Model\\PaymentInterface::STATE_COMPLETED') %}
+{% if lastPayment.state != constant('Sylius\\Component\\Payment\\Model\\PaymentInterface::STATE_COMPLETED') and not sylius_paypal_is_awaiting_payer_action(lastPayment) %}
     {{ buttons.primary(path('sylius_shop_order_show', {'tokenValue': order.tokenValue}), 'sylius.ui.change_payment_method'|trans, 'payment-method-page', null) }}
 {% endif %}

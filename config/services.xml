@@ -468,6 +468,7 @@
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
             <argument type="service" id="sylius.context.channel" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
             <tag name="twig.extension" />
         </service>
 

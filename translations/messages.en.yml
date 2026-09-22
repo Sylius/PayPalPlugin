@@ -1,4 +1,5 @@
 sylius_paypal:
+    awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
     card_number: 'Card number'
@@ -12,6 +13,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Production'
     expiration_date: 'Expiration date'
+    finish_the_payment: 'Finish the payment'
     google_pay_enabled: 'Enable Google Pay'
     invalid_form: 'Form is invalid'
     label: 'PayPal'
