@@ -37,13 +37,6 @@ jobs:
                 node: ["22.x"]
                 state_machine_adapter: ["symfony_workflow"]
 
-                exclude:
-                    # sylius/test-application 2.3 sets framework.property_info.with_constructor_extractor,
-                    # an option Symfony 6.4 does not know.
-                    -
-                        sylius: "~2.3.0@alpha"
-                        symfony: "^6.4"
-
                 include:
                     # PHP 8.2 floor: composer.json still allows it, Sylius 2.3 requires PHP >= 8.3.
                     -
