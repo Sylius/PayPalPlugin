@@ -423,6 +423,14 @@
         </service>
         <service id="Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface" alias="sylius_paypal.provider.eligible_redirect_payment_sources" />
 
+        <service id="sylius_paypal.verifier.paypal_webhook_request" class="Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifier">
+            <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
+            <argument type="service" id="sylius_paypal.provider.webhook_id" />
+            <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
+            <argument type="service" id="sylius_paypal.api.webhook_signature_verifier" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface" alias="sylius_paypal.verifier.paypal_webhook_request" />
+
         <service id="sylius_paypal.checker.payer_action" class="Sylius\PayPalPlugin\Checker\PayerActionChecker" />
         <service id="Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface" alias="sylius_paypal.checker.payer_action" />
 
