@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
@@ -48,6 +49,8 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
+        $redirectPaymentSource = RedirectPaymentSource::tryFrom($paymentSource);
+
         $payerReturnUrl = $this->router?->generate(
             'sylius_shop_checkout_complete',
             [],
@@ -58,7 +61,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             $order,
             $payerReturnUrl,
             $payerReturnUrl,
-            $this->shippingCallbackUrlProvider?->provide(),
+            null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider?->provide() : null,
         );
 
         return new PayPalOrder(
@@ -66,6 +69,9 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
             intent: PayPalOrder::INTENT_CAPTURE,
             paymentSource: $this->paymentSourceProvider->provide($order, $paymentSource, $experienceContext),
+            processingInstruction: null === $redirectPaymentSource
+                ? null
+                : PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,
         );
     }
 }

@@ -16,12 +16,14 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -190,6 +192,82 @@ final class PayPalOrderFactoryTest extends TestCase
                 'launch_paypal_app' => true,
             ],
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
+    }
+
+    public function test_it_asks_paypal_to_complete_a_redirect_order_on_payment_approval(): void
+    {
+        $payPalOrder = $this->factory
+            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY)
+            ->toArray()
+        ;
+
+        self::assertSame('ORDER_COMPLETE_ON_PAYMENT_APPROVAL', $payPalOrder['processing_instruction']);
+        self::assertArrayNotHasKey(
+            'processing_instruction',
+            $this->factory->create($this->payment, 'REFERENCE_ID')->toArray(),
+        );
+    }
+
+    public function test_it_declares_no_shipping_callback_on_a_redirect_order(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(self::anything(), self::anything(), self::anything(), null)
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
+    }
+
+    public function test_it_still_declares_a_shipping_callback_on_a_wallet_order(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(
+                self::anything(),
+                self::anything(),
+                self::anything(),
+                'https://shop.example.com/paypal/order-shipping-callback',
+            )
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->payment, 'REFERENCE_ID');
+    }
+
+    private function redirectPayment(): PaymentInterface&MockObject
+    {
+        $billingAddress = $this->createMock(AddressInterface::class);
+        $billingAddress->method('getFullName')->willReturn('Patrick Watson');
+        $billingAddress->method('getCountryCode')->willReturn('NL');
+
+        $customer = $this->createMock(CustomerInterface::class);
+        $customer->method('getEmail')->willReturn('patrick.watson@example.com');
+
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+        $order->method('getBillingAddress')->willReturn($billingAddress);
+        $order->method('getCustomer')->willReturn($customer);
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
+        return $payment;
     }
 
     public function test_it_builds_the_payment_source_through_its_provider(): void

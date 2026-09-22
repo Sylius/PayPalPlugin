@@ -258,4 +258,23 @@ final class CompleteOrderActionTest extends TestCase
 
         $completeOrderAction->execute($request);
     }
+
+    public function test_it_never_captures_an_order_paypal_completes_on_payment_approval(): void
+    {
+        $request = $this->createMock(CompleteOrder::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getDetails')->willReturn(['payment_source' => 'trustly']);
+
+        $this->authorizeClientApi->expects(self::never())->method('authorize');
+        $this->updateOrderApi->expects(self::never())->method('update');
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->orderDetailsApi->expects(self::never())->method('get');
+        $payment->expects(self::never())->method('setDetails');
+
+        $this->completeOrderAction->execute($request);
+    }
 }
