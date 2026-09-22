@@ -362,6 +362,7 @@
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.processor.locale" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
+            <argument type="service" id="sylius_paypal.provider.eligible_redirect_payment_sources" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface" alias="sylius_paypal.provider.paypal_payment_page_context" />
 
@@ -413,6 +414,14 @@
             class="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider"
         />
         <service id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" alias="sylius_paypal.provider.payment_reference_number" />
+
+        <service id="sylius_paypal.provider.eligible_redirect_payment_sources" class="Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider">
+            <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
+            <argument type="service" id="sylius_paypal.api.find_eligible_methods" />
+            <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface" alias="sylius_paypal.provider.eligible_redirect_payment_sources" />
 
         <service id="sylius_paypal.checker.payer_action" class="Sylius\PayPalPlugin\Checker\PayerActionChecker" />
         <service id="Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface" alias="sylius_paypal.checker.payer_action" />

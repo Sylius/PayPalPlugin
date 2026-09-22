@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
@@ -34,6 +35,8 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
 
     private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
+
+    private EligibleRedirectPaymentSourcesProviderInterface&Stub $eligibleRedirectPaymentSourcesProvider;
 
     private PayPalPaymentPageContextProvider $provider;
 
@@ -66,12 +69,15 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->payment->method('getAmount')->willReturn(12345);
 
         $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
+        $this->eligibleRedirectPaymentSourcesProvider = $this->createStub(EligibleRedirectPaymentSourcesProviderInterface::class);
+        $this->eligibleRedirectPaymentSourcesProvider->method('provide')->willReturn([]);
 
         $this->provider = new PayPalPaymentPageContextProvider(
             $this->webSdkConfigurationProvider,
             $router,
             $localeProcessor,
             $this->fundingSourcesConfigurationProvider,
+            $this->eligibleRedirectPaymentSourcesProvider,
         );
     }
 
