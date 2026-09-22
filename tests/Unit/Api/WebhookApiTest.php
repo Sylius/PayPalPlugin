@@ -142,4 +142,38 @@ final class WebhookApiTest extends TestCase
 
         self::assertEquals(['status' => 'CREATED'], $result);
     }
+
+    public function test_it_subscribes_to_every_event_the_plugin_handles(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $response = $this->createMock(ResponseInterface::class);
+        $body = $this->createMock(StreamInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $request->method('withBody')->willReturn($request);
+        $this->client->method('sendRequest')->willReturn($response);
+        $response->method('getBody')->willReturn($body);
+        $body->method('getContents')->willReturn('{}');
+
+        $payload = null;
+        $this->streamFactory
+            ->method('createStream')
+            ->willReturnCallback(function (string $content) use (&$payload, $body): StreamInterface {
+                $payload = json_decode($content, true);
+
+                return $body;
+            })
+        ;
+
+        $this->webhookApi->register('TOKEN', 'https://shop.example.com/paypal-webhook/api/');
+
+        self::assertSame([
+            ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+            ['name' => 'PAYMENT.CAPTURE.COMPLETED'],
+            ['name' => 'PAYMENT.CAPTURE.DENIED'],
+            ['name' => 'PAYMENT.CAPTURE.DECLINED'],
+            ['name' => 'PAYMENT.CAPTURE.PENDING'],
+        ], $payload['event_types']);
+    }
 }

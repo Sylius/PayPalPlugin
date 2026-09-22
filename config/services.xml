@@ -423,6 +423,19 @@
         </service>
         <service id="Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface" alias="sylius_paypal.provider.eligible_redirect_payment_sources" />
 
+        <service id="sylius_paypal.processor.webhook.refund_order" class="Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor">
+            <argument type="service" id="sylius_paypal.provider.paypal_refund_data" />
+            <argument type="service" id="sylius_paypal.repository.query.paypal_payment" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
+            <argument type="service" id="sylius.manager.payment" />
+        </service>
+
+        <service id="sylius_paypal.processor.webhook.capture_payment" class="Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor">
+            <argument type="service" id="sylius_paypal.repository.query.paypal_payment" />
+            <argument type="service" id="sylius_paypal.processor.payment_settlement" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+
         <service id="sylius_paypal.verifier.paypal_webhook_request" class="Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifier">
             <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
             <argument type="service" id="sylius_paypal.provider.webhook_id" />
