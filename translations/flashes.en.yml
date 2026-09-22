@@ -6,6 +6,7 @@ sylius_paypal:
     order_total_changed: 'Your order total has changed since the payment was started. Please, review your order and pay again.'
     payment_cancelled: 'PayPal payment has been cancelled'
     payment_enabled: 'PayPal payment has just been enabled.'
+    payment_pending: 'Your payment is on its way. We will confirm your order as soon as your bank has sent the money.'
     payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'
     something_went_wrong: 'Something went wrong. Please, try again.'
     three_d_secure_declined: 'Your card could not be authenticated. Please use another payment method.'

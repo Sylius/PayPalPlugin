@@ -270,6 +270,34 @@ final class PayPalOrderFactoryTest extends TestCase
         return $payment;
     }
 
+    public function test_it_sends_a_redirect_order_its_own_return_and_cancel_urls(): void
+    {
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturnCallback(
+            static fn (string $route): string => 'https://shop.example.com/' . $route,
+        );
+
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(
+                self::anything(),
+                'https://shop.example.com/sylius_paypal_shop_redirect_return',
+                'https://shop.example.com/sylius_paypal_shop_redirect_cancel',
+                null,
+            )
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $router,
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
+    }
+
     public function test_it_builds_the_payment_source_through_its_provider(): void
     {
         $paymentSourceProvider = $this->createMock(PayPalPaymentSourceProviderInterface::class);

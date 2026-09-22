@@ -4,6 +4,18 @@ sylius_paypal_shop_pay_with_paypal_form:
     defaults:
         _controller: sylius_paypal.controller.pay_with_paypal_form
 
+sylius_paypal_shop_redirect_return:
+    path: /paypal/redirect-return/{token}
+    methods: [GET]
+    defaults:
+        _controller: sylius_paypal.controller.paypal_redirect_return
+
+sylius_paypal_shop_redirect_cancel:
+    path: /paypal/redirect-cancel/{token}
+    methods: [GET]
+    defaults:
+        _controller: sylius_paypal.controller.paypal_redirect_cancel
+
 sylius_paypal_shop_create_paypal_order:
     path: /create-pay-pal-order/{token}
     methods: [POST]

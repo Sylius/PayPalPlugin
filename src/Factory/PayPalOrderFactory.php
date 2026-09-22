@@ -51,16 +51,10 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
         $redirectPaymentSource = RedirectPaymentSource::tryFrom($paymentSource);
 
-        $payerReturnUrl = $this->router?->generate(
-            'sylius_shop_checkout_complete',
-            [],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
-
         $experienceContext = $this->experienceContextProvider->provide(
             $order,
-            $payerReturnUrl,
-            $payerReturnUrl,
+            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_return'),
+            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_cancel'),
             null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider?->provide() : null,
         );
 
@@ -72,6 +66,19 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             processingInstruction: null === $redirectPaymentSource
                 ? null
                 : PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,
+        );
+    }
+
+    private function payerUrl(OrderInterface $order, ?RedirectPaymentSource $redirectPaymentSource, string $route): ?string
+    {
+        if (null === $redirectPaymentSource) {
+            return $this->router?->generate('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+
+        return $this->router?->generate(
+            $route,
+            ['token' => $order->getTokenValue()],
+            UrlGeneratorInterface::ABSOLUTE_URL,
         );
     }
 }
