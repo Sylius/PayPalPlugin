@@ -24,9 +24,24 @@ enum RedirectPaymentSource: string
         };
     }
 
+    public function iconUrl(): string
+    {
+        return sprintf(
+            'https://www.paypalobjects.com/images/checkout/alternative_payments/paypal_%s_color.svg',
+            $this->iconCode(),
+        );
+    }
+
     public function configurationKey(): string
     {
         return $this->value . '_enabled';
+    }
+
+    private function iconCode(): string
+    {
+        return match ($this) {
+            self::Trustly => 'trustly',
+        };
     }
 
     /** @return list<string> */

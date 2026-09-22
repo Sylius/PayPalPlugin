@@ -46,4 +46,12 @@ final class RedirectPaymentSourceTest extends TestCase
         self::assertNull(RedirectPaymentSource::tryFrom(PayPalPaymentSourceProviderInterface::PAYPAL));
         self::assertNull(RedirectPaymentSource::tryFrom(PayPalPaymentSourceProviderInterface::GOOGLE_PAY));
     }
+
+    public function test_it_points_at_the_mark_paypal_hosts_for_each_method(): void
+    {
+        self::assertSame(
+            'https://www.paypalobjects.com/images/checkout/alternative_payments/paypal_trustly_color.svg',
+            RedirectPaymentSource::Trustly->iconUrl(),
+        );
+    }
 }

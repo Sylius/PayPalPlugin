@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Provider;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -66,10 +65,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'order' => $order,
             'payment' => $payment,
             'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
-            'redirectPaymentSources' => array_map(
-                static fn (RedirectPaymentSource $case): string => $case->value,
-                $this->eligibleRedirectPaymentSourcesProvider->provide($payment),
-            ),
+            'redirectPaymentSources' => $this->redirectPaymentSources($payment),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
@@ -78,6 +74,18 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
         ];
+    }
+
+    /** @return array<string, string> */
+    private function redirectPaymentSources(PaymentInterface $payment): array
+    {
+        $paymentSources = [];
+
+        foreach ($this->eligibleRedirectPaymentSourcesProvider->provide($payment) as $case) {
+            $paymentSources[$case->value] = $case->iconUrl();
+        }
+
+        return $paymentSources;
     }
 
     private function languageCode(string $locale): string

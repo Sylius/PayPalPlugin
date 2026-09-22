@@ -95,6 +95,10 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
             $content,
         );
         self::assertStringContainsString('Pay with Trustly', $content);
+        self::assertStringContainsString(
+            'paypalobjects.com/images/checkout/alternative_payments/paypal_trustly_color.svg',
+            $content,
+        );
     }
 
     public function test_it_renders_no_trustly_tile_when_paypal_says_it_is_not_eligible(): void
