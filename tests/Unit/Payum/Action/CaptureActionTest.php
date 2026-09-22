@@ -239,4 +239,71 @@ final class CaptureActionTest extends TestCase
 
         self::assertFalse($this->captureAction->supports($request));
     }
+
+    public function test_it_keeps_the_link_paypal_sends_the_payer_to(): void
+    {
+        $request = $this->createMock(Capture::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getAmount')->willReturn(1000);
+        $payment->method('getDetails')->willReturn(['payment_source' => 'trustly']);
+
+        $this->uuidProvider->method('provide')->willReturn('UUID');
+        $this->authorizeClientApi->method('authorize')->willReturn('ACCESS_TOKEN');
+        $this->createOrderApi->method('create')->willReturn([
+            'status' => 'PAYER_ACTION_REQUIRED',
+            'id' => '123123',
+            'links' => [
+                ['href' => 'https://api-m.sandbox.paypal.com/v2/checkout/orders/123123', 'rel' => 'self', 'method' => 'GET'],
+                ['href' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123', 'rel' => 'payer-action', 'method' => 'GET'],
+            ],
+        ]);
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => StatusAction::STATUS_CAPTURED,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'UUID',
+            'payment_amount' => 1000,
+            'payment_source' => 'trustly',
+            'payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123',
+        ]);
+
+        $this->captureAction->execute($request);
+    }
+
+    public function test_it_keeps_no_payer_action_url_when_paypal_sends_no_such_link(): void
+    {
+        $request = $this->createMock(Capture::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getAmount')->willReturn(1000);
+        $payment->method('getDetails')->willReturn([]);
+
+        $this->uuidProvider->method('provide')->willReturn('UUID');
+        $this->authorizeClientApi->method('authorize')->willReturn('ACCESS_TOKEN');
+        $this->createOrderApi->method('create')->willReturn([
+            'status' => 'CREATED',
+            'id' => '123123',
+            'links' => [
+                ['href' => 'https://api-m.sandbox.paypal.com/v2/checkout/orders/123123', 'rel' => 'self', 'method' => 'GET'],
+                ['href' => 'https://www.sandbox.paypal.com/checkoutnow?token=123123', 'rel' => 'approve', 'method' => 'GET'],
+            ],
+        ]);
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => StatusAction::STATUS_CAPTURED,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'UUID',
+            'payment_amount' => 1000,
+            'payment_source' => 'paypal',
+        ]);
+
+        $this->captureAction->execute($request);
+    }
 }

@@ -27,6 +27,8 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CaptureAction implements ActionInterface
 {
+    public const PAYER_ACTION_LINK_REL = 'payer-action';
+
     public function __construct(
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private CreateOrderApiInterface $createOrderApi,
@@ -66,8 +68,27 @@ final readonly class CaptureAction implements ActionInterface
                 'reference_id' => $referenceId,
                 'payment_amount' => $payment->getAmount(),
                 'payment_source' => $paymentSource,
-            ]);
+            ] + $this->payerActionDetails($content));
         }
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     *
+     * @return array{payer_action_url?: string}
+     */
+    private function payerActionDetails(array $content): array
+    {
+        /** @var array<array{rel?: string, href?: string}> $links */
+        $links = $content['links'] ?? [];
+
+        foreach ($links as $link) {
+            if (self::PAYER_ACTION_LINK_REL === ($link['rel'] ?? null) && isset($link['href'])) {
+                return ['payer_action_url' => (string) $link['href']];
+            }
+        }
+
+        return [];
     }
 
     private function resolvePaymentSource(PaymentInterface $payment): string
