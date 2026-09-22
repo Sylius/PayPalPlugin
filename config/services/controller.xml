@@ -128,6 +128,7 @@
             <argument>null</argument>
             <argument type="service" id="sylius_paypal.provider.paypal_payment_page_context" />
             <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
         </service>
 
         <service id="sylius_paypal.controller.process_paypal_order" class="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
@@ -185,6 +186,7 @@
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
             <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
         </service>
 
         <service id="sylius_paypal.controller.add_to_cart" class="Sylius\PayPalPlugin\Controller\AddToCartAction">

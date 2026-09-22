@@ -17,6 +17,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\IdentityApiInterface;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
@@ -30,6 +32,8 @@ use Twig\Environment;
 
 final readonly class PayWithPayPalFormAction
 {
+    private PayerActionCheckerInterface $payerActionChecker;
+
     /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
     public function __construct(
         private Environment $twig,
@@ -41,7 +45,10 @@ final readonly class PayWithPayPalFormAction
         private ?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null,
         private ?PayPalPaymentPageContextProviderInterface $contextProvider = null,
         private ?UrlGeneratorInterface $router = null,
+        ?PayerActionCheckerInterface $payerActionChecker = null,
     ) {
+        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
+
         $this->deprecateUnusedArgument($this->countriesProvider, AvailableCountriesProviderInterface::class);
         $this->deprecateUnusedArgument($this->authorizeClientApi, CacheAuthorizeClientApiInterface::class);
         $this->deprecateUnusedArgument($this->identityApi, IdentityApiInterface::class);
@@ -65,6 +72,13 @@ final readonly class PayWithPayPalFormAction
             return new RedirectResponse(
                 $this->requireArgument($this->router, UrlGeneratorInterface::class)
                     ->generate('sylius_shop_order_thank_you'),
+            );
+        }
+
+        if ($this->payerActionChecker->isAwaitingPayerAction($payment)) {
+            return new RedirectResponse(
+                $this->requireArgument($this->router, UrlGeneratorInterface::class)
+                    ->generate('sylius_shop_order_show', ['tokenValue' => $orderToken]),
             );
         }
 

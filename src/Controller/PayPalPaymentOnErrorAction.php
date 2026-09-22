@@ -19,6 +19,8 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
@@ -28,6 +30,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 final readonly class PayPalPaymentOnErrorAction
 {
+    private PayerActionCheckerInterface $payerActionChecker;
+
     public function __construct(
         private RequestStack $flashBagOrRequestStack,
         private LoggerInterface $logger,
@@ -35,7 +39,10 @@ final readonly class PayPalPaymentOnErrorAction
         private ?StateMachineInterface $stateMachine = null,
         private ?OrderProcessorInterface $orderPaymentProcessor = null,
         private ?ObjectManager $objectManager = null,
+        ?PayerActionCheckerInterface $payerActionChecker = null,
     ) {
+        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
+
         if (!$this->canCancelPayments()) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
@@ -99,6 +106,7 @@ final readonly class PayPalPaymentOnErrorAction
 
         if (
             null === $payment ||
+            $this->payerActionChecker->isAwaitingPayerAction($payment) ||
             !$this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)
         ) {
             return;

@@ -89,6 +89,7 @@
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius.manager.payment" />
             <argument type="service" id="sylius_paypal.processor.payment_complete" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
         </service>
         <service id="Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface" alias="sylius_paypal.manager.payment_state" />
 
@@ -412,6 +413,9 @@
             class="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider"
         />
         <service id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" alias="sylius_paypal.provider.payment_reference_number" />
+
+        <service id="sylius_paypal.checker.payer_action" class="Sylius\PayPalPlugin\Checker\PayerActionChecker" />
+        <service id="Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface" alias="sylius_paypal.checker.payer_action" />
 
         <service id="sylius_paypal.processor.payment_settlement" class="Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor">
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
