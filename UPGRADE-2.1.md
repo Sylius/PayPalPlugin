@@ -928,3 +928,160 @@
            routing:
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
+1. #### Trustly is available on the PayPal payment page.
+
+   A new tile on `/pay-with-paypal/{orderToken}/{paymentId}`, between Google Pay and the card fields. One
+   new, **opt-in** toggle on the PayPal payment method's gateway config controls it:
+
+   - `trustly_enabled` — defaults to `false`, including for existing payment methods.
+
+   Same default as `google_pay_enabled` and for the same reason: the merchant has to onboard the `TRUSTLY`
+   capability on their PayPal account before it works at all
+   (`https://www.paypal.com/bizsignup/add-product?product=trustly&capabilities=TRUSTLY&country.x=<cc>`;
+   sandbox uses `/bizsignup/entry` with the same query), and SDD §4.1.4 asks for the methods a merchant has
+   opted into.
+
+   **Trustly does not exist in Web SDK v6.** `findEligibleMethods()` answers about `card`, `paypal`,
+   `venmo`, `paylater`, `credit`, `advanced_cards`, `applepay` and `googlepay` — no alternative payment
+   method — and there is no Trustly payment session to create. PayPal's own Trustly guide is still written
+   against JS SDK v5. So the tile is server-side: the order is created through the endpoint the wallets
+   already use, and the buyer is sent to PayPal with a full-page redirect. Nothing about it touches the v6
+   instance, which also means it keeps working on a shop whose PayPal app lacks the v6 feature.
+
+   Reach: Austria, Germany, Denmark, Estonia, Spain, Finland, Great Britain, Lithuania, Latvia, the
+   Netherlands, Norway and Sweden, in `EUR`, `DKK`, `SEK`, `GBP` or `NOK`. No vaulting, no chargebacks, no
+   shipping callback; refunds work for up to 365 days.
+
+   It ships as its own Stimulus controller and needs the same one-time registration as the others:
+
+   ```json
+   "@sylius/paypal-plugin": {
+       "paypal-payment-redirect-button": { "enabled": true, "fetch": "lazy" }
+   }
+   ```
+
+   The tile sits at hook priority `150`, between `google_pay` (200) and `card` (100). **No existing priority
+   changed.**
+
+   **Settlement is asynchronous, and this is the part to read twice.** PayPal captures the order itself, on
+   approval, because the order is created with
+   `processing_instruction: ORDER_COMPLETE_ON_PAYMENT_APPROVAL`. The moment the buyer approves at their
+   bank the PayPal *order* reports `COMPLETED` — while the capture underneath is still `PENDING`, for up to
+   seven days. **`order.status === 'COMPLETED'` is not proof of payment for a redirect method.** Only
+   `purchase_units[0].payments.captures[0].status` is. The Sylius payment stays `processing`, and the order
+   stays `awaiting_payment`, until the capture completes. **Do not ship on a `processing` payment.**
+
+1. #### `sylius-paypal:complete-payments` now completes on the capture status, not the order status.
+
+   The command used to complete any `processing` PayPal payment whose PayPal **order** reported `COMPLETED`.
+   With a redirect method that is true while the money is still in transit, so the cron would have marked
+   unpaid orders as paid and a later `PAYMENT.CAPTURE.DENIED` would have found a `completed` payment it
+   could not fail.
+
+   It now delegates to `Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface`
+   (`sylius_paypal.processor.payment_settlement`), which reads the capture. For the wallet and card flows
+   the outcome is identical — `CompleteOrderAction` produces a completed capture alongside a completed
+   order. It differs only for an order reporting `COMPLETED` with no capture recorded, which is now left
+   alone instead of being completed.
+
+   The command's constructor changed accordingly: it takes the payment repository and the settlement
+   processor, and no longer takes an object manager, the authorize/order-details APIs or the state machine.
+
+1. #### The webhook endpoint now dispatches by event type.
+
+   Same route name, same path (`POST /paypal-webhook/api/`) — PayPal registers one URL per webhook and the
+   id is looked up by that URL, so everything has to land there.
+   `Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction` verifies the request once and hands the
+   payload to whichever `Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface` claims the event.
+
+   `RefundOrderAction` and its service id keep working and are deprecated in favour of the dispatcher plus
+   `RefundOrderWebhookProcessor`. The verification block it used to inline now lives in
+   `Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface`.
+
+   The plugin now subscribes to `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
+   `PAYMENT.CAPTURE.DECLINED` and `PAYMENT.CAPTURE.PENDING` alongside the existing
+   `PAYMENT.CAPTURE.REFUNDED`. (`DENIED` and `DECLINED` are both subscribed because PayPal's Trustly guide
+   names the first and the SDD's webhook table names the second.)
+
+   **Existing shops have to run one command:**
+
+   ```
+   bin/console sylius-paypal:register-webhook-event-types
+   ```
+
+   A webhook registered before this release is subscribed to `PAYMENT.CAPTURE.REFUNDED` only, and
+   re-enabling the payment method does not update it — PayPal answers `WEBHOOK_URL_ALREADY_EXISTS` and the
+   registrar gives up. The command `PATCH`es the existing webhook, so its id — and with it the id stored on
+   the gateway config and every in-flight signature check — stays valid.
+
+   **A shop that never runs it is not broken, only slower.** A Trustly payment still settles through the
+   return page and through `sylius-paypal:complete-payments`.
+
+   Two changes reach shops that never enable Trustly. An event for an order the shop does not have now
+   answers `204` instead of `404`, so PayPal stops retrying it. And once `PAYMENT.CAPTURE.COMPLETED` is
+   subscribed, **every** card and wallet payment delivers one too; the handler finds those payments already
+   completed and does nothing, but it is traffic that did not exist before.
+
+1. #### A payment waiting at the buyer's bank is protected from being cancelled.
+
+   While a redirect payment is `processing` and carries a `payer_action_url`, `PaymentStateManager::cancel()`
+   is a no-op. Six paths reap a live `processing` attempt — creating a new order, the cancel endpoints, the
+   JavaScript error reporter — and any of them cancelling a payment whose money is already in flight would
+   let the buyer pay twice.
+
+   Consequences you may notice:
+
+   - `POST /create-pay-pal-order/{token}` answers `409 Conflict` while such a payment exists, rather than
+     cancelling it and starting a new attempt.
+   - `/pay-with-paypal/{orderToken}/{paymentId}` redirects to the order page instead of rendering the
+     method tiles.
+   - The thank-you page hides its "Change payment method" button, and the plugin's different-amount notice
+     is suppressed, for such a payment. A new notice on the order page says the transfer is on its way and
+     offers the link back to the bank.
+
+   `sylius_paypal_shop_cancel_payment` and `sylius_paypal_shop_cancel_last_payment` are deliberately **not**
+   guarded: they are the buyer's deliberate way out of an attempt they abandoned at the bank.
+
+   The predicate is `Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface`
+   (`sylius_paypal.checker.payer_action`), also exposed to templates as
+   `sylius_paypal_is_awaiting_payer_action(payment)`.
+
+1. #### Three new shop routes, and a changed `return_url`.
+
+   ```
+   GET /{_locale}/paypal/redirect-return/{token}    sylius_paypal_shop_redirect_return
+   GET /{_locale}/paypal/redirect-cancel/{token}    sylius_paypal_shop_redirect_cancel
+   ```
+
+   Both live under the shop's `/{_locale}` prefix, unlike `sylius_paypal_order_shipping_callback`. That
+   endpoint is a request PayPal's servers make and wait on; these are browser navigations by the buyer that
+   answer with a redirect to a shop page, so the locale prefix is right for them. They identify the payment
+   by the order token in the path and never by the session, which does not survive every browser's
+   `SameSite` policy across an off-site redirect.
+
+   Orders created for a redirect method now point `return_url` and `cancel_url` at those two routes instead
+   of both at `sylius_shop_checkout_complete`. Wallet and card orders are unchanged.
+
+1. #### Smaller changes worth knowing about.
+
+   - `PayPalPaymentSourceProviderInterface` gained `TRUSTLY` and `BASE_EXPERIENCE_CONTEXT_KEYS`. The
+     Trustly node carries `name`, `country_code` and `email` from the order's billing address and customer,
+     and an `experience_context` trimmed to the five keys PayPal's `experience_context_base` accepts —
+     `user_action`, `contact_preference`, `payment_method_preference` and `app_switch_preference` are
+     `paypal`-only and are dropped.
+   - `PayPalOrder` gained a trailing optional `?string $processingInstruction = null`, and `toArray()` may
+     now emit `processing_instruction`.
+   - `CaptureAction` now keeps the `payer-action` link from the create-order response as
+     `payer_action_url` in the payment details, for every payment source.
+   - `CompleteOrderAction` returns early for a redirect payment source. PayPal has already captured such an
+     order, and patching or capturing it again would fail — invisibly, because the client swallows non-2xx
+     responses.
+   - `PaypalPaymentQueryInterface` gained `getForSettlementByOrderId()`, backed by a new
+     `sylius_paypal.repository.query.pay_pal_payment.settleable_states` parameter. It deliberately covers
+     `cancelled` and `failed` as well, so a late webhook can find its payment and log the mismatch rather
+     than throw.
+   - `PayPalFundingSourcesConfigurationProviderInterface` gained `isTrustlyEnabled(ChannelInterface)`.
+     Implement it if you implement that interface from scratch rather than decorating the shipped provider.
+   - `PayPalClient` no longer fails when no channel is in context. The `PayPal-Partner-Attribution-Id`
+     header is omitted and a warning logged instead of an exception being thrown, which is what lets the
+     webhook handler and the CLI sweeper reach PayPal at all.
