@@ -15,6 +15,8 @@ namespace Tests\Sylius\PayPalPlugin\Behat\Context\Admin;
 
 use Behat\Behat\Context\Context;
 use Behat\Mink\Exception\ElementNotFoundException;
+use Behat\Step\Then;
+use Behat\Step\When;
 use Sylius\Behat\Exception\NotificationExpectationMismatchException;
 use Sylius\Behat\NotificationType;
 use Sylius\Behat\Page\Admin\PaymentMethod\CreatePageInterface;
@@ -32,33 +34,25 @@ final readonly class ManagingPaymentMethodsContext implements Context
     ) {
     }
 
-    /**
-     * @When I download report for :paymentMethodName payment method
-     */
+    #[When('I download report for :paymentMethodName payment method')]
     public function iDownloadPayPalReport(string $paymentMethodName): void
     {
         $this->downloadPayPalReportElement->downloadReport($paymentMethodName);
     }
 
-    /**
-     * @Then yesterday report's CSV file should be successfully downloaded
-     */
+    #[Then('yesterday report\'s CSV file should be successfully downloaded')]
     public function yesterdayReportCsvFileShouldBeSuccessfullyDownloaded(): void
     {
         Assert::true($this->downloadPayPalReportElement->isCsvReportDownloaded());
     }
 
-    /**
-     * @When I try to create a new payment method with "PayPal" gateway factory
-     */
+    #[When('I try to create a new payment method with "PayPal" gateway factory')]
     public function iTryToCreateANewPaymentMethodWithGatewayFactory(): void
     {
         $this->createPage->tryToOpen(['factory' => SyliusPayPalExtension::PAYPAL_FACTORY_NAME]);
     }
 
-    /**
-     * @Then I should be notified that I cannot onboard more than one PayPal seller
-     */
+    #[Then('I should be notified that I cannot onboard more than one PayPal seller')]
     public function iShouldBeNotifiedThatICannotOnboardMoreThanOnePayPalSeller(): void
     {
         $this->notificationChecker->checkNotification(
@@ -67,9 +61,7 @@ final readonly class ManagingPaymentMethodsContext implements Context
         );
     }
 
-    /**
-     * @Then I should not be notified that I cannot onboard more than one PayPal seller
-     */
+    #[Then('I should not be notified that I cannot onboard more than one PayPal seller')]
     public function iShouldNotBeNotifiedThatICannotOnboardMoreThanOnePayPalSeller(): void
     {
         try {
