@@ -2,16 +2,18 @@ import { Controller } from '@hotwired/stimulus';
 import { paymentPageSession } from '../scripts/paypal-payment-page';
 
 export default class extends Controller {
-    static targets = ['button'];
+    static targets = ['button', 'payLaterButton'];
 
     static values = {
         scriptUrl: String,
         instanceConfig: Object,
         currencyCode: String,
+        amount: String,
         createOrderUrl: String,
         completeOrderUrl: String,
         cancelOrderUrl: String,
         errorUrl: String,
+        payLaterEnabled: Boolean,
     };
 
     async connect() {
@@ -20,26 +22,40 @@ export default class extends Controller {
                 scriptUrl: this.scriptUrlValue,
                 instanceConfig: this.instanceConfigValue,
                 currencyCode: this.currencyCodeValue,
+                amount: this.amountValue,
                 createOrderUrl: this.createOrderUrlValue,
             });
 
-            if (!session.isEligible('paypal')) {
-                return;
-            }
-
             this.session = session;
 
-            const paymentSession = session.sdkInstance.createPayPalOneTimePaymentSession({
-                onApprove: this.onApprove.bind(this),
-                onCancel: this.onCancel.bind(this),
-                onError: this.onError.bind(this),
-            });
+            if (this.hasButtonTarget && session.isEligible('paypal')) {
+                const paymentSession = session.sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions());
 
-            this.buttonTarget.removeAttribute('hidden');
-            this.buttonTarget.addEventListener('click', () => this.start(session, paymentSession));
+                this.buttonTarget.removeAttribute('hidden');
+                this.buttonTarget.addEventListener('click', () => this.start(session, paymentSession));
+            }
+
+            if (this.payLaterEnabledValue && this.hasPayLaterButtonTarget && session.isEligible('paylater')) {
+                const payLaterDetails = session.getDetails('paylater');
+                this.payLaterButtonTarget.productCode = payLaterDetails.productCode;
+                this.payLaterButtonTarget.countryCode = payLaterDetails.countryCode;
+
+                const payLaterSession = session.sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions());
+
+                this.payLaterButtonTarget.removeAttribute('hidden');
+                this.payLaterButtonTarget.addEventListener('click', () => this.start(session, payLaterSession));
+            }
         } catch (error) {
             console.error('PayPal Web SDK initialization error:', error);
         }
+    }
+
+    buildSessionOptions() {
+        return {
+            onApprove: this.onApprove.bind(this),
+            onCancel: this.onCancel.bind(this),
+            onError: this.onError.bind(this),
+        };
     }
 
     async start(session, paymentSession) {

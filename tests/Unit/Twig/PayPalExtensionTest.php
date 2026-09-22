@@ -109,6 +109,22 @@ final class PayPalExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_forwards_the_given_locale_to_the_web_sdk_instance_config(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->channelContext->method('getChannel')->willReturn($channel);
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->with($channel, 'checkout', ['paypal-messages'], 'en_US')
+            ->willReturn(['clientId' => 'CLIENT_ID']);
+
+        self::assertSame(
+            ['clientId' => 'CLIENT_ID'],
+            $this->extension->getWebSdkInstanceConfig('checkout', 'en_US'),
+        );
+    }
+
+    #[Test]
     public function it_returns_an_empty_instance_config_when_no_pay_pal_payment_method_is_configured_for_the_channel(): void
     {
         $channel = $this->createMock(ChannelInterface::class);

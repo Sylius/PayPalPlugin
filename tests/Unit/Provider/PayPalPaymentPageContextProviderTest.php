@@ -99,6 +99,24 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame('USD', $context['currency']);
     }
 
+    public function test_it_provides_whether_pay_later_is_enabled_for_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertTrue($context['paylaterEnabled']);
+    }
+
+    public function test_it_provides_pay_later_as_disabled_when_the_channel_does_not_allow_it(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertFalse($context['paylaterEnabled']);
+    }
+
     public function test_it_asks_the_sdk_instance_for_the_card_fields_component(): void
     {
         $this->webSdkConfigurationProvider
@@ -131,6 +149,11 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame('en', $this->provider->provide($this->payment, 'en_US')['languageCode']);
         self::assertSame('pl', $this->provider->provide($this->payment, 'pl_PL')['languageCode']);
         self::assertSame('de', $this->provider->provide($this->payment, 'de')['languageCode']);
+    }
+
+    public function test_it_provides_the_processed_locale(): void
+    {
+        self::assertSame('en_US', $this->provider->provide($this->payment, 'en_US')['locale']);
     }
 
     public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
