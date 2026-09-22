@@ -54,7 +54,11 @@ final readonly class PayPalRedirectReturnAction
 
         if (null !== $payment && PaymentInterface::STATE_PROCESSING === $payment->getState()) {
             $this->addFlash('info', 'sylius_paypal.payment_pending');
-        } elseif (null !== $payment) {
+
+            return $this->router->generate('sylius_shop_order_thank_you');
+        }
+
+        if (null !== $payment) {
             $this->addFlash('error', 'sylius_paypal.something_went_wrong');
         }
 

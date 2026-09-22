@@ -99,8 +99,16 @@ final class PayPalRedirectReturnActionTest extends TestCase
         $response = ($this->action)($this->request());
 
         self::assertInstanceOf(RedirectResponse::class, $response);
-        self::assertSame('https://shop.example.com/sylius_shop_order_show', $response->getTargetUrl());
         self::assertSame(['sylius_paypal.payment_pending'], $this->flashBag->peek('info'));
+    }
+
+    public function test_it_never_sends_a_payer_whose_money_is_in_flight_back_to_the_payment_form(): void
+    {
+        $this->payment(PaymentInterface::STATE_PROCESSING);
+
+        $response = ($this->action)($this->request());
+
+        self::assertSame('https://shop.example.com/sylius_shop_order_thank_you', $response->getTargetUrl());
     }
 
     public function test_it_tells_the_payer_the_bank_refused(): void
