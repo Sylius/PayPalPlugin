@@ -172,6 +172,7 @@
             <argument type="service" id="router" />
             <argument>%sylius_paypal.api_base_url%</argument>
             <argument>%sylius_paypal.webhook_base_url%</argument>
+            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
         </service>
 
         <service

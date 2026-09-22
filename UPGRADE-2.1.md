@@ -1012,7 +1012,16 @@
    A webhook registered before this release is subscribed to `PAYMENT.CAPTURE.REFUNDED` only, and
    re-enabling the payment method does not update it — PayPal answers `WEBHOOK_URL_ALREADY_EXISTS` and the
    registrar gives up. The command `PATCH`es the existing webhook, so its id — and with it the id stored on
-   the gateway config and every in-flight signature check — stays valid.
+   the gateway config and every in-flight signature check — stays valid. A shop that never got a webhook
+   registered at all — because the URL was not public when the payment method was enabled — gets one
+   created instead.
+
+   **Set `sylius_paypal.webhook_base_url` before running it from the CLI.** There is no request to build an
+   absolute URL from, so the router falls back to `http://localhost/…`, which PayPal will not accept and
+   which matches no registered webhook. The same parameter is what makes the plugin agree with itself about
+   the webhook URL: registering, looking the id up and verifying a signature all go through
+   `Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface` now, where registration previously
+   ignored the parameter and used the request context instead.
 
    **A shop that never runs it is not broken, only slower.** A Trustly payment still settles through the
    return page and through `sylius-paypal:complete-payments`.

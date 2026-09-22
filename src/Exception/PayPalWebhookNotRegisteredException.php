@@ -15,11 +15,14 @@ namespace Sylius\PayPalPlugin\Exception;
 
 final class PayPalWebhookNotRegisteredException extends \RuntimeException
 {
-    public function __construct(string $paymentMethodCode)
+    public function __construct(string $paymentMethodCode, string $webhookUrl, string $reason)
     {
         parent::__construct(sprintf(
-            'PayPal has no webhook registered for the payment method "%s".',
+            'PayPal has no webhook for the payment method "%s" and refused to register one at "%s": %s. ' .
+            'Set the "sylius_paypal.webhook_base_url" parameter when the URL is generated outside a request.',
             $paymentMethodCode,
+            $webhookUrl,
+            $reason,
         ));
     }
 }

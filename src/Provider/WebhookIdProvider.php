@@ -20,20 +20,24 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 {
+    private PayPalWebhookUrlProviderInterface $webhookUrlProvider;
+
     public function __construct(
         private GenericApiInterface $genericApi,
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
         private string $baseUrl,
         private string $webhookBaseUrl = '',
+        ?PayPalWebhookUrlProviderInterface $webhookUrlProvider = null,
     ) {
+        $this->webhookUrlProvider = $webhookUrlProvider ?? new PayPalWebhookUrlProvider($urlGenerator, $webhookBaseUrl);
     }
 
     public function provide(PaymentMethodInterface $paymentMethod): ?string
     {
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-        $webhookUrl = $this->webhookUrl();
+        $webhookUrl = $this->webhookUrlProvider->provide();
 
         $data = $this->genericApi->get($token, $this->baseUrl . 'v1/notifications/webhooks');
 
@@ -51,23 +55,6 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
     public function refresh(PaymentMethodInterface $paymentMethod): ?string
     {
         return $this->provide($paymentMethod);
-    }
-
-    private function webhookUrl(): string
-    {
-        if ('' !== $this->webhookBaseUrl) {
-            return rtrim($this->webhookBaseUrl, '/') . $this->urlGenerator->generate(
-                'sylius_paypal_webhook_refund_order',
-                [],
-                UrlGeneratorInterface::ABSOLUTE_PATH,
-            );
-        }
-
-        return $this->urlGenerator->generate(
-            'sylius_paypal_webhook_refund_order',
-            [],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
     }
 
     private function urlsMatch(string $registered, string $expected): bool

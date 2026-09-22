@@ -456,10 +456,18 @@
         </service>
         <service id="Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface" alias="sylius_paypal.processor.payment_settlement" />
 
+        <service id="sylius_paypal.provider.paypal_webhook_url" class="Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProvider">
+            <argument type="service" id="router" />
+            <argument>%sylius_paypal.webhook_base_url%</argument>
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface" alias="sylius_paypal.provider.paypal_webhook_url" />
+
         <service id="sylius_paypal.registrar.seller_webhook_event_types" class="Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar">
             <argument type="service" id="sylius_paypal.provider.webhook_id" />
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="sylius_paypal.api.update_webhook" />
+            <argument type="service" id="sylius_paypal.api.webhook" />
+            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
         </service>
         <service id="Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface" alias="sylius_paypal.registrar.seller_webhook_event_types" />
 
@@ -488,6 +496,7 @@
             <argument type="service" id="sylius_paypal.api.authorize_client" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.api.webhook" />
+            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
         </service>
         <service id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" alias="sylius_paypal.registrar.seller_webhook" />
 

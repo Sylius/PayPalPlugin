@@ -2,6 +2,10 @@ imports:
     - { resource: "@SyliusPayPalPlugin/config/config.yaml" }
     - { resource: "services_test.php" }
 
+parameters:
+    env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL): ''
+    sylius_paypal.webhook_base_url: '%env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL)%'
+
 twig:
     paths:
         '%kernel.project_dir%/../../../tests/TestApplication/templates': ~
