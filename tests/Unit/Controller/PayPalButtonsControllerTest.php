@@ -58,6 +58,9 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private PayPalButtonsController $controller;
 
+    /** @var array<int, mixed>|null */
+    private ?array $capturedInstanceConfigArgs = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -75,12 +78,18 @@ final class PayPalButtonsControllerTest extends TestCase
 
         $this->channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($this->channel);
-        $this->localeContext->method('getLocaleCode')->willReturn('en_US');
+        $this->localeContext->method('getLocaleCode')->willReturn('pl_PL');
         $this->localeProcessor->method('process')->willReturnArgument(0);
         $this->availableCountriesProvider->method('provide')->willReturn([]);
         $this->router->method('generate')->willReturn('/some-url');
         $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn('https://www.paypal.com/web-sdk/v6/core');
-        $this->webSdkConfigurationProvider->method('getInstanceConfig')->willReturn(['clientId' => 'CLIENT_ID']);
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->willReturnCallback(function (...$arguments): array {
+                $this->capturedInstanceConfigArgs = $arguments;
+
+                return ['clientId' => 'CLIENT_ID'];
+            });
 
         $this->controller = new PayPalButtonsController(
             $this->twig,
@@ -161,6 +170,49 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertTrue($capturedContext['paylaterEnabled']);
         self::assertSame('30.00', $capturedContext['amount']);
+    }
+
+    #[Test]
+    public function it_passes_the_locale_to_the_web_sdk_instance_config_on_the_product_page(): void
+    {
+        $this->twig->method('render')->willReturn('');
+
+        $this->controller->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertSame('product-details', $this->capturedInstanceConfigArgs[1]);
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
+    public function it_passes_the_order_locale_to_the_web_sdk_instance_config_on_the_cart_page(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getTotal')->willReturn(3050);
+        $order->method('getLocaleCode')->willReturn('pl_PL');
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->twig->method('render')->willReturn('');
+
+        $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('cart', $this->capturedInstanceConfigArgs[1]);
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
+    public function it_passes_the_order_locale_to_the_web_sdk_instance_config_on_the_payment_page(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getTotal')->willReturn(3000);
+        $order->method('getLocaleCode')->willReturn('pl_PL');
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->twig->method('render')->willReturn('');
+
+        $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('checkout', $this->capturedInstanceConfigArgs[1]);
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
     }
 
     #[Test]
