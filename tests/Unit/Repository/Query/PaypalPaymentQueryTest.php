@@ -412,4 +412,43 @@ final class PaypalPaymentQueryTest extends TestCase
 
         $this->assertInstanceOf(PaypalPaymentQuery::class, $query);
     }
+
+    public function test_it_finds_a_payment_for_settlement_in_any_state_a_late_webhook_may_meet(): void
+    {
+        $paypalOrderId = 'PAYPAL123';
+        $payment = $this->createMock(PaymentInterface::class);
+
+        $query = $this->createMock(Query::class);
+        $query->method('getOneOrNullResult')->willReturn($payment);
+
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $queryBuilder->method('innerJoin')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
+        $queryBuilder->method('addOrderBy')->willReturnSelf();
+        $queryBuilder->method('setMaxResults')->willReturnSelf();
+        $queryBuilder->method('getQuery')->willReturn($query);
+        $queryBuilder
+            ->method('setParameter')
+            ->willReturnCallback(function (string $name, mixed $value) use ($queryBuilder): QueryBuilder {
+                if ('states' === $name) {
+                    self::assertSame([
+                        PaymentInterface::STATE_PROCESSING,
+                        PaymentInterface::STATE_COMPLETED,
+                        PaymentInterface::STATE_CANCELLED,
+                        PaymentInterface::STATE_FAILED,
+                    ], $value);
+                }
+
+                return $queryBuilder;
+            })
+        ;
+
+        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
+
+        $configuration = $this->createMock(Configuration::class);
+        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn('SomeFunction');
+        $this->entityManager->method('getConfiguration')->willReturn($configuration);
+
+        self::assertSame($payment, $this->query->getForSettlementByOrderId($paypalOrderId));
+    }
 }

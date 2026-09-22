@@ -13,17 +13,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Console\Command;
 
-use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Model\GatewayConfigInterface;
-use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -38,10 +33,7 @@ final class CompletePaidPaymentsCommand extends Command
     /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
-        private readonly ObjectManager $paymentManager,
-        private readonly CacheAuthorizeClientApiInterface $authorizeClientApi,
-        private readonly OrderDetailsApiInterface $orderDetailsApi,
-        private readonly StateMachineInterface $stateMachine,
+        private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
     ) {
         parent::__construct();
     }
@@ -49,34 +41,31 @@ final class CompletePaidPaymentsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $payments = $this->paymentRepository->findBy(['state' => PaymentInterface::STATE_PROCESSING]);
+
         /** @var PaymentInterface $payment */
         foreach ($payments as $payment) {
-            /** @var PaymentMethodInterface $paymentMethod */
-            $paymentMethod = $payment->getMethod();
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $paymentMethod->getGatewayConfig();
-            if ($gatewayConfig->getFactoryName() !== SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
+            if (!$this->isPayPalPayment($payment)) {
                 continue;
             }
 
-            /** @var string $payPalOrderId */
-            $payPalOrderId = $payment->getDetails()['paypal_order_id'];
-
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
-            $details = $this->orderDetailsApi->get($token, $payPalOrderId);
-
-            if ($details['status'] === 'COMPLETED') {
-                $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE);
-
-                $paymentDetails = $payment->getDetails();
-                $paymentDetails['status'] = StatusAction::STATUS_COMPLETED;
-
-                $payment->setDetails($paymentDetails);
-            }
+            $this->paymentSettlementProcessor->settle($payment);
         }
 
-        $this->paymentManager->flush();
-
         return Command::SUCCESS;
+    }
+
+    private function isPayPalPayment(PaymentInterface $payment): bool
+    {
+        $paymentMethod = $payment->getMethod();
+        if (!$paymentMethod instanceof PaymentMethodInterface) {
+            return false;
+        }
+
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return
+            $gatewayConfig instanceof GatewayConfigInterface &&
+            $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
+        ;
     }
 }

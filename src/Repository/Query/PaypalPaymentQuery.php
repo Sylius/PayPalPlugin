@@ -30,6 +30,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
         private readonly array $updatableStates = ['cart', 'new', 'processing'],
         private readonly array $cancellableStates = ['cart', 'new', 'processing', 'completed'],
         private readonly array $refundableStates = ['completed'],
+        private readonly array $settleableStates = ['processing', 'completed', 'cancelled', 'failed'],
     ) {
     }
 
@@ -60,6 +61,17 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
             ->setParameter('states', $this->refundableStates)
+            ->addOrderBy('o.updatedAt', 'DESC')
+        ;
+
+        return $this->doGetPayment($queryBuilder, $paypalOrderId);
+    }
+
+    public function getForSettlementByOrderId(string $paypalOrderId): ?PaymentInterface
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $this->settleableStates)
             ->addOrderBy('o.updatedAt', 'DESC')
         ;
 

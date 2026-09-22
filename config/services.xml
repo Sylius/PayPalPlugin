@@ -36,6 +36,12 @@
         <parameter type="collection" key="sylius_paypal.repository.query.pay_pal_payment.refundable_states">
             <parameter type="constant">Sylius\Component\Payment\Model\PaymentInterface::STATE_COMPLETED</parameter>
         </parameter>
+        <parameter type="collection" key="sylius_paypal.repository.query.pay_pal_payment.settleable_states">
+            <parameter type="constant">Sylius\Component\Payment\Model\PaymentInterface::STATE_PROCESSING</parameter>
+            <parameter type="constant">Sylius\Component\Payment\Model\PaymentInterface::STATE_COMPLETED</parameter>
+            <parameter type="constant">Sylius\Component\Payment\Model\PaymentInterface::STATE_CANCELLED</parameter>
+            <parameter type="constant">Sylius\Component\Payment\Model\PaymentInterface::STATE_FAILED</parameter>
+        </parameter>
     </parameters>
 
     <services>
@@ -407,12 +413,18 @@
         />
         <service id="Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface" alias="sylius_paypal.provider.payment_reference_number" />
 
-        <service id="sylius_paypal.console.command.complete_paid_payments" class="Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand">
-            <argument type="service" id="sylius.repository.payment" />
-            <argument type="service" id="sylius.manager.payment" />
+        <service id="sylius_paypal.processor.payment_settlement" class="Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor">
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="sylius_paypal.api.order_details" />
             <argument type="service" id="sylius_abstraction.state_machine" />
+            <argument type="service" id="sylius.manager.payment" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface" alias="sylius_paypal.processor.payment_settlement" />
+
+        <service id="sylius_paypal.console.command.complete_paid_payments" class="Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand">
+            <argument type="service" id="sylius.repository.payment" />
+            <argument type="service" id="sylius_paypal.processor.payment_settlement" />
             <tag name="console.command" />
         </service>
 
@@ -487,6 +499,7 @@
             <argument>%sylius_paypal.repository.query.pay_pal_payment.updatable_states%</argument>
             <argument>%sylius_paypal.repository.query.pay_pal_payment.cancellable_states%</argument>
             <argument>%sylius_paypal.repository.query.pay_pal_payment.refundable_states%</argument>
+            <argument>%sylius_paypal.repository.query.pay_pal_payment.settleable_states%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface" alias="sylius_paypal.repository.query.paypal_payment" />
 

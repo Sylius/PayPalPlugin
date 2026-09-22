@@ -26,4 +26,7 @@ interface PaypalPaymentQueryInterface
 
     /** @throws PaymentNotFoundException */
     public function getForRefundingByOrderId(string $paypalOrderId): ?PaymentInterface;
+
+    /** @throws PaymentNotFoundException */
+    public function getForSettlementByOrderId(string $paypalOrderId): ?PaymentInterface;
 }
