@@ -24,7 +24,7 @@ export default class extends Controller {
             await this.refresh();
         } catch (error) {
             console.error('PayPal Pay Later messaging initialization error:', error);
-            this.element.setAttribute('hidden', '');
+            this.hide();
         } finally {
             this.initialized = true;
         }
@@ -54,7 +54,7 @@ export default class extends Controller {
             });
 
             if (!paymentMethods.isEligible('paylater')) {
-                this.element.setAttribute('hidden', '');
+                this.hide();
 
                 return;
             }
@@ -67,15 +67,25 @@ export default class extends Controller {
             // PayPal swallows a failed fetch (e.g. a 422 CONTENT_UNAVAILABLE) instead of
             // rejecting this promise - it resolves with empty messageItems instead.
             if (!content?.messageItems?.mainItems?.length) {
-                this.element.setAttribute('hidden', '');
+                this.hide();
 
                 return;
             }
 
-            this.element.removeAttribute('hidden');
+            this.show();
         } catch (error) {
             console.error('PayPal Pay Later messaging refresh error:', error);
-            this.element.setAttribute('hidden', '');
+            this.hide();
         }
+    }
+
+    show() {
+        this.element.classList.add('d-block');
+        this.element.removeAttribute('hidden');
+    }
+
+    hide() {
+        this.element.classList.remove('d-block');
+        this.element.setAttribute('hidden', '');
     }
 }
