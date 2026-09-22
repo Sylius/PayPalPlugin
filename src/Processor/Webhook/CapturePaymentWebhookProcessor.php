@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Processor\Webhook;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
-use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
 
 final readonly class CapturePaymentWebhookProcessor implements WebhookProcessorInterface
 {
@@ -28,7 +28,7 @@ final readonly class CapturePaymentWebhookProcessor implements WebhookProcessorI
     ];
 
     public function __construct(
-        private PaypalPaymentQueryInterface $paypalPaymentQuery,
+        private SettleablePaypalPaymentQueryInterface $paypalPaymentQuery,
         private PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private LoggerInterface $logger,
     ) {

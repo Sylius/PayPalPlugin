@@ -21,11 +21,11 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
-use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
 
 final class CapturePaymentWebhookProcessorTest extends TestCase
 {
-    private PaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
+    private SettleablePaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
@@ -36,7 +36,7 @@ final class CapturePaymentWebhookProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
+        $this->paypalPaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 

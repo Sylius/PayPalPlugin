@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class CompletePaidPaymentsCommandTest extends TestCase
@@ -39,7 +40,10 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
 
         $this->commandTester = new CommandTester(
-            new CompletePaidPaymentsCommand($this->paymentRepository, $this->paymentSettlementProcessor),
+            new CompletePaidPaymentsCommand(
+                $this->paymentRepository,
+                paymentSettlementProcessor: $this->paymentSettlementProcessor,
+            ),
         );
     }
 
@@ -87,5 +91,14 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         $payment->method('getMethod')->willReturn($paymentMethod);
 
         return $payment;
+    }
+
+    public function test_it_settles_nothing_without_a_settlement_processor(): void
+    {
+        $commandTester = new CommandTester(new CompletePaidPaymentsCommand($this->paymentRepository));
+
+        $this->paymentRepository->expects(self::never())->method('findBy');
+
+        self::assertSame(Command::FAILURE, $commandTester->execute([]));
     }
 }

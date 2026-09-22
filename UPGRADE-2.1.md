@@ -984,8 +984,10 @@
    order. It differs only for an order reporting `COMPLETED` with no capture recorded, which is now left
    alone instead of being completed.
 
-   The command's constructor changed accordingly: it takes the payment repository and the settlement
-   processor, and no longer takes an object manager, the authorize/order-details APIs or the state machine.
+   The command's constructor keeps its released signature. The four arguments it no longer uses — the object
+   manager, the authorize and order-details APIs and the state machine — are now optional and deprecated,
+   and the settlement processor is appended as a sixth. Passing any of the deprecated four triggers a
+   deprecation; they will be removed in 3.0.
 
 1. #### The webhook endpoint now dispatches by event type.
 
@@ -1085,10 +1087,13 @@
    - `CompleteOrderAction` returns early for a redirect payment source. PayPal has already captured such an
      order, and patching or capturing it again would fail — invisibly, because the client swallows non-2xx
      responses.
-   - `PaypalPaymentQueryInterface` gained `getForSettlementByOrderId()`, backed by a new
-     `sylius_paypal.repository.query.pay_pal_payment.settleable_states` parameter. It deliberately covers
-     `cancelled` and `failed` as well, so a late webhook can find its payment and log the mismatch rather
-     than throw.
+   - `Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface` is new, carrying
+     `getForSettlementByOrderId()` and backed by a new
+     `sylius_paypal.repository.query.pay_pal_payment.settleable_states` parameter. It is a separate
+     interface rather than a method on `PaypalPaymentQueryInterface`, which shipped in 1.7 — adding to that
+     one would break every shop implementing it instead of decorating it. `PaypalPaymentQuery` implements
+     both, and the container aliases both to it. The settleable states deliberately cover `cancelled` and
+     `failed` as well, so a late webhook can find its payment and log the mismatch rather than throw.
    - `PayPalFundingSourcesConfigurationProviderInterface` gained `isTrustlyEnabled(ChannelInterface)`.
      Implement it if you implement that interface from scratch rather than decorating the shipped provider.
    - `PayPalClient` no longer fails when no channel is in context. The `PayPal-Partner-Attribution-Id`

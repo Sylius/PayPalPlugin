@@ -479,6 +479,10 @@
 
         <service id="sylius_paypal.console.command.complete_paid_payments" class="Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand">
             <argument type="service" id="sylius.repository.payment" />
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
+            <argument>null</argument>
             <argument type="service" id="sylius_paypal.processor.payment_settlement" />
             <tag name="console.command" />
         </service>
@@ -559,6 +563,7 @@
             <argument>%sylius_paypal.repository.query.pay_pal_payment.settleable_states%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface" alias="sylius_paypal.repository.query.paypal_payment" />
+        <service id="Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface" alias="sylius_paypal.repository.query.paypal_payment" />
 
         <service id="sylius_paypal.resolver.paypal_payment_methods" class="Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolver">
             <argument type="service" id="sylius.repository.payment_method" />

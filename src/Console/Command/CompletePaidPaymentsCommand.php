@@ -13,10 +13,14 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Console\Command;
 
+use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Model\GatewayConfigInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -30,16 +34,61 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 final class CompletePaidPaymentsCommand extends Command
 {
-    /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
+    /**
+     * @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository
+     *
+     * @deprecated the $paymentManager, $authorizeClientApi, $orderDetailsApi and $stateMachine arguments are
+     *             unused since Sylius/PayPalPlugin 2.1 and will be removed in Sylius/PayPalPlugin 3.0.
+     */
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
-        private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
+        private readonly ?ObjectManager $paymentManager = null,
+        private readonly ?CacheAuthorizeClientApiInterface $authorizeClientApi = null,
+        private readonly ?OrderDetailsApiInterface $orderDetailsApi = null,
+        private readonly ?StateMachineInterface $stateMachine = null,
+        private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
     ) {
         parent::__construct();
+
+        foreach ([
+            ObjectManager::class => $this->paymentManager,
+            CacheAuthorizeClientApiInterface::class => $this->authorizeClientApi,
+            OrderDetailsApiInterface::class => $this->orderDetailsApi,
+            StateMachineInterface::class => $this->stateMachine,
+        ] as $class => $argument) {
+            if (null !== $argument) {
+                trigger_deprecation(
+                    'sylius/paypal-plugin',
+                    '2.1',
+                    'Passing an instance of "%s" to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                    $class,
+                    self::class,
+                );
+            }
+        }
+
+        if (null === $this->paymentSettlementProcessor) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
+                PaymentSettlementProcessorInterface::class,
+                self::class,
+            );
+        }
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if (null === $this->paymentSettlementProcessor) {
+            $output->writeln(sprintf(
+                '<error>No %s was given, so no payment can be settled.</error>',
+                PaymentSettlementProcessorInterface::class,
+            ));
+
+            return Command::FAILURE;
+        }
+
         $payments = $this->paymentRepository->findBy(['state' => PaymentInterface::STATE_PROCESSING]);
 
         /** @var PaymentInterface $payment */
