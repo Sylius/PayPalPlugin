@@ -37,12 +37,11 @@ final readonly class PayPalWebhookAction
         }
 
         $payload = json_decode($request->getContent(), true);
-        if (!is_array($payload)) {
-            return new JsonResponse([], Response::HTTP_NO_CONTENT);
-        }
+        $eventType = is_array($payload) ? ($payload['event_type'] ?? null) : null;
 
-        $eventType = $payload['event_type'] ?? null;
-        if (!is_string($eventType)) {
+        if (!is_string($eventType) || '' === $eventType) {
+            $this->logger->warning('A verified PayPal webhook request carried no event type and was ignored.');
+
             return new JsonResponse([], Response::HTTP_NO_CONTENT);
         }
 

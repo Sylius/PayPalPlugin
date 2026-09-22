@@ -106,13 +106,19 @@ final class PayPalWebhookActionTest extends TestCase
         );
     }
 
-    public function test_it_accepts_a_body_that_is_not_a_paypal_event(): void
+    public function test_it_reports_a_verified_request_it_cannot_route(): void
     {
         $this->requestVerifier->method('verify')->willReturn(true);
+
+        $this->logger->expects(self::exactly(2))->method('warning');
 
         self::assertSame(
             Response::HTTP_NO_CONTENT,
             ($this->action)(new Request([], [], [], [], [], [], 'not json'))->getStatusCode(),
+        );
+        self::assertSame(
+            Response::HTTP_NO_CONTENT,
+            ($this->action)(new Request([], [], [], [], [], [], json_encode(['resource' => []])))->getStatusCode(),
         );
     }
 

@@ -67,6 +67,7 @@ final class ManagingOrdersContext implements Context
     public function requestFromPayPalAboutOrderRefundHasBeenReceived(string $payPalOrderId): void
     {
         $data = json_encode([
+            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
             'resource_type' => 'refund',
             'resource' => [
                 'id' => $payPalOrderId,
