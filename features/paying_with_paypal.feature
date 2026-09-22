@@ -38,3 +38,45 @@ Feature: Paying with PayPal
         And I go to the PayPal payment page of my order
         Then I should be able to pay with Trustly
         And I should be able to pay with PayPal
+
+    @ui
+    Scenario: Completing a card payment PayPal does not challenge
+        Given PayPal will approve the capture of my card payment
+        When I specify the billing address as "Ankh Morpork", "Frost Alley", "90210", "United States" for "Jon Snow"
+        And I complete the addressing step
+        And I select "Aardvark Stagecoach" shipping method
+        And I complete the shipping step
+        And I complete the payment step
+        And I confirm my order
+        And I go to the PayPal payment page of my order
+        And I start a card payment for my order
+        And I complete the card payment
+        Then the card payment should be completed
+
+    @ui
+    Scenario: A card payment PayPal declines during 3D Secure is not completed
+        Given PayPal will decline the 3D Secure challenge for my card payment
+        When I specify the billing address as "Ankh Morpork", "Frost Alley", "90210", "United States" for "Jon Snow"
+        And I complete the addressing step
+        And I select "Aardvark Stagecoach" shipping method
+        And I complete the shipping step
+        And I complete the payment step
+        And I confirm my order
+        And I go to the PayPal payment page of my order
+        And I start a card payment for my order
+        And I complete the card payment
+        Then the card payment should be declined, leaving the order payable
+
+    @ui
+    Scenario: A card payment that needs a retry sends the buyer back to the payment page
+        Given PayPal will ask to retry the 3D Secure challenge for my card payment
+        When I specify the billing address as "Ankh Morpork", "Frost Alley", "90210", "United States" for "Jon Snow"
+        And I complete the addressing step
+        And I select "Aardvark Stagecoach" shipping method
+        And I complete the shipping step
+        And I complete the payment step
+        And I confirm my order
+        And I go to the PayPal payment page of my order
+        And I start a card payment for my order
+        And I complete the card payment
+        Then the card payment should require a retry, returning the buyer to the payment page

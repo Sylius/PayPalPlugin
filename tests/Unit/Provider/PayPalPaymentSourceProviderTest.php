@@ -170,6 +170,45 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->order->method('getCustomer')->willReturn($customer);
     }
 
+    public function test_it_asks_for_regulatory_authentication_on_card(): void
+    {
+        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+
+        self::assertSame(
+            ['method' => 'SCA_WHEN_REQUIRED'],
+            $card['card']['attributes']['verification'],
+        );
+    }
+
+    public function test_it_sends_its_own_experience_context_with_card(): void
+    {
+        $card = $this->provider->provide(
+            $this->order,
+            PayPalPaymentSourceProviderInterface::CARD,
+            [
+                'locale' => 'en-US',
+                'user_action' => 'PAY_NOW',
+                'return_url' => 'https://shop.example.com/checkout/complete',
+                'cancel_url' => 'https://shop.example.com/checkout/complete',
+            ],
+        );
+
+        self::assertSame(
+            [
+                'return_url' => 'https://shop.example.com/checkout/complete',
+                'cancel_url' => 'https://shop.example.com/checkout/complete',
+            ],
+            $card['card']['experience_context'],
+        );
+    }
+
+    public function test_it_sends_an_empty_experience_context_with_card_when_no_urls_are_given(): void
+    {
+        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, ['locale' => 'en-US']);
+
+        self::assertSame([], $card['card']['experience_context']);
+    }
+
     public function test_it_supports_the_paypal_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::PAYPAL));
@@ -178,6 +217,11 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_supports_the_google_pay_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::GOOGLE_PAY));
+    }
+
+    public function test_it_supports_the_card_payment_source(): void
+    {
+        self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::CARD));
     }
 
     public function test_it_does_not_support_an_unknown_payment_source(): void

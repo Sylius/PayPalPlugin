@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import { paymentPageSession } from '../scripts/paypal-payment-page';
 
+const PAYMENT_SOURCE = 'card';
+
 export default class extends Controller {
     static targets = ['form', 'loader', 'number', 'expiry', 'cvv', 'name'];
 
@@ -57,7 +59,7 @@ export default class extends Controller {
         this.setSubmitting(true);
 
         try {
-            const { orderId } = await session.startAttempt();
+            const { orderId } = await session.startAttempt(PAYMENT_SOURCE);
             const { data, state } = await this.cardSession.submit(orderId, this.submitOptions());
 
             if (state === 'succeeded') {

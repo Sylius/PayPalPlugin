@@ -29,6 +29,13 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
             ]],
             self::TRUSTLY => [self::TRUSTLY => $this->trustly($order, $experienceContext)],
+            self::CARD => [self::CARD => [
+                'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
+                'experience_context' => array_filter([
+                    'return_url' => $experienceContext['return_url'] ?? null,
+                    'cancel_url' => $experienceContext['cancel_url'] ?? null,
+                ]),
+            ]],
             default => throw new UnsupportedPayPalPaymentSourceException($paymentSource),
         };
     }
@@ -37,7 +44,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     {
         return in_array(
             $paymentSource,
-            [self::PAYPAL, self::GOOGLE_PAY, ...RedirectPaymentSource::values()],
+            [self::PAYPAL, self::GOOGLE_PAY, self::CARD, ...RedirectPaymentSource::values()],
             true,
         );
     }
