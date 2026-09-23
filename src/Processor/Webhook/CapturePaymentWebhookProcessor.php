@@ -54,10 +54,6 @@ final readonly class CapturePaymentWebhookProcessor implements WebhookProcessorI
             return;
         }
 
-        if (null === $payment) {
-            return;
-        }
-
         $this->paymentSettlementProcessor->settle($payment);
     }
 

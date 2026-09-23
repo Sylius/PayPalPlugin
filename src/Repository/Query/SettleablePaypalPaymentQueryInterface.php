@@ -19,5 +19,5 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 interface SettleablePaypalPaymentQueryInterface
 {
     /** @throws PaymentNotFoundException */
-    public function getForSettlementByOrderId(string $paypalOrderId): ?PaymentInterface;
+    public function getForSettlementByOrderId(string $paypalOrderId): PaymentInterface;
 }

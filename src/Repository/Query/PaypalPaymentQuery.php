@@ -34,7 +34,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
     ) {
     }
 
-    public function getForUpdateByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForUpdateByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -45,7 +45,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    public function getForCancellationByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForCancellationByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -56,7 +56,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    public function getForRefundingByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForRefundingByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -67,7 +67,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    public function getForSettlementByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForSettlementByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -78,7 +78,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): ?PaymentInterface
+    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): PaymentInterface
     {
         if ($this->isCastAvailable()) {
             $payment = $queryBuilder
