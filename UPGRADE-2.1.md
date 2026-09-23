@@ -838,6 +838,10 @@
    enriched order payload above: the tracking items are matched to the order items by the same `sku`
    (`ProductVariant::getCode()`).
 
+   **Namespace.** Everything specific to this feature lives under `Sylius\PayPalPlugin\PackageTracking\`
+   (`src/PackageTracking/`), with the usual type sub-namespaces inside it (`Entity`, `Processor`, `Provider`, ...).
+   Its entity is mapped by the plugin itself, so no Doctrine mapping configuration is needed on the app side.
+
    **New database table.** A plugin-owned table `sylius_paypal_plugin_shipment_tracking` (keyed by shipment,
    holding the carrier, PayPal tracker id and sync state) is added - **no change to the core `Shipment`
    entity**. Run migrations:
@@ -900,7 +904,7 @@
    fail permanently with "Shipment has no tracking number"; raising instead lets the retry pick it up once the
    commit has landed.
 
-   **Optional async.** The call is dispatched as the `Sylius\PayPalPlugin\Message\SendShipmentTracking`
+   **Optional async.** The call is dispatched as the `Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking`
    message. With no messenger routing configured it is handled synchronously; route it to an async transport
    for full off-request processing:
 
@@ -908,5 +912,5 @@
    framework:
        messenger:
            routing:
-               'Sylius\PayPalPlugin\Message\SendShipmentTracking': async
+               'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```

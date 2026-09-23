@@ -1,8 +1,8 @@
 {% set shipment = hookable_metadata.context.shipment %}
 {% set tracking = sylius_paypal_shipment_tracking(shipment) %}
-{% set state_failed = constant('Sylius\\PayPalPlugin\\Entity\\ShipmentTrackingInterface::STATE_FAILED') %}
-{% set state_synced = constant('Sylius\\PayPalPlugin\\Entity\\ShipmentTrackingInterface::STATE_SYNCED') %}
-{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
+{% set state_failed = constant('Sylius\\PayPalPlugin\\PackageTracking\\Entity\\ShipmentTrackingInterface::STATE_FAILED') %}
+{% set state_synced = constant('Sylius\\PayPalPlugin\\PackageTracking\\Entity\\ShipmentTrackingInterface::STATE_SYNCED') %}
+{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
 
 {% if tracking is not null %}
     <div class="py-2" {{ sylius_test_html_attribute('shipment-paypal-tracking-state') }}>

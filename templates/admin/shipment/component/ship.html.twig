@@ -3,7 +3,7 @@
 {% set path = path|default('sylius_admin_shipment_ship') %}
 {% set path_parameters = path_parameters|default({id: resource.id}) %}
 {% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
-{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
+{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
 {% set paypal_tracking = form.paypal_tracking is defined ? form.paypal_tracking : null %}
 
 {% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
