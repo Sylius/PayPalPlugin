@@ -882,7 +882,7 @@
    thrown while dispatching to the `paypal` channel instead of letting it reach the ship transition.
 
    **Permanent vs. transient failures.** A failure PayPal will never accept on a retry - an order status that is
-   not eligible for tracking, a missing tracking number or carrier, an unresolvable capture id - is recorded on
+   not eligible for tracking, a PayPal order without items, a missing tracking number or carrier, an unresolvable capture id - is recorded on
    the tracking record (state `failed`, with the error) and not retried. Anything else (HTTP errors, timeouts,
    PayPal 5xx) is recorded *and rethrown*, so that when the message is routed to an async transport Messenger's
    own retry strategy can take over. Either way the record can be retried by hand with:
@@ -890,6 +890,9 @@
    ```bash
    bin/console sylius-paypal:send-shipment-tracking
    ```
+
+   The command processes every pending or failed record in one run, in batches (`--batch-size`, default `100`),
+   clearing the entity manager between batches to keep memory flat.
 
    Note that a shipment which is not in the `shipped` state yet raises `ShipmentTrackingNotReadyException`
    instead of being marked as failed. Under an async transport the message can reach a worker before the

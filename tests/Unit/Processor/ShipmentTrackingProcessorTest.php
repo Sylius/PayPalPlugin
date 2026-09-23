@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor;
 
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -88,7 +89,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         $payment = $this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']);
         $this->paymentProvider->method('provide')->willReturn($payment);
         $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
-        $this->orderDetailsApi->method('get')->with('TOKEN', 'ORDER123')->willReturn(['status' => 'COMPLETED']);
+        $this->orderDetailsApi->method('get')->with('TOKEN', 'ORDER123')->willReturn($this->completedOrderDetails());
         $this->itemsProvider->method('provide')->with($shipment)->willReturn([['name' => 'T-Shirt', 'quantity' => '1', 'sku' => 'sku01']]);
 
         $this->addTrackingApi
@@ -102,6 +103,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
                 'items' => [['name' => 'T-Shirt', 'quantity' => '1', 'sku' => 'sku01']],
             ])
             ->willReturn([
+                'id' => 'ORDER123',
                 'purchase_units' => [[
                     'shipping' => ['trackers' => [['id' => 'TRK-TRACK1-1AS', 'status' => 'SHIPPED']]],
                 ]],
@@ -125,7 +127,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         $this->repository->method('findOneByShipment')->willReturn($tracking);
         $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
         $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
-        $this->orderDetailsApi->method('get')->willReturn(['status' => 'COMPLETED']);
+        $this->orderDetailsApi->method('get')->willReturn($this->completedOrderDetails());
         $this->itemsProvider->method('provide')->willReturn([]);
 
         $this->addTrackingApi
@@ -134,7 +136,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
             ->with('TOKEN', 'ORDER123', self::callback(
                 fn (array $body): bool => 'OTHER' === ($body['carrier'] ?? null) && 'Local Courier' === ($body['carrier_name_other'] ?? null),
             ))
-            ->willReturn([]);
+            ->willReturn(['id' => 'ORDER123']);
 
         $this->processor->process($shipment);
 
@@ -180,7 +182,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         $this->repository->method('findOneByShipment')->willReturn($tracking);
         $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
         $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
-        $this->orderDetailsApi->method('get')->willReturn(['status' => 'COMPLETED']);
+        $this->orderDetailsApi->method('get')->willReturn($this->completedOrderDetails());
         $this->itemsProvider->method('provide')->willReturn([]);
         $this->addTrackingApi->method('add')->willReturn([
             'name' => 'UNPROCESSABLE_ENTITY',
@@ -196,6 +198,39 @@ final class ShipmentTrackingProcessorTest extends TestCase
         }
     }
 
+    /** @return iterable<string, array{array<string, mixed>, string}> */
+    public static function unrecognisedTrackingResponses(): iterable
+    {
+        yield 'invalid token' => [['error' => 'invalid_token', 'error_description' => 'Token signature verification failed'], 'invalid_token'];
+        yield 'empty body' => [[], 'the response could not be read'];
+    }
+
+    #[Test]
+    #[DataProvider('unrecognisedTrackingResponses')]
+    public function it_does_not_mark_the_tracking_as_synced_when_the_tracking_response_is_not_an_order(array $response, string $expectedError): void
+    {
+        $shipment = $this->shipment('TRACK1');
+        $tracking = $this->trackingFor($shipment, 'FEDEX');
+
+        $this->repository->method('findOneByShipment')->willReturn($tracking);
+        $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->orderDetailsApi->method('get')->willReturn($this->completedOrderDetails());
+        $this->itemsProvider->method('provide')->willReturn([]);
+        $this->addTrackingApi->method('add')->willReturn($response);
+
+        try {
+            $this->processor->process($shipment);
+
+            self::fail('Expected the PayPal error to be rethrown.');
+        } catch (PayPalApiErrorException $exception) {
+            self::assertStringContainsString($expectedError, $exception->getMessage());
+        }
+
+        self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
+        self::assertStringContainsString($expectedError, (string) $tracking->getLastError());
+    }
+
     #[Test]
     public function it_records_the_failure_and_rethrows_when_paypal_errors_so_the_message_can_be_retried(): void
     {
@@ -205,7 +240,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         $this->repository->method('findOneByShipment')->willReturn($tracking);
         $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
         $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
-        $this->orderDetailsApi->method('get')->willReturn(['status' => 'COMPLETED']);
+        $this->orderDetailsApi->method('get')->willReturn($this->completedOrderDetails());
         $this->itemsProvider->method('provide')->willReturn([]);
         $this->addTrackingApi->method('add')->willThrowException(new \RuntimeException('PayPal is down'));
 
@@ -221,6 +256,28 @@ final class ShipmentTrackingProcessorTest extends TestCase
 
         self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
         self::assertStringContainsString('PayPal is down', (string) $tracking->getLastError());
+    }
+
+    #[Test]
+    public function it_does_not_call_paypal_when_the_paypal_order_has_no_items(): void
+    {
+        $shipment = $this->shipment('TRACK1');
+        $tracking = $this->trackingFor($shipment, 'FEDEX');
+
+        $this->repository->method('findOneByShipment')->willReturn($tracking);
+        $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->orderDetailsApi->method('get')->willReturn([
+            'status' => 'COMPLETED',
+            'purchase_units' => [['reference_id' => 'default']],
+        ]);
+
+        $this->addTrackingApi->expects(self::never())->method('add');
+
+        $this->processor->process($shipment);
+
+        self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
+        self::assertStringContainsString('no items', (string) $tracking->getLastError());
     }
 
     #[Test]
@@ -299,5 +356,14 @@ final class ShipmentTrackingProcessorTest extends TestCase
         $payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
 
         return $payment;
+    }
+
+    /** @return array<string, mixed> */
+    private function completedOrderDetails(): array
+    {
+        return [
+            'status' => 'COMPLETED',
+            'purchase_units' => [['items' => [['name' => 'T-Shirt', 'quantity' => '1', 'sku' => 'sku01']]]],
+        ];
     }
 }

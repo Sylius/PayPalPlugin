@@ -135,6 +135,12 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
             return;
         }
 
+        if ([] === ($orderDetails['purchase_units'][0]['items'] ?? [])) {
+            $tracking->markAsFailed('PayPal order has no items, so it is not eligible for tracking.');
+
+            return;
+        }
+
         $captureId = $this->resolveCaptureId($details, $orderDetails);
         if (null === $captureId) {
             $tracking->markAsFailed('Could not resolve the PayPal capture id from the payment details.');
@@ -156,7 +162,7 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
         $response = $this->addTrackingApi->add($token, $payPalOrderId, $body);
 
-        if (isset($response['name']) || isset($response['debug_id'])) {
+        if (!isset($response['id'])) {
             throw new PayPalApiErrorException(sprintf('POST v2/checkout/orders/%s/track', $payPalOrderId), $response);
         }
 

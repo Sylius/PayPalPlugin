@@ -28,14 +28,25 @@ class ShipmentTrackingRepository extends EntityRepository implements ShipmentTra
         return $this->findOneBy(['shipment' => $shipment]);
     }
 
-    public function findPendingOrFailed(): array
+    public function findPendingOrFailed(?int $limit = null, ?int $afterId = null): array
     {
-        return $this->createQueryBuilder('t')
+        $queryBuilder = $this->createQueryBuilder('t')
             ->andWhere('t.state IN (:states)')
             ->setParameter('states', [ShipmentTrackingInterface::STATE_PENDING, ShipmentTrackingInterface::STATE_FAILED])
             ->orderBy('t.id', 'ASC')
-            ->getQuery()
-            ->getResult()
         ;
+
+        if (null !== $limit) {
+            $queryBuilder->setMaxResults($limit);
+        }
+
+        if (null !== $afterId) {
+            $queryBuilder
+                ->andWhere('t.id > :afterId')
+                ->setParameter('afterId', $afterId)
+            ;
+        }
+
+        return $queryBuilder->getQuery()->getResult();
     }
 }

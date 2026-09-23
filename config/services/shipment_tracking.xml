@@ -80,6 +80,7 @@
         <service id="sylius_paypal.console.command.send_shipment_tracking" class="Sylius\PayPalPlugin\Console\Command\SendShipmentTrackingCommand">
             <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
             <argument type="service" id="sylius_paypal.processor.shipment_tracking" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
 
             <tag name="console.command" />
         </service>

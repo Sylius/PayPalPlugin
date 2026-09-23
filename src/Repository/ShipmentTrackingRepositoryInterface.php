@@ -21,5 +21,5 @@ interface ShipmentTrackingRepositoryInterface
     public function findOneByShipment(ShipmentInterface $shipment): ?ShipmentTrackingInterface;
 
     /** @return ShipmentTrackingInterface[] */
-    public function findPendingOrFailed(): array;
+    public function findPendingOrFailed(?int $limit = null, ?int $afterId = null): array;
 }

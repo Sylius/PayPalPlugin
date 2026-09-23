@@ -28,10 +28,10 @@ final class PayPalApiErrorException extends \Exception
             return 'the response could not be read';
         }
 
-        $parts = [isset($response['name']) ? (string) $response['name'] : 'unknown error'];
+        $parts = [(string) ($response['name'] ?? $response['error'] ?? 'unknown error')];
 
-        if (isset($response['message'])) {
-            $parts[] = (string) $response['message'];
+        if (isset($response['message']) || isset($response['error_description'])) {
+            $parts[] = (string) ($response['message'] ?? $response['error_description']);
         }
 
         if (isset($response['debug_id'])) {
