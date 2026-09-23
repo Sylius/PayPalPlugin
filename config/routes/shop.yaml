@@ -12,7 +12,7 @@ sylius_paypal_shop_create_paypal_order:
 
 sylius_paypal_shop_create_paypal_order_from_cart:
     path: /create-pay-pal-order-from-cart/{id}
-    methods: [POST]
+    methods: [POST, GET]
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_cart
 

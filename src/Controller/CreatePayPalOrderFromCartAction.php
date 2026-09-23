@@ -35,11 +35,11 @@ final readonly class CreatePayPalOrderFromCartAction
     public function __construct(
         private ObjectManager $paymentManager,
         private OrderProviderInterface $orderProvider,
-        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private CapturePaymentResolverInterface $capturePaymentResolver,
         private ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
+        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -65,12 +65,27 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->orderOwnershipVerifier) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
         $id = $request->attributes->getInt('id');
         $order = $this->orderProvider->provideOrderById($id);
+        if (null === $this->orderOwnershipVerifier) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to verify order ownership.',
+                OrderOwnershipVerifierInterface::class,
+            ));
+        }
         $this->orderOwnershipVerifier->verify($order, $request);
 
         try {

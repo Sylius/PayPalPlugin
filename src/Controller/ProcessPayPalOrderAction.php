@@ -64,13 +64,13 @@ final readonly class ProcessPayPalOrderAction
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private OrderProviderInterface $orderProvider,
-        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?UrlGeneratorInterface $router = null,
         private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?RepositoryInterface $shippingMethodRepository = null,
         ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -122,6 +122,15 @@ final readonly class ProcessPayPalOrderAction
                 self::class,
             );
         }
+        if (null === $this->orderOwnershipVerifier) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
 
         $this->expressOrderAddressFactory = $expressOrderAddressFactory ?? new ExpressOrderAddressFactory($this->addressFactory, null);
     }
@@ -133,6 +142,12 @@ final readonly class ProcessPayPalOrderAction
         $payPalOrderId = $payload->getString('payPalOrderId');
 
         $order = $this->orderProvider->provideOrderById($orderId);
+        if (null === $this->orderOwnershipVerifier) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to verify order ownership.',
+                OrderOwnershipVerifierInterface::class,
+            ));
+        }
         $this->orderOwnershipVerifier->verify($order, $request);
 
         /** @var PaymentInterface|null $payment */

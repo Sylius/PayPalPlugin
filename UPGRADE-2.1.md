@@ -243,13 +243,20 @@
      covers a buyer's capture confirmation being retried after the order already left the `cart` state (a
      completed order is no longer what `sylius.context.cart` resolves).
 
-   Each of the four actions gained a new, required constructor argument,
-   `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface`, right after the existing
-   `Sylius\PayPalPlugin\Provider\OrderProviderInterface` one. Unlike most constructor additions in this
-   document, it is **not** optional/deprecated-when-absent — none of these four classes has shipped in a
-   release yet, so there is no BC surface to preserve, and skipping an ownership check on a security-relevant
-   action isn't a sensible fallback. If you've redefined any of the four services with an explicit argument
-   list, add `sylius_paypal.verifier.order_ownership` to it.
+   Each of the four actions gained a new constructor argument,
+   `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface`, appended at the end of its constructor and
+   optional/deprecated-when-absent, like every other constructor addition in this document — these four
+   classes shipped before 2.1, so the usual BC policy applies. Unlike most of those, though, its absence isn't
+   silently tolerated at runtime: skipping an ownership check on a security-relevant action isn't a sensible
+   fallback, so each action throws a `\RuntimeException` the first time it's invoked without one, rather than
+   quietly falling back to the old, unchecked behavior. If you've redefined any of the four services with an
+   explicit argument list, add `sylius_paypal.verifier.order_ownership` to it before 3.0.
+
+   `Sylius\PayPalPlugin\Controller\AddToCartAction` similarly gained an optional, appended
+   `Sylius\Component\Core\Storage\CartStorageInterface` argument, so the cart it creates explicitly registers
+   itself in session storage rather than relying on it happening implicitly elsewhere. This one **is** safe to
+   omit — it's defensive hardening around the ownership check above, not something the existing flow depends
+   on — so a missing instance only triggers a deprecation notice, no `RuntimeException`.
 
 1. #### Express checkout completes the purchase in the PayPal wallet.
 

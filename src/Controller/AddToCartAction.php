@@ -37,7 +37,6 @@ final readonly class AddToCartAction
     public function __construct(
         private AddToCartCommandFactoryInterface $addToCartCommandFactory,
         private CartContextInterface $cartContext,
-        private CartStorageInterface $cartStorage,
         private EntityManagerInterface $cartManager,
         private FactoryInterface $factory,
         private FormFactoryInterface $formFactory,
@@ -47,7 +46,17 @@ final readonly class AddToCartAction
         private OrderModifierInterface $orderModifier,
         private RequestConfigurationFactoryInterface $requestConfigurationFactory,
         private RouterInterface $router,
+        private ?CartStorageInterface $cartStorage = null,
     ) {
+        if (null === $this->cartStorage) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                CartStorageInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -87,7 +96,9 @@ final readonly class AddToCartAction
         $this->cartManager->persist($cart);
         $this->cartManager->flush();
 
-        $this->cartStorage->setForChannel($cart->getChannel(), $cart);
+        if (null !== $this->cartStorage) {
+            $this->cartStorage->setForChannel($cart->getChannel(), $cart);
+        }
 
         return new RedirectResponse($this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $cart->getId()]));
     }

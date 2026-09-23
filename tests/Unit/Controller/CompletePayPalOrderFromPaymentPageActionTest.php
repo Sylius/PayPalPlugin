@@ -146,6 +146,21 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->invoke();
     }
 
+    public function test_it_refuses_to_run_without_an_order_ownership_verifier(): void
+    {
+        $action = new CompletePayPalOrderFromPaymentPageAction(
+            $this->paymentStateManager,
+            $this->router(),
+            $this->orderProvider,
+            $this->stateMachine,
+            $this->orderManager,
+        );
+
+        self::expectException(\RuntimeException::class);
+
+        $action($this->request());
+    }
+
     public function test_it_answers_with_a_conflict_when_no_payment_is_being_processed(): void
     {
         $this->paymentAmountVerifier->expects(self::never())->method('verify');
@@ -169,11 +184,11 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->paymentStateManager,
             $this->router(),
             $this->orderProvider,
-            $this->orderOwnershipVerifier,
             $this->stateMachine,
             $this->orderManager,
             $this->paymentAmountVerifier,
             $this->orderProcessor,
+            $this->orderOwnershipVerifier,
         );
     }
 

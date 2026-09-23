@@ -72,10 +72,10 @@
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius_paypal.manager.payment_state" />
             <argument type="service" id="sylius_paypal.provider.order" />
-            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
             <argument type="service" id="sylius_paypal.resolver.capture_payment" />
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
             <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
         </service>
 
         <service id="sylius_paypal.controller.download_payouts_report" class="Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction">
@@ -97,11 +97,11 @@
         <service id="sylius_paypal.controller.create_paypal_order_from_cart" class="Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction">
             <argument type="service" id="sylius.manager.payment" />
             <argument type="service" id="sylius_paypal.provider.order" />
-            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
             <argument type="service" id="sylius_paypal.resolver.capture_payment" />
             <argument type="service" id="sylius.remover.payment.order" />
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius_paypal.resolver.paypal_payment_methods" />
+            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
         </service>
 
         <service id="sylius_paypal.controller.paypal_buttons" class="Sylius\PayPalPlugin\Controller\PayPalButtonsController">
@@ -139,13 +139,13 @@
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="sylius_paypal.api.order_details" />
             <argument type="service" id="sylius_paypal.provider.order" />
-            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
             <argument type="service" id="sylius_paypal.verifier.payment_amount" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.completer.express_order" />
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius.repository.shipping_method" />
             <argument type="service" id="sylius_paypal.factory.express_order_address" />
+            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
         </service>
 
         <service id="sylius_paypal.controller.update_paypal_order" class="Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction">
@@ -170,11 +170,11 @@
             <argument type="service" id="sylius_paypal.manager.payment_state" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.provider.order" />
-            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius.manager.order" />
             <argument type="service" id="sylius_paypal.verifier.payment_amount" />
             <argument type="service" id="sylius.order_processing.order_processor" />
+            <argument type="service" id="sylius_paypal.verifier.order_ownership" />
         </service>
 
         <service id="sylius_paypal.controller.paypal_payment_on_error" class="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
@@ -189,7 +189,6 @@
         <service id="sylius_paypal.controller.add_to_cart" class="Sylius\PayPalPlugin\Controller\AddToCartAction">
             <argument type="service" id="sylius.factory.add_to_cart_command" />
             <argument type="service" id="sylius.context.cart.new" />
-            <argument type="service" id="Sylius\Component\Core\Storage\CartStorageInterface" />
             <argument type="service" id="doctrine.orm.entity_manager" />
             <argument type="service" id="sylius.factory.order_item" />
             <argument type="service" id="form.factory" />
@@ -204,6 +203,7 @@
             <argument type="service" id="sylius.modifier.order" />
             <argument type="service" id="sylius.resource_controller.request_configuration_factory" />
             <argument type="service" id="router" />
+            <argument type="service" id="Sylius\Component\Core\Storage\CartStorageInterface" />
         </service>
 
     </services>

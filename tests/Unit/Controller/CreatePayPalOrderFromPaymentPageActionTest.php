@@ -73,10 +73,10 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->stateMachine,
             $this->paymentStateManager,
             $this->orderProvider,
-            $this->orderOwnershipVerifier,
             $this->capturePaymentResolver,
             $this->orderPaymentProcessor,
             $this->objectManager,
+            $this->orderOwnershipVerifier,
         );
     }
 
@@ -145,8 +145,8 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->stateMachine,
             $this->paymentStateManager,
             $this->orderProvider,
-            $this->orderOwnershipVerifier,
             $this->capturePaymentResolver,
+            orderOwnershipVerifier: $this->orderOwnershipVerifier,
         );
         $this->payments(processing: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME), cart: null);
 
@@ -154,6 +154,20 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->capturePaymentResolver->expects(self::never())->method('resolve');
 
         self::assertSame(Response::HTTP_CONFLICT, $action($this->request())->getStatusCode());
+    }
+
+    public function test_it_refuses_to_run_without_an_order_ownership_verifier(): void
+    {
+        $action = new CreatePayPalOrderFromPaymentPageAction(
+            $this->stateMachine,
+            $this->paymentStateManager,
+            $this->orderProvider,
+            $this->capturePaymentResolver,
+        );
+
+        self::expectException(\RuntimeException::class);
+
+        $action($this->request());
     }
 
     public function test_it_answers_with_a_bad_request_when_paypal_is_unreachable(): void
