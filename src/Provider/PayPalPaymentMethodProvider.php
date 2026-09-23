@@ -42,4 +42,15 @@ final readonly class PayPalPaymentMethodProvider implements PayPalPaymentMethodP
 
         throw new PayPalPaymentMethodNotFoundException();
     }
+
+    public function exists(): bool
+    {
+        try {
+            $this->provide();
+        } catch (PayPalPaymentMethodNotFoundException) {
+            return false;
+        }
+
+        return true;
+    }
 }

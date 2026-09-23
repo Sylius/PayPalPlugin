@@ -1,14 +1,2 @@
-{% component 'sylius_admin:confirmation_modal' with {modal_id: 'confirmation-modal-create-pay-pal', type: 'create-pay-pal'} %}
-    {% block header %}
-        <h1 class="modal-title py-5">{{ 'sylius_paypal.share_data_consent_confirmation'|trans }}</h1>
-    {% endblock %}
-    {% block footer %}
-        {% import '@SyliusAdmin/shared/helper/button.html.twig' as button %}
-        {% set path = path('sylius_admin_payment_method_create', {'factory': constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME')}) %}
-
-        {{ button.default({ text: 'sylius.ui.no_label'|trans, attr: 'data-bs-dismiss=modal' }) }}
-        <a class="btn btn-outline-success" href="{{ path }}">
-            {{ 'sylius.ui.yes_label'|trans }}
-        </a>
-    {% endblock %}
+{% component 'sylius_paypal:create_onboarding_modal' with {modal_id: 'confirmation-modal-create-pay-pal', type: 'create-pay-pal'} %}
 {% endcomponent %}

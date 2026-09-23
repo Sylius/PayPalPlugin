@@ -15,8 +15,8 @@ namespace Sylius\PayPalPlugin\Exception;
 
 final class PayPalPluginException extends \Exception
 {
-    public function __construct()
+    public function __construct(string $message = 'Could not load data from PayPal')
     {
-        parent::__construct('Could not load data from PayPal');
+        parent::__construct($message);
     }
 }

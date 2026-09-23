@@ -14,21 +14,27 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
+use JsonException;
+use Psr\Cache\InvalidArgumentException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
 {
     public function __construct(
-        private ClientInterface $client,
-        private string $baseUrl,
+        private AuthorizeClientApiInterface $authorizeClientApi,
+        private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
         private ObjectManager $paymentMethodManager,
         private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
-        private RequestFactoryInterface $requestFactory,
+        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
     ) {
     }
 
@@ -38,23 +44,23 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        $response = $this->client->sendRequest(
-            $this->requestFactory->createRequest(
-                'GET',
-                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
-            ),
-        );
-
-        if ($response->getStatusCode() >= 299) {
+        try {
+            $partnerId = $this->partnerCredentialsProvider->provide()->getPartnerId();
+            $token = $this->authorizeClientApi->authorize((string) $config['client_id'], (string) $config['client_secret']);
+            $status = $this->merchantOnboardingStatusApi->get($token, $partnerId, (string) $config['merchant_id']);
+        } catch (PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
 
-        $content = (array) json_decode($response->getBody()->getContents(), true);
-        if (!((bool) ($content['permissionsGranted'] ?? false))) {
+        if (!$status->isComplete()) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
 
-        $this->sellerWebhookRegistrar->register($paymentMethod);
+        try {
+            $this->sellerWebhookRegistrar->register($paymentMethod);
+        } catch (PayPalWebhookAlreadyRegisteredException) {
+            // the webhook is already registered from a previous attempt; nothing to do
+        }
 
         $paymentMethod->setEnabled(true);
         $this->paymentMethodManager->flush();
