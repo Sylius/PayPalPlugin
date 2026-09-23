@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Exception;
 
-final class PayPalWrongDataException extends \Exception implements PermanentWebhookFailureInterface
+/**
+ * Marks a failure that delivering the same webhook event again cannot resolve, so PayPal is told the event
+ * was handled instead of being asked to replay it.
+ */
+interface PermanentWebhookFailureInterface extends \Throwable
 {
-    public function __construct()
-    {
-        parent::__construct('PayPal data does not contain links to order');
-    }
 }

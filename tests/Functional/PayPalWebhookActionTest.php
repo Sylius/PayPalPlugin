@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
@@ -25,6 +26,7 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
     {
         parent::setUp();
         DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
+        DummyOrderDetailsApi::$failWith = null;
     }
 
     public function test_it_completes_the_payment_once_paypal_says_the_capture_completed(): void
@@ -96,6 +98,36 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_it_asks_paypal_to_deliver_the_event_again_when_settlement_fails(): void
+    {
+        DummyOrderDetailsApi::$failWith = new PayPalApiTimeoutException();
+        $order = $this->processingOrder();
+
+        $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
+
+        self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_it_accepts_a_refund_event_it_cannot_read(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['completed_order'];
+
+        $this->client->request('POST', '/paypal-webhook/api/', [], [], [], json_encode([
+            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
+            'resource' => [
+                'links' => [
+                    ['rel' => 'self', 'href' => 'https://api-m.paypal.com/v2/payments/refunds/REFUND_ID'],
+                ],
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
     }
 
     private function processingOrder(): OrderInterface

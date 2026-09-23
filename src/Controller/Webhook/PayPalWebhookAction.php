@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller\Webhook;
 
 use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Exception\PermanentWebhookFailureInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -45,6 +46,8 @@ final readonly class PayPalWebhookAction
             return new JsonResponse([], Response::HTTP_NO_CONTENT);
         }
 
+        $replay = false;
+
         foreach ($this->processors as $processor) {
             if (!$processor->supports($eventType)) {
                 continue;
@@ -52,15 +55,26 @@ final readonly class PayPalWebhookAction
 
             try {
                 $processor->process($payload);
-            } catch (\Throwable $exception) {
+            } catch (PermanentWebhookFailureInterface $exception) {
                 $this->logger->error(sprintf(
-                    'Could not process the PayPal "%s" webhook: %s',
+                    'Discarded the PayPal "%s" webhook, which no replay could fix: %s',
                     $eventType,
                     $exception->getMessage(),
                 ));
+            } catch (\Throwable $exception) {
+                // Anything unrecognised is assumed to be transient. An operator can re-enable a payment
+                // method or bring a database back within PayPal's replay window; a wrongly discarded event
+                // about money cannot be recovered at all.
+                $this->logger->critical(sprintf(
+                    'Could not process the PayPal "%s" webhook and asked PayPal to deliver it again: %s',
+                    $eventType,
+                    $exception->getMessage(),
+                ));
+
+                $replay = true;
             }
         }
 
-        return new JsonResponse([], Response::HTTP_NO_CONTENT);
+        return new JsonResponse([], $replay ? Response::HTTP_SERVICE_UNAVAILABLE : Response::HTTP_NO_CONTENT);
     }
 }

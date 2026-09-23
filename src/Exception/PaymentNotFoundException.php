@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Exception;
 
-final class PaymentNotFoundException extends \Exception
+final class PaymentNotFoundException extends \Exception implements PermanentWebhookFailureInterface
 {
     public static function withPayPalOrderId(string $payPalOrderId): self
     {

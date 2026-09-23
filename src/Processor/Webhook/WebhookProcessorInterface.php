@@ -17,6 +17,11 @@ interface WebhookProcessorInterface
 {
     public function supports(string $eventType): bool;
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * PayPal replays an event the dispatcher could not finish, so this may run more than once for the same
+     * event and must be idempotent. Throw a PermanentWebhookFailureInterface to refuse a replay.
+     *
+     * @param array<string, mixed> $payload
+     */
     public function process(array $payload): void;
 }

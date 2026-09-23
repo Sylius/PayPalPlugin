@@ -17,6 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
+use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -122,16 +123,73 @@ final class PayPalWebhookActionTest extends TestCase
         );
     }
 
-    public function test_it_reports_a_processor_that_blew_up_without_asking_paypal_to_retry(): void
+    public function test_it_asks_paypal_to_deliver_again_an_event_it_could_not_finish(): void
     {
         $this->requestVerifier->method('verify')->willReturn(true);
         $this->refundProcessor->method('process')->willThrowException(new \RuntimeException('boom'));
 
+        $this->logger->expects(self::once())->method('critical');
+        $this->logger->expects(self::never())->method('error');
+
+        self::assertSame(
+            Response::HTTP_SERVICE_UNAVAILABLE,
+            ($this->action)($this->request('PAYMENT.CAPTURE.REFUNDED'))->getStatusCode(),
+        );
+    }
+
+    public function test_it_accepts_a_failure_no_replay_could_fix(): void
+    {
+        $this->requestVerifier->method('verify')->willReturn(true);
+        $this->refundProcessor->method('process')->willThrowException(new PayPalWrongDataException());
+
         $this->logger->expects(self::once())->method('error');
+        $this->logger->expects(self::never())->method('critical');
 
         self::assertSame(
             Response::HTTP_NO_CONTENT,
             ($this->action)($this->request('PAYMENT.CAPTURE.REFUNDED'))->getStatusCode(),
+        );
+    }
+
+    public function test_it_runs_every_matching_processor_even_after_one_fails(): void
+    {
+        $this->requestVerifier->method('verify')->willReturn(true);
+        $this->refundProcessor->method('process')->willThrowException(new \RuntimeException('boom'));
+
+        $second = $this->createMock(WebhookProcessorInterface::class);
+        $second->method('supports')->willReturn(true);
+        $second->expects(self::once())->method('process');
+
+        $action = new PayPalWebhookAction(
+            $this->requestVerifier,
+            [$this->refundProcessor, $second],
+            $this->logger,
+        );
+
+        self::assertSame(
+            Response::HTTP_SERVICE_UNAVAILABLE,
+            $action($this->request('PAYMENT.CAPTURE.REFUNDED'))->getStatusCode(),
+        );
+    }
+
+    public function test_a_transient_failure_outweighs_a_permanent_one(): void
+    {
+        $this->requestVerifier->method('verify')->willReturn(true);
+        $this->refundProcessor->method('process')->willThrowException(new PayPalWrongDataException());
+
+        $second = $this->createMock(WebhookProcessorInterface::class);
+        $second->method('supports')->willReturn(true);
+        $second->method('process')->willThrowException(new \RuntimeException('boom'));
+
+        $action = new PayPalWebhookAction(
+            $this->requestVerifier,
+            [$this->refundProcessor, $second],
+            $this->logger,
+        );
+
+        self::assertSame(
+            Response::HTTP_SERVICE_UNAVAILABLE,
+            $action($this->request('PAYMENT.CAPTURE.REFUNDED'))->getStatusCode(),
         );
     }
 

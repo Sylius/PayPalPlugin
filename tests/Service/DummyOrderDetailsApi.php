@@ -19,8 +19,14 @@ final class DummyOrderDetailsApi implements OrderDetailsApiInterface
 {
     public static string $captureStatus = 'COMPLETED';
 
+    public static ?\Throwable $failWith = null;
+
     public function get(string $token, string $orderId): array
     {
+        if (null !== self::$failWith) {
+            throw self::$failWith;
+        }
+
         return [
             'status' => 'COMPLETED',
             'purchase_units' => [
