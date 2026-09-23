@@ -86,14 +86,18 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             return;
         }
 
-        $this->verifyAmount($payment, $payPalOrderId, $capture);
-
-        $payment->setDetails(array_merge($details, array_filter([
+        $settled = array_filter([
             'status' => PaymentTransitions::TRANSITION_COMPLETE === $transition
                 ? StatusAction::STATUS_COMPLETED
                 : StatusAction::STATUS_PROCESSING,
             'transaction_id' => $capture->id(),
-        ], static fn (mixed $value): bool => null !== $value)));
+        ], static fn (mixed $value): bool => null !== $value);
+
+        $payment->setDetails(array_merge(
+            $details,
+            $settled,
+            $this->mismatchedCaptureDetails($payment, $payPalOrderId, $capture),
+        ));
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
         $this->paymentManager->flush();
@@ -108,10 +112,14 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         return $this->orderDetailsApi->get($this->authorizeClientApi->authorize($paymentMethod), $payPalOrderId);
     }
 
-    private function verifyAmount(PaymentInterface $payment, string $payPalOrderId, PayPalCapture $capture): void
-    {
+    /** @return array<string, mixed> */
+    private function mismatchedCaptureDetails(
+        PaymentInterface $payment,
+        string $payPalOrderId,
+        PayPalCapture $capture,
+    ): array {
         if ($capture->amount() === $payment->getAmount() && $capture->currencyCode() === $payment->getCurrencyCode()) {
-            return;
+            return [];
         }
 
         $this->logger->error(sprintf(
@@ -123,5 +131,10 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             (string) $payment->getAmount(),
             (string) $payment->getCurrencyCode(),
         ));
+
+        return [
+            'captured_amount' => $capture->amount(),
+            'captured_currency_code' => $capture->currencyCode(),
+        ];
     }
 }

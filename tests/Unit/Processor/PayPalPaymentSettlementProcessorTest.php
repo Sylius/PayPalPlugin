@@ -154,6 +154,40 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED', '99.00'));
     }
 
+    public function test_it_records_a_capture_that_does_not_match_the_payment_on_the_payment(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'COMPLETED',
+            'paypal_order_id' => '5O190127TN364715T',
+            'payment_source' => 'trustly',
+            'transaction_id' => '892032536L382192T',
+            'captured_amount' => 9900,
+            'captured_currency_code' => 'EUR',
+        ]);
+
+        $this->processor->settle($this->payment, $this->orderDetails('COMPLETED', '99.00'));
+    }
+
+    public function test_it_records_nothing_extra_when_the_capture_matches_the_payment(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $this->payment
+            ->expects(self::once())
+            ->method('setDetails')
+            ->willReturnCallback(function (array $details): void {
+                self::assertArrayNotHasKey('captured_amount', $details);
+                self::assertArrayNotHasKey('captured_currency_code', $details);
+            })
+        ;
+
+        $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
+    }
+
     public function test_it_reads_the_order_from_paypal_when_it_is_given_none(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
