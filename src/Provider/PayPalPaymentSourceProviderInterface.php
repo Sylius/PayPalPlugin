@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -40,6 +41,7 @@ interface PayPalPaymentSourceProviderInterface
      * @return array<string, mixed>
      *
      * @throws UnsupportedPayPalPaymentSourceException
+     * @throws InvalidPayerDataException
      */
     public function provide(OrderInterface $order, string $paymentSource, array $experienceContext): array;
 

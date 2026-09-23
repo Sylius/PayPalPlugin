@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -120,7 +121,8 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $this->order->method('getBillingAddress')->willReturn(null);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidPayerDataException::class);
+        $this->expectExceptionMessage('The PayPal order needs a billing address to be paid with "trustly"');
 
         $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
     }
@@ -129,7 +131,28 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $this->orderIsBilledTo('Patrick Watson', 'NL', null);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidPayerDataException::class);
+        $this->expectExceptionMessage('The PayPal order needs the payer email to be paid with "trustly"');
+
+        $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
+    }
+
+    public function test_it_refuses_to_pay_with_trustly_without_a_payer_name(): void
+    {
+        $this->orderIsBilledTo('   ', 'NL', 'patrick.watson@example.com');
+
+        $this->expectException(InvalidPayerDataException::class);
+        $this->expectExceptionMessage('The PayPal order needs the payer name to be paid with "trustly"');
+
+        $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
+    }
+
+    public function test_it_refuses_to_pay_with_trustly_from_a_country_code_paypal_does_not_take(): void
+    {
+        $this->orderIsBilledTo('Patrick Watson', 'nl', 'patrick.watson@example.com');
+
+        $this->expectException(InvalidPayerDataException::class);
+        $this->expectExceptionMessage('PayPal does not accept the country code "nl"');
 
         $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
     }

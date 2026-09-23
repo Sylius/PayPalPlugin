@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Webmozart\Assert\Assert;
 
 final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
 {
@@ -50,16 +50,24 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     private function trustly(OrderInterface $order, array $experienceContext): array
     {
         $billingAddress = $order->getBillingAddress();
-        Assert::notNull($billingAddress, 'The PayPal order needs a billing address to be paid with Trustly.');
+        if (null === $billingAddress) {
+            throw InvalidPayerDataException::withoutBillingAddress(self::TRUSTLY);
+        }
 
         $countryCode = (string) $billingAddress->getCountryCode();
-        Assert::regex($countryCode, '/^([A-Z]{2}|C2)$/');
+        if (1 !== preg_match('/^([A-Z]{2}|C2)$/', $countryCode)) {
+            throw InvalidPayerDataException::withCountryCode(self::TRUSTLY, $countryCode);
+        }
 
         $fullName = trim((string) $billingAddress->getFullName());
-        Assert::stringNotEmpty($fullName, 'The PayPal order needs the payer name to be paid with Trustly.');
+        if ('' === $fullName) {
+            throw InvalidPayerDataException::withoutPayerName(self::TRUSTLY);
+        }
 
         $email = (string) $order->getCustomer()?->getEmail();
-        Assert::stringNotEmpty($email, 'The PayPal order needs the payer email to be paid with Trustly.');
+        if ('' === $email) {
+            throw InvalidPayerDataException::withoutPayerEmail(self::TRUSTLY);
+        }
 
         return [
             'name' => $fullName,
