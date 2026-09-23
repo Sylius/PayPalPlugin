@@ -26,7 +26,9 @@ use Sylius\Component\Order\Modifier\OrderItemQuantityModifierInterface;
 use Sylius\Component\Order\Modifier\OrderModifierInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\Resource\Metadata\MetadataInterface;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -81,11 +83,13 @@ final readonly class AddToCartAction
         $form = $form->handleRequest($request);
 
         if ($form->isSubmitted() && !$form->isValid()) {
-            $product = $orderItem->getVariant()->getProduct();
+            $errors = [];
+            /** @var FormError $error */
+            foreach ($form->getErrors(true) as $error) {
+                $errors[] = $error->getMessage();
+            }
 
-            return new RedirectResponse(
-                $this->router->generate('sylius_shop_product_show', ['slug' => $product->getSlug()]),
-            );
+            return new JsonResponse(['errors' => $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         /** @var AddToCartCommandInterface $addToCartCommand */
