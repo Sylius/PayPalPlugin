@@ -58,8 +58,9 @@ export default class extends Controller {
 
         this.setSubmitting(true);
 
+        let orderId = null;
         try {
-            const { orderId } = await session.startAttempt(PAYMENT_SOURCE);
+            ({ orderId } = await session.startAttempt(PAYMENT_SOURCE));
             const { data, state } = await this.cardSession.submit(orderId, this.submitOptions());
 
             if (state === 'succeeded') {
@@ -75,9 +76,9 @@ export default class extends Controller {
                 return;
             }
 
-            await this.reportError(data?.message ?? 'PayPal could not process the card payment.');
+            await this.reportError(data?.message ?? 'PayPal could not process the card payment.', orderId);
         } catch (error) {
-            await this.reportError(String(error));
+            await this.reportError(String(error), orderId);
         }
     }
 
@@ -98,8 +99,12 @@ export default class extends Controller {
         window.location.reload();
     }
 
-    async reportError(message) {
-        await fetch(this.errorUrlValue, { method: 'post', body: message });
+    async reportError(message, payPalOrderId = null) {
+        await fetch(this.errorUrlValue, {
+            method: 'post',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ error: message, payPalOrderId }),
+        });
         window.location.reload();
     }
 
