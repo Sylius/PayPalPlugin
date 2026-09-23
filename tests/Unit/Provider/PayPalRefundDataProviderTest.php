@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider;
@@ -99,14 +98,11 @@ final class PayPalRefundDataProviderTest extends TestCase
         $this->provider->provide('https://get-refund-data.com');
     }
 
-    public function test_it_reports_a_paypal_response_that_is_not_a_refund_at_all(): void
+    public function test_it_reports_a_paypal_response_that_carries_no_links_at_all(): void
     {
-        $this->authorizeTokenFor('https://get-refund-data.com', [
-            'name' => 'INTERNAL_SERVER_ERROR',
-            'debug_id' => 'f1e2d3c4b5a6',
-        ]);
+        $this->authorizeTokenFor('https://get-refund-data.com', ['id' => 'REFUND_ID']);
 
-        $this->expectException(PayPalPluginException::class);
+        $this->expectException(PayPalWrongDataException::class);
 
         $this->provider->provide('https://get-refund-data.com');
     }
