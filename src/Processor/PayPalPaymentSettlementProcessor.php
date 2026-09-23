@@ -21,16 +21,11 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final readonly class PayPalPaymentSettlementProcessor implements PaymentSettlementProcessorInterface
 {
-    public const CAPTURE_STATUS_COMPLETED = 'COMPLETED';
-
-    public const CAPTURE_STATUS_DECLINED = 'DECLINED';
-
-    public const CAPTURE_STATUS_FAILED = 'FAILED';
-
     public function __construct(
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
@@ -55,11 +50,14 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         }
 
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
-        $capture = $payPalOrderDetails['purchase_units'][0]['payments']['captures'][0] ?? [];
+        $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
+        if (null === $capture) {
+            return;
+        }
 
-        $transition = match ($capture['status'] ?? null) {
-            self::CAPTURE_STATUS_COMPLETED => PaymentTransitions::TRANSITION_COMPLETE,
-            self::CAPTURE_STATUS_DECLINED, self::CAPTURE_STATUS_FAILED => PaymentTransitions::TRANSITION_FAIL,
+        $transition = match ($capture->status()) {
+            PayPalCapture::STATUS_COMPLETED => PaymentTransitions::TRANSITION_COMPLETE,
+            PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED => PaymentTransitions::TRANSITION_FAIL,
             default => null,
         };
 
@@ -79,7 +77,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             $this->logger->error(sprintf(
                 'PayPal order %s settled as %s, but payment #%s is %s and cannot be %s. Reconcile it by hand.',
                 $payPalOrderId,
-                (string) $capture['status'],
+                $capture->status(),
                 (string) $payment->getId(),
                 (string) $payment->getState(),
                 $state,
@@ -94,7 +92,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             'status' => PaymentTransitions::TRANSITION_COMPLETE === $transition
                 ? StatusAction::STATUS_COMPLETED
                 : StatusAction::STATUS_PROCESSING,
-            'transaction_id' => $capture['id'] ?? null,
+            'transaction_id' => $capture->id(),
         ], static fn (mixed $value): bool => null !== $value)));
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
@@ -110,22 +108,17 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         return $this->orderDetailsApi->get($this->authorizeClientApi->authorize($paymentMethod), $payPalOrderId);
     }
 
-    /** @param array<string, mixed> $capture */
-    private function verifyAmount(PaymentInterface $payment, string $payPalOrderId, array $capture): void
+    private function verifyAmount(PaymentInterface $payment, string $payPalOrderId, PayPalCapture $capture): void
     {
-        $amount = $capture['amount'] ?? [];
-        $captured = isset($amount['value']) ? (int) round(((float) $amount['value']) * 100) : null;
-        $currencyCode = $amount['currency_code'] ?? null;
-
-        if ($captured === $payment->getAmount() && $currencyCode === $payment->getCurrencyCode()) {
+        if ($capture->amount() === $payment->getAmount() && $capture->currencyCode() === $payment->getCurrencyCode()) {
             return;
         }
 
         $this->logger->error(sprintf(
             'PayPal order %s captured %s %s while payment #%s expects %s %s.',
             $payPalOrderId,
-            (string) ($amount['value'] ?? 'nothing'),
-            (string) ($currencyCode ?? '?'),
+            (string) ($capture->amount() ?? 'nothing'),
+            $capture->currencyCode() ?? '?',
             (string) $payment->getId(),
             (string) $payment->getAmount(),
             (string) $payment->getCurrencyCode(),
