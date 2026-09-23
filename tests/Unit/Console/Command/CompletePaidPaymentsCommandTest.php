@@ -13,12 +13,16 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Console\Command;
 
+use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Symfony\Component\Console\Command\Command;
@@ -93,7 +97,30 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         return $payment;
     }
 
-    public function test_it_settles_nothing_without_a_settlement_processor(): void
+    public function test_it_still_settles_for_an_application_that_passes_the_released_arguments(): void
+    {
+        $payment = $this->payment('sylius_paypal');
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $this->paymentRepository->method('findBy')->willReturn([$payment]);
+
+        $authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
+        $authorizeClientApi->method('authorize')->willReturn('TOKEN');
+
+        $orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
+        $orderDetailsApi->expects(self::once())->method('get')->with('TOKEN', 'PAYPAL_ORDER_ID')->willReturn([]);
+
+        $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
+            $this->paymentRepository,
+            $this->createMock(ObjectManager::class),
+            $authorizeClientApi,
+            $orderDetailsApi,
+            $this->createMock(StateMachineInterface::class),
+        ));
+
+        self::assertSame(Command::SUCCESS, $commandTester->execute([]));
+    }
+
+    public function test_it_settles_nothing_when_it_was_given_nothing_to_settle_with(): void
     {
         $commandTester = new CommandTester(new CompletePaidPaymentsCommand($this->paymentRepository));
 

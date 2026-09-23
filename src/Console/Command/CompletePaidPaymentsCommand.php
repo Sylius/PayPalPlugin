@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Console\Command;
 
 use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Model\GatewayConfigInterface;
+use Psr\Log\NullLogger;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -23,6 +24,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -38,7 +40,8 @@ final class CompletePaidPaymentsCommand extends Command
      * @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository
      *
      * @deprecated the $paymentManager, $authorizeClientApi, $orderDetailsApi and $stateMachine arguments are
-     *             unused since Sylius/PayPalPlugin 2.1 and will be removed in Sylius/PayPalPlugin 3.0.
+     *             deprecated since Sylius/PayPalPlugin 2.1 and will be removed in Sylius/PayPalPlugin 3.0.
+     *             Pass a $paymentSettlementProcessor instead.
      */
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
@@ -80,7 +83,9 @@ final class CompletePaidPaymentsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        if (null === $this->paymentSettlementProcessor) {
+        $paymentSettlementProcessor = $this->paymentSettlementProcessor ?? $this->buildPaymentSettlementProcessor();
+
+        if (null === $paymentSettlementProcessor) {
             $output->writeln(sprintf(
                 '<error>No %s was given, so no payment can be settled.</error>',
                 PaymentSettlementProcessorInterface::class,
@@ -97,10 +102,30 @@ final class CompletePaidPaymentsCommand extends Command
                 continue;
             }
 
-            $this->paymentSettlementProcessor->settle($payment);
+            $paymentSettlementProcessor->settle($payment);
         }
 
         return Command::SUCCESS;
+    }
+
+    private function buildPaymentSettlementProcessor(): ?PaymentSettlementProcessorInterface
+    {
+        if (
+            null === $this->authorizeClientApi ||
+            null === $this->orderDetailsApi ||
+            null === $this->stateMachine ||
+            null === $this->paymentManager
+        ) {
+            return null;
+        }
+
+        return new PayPalPaymentSettlementProcessor(
+            $this->authorizeClientApi,
+            $this->orderDetailsApi,
+            $this->stateMachine,
+            $this->paymentManager,
+            new NullLogger(),
+        );
     }
 
     private function isPayPalPayment(PaymentInterface $payment): bool
