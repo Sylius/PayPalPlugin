@@ -15,12 +15,15 @@ export default class extends Controller {
         cancelOrderUrl: String,
         errorUrl: String,
         loadingSelector: String,
+        liveFormSelector: String,
         payLaterEnabled: Boolean,
     };
 
     syliusOrderId = null;
 
     payPalOrderId = null;
+
+    validationFailed = false;
 
     initialized = false;
 
@@ -125,8 +128,11 @@ export default class extends Controller {
 
         const response = await fetch(this.createOrderUrlValue, requestInit);
 
-        if (this.hasLoadingSelectorValue && this.loadingSelectorValue !== '') {
-            document.querySelector(this.loadingSelectorValue)?.style.setProperty('display', 'block');
+        if (response.status === 422) {
+            this.validationFailed = true;
+            this.renderLiveForm();
+
+            throw new Error('The add to cart form is invalid.');
         }
 
         if (!response.ok) {
@@ -135,11 +141,28 @@ export default class extends Controller {
             return;
         }
 
+        if (this.hasLoadingSelectorValue && this.loadingSelectorValue !== '') {
+            document.querySelector(this.loadingSelectorValue)?.style.setProperty('display', 'block');
+        }
+
         const data = await response.json();
         this.syliusOrderId = data.id;
         this.payPalOrderId = data.orderId;
 
         return { orderId: data.orderId };
+    }
+
+    renderLiveForm() {
+        if (!this.hasLiveFormSelectorValue || this.liveFormSelectorValue === '') {
+            return;
+        }
+
+        const liveFormElement = document.querySelector(this.liveFormSelectorValue);
+        if (liveFormElement === null) {
+            return;
+        }
+
+        this.application.getControllerForElementAndIdentifier(liveFormElement, 'live')?.$render();
     }
 
     async onApprove(data) {
@@ -162,6 +185,12 @@ export default class extends Controller {
     }
 
     async onError(error) {
+        if (this.validationFailed) {
+            this.validationFailed = false;
+
+            return;
+        }
+
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
