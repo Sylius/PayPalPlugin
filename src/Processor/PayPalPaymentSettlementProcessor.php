@@ -94,13 +94,23 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         ], static fn (mixed $value): bool => null !== $value);
 
         $payment->setDetails(array_merge(
-            $details,
+            $this->withoutPayerAction($details),
             $settled,
             $this->mismatchedCaptureDetails($payment, $payPalOrderId, $capture),
         ));
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
         $this->paymentManager->flush();
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     *
+     * @return array<string, mixed>
+     */
+    private function withoutPayerAction(array $details): array
+    {
+        return array_diff_key($details, array_flip(['payer_action_url', 'payer_action_nonce']));
     }
 
     /** @return array<string, mixed> */

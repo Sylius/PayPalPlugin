@@ -13,7 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-interface PayerActionNonceProviderInterface
+final readonly class NonceProvider implements NonceProviderInterface
 {
-    public function provide(): string;
+    public function provide(): string
+    {
+        return bin2hex(random_bytes(16));
+    }
 }

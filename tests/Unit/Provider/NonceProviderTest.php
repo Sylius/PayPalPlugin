@@ -14,22 +14,22 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\TestCase;
-use Sylius\PayPalPlugin\Provider\PayerActionNonceProvider;
-use Sylius\PayPalPlugin\Provider\PayerActionNonceProviderInterface;
+use Sylius\PayPalPlugin\Provider\NonceProvider;
+use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 
-final class PayerActionNonceProviderTest extends TestCase
+final class NonceProviderTest extends TestCase
 {
-    private PayerActionNonceProvider $provider;
+    private NonceProvider $provider;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->provider = new PayerActionNonceProvider();
+        $this->provider = new NonceProvider();
     }
 
-    public function test_it_implements_payer_action_nonce_provider_interface(): void
+    public function test_it_implements_nonce_provider_interface(): void
     {
-        self::assertInstanceOf(PayerActionNonceProviderInterface::class, $this->provider);
+        self::assertInstanceOf(NonceProviderInterface::class, $this->provider);
     }
 
     public function test_it_provides_a_nonce_the_redirect_routes_accept(): void

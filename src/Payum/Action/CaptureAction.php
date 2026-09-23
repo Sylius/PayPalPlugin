@@ -21,8 +21,8 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\PayerActionNonceProvider;
-use Sylius\PayPalPlugin\Provider\PayerActionNonceProviderInterface;
+use Sylius\PayPalPlugin\Provider\NonceProvider;
+use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -37,7 +37,7 @@ final readonly class CaptureAction implements ActionInterface
         private CreateOrderApiInterface $createOrderApi,
         private UuidProviderInterface $uuidProvider,
         private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
-        private ?PayerActionNonceProviderInterface $payerActionNonceProvider = null,
+        private ?NonceProviderInterface $nonceProvider = null,
     ) {
         if (null === $this->orderCreatedStatusesProvider) {
             trigger_deprecation(
@@ -48,11 +48,11 @@ final readonly class CaptureAction implements ActionInterface
             );
         }
 
-        if (null === $this->payerActionNonceProvider) {
+        if (null === $this->nonceProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
-                'Not passing $payerActionNonceProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
+                'Not passing $nonceProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
         }
@@ -92,7 +92,7 @@ final readonly class CaptureAction implements ActionInterface
             return null;
         }
 
-        $provider = $this->payerActionNonceProvider ?? new PayerActionNonceProvider();
+        $provider = $this->nonceProvider ?? new NonceProvider();
 
         return $provider->provide();
     }

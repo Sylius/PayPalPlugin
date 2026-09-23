@@ -373,10 +373,10 @@
         <service id="Sylius\PayPalPlugin\Provider\UuidProviderInterface" alias="sylius_paypal.provider.uuid" />
 
         <service
-            id="sylius_paypal.provider.payer_action_nonce"
-            class="Sylius\PayPalPlugin\Provider\PayerActionNonceProvider"
+            id="sylius_paypal.provider.nonce"
+            class="Sylius\PayPalPlugin\Provider\NonceProvider"
         />
-        <service id="Sylius\PayPalPlugin\Provider\PayerActionNonceProviderInterface" alias="sylius_paypal.provider.payer_action_nonce" />
+        <service id="Sylius\PayPalPlugin\Provider\NonceProviderInterface" alias="sylius_paypal.provider.nonce" />
 
         <service id="sylius_paypal.client.sftp" class="phpseclib3\Net\SFTP">
             <argument>%sylius_paypal.reports_sftp_host%</argument>

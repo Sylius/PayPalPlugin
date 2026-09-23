@@ -28,7 +28,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\CaptureAction;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
-use Sylius\PayPalPlugin\Provider\PayerActionNonceProviderInterface;
+use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
@@ -41,7 +41,7 @@ final class CaptureActionTest extends TestCase
 
     private UuidProviderInterface&MockObject $uuidProvider;
 
-    private PayerActionNonceProviderInterface&MockObject $payerActionNonceProvider;
+    private NonceProviderInterface&MockObject $nonceProvider;
 
     private CaptureAction $captureAction;
 
@@ -51,16 +51,16 @@ final class CaptureActionTest extends TestCase
         $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->createOrderApi = $this->createMock(CreateOrderApiInterface::class);
         $this->uuidProvider = $this->createMock(UuidProviderInterface::class);
-        $this->payerActionNonceProvider = $this->createMock(PayerActionNonceProviderInterface::class);
+        $this->nonceProvider = $this->createMock(NonceProviderInterface::class);
 
-        $this->payerActionNonceProvider->method('provide')->willReturn('NONCE');
+        $this->nonceProvider->method('provide')->willReturn('NONCE');
 
         $this->captureAction = new CaptureAction(
             $this->authorizeClientApi,
             $this->createOrderApi,
             $this->uuidProvider,
             new PayPalOrderCreatedStatusesProvider(),
-            $this->payerActionNonceProvider,
+            $this->nonceProvider,
         );
     }
 

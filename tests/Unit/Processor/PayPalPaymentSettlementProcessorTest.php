@@ -188,6 +188,33 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
     }
 
+    public function test_it_forgets_the_payer_action_of_an_attempt_that_is_over(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $payment->method('getAmount')->willReturn(1539);
+        $payment->method('getCurrencyCode')->willReturn('EUR');
+        $payment->method('getDetails')->willReturn([
+            'paypal_order_id' => '5O190127TN364715T',
+            'payment_source' => 'trustly',
+            'payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=X',
+            'payer_action_nonce' => 'NONCE',
+        ]);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $payment
+            ->expects(self::once())
+            ->method('setDetails')
+            ->willReturnCallback(function (array $details): void {
+                self::assertArrayNotHasKey('payer_action_url', $details);
+                self::assertArrayNotHasKey('payer_action_nonce', $details);
+                self::assertSame('trustly', $details['payment_source']);
+            })
+        ;
+
+        $this->processor->settle($payment, $this->orderDetails('COMPLETED'));
+    }
+
     public function test_it_reads_the_order_from_paypal_when_it_is_given_none(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
