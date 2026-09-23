@@ -21,7 +21,9 @@ use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class PayPalRedirectReturnActionTest extends JsonApiTestCase
 {
-    private const NONCE = '0123456789abcdef0123456789abcdef';
+    private const RETURN_NONCE = '0123456789abcdef0123456789abcdef';
+
+    private const CANCEL_NONCE = 'fedcba9876543210fedcba9876543210';
 
     protected function setUp(): void
     {
@@ -34,7 +36,7 @@ final class PayPalRedirectReturnActionTest extends JsonApiTestCase
     {
         $order = $this->redirectOrder();
 
-        $this->client->request('GET', sprintf('/en_US/paypal/redirect-return/TOKEN/%s', self::NONCE));
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-return/TOKEN/%s', self::RETURN_NONCE));
 
         self::assertTrue($this->client->getResponse()->isRedirect());
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
@@ -55,6 +57,16 @@ final class PayPalRedirectReturnActionTest extends JsonApiTestCase
         $order = $this->redirectOrder();
 
         $this->client->request('GET', '/en_US/paypal/redirect-cancel/TOKEN/ffffffffffffffffffffffffffffffff');
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_it_refuses_a_return_answered_with_the_nonce_that_cancels_it(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-return/TOKEN/%s', self::CANCEL_NONCE));
 
         self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());

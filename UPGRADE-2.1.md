@@ -737,7 +737,7 @@
    own.
 
    The two factory signatures gained trailing optional arguments — the payment source, and the payer action
-   nonce the redirect routes are answered with:
+   nonces the redirect routes are answered with:
 
    ```diff
     // Sylius\PayPalPlugin\Api\CreateOrderApiInterface
@@ -746,7 +746,8 @@
         PaymentInterface $payment,
         string $referenceId,
    +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
-   +    ?string $payerActionNonce = null,
+   +    ?string $payerActionReturnNonce = null,
+   +    ?string $payerActionCancelNonce = null,
     ): array;
 
     // Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface
@@ -754,7 +755,8 @@
         PaymentInterface $payment,
         string $referenceId,
    +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
-   +    ?string $payerActionNonce = null,
+   +    ?string $payerActionReturnNonce = null,
+   +    ?string $payerActionCancelNonce = null,
     ): PayPalOrder;
    ```
 
@@ -1107,14 +1109,16 @@
 
    The order token alone would let anyone holding it cancel a transfer that is already on its way, because
    the cancel route reaches the payment state machine directly and so bypasses the `payer_action_url` guard
-   above. Each attempt therefore mints a `payer_action_nonce`, stores it in the payment details next to
-   `payer_action_url` and puts it in both URLs PayPal is given; a request whose nonce does not match answers
-   `404`. The nonce is per attempt rather than per request — PayPal may send the buyer back more than once —
-   and a new attempt replaces it. Settling the payment drops both `payer_action_url` and
-   `payer_action_nonce` from the details, so neither outlives the attempt that produced it. It comes from
+   above. Each attempt therefore mints two nonces — `payer_action_return_nonce` and
+   `payer_action_cancel_nonce` — stores them in the payment details next to `payer_action_url` and puts one
+   in each of the URLs PayPal is given; a request whose nonce does not match its own route answers `404`.
+   One per route rather than one per attempt, so a value that leaks from the return URL cannot be used to
+   cancel a transfer that is on its way. Each is per attempt rather than per request — PayPal may send the
+   buyer back more than once — and a new attempt replaces both. Settling the payment drops all three keys
+   from the details, so none of them outlives the attempt that produced it. They come from
    `Sylius\PayPalPlugin\Provider\NonceProviderInterface` (`sylius_paypal.provider.nonce`), and
-   `PayerActionCheckerInterface` gained `matchesPayerActionNonce(PaymentInterface $payment, string $nonce)`
-   to compare it.
+   `PayerActionCheckerInterface` gained `matchesPayerActionReturnNonce()` and
+   `matchesPayerActionCancelNonce()` to compare them.
 
    The cancel route answers four ways. A payment PayPal has completed after all goes to the thank-you page;
    one the bank refused says so with `sylius_paypal.something_went_wrong`, as the return route does; a
@@ -1157,7 +1161,7 @@
    - `PayPalOrder` gained a trailing optional `?string $processingInstruction = null`, and `toArray()` may
      now emit `processing_instruction`.
    - `CaptureAction` now keeps the `payer-action` link from the create-order response as
-     `payer_action_url` in the payment details, alongside the `payer_action_nonce` of the attempt. Only a
+     `payer_action_url` in the payment details, alongside the two payer action nonces of the attempt. Only a
      redirect payment source gets either; a wallet or card order is unchanged. The action gained a trailing
      optional `?NonceProviderInterface`, and not passing it is deprecated.
    - `CompleteOrderAction` returns early for a redirect payment source. PayPal has already captured such an

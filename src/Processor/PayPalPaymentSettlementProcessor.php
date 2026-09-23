@@ -110,7 +110,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
      */
     private function withoutPayerAction(array $details): array
     {
-        return array_diff_key($details, array_flip(['payer_action_url', 'payer_action_nonce']));
+        return array_diff_key($details, array_flip(['payer_action_url', 'payer_action_return_nonce', 'payer_action_cancel_nonce']));
     }
 
     /** @return array<string, mixed> */

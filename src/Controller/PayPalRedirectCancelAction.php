@@ -54,7 +54,7 @@ final readonly class PayPalRedirectCancelAction
         }
 
         $nonce = (string) $request->attributes->get('nonce');
-        if (!$this->payerActionChecker->matchesPayerActionNonce($payment, $nonce)) {
+        if (!$this->payerActionChecker->matchesPayerActionCancelNonce($payment, $nonce)) {
             throw new NotFoundHttpException(sprintf(
                 'Payment "%s" was not started by the payer action that came back.',
                 (string) $payment->getId(),

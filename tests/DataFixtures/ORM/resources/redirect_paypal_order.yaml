@@ -42,4 +42,5 @@ Sylius\Component\Core\Model\Payment:
             payment_amount: 20
             payment_source: "trustly"
             payer_action_url: "https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID"
-            payer_action_nonce: "0123456789abcdef0123456789abcdef"
+            payer_action_return_nonce: "0123456789abcdef0123456789abcdef"
+            payer_action_cancel_nonce: "fedcba9876543210fedcba9876543210"

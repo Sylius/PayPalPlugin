@@ -198,7 +198,8 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             'paypal_order_id' => '5O190127TN364715T',
             'payment_source' => 'trustly',
             'payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=X',
-            'payer_action_nonce' => 'NONCE',
+            'payer_action_return_nonce' => 'RETURN_NONCE',
+            'payer_action_cancel_nonce' => 'CANCEL_NONCE',
         ]);
         $this->stateMachine->method('can')->willReturn(true);
 
@@ -207,7 +208,8 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             ->method('setDetails')
             ->willReturnCallback(function (array $details): void {
                 self::assertArrayNotHasKey('payer_action_url', $details);
-                self::assertArrayNotHasKey('payer_action_nonce', $details);
+                self::assertArrayNotHasKey('payer_action_return_nonce', $details);
+                self::assertArrayNotHasKey('payer_action_cancel_nonce', $details);
                 self::assertSame('trustly', $details['payment_source']);
             })
         ;

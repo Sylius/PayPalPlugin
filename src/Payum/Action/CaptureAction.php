@@ -72,8 +72,15 @@ final readonly class CaptureAction implements ActionInterface
 
         $referenceId = $this->uuidProvider->provide();
         $paymentSource = $this->resolvePaymentSource($payment);
-        $payerActionNonce = $this->generatePayerActionNonce($paymentSource);
-        $content = $this->createOrderApi->create($token, $payment, $referenceId, $paymentSource, $payerActionNonce);
+        $payerActionNonces = $this->generatePayerActionNonces($paymentSource);
+        $content = $this->createOrderApi->create(
+            $token,
+            $payment,
+            $referenceId,
+            $paymentSource,
+            $payerActionNonces['payer_action_return_nonce'] ?? null,
+            $payerActionNonces['payer_action_cancel_nonce'] ?? null,
+        );
 
         if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
             $payment->setDetails([
@@ -82,29 +89,34 @@ final readonly class CaptureAction implements ActionInterface
                 'reference_id' => $referenceId,
                 'payment_amount' => $payment->getAmount(),
                 'payment_source' => $paymentSource,
-            ] + $this->payerActionDetails($content, $payerActionNonce));
+            ] + $this->payerActionDetails($content, $payerActionNonces));
         }
     }
 
-    private function generatePayerActionNonce(string $paymentSource): ?string
+    /** @return array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} */
+    private function generatePayerActionNonces(string $paymentSource): array
     {
         if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
-            return null;
+            return [];
         }
 
         $provider = $this->nonceProvider ?? new NonceProvider();
 
-        return $provider->provide();
+        return [
+            'payer_action_return_nonce' => $provider->provide(),
+            'payer_action_cancel_nonce' => $provider->provide(),
+        ];
     }
 
     /**
      * @param array<string, mixed> $content
+     * @param array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} $payerActionNonces
      *
-     * @return array{payer_action_url?: string, payer_action_nonce?: string}
+     * @return array<string, string>
      */
-    private function payerActionDetails(array $content, ?string $payerActionNonce): array
+    private function payerActionDetails(array $content, array $payerActionNonces): array
     {
-        if (null === $payerActionNonce) {
+        if ([] === $payerActionNonces) {
             return [];
         }
 
@@ -113,10 +125,7 @@ final readonly class CaptureAction implements ActionInterface
 
         foreach ($links as $link) {
             if (self::PAYER_ACTION_LINK_REL === ($link['rel'] ?? null) && isset($link['href'])) {
-                return [
-                    'payer_action_url' => (string) $link['href'],
-                    'payer_action_nonce' => $payerActionNonce,
-                ];
+                return ['payer_action_url' => (string) $link['href']] + $payerActionNonces;
             }
         }
 

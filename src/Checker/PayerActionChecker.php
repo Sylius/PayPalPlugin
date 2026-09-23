@@ -32,9 +32,19 @@ final readonly class PayerActionChecker implements PayerActionCheckerInterface
         ;
     }
 
-    public function matchesPayerActionNonce(PaymentInterface $payment, string $nonce): bool
+    public function matchesPayerActionReturnNonce(PaymentInterface $payment, string $nonce): bool
     {
-        $expectedNonce = $payment->getDetails()['payer_action_nonce'] ?? null;
+        return $this->matchesNonce($payment, 'payer_action_return_nonce', $nonce);
+    }
+
+    public function matchesPayerActionCancelNonce(PaymentInterface $payment, string $nonce): bool
+    {
+        return $this->matchesNonce($payment, 'payer_action_cancel_nonce', $nonce);
+    }
+
+    private function matchesNonce(PaymentInterface $payment, string $key, string $nonce): bool
+    {
+        $expectedNonce = $payment->getDetails()[$key] ?? null;
 
         if (!is_string($expectedNonce) || '' === $expectedNonce || '' === $nonce) {
             return false;

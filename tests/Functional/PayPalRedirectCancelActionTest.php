@@ -21,7 +21,7 @@ use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class PayPalRedirectCancelActionTest extends JsonApiTestCase
 {
-    private const NONCE = '0123456789abcdef0123456789abcdef';
+    private const CANCEL_NONCE = 'fedcba9876543210fedcba9876543210';
 
     protected function setUp(): void
     {
@@ -34,7 +34,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
     {
         $order = $this->redirectOrder();
 
-        $this->cancel(self::NONCE);
+        $this->cancel(self::CANCEL_NONCE);
         $reloaded = $this->reloadOrder($order);
 
         self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
@@ -47,7 +47,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
         $order = $this->redirectOrder();
 
-        $this->cancel(self::NONCE);
+        $this->cancel(self::CANCEL_NONCE);
         $reloaded = $this->reloadOrder($order);
 
         self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
@@ -59,8 +59,8 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
     {
         $order = $this->redirectOrder();
 
-        $this->cancel(self::NONCE);
-        $this->cancel(self::NONCE);
+        $this->cancel(self::CANCEL_NONCE);
+        $this->cancel(self::CANCEL_NONCE);
         $reloaded = $this->reloadOrder($order);
 
         self::assertTrue($this->client->getResponse()->isRedirect());

@@ -54,7 +54,7 @@ final class PayPalRedirectReturnActionTest extends TestCase
         $this->payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
         $this->router = $this->createMock(UrlGeneratorInterface::class);
 
-        $this->payerActionChecker->method('matchesPayerActionNonce')->willReturn(true);
+        $this->payerActionChecker->method('matchesPayerActionReturnNonce')->willReturn(true);
 
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getTokenValue')->willReturn('ORDER_TOKEN');
@@ -144,7 +144,7 @@ final class PayPalRedirectReturnActionTest extends TestCase
         $this->payment(PaymentInterface::STATE_PROCESSING);
 
         $payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
-        $payerActionChecker->method('matchesPayerActionNonce')->willReturn(false);
+        $payerActionChecker->method('matchesPayerActionReturnNonce')->willReturn(false);
 
         $action = new PayPalRedirectReturnAction(
             $this->orderProvider,

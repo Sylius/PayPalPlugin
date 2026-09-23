@@ -46,7 +46,8 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         PaymentInterface $payment,
         string $referenceId,
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
-        ?string $payerActionNonce = null,
+        ?string $payerActionReturnNonce = null,
+        ?string $payerActionCancelNonce = null,
     ): PayPalOrder {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -55,8 +56,8 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
         $experienceContext = $this->experienceContextProvider->provide(
             $order,
-            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_return', $payerActionNonce),
-            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_cancel', $payerActionNonce),
+            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_return', $payerActionReturnNonce),
+            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_cancel', $payerActionCancelNonce),
             null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider?->provide() : null,
         );
 

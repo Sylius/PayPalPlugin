@@ -197,7 +197,7 @@ final class PayPalOrderFactoryTest extends TestCase
     public function test_it_asks_paypal_to_complete_a_redirect_order_on_payment_approval(): void
     {
         $payPalOrder = $this->factory
-            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'NONCE')
+            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE')
             ->toArray()
         ;
 
@@ -223,7 +223,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $this->router,
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'NONCE');
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE');
     }
 
     public function test_it_still_declares_a_shipping_callback_on_a_wallet_order(): void
@@ -278,8 +278,8 @@ final class PayPalOrderFactoryTest extends TestCase
             ->method('provide')
             ->with(
                 self::anything(),
-                'https://shop.example.com/sylius_paypal_shop_redirect_return/NONCE',
-                'https://shop.example.com/sylius_paypal_shop_redirect_cancel/NONCE',
+                'https://shop.example.com/sylius_paypal_shop_redirect_return/RETURN_NONCE',
+                'https://shop.example.com/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
                 null,
             )
             ->willReturn([])
@@ -290,7 +290,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $this->routeReflectingRouter(),
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'NONCE');
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE');
     }
 
     public function test_it_refuses_to_build_a_redirect_order_without_a_payer_action_nonce(): void

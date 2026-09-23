@@ -53,7 +53,7 @@ final class CaptureActionTest extends TestCase
         $this->uuidProvider = $this->createMock(UuidProviderInterface::class);
         $this->nonceProvider = $this->createMock(NonceProviderInterface::class);
 
-        $this->nonceProvider->method('provide')->willReturn('NONCE');
+        $this->nonceProvider->method('provide')->willReturnOnConsecutiveCalls('RETURN_NONCE', 'CANCEL_NONCE');
 
         $this->captureAction = new CaptureAction(
             $this->authorizeClientApi,
@@ -276,7 +276,8 @@ final class CaptureActionTest extends TestCase
             'payment_amount' => 1000,
             'payment_source' => 'trustly',
             'payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123',
-            'payer_action_nonce' => 'NONCE',
+            'payer_action_return_nonce' => 'RETURN_NONCE',
+            'payer_action_cancel_nonce' => 'CANCEL_NONCE',
         ]);
 
         $this->captureAction->execute($request);
@@ -328,9 +329,13 @@ final class CaptureActionTest extends TestCase
                 PaymentInterface $payment,
                 string $referenceId,
                 string $paymentSource,
-                ?string $payerActionNonce,
+                ?string $payerActionReturnNonce,
+                ?string $payerActionCancelNonce,
             ): array {
-                self::assertSame('trustly' === $paymentSource ? 'NONCE' : null, $payerActionNonce);
+                $redirect = 'trustly' === $paymentSource;
+
+                self::assertSame($redirect ? 'RETURN_NONCE' : null, $payerActionReturnNonce);
+                self::assertSame($redirect ? 'CANCEL_NONCE' : null, $payerActionCancelNonce);
 
                 return ['status' => 'CREATED', 'id' => '123123'];
             })

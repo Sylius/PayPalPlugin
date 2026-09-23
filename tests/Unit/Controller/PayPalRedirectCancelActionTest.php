@@ -65,7 +65,7 @@ final class PayPalRedirectCancelActionTest extends TestCase
         $this->orderPaymentProcessor = $this->createMock(OrderProcessorInterface::class);
         $this->objectManager = $this->createMock(ObjectManager::class);
 
-        $this->payerActionChecker->method('matchesPayerActionNonce')->willReturn(true);
+        $this->payerActionChecker->method('matchesPayerActionCancelNonce')->willReturn(true);
 
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getTokenValue')->willReturn('ORDER_TOKEN');
@@ -158,7 +158,7 @@ final class PayPalRedirectCancelActionTest extends TestCase
     {
         $this->order->method('getLastPayment')->willReturn(null);
 
-        $this->payerActionChecker->expects(self::never())->method('matchesPayerActionNonce');
+        $this->payerActionChecker->expects(self::never())->method('matchesPayerActionCancelNonce');
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $this->stateMachine->expects(self::never())->method('apply');
 
@@ -204,7 +204,7 @@ final class PayPalRedirectCancelActionTest extends TestCase
         $this->order->method('getLastPayment')->willReturn($payment);
 
         $payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
-        $payerActionChecker->method('matchesPayerActionNonce')->willReturn(false);
+        $payerActionChecker->method('matchesPayerActionCancelNonce')->willReturn(false);
 
         $action = new PayPalRedirectCancelAction(
             $this->orderProvider,

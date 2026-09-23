@@ -72,25 +72,40 @@ final class PayerActionCheckerTest extends TestCase
 
     public function test_it_recognises_the_nonce_it_handed_to_paypal(): void
     {
-        $payment = $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_nonce' => 'NONCE']);
+        $payment = $this->payment(PaymentInterface::STATE_PROCESSING, [
+            'payer_action_return_nonce' => 'RETURN_NONCE',
+            'payer_action_cancel_nonce' => 'CANCEL_NONCE',
+        ]);
 
-        self::assertTrue($this->checker->matchesPayerActionNonce($payment, 'NONCE'));
-        self::assertFalse($this->checker->matchesPayerActionNonce($payment, 'OTHER_NONCE'));
-        self::assertFalse($this->checker->matchesPayerActionNonce($payment, ''));
+        self::assertTrue($this->checker->matchesPayerActionReturnNonce($payment, 'RETURN_NONCE'));
+        self::assertTrue($this->checker->matchesPayerActionCancelNonce($payment, 'CANCEL_NONCE'));
+        self::assertFalse($this->checker->matchesPayerActionReturnNonce($payment, 'OTHER_NONCE'));
+        self::assertFalse($this->checker->matchesPayerActionCancelNonce($payment, ''));
+    }
+
+    public function test_it_will_not_cancel_a_payment_with_the_nonce_that_answers_its_return(): void
+    {
+        $payment = $this->payment(PaymentInterface::STATE_PROCESSING, [
+            'payer_action_return_nonce' => 'RETURN_NONCE',
+            'payer_action_cancel_nonce' => 'CANCEL_NONCE',
+        ]);
+
+        self::assertFalse($this->checker->matchesPayerActionCancelNonce($payment, 'RETURN_NONCE'));
+        self::assertFalse($this->checker->matchesPayerActionReturnNonce($payment, 'CANCEL_NONCE'));
     }
 
     public function test_it_matches_no_nonce_against_a_payment_that_carries_none(): void
     {
-        self::assertFalse($this->checker->matchesPayerActionNonce(
+        self::assertFalse($this->checker->matchesPayerActionReturnNonce(
             $this->payment(PaymentInterface::STATE_PROCESSING, []),
             '',
         ));
-        self::assertFalse($this->checker->matchesPayerActionNonce(
-            $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_nonce' => '']),
+        self::assertFalse($this->checker->matchesPayerActionCancelNonce(
+            $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_cancel_nonce' => '']),
             '',
         ));
-        self::assertFalse($this->checker->matchesPayerActionNonce(
-            $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_nonce' => null]),
+        self::assertFalse($this->checker->matchesPayerActionReturnNonce(
+            $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_return_nonce' => null]),
             'NONCE',
         ));
     }
