@@ -36,6 +36,7 @@
             <argument>3600</argument>
             <argument>%sylius_paypal.partner_credentials.fallback_partner_id%</argument>
             <argument>%sylius_paypal.partner_credentials.fallback_partner_client_id%</argument>
+            <argument>%sylius_paypal.partner_credentials.fallback_logo_url%%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface" alias="sylius_paypal.provider.partner_credentials" />
 

@@ -28,6 +28,12 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 {
     public const PAYPAL_FACTORY_NAME = 'sylius_paypal';
 
+    private const PAYPAL_FALLBACK_PARTNER_ID = 'PTV9W69CVKNEL';
+
+    private const PAYPAL_FALLBACK_PARTNER_CLIENT_ID = 'ARYYW7lvQsrqKS5TRaaOsH4x1MhT56KhIhY6zEzQPDtMWNLmnNbbapVQMke50UQp6JuWogzrxS_k66Fr';
+
+    private const PAYPAL_FALLBACK_LOGO_URL = 'https://sylius.com/wp-content/uploads/2021/03/sylius-logo_sylius-logo-light-300x124.jpg';
+
     public function getAlias(): string
     {
         return 'sylius_paypal';
@@ -100,31 +106,20 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.partner_js_url', 'https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
-            $partnerCredentialsUrl = 'https://paypal.sylius.com/partner-credentials';
+            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_id', '');
+            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_client_id', '');
+            $container->setParameter('sylius_paypal.partner_credentials.fallback_logo_url', '');
+            $container->setParameter('sylius_paypal.partner_credentials_url', '');
         } else {
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
             $container->setParameter('sylius_paypal.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
-            $partnerCredentialsUrl = 'https://prod.paypal.sylius.com/partner-credentials';
+            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_id', self::PAYPAL_FALLBACK_PARTNER_ID);
+            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_client_id', self::PAYPAL_FALLBACK_PARTNER_CLIENT_ID);
+            $container->setParameter('sylius_paypal.partner_credentials.fallback_logo_url', self::PAYPAL_FALLBACK_LOGO_URL);
+            $container->setParameter('sylius_paypal.partner_credentials_url', 'https://prism.sylius.com/paypal/partner-data');
         }
-
-        // TODO: remove once the real partner-credentials endpoint is in place.
-        $container->setParameter(
-            'sylius_paypal.partner_credentials_url',
-            $_ENV['SYLIUS_PAYPAL_PARTNER_CREDENTIALS_URL'] ?? $partnerCredentialsUrl,
-        );
-
-        // partner_id/partner_client_id are static and identical for every store; configuring these lets
-        // onboarding survive a failing/slow partner-credentials call instead of hard-failing.
-        $container->setParameter(
-            'sylius_paypal.partner_credentials.fallback_partner_id',
-            $_ENV['SYLIUS_PAYPAL_FALLBACK_PARTNER_ID'] ?? '',
-        );
-        $container->setParameter(
-            'sylius_paypal.partner_credentials.fallback_partner_client_id',
-            $_ENV['SYLIUS_PAYPAL_FALLBACK_PARTNER_CLIENT_ID'] ?? '',
-        );
     }
 
     private function processEnvConfig(array $configs): array

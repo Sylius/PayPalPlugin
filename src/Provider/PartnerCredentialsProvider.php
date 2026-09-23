@@ -32,6 +32,7 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
         private int $cacheTtl = 3600,
         private string $fallbackPartnerId = '',
         private string $fallbackPartnerClientId = '',
+        private string $fallbackLogoUrl = '',
     ) {
     }
 
@@ -70,7 +71,7 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
                 throw $exception;
             }
 
-            return new PartnerCredentials($this->fallbackPartnerId, $this->fallbackPartnerClientId);
+            return new PartnerCredentials($this->fallbackPartnerId, $this->fallbackPartnerClientId, $this->fallbackLogoUrl);
         }
 
         $item->set([
