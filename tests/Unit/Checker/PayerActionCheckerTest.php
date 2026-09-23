@@ -70,6 +70,31 @@ final class PayerActionCheckerTest extends TestCase
         self::assertFalse($this->checker->isAwaitingPayerAction($this->payment(PaymentInterface::STATE_NEW, $details)));
     }
 
+    public function test_it_recognises_the_nonce_it_handed_to_paypal(): void
+    {
+        $payment = $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_nonce' => 'NONCE']);
+
+        self::assertTrue($this->checker->matchesPayerActionNonce($payment, 'NONCE'));
+        self::assertFalse($this->checker->matchesPayerActionNonce($payment, 'OTHER_NONCE'));
+        self::assertFalse($this->checker->matchesPayerActionNonce($payment, ''));
+    }
+
+    public function test_it_matches_no_nonce_against_a_payment_that_carries_none(): void
+    {
+        self::assertFalse($this->checker->matchesPayerActionNonce(
+            $this->payment(PaymentInterface::STATE_PROCESSING, []),
+            '',
+        ));
+        self::assertFalse($this->checker->matchesPayerActionNonce(
+            $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_nonce' => '']),
+            '',
+        ));
+        self::assertFalse($this->checker->matchesPayerActionNonce(
+            $this->payment(PaymentInterface::STATE_PROCESSING, ['payer_action_nonce' => null]),
+            'NONCE',
+        ));
+    }
+
     /** @param array<string, mixed> $details */
     private function payment(string $state, array $details): PaymentInterface&MockObject
     {

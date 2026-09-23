@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalRedirectReturnAction
@@ -29,6 +31,7 @@ final readonly class PayPalRedirectReturnAction
     public function __construct(
         private OrderProviderInterface $orderProvider,
         private PaymentSettlementProcessorInterface $paymentSettlementProcessor,
+        private PayerActionCheckerInterface $payerActionChecker,
         private UrlGeneratorInterface $router,
         private RequestStack $requestStack,
     ) {
@@ -40,6 +43,15 @@ final readonly class PayPalRedirectReturnAction
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         if (null !== $payment) {
+            $nonce = (string) $request->attributes->get('nonce');
+
+            if (!$this->payerActionChecker->matchesPayerActionNonce($payment, $nonce)) {
+                throw new NotFoundHttpException(sprintf(
+                    'Payment "%s" was not started by the payer action that came back.',
+                    (string) $payment->getId(),
+                ));
+            }
+
             $this->paymentSettlementProcessor->settle($payment);
         }
 

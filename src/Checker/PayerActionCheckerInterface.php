@@ -18,4 +18,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 interface PayerActionCheckerInterface
 {
     public function isAwaitingPayerAction(PaymentInterface $payment): bool;
+
+    public function matchesPayerActionNonce(PaymentInterface $payment, string $nonce): bool;
 }

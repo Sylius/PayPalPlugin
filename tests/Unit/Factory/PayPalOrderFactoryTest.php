@@ -197,7 +197,7 @@ final class PayPalOrderFactoryTest extends TestCase
     public function test_it_asks_paypal_to_complete_a_redirect_order_on_payment_approval(): void
     {
         $payPalOrder = $this->factory
-            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY)
+            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'NONCE')
             ->toArray()
         ;
 
@@ -223,7 +223,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $this->router,
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'NONCE');
     }
 
     public function test_it_still_declares_a_shipping_callback_on_a_wallet_order(): void
@@ -272,19 +272,14 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_sends_a_redirect_order_its_own_return_and_cancel_urls(): void
     {
-        $router = $this->createMock(UrlGeneratorInterface::class);
-        $router->method('generate')->willReturnCallback(
-            static fn (string $route): string => 'https://shop.example.com/' . $route,
-        );
-
         $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
         $experienceContextProvider
             ->expects(self::once())
             ->method('provide')
             ->with(
                 self::anything(),
-                'https://shop.example.com/sylius_paypal_shop_redirect_return',
-                'https://shop.example.com/sylius_paypal_shop_redirect_cancel',
+                'https://shop.example.com/sylius_paypal_shop_redirect_return/NONCE',
+                'https://shop.example.com/sylius_paypal_shop_redirect_cancel/NONCE',
                 null,
             )
             ->willReturn([])
@@ -292,10 +287,53 @@ final class PayPalOrderFactoryTest extends TestCase
 
         (new PayPalOrderFactory(
             $this->payPalPurchaseUnitFactory,
-            $router,
+            $this->routeReflectingRouter(),
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'NONCE');
+    }
+
+    public function test_it_refuses_to_build_a_redirect_order_without_a_payer_action_nonce(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->factory->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
+    }
+
+    public function test_it_puts_no_payer_action_nonce_in_the_urls_of_a_wallet_order(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(
+                self::anything(),
+                'https://shop.example.com/sylius_shop_checkout_complete',
+                'https://shop.example.com/sylius_shop_checkout_complete',
+                self::anything(),
+            )
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->routeReflectingRouter(),
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->payment, 'REFERENCE_ID');
+    }
+
+    private function routeReflectingRouter(): UrlGeneratorInterface&MockObject
+    {
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturnCallback(
+            static fn (string $route, array $parameters = []): string => rtrim(
+                'https://shop.example.com/' . $route . '/' . ($parameters['nonce'] ?? ''),
+                '/',
+            ),
+        );
+
+        return $router;
     }
 
     public function test_it_builds_the_payment_source_through_its_provider(): void

@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Webmozart\Assert\Assert;
 
 final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 {
@@ -45,6 +46,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         PaymentInterface $payment,
         string $referenceId,
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+        ?string $payerActionNonce = null,
     ): PayPalOrder {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -53,8 +55,8 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
         $experienceContext = $this->experienceContextProvider->provide(
             $order,
-            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_return'),
-            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_cancel'),
+            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_return', $payerActionNonce),
+            $this->payerUrl($order, $redirectPaymentSource, 'sylius_paypal_shop_redirect_cancel', $payerActionNonce),
             null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider?->provide() : null,
         );
 
@@ -69,15 +71,24 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         );
     }
 
-    private function payerUrl(OrderInterface $order, ?RedirectPaymentSource $redirectPaymentSource, string $route): ?string
-    {
+    private function payerUrl(
+        OrderInterface $order,
+        ?RedirectPaymentSource $redirectPaymentSource,
+        string $route,
+        ?string $payerActionNonce,
+    ): ?string {
         if (null === $redirectPaymentSource) {
             return $this->router?->generate('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
+        Assert::stringNotEmpty(
+            $payerActionNonce,
+            'A redirect PayPal order needs a payer action nonce to build its return and cancel URLs.',
+        );
+
         return $this->router?->generate(
             $route,
-            ['token' => $order->getTokenValue()],
+            ['token' => $order->getTokenValue(), 'nonce' => $payerActionNonce],
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
     }

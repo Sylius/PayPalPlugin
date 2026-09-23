@@ -20,6 +20,9 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
+use Sylius\PayPalPlugin\Provider\PayerActionNonceProvider;
+use Sylius\PayPalPlugin\Provider\PayerActionNonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -34,12 +37,22 @@ final readonly class CaptureAction implements ActionInterface
         private CreateOrderApiInterface $createOrderApi,
         private UuidProviderInterface $uuidProvider,
         private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
+        private ?PayerActionNonceProviderInterface $payerActionNonceProvider = null,
     ) {
         if (null === $this->orderCreatedStatusesProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
                 'Not passing $orderCreatedStatusesProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
+
+        if (null === $this->payerActionNonceProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $payerActionNonceProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
         }
@@ -59,7 +72,8 @@ final readonly class CaptureAction implements ActionInterface
 
         $referenceId = $this->uuidProvider->provide();
         $paymentSource = $this->resolvePaymentSource($payment);
-        $content = $this->createOrderApi->create($token, $payment, $referenceId, $paymentSource);
+        $payerActionNonce = $this->generatePayerActionNonce($paymentSource);
+        $content = $this->createOrderApi->create($token, $payment, $referenceId, $paymentSource, $payerActionNonce);
 
         if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
             $payment->setDetails([
@@ -68,23 +82,41 @@ final readonly class CaptureAction implements ActionInterface
                 'reference_id' => $referenceId,
                 'payment_amount' => $payment->getAmount(),
                 'payment_source' => $paymentSource,
-            ] + $this->payerActionDetails($content));
+            ] + $this->payerActionDetails($content, $payerActionNonce));
         }
+    }
+
+    private function generatePayerActionNonce(string $paymentSource): ?string
+    {
+        if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
+            return null;
+        }
+
+        $provider = $this->payerActionNonceProvider ?? new PayerActionNonceProvider();
+
+        return $provider->provide();
     }
 
     /**
      * @param array<string, mixed> $content
      *
-     * @return array{payer_action_url?: string}
+     * @return array{payer_action_url?: string, payer_action_nonce?: string}
      */
-    private function payerActionDetails(array $content): array
+    private function payerActionDetails(array $content, ?string $payerActionNonce): array
     {
+        if (null === $payerActionNonce) {
+            return [];
+        }
+
         /** @var array<array{rel?: string, href?: string}> $links */
         $links = $content['links'] ?? [];
 
         foreach ($links as $link) {
             if (self::PAYER_ACTION_LINK_REL === ($link['rel'] ?? null) && isset($link['href'])) {
-                return ['payer_action_url' => (string) $link['href']];
+                return [
+                    'payer_action_url' => (string) $link['href'],
+                    'payer_action_nonce' => $payerActionNonce,
+                ];
             }
         }
 

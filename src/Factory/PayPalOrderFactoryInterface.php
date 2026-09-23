@@ -23,5 +23,6 @@ interface PayPalOrderFactoryInterface
         PaymentInterface $payment,
         string $referenceId,
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+        ?string $payerActionNonce = null,
     ): PayPalOrder;
 }

@@ -736,8 +736,8 @@
    travels with the order from the button to the API call. Decorate it to teach the plugin a method of your
    own.
 
-   The two factory signatures gained a trailing optional argument that defaults to `paypal`, so existing
-   positional calls keep working:
+   The two factory signatures gained trailing optional arguments — the payment source, and the payer action
+   nonce the redirect routes are answered with:
 
    ```diff
     // Sylius\PayPalPlugin\Api\CreateOrderApiInterface
@@ -746,6 +746,7 @@
         PaymentInterface $payment,
         string $referenceId,
    +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+   +    ?string $payerActionNonce = null,
     ): array;
 
     // Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface
@@ -753,8 +754,16 @@
         PaymentInterface $payment,
         string $referenceId,
    +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+   +    ?string $payerActionNonce = null,
     ): PayPalOrder;
    ```
+
+   Existing **calls** keep working, positional ones included. An existing **implementation** of
+   `CreateOrderApiInterface` does not: PHP requires it to declare every parameter the interface declares, so
+   a class still carrying the three-argument signature is a fatal error rather than a deprecation. Add both
+   arguments to it. `PayPalOrderFactoryInterface` is new in 2.1 and has no released signature to preserve.
+   A factory that builds a redirect order without a nonce now throws, because the URLs it would hand PayPal
+   could not be told apart from anyone else's.
 
    `CreatePayPalOrderAction` gained a nullable `?PayPalPaymentSourceProviderInterface`. Not passing it is
    deprecated and will be prohibited in 3.0; without it the endpoint accepts `paypal` and nothing else.
@@ -1060,8 +1069,8 @@
 1. #### Three new shop routes, and a changed `return_url`.
 
    ```
-   GET /{_locale}/paypal/redirect-return/{token}    sylius_paypal_shop_redirect_return
-   GET /{_locale}/paypal/redirect-cancel/{token}    sylius_paypal_shop_redirect_cancel
+   GET /{_locale}/paypal/redirect-return/{token}/{nonce}    sylius_paypal_shop_redirect_return
+   GET /{_locale}/paypal/redirect-cancel/{token}/{nonce}    sylius_paypal_shop_redirect_cancel
    ```
 
    Both live under the shop's `/{_locale}` prefix, unlike `sylius_paypal_order_shipping_callback`. That
@@ -1069,6 +1078,16 @@
    answer with a redirect to a shop page, so the locale prefix is right for them. They identify the payment
    by the order token in the path and never by the session, which does not survive every browser's
    `SameSite` policy across an off-site redirect.
+
+   The order token alone would let anyone holding it cancel a transfer that is already on its way, because
+   the cancel route reaches the payment state machine directly and so bypasses the `payer_action_url` guard
+   above. Each attempt therefore mints a `payer_action_nonce`, stores it in the payment details next to
+   `payer_action_url` and puts it in both URLs PayPal is given; a request whose nonce does not match answers
+   `404`. The nonce is per attempt rather than per request — PayPal may send the buyer back more than once —
+   and a new attempt replaces it. It comes from
+   `Sylius\PayPalPlugin\Provider\PayerActionNonceProviderInterface`
+   (`sylius_paypal.provider.payer_action_nonce`), and `PayerActionCheckerInterface` gained
+   `matchesPayerActionNonce(PaymentInterface $payment, string $nonce)` to compare it.
 
    Orders created for a redirect method now point `return_url` and `cancel_url` at those two routes instead
    of both at `sylius_shop_checkout_complete`. Wallet and card orders are unchanged.
@@ -1083,7 +1102,9 @@
    - `PayPalOrder` gained a trailing optional `?string $processingInstruction = null`, and `toArray()` may
      now emit `processing_instruction`.
    - `CaptureAction` now keeps the `payer-action` link from the create-order response as
-     `payer_action_url` in the payment details, for every payment source.
+     `payer_action_url` in the payment details, alongside the `payer_action_nonce` of the attempt. Only a
+     redirect payment source gets either; a wallet or card order is unchanged. The action gained a trailing
+     optional `?PayerActionNonceProviderInterface`, and not passing it is deprecated.
    - `CompleteOrderAction` returns early for a redirect payment source. PayPal has already captured such an
      order, and patching or capturing it again would fail — invisibly, because the client swallows non-2xx
      responses.

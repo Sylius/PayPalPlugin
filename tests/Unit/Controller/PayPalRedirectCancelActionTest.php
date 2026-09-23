@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Controller\PayPalRedirectCancelAction;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -29,6 +30,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalRedirectCancelActionTest extends TestCase
@@ -37,11 +39,15 @@ final class PayPalRedirectCancelActionTest extends TestCase
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
+    private PayerActionCheckerInterface&MockObject $payerActionChecker;
+
     private StateMachineInterface&MockObject $stateMachine;
 
     private OrderProcessorInterface&MockObject $orderPaymentProcessor;
 
     private ObjectManager&MockObject $objectManager;
+
+    private UrlGeneratorInterface&MockObject $router;
 
     private FlashBag $flashBag;
 
@@ -54,9 +60,12 @@ final class PayPalRedirectCancelActionTest extends TestCase
         parent::setUp();
         $this->orderProvider = $this->createMock(OrderProviderInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->orderPaymentProcessor = $this->createMock(OrderProcessorInterface::class);
         $this->objectManager = $this->createMock(ObjectManager::class);
+
+        $this->payerActionChecker->method('matchesPayerActionNonce')->willReturn(true);
 
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getTokenValue')->willReturn('ORDER_TOKEN');
@@ -68,18 +77,19 @@ final class PayPalRedirectCancelActionTest extends TestCase
         $requestStack = new RequestStack();
         $requestStack->push($request);
 
-        $router = $this->createMock(UrlGeneratorInterface::class);
-        $router->method('generate')->willReturnCallback(
+        $this->router = $this->createMock(UrlGeneratorInterface::class);
+        $this->router->method('generate')->willReturnCallback(
             static fn (string $route): string => 'https://shop.example.com/' . $route,
         );
 
         $this->action = new PayPalRedirectCancelAction(
             $this->orderProvider,
             $this->paymentSettlementProcessor,
+            $this->payerActionChecker,
             $this->stateMachine,
             $this->orderPaymentProcessor,
             $this->objectManager,
-            $router,
+            $this->router,
             $requestStack,
         );
     }
@@ -144,10 +154,38 @@ final class PayPalRedirectCancelActionTest extends TestCase
         );
     }
 
+    public function test_it_cancels_nothing_for_a_payer_action_it_never_started(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->order->method('getLastPayment')->willReturn($payment);
+
+        $payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
+        $payerActionChecker->method('matchesPayerActionNonce')->willReturn(false);
+
+        $action = new PayPalRedirectCancelAction(
+            $this->orderProvider,
+            $this->paymentSettlementProcessor,
+            $payerActionChecker,
+            $this->stateMachine,
+            $this->orderPaymentProcessor,
+            $this->objectManager,
+            $this->router,
+            new RequestStack(),
+        );
+
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        $action($this->request());
+    }
+
     private function request(): Request
     {
         $request = new Request();
         $request->attributes->set('token', 'ORDER_TOKEN');
+        $request->attributes->set('nonce', 'NONCE');
 
         return $request;
     }

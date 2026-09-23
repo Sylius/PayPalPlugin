@@ -31,4 +31,15 @@ final readonly class PayerActionChecker implements PayerActionCheckerInterface
             null !== RedirectPaymentSource::tryFrom((string) ($details['payment_source'] ?? ''))
         ;
     }
+
+    public function matchesPayerActionNonce(PaymentInterface $payment, string $nonce): bool
+    {
+        $expectedNonce = $payment->getDetails()['payer_action_nonce'] ?? null;
+
+        if (!is_string($expectedNonce) || '' === $expectedNonce || '' === $nonce) {
+            return false;
+        }
+
+        return hash_equals($expectedNonce, $nonce);
+    }
 }

@@ -17,6 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Controller\PayPalRedirectReturnAction;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -26,6 +27,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalRedirectReturnActionTest extends TestCase
@@ -33,6 +35,8 @@ final class PayPalRedirectReturnActionTest extends TestCase
     private OrderProviderInterface&MockObject $orderProvider;
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
+
+    private PayerActionCheckerInterface&MockObject $payerActionChecker;
 
     private UrlGeneratorInterface&MockObject $router;
 
@@ -47,7 +51,10 @@ final class PayPalRedirectReturnActionTest extends TestCase
         parent::setUp();
         $this->orderProvider = $this->createMock(OrderProviderInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
         $this->router = $this->createMock(UrlGeneratorInterface::class);
+
+        $this->payerActionChecker->method('matchesPayerActionNonce')->willReturn(true);
 
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getTokenValue')->willReturn('ORDER_TOKEN');
@@ -67,6 +74,7 @@ final class PayPalRedirectReturnActionTest extends TestCase
         $this->action = new PayPalRedirectReturnAction(
             $this->orderProvider,
             $this->paymentSettlementProcessor,
+            $this->payerActionChecker,
             $this->router,
             $requestStack,
         );
@@ -131,6 +139,28 @@ final class PayPalRedirectReturnActionTest extends TestCase
         self::assertSame('https://shop.example.com/sylius_shop_order_show', $response->getTargetUrl());
     }
 
+    public function test_it_answers_no_one_but_the_payer_action_that_started_the_payment(): void
+    {
+        $this->payment(PaymentInterface::STATE_PROCESSING);
+
+        $payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
+        $payerActionChecker->method('matchesPayerActionNonce')->willReturn(false);
+
+        $action = new PayPalRedirectReturnAction(
+            $this->orderProvider,
+            $this->paymentSettlementProcessor,
+            $payerActionChecker,
+            $this->router,
+            new RequestStack(),
+        );
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        $action($this->request());
+    }
+
     private function payment(string $state): PaymentInterface&MockObject
     {
         $payment = $this->createMock(PaymentInterface::class);
@@ -144,6 +174,7 @@ final class PayPalRedirectReturnActionTest extends TestCase
     {
         $request = new Request();
         $request->attributes->set('token', 'ORDER_TOKEN');
+        $request->attributes->set('nonce', 'NONCE');
 
         return $request;
     }

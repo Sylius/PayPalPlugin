@@ -193,6 +193,7 @@
         <service id="sylius_paypal.controller.paypal_redirect_return" class="Sylius\PayPalPlugin\Controller\PayPalRedirectReturnAction" public="true">
             <argument type="service" id="sylius_paypal.provider.order" />
             <argument type="service" id="sylius_paypal.processor.payment_settlement" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
             <argument type="service" id="router" />
             <argument type="service" id="request_stack" />
         </service>
@@ -200,6 +201,7 @@
         <service id="sylius_paypal.controller.paypal_redirect_cancel" class="Sylius\PayPalPlugin\Controller\PayPalRedirectCancelAction" public="true">
             <argument type="service" id="sylius_paypal.provider.order" />
             <argument type="service" id="sylius_paypal.processor.payment_settlement" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
             <argument type="service" id="doctrine.orm.entity_manager" />

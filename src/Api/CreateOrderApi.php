@@ -48,8 +48,9 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         PaymentInterface $payment,
         string $referenceId,
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+        ?string $payerActionNonce = null,
     ): array {
-        $payPalOrder = $this->getPayPalOrderFactory()->create($payment, $referenceId, $paymentSource);
+        $payPalOrder = $this->getPayPalOrderFactory()->create($payment, $referenceId, $paymentSource, $payerActionNonce);
 
         return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
     }
