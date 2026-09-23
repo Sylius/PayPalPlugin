@@ -49,42 +49,54 @@ final readonly class PayPalRedirectCancelAction
         $order = $this->orderProvider->provideOrderByToken((string) $request->attributes->get('token'));
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
-        if (null !== $payment) {
-            $nonce = (string) $request->attributes->get('nonce');
-
-            if (!$this->payerActionChecker->matchesPayerActionNonce($payment, $nonce)) {
-                throw new NotFoundHttpException(sprintf(
-                    'Payment "%s" was not started by the payer action that came back.',
-                    (string) $payment->getId(),
-                ));
-            }
-
-            $this->paymentSettlementProcessor->settle($payment);
+        if (null === $payment) {
+            return new RedirectResponse($this->payPalPageUrl($order));
         }
 
-        if (null !== $payment && PaymentInterface::STATE_COMPLETED === $payment->getState()) {
+        $nonce = (string) $request->attributes->get('nonce');
+        if (!$this->payerActionChecker->matchesPayerActionNonce($payment, $nonce)) {
+            throw new NotFoundHttpException(sprintf(
+                'Payment "%s" was not started by the payer action that came back.',
+                (string) $payment->getId(),
+            ));
+        }
+
+        $this->paymentSettlementProcessor->settle($payment);
+
+        if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
             return new RedirectResponse($this->router->generate('sylius_shop_order_thank_you'));
         }
 
-        if (null !== $payment && PaymentInterface::STATE_PROCESSING === $payment->getState()) {
-            $this->cancel($payment, $order);
+        if (PaymentInterface::STATE_FAILED === $payment->getState()) {
+            $this->addFlash('error', 'sylius_paypal.something_went_wrong');
+
+            return new RedirectResponse($this->payPalPageUrl($order));
         }
 
-        FlashBagProvider::getFlashBag($this->requestStack)->add('info', 'sylius_paypal.payment_cancelled');
+        if ($this->cancel($payment, $order)) {
+            $this->addFlash('info', 'sylius_paypal.payment_cancelled');
+        }
 
         return new RedirectResponse($this->payPalPageUrl($order));
     }
 
-    private function cancel(PaymentInterface $payment, OrderInterface $order): void
+    private function cancel(PaymentInterface $payment, OrderInterface $order): bool
     {
         if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)) {
-            return;
+            return false;
         }
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
 
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
+
+        return true;
+    }
+
+    private function addFlash(string $type, string $message): void
+    {
+        FlashBagProvider::getFlashBag($this->requestStack)->add($type, $message);
     }
 
     private function payPalPageUrl(OrderInterface $order): string

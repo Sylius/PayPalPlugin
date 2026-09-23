@@ -154,6 +154,49 @@ final class PayPalRedirectCancelActionTest extends TestCase
         );
     }
 
+    public function test_it_says_nothing_was_cancelled_when_there_was_nothing_in_flight(): void
+    {
+        $this->order->method('getLastPayment')->willReturn(null);
+
+        $this->payerActionChecker->expects(self::never())->method('matchesPayerActionNonce');
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $response = ($this->action)($this->request());
+
+        self::assertSame('https://shop.example.com/sylius_shop_order_show', $response->getTargetUrl());
+        self::assertSame([], $this->flashBag->peekAll());
+    }
+
+    public function test_it_tells_the_payer_the_bank_refused_rather_than_that_they_cancelled(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_FAILED);
+        $this->order->method('getLastPayment')->willReturn($payment);
+
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        ($this->action)($this->request());
+
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->flashBag->peek('error'));
+        self::assertSame([], $this->flashBag->peek('info'));
+    }
+
+    public function test_it_claims_no_cancellation_the_state_machine_refused(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->order->method('getLastPayment')->willReturn($payment);
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->objectManager->expects(self::never())->method('flush');
+
+        ($this->action)($this->request());
+
+        self::assertSame([], $this->flashBag->peekAll());
+    }
+
     public function test_it_cancels_nothing_for_a_payer_action_it_never_started(): void
     {
         $payment = $this->createMock(PaymentInterface::class);
