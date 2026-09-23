@@ -13,15 +13,16 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor\Webhook;
 
+use Sylius\PayPalPlugin\Exception\PermanentWebhookFailureInterface;
+
 interface WebhookProcessorInterface
 {
     public function supports(string $eventType): bool;
 
     /**
-     * PayPal replays an event the dispatcher could not finish, so this may run more than once for the same
-     * event and must be idempotent. Throw a PermanentWebhookFailureInterface to refuse a replay.
-     *
      * @param array<string, mixed> $payload
+     *
+     * @throws PermanentWebhookFailureInterface
      */
     public function process(array $payload): void;
 }
