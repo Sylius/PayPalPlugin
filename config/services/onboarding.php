@@ -29,6 +29,7 @@ return static function (ContainerConfigurator $container) {
             3600,
             '%sylius_paypal.partner_credentials.fallback_partner_id%',
             '%sylius_paypal.partner_credentials.fallback_partner_client_id%',
+            '%sylius_paypal.partner_credentials.fallback_logo_url%',
         ]);
 
     $services->alias(PartnerCredentialsProviderInterface::class, 'sylius_paypal.provider.partner_credentials');
