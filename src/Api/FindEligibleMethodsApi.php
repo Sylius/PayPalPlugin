@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class FindEligibleMethodsApi implements FindEligibleMethodsApiInterface
@@ -34,7 +35,10 @@ final readonly class FindEligibleMethodsApi implements FindEligibleMethodsApiInt
                 [
                     'amount' => [
                         'currency_code' => $order->getCurrencyCode(),
-                        'value' => number_format($payment->getAmount() / 100, 2, '.', ''),
+                        'value' => AmountUtils::toPayPalValue(
+                            (int) $payment->getAmount(),
+                            (string) $order->getCurrencyCode(),
+                        ),
                     ],
                 ],
             ],

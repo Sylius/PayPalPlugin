@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
+use Sylius\PayPalPlugin\AmountUtils;
+
 final readonly class PayPalCapture
 {
     public const STATUS_COMPLETED = 'COMPLETED';
@@ -45,7 +47,7 @@ final readonly class PayPalCapture
         return new self(
             $capture['status'],
             isset($capture['id']) ? (string) $capture['id'] : null,
-            isset($amount['value']) ? (int) round(((float) $amount['value']) * 100) : null,
+            isset($amount['value']) ? AmountUtils::toMinorUnits((string) $amount['value']) : null,
             isset($amount['currency_code']) ? (string) $amount['currency_code'] : null,
         );
     }
