@@ -51,7 +51,7 @@ export default class extends Controller {
                 const venmoSession = session.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions());
 
                 this.venmoButtonTarget.removeAttribute('hidden');
-                this.venmoButtonTarget.addEventListener('click', () => this.start(session, venmoSession));
+                this.venmoButtonTarget.addEventListener('click', () => this.start(session, venmoSession, 'venmo'));
             }
         } catch (error) {
             console.error('PayPal Web SDK initialization error:', error);
@@ -66,13 +66,13 @@ export default class extends Controller {
         };
     }
 
-    async start(session, paymentSession) {
+    async start(session, paymentSession, paymentSource = null) {
         if (session.isBusy()) {
             return;
         }
 
         try {
-            await paymentSession.start({ presentationMode: 'auto' }, session.startAttempt());
+            await paymentSession.start({ presentationMode: 'auto' }, session.startAttempt(paymentSource));
         } catch (error) {
             session.release();
             console.error('paymentSession.start() failed:', error);

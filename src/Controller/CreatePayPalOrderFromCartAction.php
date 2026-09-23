@@ -22,6 +22,7 @@ use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
@@ -40,6 +41,7 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -74,6 +76,15 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->paymentSourceProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalPaymentSourceProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -88,8 +99,14 @@ final readonly class CreatePayPalOrderFromCartAction
         }
         $this->orderOwnershipVerifier->verify($order, $request);
 
+        $paymentSource = $this->resolvePaymentSource($request);
+        if (null === $paymentSource) {
+            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         try {
             $payment = $this->getPayment($order);
+            $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
             $this->capturePaymentResolver->resolve($payment);
         } catch (\DomainException|GuzzleException) {
             /** @var FlashBagInterface $flashBag */
@@ -139,5 +156,26 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         return $payment;
+    }
+
+    private function resolvePaymentSource(Request $request): ?string
+    {
+        $paymentSource = $request->query->get('paymentSource');
+
+        if (null === $paymentSource) {
+            return PayPalPaymentSourceProviderInterface::PAYPAL;
+        }
+
+        if (!$this->supportsPaymentSource($paymentSource)) {
+            return null;
+        }
+
+        return $paymentSource;
+    }
+
+    private function supportsPaymentSource(string $paymentSource): bool
+    {
+        return $this->paymentSourceProvider?->supports($paymentSource)
+            ?? PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource;
     }
 }

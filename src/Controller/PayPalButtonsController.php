@@ -30,6 +30,8 @@ use Twig\Environment;
 
 final readonly class PayPalButtonsController
 {
+    private const VENMO_COMPONENT = 'venmo-payments';
+
     /** @param OrderRepositoryInterface<OrderInterface> $orderRepository */
     public function __construct(
         private Environment $twig,
@@ -175,7 +177,7 @@ final readonly class PayPalButtonsController
         $components = PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
 
         if ($this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel)) {
-            $components[] = 'venmo-payments';
+            $components[] = self::VENMO_COMPONENT;
         }
 
         return $components;
