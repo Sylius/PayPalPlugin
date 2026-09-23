@@ -56,7 +56,7 @@ final class PayPalConfigurationType extends AbstractType
             if (is_array($data)) {
                 $originalData = $data;
                 $data['pay_later_enabled'] ??= true;
-                $data['venmo_enabled'] ??= true;
+                $data['venmo_enabled'] ??= false;
                 $data['messaging_enabled'] ??= true;
                 $data['google_pay_enabled'] ??= false;
                 $data['trustly_enabled'] ??= false;

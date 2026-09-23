@@ -36,6 +36,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
                     'cancel_url' => $experienceContext['cancel_url'] ?? null,
                 ]),
             ]],
+            self::VENMO => [self::VENMO => ['experience_context' => $experienceContext]],
             default => throw new UnsupportedPayPalPaymentSourceException($paymentSource),
         };
     }
@@ -44,7 +45,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     {
         return in_array(
             $paymentSource,
-            [self::PAYPAL, self::GOOGLE_PAY, self::CARD, ...RedirectPaymentSource::values()],
+            [self::PAYPAL, self::GOOGLE_PAY, self::CARD, self::VENMO, ...RedirectPaymentSource::values()],
             true,
         );
     }

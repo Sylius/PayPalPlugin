@@ -37,6 +37,8 @@ interface PayPalPaymentSourceProviderInterface
 
     public const CARD = 'card';
 
+    public const VENMO = 'venmo';
+
     /**
      * @param array<string, mixed> $experienceContext
      *

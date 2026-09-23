@@ -31,7 +31,6 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
         self::assertTrue($form->get('pay_later_enabled')->getData());
-        self::assertTrue($form->get('venmo_enabled')->getData());
         self::assertTrue($form->get('messaging_enabled')->getData());
     }
 
@@ -40,6 +39,13 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
         self::assertFalse($form->get('google_pay_enabled')->getData());
+    }
+
+    public function test_the_venmo_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->get('venmo_enabled')->getData());
     }
 
     public function test_the_google_pay_toggle_stays_true_after_being_resubmitted(): void

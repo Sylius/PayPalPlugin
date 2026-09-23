@@ -96,7 +96,7 @@ export default class extends Controller {
             }
 
             if (this.venmoEnabledValue && this.hasVenmoButtonTarget && paymentMethods.isEligible('venmo')) {
-                this.wireUpButton(this.venmoButtonTarget, sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()));
+                this.wireUpButton(this.venmoButtonTarget, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
             }
         } catch (error) {
             console.error('Pay Later button setup error:', error);
@@ -111,24 +111,29 @@ export default class extends Controller {
         };
     }
 
-    wireUpButton(buttonTarget, paymentSession) {
+    wireUpButton(buttonTarget, paymentSession, paymentSource = null) {
         buttonTarget.removeAttribute('hidden');
         buttonTarget.addEventListener('click', async () => {
             try {
-                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder());
+                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder(paymentSource));
             } catch (error) {
                 console.error('paymentSession.start() failed:', error);
             }
         });
     }
 
-    async createOrder() {
+    async createOrder(paymentSource = null) {
         const requestInit = { method: 'post' };
         if (this.hasAddToCartFormSelectorValue && this.addToCartFormSelectorValue !== '') {
             requestInit.body = new FormData(document.querySelector(this.addToCartFormSelectorValue));
         }
 
-        const response = await fetch(this.createOrderUrlValue, requestInit);
+        const url = new URL(this.createOrderUrlValue, window.location.origin);
+        if (paymentSource !== null) {
+            url.searchParams.set('paymentSource', paymentSource);
+        }
+
+        const response = await fetch(url, requestInit);
 
         if (this.hasLoadingSelectorValue && this.loadingSelectorValue !== '') {
             document.querySelector(this.loadingSelectorValue)?.style.setProperty('display', 'block');

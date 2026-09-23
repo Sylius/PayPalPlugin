@@ -209,6 +209,16 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertSame([], $card['card']['experience_context']);
     }
 
+    public function test_it_wraps_the_experience_context_in_the_venmo_payment_source(): void
+    {
+        $experienceContext = ['locale' => 'en-US', 'user_action' => 'PAY_NOW'];
+
+        self::assertSame(
+            ['venmo' => ['experience_context' => $experienceContext]],
+            $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, $experienceContext),
+        );
+    }
+
     public function test_it_supports_the_paypal_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::PAYPAL));
@@ -222,6 +232,11 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_supports_the_card_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::CARD));
+    }
+
+    public function test_it_supports_the_venmo_payment_source(): void
+    {
+        self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::VENMO));
     }
 
     public function test_it_does_not_support_an_unknown_payment_source(): void

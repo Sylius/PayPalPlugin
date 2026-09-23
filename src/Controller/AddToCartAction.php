@@ -100,6 +100,13 @@ final readonly class AddToCartAction
             $this->cartStorage->setForChannel($cart->getChannel(), $cart);
         }
 
-        return new RedirectResponse($this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $cart->getId()]));
+        $routeParameters = ['id' => $cart->getId()];
+
+        $paymentSource = $request->query->get('paymentSource');
+        if (is_string($paymentSource) && '' !== $paymentSource) {
+            $routeParameters['paymentSource'] = $paymentSource;
+        }
+
+        return new RedirectResponse($this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', $routeParameters));
     }
 }

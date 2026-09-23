@@ -947,6 +947,7 @@
            routing:
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
+
 1. #### Trustly is available on the PayPal payment page.
 
    A new tile on `/pay-with-paypal/{orderToken}/{paymentId}`, between Google Pay and the card fields. One
@@ -1218,3 +1219,27 @@
      `LocaleProcessorInterface`. `sylius_paypal_web_sdk_instance_config()` uses them to resolve the shop's
      current locale for Pay Later messaging when the caller does not pass one explicitly. Not passing them
      is deprecated and keeps today's behavior (no locale resolved automatically).
+
+1. #### Venmo is available on all four wallet-button placements.
+
+   A `<venmo-button>` on the product page, cart page, checkout/select-payment wallet button, and
+   `/pay-with-paypal/{orderToken}/{paymentId}`, next to the existing PayPal tile. One new, **opt-in** admin
+   toggle on the PayPal payment method's gateway config controls it:
+
+   - `venmo_enabled` — defaults to `false`, including for existing payment methods.
+
+   This is the opposite default from `pay_later_enabled` and `messaging_enabled`. Venmo is newer and less
+   exercised in production than Pay Later, and it is US-only, so turning it on is a deliberate merchant
+   decision rather than something every shop should suddenly start offering.
+
+   It is not a new Stimulus controller — Venmo reuses the same `paypal-web-sdk` and
+   `paypal-payment-wallet-button` controllers the PayPal and Pay Later buttons already use, so there is
+   nothing new to register in `controllers.json`.
+
+   **Orders created for Venmo now actually carry `payment_source.venmo`.** Every entry point that starts a
+   PayPal attempt names the funding source it used — `startAttempt(paymentSource)` on the payment page, and
+   a `paymentSource` query parameter on the product/cart/checkout-select create-order requests — and
+   `CreatePayPalOrderFromCartAction`/`CreatePayPalOrderFromPaymentPageAction` now read and record it before
+   capturing, the same way `CreatePayPalOrderAction` already did. Before this, every Venmo payment silently
+   created its order as `payment_source.paypal`, because `PayPalPaymentSourceProvider` had no `venmo` case
+   and three of the four placements never read a payment source from the request at all.
