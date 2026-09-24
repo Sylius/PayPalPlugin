@@ -18,9 +18,11 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Twig\Extension\AbstractExtension;
@@ -36,6 +38,8 @@ final class PayPalExtension extends AbstractExtension
         private readonly ?ChannelContextInterface $channelContext = null,
         private readonly ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
+        private readonly ?LocaleContextInterface $localeContext = null,
+        private readonly ?LocaleProcessorInterface $localeProcessor = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
 
@@ -60,6 +64,22 @@ final class PayPalExtension extends AbstractExtension
                 'sylius/paypal-plugin',
                 '2.1',
                 'Not passing $webSdkConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->localeContext) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $localeContext to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->localeProcessor) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $localeProcessor to %s constructor is deprecated and will be required in 3.0',
                 self::class,
             );
         }
@@ -118,9 +138,29 @@ final class PayPalExtension extends AbstractExtension
             /** @var ChannelInterface $channel */
             $channel = $this->channelContext->getChannel();
 
-            return $this->webSdkConfigurationProvider->getInstanceConfig($channel, $pageType, ['paypal-messages'], $locale);
+            return $this->webSdkConfigurationProvider->getInstanceConfig(
+                $channel,
+                $pageType,
+                ['paypal-messages'],
+                $locale ?? $this->resolveLocale(),
+            );
         } catch (\InvalidArgumentException) {
             return [];
+        }
+    }
+
+    private function resolveLocale(): ?string
+    {
+        if (null === $this->localeContext || null === $this->localeProcessor) {
+            return null;
+        }
+
+        try {
+            return $this->localeProcessor->process($this->localeContext->getLocaleCode());
+        } catch (\RuntimeException|\UnexpectedValueException) {
+            // No current locale, or one PayPal does not support - render without a locale,
+            // same as when no instance config caller passes one explicitly.
+            return null;
         }
     }
 

@@ -522,6 +522,8 @@
             <argument type="service" id="sylius.context.channel" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" />
             <argument type="service" id="sylius_paypal.checker.payer_action" />
+            <argument type="service" id="sylius.context.locale" />
+            <argument type="service" id="sylius_paypal.processor.locale" />
             <tag name="twig.extension" />
         </service>
 
