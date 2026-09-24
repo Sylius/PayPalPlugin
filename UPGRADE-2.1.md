@@ -223,40 +223,19 @@
    `sylius_paypal_shop_create_paypal_order` follows the same pattern: it gained `orderId` next to the
    `orderID` it has always returned, with the same value and the same meaning.
 
-1. #### The four v6 order actions now verify the caller actually owns the order before acting on it.
+1. #### Constructor changes on `CreatePayPalOrderFromCartAction`, `CreatePayPalOrderFromPaymentPageAction`, `CompletePayPalOrderFromPaymentPageAction`, `ProcessPayPalOrderAction` and `AddToCartAction`.
 
-   `CreatePayPalOrderFromCartAction`, `CreatePayPalOrderFromPaymentPageAction`,
-   `CompletePayPalOrderFromPaymentPageAction`, and `ProcessPayPalOrderAction` take a plain Sylius order id
-   (as an `{id}` path segment for the first three, `orderId` in the JSON body for the fourth) — always have,
-   still do, **no route, path, or request shape changes here**. What's new: none of the four checked that the
-   caller had any right to that order, so a guessable id was enough to overwrite a stranger's addresses and
-   customer, cancel their payment, or read out their PayPal order id. They now reject the request with a
-   `404 Not Found` unless the resolved order is one the caller's own session can be shown to own.
+   The first four each gained an optional, appended `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface`
+   argument, deprecated when absent like every other constructor addition in this document — except a missing
+   instance throws a `\RuntimeException` on first use instead of only a deprecation notice. If you've redefined
+   any of these services with an explicit argument list, add `sylius_paypal.verifier.order_ownership` to it
+   before 3.0.
 
-   `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface` (`sylius_paypal.verifier.order_ownership`)
-   does the check, immediately after the order is resolved by id and before anything about it is read or
-   changed. An order counts as owned when either is true:
-   - it's the order `sylius.context.cart` resolves for the current session (the normal case, while checkout
-     is still in progress), or
-   - its id matches the session's `sylius_order_id` key — set by `CompletePayPalOrderFromPaymentPageAction`
-     and `ProcessPayPalOrderAction` themselves on a successful completion, for the thank-you page — which
-     covers a buyer's capture confirmation being retried after the order already left the `cart` state (a
-     completed order is no longer what `sylius.context.cart` resolves).
+   `AddToCartAction` gained an optional, appended `Sylius\Component\Core\Storage\CartStorageInterface`
+   argument; a missing instance only triggers a deprecation notice here, no exception.
 
-   Each of the four actions gained a new constructor argument,
-   `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface`, appended at the end of its constructor and
-   optional/deprecated-when-absent, like every other constructor addition in this document — these four
-   classes shipped before 2.1, so the usual BC policy applies. Unlike most of those, though, its absence isn't
-   silently tolerated at runtime: skipping an ownership check on a security-relevant action isn't a sensible
-   fallback, so each action throws a `\RuntimeException` the first time it's invoked without one, rather than
-   quietly falling back to the old, unchecked behavior. If you've redefined any of the four services with an
-   explicit argument list, add `sylius_paypal.verifier.order_ownership` to it before 3.0.
-
-   `Sylius\PayPalPlugin\Controller\AddToCartAction` similarly gained an optional, appended
-   `Sylius\Component\Core\Storage\CartStorageInterface` argument, so the cart it creates explicitly registers
-   itself in session storage rather than relying on it happening implicitly elsewhere. This one **is** safe to
-   omit — it's defensive hardening around the ownership check above, not something the existing flow depends
-   on — so a missing instance only triggers a deprecation notice, no `RuntimeException`.
+   `Sylius\PayPalPlugin\Exception\OrderNotFoundException` now extends `NotFoundHttpException` instead of
+   implementing `HttpExceptionInterface` directly.
 
 1. #### Express checkout completes the purchase in the PayPal wallet.
 
