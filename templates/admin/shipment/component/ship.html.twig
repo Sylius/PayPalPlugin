@@ -1,0 +1,37 @@
+{% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
+
+{% set path = path|default('sylius_admin_shipment_ship') %}
+{% set path_parameters = path_parameters|default({id: resource.id}) %}
+{% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
+{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
+{% set paypal_tracking = form.paypal_tracking is defined ? form.paypal_tracking : null %}
+
+{% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
+    <div {{ attributes }}>
+        {{ form_start(form, {'action': path(path, path_parameters), 'attr': {'class': 'ui loadable form', 'novalidate': 'novalidate'}}) }}
+        <input type="hidden" name="_method" value="PUT">
+        <div class="row g-3 align-items-start">
+            <div class="col-12 col-md">
+                {{ form_row(form.tracking, sylius_test_form_attribute('shipment-tracking')|sylius_merge_recursive({'attr': {'placeholder': tracking_placeholder}})) }}
+            </div>
+            {% if paypal_tracking is not null %}
+                <div class="col-12 col-md">
+                    {{ form_row(paypal_tracking.carrier, sylius_test_form_attribute('shipment-carrier')|sylius_merge_recursive({'attr': {'data-model': 'on(change)|' ~ paypal_tracking.carrier.vars.full_name}})) }}
+                </div>
+                {% if paypal_tracking.carrier.vars.data == other_carrier_code %}
+                    <div class="col-12 col-md">
+                        {{ form_row(paypal_tracking.carrier_name_other, sylius_test_form_attribute('shipment-carrier-name-other')) }}
+                    </div>
+                {% endif %}
+            {% endif %}
+            <div class="col-12 col-md-auto">
+                <label class="form-label d-none d-md-block invisible">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100" {{ sylius_test_html_attribute('shipment-ship-button') }}>
+                    {{ ux_icon('tabler:truck') }}
+                    {{ 'sylius.ui.ship'|trans }}
+                </button>
+            </div>
+        </div>
+        {{ form_end(form, {'render_rest': false}) }}
+    </div>
+{% endif %}

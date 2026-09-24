@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+
+ This file is part of the Sylius package.
+
+ (c) Sylius Sp. z o.o.
+
+ For the full copyright and license information, please view the LICENSE
+ file that was distributed with this source code.
+
+-->
+
+<container
+    xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd"
+>
+    <services>
+
+        <service id="sylius_paypal.api.add_tracking" class="Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApi">
+            <argument type="service" id="sylius_paypal.client.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface" alias="sylius_paypal.api.add_tracking" />
+
+        <service id="sylius_paypal.repository.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Repository\ShipmentTrackingRepository">
+            <factory service="doctrine.orm.entity_manager" method="getRepository" />
+            <argument>Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTracking</argument>
+        </service>
+        <service id="Sylius\PayPalPlugin\PackageTracking\Repository\ShipmentTrackingRepositoryInterface" alias="sylius_paypal.repository.shipment_tracking" />
+
+        <service id="sylius_paypal.provider.carrier" class="Sylius\PayPalPlugin\PackageTracking\Provider\CarrierProvider">
+            <argument>%sylius_paypal.tracking.carriers%</argument>
+        </service>
+        <service id="Sylius\PayPalPlugin\PackageTracking\Provider\CarrierProviderInterface" alias="sylius_paypal.provider.carrier" />
+
+        <service id="sylius_paypal.factory.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Factory\ShipmentTrackingFactory" />
+        <service id="Sylius\PayPalPlugin\PackageTracking\Factory\ShipmentTrackingFactoryInterface" alias="sylius_paypal.factory.shipment_tracking" />
+
+        <service id="sylius_paypal.provider.shipment_tracking_items" class="Sylius\PayPalPlugin\PackageTracking\Provider\ShipmentTrackingItemsProvider" />
+        <service id="Sylius\PayPalPlugin\PackageTracking\Provider\ShipmentTrackingItemsProviderInterface" alias="sylius_paypal.provider.shipment_tracking_items" />
+
+        <service id="sylius_paypal.provider.order_paypal_payment" class="Sylius\PayPalPlugin\PackageTracking\Provider\OrderPayPalPaymentProvider" />
+        <service id="Sylius\PayPalPlugin\PackageTracking\Provider\OrderPayPalPaymentProviderInterface" alias="sylius_paypal.provider.order_paypal_payment" />
+
+        <service id="sylius_paypal.processor.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessor">
+            <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.provider.order_paypal_payment" />
+            <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
+            <argument type="service" id="sylius_paypal.api.order_details" />
+            <argument type="service" id="sylius_paypal.api.add_tracking" />
+            <argument type="service" id="sylius_paypal.provider.shipment_tracking_items" />
+            <argument type="service" id="sylius_paypal.provider.carrier" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessorInterface" alias="sylius_paypal.processor.shipment_tracking" />
+
+        <service id="sylius_paypal.manager.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Manager\ShipmentTrackingManager">
+            <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.factory.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.provider.carrier" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
+        </service>
+        <service id="Sylius\PayPalPlugin\PackageTracking\Manager\ShipmentTrackingManagerInterface" alias="sylius_paypal.manager.shipment_tracking" />
+
+        <service id="sylius_paypal.dispatcher.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcher">
+            <argument type="service" id="messenger.default_bus" />
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcherInterface" alias="sylius_paypal.dispatcher.shipment_tracking" />
+
+        <service id="sylius_paypal.message_handler.send_shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Message\Handler\SendShipmentTrackingHandler">
+            <argument type="service" id="sylius.repository.shipment" />
+            <argument type="service" id="sylius_paypal.processor.shipment_tracking" />
+
+            <tag name="messenger.message_handler" />
+        </service>
+
+        <service id="sylius_paypal.console.command.send_shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Console\Command\SendShipmentTrackingCommand">
+            <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.processor.shipment_tracking" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
+
+            <tag name="console.command" />
+        </service>
+
+        <service id="sylius_paypal.validator.shipment_tracking_carrier" class="Sylius\PayPalPlugin\PackageTracking\Validator\Constraints\ShipmentTrackingCarrierValidator">
+            <argument type="service" id="sylius_paypal.provider.carrier" />
+
+            <tag name="validator.constraint_validator" />
+        </service>
+
+        <service id="sylius_paypal.form.type.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Form\Type\ShipmentTrackingType">
+            <argument type="service" id="sylius_paypal.provider.carrier" />
+            <argument type="service" id="translator" />
+
+            <tag name="form.type" />
+        </service>
+
+        <service id="sylius_paypal.form.extension.shipment_ship" class="Sylius\PayPalPlugin\PackageTracking\Form\Extension\ShipmentShipTypeExtension">
+            <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.manager.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.provider.order_paypal_payment" />
+            <argument type="service" id="request_stack" />
+
+            <tag name="form.type_extension" />
+        </service>
+
+        <service id="sylius_paypal.twig.extension.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Twig\ShipmentTrackingExtension">
+            <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
+            <argument type="service" id="sylius_paypal.provider.order_paypal_payment" />
+
+            <tag name="twig.extension" />
+        </service>
+    </services>
+</container>

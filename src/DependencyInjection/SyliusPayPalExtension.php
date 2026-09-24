@@ -40,6 +40,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $this->setCommunicationParameters($container, $config);
 
         $container->setParameter('sylius_paypal.supported_locales', $config['supported_locales']);
+        $container->setParameter('sylius_paypal.tracking.carriers', $config['tracking']['carriers']);
 
         $loaderResolver = new LoaderResolver([
             new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config')),
@@ -57,6 +58,8 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
     public function prepend(ContainerBuilder $container): void
     {
+        $this->prependDoctrineMapping($container);
+
         if (!$container->hasExtension('doctrine_migrations') || !$container->hasExtension('sylius_labs_doctrine_migrations_extra')) {
             return;
         }
@@ -83,6 +86,26 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->prependExtensionConfig('sylius_labs_doctrine_migrations_extra', [
             'migrations' => [
                 'Sylius\PayPalPlugin\Migrations' => ['Sylius\Bundle\CoreBundle\Migrations'],
+            ],
+        ]);
+    }
+
+    private function prependDoctrineMapping(ContainerBuilder $container): void
+    {
+        if (!$container->hasExtension('doctrine')) {
+            return;
+        }
+
+        $container->prependExtensionConfig('doctrine', [
+            'orm' => [
+                'mappings' => [
+                    'SyliusPayPalPluginPackageTracking' => [
+                        'type' => 'attribute',
+                        'dir' => \dirname(__DIR__) . '/PackageTracking/Entity',
+                        'prefix' => 'Sylius\PayPalPlugin\PackageTracking\Entity',
+                        'is_bundle' => false,
+                    ],
+                ],
             ],
         ]);
     }
