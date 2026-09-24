@@ -21,15 +21,15 @@ sylius_twig_hooks:
             pay_later_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/paylater_enabled.html.twig'
                 priority: -500
-            venmo_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/venmo_enabled.html.twig'
-                priority: -600
             messaging_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/messaging_enabled.html.twig'
                 priority: -600
+            venmo_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/venmo_enabled.html.twig'
+                priority: -700
             google_pay_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/google_pay_enabled.html.twig'
-                priority: -700
+                priority: -800
             trustly_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/trustly_enabled.html.twig'
-                priority: -800
+                priority: -900

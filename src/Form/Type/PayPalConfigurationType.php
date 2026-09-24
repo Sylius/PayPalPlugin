@@ -45,8 +45,8 @@ final class PayPalConfigurationType extends AbstractType
             ->add('reports_sftp_username', TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add('reports_sftp_password', TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add('pay_later_enabled', CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
-            ->add('venmo_enabled', CheckboxType::class, ['label' => 'sylius_paypal.venmo_enabled', 'required' => false])
             ->add('messaging_enabled', CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
+            ->add('venmo_enabled', CheckboxType::class, ['label' => 'sylius_paypal.venmo_enabled', 'required' => false])
             ->add('google_pay_enabled', CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
             ->add('trustly_enabled', CheckboxType::class, ['label' => 'sylius_paypal.trustly_enabled', 'required' => false])
         ;

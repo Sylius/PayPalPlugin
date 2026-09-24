@@ -95,7 +95,13 @@ export default class extends Controller {
                 this.wireUpButton(this.payLaterButtonTarget, this.sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
             }
 
-            if (this.venmoEnabledValue && this.hasVenmoButtonTarget && paymentMethods.isEligible('venmo')) {
+            if (
+                !this.wiredTargets.has('venmo') &&
+                this.venmoEnabledValue &&
+                this.hasVenmoButtonTarget &&
+                paymentMethods.isEligible('venmo')
+            ) {
+                this.wiredTargets.add('venmo');
                 this.wireUpButton(this.venmoButtonTarget, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
             }
         } catch (error) {

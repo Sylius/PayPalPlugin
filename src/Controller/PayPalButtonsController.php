@@ -72,6 +72,7 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->localeProcessor->process($this->localeContext->getLocaleCode());
+            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -85,11 +86,11 @@ final readonly class PayPalButtonsController
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
                     'product-details',
-                    $this->getWebSdkComponents($channel),
+                    $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
-                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
+                'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -106,6 +107,7 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -122,11 +124,11 @@ final readonly class PayPalButtonsController
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
                     'cart',
-                    $this->getWebSdkComponents($channel),
+                    $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
-                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
+                'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -143,6 +145,7 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -160,11 +163,11 @@ final readonly class PayPalButtonsController
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
                     'checkout',
-                    $this->getWebSdkComponents($channel),
+                    $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
                 'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
-                'venmoEnabled' => $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel),
+                'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
             return new Response('');
@@ -172,11 +175,11 @@ final readonly class PayPalButtonsController
     }
 
     /** @return array<int, string> */
-    private function getWebSdkComponents(ChannelInterface $channel): array
+    private function getWebSdkComponents(bool $venmoEnabled): array
     {
         $components = PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
 
-        if ($this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel)) {
+        if ($venmoEnabled) {
             $components[] = self::VENMO_COMPONENT;
         }
 
