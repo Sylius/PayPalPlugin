@@ -18,9 +18,13 @@ use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Tests\Sylius\PayPalPlugin\Service\FakeOrderDetailsApi;
 
@@ -61,6 +65,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $content = $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -102,6 +107,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $content = $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -144,6 +150,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         ]);
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $content = $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -166,6 +173,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
 
         $orderId = $order->getId();
         $paymentId = $payment->getId();
+        $this->seedCurrentCart($order);
         $content = $this->processPayPalOrder($orderId, 'OTHER_PAYPAL_ORDER_ID');
         $order = $this->refreshOrder($orderId);
 
@@ -191,6 +199,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $paymentId = $payment->getId();
         $this->clearPaymentDetails($paymentId);
+        $this->seedCurrentCart($order);
         $content = $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -211,9 +220,22 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         /** @var OrderInterface $order */
         $order = $fixtures['new_order'];
 
+        $this->seedCompletedOrder($order);
         $content = $this->processPayPalOrder($order->getId());
 
         $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+    }
+
+    public function test_it_returns_not_found_when_the_order_does_not_belong_to_the_caller(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        // No cart seeded in the session at all - the caller owns nothing.
+        $this->processPayPalOrder($order->getId());
+
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }
 
     public function test_it_applies_the_shipping_method_the_buyer_picked_in_the_wallet(): void
@@ -236,6 +258,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $content = $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -265,6 +288,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -291,6 +315,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -314,6 +339,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -337,6 +363,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->mockSuccessfulPaymentCompleteProcessor();
 
         $orderId = $order->getId();
+        $this->seedCurrentCart($order);
         $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -374,6 +401,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $shippingAddressId = $order->getShippingAddress()?->getId();
         $billingAddressId = $order->getBillingAddress()?->getId();
 
+        $this->seedCurrentCart($order);
         $this->processPayPalOrder($orderId);
         $order = $this->refreshOrder($orderId);
 
@@ -432,6 +460,31 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
                 'shipping' => $shipping,
             ]],
         ];
+    }
+
+    private function seedCurrentCart(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        self::getContainer()->get('request_stack')->push(new Request());
+        self::getContainer()->get('request_stack')->getCurrentRequest()->setSession($session);
+        self::getContainer()->get(CartStorageInterface::class)->setForChannel($order->getChannel(), $order);
+        $session->save();
+        self::getContainer()->get('request_stack')->pop();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
+    }
+
+    private function seedCompletedOrder(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        $session->set('sylius_order_id', $order->getId());
+        $session->save();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
     }
 
     /** @return array<string, mixed> */

@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -40,6 +41,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private CapturePaymentResolverInterface $capturePaymentResolver,
         private ?OrderProcessorInterface $orderPaymentProcessor = null,
         private ?ObjectManager $objectManager = null,
+        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
     ) {
         if (null === $this->orderPaymentProcessor) {
             trigger_deprecation(
@@ -57,6 +59,15 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
                 ObjectManager::class,
             );
         }
+        if (null === $this->orderOwnershipVerifier) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -64,6 +75,13 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         $id = $request->attributes->getInt('id');
 
         $order = $this->orderProvider->provideOrderById($id);
+        if (null === $this->orderOwnershipVerifier) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to verify order ownership.',
+                OrderOwnershipVerifierInterface::class,
+            ));
+        }
+        $this->orderOwnershipVerifier->verify($order, $request);
 
         $this->cancelLiveAttempt($order);
 

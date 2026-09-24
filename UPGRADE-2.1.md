@@ -223,6 +223,20 @@
    `sylius_paypal_shop_create_paypal_order` follows the same pattern: it gained `orderId` next to the
    `orderID` it has always returned, with the same value and the same meaning.
 
+1. #### Constructor changes on `CreatePayPalOrderFromCartAction`, `CreatePayPalOrderFromPaymentPageAction`, `CompletePayPalOrderFromPaymentPageAction`, `ProcessPayPalOrderAction` and `AddToCartAction`.
+
+   The first four each gained an optional, appended `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface`
+   argument, deprecated when absent like every other constructor addition in this document — except a missing
+   instance throws a `\RuntimeException` on first use instead of only a deprecation notice. If you've redefined
+   any of these services with an explicit argument list, add `sylius_paypal.verifier.order_ownership` to it
+   before 3.0.
+
+   `AddToCartAction` gained an optional, appended `Sylius\Component\Core\Storage\CartStorageInterface`
+   argument; a missing instance only triggers a deprecation notice here, no exception.
+
+   `Sylius\PayPalPlugin\Exception\OrderNotFoundException` now extends `NotFoundHttpException` instead of
+   implementing `HttpExceptionInterface` directly.
+
 1. #### Express checkout completes the purchase in the PayPal wallet.
 
    The PayPal buttons on the cart and product pages used to be a shortcut into the regular checkout: after the

@@ -16,9 +16,14 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\Component\Order\Model\OrderItemInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
@@ -86,6 +91,17 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         self::assertSame(['sylius_paypal.order_total_changed'], $flashes['error'] ?? []);
     }
 
+    public function test_it_returns_not_found_when_the_order_does_not_belong_to_the_caller(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/payment_page_order.yaml']);
+        $orderId = (int) $fixtures['payment_page_order']->getId();
+
+        // No cart seeded in the session at all - the caller owns nothing.
+        $this->completePayPalOrder($orderId);
+
+        self::assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
     /** @return array{0: int, 1: int} */
     private function loadPaymentPageOrder(bool $amountMatches): array
     {
@@ -110,7 +126,23 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
 
         self::getContainer()->get('sylius.manager.order')->flush();
 
+        $this->seedCurrentCart($order);
+
         return [$orderId, (int) $payment->getId()];
+    }
+
+    private function seedCurrentCart(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        self::getContainer()->get('request_stack')->push(new Request());
+        self::getContainer()->get('request_stack')->getCurrentRequest()->setSession($session);
+        self::getContainer()->get(CartStorageInterface::class)->setForChannel($order->getChannel(), $order);
+        $session->save();
+        self::getContainer()->get('request_stack')->pop();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
     }
 
     /** @return array<string, mixed> */

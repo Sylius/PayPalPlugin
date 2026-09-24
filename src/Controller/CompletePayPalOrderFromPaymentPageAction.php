@@ -21,6 +21,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,6 +39,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private ObjectManager $orderManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?OrderProcessorInterface $orderProcessor = null,
+        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -55,6 +57,15 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
                 OrderProcessorInterface::class,
             );
         }
+        if (null === $this->orderOwnershipVerifier) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -62,6 +73,13 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $orderId = $request->attributes->getInt('id');
 
         $order = $this->orderProvider->provideOrderById($orderId);
+        if (null === $this->orderOwnershipVerifier) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to verify order ownership.',
+                OrderOwnershipVerifierInterface::class,
+            ));
+        }
+        $this->orderOwnershipVerifier->verify($order, $request);
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
         if (null === $payment) {
