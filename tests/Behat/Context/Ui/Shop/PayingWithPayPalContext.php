@@ -35,12 +35,24 @@ final readonly class PayingWithPayPalContext implements Context
         private DummyOrderDetailsApi $orderDetailsApi,
         private VoidPayPalPaymentCompleteProcessor $paymentCompleteProcessor,
     ) {
-        // Keep one kernel/container (and so the same test-double instances, such as
-        // $orderDetailsApi and $paymentCompleteProcessor below) alive for the whole scenario.
-        // The client reboots the kernel before each request by default, which would otherwise
-        // silently discard a Given step's configuration of a test double before a later request
-        // gets to exercise it.
-        $this->client->disableReboot();
+    }
+
+    #[Given('PayPal will approve the capture of my card payment')]
+    public function payPalWillApproveTheCaptureOfMyCardPayment(): void
+    {
+        $this->paymentCompleteProcessor->completeSuccessfullyNext();
+    }
+
+    #[Given('PayPal will decline the 3D Secure challenge for my card payment')]
+    public function payPalWillDeclineTheThreeDSecureChallengeForMyCardPayment(): void
+    {
+        $this->configureThreeDSecureResult(authenticationStatus: 'N');
+    }
+
+    #[Given('PayPal will ask to retry the 3D Secure challenge for my card payment')]
+    public function payPalWillAskToRetryTheThreeDSecureChallengeForMyCardPayment(): void
+    {
+        $this->configureThreeDSecureResult(authenticationStatus: 'C');
     }
 
     #[When('I go to the PayPal payment page of my order')]
@@ -56,6 +68,51 @@ final readonly class PayingWithPayPalContext implements Context
             'orderToken' => $order->getTokenValue(),
             'paymentId' => $payment->getId(),
         ]);
+    }
+
+    #[When('I start a card payment for my order')]
+    public function iStartACardPaymentForMyOrder(): void
+    {
+        // Keep one kernel/container (and so the same test-double instances, such as
+        // $orderDetailsApi and $paymentCompleteProcessor above) alive for the rest of the
+        // scenario. The client reboots the kernel before each request by default, which
+        // would otherwise silently discard a Given step's configuration of a test double
+        // before a later request gets to exercise it.
+        $this->client->disableReboot();
+
+        /** @var OrderInterface $order */
+        $order = $this->sharedStorage->get('order');
+
+        $this->client->request(
+            'POST',
+            sprintf('/en_US/create-pay-pal-order/%s', $order->getTokenValue()),
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['paymentSource' => 'card'], \JSON_THROW_ON_ERROR),
+        );
+
+        Assert::same(
+            $this->client->getResponse()->getStatusCode(),
+            200,
+            'Could not start a card payment attempt for the order.',
+        );
+    }
+
+    #[When('I complete the card payment')]
+    public function iCompleteTheCardPayment(): void
+    {
+        /** @var OrderInterface $order */
+        $order = $this->sharedStorage->get('order');
+
+        $this->client->request(
+            'POST',
+            sprintf('/en_US/complete-pay-pal-order/%s', $order->getTokenValue()),
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            '{}',
+        );
     }
 
     #[Then('I should be able to pay with Trustly')]
@@ -91,81 +148,6 @@ final readonly class PayingWithPayPalContext implements Context
         Assert::true(
             $this->payWithPayPalPage->isRenderedInTheShopLayout(),
             'The payment page does not extend the shop layout.',
-        );
-    }
-
-    #[When('I start a card payment for my order')]
-    public function iStartACardPaymentForMyOrder(): void
-    {
-        /** @var OrderInterface $order */
-        $order = $this->sharedStorage->get('order');
-
-        $this->client->request(
-            'POST',
-            sprintf('/en_US/create-pay-pal-order/%s', $order->getTokenValue()),
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode(['paymentSource' => 'card'], \JSON_THROW_ON_ERROR),
-        );
-
-        Assert::same(
-            $this->client->getResponse()->getStatusCode(),
-            200,
-            'Could not start a card payment attempt for the order.',
-        );
-    }
-
-    #[Given('PayPal will approve the capture of my card payment')]
-    public function payPalWillApproveTheCaptureOfMyCardPayment(): void
-    {
-        $this->paymentCompleteProcessor->completeSuccessfullyNext();
-    }
-
-    #[Given('PayPal will decline the 3D Secure challenge for my card payment')]
-    public function payPalWillDeclineTheThreeDSecureChallengeForMyCardPayment(): void
-    {
-        $this->configureThreeDSecureResult(authenticationStatus: 'N');
-    }
-
-    #[Given('PayPal will ask to retry the 3D Secure challenge for my card payment')]
-    public function payPalWillAskToRetryTheThreeDSecureChallengeForMyCardPayment(): void
-    {
-        $this->configureThreeDSecureResult(authenticationStatus: 'C');
-    }
-
-    private function configureThreeDSecureResult(string $authenticationStatus): void
-    {
-        $this->orderDetailsApi->useResponse([
-            'status' => 'COMPLETED',
-            'payment_source' => [
-                'card' => [
-                    'authentication_result' => [
-                        'three_d_secure' => [
-                            'enrollment_status' => 'Y',
-                            'authentication_status' => $authenticationStatus,
-                        ],
-                        'liability_shift' => 'NO',
-                    ],
-                ],
-            ],
-            'purchase_units' => [['payments' => ['captures' => [['id' => '123123']]]]],
-        ]);
-    }
-
-    #[When('I complete the card payment')]
-    public function iCompleteTheCardPayment(): void
-    {
-        /** @var OrderInterface $order */
-        $order = $this->sharedStorage->get('order');
-
-        $this->client->request(
-            'POST',
-            sprintf('/en_US/complete-pay-pal-order/%s', $order->getTokenValue()),
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            '{}',
         );
     }
 
@@ -211,6 +193,25 @@ final readonly class PayingWithPayPalContext implements Context
             '/pay-with-paypal/',
             'A retryable card payment should send the buyer back to the PayPal payment page.',
         );
+    }
+
+    private function configureThreeDSecureResult(string $authenticationStatus): void
+    {
+        $this->orderDetailsApi->useResponse([
+            'status' => 'COMPLETED',
+            'payment_source' => [
+                'card' => [
+                    'authentication_result' => [
+                        'three_d_secure' => [
+                            'enrollment_status' => 'Y',
+                            'authentication_status' => $authenticationStatus,
+                        ],
+                        'liability_shift' => 'NO',
+                    ],
+                ],
+            ],
+            'purchase_units' => [['payments' => ['captures' => [['id' => '123123']]]]],
+        ]);
     }
 
     /** @return array<string, mixed> */

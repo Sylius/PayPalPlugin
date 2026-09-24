@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -115,8 +116,7 @@ final readonly class CreatePayPalOrderAction
 
     private function supportsPaymentSource(string $paymentSource): bool
     {
-        return $this->paymentSourceProvider?->supports($paymentSource)
-            ?? PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource;
+        return ($this->paymentSourceProvider ?? new PayPalPaymentSourceProvider())->supports($paymentSource);
     }
 
     private function cancelLiveAttempt(OrderInterface $order): void

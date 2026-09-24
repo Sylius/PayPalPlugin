@@ -485,26 +485,20 @@
    that carries no `authentication_result` at all, which is every wallet payment and every card that needed
    no challenge, is captured as before.
 
-   Decorate or replace `sylius_paypal.verifier.three_d_secure` to change the policy.
+   Card orders send `payment_source.card.attributes.verification.method` as `SCA_WHEN_REQUIRED`, hardcoded,
+   with no back-office toggle — 3DS then fires wherever regulation or the card network requires it and
+   nowhere else, matching the SDD's own choice over `SCA_ALWAYS` (a challenge for every card payment,
+   including buyers nobody needed to challenge). `PaymentPageCardFieldsController` names `card` when it
+   starts an attempt, instead of leaving the request to fall back to `paypal` silently — without this,
+   PayPal never runs 3DS at all, so the decision table above never has a result to act on.
+
+   **Shops upgrading will start seeing real 3D Secure challenges on card payments where they saw none
+   before** — this is a conversion-visible behavior change, not just an internal correctness fix. Decorate
+   or replace `sylius_paypal.verifier.three_d_secure` to change the policy.
 
    The endpoint also answers `409` when no payment is being processed, and `422` when the caller names a
    PayPal order the payment does not carry. The identity check is skipped when the request body does not
    name one, so existing callers that post no body are unaffected.
-
-1. #### Card payments now request 3D Secure.
-
-   The previous entry's last paragraph is no longer accurate: card orders now send
-   `payment_source.card.attributes.verification.method` as `SCA_WHEN_REQUIRED`, hardcoded, with no
-   back-office toggle — 3DS then fires wherever regulation or the card network requires it and nowhere
-   else, matching the SDD's own choice over `SCA_ALWAYS` (a challenge for every card payment, including
-   buyers nobody needed to challenge). `PaymentPageCardFieldsController` now also names `card` when it
-   starts an attempt, instead of leaving the request to fall back to `paypal` silently.
-
-   **Shops upgrading will start seeing real 3D Secure challenges on card payments where they saw none
-   before** — this is a conversion-visible behavior change, not just an internal correctness fix, even
-   though it is one: without the verification attribute, PayPal never ran 3DS, so the decision table
-   documented above never had a result to act on for card payments. Decorate or replace
-   `sylius_paypal.verifier.three_d_secure` for a different policy, same as above.
 
 1. #### `sylius_paypal_shop_create_paypal_order` now ends the previous payment attempt.
 
