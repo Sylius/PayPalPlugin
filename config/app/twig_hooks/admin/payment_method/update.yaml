@@ -27,3 +27,6 @@ sylius_twig_hooks:
             google_pay_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/google_pay_enabled.html.twig'
                 priority: -700
+            trustly_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/trustly_enabled.html.twig'
+                priority: -800

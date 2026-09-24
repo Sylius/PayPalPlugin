@@ -20,6 +20,9 @@ services:
     sylius_paypal.api.create_order:
         class: Tests\Sylius\PayPalPlugin\Service\FakeCreateOrderApi
 
+    sylius_paypal.api.find_eligible_methods:
+        class: Tests\Sylius\PayPalPlugin\Service\FakeFindEligibleMethodsApi
+
     sylius_paypal.api.webhook_signature_verifier:
         class: Tests\Sylius\PayPalPlugin\Service\DummyWebhookSignatureVerifier
 

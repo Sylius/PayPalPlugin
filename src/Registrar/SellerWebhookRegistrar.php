@@ -20,15 +20,21 @@ use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProvider;
+use Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInterface
 {
+    private PayPalWebhookUrlProviderInterface $webhookUrlProvider;
+
     public function __construct(
         private AuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
         private WebhookApiInterface $webhookApi,
+        ?PayPalWebhookUrlProviderInterface $webhookUrlProvider = null,
     ) {
+        $this->webhookUrlProvider = $webhookUrlProvider ?? new PayPalWebhookUrlProvider($urlGenerator);
     }
 
     public function register(PaymentMethodInterface $paymentMethod): void
@@ -37,7 +43,7 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
         $config = $gatewayConfig->getConfig();
 
         $token = $this->authorizeClientApi->authorize((string) $config['client_id'], (string) $config['client_secret']);
-        $webhookUrl = $this->urlGenerator->generate('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        $webhookUrl = $this->webhookUrlProvider->provide();
 
         try {
             $response = $this->webhookApi->register($token, $webhookUrl);

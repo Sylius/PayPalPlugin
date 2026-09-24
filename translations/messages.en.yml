@@ -1,4 +1,5 @@
 sylius_paypal:
+    awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
     card_number: 'Card number'
@@ -12,6 +13,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Production'
     expiration_date: 'Expiration date'
+    finish_the_payment: 'Finish the payment'
     google_pay_enabled: 'Enable Google Pay'
     invalid_form: 'Form is invalid'
     label: 'PayPal'
@@ -20,8 +22,10 @@ sylius_paypal:
     missing_billing_address_content: 'Please, go back to the Addressing step and complete it'
     missing_billing_address_header: 'We could not fetch any billing address from PayPal'
     paylater_enabled: 'Enable Pay Later'
+    pay_with: 'Pay with'
     pay_with_card: 'Pay with Card'
     pay_with_paypal: 'Pay with PayPal'
+    pay_with_trustly: 'Pay with Trustly'
     privacy_notice: 'By paying with your card, you acknowledge that PayPal will process your data according to the PayPal Privacy Statement available at PayPal.com.'
     privacy_statement: 'PayPal Privacy Statement'
     report: 'Report'
@@ -29,6 +33,7 @@ sylius_paypal:
     sftp_username: 'SFTP Username'
     share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
     tender_type: 'Refunded to the PayPal wallet'
+    trustly_enabled: 'Enable Trustly'
     carrier:
         AMAZON_MCF: 'Amazon Logistics (MCF)'
         ARAMEX: 'Aramex'

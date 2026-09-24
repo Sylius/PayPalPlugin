@@ -25,3 +25,16 @@ Feature: Paying with PayPal
         Then I should be able to pay with PayPal
         And I should be able to pay by card
         And the payment page should be a part of the shop
+
+    @ui
+    Scenario: Being offered Trustly once the channel opts in
+        Given the store allows paying with Trustly through PayPal
+        When I specify the billing address as "Ankh Morpork", "Frost Alley", "90210", "United States" for "Jon Snow"
+        And I complete the addressing step
+        And I select "Aardvark Stagecoach" shipping method
+        And I complete the shipping step
+        And I complete the payment step
+        And I confirm my order
+        And I go to the PayPal payment page of my order
+        Then I should be able to pay with Trustly
+        And I should be able to pay with PayPal

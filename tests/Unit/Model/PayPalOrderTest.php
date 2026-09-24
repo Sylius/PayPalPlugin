@@ -86,4 +86,36 @@ final class PayPalOrderTest extends TestCase
         self::assertArrayHasKey('payment_source', $result);
         self::assertArrayNotHasKey('application_context', $result);
     }
+
+    public function test_it_sends_no_processing_instruction_unless_it_is_given_one(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: ['paypal' => ['experience_context' => []]],
+        );
+
+        self::assertArrayNotHasKey('processing_instruction', $payPalOrder->toArray());
+    }
+
+    public function test_it_asks_paypal_to_complete_the_order_on_payment_approval(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: ['trustly' => []],
+            processingInstruction: PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,
+        );
+
+        self::assertSame(
+            'ORDER_COMPLETE_ON_PAYMENT_APPROVAL',
+            $payPalOrder->toArray()['processing_instruction'],
+        );
+    }
 }

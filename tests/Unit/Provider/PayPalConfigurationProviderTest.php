@@ -104,6 +104,20 @@ final class PayPalConfigurationProviderTest extends TestCase
         self::assertTrue($this->payPalConfigurationProvider->isGooglePayEnabled($channel));
     }
 
+    public function test_it_considers_trustly_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isTrustlyEnabled($channel));
+    }
+
+    public function test_it_considers_trustly_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['trustly_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isTrustlyEnabled($channel));
+    }
+
     #[Test]
     public function it_returns_client_id_from_payment_method_config(): void
     {

@@ -1,6 +1,43 @@
 import { loadWebSdkOnce } from './paypal-web-sdk';
 
 let session = null;
+let busy = false;
+let attemptOrderId = null;
+
+export function isBusy() {
+    return busy;
+}
+
+export function release() {
+    busy = false;
+}
+
+export function currentOrderId() {
+    return attemptOrderId;
+}
+
+export async function startAttempt(createOrderUrl, paymentSource = null) {
+    busy = true;
+    attemptOrderId = null;
+
+    const response = await fetch(createOrderUrl, {
+        method: 'post',
+        ...(paymentSource === null ? {} : {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentSource }),
+        }),
+    });
+    if (!response.ok) {
+        busy = false;
+
+        throw new Error(`Could not start a PayPal payment attempt (${response.status}).`);
+    }
+
+    const data = await response.json();
+    attemptOrderId = data.orderId;
+
+    return data;
+}
 
 export function paymentPageSession(config) {
     session ??= createSession(config);
@@ -18,9 +55,6 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, 
     }
     const eligibleMethods = await sdkInstance.findEligibleMethods(eligibilityRequest);
 
-    let busy = false;
-    let orderId = null;
-
     return {
         sdkInstance,
 
@@ -28,33 +62,14 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, 
 
         getDetails: (fundingSource) => eligibleMethods.getDetails(fundingSource),
 
-        isBusy: () => busy,
+        isBusy,
 
-        currentOrderId: () => orderId,
+        currentOrderId,
 
-        release: () => {
-            busy = false;
-        },
+        release,
 
         startAttempt: async (paymentSource = null) => {
-            busy = true;
-            orderId = null;
-
-            const response = await fetch(createOrderUrl, {
-                method: 'post',
-                ...(paymentSource === null ? {} : {
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentSource }),
-                }),
-            });
-            if (!response.ok) {
-                busy = false;
-
-                throw new Error(`Could not start a PayPal payment attempt (${response.status}).`);
-            }
-
-            const data = await response.json();
-            orderId = data.orderId;
+            const { orderId } = await startAttempt(createOrderUrl, paymentSource);
 
             return { orderId };
         },

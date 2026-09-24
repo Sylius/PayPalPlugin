@@ -16,12 +16,14 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -190,6 +192,148 @@ final class PayPalOrderFactoryTest extends TestCase
                 'launch_paypal_app' => true,
             ],
         ], $payPalOrder['payment_source']['paypal']['experience_context']);
+    }
+
+    public function test_it_asks_paypal_to_complete_a_redirect_order_on_payment_approval(): void
+    {
+        $payPalOrder = $this->factory
+            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE')
+            ->toArray()
+        ;
+
+        self::assertSame('ORDER_COMPLETE_ON_PAYMENT_APPROVAL', $payPalOrder['processing_instruction']);
+        self::assertArrayNotHasKey(
+            'processing_instruction',
+            $this->factory->create($this->payment, 'REFERENCE_ID')->toArray(),
+        );
+    }
+
+    public function test_it_declares_no_shipping_callback_on_a_redirect_order(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(self::anything(), self::anything(), self::anything(), null)
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE');
+    }
+
+    public function test_it_still_declares_a_shipping_callback_on_a_wallet_order(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(
+                self::anything(),
+                self::anything(),
+                self::anything(),
+                'https://shop.example.com/paypal/order-shipping-callback',
+            )
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->payment, 'REFERENCE_ID');
+    }
+
+    private function redirectPayment(): PaymentInterface&MockObject
+    {
+        $billingAddress = $this->createMock(AddressInterface::class);
+        $billingAddress->method('getFullName')->willReturn('Patrick Watson');
+        $billingAddress->method('getCountryCode')->willReturn('NL');
+
+        $customer = $this->createMock(CustomerInterface::class);
+        $customer->method('getEmail')->willReturn('patrick.watson@example.com');
+
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+        $order->method('getBillingAddress')->willReturn($billingAddress);
+        $order->method('getCustomer')->willReturn($customer);
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
+        return $payment;
+    }
+
+    public function test_it_sends_a_redirect_order_its_own_return_and_cancel_urls(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(
+                self::anything(),
+                'https://shop.example.com/sylius_paypal_shop_redirect_return/RETURN_NONCE',
+                'https://shop.example.com/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
+                null,
+            )
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->routeReflectingRouter(),
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE');
+    }
+
+    public function test_it_refuses_to_build_a_redirect_order_without_a_payer_action_nonce(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->factory->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
+    }
+
+    public function test_it_puts_no_payer_action_nonce_in_the_urls_of_a_wallet_order(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(
+                self::anything(),
+                'https://shop.example.com/sylius_shop_checkout_complete',
+                'https://shop.example.com/sylius_shop_checkout_complete',
+                self::anything(),
+            )
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->routeReflectingRouter(),
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->payment, 'REFERENCE_ID');
+    }
+
+    private function routeReflectingRouter(): UrlGeneratorInterface&MockObject
+    {
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturnCallback(
+            static fn (string $route, array $parameters = []): string => rtrim(
+                'https://shop.example.com/' . $route . '/' . ($parameters['nonce'] ?? ''),
+                '/',
+            ),
+        );
+
+        return $router;
     }
 
     public function test_it_builds_the_payment_source_through_its_provider(): void

@@ -25,6 +25,8 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifier;
+use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,6 +44,7 @@ final readonly class RefundOrderAction
         private WebhookSignatureVerifierInterface $webhookSignatureVerifier,
         private WebhookIdProviderInterface $webhookIdProvider,
         private ?PaypalPaymentQueryInterface $paypalPaymentQuery = null,
+        private ?PayPalWebhookRequestVerifierInterface $requestVerifier = null,
     ) {
         if (null !== $this->paymentProvider) {
             trigger_deprecation(
@@ -67,24 +70,7 @@ final readonly class RefundOrderAction
 
     public function __invoke(Request $request): Response
     {
-        try {
-            $paymentMethod = $this->payPalPaymentMethodProvider->provide();
-            $webhookId = $this->webhookIdProvider->provide($paymentMethod);
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
-
-            $verified = null !== $webhookId && $this->webhookSignatureVerifier->verify($request, $webhookId, $token);
-
-            if (!$verified) {
-                $freshWebhookId = $this->webhookIdProvider->refresh($paymentMethod);
-                if (null !== $freshWebhookId && $freshWebhookId !== $webhookId) {
-                    $verified = $this->webhookSignatureVerifier->verify($request, $freshWebhookId, $token);
-                }
-            }
-        } catch (\Throwable) {
-            $verified = false;
-        }
-
-        if (!$verified) {
+        if (!$this->requestVerifier()->verify($request)) {
             return new JsonResponse(['error' => 'Not found'], Response::HTTP_NOT_FOUND);
         }
 
@@ -107,6 +93,16 @@ final readonly class RefundOrderAction
         $this->paymentManager->flush();
 
         return new JsonResponse([], Response::HTTP_NO_CONTENT);
+    }
+
+    private function requestVerifier(): PayPalWebhookRequestVerifierInterface
+    {
+        return $this->requestVerifier ?? new PayPalWebhookRequestVerifier(
+            $this->payPalPaymentMethodProvider,
+            $this->webhookIdProvider,
+            $this->authorizeClientApi,
+            $this->webhookSignatureVerifier,
+        );
     }
 
     private function getPayPalPaymentUrl(Request $request): string

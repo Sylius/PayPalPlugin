@@ -45,6 +45,15 @@ final readonly class PayingWithPayPalContext implements Context
         ]);
     }
 
+    #[Then('I should be able to pay with Trustly')]
+    public function iShouldBeAbleToPayWithTrustly(): void
+    {
+        Assert::true(
+            $this->payWithPayPalPage->hasTrustlyButton(),
+            'The Trustly button is not rendered on the payment page.',
+        );
+    }
+
     #[Then('I should be able to pay with PayPal')]
     public function iShouldBeAbleToPayWithPayPal(): void
     {

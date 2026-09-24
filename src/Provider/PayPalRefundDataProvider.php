@@ -33,10 +33,12 @@ final readonly class PayPalRefundDataProvider implements PayPalRefundDataProvide
 
         $refundData = $this->genericApi->get($token, $refundRefundUrl);
 
-        /** @var string[] $link */
-        foreach ($refundData['links'] as $link) {
-            if ($link['rel'] === 'up') {
-                return $this->genericApi->get($token, $link['href']);
+        /** @var array<array{rel?: string, href?: string}> $links */
+        $links = is_array($refundData['links'] ?? null) ? $refundData['links'] : [];
+
+        foreach ($links as $link) {
+            if ('up' === ($link['rel'] ?? null) && isset($link['href'])) {
+                return $this->genericApi->get($token, (string) $link['href']);
             }
         }
 

@@ -39,6 +39,8 @@ class PayPalOrder
 
     public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';
 
+    public const PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL = 'ORDER_COMPLETE_ON_PAYMENT_APPROVAL';
+
     /**
      * @param array<string, mixed> $paymentSource
      *
@@ -49,17 +51,24 @@ class PayPalOrder
         private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
         private readonly string $intent,
         private readonly array $paymentSource,
+        private readonly ?string $processingInstruction = null,
     ) {
     }
 
     public function toArray(): array
     {
-        return [
+        $payPalOrder = [
             'intent' => $this->intent,
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
             'payment_source' => $this->paymentSource,
         ];
+
+        if (null !== $this->processingInstruction) {
+            $payPalOrder['processing_instruction'] = $this->processingInstruction;
+        }
+
+        return $payPalOrder;
     }
 }

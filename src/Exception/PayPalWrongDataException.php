@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Exception;
 
-final class PayPalWrongDataException extends \Exception
+final class PayPalWrongDataException extends \Exception implements PermanentWebhookFailureInterface
 {
     public function __construct()
     {

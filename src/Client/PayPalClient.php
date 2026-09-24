@@ -81,16 +81,18 @@ final class PayPalClient implements PayPalClientInterface
 
     private function request(string $method, string $url, string $token, ?array $data = null, array $extraHeaders = []): array
     {
-        /** @var ChannelInterface $channel */
-        $channel = $this->channelContext->getChannel();
-        $options = [
-            'headers' => array_merge([
-                'Authorization' => 'Bearer ' . $token,
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-                'PayPal-Partner-Attribution-Id' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
-            ], $extraHeaders),
+        $headers = [
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
         ];
+
+        $partnerAttributionId = $this->partnerAttributionId();
+        if (null !== $partnerAttributionId) {
+            $headers['PayPal-Partner-Attribution-Id'] = $partnerAttributionId;
+        }
+
+        $options = ['headers' => array_merge($headers, $extraHeaders)];
 
         if ($data !== null) {
             $options['json'] = $data;
@@ -121,6 +123,23 @@ final class PayPalClient implements PayPalClientInterface
         }
 
         return $content;
+    }
+
+    private function partnerAttributionId(): ?string
+    {
+        try {
+            /** @var ChannelInterface $channel */
+            $channel = $this->channelContext->getChannel();
+
+            return $this->payPalConfigurationProvider->getPartnerAttributionId($channel);
+        } catch (\Throwable $exception) {
+            $this->logger->warning(sprintf(
+                'Could not resolve the PayPal partner attribution id: %s',
+                $exception->getMessage(),
+            ));
+
+            return null;
+        }
     }
 
     private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface

@@ -32,6 +32,12 @@
                 "webpackMode": "lazy",
                 "fetch": "lazy",
                 "enabled": true
+            },
+            "paypal-payment-redirect-button": {
+                "main": "controllers/PaymentPageRedirectButtonController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
             }
         }
     }

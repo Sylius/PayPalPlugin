@@ -32,6 +32,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         private UrlGeneratorInterface $router,
         private LocaleProcessorInterface $localeProcessor,
         private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
+        private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
     ) {
     }
 
@@ -64,6 +65,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'order' => $order,
             'payment' => $payment,
             'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
+            'redirectPaymentSources' => $this->redirectPaymentSources($payment),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
@@ -72,6 +74,18 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
         ];
+    }
+
+    /** @return array<string, string> */
+    private function redirectPaymentSources(PaymentInterface $payment): array
+    {
+        $paymentSources = [];
+
+        foreach ($this->eligibleRedirectPaymentSourcesProvider->provide($payment) as $case) {
+            $paymentSources[$case->value] = $case->iconUrl();
+        }
+
+        return $paymentSources;
     }
 
     private function languageCode(string $locale): string

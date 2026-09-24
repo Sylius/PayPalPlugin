@@ -68,13 +68,33 @@ final readonly class CreatePayPalOrderAction
 
         $this->paymentStateManager->process($payment);
 
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+        $details = $payment->getDetails();
+        $payPalOrderId = $details['paypal_order_id'];
 
-        return new JsonResponse([
+        return new JsonResponse(array_filter([
             'orderId' => $payPalOrderId,
             'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
             'status' => $payment->getState(),
-        ]);
+            'payerActionUrl' => $this->payerActionUrl($details),
+        ], static fn (mixed $value): bool => null !== $value));
+    }
+
+    /** @param array<string, mixed> $details */
+    private function payerActionUrl(array $details): ?string
+    {
+        $payerActionUrl = $details['payer_action_url'] ?? null;
+        if (!is_string($payerActionUrl)) {
+            return null;
+        }
+
+        $url = parse_url($payerActionUrl);
+        $host = strtolower((string) ($url['host'] ?? ''));
+
+        if ('https' !== ($url['scheme'] ?? null) || ('paypal.com' !== $host && !str_ends_with($host, '.paypal.com'))) {
+            return null;
+        }
+
+        return $payerActionUrl;
     }
 
     private function resolvePaymentSource(Request $request): ?string

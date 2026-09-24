@@ -68,6 +68,14 @@
         <service id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" alias="sylius_paypal.api.cache_authorize_client" />
 
         <service
+            id="sylius_paypal.api.find_eligible_methods"
+            class="Sylius\PayPalPlugin\Api\FindEligibleMethodsApi"
+        >
+            <argument type="service" id="sylius_paypal.client.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface" alias="sylius_paypal.api.find_eligible_methods" />
+
+        <service
             id="sylius_paypal.api.complete_order"
             class="Sylius\PayPalPlugin\Api\CompleteOrderApi"
         >
@@ -123,6 +131,17 @@
         <service id="Sylius\PayPalPlugin\Api\WebhookApiInterface" alias="sylius_paypal.api.webhook" />
 
         <service
+            id="sylius_paypal.api.update_webhook"
+            class="Sylius\PayPalPlugin\Api\UpdateWebhookApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface" alias="sylius_paypal.api.update_webhook" />
+
+        <service
             id="sylius_paypal.api.webhook_signature_verifier"
             class="Sylius\PayPalPlugin\Api\WebhookSignatureVerifier"
         >
@@ -153,6 +172,7 @@
             <argument type="service" id="router" />
             <argument>%sylius_paypal.api_base_url%</argument>
             <argument>%sylius_paypal.webhook_base_url%</argument>
+            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
         </service>
 
         <service

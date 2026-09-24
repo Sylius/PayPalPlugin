@@ -34,6 +34,7 @@
             <argument type="service" id="sylius_paypal.api.create_order" />
             <argument type="service" id="sylius_paypal.provider.uuid" />
             <argument type="service" id="sylius_paypal.provider.paypal_order_created_statuses" />
+            <argument type="service" id="sylius_paypal.provider.nonce" />
             <tag name="payum.action" factory="sylius_paypal" alias="payum.action.capture" />
         </service>
 
@@ -46,6 +47,7 @@
             <argument type="service" id="sylius_paypal.updater.payment" />
             <argument type="service" id="sylius.state_resolver.order_payment" />
             <argument type="service" id="sylius_paypal.api.update_order_address" />
+            <argument type="service" id="monolog.logger.paypal" />
             <tag name="payum.action" factory="sylius_paypal" alias="payum.action.complete_order" />
         </service>
 

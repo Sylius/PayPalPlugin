@@ -19,6 +19,15 @@
     <services>
         <defaults public="true"/>
 
+        <service id="sylius_paypal.controller.webhook.paypal_webhook" class="Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction" public="true">
+            <argument type="service" id="sylius_paypal.verifier.paypal_webhook_request" />
+            <argument type="collection">
+                <argument type="service" id="sylius_paypal.processor.webhook.refund_order" />
+                <argument type="service" id="sylius_paypal.processor.webhook.capture_payment" />
+            </argument>
+            <argument type="service" id="monolog.logger.paypal" />
+        </service>
+
         <service id="sylius_paypal.controller.webhook.refund_order" class="Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction">
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius_paypal.provider.payment" />
@@ -29,6 +38,8 @@
             <argument type="service" id="sylius_paypal.api.webhook_signature_verifier" />
             <argument type="service" id="sylius_paypal.provider.webhook_id" />
             <argument type="service" id="sylius_paypal.repository.query.paypal_payment" />
+            <argument type="service" id="sylius_paypal.verifier.paypal_webhook_request" />
+            <deprecated package="sylius/paypal-plugin" version="2.1">The "%service_id%" service is deprecated, use "sylius_paypal.controller.webhook.paypal_webhook" instead.</deprecated>
         </service>
 
         <service id="sylius_paypal.controller.cancel_paypal_order" class="Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction">
@@ -128,6 +139,7 @@
             <argument>null</argument>
             <argument type="service" id="sylius_paypal.provider.paypal_payment_page_context" />
             <argument type="service" id="router" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
         </service>
 
         <service id="sylius_paypal.controller.process_paypal_order" class="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
@@ -178,6 +190,25 @@
             <argument type="service" id="sylius_paypal.verifier.order_ownership" />
         </service>
 
+        <service id="sylius_paypal.controller.paypal_redirect_return" class="Sylius\PayPalPlugin\Controller\PayPalRedirectReturnAction" public="true">
+            <argument type="service" id="sylius_paypal.provider.order" />
+            <argument type="service" id="sylius_paypal.processor.payment_settlement" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
+            <argument type="service" id="router" />
+            <argument type="service" id="request_stack" />
+        </service>
+
+        <service id="sylius_paypal.controller.paypal_redirect_cancel" class="Sylius\PayPalPlugin\Controller\PayPalRedirectCancelAction" public="true">
+            <argument type="service" id="sylius_paypal.provider.order" />
+            <argument type="service" id="sylius_paypal.processor.payment_settlement" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
+            <argument type="service" id="sylius_abstraction.state_machine" />
+            <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="router" />
+            <argument type="service" id="request_stack" />
+        </service>
+
         <service id="sylius_paypal.controller.paypal_payment_on_error" class="Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction">
             <argument type="service" id="request_stack" />
             <argument type="service" id="monolog.logger.paypal" />
@@ -185,6 +216,7 @@
             <argument type="service" id="sylius_abstraction.state_machine" />
             <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
             <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sylius_paypal.checker.payer_action" />
         </service>
 
         <service id="sylius_paypal.controller.add_to_cart" class="Sylius\PayPalPlugin\Controller\AddToCartAction">

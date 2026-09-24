@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Model\GatewayConfigInterface;
+use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -25,6 +26,7 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -41,6 +43,7 @@ final readonly class CompleteOrderAction implements ActionInterface
         private PaymentUpdaterInterface $payPalPaymentUpdater,
         private StateResolverInterface $orderPaymentStateResolver,
         private ?UpdateOrderAddressApiInterface $updateOrderAddressApi = null,
+        private ?LoggerInterface $logger = null,
     ) {
         if (null !== $this->payPalAddressProcessor) {
             trigger_deprecation(
@@ -73,12 +76,23 @@ final readonly class CompleteOrderAction implements ActionInterface
         $payment = $request->getModel();
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $details = $payment->getDetails();
         $paymentSource = is_string($details['payment_source'] ?? null)
             ? $details['payment_source']
             : PayPalPaymentSourceProviderInterface::PAYPAL;
+
+        if (null !== RedirectPaymentSource::tryFrom($paymentSource)) {
+            $this->logger?->warning(sprintf(
+                'A "%s" PayPal order is captured by PayPal on payment approval and must not be completed here.',
+                $paymentSource,
+            ));
+
+            return;
+        }
+
+        $token = $this->authorizeClientApi->authorize($paymentMethod);
+
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 

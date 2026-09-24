@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 interface PayPalPaymentSourceProviderInterface
 {
@@ -22,12 +24,24 @@ interface PayPalPaymentSourceProviderInterface
 
     public const GOOGLE_PAY = 'google_pay';
 
+    public const TRUSTLY = RedirectPaymentSource::Trustly->value;
+
+    /** @var list<string> */
+    public const BASE_EXPERIENCE_CONTEXT_KEYS = [
+        'brand_name',
+        'locale',
+        'shipping_preference',
+        'return_url',
+        'cancel_url',
+    ];
+
     /**
      * @param array<string, mixed> $experienceContext
      *
      * @return array<string, mixed>
      *
      * @throws UnsupportedPayPalPaymentSourceException
+     * @throws InvalidPayerDataException
      */
     public function provide(OrderInterface $order, string $paymentSource, array $experienceContext): array;
 

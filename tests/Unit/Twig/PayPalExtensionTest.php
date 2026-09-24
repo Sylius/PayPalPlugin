@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -142,5 +143,26 @@ final class PayPalExtensionTest extends TestCase
         $extension = new PayPalExtension(true);
 
         self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));
+    }
+
+    public function test_it_tells_a_template_when_the_payer_is_still_finishing_off_site(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $payment->method('getDetails')->willReturn([
+            'payment_source' => 'trustly',
+            'payer_action_url' => 'https://www.paypal.com/payment/trustly?token=X',
+        ]);
+
+        self::assertTrue($this->extension->isAwaitingPayerAction($payment));
+    }
+
+    public function test_it_tells_a_template_a_wallet_payment_is_not_waiting_on_the_payer(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $payment->method('getDetails')->willReturn(['payment_source' => 'paypal']);
+
+        self::assertFalse($this->extension->isAwaitingPayerAction($payment));
     }
 }
