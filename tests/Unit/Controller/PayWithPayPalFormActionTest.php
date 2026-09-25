@@ -16,9 +16,12 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -103,6 +106,17 @@ final class PayWithPayPalFormActionTest extends TestCase
         ($this->action)($this->request());
     }
 
+    public function test_it_answers_with_not_found_when_the_payment_is_not_for_paypal(): void
+    {
+        $this->payment(PaymentInterface::STATE_NEW, 'offline');
+
+        $this->twig->expects(self::never())->method('render');
+        $this->contextProvider->expects(self::never())->method('provide');
+        $this->expectException(NotFoundHttpException::class);
+
+        ($this->action)($this->request());
+    }
+
     public function test_it_forbids_storing_the_rendered_page(): void
     {
         $this->payment(PaymentInterface::STATE_NEW);
@@ -113,10 +127,49 @@ final class PayWithPayPalFormActionTest extends TestCase
         self::assertStringContainsString('no-store', (string) $response->headers->get('cache-control'));
     }
 
-    private function payment(string $state): PaymentInterface&Stub
+    public function test_it_delegates_web_authn_permissions_to_both_pay_pal_origins_without_a_configured_web_url(): void
     {
+        $this->payment(PaymentInterface::STATE_NEW);
+        $this->twig->method('render')->willReturn(self::RENDERED);
+
+        $response = ($this->action)($this->request());
+
+        $permissionsPolicy = (string) $response->headers->get('Permissions-Policy');
+        self::assertStringContainsString('publickey-credentials-get=(self "https://www.paypal.com" "https://www.sandbox.paypal.com")', $permissionsPolicy);
+        self::assertStringContainsString('publickey-credentials-create=(self "https://www.paypal.com" "https://www.sandbox.paypal.com")', $permissionsPolicy);
+    }
+
+    public function test_it_delegates_web_authn_permissions_to_only_the_configured_web_url(): void
+    {
+        $action = new PayWithPayPalFormAction(
+            twig: $this->twig,
+            paymentRepository: $this->paymentRepository,
+            contextProvider: $this->contextProvider,
+            router: $this->createStub(UrlGeneratorInterface::class),
+            webUrl: 'https://www.sandbox.paypal.com',
+        );
+        $this->payment(PaymentInterface::STATE_NEW);
+        $this->twig->method('render')->willReturn(self::RENDERED);
+
+        $response = $action($this->request());
+
+        self::assertSame(
+            'publickey-credentials-get=(self "https://www.sandbox.paypal.com"), publickey-credentials-create=(self "https://www.sandbox.paypal.com")',
+            $response->headers->get('Permissions-Policy'),
+        );
+    }
+
+    private function payment(string $state, string $factoryName = SyliusPayPalExtension::PAYPAL_FACTORY_NAME): PaymentInterface&Stub
+    {
+        $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+        $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
+
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getState')->willReturn($state);
+        $payment->method('getMethod')->willReturn($paymentMethod);
 
         $this->paymentRepository->method('findOneByOrderToken')->willReturn($payment);
 

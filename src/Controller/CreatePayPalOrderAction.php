@@ -59,7 +59,7 @@ final readonly class CreatePayPalOrderAction
         $this->cancelLiveAttempt($order);
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_NEW);
-        if (null === $payment) {
+        if (null === $payment || !$this->isPayPalPayment($payment)) {
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
