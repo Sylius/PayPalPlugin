@@ -177,6 +177,23 @@ final class CreatePayPalOrderActionTest extends TestCase
         );
     }
 
+    public function test_it_still_accepts_a_real_payment_source_without_an_injected_provider(): void
+    {
+        $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
+        $this->payments(processing: null, new: $payment);
+
+        $action = new CreatePayPalOrderAction(
+            $this->paymentStateManager,
+            $this->orderProvider,
+            $this->capturePaymentResolver,
+        );
+
+        self::assertSame(
+            Response::HTTP_OK,
+            $action($this->request('{"paymentSource":"card"}'))->getStatusCode(),
+        );
+    }
+
     public function test_it_hands_the_browser_the_link_paypal_wants_the_payer_sent_to(): void
     {
         $this->payments(processing: null, new: $this->payment(

@@ -35,6 +35,8 @@ interface PayPalPaymentSourceProviderInterface
         'cancel_url',
     ];
 
+    public const CARD = 'card';
+
     /**
      * @param array<string, mixed> $experienceContext
      *
