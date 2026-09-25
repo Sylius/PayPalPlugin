@@ -1,8 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 import { loadWebSdkOnce } from '../scripts/paypal-web-sdk';
 
+let sdkInstancePromise = null;
+
 export default class extends Controller {
-    static targets = ['paypalButton', 'payLaterButton'];
+    static targets = ['paypalButton', 'payLaterButton', 'venmoButton'];
 
     static values = {
         scriptUrl: String,
@@ -16,6 +18,7 @@ export default class extends Controller {
         errorUrl: String,
         loadingSelector: String,
         payLaterEnabled: Boolean,
+        venmoEnabled: Boolean,
     };
 
     syliusOrderId = null;
@@ -30,7 +33,8 @@ export default class extends Controller {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
-            this.sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
+            sdkInstancePromise ??= window.paypal.createInstance(this.instanceConfigValue);
+            this.sdkInstance = await sdkInstancePromise;
 
             await this.refreshEligibility();
         } catch (error) {
@@ -72,7 +76,7 @@ export default class extends Controller {
         }
 
         try {
-            if (!this.wiredTargets.has('paypal') && paymentMethods.isEligible('paypal')) {
+            if (!this.wiredTargets.has('paypal') && this.hasPaypalButtonTarget && paymentMethods.isEligible('paypal')) {
                 this.wiredTargets.add('paypal');
                 this.wireUpButton(this.paypalButtonTarget, this.sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));
             }
@@ -96,6 +100,20 @@ export default class extends Controller {
         } catch (error) {
             console.error('Pay Later button setup error:', error);
         }
+
+        try {
+            if (
+                !this.wiredTargets.has('venmo') &&
+                this.venmoEnabledValue &&
+                this.hasVenmoButtonTarget &&
+                paymentMethods.isEligible('venmo')
+            ) {
+                this.wiredTargets.add('venmo');
+                this.wireUpButton(this.venmoButtonTarget, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
+            }
+        } catch (error) {
+            console.error('Venmo button setup error:', error);
+        }
     }
 
     buildSessionOptions() {
@@ -106,24 +124,29 @@ export default class extends Controller {
         };
     }
 
-    wireUpButton(buttonTarget, paymentSession) {
+    wireUpButton(buttonTarget, paymentSession, paymentSource = null) {
         buttonTarget.removeAttribute('hidden');
         buttonTarget.addEventListener('click', async () => {
             try {
-                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder());
+                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder(paymentSource));
             } catch (error) {
                 console.error('paymentSession.start() failed:', error);
             }
         });
     }
 
-    async createOrder() {
+    async createOrder(paymentSource = null) {
         const requestInit = { method: 'post' };
         if (this.hasAddToCartFormSelectorValue && this.addToCartFormSelectorValue !== '') {
             requestInit.body = new FormData(document.querySelector(this.addToCartFormSelectorValue));
         }
 
-        const response = await fetch(this.createOrderUrlValue, requestInit);
+        const url = new URL(this.createOrderUrlValue, window.location.origin);
+        if (paymentSource !== null) {
+            url.searchParams.set('paymentSource', paymentSource);
+        }
+
+        const response = await fetch(url, requestInit);
 
         if (this.hasLoadingSelectorValue && this.loadingSelectorValue !== '') {
             document.querySelector(this.loadingSelectorValue)?.style.setProperty('display', 'block');

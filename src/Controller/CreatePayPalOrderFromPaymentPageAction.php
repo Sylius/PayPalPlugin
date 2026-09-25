@@ -25,6 +25,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -42,6 +43,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private ?OrderProcessorInterface $orderPaymentProcessor = null,
         private ?ObjectManager $objectManager = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
     ) {
         if (null === $this->orderPaymentProcessor) {
             trigger_deprecation(
@@ -68,6 +70,15 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
                 self::class,
             );
         }
+        if (null === $this->paymentSourceProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalPaymentSourceProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -90,7 +101,14 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
+        $paymentSource = $this->resolvePaymentSource($request);
+        if (null === $paymentSource) {
+            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
+
+        $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
 
         try {
             $this->capturePaymentResolver->resolve($payment);
@@ -145,5 +163,26 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
             $gatewayConfig instanceof GatewayConfigInterface &&
             $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
         ;
+    }
+
+    private function resolvePaymentSource(Request $request): ?string
+    {
+        $paymentSource = $request->query->get('paymentSource');
+
+        if (null === $paymentSource) {
+            return PayPalPaymentSourceProviderInterface::PAYPAL;
+        }
+
+        if (!$this->supportsPaymentSource($paymentSource)) {
+            return null;
+        }
+
+        return $paymentSource;
+    }
+
+    private function supportsPaymentSource(string $paymentSource): bool
+    {
+        return $this->paymentSourceProvider?->supports($paymentSource)
+            ?? PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource;
     }
 }

@@ -9,10 +9,9 @@
         cancelOrderUrl: path('sylius_paypal_shop_cancel_order'),
         errorUrl: errorPayPalPaymentUrl,
         loadingSelector: '[data-live-name-value="sylius_shop:cart:form"] [data-loading]',
-        payLaterEnabled: paylaterEnabled,
+        venmoEnabled: venmoEnabled,
     }) }}
     class="d-grid gap-2"
 >
-    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" style="display: block; width: 100%" hidden></paypal-button>
-    <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} style="display: block; width: 100%" hidden></paypal-pay-later-button>
+    <venmo-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'venmoButton') }} style="display: block; width: 100%" hidden></venmo-button>
 </div>

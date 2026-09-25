@@ -67,6 +67,22 @@ final class PayPalConfigurationProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_considers_venmo_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isVenmoEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_venmo_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['venmo_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isVenmoEnabled($channel));
+    }
+
+    #[Test]
     public function it_considers_messaging_enabled_by_default_when_the_config_key_is_absent(): void
     {
         $channel = $this->configurePayPalPaymentMethodConfig([]);

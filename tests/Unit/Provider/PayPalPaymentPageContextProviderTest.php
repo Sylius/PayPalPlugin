@@ -175,4 +175,35 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
         $this->provider->provide($this->payment, 'en_US');
     }
+
+    public function test_it_provides_whether_venmo_is_enabled_for_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertTrue($context['venmoEnabled']);
+    }
+
+    public function test_it_provides_venmo_as_disabled_when_the_channel_does_not_allow_it(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertFalse($context['venmoEnabled']);
+    }
+
+    public function test_it_adds_the_venmo_component_when_venmo_is_enabled_for_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'venmo-payments'], 'en_US')
+            ->willReturn(['clientId' => 'CLIENT_ID'])
+        ;
+
+        $this->provider->provide($this->payment, 'en_US');
+    }
 }

@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import { paymentPageSession } from '../scripts/paypal-payment-page';
 
 export default class extends Controller {
-    static targets = ['button', 'payLaterButton'];
+    static targets = ['button', 'payLaterButton', 'venmoButton'];
 
     static values = {
         scriptUrl: String,
@@ -14,6 +14,7 @@ export default class extends Controller {
         cancelOrderUrl: String,
         errorUrl: String,
         payLaterEnabled: Boolean,
+        venmoEnabled: Boolean,
     };
 
     async connect() {
@@ -45,6 +46,13 @@ export default class extends Controller {
                 this.payLaterButtonTarget.removeAttribute('hidden');
                 this.payLaterButtonTarget.addEventListener('click', () => this.start(session, payLaterSession));
             }
+
+            if (this.venmoEnabledValue && this.hasVenmoButtonTarget && session.isEligible('venmo')) {
+                const venmoSession = session.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions());
+
+                this.venmoButtonTarget.removeAttribute('hidden');
+                this.venmoButtonTarget.addEventListener('click', () => this.start(session, venmoSession, 'venmo'));
+            }
         } catch (error) {
             console.error('PayPal Web SDK initialization error:', error);
         }
@@ -58,13 +66,13 @@ export default class extends Controller {
         };
     }
 
-    async start(session, paymentSession) {
+    async start(session, paymentSession, paymentSource = null) {
         if (session.isBusy()) {
             return;
         }
 
         try {
-            await paymentSession.start({ presentationMode: 'auto' }, session.startAttempt());
+            await paymentSession.start({ presentationMode: 'auto' }, session.startAttempt(paymentSource));
         } catch (error) {
             session.release();
             console.error('paymentSession.start() failed:', error);

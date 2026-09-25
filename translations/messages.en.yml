@@ -34,6 +34,7 @@ sylius_paypal:
     share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
     tender_type: 'Refunded to the PayPal wallet'
     trustly_enabled: 'Enable Trustly'
+    venmo_enabled: 'Enable Venmo'
     carrier:
         AMAZON_MCF: 'Amazon Logistics (MCF)'
         ARAMEX: 'Aramex'

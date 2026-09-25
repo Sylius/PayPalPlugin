@@ -36,6 +36,13 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
                     'cancel_url' => $experienceContext['cancel_url'] ?? null,
                 ]),
             ]],
+            self::VENMO => [self::VENMO => [
+                'experience_context' => array_filter([
+                    PayPalOrder::KEY_SHIPPING_PREFERENCE => $experienceContext[PayPalOrder::KEY_SHIPPING_PREFERENCE] ?? null,
+                    'user_action' => $experienceContext['user_action'] ?? null,
+                    'order_update_callback_config' => $experienceContext['order_update_callback_config'] ?? null,
+                ]),
+            ]],
             default => throw new UnsupportedPayPalPaymentSourceException($paymentSource),
         };
     }
@@ -44,7 +51,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     {
         return in_array(
             $paymentSource,
-            [self::PAYPAL, self::GOOGLE_PAY, self::CARD, ...RedirectPaymentSource::values()],
+            [self::PAYPAL, self::GOOGLE_PAY, self::CARD, self::VENMO, ...RedirectPaymentSource::values()],
             true,
         );
     }

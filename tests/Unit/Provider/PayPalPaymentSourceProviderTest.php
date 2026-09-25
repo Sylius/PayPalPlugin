@@ -209,6 +209,47 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertSame([], $card['card']['experience_context']);
     }
 
+    public function test_it_sends_only_the_fields_venmo_wallet_experience_context_accepts(): void
+    {
+        $experienceContext = [
+            'locale' => 'en-US',
+            'shipping_preference' => 'GET_FROM_FILE',
+            'contact_preference' => 'RETAIN_CONTACT_INFO',
+            'user_action' => 'PAY_NOW',
+            'payment_method_preference' => 'IMMEDIATE_PAYMENT_REQUIRED',
+            'return_url' => 'https://shop.example.com/checkout/complete',
+            'cancel_url' => 'https://shop.example.com/checkout/complete',
+        ];
+
+        $venmo = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, $experienceContext);
+
+        self::assertSame(
+            ['shipping_preference' => 'GET_FROM_FILE', 'user_action' => 'PAY_NOW'],
+            $venmo['venmo']['experience_context'],
+        );
+    }
+
+    public function test_it_sends_an_empty_experience_context_with_venmo_when_nothing_applicable_is_given(): void
+    {
+        $venmo = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, ['locale' => 'en-US']);
+
+        self::assertSame([], $venmo['venmo']['experience_context']);
+    }
+
+    public function test_it_forwards_the_order_update_callback_config_with_venmo(): void
+    {
+        $callbackConfig = [
+            'callback_events' => ['SHIPPING_ADDRESS'],
+            'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
+        ];
+
+        $venmo = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, [
+            'order_update_callback_config' => $callbackConfig,
+        ]);
+
+        self::assertSame($callbackConfig, $venmo['venmo']['experience_context']['order_update_callback_config']);
+    }
+
     public function test_it_supports_the_paypal_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::PAYPAL));
@@ -222,6 +263,11 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_supports_the_card_payment_source(): void
     {
         self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::CARD));
+    }
+
+    public function test_it_supports_the_venmo_payment_source(): void
+    {
+        self::assertTrue($this->provider->supports(PayPalPaymentSourceProviderInterface::VENMO));
     }
 
     public function test_it_does_not_support_an_unknown_payment_source(): void

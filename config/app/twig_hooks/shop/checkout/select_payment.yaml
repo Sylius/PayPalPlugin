@@ -12,3 +12,6 @@ sylius_twig_hooks:
             paypal_messaging:
                 template: '@SyliusPayPalPlugin/shop/checkout/select_payment/content/form/select_payment/payment/choice/details/paypal_messaging.html.twig'
                 priority: -200
+            paypal_venmo:
+                template: '@SyliusPayPalPlugin/shop/checkout/select_payment/content/form/select_payment/payment/choice/details/paypal_venmo.html.twig'
+                priority: -300
