@@ -49,11 +49,6 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
         return (bool) ($this->getPayPalPaymentMethodConfig($channel)['pay_later_enabled'] ?? true);
     }
 
-    public function isVenmoEnabled(ChannelInterface $channel): bool
-    {
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['venmo_enabled'] ?? false);
-    }
-
     public function isMessagingEnabled(ChannelInterface $channel): bool
     {
         if (!$this->isPayLaterEnabled($channel)) {
@@ -61,6 +56,11 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
         }
 
         return (bool) ($this->getPayPalPaymentMethodConfig($channel)['messaging_enabled'] ?? true);
+    }
+
+    public function isVenmoEnabled(ChannelInterface $channel): bool
+    {
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['venmo_enabled'] ?? false);
     }
 
     public function isGooglePayEnabled(ChannelInterface $channel): bool

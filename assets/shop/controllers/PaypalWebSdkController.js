@@ -94,7 +94,11 @@ export default class extends Controller {
                 this.payLaterButtonTarget.countryCode = payLaterDetails.countryCode;
                 this.wireUpButton(this.payLaterButtonTarget, this.sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
             }
+        } catch (error) {
+            console.error('Pay Later button setup error:', error);
+        }
 
+        try {
             if (
                 !this.wiredTargets.has('venmo') &&
                 this.venmoEnabledValue &&
@@ -105,7 +109,7 @@ export default class extends Controller {
                 this.wireUpButton(this.venmoButtonTarget, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
             }
         } catch (error) {
-            console.error('Pay Later button setup error:', error);
+            console.error('Venmo button setup error:', error);
         }
     }
 

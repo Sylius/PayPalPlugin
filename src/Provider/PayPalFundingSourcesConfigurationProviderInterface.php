@@ -19,9 +19,9 @@ interface PayPalFundingSourcesConfigurationProviderInterface
 {
     public function isPayLaterEnabled(ChannelInterface $channel): bool;
 
-    public function isVenmoEnabled(ChannelInterface $channel): bool;
-
     public function isMessagingEnabled(ChannelInterface $channel): bool;
+
+    public function isVenmoEnabled(ChannelInterface $channel): bool;
 
     public function isGooglePayEnabled(ChannelInterface $channel): bool;
 
