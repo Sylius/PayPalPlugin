@@ -19,9 +19,12 @@ sylius_twig_hooks:
         'sylius_paypal.shop.pay_with_paypal.content.methods':
             paypal:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/paypal.html.twig'
-                priority: 500
+                priority: 600
             paypal_messaging:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/paypal_messaging.html.twig'
+                priority: 500
+            venmo:
+                template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/venmo.html.twig'
                 priority: 400
             google_pay:
                 template: '@SyliusPayPalPlugin/shop/pay_with_paypal/content/methods/google_pay.html.twig'

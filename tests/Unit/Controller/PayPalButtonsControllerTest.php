@@ -179,6 +179,208 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_passes_venmo_enabled_to_the_product_page_venmo_template(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $capturedContext = null;
+        $this->twig->method('render')
+            ->with('@SyliusPayPalPlugin/pay_from_product_page_venmo.html.twig', self::isType('array'))
+            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+                $capturedContext = $context;
+
+                return '';
+            });
+
+        $this->controller->renderProductPageVenmoButtonAction(Request::create('/'));
+
+        self::assertTrue($capturedContext['venmoEnabled']);
+    }
+
+    #[Test]
+    public function it_passes_venmo_enabled_to_the_cart_page_venmo_template(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $capturedContext = null;
+        $this->twig->method('render')
+            ->with('@SyliusPayPalPlugin/pay_from_cart_page_venmo.html.twig', self::isType('array'))
+            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+                $capturedContext = $context;
+
+                return '';
+            });
+
+        $this->controller->renderCartPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('30.50', $capturedContext['amount']);
+        self::assertTrue($capturedContext['venmoEnabled']);
+    }
+
+    #[Test]
+    public function it_passes_venmo_enabled_to_the_payment_page_venmo_template(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3000);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $capturedContext = null;
+        $this->twig->method('render')
+            ->with('@SyliusPayPalPlugin/pay_from_payment_page_venmo.html.twig', self::isType('array'))
+            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+                $capturedContext = $context;
+
+                return '';
+            });
+
+        $this->controller->renderPaymentPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('30.00', $capturedContext['amount']);
+        self::assertTrue($capturedContext['venmoEnabled']);
+    }
+
+    #[Test]
+    public function it_requests_the_venmo_payments_component_on_the_venmo_only_product_action(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with($this->channel, 'product-details', ['paypal-payments', 'venmo-payments'], 'pl_PL')
+            ->willReturn(['clientId' => 'CLIENT_ID']);
+
+        $this->controller->renderProductPageVenmoButtonAction(Request::create('/'));
+    }
+
+    #[Test]
+    public function it_requests_the_venmo_payments_component_on_the_venmo_only_cart_action(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with($this->channel, 'cart', ['paypal-payments', 'venmo-payments'], '')
+            ->willReturn(['clientId' => 'CLIENT_ID']);
+
+        $this->controller->renderCartPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+    }
+
+    #[Test]
+    public function it_requests_the_venmo_payments_component_on_the_venmo_only_payment_page_action(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3000);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with($this->channel, 'checkout', ['paypal-payments', 'venmo-payments'], '')
+            ->willReturn(['clientId' => 'CLIENT_ID']);
+
+        $this->controller->renderPaymentPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+    }
+
+    #[Test]
+    public function it_passes_the_locale_to_the_web_sdk_instance_config_on_the_product_page_venmo_action(): void
+    {
+        $this->twig->method('render')->willReturn('');
+
+        $this->controller->renderProductPageVenmoButtonAction(Request::create('/'));
+
+        self::assertSame('product-details', $this->capturedInstanceConfigArgs[1]);
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
+    public function it_passes_the_order_locale_to_the_web_sdk_instance_config_on_the_cart_page_venmo_action(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getTotal')->willReturn(3050);
+        $order->method('getLocaleCode')->willReturn('pl_PL');
+        $this->orderRepository->method('find')->willReturn($order);
+
+        $this->controller->renderCartPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('cart', $this->capturedInstanceConfigArgs[1]);
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
+    public function it_passes_the_order_locale_to_the_web_sdk_instance_config_on_the_payment_page_venmo_action(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('PLN');
+        $order->method('getTotal')->willReturn(3000);
+        $order->method('getLocaleCode')->willReturn('pl_PL');
+        $this->orderRepository->method('find')->willReturn($order);
+
+        $this->controller->renderPaymentPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('checkout', $this->capturedInstanceConfigArgs[1]);
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
+    public function it_returns_an_empty_response_from_the_venmo_only_product_action_when_no_pay_pal_payment_method_is_configured(): void
+    {
+        $this->payPalConfigurationProvider
+            ->method('getClientId')
+            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+
+        $response = $this->controller->renderProductPageVenmoButtonAction(Request::create('/'));
+
+        self::assertSame('', $response->getContent());
+    }
+
+    #[Test]
+    public function it_returns_an_empty_response_from_the_venmo_only_cart_action_when_no_pay_pal_payment_method_is_configured(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+
+        $response = $this->controller->renderCartPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('', $response->getContent());
+    }
+
+    #[Test]
+    public function it_returns_an_empty_response_from_the_venmo_only_payment_page_action_when_no_pay_pal_payment_method_is_configured(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3000);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+
+        $response = $this->controller->renderPaymentPageVenmoButtonAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertSame('', $response->getContent());
+    }
+
+    #[Test]
     public function it_requests_the_venmo_payments_component_when_venmo_is_enabled(): void
     {
         $order = $this->createMock(OrderInterface::class);

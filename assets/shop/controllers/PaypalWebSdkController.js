@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import { loadWebSdkOnce } from '../scripts/paypal-web-sdk';
 
+let sdkInstancePromise = null;
+
 export default class extends Controller {
     static targets = ['paypalButton', 'payLaterButton', 'venmoButton'];
 
@@ -34,7 +36,8 @@ export default class extends Controller {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
-            this.sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
+            sdkInstancePromise ??= window.paypal.createInstance(this.instanceConfigValue);
+            this.sdkInstance = await sdkInstancePromise;
 
             await this.refreshEligibility();
         } catch (error) {
@@ -76,7 +79,7 @@ export default class extends Controller {
         }
 
         try {
-            if (!this.wiredTargets.has('paypal') && paymentMethods.isEligible('paypal')) {
+            if (!this.wiredTargets.has('paypal') && this.hasPaypalButtonTarget && paymentMethods.isEligible('paypal')) {
                 this.wiredTargets.add('paypal');
                 this.wireUpButton(this.paypalButtonTarget, this.sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));
             }

@@ -1,0 +1,9 @@
+{# Check for environment has been added because of a problem with rendering below controller in test environment for Symfony 7.3. #}
+{% if
+    hookable_metadata.context.method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') and
+    not (app.environment starts with 'test')
+%}
+    <div class="mb-3" data-live-ignore>
+        {{ render(controller('sylius_paypal.controller.paypal_buttons::renderPaymentPageVenmoButtonAction', {'orderId': hookable_metadata.context.order.id})) }}
+    </div>
+{% endif %}
