@@ -7,3 +7,6 @@ sylius_twig_hooks:
             paypal_messaging:
                 template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_messaging.html.twig'
                 priority: 40
+            paypal_venmo:
+                template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_venmo.html.twig'
+                priority: 30
