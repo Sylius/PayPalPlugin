@@ -1214,3 +1214,7 @@
    - `PayPalClient` no longer fails when no channel is in context. The `PayPal-Partner-Attribution-Id`
      header is omitted and a warning logged instead of an exception being thrown, which is what lets the
      webhook handler and the CLI sweeper reach PayPal at all.
+   - `PayPalExtension` gained two trailing optional constructor arguments, `LocaleContextInterface` and
+     `LocaleProcessorInterface`. `sylius_paypal_web_sdk_instance_config()` uses them to resolve the shop's
+     current locale for Pay Later messaging when the caller does not pass one explicitly. Not passing them
+     is deprecated and keeps today's behavior (no locale resolved automatically).
