@@ -543,7 +543,10 @@
    payment page.
 
    Two consequences for overridden templates: an order can now carry a cancelled payment next to the new
-   one, and the shop summary lists every payment, so both rows are rendered. The buyer also gets an
+   one, and the shop summary lists every payment, so both rows are rendered. Sylius disables the payment
+   state label on the checkout summary, so the plugin marks the cancelled row itself through the
+   `paypal_cancelled_state_label` hookable in `sylius_shop.checkout.complete.content.form.summary.statuses.payments.list`;
+   set it to `enabled: false` to drop the badge. The buyer also gets an
    `error` flash, `sylius_paypal.order_total_changed`, which is new in `flashes.en.yml`, `flashes.fr.yml`
    and `flashes.nl.yml`.
 
