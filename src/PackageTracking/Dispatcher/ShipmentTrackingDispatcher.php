@@ -18,7 +18,6 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final readonly class ShipmentTrackingDispatcher implements ShipmentTrackingDispatcherInterface
 {
@@ -36,7 +35,10 @@ final readonly class ShipmentTrackingDispatcher implements ShipmentTrackingDispa
         }
 
         try {
-            $this->messageBus->dispatch(new Envelope(new SendShipmentTracking($shipmentId), [new DispatchAfterCurrentBusStamp()]));
+            // No DispatchAfterCurrentBusStamp: its middleware is shared by all buses, so a ship run inside another bus
+            // (e.g. the Admin API's ShipShipment) would defer the message past this catch and a PayPal error would fail
+            // that request. Handled right away, a PayPal error is recorded on the tracking and caught here.
+            $this->messageBus->dispatch(new Envelope(new SendShipmentTracking($shipmentId)));
         } catch (\Throwable $exception) {
             $this->logger->error(
                 sprintf('Failed to send PayPal tracking for shipment #%s: %s', (string) $shipmentId, $exception->getMessage()),

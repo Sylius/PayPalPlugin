@@ -941,6 +941,11 @@
    that nested transaction marks the request's own transaction rollback-only, and the shipment ends up not shipped
    with the admin on an error page. The processor flushes its own writes, so the bus needs no transaction.
 
+   The message is also dispatched without `DispatchAfterCurrentBusStamp`. Its middleware is shared by every bus, so
+   when shipping itself runs inside a bus - the Admin API's `ShipShipment` command, or a shop's own command handler -
+   the stamp would hold the message until that command finishes and let a PayPal error fail it, after the shipment
+   was already shipped. Dispatched right away, the error is recorded and caught like anywhere else.
+
    **Permanent vs. transient failures.** A failure PayPal will never accept on a retry - an order status that is
    not eligible for tracking, a PayPal order without items, a missing tracking number or carrier, an unresolvable capture id - is recorded on
    the tracking record (state `failed`, with the error) and not retried. Anything else (HTTP errors, timeouts,
@@ -961,9 +966,11 @@
    commit has landed.
 
    **Optional async.** The call is dispatched as the `Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking`
-   message. With no messenger routing configured it is handled synchronously - inside the ship request, so the
-   admin waits for PayPal and the call runs within that request's database transaction. Route it to an async
-   transport for full off-request processing:
+   message. With no messenger routing configured it is handled synchronously, as part of the ship itself - the
+   admin's ship request or the Admin API's `ShipShipment` command - so the caller waits for PayPal and the call runs
+   within that ship's database transaction. Route it to an async transport for full off-request processing (the
+   message is then sent before that transaction commits, which is what `ShipmentTrackingNotReadyException` above
+   is for):
 
    ```yaml
    framework:
@@ -972,10 +979,11 @@
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
 
-   **Admin API.** Shipping through `PATCH /api/v2/admin/shipments/{id}/ship` does **not** send tracking to
-   PayPal: Sylius' `ShipShipment` command carries a tracking code but no carrier, and a tracking record is only
-   created by the admin ship form, which is gone once the shipment is shipped. Ship from the admin (order page or
-   shipment list) when the tracking should reach PayPal.
+   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` cannot pick a carrier: Sylius' `ShipShipment` command
+   carries a tracking code only, and a tracking record - which holds the carrier - is only created by the admin ship
+   form. So a shipment shipped through the API sends nothing to PayPal, unless it already has a tracking record
+   from an earlier admin ship attempt, in which case that carrier is used and the tracking is sent as above. Ship
+   from the admin (order page or shipment list) when the tracking should reach PayPal.
 
 1. #### Trustly is available on the PayPal payment page.
 

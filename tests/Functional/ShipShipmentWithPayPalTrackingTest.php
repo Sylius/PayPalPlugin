@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
@@ -135,6 +136,35 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 
         self::assertTrue($this->client->getResponse()->isRedirect('/admin/shipments/'));
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+    }
+
+    public function test_it_sends_the_tracking_when_a_shipment_with_a_carrier_is_shipped_through_the_admin_api(): void
+    {
+        $this->shipThroughTheAdminApi('QA-API-1');
+
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
+    }
+
+    public function test_it_does_not_let_a_paypal_error_escape_a_ship_through_the_admin_api(): void
+    {
+        DummyOrderDetailsApi::$failWith = new PayPalApiErrorException('GET v2/checkout/orders/PAYPAL_ORDER_ID', ['name' => 'RESOURCE_NOT_FOUND']);
+
+        $this->shipThroughTheAdminApi('QA-API-2');
+
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        $tracking = $this->tracking();
+        self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking?->getState());
+        self::assertSame(1, $tracking->getAttempts());
+    }
+
+    /** Same command the Admin API's `PATCH /api/v2/admin/shipments/{id}/ship` dispatches, for a shipment whose carrier is already known. */
+    private function shipThroughTheAdminApi(string $trackingCode): void
+    {
+        $shipment = $this->shipment();
+        self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($shipment, 'DHL', null);
+
+        self::getContainer()->get('sylius.command_bus')->dispatch(new ShipShipment($shipment->getId(), $trackingCode));
     }
 
     /** @param array{tracking: string, carrier?: string} $values */
