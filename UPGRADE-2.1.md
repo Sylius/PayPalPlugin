@@ -1218,3 +1218,7 @@
      `LocaleProcessorInterface`. `sylius_paypal_web_sdk_instance_config()` uses them to resolve the shop's
      current locale for Pay Later messaging when the caller does not pass one explicitly. Not passing them
      is deprecated and keeps today's behavior (no locale resolved automatically).
+   - `PayWithPayPalFormAction` gained a trailing optional `?string $webUrl = null`, bound to the
+     `sylius_paypal.web_url` parameter. It scopes the `Permissions-Policy` header that delegates WebAuthn to
+     PayPal's card fields iframe to the configured origin instead of both. Not passing it is deprecated and
+     falls back to allowing both the production and sandbox origins.

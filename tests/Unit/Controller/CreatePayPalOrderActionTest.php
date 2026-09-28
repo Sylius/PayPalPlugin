@@ -122,6 +122,16 @@ final class CreatePayPalOrderActionTest extends TestCase
         self::assertSame(Response::HTTP_CONFLICT, ($this->action)($this->request())->getStatusCode());
     }
 
+    public function test_it_answers_with_a_conflict_when_the_new_payment_is_not_for_paypal(): void
+    {
+        $this->payments(processing: null, new: $this->payment('offline'));
+
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+        $this->paymentStateManager->expects(self::never())->method('process');
+
+        self::assertSame(Response::HTTP_CONFLICT, ($this->action)($this->request())->getStatusCode());
+    }
+
     public function test_it_records_the_requested_payment_source_on_the_payment(): void
     {
         $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);

@@ -140,6 +140,7 @@
             <argument type="service" id="sylius_paypal.provider.paypal_payment_page_context" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.checker.payer_action" />
+            <argument>%sylius_paypal.web_url%</argument>
         </service>
 
         <service id="sylius_paypal.controller.process_paypal_order" class="Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction">
