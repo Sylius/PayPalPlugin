@@ -24,7 +24,7 @@ final class AddToCartActionTest extends JsonApiTestCase
 {
     public function test_it_adds_the_variant_and_quantity_chosen_on_the_product_page(): void
     {
-        $product = $this->loadFixturesFromFiles(['resources/shop.yaml'])['mug'];
+        $product = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml'])['mug'];
         $form = $this->addToCartForm();
 
         $form->setValues([
@@ -51,6 +51,29 @@ final class AddToCartActionTest extends JsonApiTestCase
 
         $content = (array) json_decode((string) $response->getContent(), true);
         self::assertSame('PAYPAL_ORDER_ID', $content['orderId']);
+    }
+
+    public function test_it_returns_validation_errors_as_json_when_the_quantity_is_invalid(): void
+    {
+        $product = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml'])['mug'];
+        $form = $this->addToCartForm();
+
+        $form->setValues([
+            'sylius_shop_add_to_cart[cartItem][variant]' => 'MUG_LOTR',
+            'sylius_shop_add_to_cart[cartItem][quantity]' => '0',
+        ]);
+
+        $this->client->request('POST', '/en_US/paypal-add-to-cart/' . $product->getId(), $form->getPhpValues());
+
+        $response = $this->client->getResponse();
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertSame('application/json', $response->headers->get('Content-Type'));
+        self::assertSame(
+            ['errors' => ['Quantity must be between 1 and 9999.']],
+            json_decode((string) $response->getContent(), true),
+        );
+        self::assertSame(1, self::getContainer()->get('sylius.repository.order')->count([]));
     }
 
     private function addToCartForm(): Form
