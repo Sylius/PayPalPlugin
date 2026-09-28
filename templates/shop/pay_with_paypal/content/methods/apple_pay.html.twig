@@ -6,6 +6,9 @@
             --apple-pay-button-width: 100%;
             --apple-pay-button-height: 45px;
             --apple-pay-button-border-radius: 4px;
+            --apple-pay-button-padding: 0;
+            --apple-pay-button-box-sizing: border-box;
+            display: block;
         }
     </style>
 
@@ -21,7 +24,7 @@
             completeOrderUrl: context.completePayPalOrderUrl,
             errorUrl: context.errorPayPalPaymentUrl,
         }) }}
-        class="mb-4"
+        class="mb-3"
         hidden
     >
         <apple-pay-button
