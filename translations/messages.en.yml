@@ -83,8 +83,6 @@ sylius_paypal:
         attempts: 'Attempts'
         carrier: 'Carrier'
         created_at: 'Created at'
-        carrier_required: 'Please select a carrier when a tracking number is provided.'
-        carrier_name_other_required: 'Please provide the carrier name when "Other" is selected.'
         last_attempt: 'Last attempt'
         paypal_sync: 'PayPal tracking'
         state:

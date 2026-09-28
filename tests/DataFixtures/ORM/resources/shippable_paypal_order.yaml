@@ -1,0 +1,53 @@
+Sylius\Component\Core\Model\AdminUser:
+    admin:
+        username: "sylius"
+        email: "sylius@example.com"
+        plainPassword: "sylius"
+        enabled: true
+        localeCode: "en_US"
+        roles: ["ROLE_ADMINISTRATION_ACCESS"]
+
+Sylius\Component\Core\Model\Order:
+    shippable_order:
+        channel: "@channel_web"
+        items: ["@shippable_mug_item"]
+        shipments: ["@shippable_shipment"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        number: "000000042"
+        state: "new"
+        checkoutState: "completed"
+        paymentState: "paid"
+        shippingState: "ready"
+        tokenValue: "SHIPPABLE_TOKEN"
+        payments: ["@shippable_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    shippable_mug_item:
+        units: ["@shippable_mug_item_unit"]
+        variant: "@mug_sw"
+        order: "@shippable_order"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    shippable_mug_item_unit:
+        __construct: ["@shippable_mug_item"]
+        shipment: "@shippable_shipment"
+
+Sylius\Component\Core\Model\Shipment:
+    shippable_shipment:
+        method: "@shipping_method_standard"
+        order: "@shippable_order"
+        state: "ready"
+
+Sylius\Component\Core\Model\Payment:
+    shippable_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 20
+        state: "completed"
+        details:
+            status: "COMPLETED"
+            paypal_order_id: "PAYPAL_ORDER_ID"
+            transaction_id: "CAPTURE_ID"
+            payment_amount: 20

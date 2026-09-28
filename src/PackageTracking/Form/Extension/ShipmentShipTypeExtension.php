@@ -31,7 +31,8 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
 {
     public const TRACKING_FIELD_NAME = 'paypal_tracking';
 
-    private const LIVE_COMPONENT_ROUTE = 'ux_live_component';
+    /** Request attribute holding the error messages of a rejected ship submit, turned into flashes by InvalidShipFormListener. */
+    public const ERRORS_REQUEST_ATTRIBUTE = '_sylius_paypal_ship_form_errors';
 
     public function __construct(
         private readonly ShipmentTrackingRepositoryInterface $shipmentTrackingRepository,
@@ -89,7 +90,13 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
             return;
         }
 
-        if (!$event->getForm()->isValid() || $this->isLiveComponentRerender()) {
+        if ($this->isLiveComponentRerender()) {
+            return;
+        }
+
+        if (!$event->getForm()->isValid()) {
+            $this->rememberErrors($event);
+
             return;
         }
 
@@ -135,10 +142,30 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
         return null !== $this->orderPayPalPaymentProvider->provide($order);
     }
 
+    private function rememberErrors(FormEvent $event): void
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return;
+        }
+
+        $messages = [];
+        foreach ($event->getForm()->getErrors(true) as $error) {
+            $messages[] = $error->getMessage();
+        }
+
+        $request->attributes->set(self::ERRORS_REQUEST_ATTRIBUTE, array_values(array_unique($messages)));
+    }
+
+    /**
+     * A live component submits the form on every re-render (e.g. picking a carrier), which must not save anything.
+     * `_live_component` is a placeholder of every live component route - the shop's `ux_live_component` as well as
+     * the admin's `sylius_admin_live_component` - so this does not depend on the route name.
+     */
     private function isLiveComponentRerender(): bool
     {
         $request = $this->requestStack->getCurrentRequest();
 
-        return null !== $request && self::LIVE_COMPONENT_ROUTE === $request->attributes->get('_route');
+        return null !== $request && $request->attributes->has('_live_component');
     }
 }

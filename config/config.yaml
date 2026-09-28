@@ -2,6 +2,14 @@ imports:
     - { resource: "@SyliusPayPalPlugin/config/integrations/winzou_state_machine/config.php" }
     - { resource: '@SyliusPayPalPlugin/config/app/twig_hooks/**/*.yaml' }
 
+framework:
+    messenger:
+        buses:
+            # Package tracking is a courtesy to PayPal, sent from inside the ship transition. It must not run
+            # under `doctrine_transaction` (Sylius' command bus): a PayPal error rolled back in a nested
+            # transaction marks the ship request's own transaction rollback-only and the shipment is never shipped.
+            sylius_paypal.package_tracking_bus: ~
+
 sylius_admin:
     twig:
         payment_method:
@@ -22,6 +30,7 @@ sylius_grid:
             download_report: "@SyliusPayPalPlugin/admin/payment_method/grid/action/download_report.html.twig"
             enable_paypal: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig"
             enable_seller: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_seller.html.twig"
+            ship_with_tracking_code: "@SyliusPayPalPlugin/admin/shipment/grid/action/ship_with_tracking_code.html.twig"
     grids:
         sylius_admin_payment_method:
             actions:

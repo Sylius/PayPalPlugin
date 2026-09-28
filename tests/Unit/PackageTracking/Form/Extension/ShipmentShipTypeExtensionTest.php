@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\PackageTracking\Form\Extension;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use Sylius\Bundle\AdminBundle\Form\Type\ShipmentShipType;
@@ -171,16 +172,56 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
         self::assertTrue($form->isValid());
     }
 
-    #[Test]
-    public function it_does_not_persist_anything_while_the_live_component_re_renders(): void
+    /** @return iterable<string, array{string, string}> */
+    public static function liveComponentRoutes(): iterable
     {
-        $request = Request::create('/_components/sylius_admin:shipment:ship_form');
-        $request->attributes->set('_route', 'ux_live_component');
+        yield 'admin' => ['sylius_admin_live_component', '/admin/_components/sylius_admin:shipment:ship_form'];
+        yield 'shop' => ['ux_live_component', '/_components/sylius_admin:shipment:ship_form'];
+    }
+
+    #[Test]
+    #[DataProvider('liveComponentRoutes')]
+    public function it_does_not_persist_anything_while_the_live_component_re_renders(string $route, string $path): void
+    {
+        $request = Request::create($path);
+        $request->attributes->set('_route', $route);
+        $request->attributes->set('_live_component', 'sylius_admin:shipment:ship_form');
         $this->requestStack->push($request);
 
         $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
 
         $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
+
+        self::assertFalse($request->attributes->has(ShipmentShipTypeExtension::ERRORS_REQUEST_ATTRIBUTE));
+    }
+
+    #[Test]
+    public function it_does_not_remember_errors_while_the_live_component_re_renders(): void
+    {
+        $request = Request::create('/admin/_components/sylius_admin:shipment:ship_form');
+        $request->attributes->set('_live_component', 'sylius_admin:shipment:ship_form');
+        $this->requestStack->push($request);
+
+        $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
+
+        self::assertFalse($request->attributes->has(ShipmentShipTypeExtension::ERRORS_REQUEST_ATTRIBUTE));
+    }
+
+    #[Test]
+    public function it_remembers_the_errors_of_a_rejected_ship_submit_for_the_admin(): void
+    {
+        $request = Request::create('/admin/orders/1/shipment/1/ship', 'PUT');
+        $this->requestStack->push($request);
+
+        $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
+
+        $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
+
+        self::assertFalse($form->isValid());
+        self::assertSame(
+            ['sylius_paypal.shipment_tracking.carrier_required'],
+            $request->attributes->get(ShipmentShipTypeExtension::ERRORS_REQUEST_ATTRIBUTE),
+        );
     }
 
     /** @param array<string, mixed> $data */

@@ -14,8 +14,6 @@
                             <td colspan="3">
                                 {{ component('sylius_admin:shipment:ship_form', {
                                     resource: shipment,
-                                    path: 'sylius_admin_order_shipment_ship',
-                                    pathParameters: { id: shipment.id, orderId: order.id },
                                     template: '@SyliusPayPalPlugin/admin/shipment/component/ship.html.twig',
                                 }) }}
                             </td>

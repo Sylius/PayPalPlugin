@@ -1,14 +1,16 @@
 {% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
 
-{% set path = path|default('sylius_admin_shipment_ship') %}
-{% set path_parameters = path_parameters|default({id: resource.id}) %}
+{# The action is fixed here instead of coming from a `path` prop like core's: props other than LiveProps are lost when
+   picking a carrier re-renders the component, and the form would then post to the shipment list's ship route.
+   The shipment list has its own template, ship_from_index.html.twig. #}
+{% set form_action = path('sylius_admin_order_shipment_ship', {id: resource.id, orderId: resource.order.id}) %}
 {% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
 {% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
 {% set paypal_tracking = form.paypal_tracking is defined ? form.paypal_tracking : null %}
 
 {% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
     <div {{ attributes }}>
-        {{ form_start(form, {'action': path(path, path_parameters), 'attr': {'class': 'ui loadable form', 'novalidate': 'novalidate'}}) }}
+        {{ form_start(form, {'action': form_action, 'attr': {'class': 'ui loadable form', 'novalidate': 'novalidate'}}) }}
         <input type="hidden" name="_method" value="PUT">
         <div class="row g-3 align-items-start">
             <div class="col-12 col-md">

@@ -11,6 +11,9 @@ services:
     sylius_paypal.api.order_details:
         class: Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi
 
+    sylius_paypal.api.add_tracking:
+        class: Tests\Sylius\PayPalPlugin\Service\DummyAddTrackingApi
+
     sylius_paypal.api.refund_payment:
         class: Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi
 

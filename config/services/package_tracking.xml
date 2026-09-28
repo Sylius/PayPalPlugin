@@ -65,7 +65,7 @@
         <service id="Sylius\PayPalPlugin\PackageTracking\Manager\ShipmentTrackingManagerInterface" alias="sylius_paypal.manager.shipment_tracking" />
 
         <service id="sylius_paypal.dispatcher.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcher">
-            <argument type="service" id="messenger.default_bus" />
+            <argument type="service" id="sylius_paypal.package_tracking_bus" />
             <argument type="service" id="monolog.logger.paypal" />
         </service>
         <service id="Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcherInterface" alias="sylius_paypal.dispatcher.shipment_tracking" />
@@ -74,7 +74,7 @@
             <argument type="service" id="sylius.repository.shipment" />
             <argument type="service" id="sylius_paypal.processor.shipment_tracking" />
 
-            <tag name="messenger.message_handler" />
+            <tag name="messenger.message_handler" bus="sylius_paypal.package_tracking_bus" />
         </service>
 
         <service id="sylius_paypal.console.command.send_shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Console\Command\SendShipmentTrackingCommand">
@@ -105,6 +105,13 @@
             <argument type="service" id="request_stack" />
 
             <tag name="form.type_extension" />
+        </service>
+
+        <service id="sylius_paypal.listener.invalid_ship_form" class="Sylius\PayPalPlugin\PackageTracking\EventListener\InvalidShipFormListener">
+            <argument type="service" id="request_stack" />
+            <argument type="service" id="router" />
+
+            <tag name="kernel.event_listener" event="sylius.shipment.initialize_ship" />
         </service>
 
         <service id="sylius_paypal.twig.extension.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Twig\ShipmentTrackingExtension">

@@ -889,17 +889,28 @@
    bin/console doctrine:migrations:migrate
    ```
 
-   **Admin.** For orders paid with PayPal, the shipment ship form gains a carrier selector (with an `OTHER`
-   fallback that reveals a free-text carrier name). A carrier is required whenever a tracking number is entered.
-   Each shipment on the order page shows its PayPal sync state (pending / synced / failed). Orders paid with any
-   other method keep the stock Sylius ship form, untouched.
+   **Admin.** For orders paid with PayPal, the shipment ship form - on the order page and in the shipment list
+   (`/admin/shipments/`) - gains a carrier selector (with an `OTHER` fallback that reveals a free-text carrier
+   name). A carrier is required whenever a tracking number is entered. Each shipment on the order page shows its
+   PayPal sync state (pending / synced / failed). Orders paid with any other method keep the stock Sylius ship
+   form, untouched. Picking a carrier re-renders the form but saves nothing; the carrier is stored when Ship is
+   clicked.
 
    The selector is added as an unmapped `paypal_tracking` sub-form (`ShipmentTrackingType`, backed by the
    `ShipmentTrackingData` model), and only for shipments whose order was paid with PayPal - so a template
    overriding `@SyliusPayPalPlugin/admin/shipment/component/ship.html.twig` reaches the fields as
    `form.paypal_tracking.carrier` and `form.paypal_tracking.carrier_name_other`. Both rules above are enforced by
    the `ShipmentTrackingCarrier` constraint (`config/validation/ShipmentTrackingData.xml`, validation group
-   `sylius`), so they surface as regular field-level validation messages and the ship transition is not applied.
+   `sylius`; messages in the `validators` domain). Sylius' ship routes have no template for an invalid ship form,
+   so `InvalidShipFormListener` (on `sylius.shipment.initialize_ship`) sends the admin back to the order page or
+   the shipment list with the messages as error flashes; the ship transition is not applied.
+
+   That template posts to the order page's `sylius_admin_order_shipment_ship` route; the shipment list uses
+   `@SyliusPayPalPlugin/admin/shipment/component/ship_from_index.html.twig` (core's one-line layout plus the
+   carrier, posting to `sylius_admin_shipment_ship`), through an override of the grid's `ship_with_tracking_code`
+   action template. The route is fixed in each template rather than passed as a `path`/`pathParameters` prop: those
+   are not LiveProps of Sylius' `ShipFormComponent`, so they are lost as soon as picking a carrier re-renders the
+   form, which then posted to the shipment list.
 
    **Configuring the carriers.** The selector is driven by `sylius_paypal.tracking.carriers`, which defaults to a
    curated subset of the codes accepted by the [PayPal Add Tracking API](https://developer.paypal.com/docs/tracking/reference/carriers/).
@@ -924,6 +935,12 @@
    never blocks or reverts shipping. The guarantee lives in `ShipmentTrackingDispatcher`, which logs anything
    thrown while dispatching to the `paypal` channel instead of letting it reach the ship transition.
 
+   The message goes through a plugin-owned bus, `sylius_paypal.package_tracking_bus` (declared in the plugin's
+   `config.yaml`), and not Sylius' `sylius.command_bus`. The command bus wraps handlers in `doctrine_transaction`;
+   inside the admin's ship request - which Sylius already runs in a transaction - a PayPal error rolled back in
+   that nested transaction marks the request's own transaction rollback-only, and the shipment ends up not shipped
+   with the admin on an error page. The processor flushes its own writes, so the bus needs no transaction.
+
    **Permanent vs. transient failures.** A failure PayPal will never accept on a retry - an order status that is
    not eligible for tracking, a PayPal order without items, a missing tracking number or carrier, an unresolvable capture id - is recorded on
    the tracking record (state `failed`, with the error) and not retried. Anything else (HTTP errors, timeouts,
@@ -944,8 +961,9 @@
    commit has landed.
 
    **Optional async.** The call is dispatched as the `Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking`
-   message. With no messenger routing configured it is handled synchronously; route it to an async transport
-   for full off-request processing:
+   message. With no messenger routing configured it is handled synchronously - inside the ship request, so the
+   admin waits for PayPal and the call runs within that request's database transaction. Route it to an async
+   transport for full off-request processing:
 
    ```yaml
    framework:
@@ -953,6 +971,12 @@
            routing:
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
+
+   **Admin API.** Shipping through `PATCH /api/v2/admin/shipments/{id}/ship` does **not** send tracking to
+   PayPal: Sylius' `ShipShipment` command carries a tracking code but no carrier, and a tracking record is only
+   created by the admin ship form, which is gone once the shipment is shipped. Ship from the admin (order page or
+   shipment list) when the tracking should reach PayPal.
+
 1. #### Trustly is available on the PayPal payment page.
 
    A new tile on `/pay-with-paypal/{orderToken}/{paymentId}`, between Google Pay and the card fields. One
