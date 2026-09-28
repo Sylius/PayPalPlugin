@@ -29,7 +29,7 @@ sylius_twig_hooks:
                 priority: -700
             apple_pay_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/apple_pay_enabled.html.twig'
-                priority: -750
+                priority: -800
             trustly_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/trustly_enabled.html.twig'
-                priority: -800
+                priority: -900
