@@ -17,6 +17,7 @@ use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\GuzzleException;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -25,6 +26,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
@@ -43,7 +45,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private ?OrderProcessorInterface $orderPaymentProcessor = null,
         private ?ObjectManager $objectManager = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
-        private ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
+        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
         if (null === $this->orderPaymentProcessor) {
             trigger_deprecation(
@@ -70,12 +72,12 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
                 self::class,
             );
         }
-        if (null === $this->paymentSourceProvider) {
+        if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalPaymentSourceProviderInterface::class,
+                PayPalFundingSourcesConfigurationProviderInterface::class,
                 self::class,
             );
         }
@@ -94,16 +96,16 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         }
         $this->orderOwnershipVerifier->verify($order, $request);
 
+        $paymentSource = $this->resolvePaymentSource($request, $order);
+        if (null === $paymentSource) {
+            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $this->cancelLiveAttempt($order);
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
         if (null === $payment) {
             return new JsonResponse([], Response::HTTP_CONFLICT);
-        }
-
-        $paymentSource = $this->resolvePaymentSource($request);
-        if (null === $paymentSource) {
-            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
@@ -165,24 +167,37 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         ;
     }
 
-    private function resolvePaymentSource(Request $request): ?string
+    /**
+     * Only the funding sources this placement renders a button for are accepted - PayPal always, Venmo only when
+     * enabled on the order's channel. Anything else (card, Google Pay, redirect methods) has its own entry point.
+     */
+    private function resolvePaymentSource(Request $request, OrderInterface $order): ?string
     {
-        $paymentSource = $request->query->get('paymentSource');
+        $paymentSource = $request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL);
 
-        if (null === $paymentSource) {
-            return PayPalPaymentSourceProviderInterface::PAYPAL;
+        if (PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource) {
+            return $paymentSource;
         }
 
-        if (!$this->supportsPaymentSource($paymentSource)) {
-            return null;
+        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($order)) {
+            return $paymentSource;
         }
 
-        return $paymentSource;
+        return null;
     }
 
-    private function supportsPaymentSource(string $paymentSource): bool
+    private function isVenmoEnabled(OrderInterface $order): bool
     {
-        return $this->paymentSourceProvider?->supports($paymentSource)
-            ?? PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource;
+        /** @var ChannelInterface|null $channel */
+        $channel = $order->getChannel();
+        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+            return false;
+        }
+
+        try {
+            return $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel);
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
     }
 }

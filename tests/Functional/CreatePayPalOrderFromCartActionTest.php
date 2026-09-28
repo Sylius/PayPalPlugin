@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -74,6 +76,77 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
 
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    /** @test */
+    public function it_records_paypal_as_the_payment_source_when_none_is_given(): void
+    {
+        $order = $this->seededCart();
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame('paypal', $this->recordedPaymentSource($order));
+    }
+
+    /** @test */
+    public function it_records_venmo_as_the_payment_source_when_venmo_is_enabled_on_the_channel(): void
+    {
+        $order = $this->seededCart(venmoEnabled: true);
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->assertSame('venmo', $this->recordedPaymentSource($order));
+    }
+
+    /** @test */
+    public function it_rejects_venmo_when_venmo_is_not_enabled_on_the_channel(): void
+    {
+        $order = $this->seededCart();
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+    }
+
+    /** @test */
+    public function it_rejects_a_payment_source_the_cart_placement_does_not_offer(): void
+    {
+        $order = $this->seededCart(venmoEnabled: true);
+
+        foreach (['card', 'google_pay', 'trustly', 'blik'] as $paymentSource) {
+            $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=' . $paymentSource);
+
+            $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode(), $paymentSource);
+        }
+    }
+
+    private function seededCart(bool $venmoEnabled = false): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        if ($venmoEnabled) {
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $fixtures['paypal_config'];
+            $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['venmo_enabled' => true]));
+            $this->getEntityManager()->flush();
+        }
+
+        $this->seedCurrentCart($order);
+
+        return $order;
+    }
+
+    private function recordedPaymentSource(OrderInterface $order): ?string
+    {
+        $this->getEntityManager()->clear();
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+
+        return $order->getLastPayment(PaymentInterface::STATE_CART)?->getDetails()['payment_source'] ?? null;
     }
 
     private function seedCurrentCart(OrderInterface $order): void

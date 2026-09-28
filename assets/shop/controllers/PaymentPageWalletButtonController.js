@@ -14,7 +14,6 @@ export default class extends Controller {
         cancelOrderUrl: String,
         errorUrl: String,
         payLaterEnabled: Boolean,
-        venmoEnabled: Boolean,
     };
 
     async connect() {
@@ -47,7 +46,7 @@ export default class extends Controller {
                 this.payLaterButtonTarget.addEventListener('click', () => this.start(session, payLaterSession));
             }
 
-            if (this.venmoEnabledValue && this.hasVenmoButtonTarget && session.isEligible('venmo')) {
+            if (this.hasVenmoButtonTarget && session.isEligible('venmo')) {
                 const venmoSession = session.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions());
 
                 this.venmoButtonTarget.removeAttribute('hidden');

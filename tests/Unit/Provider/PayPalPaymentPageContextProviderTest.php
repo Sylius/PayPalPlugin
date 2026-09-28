@@ -148,6 +148,20 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame('123.45', $this->provider->provide($this->payment, 'en_US')['amount']);
     }
 
+    public function test_it_provides_the_amount_without_decimals_for_a_zero_decimal_currency(): void
+    {
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
+        $order->method('getCurrencyCode')->willReturn('JPY');
+
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(123400);
+
+        self::assertSame('1234', $this->provider->provide($payment, 'en_US')['amount']);
+    }
+
     public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
     {
         $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);

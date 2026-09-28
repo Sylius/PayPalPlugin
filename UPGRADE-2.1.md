@@ -1383,3 +1383,8 @@
    capturing, the same way `CreatePayPalOrderAction` already did. Before this, every Venmo payment silently
    created its order as `payment_source.paypal`, because `PayPalPaymentSourceProvider` had no `venmo` case
    and three of the four placements never read a payment source from the request at all.
+
+   Those two actions accept only `paypal` (also the default when the parameter is missing) and `venmo`, the
+   latter only while `venmo_enabled` is on for the order's channel; any other value answers `422`. Both gained
+   a trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
+   argument for that check. Not passing it is deprecated, and without it `venmo` is refused.
