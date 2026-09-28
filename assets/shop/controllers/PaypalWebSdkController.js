@@ -162,6 +162,14 @@ export default class extends Controller {
             return;
         }
 
+        liveFormElement.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
+            if ((field.type === 'radio' || field.type === 'checkbox') && !field.checked) {
+                return;
+            }
+
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
         this.application.getControllerForElementAndIdentifier(liveFormElement, 'live')?.$render();
     }
 
