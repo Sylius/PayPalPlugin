@@ -35,9 +35,6 @@ final readonly class ShipmentTrackingDispatcher implements ShipmentTrackingDispa
         }
 
         try {
-            // No DispatchAfterCurrentBusStamp: its middleware is shared by all buses, so a ship run inside another bus
-            // (e.g. the Admin API's ShipShipment) would defer the message past this catch and a PayPal error would fail
-            // that request. Handled right away, a PayPal error is recorded on the tracking and caught here.
             $this->messageBus->dispatch(new Envelope(new SendShipmentTracking($shipmentId)));
         } catch (\Throwable $exception) {
             $this->logger->error(

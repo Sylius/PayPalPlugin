@@ -124,7 +124,6 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
     {
         $this->ship(['tracking' => 'QA-TRACK-5', 'carrier' => 'DHL'], '/admin/shipments/');
 
-        // Core's own redirect for this route: the shipment index, carrying the route's `id` as a query parameter.
         self::assertStringStartsWith('/admin/shipments/', (string) $this->client->getResponse()->headers->get('Location'));
         self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
         self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
@@ -158,7 +157,6 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertSame(1, $tracking->getAttempts());
     }
 
-    /** Same command the Admin API's `PATCH /api/v2/admin/shipments/{id}/ship` dispatches, for a shipment whose carrier is already known. */
     private function shipThroughTheAdminApi(string $trackingCode): void
     {
         $shipment = $this->shipment();
@@ -181,7 +179,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
             $form[$prefix . '[paypal_tracking][carrier]'] = $values['carrier'];
         }
 
-        $this->client->submit($form, [], ['HTTP_REFERER' => 'http://localhost' . $orderPage]);
+        $this->client->submit($form);
     }
 
     private function formName(Form $form): string

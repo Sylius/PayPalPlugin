@@ -20,11 +20,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-/**
- * Sylius' ship routes have no template for an invalid ship form - core's form could never be invalid, the carrier
- * this plugin requires with a tracking number can. The resource controller fires `initialize_ship` only on that path,
- * so the admin is sent back to where they clicked Ship with the reason as a flash, instead of a template error.
- */
 final readonly class InvalidShipFormListener
 {
     private const ORDER_SHIPMENT_SHIP_ROUTE = 'sylius_admin_order_shipment_ship';

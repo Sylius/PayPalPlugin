@@ -5,9 +5,6 @@ imports:
 framework:
     messenger:
         buses:
-            # Package tracking is a courtesy to PayPal, sent from inside the ship transition. It must not run
-            # under `doctrine_transaction` (Sylius' command bus): a PayPal error rolled back in a nested
-            # transaction marks the ship request's own transaction rollback-only and the shipment is never shipped.
             sylius_paypal.package_tracking_bus: ~
 
 sylius_admin:

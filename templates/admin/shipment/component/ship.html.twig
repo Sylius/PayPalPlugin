@@ -1,8 +1,5 @@
 {% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
 
-{# The action is fixed here instead of coming from a `path` prop like core's: props other than LiveProps are lost when
-   picking a carrier re-renders the component, and the form would then post to the shipment list's ship route.
-   The shipment list has its own template, ship_from_index.html.twig. #}
 {% set form_action = path('sylius_admin_order_shipment_ship', {id: resource.id, orderId: resource.order.id}) %}
 {% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
 {% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}

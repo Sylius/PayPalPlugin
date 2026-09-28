@@ -31,7 +31,6 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
 {
     public const TRACKING_FIELD_NAME = 'paypal_tracking';
 
-    /** Request attribute holding the error messages of a rejected ship submit, turned into flashes by InvalidShipFormListener. */
     public const ERRORS_REQUEST_ATTRIBUTE = '_sylius_paypal_ship_form_errors';
 
     public function __construct(
@@ -157,11 +156,6 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
         $request->attributes->set(self::ERRORS_REQUEST_ATTRIBUTE, array_values(array_unique($messages)));
     }
 
-    /**
-     * A live component submits the form on every re-render (e.g. picking a carrier), which must not save anything.
-     * `_live_component` is a placeholder of every live component route - the shop's `ux_live_component` as well as
-     * the admin's `sylius_admin_live_component` - so this does not depend on the route name.
-     */
     private function isLiveComponentRerender(): bool
     {
         $request = $this->requestStack->getCurrentRequest();
