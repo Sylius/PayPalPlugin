@@ -64,7 +64,7 @@
         </service>
         <service id="Sylius\PayPalPlugin\PackageTracking\Manager\ShipmentTrackingManagerInterface" alias="sylius_paypal.manager.shipment_tracking" />
 
-        <service id="sylius_paypal.dispatcher.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcher">
+        <service id="sylius_paypal.dispatcher.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcher" public="true">
             <argument type="service" id="sylius_paypal.package_tracking_bus" />
             <argument type="service" id="monolog.logger.paypal" />
         </service>
