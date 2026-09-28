@@ -1,3 +1,8 @@
-<div class="mb-4" data-live-ignore>
-    {{ render(controller('sylius_paypal.controller.paypal_buttons::renderProductPageVenmoButtonAction', { productId: hookable_metadata.context.product.id })) }}
-</div>
+{# Wired by the paypal-web-sdk controller of the paypal_checkout hook above - it stays hidden unless Venmo is enabled and eligible. #}
+<venmo-button
+    class="mb-4"
+    data-sylius-paypal-venmo-button
+    data-live-ignore
+    style="display: block; width: 100%"
+    hidden
+></venmo-button>

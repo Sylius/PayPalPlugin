@@ -1,10 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import { loadWebSdkOnce } from '../scripts/paypal-web-sdk';
 
-let sdkInstancePromise = null;
-
 export default class extends Controller {
-    static targets = ['paypalButton', 'payLaterButton', 'venmoButton'];
+    static targets = ['paypalButton', 'payLaterButton'];
 
     static values = {
         scriptUrl: String,
@@ -20,6 +18,7 @@ export default class extends Controller {
         liveFormSelector: String,
         payLaterEnabled: Boolean,
         venmoEnabled: Boolean,
+        venmoButtonSelector: String,
     };
 
     syliusOrderId = null;
@@ -36,8 +35,7 @@ export default class extends Controller {
         try {
             await loadWebSdkOnce(this.scriptUrlValue);
 
-            sdkInstancePromise ??= window.paypal.createInstance(this.instanceConfigValue);
-            this.sdkInstance = await sdkInstancePromise;
+            this.sdkInstance = await window.paypal.createInstance(this.instanceConfigValue);
 
             await this.refreshEligibility();
         } catch (error) {
@@ -79,7 +77,7 @@ export default class extends Controller {
         }
 
         try {
-            if (!this.wiredTargets.has('paypal') && this.hasPaypalButtonTarget && paymentMethods.isEligible('paypal')) {
+            if (!this.wiredTargets.has('paypal') && paymentMethods.isEligible('paypal')) {
                 this.wiredTargets.add('paypal');
                 this.wireUpButton(this.paypalButtonTarget, this.sdkInstance.createPayPalOneTimePaymentSession(this.buildSessionOptions()));
             }
@@ -105,18 +103,31 @@ export default class extends Controller {
         }
 
         try {
-            if (
-                !this.wiredTargets.has('venmo') &&
-                this.venmoEnabledValue &&
-                this.hasVenmoButtonTarget &&
-                paymentMethods.isEligible('venmo')
-            ) {
+            const venmoButton = this.venmoEnabledValue ? this.findVenmoButton() : null;
+            if (!this.wiredTargets.has('venmo') && venmoButton !== null && paymentMethods.isEligible('venmo')) {
                 this.wiredTargets.add('venmo');
-                this.wireUpButton(this.venmoButtonTarget, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
+                this.wireUpButton(venmoButton, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
             }
         } catch (error) {
             console.error('Venmo button setup error:', error);
         }
+    }
+
+    // The Venmo button lives in its own hook below the Pay Later messaging, outside this controller's element,
+    // so it is looked up from the nearest ancestor that contains one - the placement this controller belongs to.
+    findVenmoButton() {
+        if (!this.hasVenmoButtonSelectorValue || this.venmoButtonSelectorValue === '') {
+            return null;
+        }
+
+        for (let scope = this.element.parentElement; scope !== null; scope = scope.parentElement) {
+            const button = scope.querySelector(this.venmoButtonSelectorValue);
+            if (button !== null) {
+                return button;
+            }
+        }
+
+        return null;
     }
 
     buildSessionOptions() {

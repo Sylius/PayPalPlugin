@@ -864,8 +864,8 @@
    That hook is new in 2.1 and split into two levels. The outer one,
    `sylius_paypal.shop.pay_with_paypal.content`, carries `flashes` 200, `methods` 100 and `privacy_notice`
    0. Every payment method lives one level down, on `sylius_paypal.shop.pay_with_paypal.content.methods` —
-   `paypal` 500, `paypal_messaging` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods` 100, `card`
-   0. Both ladders are spaced a hundred apart, so there is room between any two neighbours. A tile of your
+   `paypal` 600, `paypal_messaging` 500, `venmo` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods`
+   100, `card` 0. Both ladders are spaced a hundred apart, so there is room between any two neighbours. A tile of your
    own belongs on the inner hook; something that is not a payment method, on the outer one.
 
 1. #### PayPal Package Tracking: shipping an order now sends tracking to PayPal (server-side, opt-in per shipment).
@@ -953,7 +953,6 @@
            routing:
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
-
 1. #### Trustly is available on the PayPal payment page.
 
    A new tile on `/pay-with-paypal/{orderToken}/{paymentId}`, between Google Pay and the card fields. One
@@ -1368,6 +1367,14 @@
    It is not a new Stimulus controller — Venmo reuses the same `paypal-web-sdk` and
    `paypal-payment-wallet-button` controllers the PayPal and Pay Later buttons already use, so there is
    nothing new to register in `controllers.json`.
+
+   On the product, cart and checkout/select-payment placements the button sits in its own `paypal_venmo`
+   hook, below `paypal_messaging`, and renders only a hidden `<venmo-button data-sylius-paypal-venmo-button>`.
+   It is not a second controller: the `paypal-web-sdk` controller rendered by the placement's
+   `paypal_checkout`/`paypal` hook finds it through its `venmoButtonSelector` value (looking up from its own
+   element to the nearest ancestor that contains one) and wires it on the same SDK instance as the PayPal
+   and Pay Later buttons. If you moved or overrode that hook, keep the attribute on the button, and keep the
+   button inside the same hook container as the PayPal buttons.
 
    **Orders created for Venmo now actually carry `payment_source.venmo`.** Every entry point that starts a
    PayPal attempt names the funding source it used — `startAttempt(paymentSource)` on the payment page, and
