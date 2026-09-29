@@ -273,6 +273,13 @@
             <argument type="service" id="sylius_abstraction.state_machine" />
         </service>
 
+        <service
+            id="sylius_paypal.order_processing.replacement_order_payment_processor"
+            class="Sylius\PayPalPlugin\Processor\ReplacementOrderPaymentProcessor"
+        >
+            <argument type="service" id="sylius.order_processing.order_payment_processor.checkout" />
+        </service>
+
         <service id="sylius_paypal.processor.paypal_order_complete" class="Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor" public="true">
             <argument type="service" id="sylius_paypal.manager.payment_state" />
             <argument type="service" id="sylius_paypal.verifier.payment_amount" />

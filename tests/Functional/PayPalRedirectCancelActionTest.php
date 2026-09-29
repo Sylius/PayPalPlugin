@@ -39,7 +39,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
 
         self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
         self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_COMPLETED));
-        self::assertStringEndsWith('/en_US/order/TOKEN', $this->location());
+        self::assertMatchesRegularExpression('#/en_US/pay-with-paypal/TOKEN/\d+$#', $this->location());
     }
 
     public function test_it_keeps_a_payment_the_bank_let_through_after_all(): void
@@ -72,6 +72,25 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_replaces_a_cancelled_attempt_with_exactly_one_new_payment(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->cancel(self::CANCEL_NONCE);
+
+        self::assertSame(1, $this->newPayments($this->reloadOrder($order)));
+
+        $this->client->request('GET', '/en_US/order/TOKEN');
+        self::assertStringContainsString('name="sylius_checkout_select_payment"', (string) $this->client->getResponse()->getContent());
+    }
+
+    private function newPayments(OrderInterface $order): int
+    {
+        return $order->getPayments()->filter(
+            static fn (PaymentInterface $payment): bool => in_array($payment->getState(), [PaymentInterface::STATE_NEW, PaymentInterface::STATE_CART], true),
+        )->count();
+    }
+
     private function location(): string
     {
         return (string) $this->client->getResponse()->headers->get('Location');
@@ -94,7 +113,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         $item->setUnitPrice(20);
         $order->recalculateItemsTotal();
 
-        self::getContainer()->get('sylius.manager.order')->flush();
+        $this->getEntityManager()->flush();
 
         return $order;
     }
