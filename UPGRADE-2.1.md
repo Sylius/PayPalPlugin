@@ -1354,37 +1354,26 @@
    ```
 1. #### Venmo is available on all four wallet-button placements.
 
-   A `<venmo-button>` on the product page, cart page, checkout/select-payment wallet button, and
-   `/pay-with-paypal/{orderToken}/{paymentId}`, next to the existing PayPal tile. One new, **opt-in** admin
-   toggle on the PayPal payment method's gateway config controls it:
+   A `<venmo-button>` on the product page, the cart page, the checkout payment step and
+   `/pay-with-paypal/{orderToken}/{paymentId}`. One new, **opt-in** admin toggle on the PayPal payment method's
+   gateway config controls it:
 
    - `venmo_enabled` — defaults to `false`, including for existing payment methods.
 
-   This is the opposite default from `pay_later_enabled` and `messaging_enabled`. Venmo is newer and less
-   exercised in production than Pay Later, and it is US-only, so turning it on is a deliberate merchant
-   decision rather than something every shop should suddenly start offering.
+   Venmo reuses the `paypal-web-sdk` and `paypal-payment-wallet-button` controllers, so there is nothing new to
+   register in `controllers.json`. On the product, cart and checkout placements the button is rendered by its own
+   `paypal_venmo` hook, below `paypal_messaging`, as `<venmo-button data-sylius-paypal-venmo-button>`; the
+   placement's `paypal-web-sdk` controller finds it through its `venmoButtonSelector` value, so an override has to
+   keep that attribute and the button inside the same hook container. On the payment page the tile sits on
+   `sylius_paypal.shop.pay_with_paypal.content.methods` at priority `400`, between `paypal_messaging` (500) and
+   `google_pay` (300).
 
-   It is not a new Stimulus controller — Venmo reuses the same `paypal-web-sdk` and
-   `paypal-payment-wallet-button` controllers the PayPal and Pay Later buttons already use, so there is
-   nothing new to register in `controllers.json`.
+   `PayPalFundingSourcesConfigurationProviderInterface` gained `isVenmoEnabled(ChannelInterface): bool`.
+   If you implement that interface yourself rather than decorating
+   `sylius_paypal.provider.paypal_configuration`, add the method.
 
-   On the product, cart and checkout/select-payment placements the button sits in its own `paypal_venmo`
-   hook, below `paypal_messaging`, and renders only a hidden `<venmo-button data-sylius-paypal-venmo-button>`.
-   It is not a second controller: the `paypal-web-sdk` controller rendered by the placement's
-   `paypal_checkout`/`paypal` hook finds it through its `venmoButtonSelector` value (looking up from its own
-   element to the nearest ancestor that contains one) and wires it on the same SDK instance as the PayPal
-   and Pay Later buttons. If you moved or overrode that hook, keep the attribute on the button, and keep the
-   button inside the same hook container as the PayPal buttons.
-
-   **Orders created for Venmo now actually carry `payment_source.venmo`.** Every entry point that starts a
-   PayPal attempt names the funding source it used — `startAttempt(paymentSource)` on the payment page, and
-   a `paymentSource` query parameter on the product/cart/checkout-select create-order requests — and
-   `CreatePayPalOrderFromCartAction`/`CreatePayPalOrderFromPaymentPageAction` now read and record it before
-   capturing, the same way `CreatePayPalOrderAction` already did. Before this, every Venmo payment silently
-   created its order as `payment_source.paypal`, because `PayPalPaymentSourceProvider` had no `venmo` case
-   and three of the four placements never read a payment source from the request at all.
-
-   Those two actions accept only `paypal` (also the default when the parameter is missing) and `venmo`, the
-   latter only while `venmo_enabled` is on for the order's channel; any other value answers `422`. Both gained
-   a trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
-   argument for that check. Not passing it is deprecated, and without it `venmo` is refused.
+   Orders created for Venmo carry `payment_source.venmo`. `CreatePayPalOrderFromCartAction` and
+   `CreatePayPalOrderFromPaymentPageAction` read the `paymentSource` query parameter and accept `paypal` (the
+   default) and `venmo` while it is enabled on the order's channel; anything else answers `400`. Both gained a
+   trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
+   argument; not passing it is deprecated, and without it `venmo` is refused.

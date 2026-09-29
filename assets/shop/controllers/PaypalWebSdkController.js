@@ -113,8 +113,6 @@ export default class extends Controller {
         }
     }
 
-    // The Venmo button lives in its own hook below the Pay Later messaging, outside this controller's element,
-    // so it is looked up from the nearest ancestor that contains one - the placement this controller belongs to.
     findVenmoButton() {
         if (!this.hasVenmoButtonSelectorValue || this.venmoButtonSelectorValue === '') {
             return null;

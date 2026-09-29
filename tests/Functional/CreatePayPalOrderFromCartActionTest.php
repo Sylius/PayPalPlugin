@@ -107,7 +107,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
 
-        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
     /** @test */
@@ -118,7 +118,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         foreach (['card', 'google_pay', 'trustly', 'blik'] as $paymentSource) {
             $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=' . $paymentSource);
 
-            $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode(), $paymentSource);
+            $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode(), $paymentSource);
         }
     }
 

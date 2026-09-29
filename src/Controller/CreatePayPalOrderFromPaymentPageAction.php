@@ -98,7 +98,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         $paymentSource = $this->resolvePaymentSource($request, $order);
         if (null === $paymentSource) {
-            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
         $this->cancelLiveAttempt($order);
@@ -167,10 +167,6 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         ;
     }
 
-    /**
-     * Only the funding sources this placement renders a button for are accepted - PayPal always, Venmo only when
-     * enabled on the order's channel. Anything else (card, Google Pay, redirect methods) has its own entry point.
-     */
     private function resolvePaymentSource(Request $request, OrderInterface $order): ?string
     {
         $paymentSource = $request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL);

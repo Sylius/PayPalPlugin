@@ -17,10 +17,6 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\ProductInterface;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Kept apart from AddToCartActionTest: ApiTestCase shares one kernel per test class, and reloading the
- * translatable product fixtures after a product page request on that kernel fails inside Alice.
- */
 final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
 {
     public function test_it_passes_the_chosen_payment_source_on_to_the_create_order_request(): void
@@ -38,9 +34,8 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
         $location = (string) $this->client->getResponse()->headers->get('Location');
         self::assertMatchesRegularExpression('#/en_US/create-pay-pal-order-from-cart/\d+\?paymentSource=venmo$#', $location);
 
-        // Venmo is not enabled on the fixture's PayPal method, so the forwarded source is refused, not swapped for PayPal.
         $this->client->request('POST', $location);
 
-        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 }

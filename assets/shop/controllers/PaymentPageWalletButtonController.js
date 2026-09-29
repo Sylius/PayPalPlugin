@@ -49,6 +49,7 @@ export default class extends Controller {
             if (this.hasVenmoButtonTarget && session.isEligible('venmo')) {
                 const venmoSession = session.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions());
 
+                this.element.removeAttribute('hidden');
                 this.venmoButtonTarget.removeAttribute('hidden');
                 this.venmoButtonTarget.addEventListener('click', () => this.start(session, venmoSession, 'venmo'));
             }

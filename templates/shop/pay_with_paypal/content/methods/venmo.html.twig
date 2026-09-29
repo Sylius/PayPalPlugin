@@ -12,7 +12,8 @@
             cancelOrderUrl: context.cancelPayPalPaymentUrl,
             errorUrl: context.errorPayPalPaymentUrl,
         }) }}
-        class="d-grid gap-2 mb-3"
+        class="mb-3"
+        hidden
     >
         <venmo-button
             {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-wallet-button', 'venmoButton') }}

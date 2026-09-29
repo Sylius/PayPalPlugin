@@ -217,7 +217,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->paymentStateManager->expects(self::never())->method('cancel');
         $this->capturePaymentResolver->expects(self::never())->method('resolve');
 
-        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, ($this->action)($this->request(['paymentSource' => 'venmo']))->getStatusCode());
+        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($this->request(['paymentSource' => 'venmo']))->getStatusCode());
     }
 
     public function test_it_rejects_venmo_without_the_funding_sources_configuration_provider(): void
@@ -235,7 +235,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
 
         $this->capturePaymentResolver->expects(self::never())->method('resolve');
 
-        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $action($this->request(['paymentSource' => 'venmo']))->getStatusCode());
+        self::assertSame(Response::HTTP_BAD_REQUEST, $action($this->request(['paymentSource' => 'venmo']))->getStatusCode());
     }
 
     public function test_it_rejects_a_payment_source_the_wallet_placement_does_not_offer(): void
@@ -247,7 +247,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
 
         foreach (['card', 'google_pay', 'trustly', 'blik'] as $paymentSource) {
             self::assertSame(
-                Response::HTTP_UNPROCESSABLE_ENTITY,
+                Response::HTTP_BAD_REQUEST,
                 ($this->action)($this->request(['paymentSource' => $paymentSource]))->getStatusCode(),
                 $paymentSource,
             );
