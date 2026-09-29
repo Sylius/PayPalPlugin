@@ -82,6 +82,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
 
         self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_FAILED));
         self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
+        self::assertSame(1, $this->newPayments($reloaded));
         self::assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
     }
 
@@ -124,6 +125,25 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         self::assertSame(200, $this->client->getResponse()->getStatusCode());
         self::assertStringNotContainsString('We are waiting for your bank', $content);
         self::assertStringContainsString('name="sylius_checkout_select_payment"', $content);
+    }
+
+    public function test_it_replaces_a_cancelled_attempt_with_exactly_one_new_payment(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->cancel(self::CANCEL_NONCE);
+
+        self::assertSame(1, $this->newPayments($this->reloadOrder($order)));
+
+        $this->client->request('GET', '/en_US/order/TOKEN');
+        self::assertStringContainsString('name="sylius_checkout_select_payment"', (string) $this->client->getResponse()->getContent());
+    }
+
+    private function newPayments(OrderInterface $order): int
+    {
+        return $order->getPayments()->filter(
+            static fn (PaymentInterface $payment): bool => in_array($payment->getState(), [PaymentInterface::STATE_NEW, PaymentInterface::STATE_CART], true),
+        )->count();
     }
 
     private function location(): string
