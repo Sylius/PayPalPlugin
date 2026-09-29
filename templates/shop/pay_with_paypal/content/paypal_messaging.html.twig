@@ -3,6 +3,7 @@
 
     <paypal-message
         class="mb-3"
+        style="display: block"
         {{ stimulus_controller('@sylius/paypal-plugin/paypal-message', {
             amount: context.amount,
             currencyCode: context.currency,

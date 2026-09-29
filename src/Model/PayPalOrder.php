@@ -62,8 +62,11 @@ class PayPalOrder
             'purchase_units' => [
                 $this->payPalPurchaseUnit->toArray(),
             ],
-            'payment_source' => $this->paymentSource,
         ];
+
+        if ([] !== $this->paymentSource) {
+            $payPalOrder['payment_source'] = $this->paymentSource;
+        }
 
         if (null !== $this->processingInstruction) {
             $payPalOrder['processing_instruction'] = $this->processingInstruction;
