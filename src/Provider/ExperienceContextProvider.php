@@ -43,8 +43,11 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
         );
 
         if (null !== $shippingCallbackUrl && PayPalOrder::PAYPAL_ADDRESS === $shippingPreference) {
-            $experienceContext['order_update_callback_config'] = [
-                'callback_events' => [PayPalOrder::CALLBACK_EVENT_SHIPPING_ADDRESS],
+            $experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG] = [
+                'callback_events' => [
+                    PayPalOrder::CALLBACK_EVENT_SHIPPING_ADDRESS,
+                    PayPalOrder::CALLBACK_EVENT_SHIPPING_OPTIONS,
+                ],
                 'callback_url' => $shippingCallbackUrl,
             ];
         }

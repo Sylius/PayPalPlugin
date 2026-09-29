@@ -93,6 +93,36 @@ final class PayPalOrderFactoryTest extends TestCase
         self::assertSame('REFERENCE_ID', $payPalOrder['purchase_units'][0]['reference_id']);
     }
 
+    public function test_it_leaves_the_item_taxes_out_when_paypal_calls_back_with_the_address(): void
+    {
+        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($this->payment, 'REFERENCE_ID', null, false)->willReturn($this->purchaseUnit());
+
+        (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router, $this->shippingCallbackUrlProvider))->create($this->payment, 'REFERENCE_ID');
+    }
+
+    public function test_it_sends_the_item_taxes_when_the_address_is_already_provided(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('isShippingRequired')->willReturn(true);
+        $order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
+        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($payment, 'REFERENCE_ID', null, true)->willReturn($this->purchaseUnit());
+
+        (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router, $this->shippingCallbackUrlProvider))->create($payment, 'REFERENCE_ID');
+    }
+
+    public function test_it_sends_the_item_taxes_when_no_shipping_callback_is_declared(): void
+    {
+        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($this->payment, 'REFERENCE_ID', null, true)->willReturn($this->purchaseUnit());
+
+        (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router))->create($this->payment, 'REFERENCE_ID');
+    }
+
     public function test_it_sends_the_same_return_and_cancel_url_on_orders_addressed_in_the_wallet(): void
     {
         $payPalOrder = $this->factory->create($this->payment, 'REFERENCE_ID')->toArray();
@@ -108,7 +138,7 @@ final class PayPalOrderFactoryTest extends TestCase
                 'launch_paypal_app' => true,
             ],
             'order_update_callback_config' => [
-                'callback_events' => ['SHIPPING_ADDRESS'],
+                'callback_events' => ['SHIPPING_ADDRESS', 'SHIPPING_OPTIONS'],
                 'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
             ],
         ], $payPalOrder['payment_source']['paypal']['experience_context']);

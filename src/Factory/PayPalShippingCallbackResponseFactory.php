@@ -17,27 +17,29 @@ use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 
 final readonly class PayPalShippingCallbackResponseFactory implements PayPalShippingCallbackResponseFactoryInterface
 {
-    private const ADDED_BREAKDOWN_KEYS = ['item_total', 'tax_total', 'shipping', 'handling', 'insurance'];
+    private const ADDED_BREAKDOWN_KEYS = ['item_total', 'shipping', 'handling', 'insurance'];
 
     private const SUBTRACTED_BREAKDOWN_KEYS = ['discount', 'shipping_discount'];
 
     public function create(
         string $payPalOrderId,
         array $purchaseUnit,
+        array $amount,
         PayPalShippingOptions $shippingOptions,
     ): array {
         return [
             'id' => $payPalOrderId,
-            'purchase_units' => [$this->createPurchaseUnit($purchaseUnit, $shippingOptions)],
+            'purchase_units' => [$this->createPurchaseUnit($purchaseUnit, $amount, $shippingOptions)],
         ];
     }
 
     /**
      * @param array<string, mixed> $purchaseUnit
+     * @param array<string, mixed> $amount
      *
      * @return array<string, mixed>
      */
-    private function createPurchaseUnit(array $purchaseUnit, PayPalShippingOptions $shippingOptions): array
+    private function createPurchaseUnit(array $purchaseUnit, array $amount, PayPalShippingOptions $shippingOptions): array
     {
         $responseUnit = [];
 
@@ -45,10 +47,7 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
             $responseUnit['reference_id'] = $purchaseUnit['reference_id'];
         }
 
-        $responseUnit['amount'] = $this->withSelectedShippingCost(
-            (array) ($purchaseUnit['amount'] ?? []),
-            $shippingOptions,
-        );
+        $responseUnit['amount'] = $this->withSelectedShippingCost($amount, $shippingOptions);
         $responseUnit['shipping_options'] = $shippingOptions->toArray();
 
         return $responseUnit;
@@ -71,16 +70,19 @@ final readonly class PayPalShippingCallbackResponseFactory implements PayPalShip
 
         $breakdown['shipping'] = $selected->amountToArray();
 
-        $total = 0;
+        $taxTotal = (int) round(((float) ($amount['value'] ?? 0)) * 100);
         foreach (self::ADDED_BREAKDOWN_KEYS as $key) {
-            $total += $this->minorUnits($breakdown, $key);
+            $taxTotal -= $this->minorUnits($breakdown, $key);
         }
         foreach (self::SUBTRACTED_BREAKDOWN_KEYS as $key) {
-            $total -= $this->minorUnits($breakdown, $key);
+            $taxTotal += $this->minorUnits($breakdown, $key);
         }
 
+        $breakdown['tax_total'] = [
+            'currency_code' => $selected->currencyCode(),
+            'value' => number_format($taxTotal / 100, 2, '.', ''),
+        ];
         $amount['breakdown'] = $breakdown;
-        $amount['value'] = number_format($total / 100, 2, '.', '');
 
         return $amount;
     }

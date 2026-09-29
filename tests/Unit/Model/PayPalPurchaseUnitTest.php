@@ -264,4 +264,14 @@ final class PayPalPurchaseUnitTest extends TestCase
 
         self::assertArrayNotHasKey('admin_area_1', $this->payPalPurchaseUnit->toArray()['shipping']['address']);
     }
+
+    public function test_it_leaves_the_item_taxes_out_when_told_to(): void
+    {
+        $item = ['name' => 'PRODUCT', 'quantity' => 3, 'tax' => ['value' => '1.64', 'currency_code' => 'USD']];
+
+        $purchaseUnit = new PayPalPurchaseUnit('REFERENCE_ID', 'INVOICE_ID', 'USD', 7679, 161, 70.26, 4.92, 0, 'MERCHANT_ID', [$item], true, withItemTaxes: false);
+
+        self::assertSame([['name' => 'PRODUCT', 'quantity' => 3]], $purchaseUnit->toArray()['items']);
+        self::assertSame('4.92', $purchaseUnit->toArray()['amount']['breakdown']['tax_total']['value']);
+    }
 }

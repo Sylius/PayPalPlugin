@@ -595,5 +595,15 @@
             <argument type="service" id="sylius_paypal.factory.paypal_shipping_options" />
         </service>
         <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_options" />
+
+        <service
+            id="sylius_paypal.provider.paypal_shipping_callback_amount"
+            class="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProvider"
+        >
+            <argument type="service" id="sylius.order_processing.order_processor" />
+            <argument type="service" id="sylius.repository.shipping_method" />
+            <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_amount" />
     </services>
 </container>

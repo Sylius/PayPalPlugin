@@ -35,6 +35,7 @@ class PayPalPurchaseUnit
         private readonly string $softDescriptor = 'Sylius PayPal Payment',
         private readonly int $shippingDiscountValue = 0,
         private readonly ?string $customId = null,
+        private readonly bool $withItemTaxes = true,
     ) {
     }
 
@@ -73,7 +74,14 @@ class PayPalPurchaseUnit
                 'merchant_id' => $this->merchantId,
             ],
             'soft_descriptor' => $this->softDescriptor,
-            'items' => $this->items,
+            'items' => $this->withItemTaxes ? $this->items : array_map(
+                static function (array $item): array {
+                    unset($item['tax']);
+
+                    return $item;
+                },
+                $this->items,
+            ),
         ];
 
         if (null !== $this->customId) {

@@ -63,7 +63,11 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
         return new PayPalOrder(
             order: $order,
-            payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create($payment, $referenceId),
+            payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create(
+                $payment,
+                $referenceId,
+                withItemTaxes: !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
+            ),
             intent: PayPalOrder::INTENT_CAPTURE,
             paymentSource: $this->paymentSourceProvider->provide($order, $paymentSource, $experienceContext),
             processingInstruction: null === $redirectPaymentSource
