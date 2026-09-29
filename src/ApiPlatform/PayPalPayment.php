@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -74,10 +75,10 @@ final class PayPalPayment
         $channel = $order->getChannel();
         $partnerAttributionId = null !== $this->payPalConfigurationProvider
             ? $this->payPalConfigurationProvider->getPartnerAttributionId($channel)
-            : (string) $gatewayConfig->getConfig()['partner_attribution_id'];
+            : (string) $gatewayConfig->getConfig()[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID];
 
         return [
-            'clientId' => $gatewayConfig->getConfig()['client_id'],
+            'clientId' => $gatewayConfig->getConfig()[PayPalGatewayConfig::CLIENT_ID],
             'completePayPalOrderFromPaymentPageUrl' => $this->router->generate(
                 'sylius_paypal_shop_complete_paypal_order',
                 ['token' => $order->getTokenValue()],

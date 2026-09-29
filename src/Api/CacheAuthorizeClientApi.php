@@ -18,6 +18,7 @@ use Doctrine\Persistence\ObjectRepository;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Entity\PayPalCredentialsInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiInterface
@@ -47,8 +48,8 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
         $config = $gatewayConfig->getConfig();
 
         $token = $this->authorizeClientApi->authorize(
-            (string) $config['client_id'],
-            (string) $config['client_secret'],
+            (string) $config[PayPalGatewayConfig::CLIENT_ID],
+            (string) $config[PayPalGatewayConfig::CLIENT_SECRET],
         );
         $payPalCredentials = new PayPalCredentials(
             $this->uuidProvider->provide(),

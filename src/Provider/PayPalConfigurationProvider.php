@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Webmozart\Assert\Assert;
 
@@ -31,22 +32,22 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
     public function getClientId(ChannelInterface $channel): string
     {
         $config = $this->getPayPalPaymentMethodConfig($channel);
-        Assert::keyExists($config, 'client_id');
+        Assert::keyExists($config, PayPalGatewayConfig::CLIENT_ID);
 
-        return (string) $config['client_id'];
+        return (string) $config[PayPalGatewayConfig::CLIENT_ID];
     }
 
     public function getPartnerAttributionId(ChannelInterface $channel): string
     {
         $config = $this->getPayPalPaymentMethodConfig($channel);
-        Assert::keyExists($config, 'partner_attribution_id');
+        Assert::keyExists($config, PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID);
 
-        return (string) $config['partner_attribution_id'];
+        return (string) $config[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID];
     }
 
     public function isPayLaterEnabled(ChannelInterface $channel): bool
     {
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['pay_later_enabled'] ?? true);
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)[PayPalGatewayConfig::PAY_LATER_ENABLED] ?? true);
     }
 
     public function isMessagingEnabled(ChannelInterface $channel): bool
@@ -55,17 +56,17 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
             return false;
         }
 
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['messaging_enabled'] ?? true);
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)[PayPalGatewayConfig::MESSAGING_ENABLED] ?? true);
     }
 
     public function isGooglePayEnabled(ChannelInterface $channel): bool
     {
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['google_pay_enabled'] ?? false);
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)[PayPalGatewayConfig::GOOGLE_PAY_ENABLED] ?? false);
     }
 
     public function isApplePayEnabled(ChannelInterface $channel): bool
     {
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)['apple_pay_enabled'] ?? false);
+        return (bool) ($this->getPayPalPaymentMethodConfig($channel)[PayPalGatewayConfig::APPLE_PAY_ENABLED] ?? false);
     }
 
     public function isTrustlyEnabled(ChannelInterface $channel): bool

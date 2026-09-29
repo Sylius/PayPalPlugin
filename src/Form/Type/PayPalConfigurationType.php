@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
@@ -24,10 +26,10 @@ use Symfony\Component\Form\FormEvents;
 final class PayPalConfigurationType extends AbstractType
 {
     private const HIDDEN_FIELDS = [
-        'merchant_id',
-        'sylius_merchant_id',
-        'partner_attribution_id',
-        'use_authorize',
+        PayPalGatewayConfig::MERCHANT_ID,
+        PayPalGatewayConfig::SYLIUS_MERCHANT_ID,
+        PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
+        PayPalGatewayConfig::USE_AUTHORIZE,
     ];
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -35,31 +37,31 @@ final class PayPalConfigurationType extends AbstractType
         $originalData = [];
 
         $builder
-            ->add('client_id', TextType::class, ['label' => 'sylius_paypal.client_id', 'attr' => ['readonly' => true]])
-            ->add('client_secret', TextType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
-            ->add('merchant_id', HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
-            ->add('sylius_merchant_id', HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
-            ->add('partner_attribution_id', HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::SYLIUS_MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
             // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
-            ->add('use_authorize', HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
-            ->add('reports_sftp_username', TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
-            ->add('reports_sftp_password', TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
-            ->add('pay_later_enabled', CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
-            ->add('messaging_enabled', CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
-            ->add('google_pay_enabled', CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
-            ->add('apple_pay_enabled', CheckboxType::class, ['label' => 'sylius_paypal.apple_pay_enabled', 'required' => false])
-            ->add('trustly_enabled', CheckboxType::class, ['label' => 'sylius_paypal.trustly_enabled', 'required' => false])
+            ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
+            ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
+            ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
+            ->add(PayPalGatewayConfig::MESSAGING_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
+            ->add(PayPalGatewayConfig::GOOGLE_PAY_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
+            ->add(PayPalGatewayConfig::APPLE_PAY_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.apple_pay_enabled', 'required' => false])
+            ->add(RedirectPaymentSource::Trustly->configurationKey(), CheckboxType::class, ['label' => 'sylius_paypal.trustly_enabled', 'required' => false])
         ;
 
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData): void {
             $data = $event->getData();
             if (is_array($data)) {
                 $originalData = $data;
-                $data['pay_later_enabled'] ??= true;
-                $data['messaging_enabled'] ??= true;
-                $data['google_pay_enabled'] ??= false;
-                $data['apple_pay_enabled'] ??= false;
-                $data['trustly_enabled'] ??= false;
+                $data[PayPalGatewayConfig::PAY_LATER_ENABLED] ??= true;
+                $data[PayPalGatewayConfig::MESSAGING_ENABLED] ??= true;
+                $data[PayPalGatewayConfig::GOOGLE_PAY_ENABLED] ??= false;
+                $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
+                $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $event->setData($data);
             }
         });

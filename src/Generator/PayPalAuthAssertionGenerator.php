@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Generator;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Webmozart\Assert\Assert;
 
 final class PayPalAuthAssertionGenerator implements PayPalAuthAssertionGeneratorInterface
@@ -23,13 +24,13 @@ final class PayPalAuthAssertionGenerator implements PayPalAuthAssertionGenerator
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        Assert::keyExists($config, 'client_id');
-        Assert::keyExists($config, 'merchant_id');
+        Assert::keyExists($config, PayPalGatewayConfig::CLIENT_ID);
+        Assert::keyExists($config, PayPalGatewayConfig::MERCHANT_ID);
 
         return
             base64_encode('{"alg":"none"}') . '.' .
             base64_encode(
-                (string) json_encode(['iss' => (string) $config['client_id'], 'payer_id' => (string) $config['merchant_id']]),
+                (string) json_encode(['iss' => (string) $config[PayPalGatewayConfig::CLIENT_ID], 'payer_id' => (string) $config[PayPalGatewayConfig::MERCHANT_ID]]),
             ) . '.'
         ;
     }

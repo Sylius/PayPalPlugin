@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
@@ -75,9 +76,9 @@ final readonly class PayPalPurchaseUnitFactory implements PayPalPurchaseUnitFact
 
         $config = $gatewayConfig->getConfig();
 
-        Assert::keyExists($config, 'merchant_id');
-        Assert::keyExists($config, 'sylius_merchant_id');
+        Assert::keyExists($config, PayPalGatewayConfig::MERCHANT_ID);
+        Assert::keyExists($config, PayPalGatewayConfig::SYLIUS_MERCHANT_ID);
 
-        return (string) $config['merchant_id'];
+        return (string) $config[PayPalGatewayConfig::MERCHANT_ID];
     }
 }
