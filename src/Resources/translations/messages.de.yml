@@ -21,3 +21,4 @@ sylius:
         sftp_username: 'SFTP-Benutzername'
         share_data_consent_confirmation: "Durch Klicken auf Ja akzeptieren Sie die Zustimmung zur Datenfreigabe von PayPal."
         tender_type: 'Erstattet an das PayPal-Wallet'
+        tender_type_original_payment_method: 'Erstattet an die ursprüngliche Zahlungsmethode'
