@@ -33,6 +33,7 @@ use Sylius\Resource\ResourceActions;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -75,7 +76,7 @@ final class ShipmentShipFormComponent
     }
 
     #[LiveAction]
-    public function ship(#[LiveArg] string $redirectTo = self::REDIRECT_TO_ORDER): RedirectResponse
+    public function ship(#[LiveArg] string $redirectTo = self::REDIRECT_TO_ORDER): Response
     {
         $this->submitForm();
 
@@ -91,9 +92,10 @@ final class ShipmentShipFormComponent
         if ($event->isStopped()) {
             $this->flashHelper->addFlashFromEvent($configuration, $event);
 
-            return $this->redirect($shipment, $redirectTo);
+            return $event->getResponse() ?? $this->redirect($shipment, $redirectTo);
         }
 
+        $nestingLevel = $this->entityManager->getConnection()->getTransactionNestingLevel();
         $this->entityManager->beginTransaction();
 
         try {
@@ -105,21 +107,33 @@ final class ShipmentShipFormComponent
             $this->resourceUpdateHandler->handle($shipment, $configuration, $this->entityManager);
             $this->entityManager->commit();
         } catch (UpdateHandlingException $exception) {
-            $this->entityManager->rollback();
+            $this->rollBackTo($nestingLevel);
             $this->flashHelper->addErrorFlash($configuration, $exception->getFlash());
 
             return $this->redirect($shipment, $redirectTo);
+        } catch (\Throwable $exception) {
+            $this->rollBackTo($nestingLevel);
+
+            throw $exception;
         }
 
         $this->flashHelper->addSuccessFlash($configuration, ResourceActions::UPDATE, $shipment);
-        $this->eventDispatcher->dispatchPostEvent(ResourceActions::UPDATE, $configuration, $shipment);
+        $postEvent = $this->eventDispatcher->dispatchPostEvent(ResourceActions::UPDATE, $configuration, $shipment);
 
-        return $this->redirect($shipment, $redirectTo);
+        return $postEvent->getResponse() ?? $this->redirect($shipment, $redirectTo);
     }
 
     protected function getDataModelValue(): string
     {
         return 'norender|*';
+    }
+
+    private function rollBackTo(int $nestingLevel): void
+    {
+        $connection = $this->entityManager->getConnection();
+        while ($connection->getTransactionNestingLevel() > $nestingLevel) {
+            $connection->rollBack();
+        }
     }
 
     private function trackingData(): ?ShipmentTrackingData

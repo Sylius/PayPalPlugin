@@ -905,7 +905,9 @@
    the form in the component and applies the transition the way Sylius' ship route does, including the
    `sylius.shipment.pre_ship`/`post_ship` events. Its fields are hookables on `sylius_paypal.admin.shipment.ship_form`
    (order page) and `sylius_paypal.admin.shipment.index.ship_form` (shipment list): `tracking`, `carrier`,
-   `carrier_name_other` and `submit`.
+   `carrier_name_other` and `submit`. The carrier is saved only by that action, so an override of the two templates
+   has to keep submitting through it (the form's `data-action="live#action:prevent"` and
+   `data-live-action-param="ship"`); posting the form to Sylius' ship routes ships without saving the carrier.
 
    **Configuring the carriers.** The selector is driven by `sylius_paypal.tracking.carriers`, which defaults to a
    curated subset of the codes accepted by the [PayPal Add Tracking API](https://developer.paypal.com/docs/tracking/reference/carriers/).

@@ -15,12 +15,14 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
+use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -140,7 +142,46 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
     }
 
-    public function test_it_sends_the_tracking_when_a_shipment_with_a_carrier_is_shipped_through_the_admin_api(): void
+    public function test_it_does_not_ship_when_a_pre_ship_listener_stops_it(): void
+    {
+        $this->onPreShip(static function (ResourceControllerEvent $event): void {
+            $event->stop('sylius.resource.update_error');
+        });
+
+        $this->ship(['tracking' => 'QA-TRACK-7', 'paypal_tracking' => ['carrier' => 'DHL']]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
+    }
+
+    public function test_it_answers_with_the_response_a_pre_ship_listener_sets(): void
+    {
+        $this->onPreShip(static function (ResourceControllerEvent $event): void {
+            $event->stop('sylius.resource.update_error');
+            $event->setResponse(new RedirectResponse('/admin/custom'));
+        });
+
+        $this->ship(['tracking' => 'QA-TRACK-8', 'paypal_tracking' => ['carrier' => 'DHL']]);
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/admin/custom'));
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+    }
+
+    public function test_it_leaves_no_transaction_open_when_the_shipment_was_shipped_in_the_meantime(): void
+    {
+        $form = $this->shipForm();
+        self::getContainer()->get('sylius.command_bus')->dispatch(new ShipShipment($this->shipment()->getId(), 'SHIPPED-ELSEWHERE'));
+
+        $form->call('ship');
+
+        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $this->client->getResponse()->getStatusCode());
+        self::assertSame(0, self::getContainer()->get('doctrine.dbal.default_connection')->getTransactionNestingLevel());
+        self::assertSame('SHIPPED-ELSEWHERE', $this->shipment()->getTracking());
+    }
+
+    public function test_it_sends_the_tracking_when_the_admin_api_ships_a_shipment_that_already_has_a_tracking_record(): void
     {
         $this->shipThroughTheAdminApi('QA-API-1');
 
@@ -177,8 +218,15 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         ;
     }
 
+    private function onPreShip(callable $listener): void
+    {
+        $this->client->disableReboot();
+        self::getContainer()->get('event_dispatcher')->addListener('sylius.shipment.pre_ship', $listener);
+    }
+
     private function shipForm(): TestLiveComponent
     {
+        $this->client->disableReboot();
         $this->client->setServerParameter('HTTP_X_REQUESTED_WITH', 'XMLHttpRequest');
 
         $request = new Request();
