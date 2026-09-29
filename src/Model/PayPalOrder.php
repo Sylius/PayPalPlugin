@@ -35,6 +35,8 @@ class PayPalOrder
 
     public const KEY_SHIPPING_PREFERENCE = 'shipping_preference';
 
+    public const KEY_ORDER_UPDATE_CALLBACK_CONFIG = 'order_update_callback_config';
+
     public const RETAIN_CONTACT_INFO = 'RETAIN_CONTACT_INFO';
 
     public const UPDATE_CONTACT_INFO = 'UPDATE_CONTACT_INFO';

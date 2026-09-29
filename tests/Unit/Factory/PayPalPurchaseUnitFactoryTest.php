@@ -116,6 +116,18 @@ final class PayPalPurchaseUnitFactoryTest extends TestCase
         self::assertSame('90.00', $purchaseUnit['items'][0]['unit_amount']['value']);
     }
 
+    public function test_it_sends_the_item_taxes_by_default(): void
+    {
+        self::assertArrayHasKey('tax', $this->factory->create($this->payment, 'REFERENCE_ID')->toArray()['items'][0]);
+    }
+
+    public function test_it_leaves_the_item_taxes_out_when_told_to(): void
+    {
+        $purchaseUnit = $this->factory->create($this->payment, 'REFERENCE_ID', withItemTaxes: false)->toArray();
+
+        self::assertArrayNotHasKey('tax', $purchaseUnit['items'][0]);
+    }
+
     public function test_it_takes_the_merchant_id_from_the_payment_method_gateway_config(): void
     {
         $purchaseUnit = $this->factory->create($this->payment, 'REFERENCE_ID')->toArray();
