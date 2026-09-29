@@ -72,7 +72,7 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
 
         try {
-            $locale = $this->localeProcessor->process($this->localeContext->getLocaleCode());
+            $locale = $this->resolveLocale();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
@@ -107,7 +107,7 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
-            $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+            $locale = $this->resolveLocale();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
@@ -145,7 +145,7 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
-            $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+            $locale = $this->resolveLocale();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -185,6 +185,15 @@ final readonly class PayPalButtonsController
         }
 
         return $components;
+    }
+
+    private function resolveLocale(): ?string
+    {
+        try {
+            return $this->localeProcessor->process($this->localeContext->getLocaleCode());
+        } catch (\RuntimeException|\UnexpectedValueException) {
+            return null;
+        }
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface

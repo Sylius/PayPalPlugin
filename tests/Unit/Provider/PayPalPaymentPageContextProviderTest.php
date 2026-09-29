@@ -54,7 +54,13 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn(self::SCRIPT_URL);
 
         $localeProcessor = $this->createStub(LocaleProcessorInterface::class);
-        $localeProcessor->method('process')->willReturnArgument(0);
+        $localeProcessor->method('process')->willReturnCallback(static function (string $locale): string {
+            if ('es_MX' === $locale) {
+                throw new \UnexpectedValueException('Locale "es_MX" is not supported by PayPal.');
+            }
+
+            return $locale;
+        });
 
         $router = $this->createStub(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(static fn (string $route): string => $route);
@@ -197,6 +203,11 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame('en', $this->provider->provide($this->payment, 'en_US')['languageCode']);
         self::assertSame('pl', $this->provider->provide($this->payment, 'pl_PL')['languageCode']);
         self::assertSame('de', $this->provider->provide($this->payment, 'de')['languageCode']);
+    }
+
+    public function test_it_provides_no_locale_when_paypal_does_not_support_it(): void
+    {
+        self::assertNull($this->provider->provide($this->payment, 'es_MX')['locale']);
     }
 
     public function test_it_provides_the_processed_locale(): void

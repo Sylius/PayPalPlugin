@@ -61,6 +61,8 @@ final class PayPalButtonsControllerTest extends TestCase
     /** @var array<int, mixed>|null */
     private ?array $capturedInstanceConfigArgs = null;
 
+    private string $currentLocale = 'pl_PL';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -78,8 +80,14 @@ final class PayPalButtonsControllerTest extends TestCase
 
         $this->channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($this->channel);
-        $this->localeContext->method('getLocaleCode')->willReturn('pl_PL');
-        $this->localeProcessor->method('process')->willReturnArgument(0);
+        $this->localeContext->method('getLocaleCode')->willReturnCallback(fn (): string => $this->currentLocale);
+        $this->localeProcessor->method('process')->willReturnCallback(static function (string $locale): string {
+            if ('es_MX' === $locale) {
+                throw new \UnexpectedValueException('Locale "es_MX" is not supported by PayPal.');
+            }
+
+            return $locale;
+        });
         $this->availableCountriesProvider->method('provide')->willReturn([]);
         $this->router->method('generate')->willReturn('/some-url');
         $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn('https://www.paypal.com/web-sdk/v6/core');
@@ -191,7 +199,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->channel, 'cart', ['paypal-payments', 'venmo-payments'], '')
+            ->with($this->channel, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -210,7 +218,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->channel, 'cart', ['paypal-payments'], '')
+            ->with($this->channel, 'cart', ['paypal-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -228,12 +236,12 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_passes_the_order_locale_to_the_web_sdk_instance_config_on_the_cart_page(): void
+    public function it_passes_the_current_locale_rather_than_the_order_one_to_the_web_sdk_instance_config_on_the_cart_page(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('PLN');
         $order->method('getTotal')->willReturn(3050);
-        $order->method('getLocaleCode')->willReturn('pl_PL');
+        $order->method('getLocaleCode')->willReturn('en_US');
         $this->orderRepository->method('find')->willReturn($order);
         $this->twig->method('render')->willReturn('');
 
@@ -244,12 +252,12 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_passes_the_order_locale_to_the_web_sdk_instance_config_on_the_payment_page(): void
+    public function it_passes_the_current_locale_rather_than_the_order_one_to_the_web_sdk_instance_config_on_the_payment_page(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('PLN');
         $order->method('getTotal')->willReturn(3000);
-        $order->method('getLocaleCode')->willReturn('pl_PL');
+        $order->method('getLocaleCode')->willReturn('en_US');
         $this->orderRepository->method('find')->willReturn($order);
         $this->twig->method('render')->willReturn('');
 
@@ -257,6 +265,28 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertSame('checkout', $this->capturedInstanceConfigArgs[1]);
         self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
+    public function it_renders_the_buttons_without_a_locale_when_paypal_does_not_support_the_current_one(): void
+    {
+        $this->currentLocale = 'es_MX';
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('MXN');
+        $order->method('getTotal')->willReturn(3000);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->twig->method('render')->willReturn('<buttons>');
+
+        $responses = [
+            $this->controller->renderProductPageButtonsAction(Request::create('/')),
+            $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1])),
+            $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1])),
+        ];
+
+        foreach ($responses as $response) {
+            self::assertSame('<buttons>', $response->getContent());
+        }
+        self::assertNull($this->capturedInstanceConfigArgs[3]);
     }
 
     #[Test]
