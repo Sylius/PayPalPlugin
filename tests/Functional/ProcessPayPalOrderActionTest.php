@@ -163,6 +163,23 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertNotSame($originalPaymentId, $payment->getId());
     }
 
+    public function test_it_tells_the_buyer_why_the_payment_was_not_taken(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails();
+        $orderDetails['purchase_units'][0]['amount']['value'] = '999.00';
+        $this->mockOrderDetailsApi($orderDetails);
+
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($order->getId());
+
+        $flashes = $this->client->getRequest()->getSession()->getBag('flashes')->peekAll();
+        self::assertSame(['sylius_paypal.order_total_changed'], $flashes['error'] ?? []);
+    }
+
     public function test_it_refuses_the_request_when_the_pay_pal_order_id_does_not_match_the_payment(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);

@@ -43,6 +43,7 @@ use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class ProcessPayPalOrderAction
@@ -226,6 +227,10 @@ final readonly class ProcessPayPalOrderAction
             }
         } catch (PaymentAmountMismatchException) {
             $this->abandonPayment($order, $payment);
+
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.order_total_changed');
 
             return $this->returnToCheckout($orderId, $payPalOrderId, $payment);
         }
