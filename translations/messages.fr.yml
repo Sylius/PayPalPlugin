@@ -24,3 +24,4 @@ sylius_paypal:
     sftp_username: 'Identifiant SFTP'
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
     tender_type: 'Remboursé sur le porte-monnaie PayPal'
+    tender_type_original_payment_method: "Remboursé sur le moyen de paiement d'origine"

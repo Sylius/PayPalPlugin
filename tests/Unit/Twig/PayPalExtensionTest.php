@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Twig;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -221,5 +222,26 @@ final class PayPalExtensionTest extends TestCase
         $payment->method('getDetails')->willReturn(['payment_source' => 'paypal']);
 
         self::assertFalse($this->extension->isAwaitingPayerAction($payment));
+    }
+
+    #[Test]
+    #[DataProvider('refundedPaymentDetails')]
+    public function it_tells_a_refund_went_back_to_the_paypal_wallet_only_for_a_paypal_payment(array $details, bool $toWallet): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn($details);
+
+        self::assertSame($toWallet, $this->extension->isRefundedToPayPalWallet($payment));
+    }
+
+    /** @return iterable<array{array<string, string>, bool}> */
+    public static function refundedPaymentDetails(): iterable
+    {
+        yield 'paypal' => [['payment_source' => 'paypal'], true];
+        yield 'no payment source' => [[], true];
+        yield 'trustly' => [['payment_source' => 'trustly'], false];
+        yield 'card' => [['payment_source' => 'card'], false];
+        yield 'google pay' => [['payment_source' => 'google_pay'], false];
+        yield 'venmo' => [['payment_source' => 'venmo'], false];
     }
 }

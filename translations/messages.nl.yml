@@ -24,3 +24,4 @@ sylius_paypal:
     sftp_username: 'SFTP gebruikersnaam'
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     tender_type: 'Teruggestort in de PayPal portemonnee'
+    tender_type_original_payment_method: 'Teruggestort via de oorspronkelijke betaalmethode'
