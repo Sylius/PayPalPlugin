@@ -129,6 +129,11 @@ final readonly class PayPalGatewayConfig
         return $this->flag(self::MESSAGING_ENABLED, true);
     }
 
+    public function isVenmoEnabled(): bool
+    {
+        return $this->flag(self::VENMO_ENABLED, false);
+    }
+
     public function isGooglePayEnabled(): bool
     {
         return $this->flag(self::GOOGLE_PAY_ENABLED, false);

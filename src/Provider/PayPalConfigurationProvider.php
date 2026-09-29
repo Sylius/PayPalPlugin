@@ -52,7 +52,7 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
 
     public function isVenmoEnabled(ChannelInterface $channel): bool
     {
-        return (bool) ($this->getPayPalPaymentMethodConfig($channel)[PayPalGatewayConfig::VENMO_ENABLED] ?? false);
+        return $this->getPayPalPaymentMethodConfig($channel)->isVenmoEnabled();
     }
 
     public function isGooglePayEnabled(ChannelInterface $channel): bool

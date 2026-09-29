@@ -98,6 +98,7 @@ final class PayPalGatewayConfigTest extends TestCase
     {
         $config = PayPalGatewayConfig::fromArray([]);
 
+        self::assertFalse($config->isVenmoEnabled());
         self::assertFalse($config->isGooglePayEnabled());
         self::assertFalse($config->isApplePayEnabled());
         self::assertFalse($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
@@ -108,6 +109,7 @@ final class PayPalGatewayConfigTest extends TestCase
         $config = PayPalGatewayConfig::fromArray([
             'pay_later_enabled' => false,
             'messaging_enabled' => false,
+            'venmo_enabled' => true,
             'google_pay_enabled' => true,
             'apple_pay_enabled' => true,
             'trustly_enabled' => true,
@@ -115,6 +117,7 @@ final class PayPalGatewayConfigTest extends TestCase
 
         self::assertFalse($config->isPayLaterEnabled());
         self::assertFalse($config->isMessagingEnabled());
+        self::assertTrue($config->isVenmoEnabled());
         self::assertTrue($config->isGooglePayEnabled());
         self::assertTrue($config->isApplePayEnabled());
         self::assertTrue($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
