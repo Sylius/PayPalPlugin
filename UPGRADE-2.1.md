@@ -443,13 +443,13 @@
    `@SyliusShop/shared/layout/base.html.twig` and renders two funding sources — PayPal and card — through
    PayPal's Web SDK v6. **This was the last JS SDK v5 in the package; no template loads it any more.**
 
-   The two methods are hookables on `sylius_paypal.shop.pay_with_paypal.content`, so a shop can reorder
-   them, remove one, or add its own without overriding the page:
+   The two methods are hookables on `sylius_paypal.shop.pay_with_paypal.content.methods`, so a shop can
+   reorder them, remove one, or add its own without overriding the page:
 
    ```yaml
    sylius_twig_hooks:
        hooks:
-           'sylius_paypal.shop.pay_with_paypal.content':
+           'sylius_paypal.shop.pay_with_paypal.content.methods':
                card:
                    enabled: false
    ```
@@ -861,9 +861,12 @@
                    enabled: false
    ```
 
-   That hook is new in 2.1, and its tiles are spaced a hundred apart so there is room between any two of
-   them — `flashes` 700, `paypal` 600, `paypal_messaging` 500, `google_pay` 400, `apple_pay` 300,
-   `redirect_methods` 200, `card` 100, `privacy_notice` 0. That is the ladder a tile of your own lands in.
+   That hook is new in 2.1 and split into two levels. The outer one,
+   `sylius_paypal.shop.pay_with_paypal.content`, carries `flashes` 200, `methods` 100 and `privacy_notice`
+   0. Every payment method lives one level down, on `sylius_paypal.shop.pay_with_paypal.content.methods` —
+   `paypal` 500, `paypal_messaging` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods` 100, `card`
+   0. Both ladders are spaced a hundred apart, so there is room between any two neighbours. A tile of your
+   own belongs on the inner hook; something that is not a payment method, on the outer one.
 
 1. #### PayPal Package Tracking: shipping an order now sends tracking to PayPal (server-side, opt-in per shipment).
 
@@ -982,7 +985,8 @@
    }
    ```
 
-   The tile sits at hook priority `200`, between `apple_pay` (300) and `card` (100).
+   The tile sits on `sylius_paypal.shop.pay_with_paypal.content.methods` at priority `100`, between
+   `apple_pay` (200) and `card` (0).
 
    **Settlement is asynchronous, and this is the part to read twice.** PayPal captures the order itself, on
    approval, because the order is created with
@@ -1304,4 +1308,5 @@
    the payment is failed rather than captured, for the same reason: PayPal documents the branch where that
    status is absent and not the one where it is present.
 
-   The tile sits at hook priority `300`, between `google_pay` (400) and `redirect_methods` (200).
+   The tile sits on `sylius_paypal.shop.pay_with_paypal.content.methods` at priority `200`, between
+   `google_pay` (300) and `redirect_methods` (100).
