@@ -45,11 +45,11 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
         }
 
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
         $token = $this->authorizeClientApi->authorize(
-            (string) $config[PayPalGatewayConfig::CLIENT_ID],
-            (string) $config[PayPalGatewayConfig::CLIENT_SECRET],
+            $config->clientId(),
+            $config->clientSecret(),
         );
         $payPalCredentials = new PayPalCredentials(
             $this->uuidProvider->provide(),

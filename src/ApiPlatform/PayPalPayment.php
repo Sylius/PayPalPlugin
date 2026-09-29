@@ -73,12 +73,13 @@ final class PayPalPayment
 
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
         $partnerAttributionId = null !== $this->payPalConfigurationProvider
             ? $this->payPalConfigurationProvider->getPartnerAttributionId($channel)
-            : (string) $gatewayConfig->getConfig()[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID];
+            : $config->partnerAttributionId();
 
         return [
-            'clientId' => $gatewayConfig->getConfig()[PayPalGatewayConfig::CLIENT_ID],
+            'clientId' => $config->clientId(),
             'completePayPalOrderFromPaymentPageUrl' => $this->router->generate(
                 'sylius_paypal_shop_complete_paypal_order',
                 ['token' => $order->getTokenValue()],

@@ -74,11 +74,9 @@ final readonly class PayPalPurchaseUnitFactory implements PayPalPurchaseUnitFact
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $config = $gatewayConfig->getConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+        Assert::true($config->hasSyliusMerchantId());
 
-        Assert::keyExists($config, PayPalGatewayConfig::MERCHANT_ID);
-        Assert::keyExists($config, PayPalGatewayConfig::SYLIUS_MERCHANT_ID);
-
-        return (string) $config[PayPalGatewayConfig::MERCHANT_ID];
+        return $config->merchantId();
     }
 }

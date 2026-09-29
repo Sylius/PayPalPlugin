@@ -37,12 +37,12 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
         $response = $this->client->sendRequest(
             $this->requestFactory->createRequest(
                 'GET',
-                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config[PayPalGatewayConfig::MERCHANT_ID]),
+                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, $config->merchantId()),
             ),
         );
 
