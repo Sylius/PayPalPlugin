@@ -1,0 +1,5 @@
+{% set form = hookable_metadata.context.form %}
+
+{% if form.paypal_tracking is defined and form.paypal_tracking.carrier.vars.data == constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
+    {{ form_widget(form.paypal_tracking.carrier_name_other, sylius_test_form_attribute('shipment-carrier-name-other')|sylius_merge_recursive({'attr': {'placeholder': form.paypal_tracking.carrier_name_other.vars.label|trans, 'style': 'min-width: 130px'}})) }}
+{% endif %}

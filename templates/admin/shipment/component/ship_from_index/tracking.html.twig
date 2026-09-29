@@ -1,0 +1,4 @@
+{% set form = hookable_metadata.context.form %}
+{% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
+
+{{ form_widget(form.tracking, sylius_test_form_attribute('shipment-tracking')|sylius_merge_recursive({'attr': {'placeholder': tracking_placeholder, 'style': 'min-width: max(130px, ' ~ tracking_placeholder|length ~ 'ch)'}})) }}

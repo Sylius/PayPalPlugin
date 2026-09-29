@@ -1,8 +1,10 @@
 <div class="dropdown-item">
-    {{ component('sylius_admin:shipment:ship_form', {
-        resource: data,
-        template: sylius_paypal_shipment_is_paid_with_paypal(data)
-            ? '@SyliusPayPalPlugin/admin/shipment/component/ship_from_index.html.twig'
-            : '@SyliusAdmin/shipment/component/ship.html.twig',
-    }) }}
+    {% if sylius_paypal_shipment_is_paid_with_paypal(data) %}
+        {{ component('sylius_paypal_admin:shipment:ship_form', {
+            resource: data,
+            template: '@SyliusPayPalPlugin/admin/shipment/component/ship_from_index.html.twig',
+        }) }}
+    {% else %}
+        {{ component('sylius_admin:shipment:ship_form', { resource: data, template: '@SyliusAdmin/shipment/component/ship.html.twig' }) }}
+    {% endif %}
 </div>

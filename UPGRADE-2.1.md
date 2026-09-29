@@ -900,7 +900,12 @@
    `ship_from_index.html.twig` (shipment list) reaches the fields as
    `form.paypal_tracking.carrier` and `form.paypal_tracking.carrier_name_other`. Both rules above are enforced by
    the `ShipmentTrackingCarrier` constraint (`config/validation/ShipmentTrackingData.xml`, validation group
-   `sylius`), so they are shown as error flashes and the ship transition is not applied.
+   `sylius`), so they are shown under the fields and the ship transition is not applied. For those shipments the
+   form is the `sylius_paypal_admin:shipment:ship_form` live component: Ship runs its `ship` action, which validates
+   the form in the component and applies the transition the way Sylius' ship route does, including the
+   `sylius.shipment.pre_ship`/`post_ship` events. Its fields are hookables on `sylius_paypal.admin.shipment.ship_form`
+   (order page) and `sylius_paypal.admin.shipment.index.ship_form` (shipment list): `tracking`, `carrier`,
+   `carrier_name_other` and `submit`.
 
    **Configuring the carriers.** The selector is driven by `sylius_paypal.tracking.carriers`, which defaults to a
    curated subset of the codes accepted by the [PayPal Add Tracking API](https://developer.paypal.com/docs/tracking/reference/carriers/).
@@ -956,8 +961,8 @@
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
 
-   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` takes no carrier, so it sends tracking only for a
-   shipment that already has a tracking record.
+   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` takes no carrier and does not create a tracking
+   record, so shipping through the Admin API sends no tracking to PayPal.
 
 1. #### Trustly is available on the PayPal payment page.
 

@@ -1,26 +1,22 @@
 {% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
 
-{% set tracking_placeholder = 'sylius.ui.tracking_code'|trans ~ '...' %}
-{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
-{% set paypal_tracking = form.paypal_tracking is defined ? form.paypal_tracking : null %}
-
 {% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
     <div {{ attributes }}>
-        {{ form_start(form, {'action': path('sylius_admin_shipment_ship', {id: resource.id}), 'attr': {'class': 'ui loadable form', 'novalidate': 'novalidate'}}) }}
-        <input type="hidden" name="_method" value="PUT">
-        <div class="input-group flex-nowrap">
-            {{ form_widget(form.tracking, sylius_test_form_attribute('shipment-tracking')|sylius_merge_recursive({'attr': {'placeholder': tracking_placeholder, 'style': 'min-width: max(130px, ' ~ tracking_placeholder|length ~ 'ch)'}})) }}
-            {% if paypal_tracking is not null %}
-                {{ form_widget(paypal_tracking.carrier, sylius_test_form_attribute('shipment-carrier')|sylius_merge_recursive({'attr': {'style': 'min-width: 150px', 'data-model': 'on(change)|' ~ paypal_tracking.carrier.vars.full_name}})) }}
-                {% if paypal_tracking.carrier.vars.data == other_carrier_code %}
-                    {{ form_widget(paypal_tracking.carrier_name_other, sylius_test_form_attribute('shipment-carrier-name-other')|sylius_merge_recursive({'attr': {'placeholder': paypal_tracking.carrier_name_other.vars.label|trans, 'style': 'min-width: 130px'}})) }}
-                {% endif %}
-            {% endif %}
-            <button type="submit" class="btn" {{ sylius_test_html_attribute('shipment-ship-button') }}>
-                {{ ux_icon('tabler:truck') }}
-                {{ 'sylius.ui.ship'|trans }}
-            </button>
+        {{ form_start(form, {'attr': {
+            'class': 'ui loadable form',
+            'novalidate': 'novalidate',
+            'data-action': 'live#action:prevent',
+            'data-live-action-param': 'ship',
+            'data-live-redirect-to-param': constant('Sylius\\PayPalPlugin\\PackageTracking\\Twig\\Component\\ShipmentShipFormComponent::REDIRECT_TO_INDEX'),
+        }}) }}
+        <div class="input-group flex-nowrap has-validation">
+            {% hook 'sylius_paypal.admin.shipment.index.ship_form' with { form, resource } %}
         </div>
+        {{ form_errors(form.tracking) }}
+        {% if form.paypal_tracking is defined %}
+            {{ form_errors(form.paypal_tracking.carrier) }}
+            {{ form_errors(form.paypal_tracking.carrier_name_other) }}
+        {% endif %}
         {{ form_end(form, {'render_rest': false}) }}
     </div>
 {% endif %}

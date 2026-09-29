@@ -20,13 +20,22 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
-use Symfony\Component\DomCrawler\Form;
+use Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
+use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 use Tests\Sylius\PayPalPlugin\Service\DummyAddTrackingApi;
 use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 {
+    use InteractsWithLiveComponents;
+
+    private const FORM_NAME = 'sylius_admin_shipment_ship';
+
     private const PAYPAL_ORDER_DETAILS = [
         'status' => 'COMPLETED',
         'purchase_units' => [
@@ -66,19 +75,21 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 
     public function test_it_ships_and_sends_the_tracking_to_paypal(): void
     {
-        $this->ship(['tracking' => 'QA-TRACK-1', 'carrier' => 'DHL']);
+        $this->ship(['tracking' => 'QA-TRACK-1', 'paypal_tracking' => ['carrier' => 'DHL']]);
 
         self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
         self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('QA-TRACK-1', $this->shipment()->getTracking());
         self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
         self::assertCount(1, DummyAddTrackingApi::$requests);
+        self::assertEmailCount(1);
     }
 
     public function test_it_ships_and_records_the_tracking_as_failed_when_paypal_errors(): void
     {
         DummyOrderDetailsApi::$failWith = new PayPalApiErrorException('GET v2/checkout/orders/PAYPAL_ORDER_ID', ['name' => 'RESOURCE_NOT_FOUND']);
 
-        $this->ship(['tracking' => 'QA-TRACK-2', 'carrier' => 'DHL']);
+        $this->ship(['tracking' => 'QA-TRACK-2', 'paypal_tracking' => ['carrier' => 'DHL']]);
 
         self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
         self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
@@ -88,53 +99,45 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertNotEmpty($tracking->getLastError());
     }
 
-    public function test_it_does_not_ship_and_explains_why_when_a_tracking_number_has_no_carrier(): void
+    public function test_it_does_not_ship_and_shows_the_error_at_the_carrier_when_a_tracking_number_has_no_carrier(): void
     {
         $this->ship(['tracking' => 'QA-TRACK-3']);
 
         $response = $this->client->getResponse();
-        self::assertTrue($response->isRedirect(), (string) $response->getStatusCode());
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertStringContainsString('Please select a carrier when a tracking number is provided.', (string) $response->getContent());
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
         self::assertNull($this->tracking());
-
-        $this->client->followRedirect();
-        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString(
-            'Please select a carrier when a tracking number is provided.',
-            (string) $this->client->getResponse()->getContent(),
-        );
     }
 
     public function test_it_does_not_ship_when_other_carrier_has_no_name(): void
     {
-        $this->ship(['tracking' => 'QA-TRACK-4', 'carrier' => 'OTHER']);
+        $this->ship(['tracking' => 'QA-TRACK-4', 'paypal_tracking' => ['carrier' => 'OTHER']]);
 
-        self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
+        $response = $this->client->getResponse();
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertStringContainsString('Please provide the carrier name when &quot;Other&quot; is selected.', (string) $response->getContent());
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
         self::assertNull($this->tracking());
+    }
 
-        $this->client->followRedirect();
-        self::assertStringContainsString(
-            'Please provide the carrier name when &quot;Other&quot; is selected.',
-            (string) $this->client->getResponse()->getContent(),
-        );
+    public function test_it_saves_nothing_while_the_form_only_re_renders(): void
+    {
+        $this->shipForm()->submitForm([self::FORM_NAME => ['tracking' => 'QA-TRACK-5', 'paypal_tracking' => ['carrier' => 'DHL']]]);
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->shipment()->getTracking());
+        self::assertNull($this->tracking());
     }
 
     public function test_it_ships_with_tracking_from_the_shipment_list(): void
     {
-        $this->ship(['tracking' => 'QA-TRACK-5', 'carrier' => 'DHL'], '/admin/shipments/');
-
-        self::assertStringStartsWith('/admin/shipments/', (string) $this->client->getResponse()->headers->get('Location'));
-        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
-        self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
-    }
-
-    public function test_it_sends_the_admin_back_to_the_shipment_list_when_a_carrier_is_missing_there(): void
-    {
-        $this->ship(['tracking' => 'QA-TRACK-6'], '/admin/shipments/');
+        $this->ship(['tracking' => 'QA-TRACK-6', 'paypal_tracking' => ['carrier' => 'DHL']], ShipmentShipFormComponent::REDIRECT_TO_INDEX);
 
         self::assertTrue($this->client->getResponse()->isRedirect('/admin/shipments/'));
-        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
     }
 
     public function test_it_sends_the_tracking_when_a_shipment_with_a_carrier_is_shipped_through_the_admin_api(): void
@@ -165,37 +168,42 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::getContainer()->get('sylius.command_bus')->dispatch(new ShipShipment($shipment->getId(), $trackingCode));
     }
 
-    /** @param array{tracking: string, carrier?: string} $values */
-    private function ship(array $values, ?string $page = null): void
+    /** @param array<string, mixed> $values */
+    private function ship(array $values, string $redirectTo = ShipmentShipFormComponent::REDIRECT_TO_ORDER): void
     {
-        $orderPage = $page ?? '/admin/orders/' . $this->order->getId();
-        $crawler = $this->client->request('GET', $orderPage);
-        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-
-        $form = $crawler->filter('form[action$="/ship"]')->form();
-        $prefix = $this->formName($form);
-        $form[$prefix . '[tracking]'] = $values['tracking'];
-        if (isset($values['carrier'])) {
-            $form[$prefix . '[paypal_tracking][carrier]'] = $values['carrier'];
-        }
-
-        $this->client->submit($form);
+        $this->shipForm()
+            ->submitForm([self::FORM_NAME => $values])
+            ->call('ship', ['redirectTo' => $redirectTo])
+        ;
     }
 
-    private function formName(Form $form): string
+    private function shipForm(): TestLiveComponent
     {
-        foreach (array_keys($form->all()) as $name) {
-            if (str_ends_with($name, '[tracking]')) {
-                return substr($name, 0, -strlen('[tracking]'));
-            }
-        }
+        $this->client->setServerParameter('HTTP_X_REQUESTED_WITH', 'XMLHttpRequest');
 
-        self::fail('The ship form has no tracking field.');
+        $request = new Request();
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        self::getContainer()->get('request_stack')->push($request);
+
+        $component = $this->createLiveComponent(
+            'sylius_paypal_admin:shipment:ship_form',
+            [
+                'resource' => $this->shipment(),
+                'template' => '@SyliusPayPalPlugin/admin/shipment/component/ship.html.twig',
+            ],
+            $this->client,
+        )->setRouteLocale('en_US');
+        $component->render();
+        $this->client->catchExceptions(true);
+
+        self::getContainer()->get('request_stack')->pop();
+
+        return $component;
     }
 
     private function shipment(): ShipmentInterface
     {
-        $this->getEntityManager()->clear();
+        self::getContainer()->get('doctrine.orm.entity_manager')->clear();
 
         /** @var ShipmentInterface $shipment */
         $shipment = self::getContainer()->get('sylius.repository.shipment')->find($this->order->getShipments()->first()->getId());

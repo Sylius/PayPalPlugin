@@ -12,7 +12,7 @@
                     {% if sylius_sm_can(shipment, 'sylius_shipment', 'ship') and sylius_paypal_shipment_is_paid_with_paypal(shipment) %}
                         <tr>
                             <td colspan="3">
-                                {{ component('sylius_admin:shipment:ship_form', {
+                                {{ component('sylius_paypal_admin:shipment:ship_form', {
                                     resource: shipment,
                                     template: '@SyliusPayPalPlugin/admin/shipment/component/ship.html.twig',
                                 }) }}

@@ -100,18 +100,27 @@
 
         <service id="sylius_paypal.form.extension.shipment_ship" class="Sylius\PayPalPlugin\PackageTracking\Form\Extension\ShipmentShipTypeExtension">
             <argument type="service" id="sylius_paypal.repository.shipment_tracking" />
-            <argument type="service" id="sylius_paypal.manager.shipment_tracking" />
             <argument type="service" id="sylius_paypal.provider.order_paypal_payment" />
-            <argument type="service" id="request_stack" />
 
             <tag name="form.type_extension" />
         </service>
 
-        <service id="sylius_paypal.listener.invalid_ship_form" class="Sylius\PayPalPlugin\PackageTracking\EventListener\InvalidShipFormListener">
-            <argument type="service" id="request_stack" />
+        <service id="sylius_paypal.twig.component.shipment_ship_form" class="Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent">
+            <argument type="service" id="sylius.repository.shipment" />
+            <argument type="service" id="form.factory" />
+            <argument>%sylius.model.shipment.class%</argument>
+            <argument>Sylius\Bundle\AdminBundle\Form\Type\ShipmentShipType</argument>
+            <argument type="service" id="sylius.resource_registry" />
+            <argument type="service" id="sylius.resource_controller.request_configuration_factory" />
+            <argument type="service" id="sylius.resource_controller.authorization_checker" />
+            <argument type="service" id="sylius.resource_controller.event_dispatcher" />
+            <argument type="service" id="sylius.resource_controller.resource_update_handler" />
+            <argument type="service" id="sylius.resource_controller.flash_helper" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
+            <argument type="service" id="sylius_paypal.manager.shipment_tracking" />
             <argument type="service" id="router" />
 
-            <tag name="kernel.event_listener" event="sylius.shipment.initialize_ship" />
+            <tag name="sylius.live_component.admin" key="sylius_paypal_admin:shipment:ship_form" />
         </service>
 
         <service id="sylius_paypal.twig.extension.shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\Twig\ShipmentTrackingExtension">
