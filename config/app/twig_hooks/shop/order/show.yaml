@@ -1,0 +1,5 @@
+sylius_twig_hooks:
+    hooks:
+        'sylius_shop.order.show.content':
+            form:
+                template: '@SyliusPayPalPlugin/shop/order/show/content/form.html.twig'

@@ -1,0 +1,8 @@
+{% if sylius_paypal_is_awaiting_payer_action(payment) %}
+    <div>
+        <i>{{ 'sylius_paypal.awaiting_payer_action'|trans }}</i>
+    </div>
+    <a href="{{ payment.details.payer_action_url }}" class="btn {{ button_class|default('btn-sm btn-outline-secondary') }} mt-2" {{ sylius_test_html_attribute('paypal-finish-the-payment') }}>
+        {{ 'sylius_paypal.finish_the_payment'|trans }}
+    </a>
+{% endif %}

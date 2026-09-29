@@ -1,0 +1,9 @@
+{% set payment = hookable_metadata.context.order.lastPayment(constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_PROCESSING')) %}
+
+{% if payment is not null and sylius_paypal_is_awaiting_payer_action(payment) %}
+    <div class="alert alert-info" {{ sylius_test_html_attribute('paypal-awaiting-payer-action') }}>
+        {% include '@SyliusPayPalPlugin/shop/shared/awaiting_payer_action.html.twig' with { payment, button_class: 'btn-primary' } %}
+    </div>
+{% else %}
+    {% include '@SyliusShop/order/show/content/form.html.twig' %}
+{% endif %}

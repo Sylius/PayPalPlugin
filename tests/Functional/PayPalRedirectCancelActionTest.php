@@ -109,6 +109,19 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         self::assertStringContainsString('name="sylius_checkout_select_payment"', (string) $this->client->getResponse()->getContent());
     }
 
+    public function test_it_shows_the_payer_the_way_back_to_the_bank_on_the_order_page(): void
+    {
+        $this->redirectOrder();
+
+        $this->client->request('GET', '/en_US/order/TOKEN');
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('We are waiting for your bank', $content);
+        self::assertStringContainsString('href="https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID"', $content);
+        self::assertStringNotContainsString('name="sylius_checkout_select_payment"', $content);
+    }
+
     private function newPayments(OrderInterface $order): int
     {
         return $order->getPayments()->filter(
