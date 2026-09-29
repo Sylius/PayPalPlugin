@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -109,7 +110,7 @@ final readonly class UpdatePayPalOrderAction
             $orderId,
             $payment,
             $payment->getDetails()['reference_id'],
-            $gatewayConfig->getConfig()['merchant_id'],
+            $gatewayConfig->getConfig()[PayPalGatewayConfig::MERCHANT_ID],
         );
 
         return new JsonResponse($response);

@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
@@ -106,7 +107,7 @@ final readonly class CompleteOrderAction implements ActionInterface
                 (string) $details['paypal_order_id'],
                 $payment,
                 (string) $details['reference_id'],
-                $config['merchant_id'],
+                $config[PayPalGatewayConfig::MERCHANT_ID],
             );
 
             $this->payPalPaymentUpdater->updateAmount($payment, $order->getTotal());

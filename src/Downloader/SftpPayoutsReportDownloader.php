@@ -17,6 +17,7 @@ use phpseclib3\Net\SFTP;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\Report;
 
 final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterface
@@ -31,18 +32,18 @@ final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloa
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = $gatewayConfig->getConfig();
 
-        if (!isset($config['partner_attribution_id'])) {
+        if (!isset($config[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID])) {
             throw new PayPalReportDownloadException();
         }
 
         /** @var string $partnerAttributionId */
-        $partnerAttributionId = $config['partner_attribution_id'];
+        $partnerAttributionId = $config[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID];
 
         /** @var string $reportsSftpUsername */
-        $reportsSftpUsername = $config['reports_sftp_username'];
+        $reportsSftpUsername = $config[PayPalGatewayConfig::REPORTS_SFTP_USERNAME];
 
         /** @var string $reportsSftpPassword */
-        $reportsSftpPassword = $config['reports_sftp_password'];
+        $reportsSftpPassword = $config[PayPalGatewayConfig::REPORTS_SFTP_PASSWORD];
 
         if (!$this->sftp->login($reportsSftpUsername, $reportsSftpPassword)) {
             throw new PayPalReportDownloadException();

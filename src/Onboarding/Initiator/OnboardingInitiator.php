@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Onboarding\Initiator;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\UrlUtils;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -65,7 +66,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
             return false;
         }
 
-        if (isset($gatewayConfig->getConfig()['client_id'])) {
+        if (isset($gatewayConfig->getConfig()[PayPalGatewayConfig::CLIENT_ID])) {
             return false;
         }
 
