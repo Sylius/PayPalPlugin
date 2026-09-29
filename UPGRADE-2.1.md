@@ -1310,3 +1310,45 @@
 
    The tile sits on `sylius_paypal.shop.pay_with_paypal.content.methods` at priority `200`, between
    `google_pay` (300) and `redirect_methods` (100).
+
+1. #### The PayPal gateway config is now read through `PayPalGatewayConfig`.
+
+   The payment method's gateway config was passed around as a raw `array` and indexed by string literals in
+   a dozen places, each deciding for itself what a missing key means — one asserted, one defaulted to `true`,
+   one defaulted to `false`, one used `isset()`. `Sylius\PayPalPlugin\Model\PayPalGatewayConfig` now holds
+   both the key names and the reading of them.
+
+   ```php
+   $config = PayPalGatewayConfig::fromGatewayConfig($paymentMethod->getGatewayConfig());
+
+   $config->clientId();                 // throws if the gateway does not carry one
+   $config->hasClientId();              // for telling an onboarded gateway from one that is not
+   $config->reportsSftpUsername();      // null when unset
+   $config->isApplePayEnabled();        // false unless the channel opted in
+   $config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly);
+   ```
+
+   The constants are public, so code that still needs the raw array — writing a config through `setConfig()`,
+   or building the admin form whose field names are the keys — can use `PayPalGatewayConfig::CLIENT_ID`
+   rather than `'client_id'`. There is deliberately no constant for `trustly_enabled`:
+   `RedirectPaymentSource::configurationKey()` derives it from the enum case, so a redirect method added
+   later needs no change here.
+
+   **Nothing about the provider interfaces changed.** `PayPalConfigurationProviderInterface` and
+   `PayPalFundingSourcesConfigurationProviderInterface` keep every method and every signature; they now
+   delegate to the value object instead of indexing an array. If you decorate or reimplement them, you need
+   to do nothing.
+
+   **One behaviour changed.** `CacheAuthorizeClientApi` and `SellerWebhookRegistrar` used to read the client
+   id and secret without checking they were there: a gateway missing either sent PayPal an empty string and
+   failed with an API error further down. They now fail immediately with an `InvalidArgumentException` naming
+   the missing key. A payment method that could authorise before still authorises; only the failure of one
+   that could not has moved earlier and become legible.
+
+   If your own code reads the gateway config, prefer the value object over indexing the array:
+
+   ```diff
+   -$config = $paymentMethod->getGatewayConfig()->getConfig();
+   -$merchantId = (string) $config['merchant_id'];
+   +$merchantId = PayPalGatewayConfig::fromGatewayConfig($paymentMethod->getGatewayConfig())->merchantId();
+   ```
