@@ -1,4 +1,4 @@
-const APPLE_PAY_SDK_URL = 'https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js';
+const APPLE_PAY_SDK_URL = 'https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js';
 
 export function loadApplePaySdkOnce() {
     return new Promise((resolve, reject) => {

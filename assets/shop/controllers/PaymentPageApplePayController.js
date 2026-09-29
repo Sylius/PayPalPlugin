@@ -22,10 +22,6 @@ export default class extends Controller {
     };
 
     async connect() {
-        if (!window.ApplePaySession?.supportsVersion(APPLE_PAY_VERSION) || !window.ApplePaySession.canMakePayments()) {
-            return;
-        }
-
         try {
             const [session] = await Promise.all([
                 paymentPageSession({
@@ -37,6 +33,10 @@ export default class extends Controller {
                 }),
                 loadApplePaySdkOnce(),
             ]);
+
+            if (!window.ApplePaySession?.supportsVersion(APPLE_PAY_VERSION) || !window.ApplePaySession.canMakePayments()) {
+                return;
+            }
 
             this.session = session;
             this.applePaySession = session.sdkInstance.createApplePayOneTimePaymentSession();

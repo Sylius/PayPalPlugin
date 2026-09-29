@@ -1243,14 +1243,19 @@
    is a different country, it would vary from order to order for one merchant, and it would quietly hide the
    missing configuration. A channel without it renders no tile and logs why to the browser console.
 
-   **The tile only ever appears in Safari**, on macOS 10.14.1 or iOS 12.1 and later, and only once the
-   buyer's device reports it can pay. Everywhere else the controller returns before unhiding anything, so
-   there is no empty slot and no layout shift. A channel that has not opted in renders neither the tile nor
-   the `applepay-payments` SDK component.
+   **The tile appears wherever Apple can take the payment, which is no longer only Safari.** In Safari on an
+   Apple device the buyer pays on the spot. In Chrome, Edge and Firefox — on macOS and on Windows — Apple
+   hands the payment off to a phone: the page shows a QR code, the buyer scans it with an **iPhone running
+   iOS 18 or later** and authorises there. Either way the tile stays hidden unless the browser reports it can
+   pay, so there is no empty slot and no layout shift, and a channel that has not opted in renders neither
+   the tile nor the `applepay-payments` SDK component.
 
    The button is Apple's `<apple-pay-button>` custom element, which the page loads from
-   `https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js` — a third third-party script alongside
-   PayPal's and Google's.
+   `https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js` — a third third-party script alongside
+   PayPal's and Google's. That is Apple's own auto-updating URL, and it is the build to use: the pinned
+   `/jsapi/v1/` path ships the button element but never defines `window.ApplePaySession`, so outside Safari
+   nothing can start a payment. Because the capability check now needs that script to have run, the page
+   loads it for every buyer once the channel opts in, the same way it already loads Google's.
 
    **If your shop sends a Content-Security-Policy**, allow `applepay.cdn-apple.com` in `script-src`.
    Merchant validation itself goes to PayPal, not to Apple, so `connect-src` needs nothing beyond the PayPal
