@@ -39,6 +39,19 @@ final readonly class PayPalShippingOptions
         return null;
     }
 
+    public function withSelected(string $id): self
+    {
+        $ids = array_map(static fn (PayPalShippingOption $option): string => $option->id(), $this->options);
+        if (!in_array($id, $ids, true)) {
+            return $this;
+        }
+
+        return new self(...array_map(
+            static fn (PayPalShippingOption $option): PayPalShippingOption => $option->withSelected($id === $option->id()),
+            $this->options,
+        ));
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function toArray(): array
     {

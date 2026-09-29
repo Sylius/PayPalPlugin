@@ -83,6 +83,13 @@ final readonly class PayPalOrderShippingCallbackAction
         $shippingAddress = $this->shippingAddressFactory->create($payPalShippingAddress);
         $shippingOptions = $this->shippingOptionsResolver->resolve($order, $shippingAddress);
 
+        /** @var array<string, mixed> $payPalShippingOption */
+        $payPalShippingOption = (array) ($payload['shipping_option'] ?? []);
+        $payPalShippingOptionId = (string) ($payPalShippingOption['id'] ?? '');
+        if ('' !== $payPalShippingOptionId) {
+            $shippingOptions = $shippingOptions->withSelected($payPalShippingOptionId);
+        }
+
         $selectedOption = $shippingOptions->selected();
         if (null === $selectedOption) {
             return $this->unprocessable(self::ISSUE_ADDRESS_ERROR);

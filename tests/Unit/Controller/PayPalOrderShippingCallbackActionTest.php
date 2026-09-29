@@ -140,6 +140,29 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         );
     }
 
+    public function test_it_prices_the_option_the_buyer_picked_in_the_wallet(): void
+    {
+        $picked = new PayPalShippingOption('dhl', 'DHL', 'USD', 2550, true);
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
+        $this->shippingAddressFactory->method('create')->willReturn($address = $this->createMock(AddressInterface::class));
+        $this->shippingOptionsResolver->method('resolve')->willReturn(self::twoShippingOptions());
+        $this->amountProvider->expects(self::once())->method('provide')->with($this->payment, $address, $picked)->willReturn(['value' => '132.50']);
+        $this->responseFactory->expects(self::once())->method('create')->with('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, ['value' => '132.50'], self::twoShippingOptions()->withSelected('dhl'))->willReturn([]);
+
+        ($this->action)($this->callbackRequest(['shipping_option' => ['id' => 'dhl', 'label' => 'DHL', 'type' => 'SHIPPING']]));
+    }
+
+    public function test_it_keeps_the_resolved_selection_when_the_picked_option_is_not_offered(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
+        $this->shippingAddressFactory->method('create')->willReturn($address = $this->createMock(AddressInterface::class));
+        $this->shippingOptionsResolver->method('resolve')->willReturn(self::twoShippingOptions());
+        $this->amountProvider->expects(self::once())->method('provide')->with($this->payment, $address, self::twoShippingOptions()->selected())->willReturn([]);
+        $this->responseFactory->method('create')->willReturn([]);
+
+        ($this->action)($this->callbackRequest(['shipping_option' => ['id' => 'fedex']]));
+    }
+
     public function test_it_refuses_a_country_the_channel_does_not_sell_to(): void
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['CA']);
@@ -210,6 +233,11 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
     private static function shippingOptions(): PayPalShippingOptions
     {
         return new PayPalShippingOptions(new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true));
+    }
+
+    private static function twoShippingOptions(): PayPalShippingOptions
+    {
+        return new PayPalShippingOptions(new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true), new PayPalShippingOption('dhl', 'DHL', 'USD', 2550));
     }
 
     private static function assertUnprocessableWithIssue(string $issue, Response $response): void

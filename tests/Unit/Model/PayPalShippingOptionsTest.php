@@ -72,4 +72,18 @@ final class PayPalShippingOptionsTest extends TestCase
             ['id' => 'dhl', 'amount' => ['currency_code' => 'USD', 'value' => '25.50'], 'type' => 'SHIPPING', 'label' => 'DHL', 'selected' => true],
         ], $options->toArray());
     }
+
+    public function test_it_moves_the_selection_to_the_option_with_the_given_id(): void
+    {
+        $options = new PayPalShippingOptions(new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true), new PayPalShippingOption('dhl', 'DHL', 'USD', 2550));
+
+        self::assertSame([false, true], array_column($options->withSelected('dhl')->toArray(), 'selected'));
+    }
+
+    public function test_it_keeps_the_selection_when_no_option_has_the_given_id(): void
+    {
+        $options = new PayPalShippingOptions(new PayPalShippingOption('ups', 'UPS', 'USD', 1000, true), new PayPalShippingOption('dhl', 'DHL', 'USD', 2550));
+
+        self::assertSame($options, $options->withSelected('fedex'));
+    }
 }

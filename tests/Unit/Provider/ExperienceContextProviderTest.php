@@ -57,7 +57,7 @@ final class ExperienceContextProviderTest extends TestCase
             'cancel_url' => 'https://shop.example.com/checkout/complete',
             'app_switch_preference' => ['launch_paypal_app' => true],
             'order_update_callback_config' => [
-                'callback_events' => ['SHIPPING_ADDRESS'],
+                'callback_events' => ['SHIPPING_ADDRESS', 'SHIPPING_OPTIONS'],
                 'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
             ],
         ], $experienceContext);

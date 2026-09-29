@@ -33,6 +33,8 @@ class PayPalOrder
 
     public const CALLBACK_EVENT_SHIPPING_ADDRESS = 'SHIPPING_ADDRESS';
 
+    public const CALLBACK_EVENT_SHIPPING_OPTIONS = 'SHIPPING_OPTIONS';
+
     public const KEY_SHIPPING_PREFERENCE = 'shipping_preference';
 
     public const KEY_ORDER_UPDATE_CALLBACK_CONFIG = 'order_update_callback_config';
