@@ -22,6 +22,9 @@ final class DummyOrderDetailsApi implements OrderDetailsApiInterface
     public static ?\Throwable $failWith = null;
 
     /** @var array<string, mixed>|null */
+    public static ?array $response = null;
+
+    /** @var array<string, mixed>|null */
     private ?array $nextResponse = null;
 
     /** @param array<string, mixed> $response */
@@ -36,7 +39,7 @@ final class DummyOrderDetailsApi implements OrderDetailsApiInterface
             throw self::$failWith;
         }
 
-        return $this->nextResponse ?? [
+        return $this->nextResponse ?? self::$response ?? [
             'status' => 'COMPLETED',
             'purchase_units' => [
                 [

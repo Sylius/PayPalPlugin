@@ -24,7 +24,7 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTracking;
 use Sylius\PayPalPlugin\PackageTracking\Form\Extension\ShipmentShipTypeExtension;
 use Sylius\PayPalPlugin\PackageTracking\Form\Type\ShipmentTrackingType;
-use Sylius\PayPalPlugin\PackageTracking\Manager\ShipmentTrackingManagerInterface;
+use Sylius\PayPalPlugin\PackageTracking\Model\ShipmentTrackingData;
 use Sylius\PayPalPlugin\PackageTracking\Provider\CarrierProvider;
 use Sylius\PayPalPlugin\PackageTracking\Provider\CarrierProviderInterface;
 use Sylius\PayPalPlugin\PackageTracking\Provider\OrderPayPalPaymentProviderInterface;
@@ -35,8 +35,6 @@ use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Component\Validator\Constraint;
@@ -50,18 +48,12 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
 {
     private ShipmentTrackingRepositoryInterface&MockObject $shipmentTrackingRepository;
 
-    private ShipmentTrackingManagerInterface&MockObject $shipmentTrackingManager;
-
     private OrderPayPalPaymentProviderInterface&MockObject $orderPayPalPaymentProvider;
-
-    private RequestStack $requestStack;
 
     protected function getExtensions(): array
     {
         $this->shipmentTrackingRepository = $this->createMock(ShipmentTrackingRepositoryInterface::class);
-        $this->shipmentTrackingManager = $this->createMock(ShipmentTrackingManagerInterface::class);
         $this->orderPayPalPaymentProvider = $this->createMock(OrderPayPalPaymentProviderInterface::class);
-        $this->requestStack = new RequestStack();
 
         $carrierProvider = new CarrierProvider(['FEDEX']);
 
@@ -82,9 +74,7 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
                 [
                     ShipmentShipType::class => [new ShipmentShipTypeExtension(
                         $this->shipmentTrackingRepository,
-                        $this->shipmentTrackingManager,
                         $this->orderPayPalPaymentProvider,
-                        $this->requestStack,
                     )],
                 ],
             ),
@@ -121,7 +111,7 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
     }
 
     #[Test]
-    public function it_adds_a_validation_error_instead_of_persisting_when_the_carrier_is_missing(): void
+    public function it_adds_a_validation_error_when_the_carrier_is_missing(): void
     {
         $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
 
@@ -150,37 +140,22 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
     #[Test]
     public function it_does_not_require_a_carrier_when_no_tracking_number_is_given(): void
     {
-        $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
-
         $form = $this->submit(['tracking' => '', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
 
         self::assertTrue($form->isValid());
     }
 
     #[Test]
-    public function it_persists_the_carrier_for_a_paypal_paid_order(): void
+    public function it_submits_the_chosen_carrier_with_the_tracking_number(): void
     {
-        $this->shipmentTrackingManager
-            ->expects(self::once())
-            ->method('updateCarrier')
-            ->with(self::isInstanceOf(ShipmentInterface::class), 'FEDEX', null)
-        ;
-
         $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
 
         self::assertTrue($form->isValid());
-    }
 
-    #[Test]
-    public function it_does_not_persist_anything_while_the_live_component_re_renders(): void
-    {
-        $request = Request::create('/_components/sylius_admin:shipment:ship_form');
-        $request->attributes->set('_route', 'ux_live_component');
-        $this->requestStack->push($request);
-
-        $this->shipmentTrackingManager->expects(self::never())->method('updateCarrier');
-
-        $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
+        /** @var ShipmentTrackingData $trackingData */
+        $trackingData = $form->get('paypal_tracking')->getData();
+        self::assertSame('FEDEX', $trackingData->getCarrier());
+        self::assertSame('TRACK1', $trackingData->getTrackingNumber());
     }
 
     /** @param array<string, mixed> $data */

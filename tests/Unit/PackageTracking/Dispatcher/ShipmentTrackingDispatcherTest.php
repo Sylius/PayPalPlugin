@@ -62,7 +62,7 @@ final class ShipmentTrackingDispatcherTest extends TestCase
     }
 
     #[Test]
-    public function it_defers_the_dispatch_until_the_current_bus_is_done(): void
+    public function it_does_not_defer_the_dispatch_past_its_own_error_handling(): void
     {
         $shipment = $this->createMock(ShipmentInterface::class);
         $shipment->method('getId')->willReturn(42);
@@ -71,7 +71,7 @@ final class ShipmentTrackingDispatcherTest extends TestCase
             ->expects(self::once())
             ->method('dispatch')
             ->with(self::callback(
-                fn (Envelope $envelope): bool => null !== $envelope->last(DispatchAfterCurrentBusStamp::class),
+                fn (Envelope $envelope): bool => null === $envelope->last(DispatchAfterCurrentBusStamp::class),
             ))
             ->willReturn(new Envelope(new SendShipmentTracking(42)))
         ;
