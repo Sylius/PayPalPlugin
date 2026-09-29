@@ -17,6 +17,8 @@ export default class extends Controller {
         loadingSelector: String,
         liveFormSelector: String,
         payLaterEnabled: Boolean,
+        venmoEnabled: Boolean,
+        venmoButtonSelector: String,
     };
 
     syliusOrderId = null;
@@ -99,6 +101,31 @@ export default class extends Controller {
         } catch (error) {
             console.error('Pay Later button setup error:', error);
         }
+
+        try {
+            const venmoButton = this.venmoEnabledValue ? this.findVenmoButton() : null;
+            if (!this.wiredTargets.has('venmo') && venmoButton !== null && paymentMethods.isEligible('venmo')) {
+                this.wiredTargets.add('venmo');
+                this.wireUpButton(venmoButton, this.sdkInstance.createVenmoOneTimePaymentSession(this.buildSessionOptions()), 'venmo');
+            }
+        } catch (error) {
+            console.error('Venmo button setup error:', error);
+        }
+    }
+
+    findVenmoButton() {
+        if (!this.hasVenmoButtonSelectorValue || this.venmoButtonSelectorValue === '') {
+            return null;
+        }
+
+        for (let scope = this.element.parentElement; scope !== null; scope = scope.parentElement) {
+            const button = scope.querySelector(this.venmoButtonSelectorValue);
+            if (button !== null) {
+                return button;
+            }
+        }
+
+        return null;
     }
 
     buildSessionOptions() {
@@ -109,24 +136,29 @@ export default class extends Controller {
         };
     }
 
-    wireUpButton(buttonTarget, paymentSession) {
+    wireUpButton(buttonTarget, paymentSession, paymentSource = null) {
         buttonTarget.removeAttribute('hidden');
         buttonTarget.addEventListener('click', async () => {
             try {
-                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder());
+                await paymentSession.start({ presentationMode: 'auto' }, this.createOrder(paymentSource));
             } catch (error) {
                 console.error('paymentSession.start() failed:', error);
             }
         });
     }
 
-    async createOrder() {
+    async createOrder(paymentSource = null) {
         const requestInit = { method: 'post' };
         if (this.hasAddToCartFormSelectorValue && this.addToCartFormSelectorValue !== '') {
             requestInit.body = new FormData(document.querySelector(this.addToCartFormSelectorValue));
         }
 
-        const response = await fetch(this.createOrderUrlValue, requestInit);
+        const url = new URL(this.createOrderUrlValue, window.location.origin);
+        if (paymentSource !== null) {
+            url.searchParams.set('paymentSource', paymentSource);
+        }
+
+        const response = await fetch(url, requestInit);
 
         if (response.status === 422) {
             this.validationFailed = true;

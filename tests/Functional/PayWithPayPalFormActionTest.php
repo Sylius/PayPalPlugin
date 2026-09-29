@@ -82,6 +82,24 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_renders_no_venmo_tile_until_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage();
+
+        $content = (string) $this->client->getResponse()->getContent();
+        self::assertStringNotContainsString('<venmo-button', $content);
+        self::assertStringNotContainsString('venmo-payments', $content);
+    }
+
+    public function test_it_renders_the_venmo_tile_once_the_channel_opts_in(): void
+    {
+        $this->requestPaymentPage(venmoEnabled: true);
+
+        $content = (string) $this->client->getResponse()->getContent();
+        self::assertStringContainsString('<venmo-button', $content);
+        self::assertStringContainsString('venmo-payments', $content);
+    }
+
     public function test_it_renders_no_trustly_tile_until_the_channel_opts_in(): void
     {
         $this->requestPaymentPage();
@@ -146,6 +164,7 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         bool $googlePayEnabled = false,
         bool $applePayEnabled = false,
         bool $trustlyEnabled = false,
+        bool $venmoEnabled = false,
     ): void {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
@@ -160,6 +179,10 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
 
         if ($trustlyEnabled) {
             $this->enableGatewayConfig(['trustly_enabled' => true]);
+        }
+
+        if ($venmoEnabled) {
+            $this->enableGatewayConfig(['venmo_enabled' => true]);
         }
 
         /** @var OrderInterface $order */

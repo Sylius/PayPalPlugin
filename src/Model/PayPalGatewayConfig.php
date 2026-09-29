@@ -42,6 +42,8 @@ final readonly class PayPalGatewayConfig
 
     public const MESSAGING_ENABLED = 'messaging_enabled';
 
+    public const VENMO_ENABLED = 'venmo_enabled';
+
     public const GOOGLE_PAY_ENABLED = 'google_pay_enabled';
 
     public const APPLE_PAY_ENABLED = 'apple_pay_enabled';
@@ -125,6 +127,11 @@ final readonly class PayPalGatewayConfig
     public function isMessagingEnabled(): bool
     {
         return $this->flag(self::MESSAGING_ENABLED, true);
+    }
+
+    public function isVenmoEnabled(): bool
+    {
+        return $this->flag(self::VENMO_ENABLED, false);
     }
 
     public function isGooglePayEnabled(): bool

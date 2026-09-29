@@ -10,9 +10,11 @@
         errorUrl: errorPayPalPaymentUrl,
         loadingSelector: '[data-live-name-value="sylius_shop:cart:form"] [data-loading]',
         payLaterEnabled: paylaterEnabled,
+        venmoEnabled: venmoEnabled,
+        venmoButtonSelector: '[data-sylius-paypal-venmo-button]',
     }) }}
     class="d-grid gap-2"
 >
-    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" hidden></paypal-button>
-    <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} hidden></paypal-pay-later-button>
+    <paypal-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'paypalButton') }} type="pay" class="paypal-gold" style="display: block; width: 100%" hidden></paypal-button>
+    <paypal-pay-later-button {{ stimulus_target('@sylius/paypal-plugin/paypal-web-sdk', 'payLaterButton') }} style="display: block; width: 100%" hidden></paypal-pay-later-button>
 </div>

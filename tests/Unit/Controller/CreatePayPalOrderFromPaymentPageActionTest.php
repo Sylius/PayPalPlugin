@@ -20,6 +20,7 @@ use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -28,6 +29,7 @@ use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -53,6 +55,11 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
 
     private OrderInterface&Stub $order;
 
+    private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
+
+    /** @var array<string, mixed>|null */
+    private ?array $recordedDetails = null;
+
     private CreatePayPalOrderFromPaymentPageAction $action;
 
     protected function setUp(): void
@@ -66,6 +73,8 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->orderPaymentProcessor = $this->createMock(OrderProcessorInterface::class);
         $this->objectManager = $this->createMock(ObjectManager::class);
         $this->order = $this->createStub(OrderInterface::class);
+        $this->order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
 
         $this->orderProvider->method('provideOrderById')->with(42)->willReturn($this->order);
 
@@ -77,6 +86,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
             $this->orderPaymentProcessor,
             $this->objectManager,
             $this->orderOwnershipVerifier,
+            $this->fundingSourcesConfigurationProvider,
         );
     }
 
@@ -182,6 +192,68 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         self::assertSame(['sylius_paypal.something_went_wrong'], $request->getSession()->getBag('flashes')->get('error'));
     }
 
+    public function test_it_records_paypal_as_the_payment_source_when_none_is_given(): void
+    {
+        $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        self::assertSame(Response::HTTP_OK, ($this->action)($this->request())->getStatusCode());
+        self::assertSame('paypal', $this->recordedDetails['payment_source'] ?? null);
+    }
+
+    public function test_it_records_venmo_as_the_payment_source_when_venmo_is_enabled_on_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+        $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        self::assertSame(Response::HTTP_OK, ($this->action)($this->request(['paymentSource' => 'venmo']))->getStatusCode());
+        self::assertSame('venmo', $this->recordedDetails['payment_source'] ?? null);
+    }
+
+    public function test_it_rejects_venmo_when_venmo_is_not_enabled_on_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+        $this->payments(processing: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME), cart: null);
+
+        $this->paymentStateManager->expects(self::never())->method('cancel');
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($this->request(['paymentSource' => 'venmo']))->getStatusCode());
+    }
+
+    public function test_it_rejects_venmo_without_the_funding_sources_configuration_provider(): void
+    {
+        $action = new CreatePayPalOrderFromPaymentPageAction(
+            $this->stateMachine,
+            $this->paymentStateManager,
+            $this->orderProvider,
+            $this->capturePaymentResolver,
+            $this->orderPaymentProcessor,
+            $this->objectManager,
+            $this->orderOwnershipVerifier,
+        );
+        $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $action($this->request(['paymentSource' => 'venmo']))->getStatusCode());
+    }
+
+    public function test_it_rejects_a_payment_source_the_wallet_placement_does_not_offer(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+        $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+
+        foreach (['card', 'google_pay', 'trustly', 'blik'] as $paymentSource) {
+            self::assertSame(
+                Response::HTTP_BAD_REQUEST,
+                ($this->action)($this->request(['paymentSource' => $paymentSource]))->getStatusCode(),
+                $paymentSource,
+            );
+        }
+    }
+
     private function payments(
         ?PaymentInterface $processing,
         ?PaymentInterface $cart,
@@ -219,13 +291,17 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $payment->method('getMethod')->willReturn($paymentMethod);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_CART);
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $payment->method('setDetails')->willReturnCallback(function (array $details): void {
+            $this->recordedDetails = $details;
+        });
 
         return $payment;
     }
 
-    private function request(): Request
+    /** @param array<string, string> $query */
+    private function request(array $query = []): Request
     {
-        $request = new Request([], [], ['id' => 42]);
+        $request = new Request($query, [], ['id' => 42]);
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         return $request;

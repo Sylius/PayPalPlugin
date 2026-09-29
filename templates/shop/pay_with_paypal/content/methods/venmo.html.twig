@@ -1,0 +1,24 @@
+{% set context = hookable_metadata.context %}
+
+{% if context.venmoEnabled %}
+    <div
+        {{ stimulus_controller('@sylius/paypal-plugin/paypal-payment-wallet-button', {
+            scriptUrl: context.webSdkScriptUrl,
+            instanceConfig: context.webSdkInstanceConfig,
+            currencyCode: context.currency,
+            amount: context.amount,
+            createOrderUrl: context.createPayPalOrderUrl,
+            completeOrderUrl: context.completePayPalOrderUrl,
+            cancelOrderUrl: context.cancelPayPalPaymentUrl,
+            errorUrl: context.errorPayPalPaymentUrl,
+        }) }}
+        class="mb-3"
+        hidden
+    >
+        <venmo-button
+            {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-wallet-button', 'venmoButton') }}
+            style="display: block; width: 100%"
+            hidden
+        ></venmo-button>
+    </div>
+{% endif %}

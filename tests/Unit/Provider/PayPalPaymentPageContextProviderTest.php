@@ -148,6 +148,20 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertSame('123.45', $this->provider->provide($this->payment, 'en_US')['amount']);
     }
 
+    public function test_it_provides_the_amount_without_decimals_for_a_zero_decimal_currency(): void
+    {
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
+        $order->method('getCurrencyCode')->willReturn('JPY');
+
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(123400);
+
+        self::assertSame('1234', $this->provider->provide($payment, 'en_US')['amount']);
+    }
+
     public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
     {
         $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
@@ -233,6 +247,37 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
                 'en_US',
             )
             ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, 'en_US');
+    }
+
+    public function test_it_provides_whether_venmo_is_enabled_for_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertTrue($context['venmoEnabled']);
+    }
+
+    public function test_it_provides_venmo_as_disabled_when_the_channel_does_not_allow_it(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+
+        $context = $this->provider->provide($this->payment, 'en_US');
+
+        self::assertFalse($context['venmoEnabled']);
+    }
+
+    public function test_it_adds_the_venmo_component_when_venmo_is_enabled_for_the_channel(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'venmo-payments'], 'en_US')
+            ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
         $this->provider->provide($this->payment, 'en_US');

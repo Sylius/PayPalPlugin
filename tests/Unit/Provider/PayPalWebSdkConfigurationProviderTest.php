@@ -46,7 +46,7 @@ final class PayPalWebSdkConfigurationProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_builds_the_instance_config_for_the_given_channel_and_page_type(): void
+    public function it_only_includes_paypal_payments_by_default(): void
     {
         $channel = $this->createMock(ChannelInterface::class);
         $this->payPalConfigurationProvider->method('getClientId')->with($channel)->willReturn('CLIENT_ID');

@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Provider;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -28,6 +29,8 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
     public const GOOGLE_PAY_COMPONENT = 'googlepay-payments';
 
     public const APPLE_PAY_COMPONENT = 'applepay-payments';
+
+    public const VENMO_COMPONENT = 'venmo-payments';
 
     public function __construct(
         private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
@@ -48,7 +51,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         $processedLocale = $this->localeProcessor->process($locale);
 
         return [
-            'amount' => number_format($payment->getAmount() / 100, 2, '.', ''),
+            'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),
             'applePayEnabled' => $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
             'billingAddress' => $order->getBillingAddress(),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_checkout_payment'),
@@ -70,6 +73,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'payment' => $payment,
             'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
             'redirectPaymentSources' => $this->redirectPaymentSources($payment),
+            'venmoEnabled' => $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
@@ -108,6 +112,10 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
         if ($this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel)) {
             $components[] = self::APPLE_PAY_COMPONENT;
+        }
+
+        if ($this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel)) {
+            $components[] = self::VENMO_COMPONENT;
         }
 
         return $components;

@@ -864,8 +864,8 @@
    That hook is new in 2.1 and split into two levels. The outer one,
    `sylius_paypal.shop.pay_with_paypal.content`, carries `flashes` 200, `methods` 100 and `privacy_notice`
    0. Every payment method lives one level down, on `sylius_paypal.shop.pay_with_paypal.content.methods` —
-   `paypal` 500, `paypal_messaging` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods` 100, `card`
-   0. Both ladders are spaced a hundred apart, so there is room between any two neighbours. A tile of your
+   `paypal` 600, `paypal_messaging` 500, `venmo` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods`
+   100, `card` 0. Both ladders are spaced a hundred apart, so there is room between any two neighbours. A tile of your
    own belongs on the inner hook; something that is not a payment method, on the outer one.
 
 1. #### PayPal Package Tracking: shipping an order now sends tracking to PayPal (server-side, opt-in per shipment).
@@ -1352,3 +1352,28 @@
    -$merchantId = (string) $config['merchant_id'];
    +$merchantId = PayPalGatewayConfig::fromGatewayConfig($paymentMethod->getGatewayConfig())->merchantId();
    ```
+1. #### Venmo is available on all four wallet-button placements.
+
+   A `<venmo-button>` on the product page, the cart page, the checkout payment step and
+   `/pay-with-paypal/{orderToken}/{paymentId}`. One new, **opt-in** admin toggle on the PayPal payment method's
+   gateway config controls it:
+
+   - `venmo_enabled` — defaults to `false`, including for existing payment methods.
+
+   Venmo reuses the `paypal-web-sdk` and `paypal-payment-wallet-button` controllers, so there is nothing new to
+   register in `controllers.json`. On the product, cart and checkout placements the button is rendered by its own
+   `paypal_venmo` hook, below `paypal_messaging`, as `<venmo-button data-sylius-paypal-venmo-button>`; the
+   placement's `paypal-web-sdk` controller finds it through its `venmoButtonSelector` value, so an override has to
+   keep that attribute and the button inside the same hook container. On the payment page the tile sits on
+   `sylius_paypal.shop.pay_with_paypal.content.methods` at priority `400`, between `paypal_messaging` (500) and
+   `google_pay` (300).
+
+   `PayPalFundingSourcesConfigurationProviderInterface` gained `isVenmoEnabled(ChannelInterface): bool`.
+   If you implement that interface yourself rather than decorating
+   `sylius_paypal.provider.paypal_configuration`, add the method.
+
+   Orders created for Venmo carry `payment_source.venmo`. `CreatePayPalOrderFromCartAction` and
+   `CreatePayPalOrderFromPaymentPageAction` read the `paymentSource` query parameter and accept `paypal` (the
+   default) and `venmo` while it is enabled on the order's channel; anything else answers `400`. Both gained a
+   trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
+   argument; not passing it is deprecated, and without it `venmo` is refused.
