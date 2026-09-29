@@ -1113,6 +1113,10 @@
    - The thank-you page hides its "Change payment method" button, and the plugin's different-amount notice
      is suppressed, for such a payment. A new notice on the order page says the transfer is on its way and
      offers the link back to the bank.
+   - `/order/{token}` shows that notice instead of the payment method form: the plugin overrides the `form`
+     hookable of `sylius_shop.order.show.content` with
+     `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`, which renders the notice through the new
+     `sylius_shop.order.show.content.paypal_awaiting_payer_action` hook and the form otherwise.
 
    `sylius_paypal_shop_cancel_payment` and `sylius_paypal_shop_cancel_last_payment` are deliberately **not**
    guarded: they are the buyer's deliberate way out of an attempt they abandoned at the bank.
