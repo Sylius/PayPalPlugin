@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -53,8 +54,7 @@ final class PayPalExtensionTest extends TestCase
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
-            localeContext: $this->localeContext,
-            localeProcessor: $this->localeProcessor,
+            currentLocaleProvider: new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
         );
     }
 

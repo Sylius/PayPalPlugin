@@ -24,6 +24,7 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
@@ -110,6 +111,7 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->localeProcessor,
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
         );
     }
 

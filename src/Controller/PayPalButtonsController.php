@@ -21,6 +21,8 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
@@ -45,6 +47,7 @@ final readonly class PayPalButtonsController
         private LocaleProcessorInterface $localeProcessor,
         private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -61,6 +64,15 @@ final readonly class PayPalButtonsController
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalWebSdkConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->currentLocaleProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                CurrentPayPalLocaleProviderInterface::class,
                 self::class,
             );
         }
@@ -189,11 +201,7 @@ final readonly class PayPalButtonsController
 
     private function resolveLocale(): ?string
     {
-        try {
-            return $this->localeProcessor->process($this->localeContext->getLocaleCode());
-        } catch (\RuntimeException|\UnexpectedValueException) {
-            return null;
-        }
+        return ($this->currentLocaleProvider ?? new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor))->provide();
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface
