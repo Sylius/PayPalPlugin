@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -59,6 +59,9 @@ final class PayPalGatewayConfigTest extends TestCase
 
         self::assertFalse(PayPalGatewayConfig::fromArray([])->hasPartnerAttributionId());
         self::assertTrue(PayPalGatewayConfig::fromArray(['partner_attribution_id' => 'BN'])->hasPartnerAttributionId());
+
+        self::assertFalse(PayPalGatewayConfig::fromArray([])->hasSyliusMerchantId());
+        self::assertTrue(PayPalGatewayConfig::fromArray(['sylius_merchant_id' => 'ID'])->hasSyliusMerchantId());
     }
 
     public function test_it_reads_the_optional_values_as_null_when_they_are_not_set(): void

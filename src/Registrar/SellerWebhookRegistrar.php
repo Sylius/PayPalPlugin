@@ -41,9 +41,9 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
     public function register(PaymentMethodInterface $paymentMethod): void
     {
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
-        $token = $this->authorizeClientApi->authorize((string) $config[PayPalGatewayConfig::CLIENT_ID], (string) $config[PayPalGatewayConfig::CLIENT_SECRET]);
+        $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret());
         $webhookUrl = $this->webhookUrlProvider->provide();
 
         try {

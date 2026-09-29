@@ -66,7 +66,7 @@ final class OnboardingInitiator implements OnboardingInitiatorInterface
             return false;
         }
 
-        if (isset($gatewayConfig->getConfig()[PayPalGatewayConfig::CLIENT_ID])) {
+        if (PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->hasClientId()) {
             return false;
         }
 

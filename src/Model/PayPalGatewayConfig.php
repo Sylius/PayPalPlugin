@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class PayPalGatewayConfig
@@ -85,6 +85,11 @@ final readonly class PayPalGatewayConfig
     public function syliusMerchantId(): string
     {
         return $this->required(self::SYLIUS_MERCHANT_ID);
+    }
+
+    public function hasSyliusMerchantId(): bool
+    {
+        return isset($this->config[self::SYLIUS_MERCHANT_ID]);
     }
 
     public function partnerAttributionId(): string

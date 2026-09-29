@@ -30,20 +30,15 @@ final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloa
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
-        if (!isset($config[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID])) {
+        if (!$config->hasPartnerAttributionId()) {
             throw new PayPalReportDownloadException();
         }
 
-        /** @var string $partnerAttributionId */
-        $partnerAttributionId = $config[PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID];
-
-        /** @var string $reportsSftpUsername */
-        $reportsSftpUsername = $config[PayPalGatewayConfig::REPORTS_SFTP_USERNAME];
-
-        /** @var string $reportsSftpPassword */
-        $reportsSftpPassword = $config[PayPalGatewayConfig::REPORTS_SFTP_PASSWORD];
+        $partnerAttributionId = $config->partnerAttributionId();
+        $reportsSftpUsername = (string) $config->reportsSftpUsername();
+        $reportsSftpPassword = (string) $config->reportsSftpPassword();
 
         if (!$this->sftp->login($reportsSftpUsername, $reportsSftpPassword)) {
             throw new PayPalReportDownloadException();

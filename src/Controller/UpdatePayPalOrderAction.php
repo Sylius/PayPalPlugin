@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
-use Payum\Core\Model\GatewayConfigInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -110,7 +110,7 @@ final readonly class UpdatePayPalOrderAction
             $orderId,
             $payment,
             $payment->getDetails()['reference_id'],
-            $gatewayConfig->getConfig()[PayPalGatewayConfig::MERCHANT_ID],
+            PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
         );
 
         return new JsonResponse($response);

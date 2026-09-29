@@ -15,8 +15,8 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Model\GatewayConfigInterface;
 use Psr\Log\LoggerInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -100,14 +100,14 @@ final readonly class CompleteOrderAction implements ActionInterface
         if ($payment->getAmount() !== $order->getTotal()) {
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $paymentMethod->getGatewayConfig();
-            $config = $gatewayConfig->getConfig();
+            $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
             $this->updateOrderApi->update(
                 $token,
                 (string) $details['paypal_order_id'],
                 $payment,
                 (string) $details['reference_id'],
-                $config[PayPalGatewayConfig::MERCHANT_ID],
+                $config->merchantId(),
             );
 
             $this->payPalPaymentUpdater->updateAmount($payment, $order->getTotal());
