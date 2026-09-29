@@ -72,6 +72,31 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_fails_the_attempt_the_bank_refused(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->cancel(self::CANCEL_NONCE, '?errorcode=processing_error');
+        $reloaded = $this->reloadOrder($order);
+
+        self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_FAILED));
+        self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
+        self::assertSame(1, $this->newPayments($reloaded));
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_cancels_the_attempt_the_payer_cancelled_at_the_bank(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->cancel(self::CANCEL_NONCE, '?errorcode=payment_error');
+        $reloaded = $this->reloadOrder($order);
+
+        self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
+        self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_FAILED));
+        self::assertSame(['sylius_paypal.payment_cancelled'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
     public function test_it_replaces_a_cancelled_attempt_with_exactly_one_new_payment(): void
     {
         $order = $this->redirectOrder();
@@ -96,9 +121,9 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         return (string) $this->client->getResponse()->headers->get('Location');
     }
 
-    private function cancel(string $nonce): void
+    private function cancel(string $nonce, string $query = ''): void
     {
-        $this->client->request('GET', sprintf('/en_US/paypal/redirect-cancel/TOKEN/%s', $nonce));
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-cancel/TOKEN/%s%s', $nonce, $query));
     }
 
     private function redirectOrder(): OrderInterface

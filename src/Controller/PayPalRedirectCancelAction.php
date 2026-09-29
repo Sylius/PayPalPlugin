@@ -32,6 +32,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalRedirectCancelAction
 {
+    private const BUYER_CANCELLATION_ERROR_CODE = 'payment_error';
+
     public function __construct(
         private OrderProviderInterface $orderProvider,
         private PaymentSettlementProcessorInterface $paymentSettlementProcessor,
@@ -73,21 +75,33 @@ final readonly class PayPalRedirectCancelAction
             return new RedirectResponse($this->payPalPageUrl($order));
         }
 
-        if ($this->cancel($payment, $order)) {
+        if ($this->isRefusal((string) $request->query->get('errorcode', ''))) {
+            if ($this->transition($payment, $order, PaymentTransitions::TRANSITION_FAIL)) {
+                $this->addFlash('error', 'sylius_paypal.something_went_wrong');
+            }
+
+            return new RedirectResponse($this->payPalPageUrl($order));
+        }
+
+        if ($this->transition($payment, $order, PaymentTransitions::TRANSITION_CANCEL)) {
             $this->addFlash('info', 'sylius_paypal.payment_cancelled');
         }
 
         return new RedirectResponse($this->payPalPageUrl($order));
     }
 
-    private function cancel(PaymentInterface $payment, OrderInterface $order): bool
+    private function isRefusal(string $errorCode): bool
     {
-        if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)) {
+        return '' !== $errorCode && self::BUYER_CANCELLATION_ERROR_CODE !== $errorCode;
+    }
+
+    private function transition(PaymentInterface $payment, OrderInterface $order, string $transition): bool
+    {
+        if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
             return false;
         }
 
-        $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
-
+        $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
         $this->orderPaymentProcessor->process($order);
         $this->objectManager->flush();
 

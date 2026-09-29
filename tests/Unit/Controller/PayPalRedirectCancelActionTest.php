@@ -98,7 +98,9 @@ final class PayPalRedirectCancelActionTest extends TestCase
     {
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
-        $this->order->method('getLastPayment')->willReturn($payment);
+        $this->order->method('getLastPayment')->willReturnCallback(
+            static fn (?string $state = null): ?PaymentInterface => PaymentInterface::STATE_PROCESSING === $state ? $payment : null,
+        );
         $this->stateMachine->method('can')->willReturn(true);
 
         $this->stateMachine
@@ -112,6 +114,29 @@ final class PayPalRedirectCancelActionTest extends TestCase
         ($this->action)($this->request());
 
         self::assertSame(['sylius_paypal.payment_cancelled'], $this->flashBag->peek('info'));
+    }
+
+    public function test_it_fails_the_attempt_when_paypal_reports_the_bank_refused_it(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->order->method('getLastPayment')->willReturnCallback(
+            static fn (?string $state = null): ?PaymentInterface => PaymentInterface::STATE_PROCESSING === $state ? $payment : null,
+        );
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $this->stateMachine
+            ->expects(self::once())
+            ->method('apply')
+            ->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL)
+        ;
+
+        $request = $this->request();
+        $request->query->set('errorcode', 'processing_error');
+        ($this->action)($request);
+
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->flashBag->peek('error'));
+        self::assertSame([], $this->flashBag->peek('info'));
     }
 
     public function test_it_asks_paypal_before_cancelling_and_keeps_a_payment_that_actually_went_through(): void
