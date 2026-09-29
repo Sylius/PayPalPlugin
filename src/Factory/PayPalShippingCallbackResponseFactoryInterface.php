@@ -19,12 +19,14 @@ interface PayPalShippingCallbackResponseFactoryInterface
 {
     /**
      * @param array<string, mixed> $purchaseUnit
+     * @param array<string, mixed> $amount
      *
      * @return array<string, mixed>
      */
     public function create(
         string $payPalOrderId,
         array $purchaseUnit,
+        array $amount,
         PayPalShippingOptions $shippingOptions,
     ): array;
 }

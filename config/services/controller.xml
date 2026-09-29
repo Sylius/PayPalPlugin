@@ -178,6 +178,7 @@
             <argument type="service" id="sylius_paypal.factory.paypal_shipping_address" />
             <argument type="service" id="sylius_paypal.resolver.paypal_shipping_options" />
             <argument type="service" id="sylius_paypal.factory.paypal_shipping_callback_response" />
+            <argument type="service" id="sylius_paypal.provider.paypal_shipping_callback_amount" />
         </service>
 
         <service id="sylius_paypal.controller.complete_paypal_order_from_payment_page" class="Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction">

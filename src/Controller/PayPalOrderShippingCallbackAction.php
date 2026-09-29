@@ -15,11 +15,13 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,6 +41,7 @@ final readonly class PayPalOrderShippingCallbackAction
         private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
         private PayPalShippingOptionsResolverInterface $shippingOptionsResolver,
         private PayPalShippingCallbackResponseFactoryInterface $responseFactory,
+        private PayPalShippingCallbackAmountProviderInterface $amountProvider,
     ) {
     }
 
@@ -59,8 +62,10 @@ final readonly class PayPalOrderShippingCallbackAction
         /** @var array<int, mixed> $purchaseUnits */
         $purchaseUnits = (array) ($payload['purchase_units'] ?? []);
 
-        $order = $this->getOrder($payPalOrderId);
-        if (null === $order) {
+        $payment = $this->getPayment($payPalOrderId);
+        /** @var OrderInterface|null $order */
+        $order = $payment?->getOrder();
+        if (null === $payment || null === $order) {
             return $this->unprocessable(self::ISSUE_ADDRESS_ERROR);
         }
 
@@ -75,33 +80,32 @@ final readonly class PayPalOrderShippingCallbackAction
             return $this->unprocessable(self::ISSUE_COUNTRY_ERROR);
         }
 
-        $shippingOptions = $this->shippingOptionsResolver->resolve(
-            $order,
-            $this->shippingAddressFactory->create($payPalShippingAddress),
-        );
+        $shippingAddress = $this->shippingAddressFactory->create($payPalShippingAddress);
+        $shippingOptions = $this->shippingOptionsResolver->resolve($order, $shippingAddress);
 
-        if ($shippingOptions->isEmpty()) {
+        $selectedOption = $shippingOptions->selected();
+        if (null === $selectedOption) {
             return $this->unprocessable(self::ISSUE_ADDRESS_ERROR);
         }
 
         /** @var array<string, mixed> $purchaseUnit */
         $purchaseUnit = (array) ($purchaseUnits[0] ?? []);
 
-        return new JsonResponse($this->responseFactory->create($payPalOrderId, $purchaseUnit, $shippingOptions));
+        return new JsonResponse($this->responseFactory->create(
+            $payPalOrderId,
+            $purchaseUnit,
+            $this->amountProvider->provide($payment, $shippingAddress, $selectedOption),
+            $shippingOptions,
+        ));
     }
 
-    private function getOrder(string $payPalOrderId): ?OrderInterface
+    private function getPayment(string $payPalOrderId): ?PaymentInterface
     {
         try {
-            $payment = $this->paypalPaymentQuery->getForUpdateByOrderId($payPalOrderId);
+            return $this->paypalPaymentQuery->getForUpdateByOrderId($payPalOrderId);
         } catch (PaymentNotFoundException) {
             return null;
         }
-
-        /** @var OrderInterface|null $order */
-        $order = $payment?->getOrder();
-
-        return $order;
     }
 
     private function unprocessable(string $issue): JsonResponse

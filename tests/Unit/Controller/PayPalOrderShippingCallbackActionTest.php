@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -66,7 +67,11 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
 
     private PayPalShippingCallbackResponseFactoryInterface&MockObject $responseFactory;
 
+    private PayPalShippingCallbackAmountProviderInterface&MockObject $amountProvider;
+
     private OrderInterface&MockObject $order;
+
+    private PaymentInterface&MockObject $payment;
 
     private PayPalOrderShippingCallbackAction $action;
 
@@ -80,15 +85,16 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         $this->shippingAddressFactory = $this->createMock(PayPalShippingAddressFactoryInterface::class);
         $this->shippingOptionsResolver = $this->createMock(PayPalShippingOptionsResolverInterface::class);
         $this->responseFactory = $this->createMock(PayPalShippingCallbackResponseFactoryInterface::class);
+        $this->amountProvider = $this->createMock(PayPalShippingCallbackAmountProviderInterface::class);
 
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
 
-        $payment = $this->createMock(PaymentInterface::class);
-        $payment->method('getOrder')->willReturn($this->order);
+        $this->payment = $this->createMock(PaymentInterface::class);
+        $this->payment->method('getOrder')->willReturn($this->order);
         $this->paypalPaymentQuery
             ->method('getForUpdateByOrderId')
-            ->willReturnCallback(fn (string $id): ?PaymentInterface => 'PAYPAL_ORDER_ID' === $id ? $payment : null);
+            ->willReturnCallback(fn (string $id): ?PaymentInterface => 'PAYPAL_ORDER_ID' === $id ? $this->payment : null);
 
         $this->action = new PayPalOrderShippingCallbackAction(
             $this->signatureVerifier,
@@ -97,10 +103,11 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
+            $this->amountProvider,
         );
     }
 
-    public function test_it_answers_with_the_response_its_factory_built_for_the_resolved_options(): void
+    public function test_it_answers_with_the_response_its_factory_built_for_the_resolved_options_and_the_recalculated_amount(): void
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US', 'CA']);
         $this->shippingAddressFactory
@@ -113,10 +120,15 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             ->method('resolve')
             ->with($this->order, $address)
             ->willReturn(self::shippingOptions());
+        $this->amountProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($this->payment, $address, self::shippingOptions()->selected())
+            ->willReturn(['value' => '107.00']);
         $this->responseFactory
             ->expects(self::once())
             ->method('create')
-            ->with('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, self::shippingOptions())
+            ->with('PAYPAL_ORDER_ID', self::PURCHASE_UNIT, ['value' => '107.00'], self::shippingOptions())
             ->willReturn(['id' => 'PAYPAL_ORDER_ID', 'purchase_units' => ['RESPONSE_UNIT']]);
 
         $response = ($this->action)($this->callbackRequest());
@@ -142,6 +154,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
     {
         $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
         $this->shippingOptionsResolver->method('resolve')->willReturn(new PayPalShippingOptions());
+        $this->amountProvider->expects(self::never())->method('provide');
 
         $response = ($this->action)($this->callbackRequest());
 
@@ -169,6 +182,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
+            $this->amountProvider,
         );
 
         self::assertUnprocessableWithIssue('ADDRESS_ERROR', ($action)($this->callbackRequest()));
@@ -223,6 +237,7 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
+            $this->amountProvider,
         );
 
         $response = ($action)($this->callbackRequest());
