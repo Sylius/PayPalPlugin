@@ -150,7 +150,9 @@
         <service
             id="sylius_paypal.provider.experience_context"
             class="Sylius\PayPalPlugin\Provider\ExperienceContextProvider"
-        />
+        >
+            <argument type="service" id="sylius_paypal.provider.current_paypal_locale" />
+        </service>
         <service id="Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface" alias="sylius_paypal.provider.experience_context" />
 
         <service
