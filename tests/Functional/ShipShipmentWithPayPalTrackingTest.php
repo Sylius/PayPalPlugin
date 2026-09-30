@@ -18,7 +18,6 @@ use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
 use Sylius\Bundle\ResourceBundle\Controller\AuthorizationCheckerInterface;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\AdminUserInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
@@ -36,31 +35,15 @@ use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 {
     use InteractsWithLiveComponents;
+    use ShipsShippablePayPalOrderTrait;
 
     private const FORM_NAME = 'sylius_admin_shipment_ship';
-
-    private const PAYPAL_ORDER_DETAILS = [
-        'status' => 'COMPLETED',
-        'purchase_units' => [
-            [
-                'items' => [['name' => 'Mug', 'quantity' => '1', 'sku' => 'MUG_SW']],
-                'payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => 'COMPLETED']]],
-            ],
-        ],
-    ];
-
-    private OrderInterface $order;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        DummyAddTrackingApi::reset();
-        DummyOrderDetailsApi::$failWith = null;
-        DummyOrderDetailsApi::$response = self::PAYPAL_ORDER_DETAILS;
-
-        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml', 'resources/shippable_paypal_order.yaml']);
-        $this->order = $fixtures['shippable_order'];
+        $fixtures = $this->loadShippablePayPalOrder();
 
         /** @var AdminUserInterface $admin */
         $admin = $fixtures['admin'];
@@ -69,9 +52,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 
     protected function tearDown(): void
     {
-        DummyAddTrackingApi::reset();
-        DummyOrderDetailsApi::$failWith = null;
-        DummyOrderDetailsApi::$response = null;
+        $this->resetPayPalDummies();
 
         parent::tearDown();
     }
@@ -195,34 +176,6 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertSame('SHIPPED-ELSEWHERE', $this->shipment()->getTracking());
     }
 
-    public function test_it_sends_the_tracking_when_the_admin_api_ships_a_shipment_that_already_has_a_tracking_record(): void
-    {
-        $this->shipThroughTheAdminApi('QA-API-1');
-
-        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
-        self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
-    }
-
-    public function test_it_does_not_let_a_paypal_error_escape_a_ship_through_the_admin_api(): void
-    {
-        DummyOrderDetailsApi::$failWith = new PayPalApiErrorException('GET v2/checkout/orders/PAYPAL_ORDER_ID', ['name' => 'RESOURCE_NOT_FOUND']);
-
-        $this->shipThroughTheAdminApi('QA-API-2');
-
-        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
-        $tracking = $this->tracking();
-        self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking?->getState());
-        self::assertSame(1, $tracking->getAttempts());
-    }
-
-    private function shipThroughTheAdminApi(string $trackingCode): void
-    {
-        $shipment = $this->shipment();
-        self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($shipment, 'DHL', null);
-
-        self::getContainer()->get('sylius.command_bus')->dispatch(new ShipShipment($shipment->getId(), $trackingCode));
-    }
-
     /** @param array<string, mixed> $values */
     private function ship(array $values, string $redirectTo = ShipmentShipFormComponent::REDIRECT_TO_ORDER): void
     {
@@ -261,20 +214,5 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::getContainer()->get('request_stack')->pop();
 
         return $component;
-    }
-
-    private function shipment(): ShipmentInterface
-    {
-        self::getContainer()->get('doctrine.orm.entity_manager')->clear();
-
-        /** @var ShipmentInterface $shipment */
-        $shipment = self::getContainer()->get('sylius.repository.shipment')->find($this->order->getShipments()->first()->getId());
-
-        return $shipment;
-    }
-
-    private function tracking(): ?ShipmentTrackingInterface
-    {
-        return self::getContainer()->get('sylius_paypal.repository.shipment_tracking')->findOneByShipment($this->shipment());
     }
 }

@@ -50,6 +50,16 @@ final class ShipmentTrackingCarrierValidator extends ConstraintValidator
             ;
         }
 
+        if (null !== $carrier && !in_array($carrier, $this->carrierProvider->getCarrierCodes(), true)) {
+            $this->context
+                ->buildViolation($constraint->carrierInvalidMessage)
+                ->atPath('carrier')
+                ->addViolation()
+            ;
+
+            return;
+        }
+
         if (null !== $carrier && null === $value->getCarrierNameOther() && $this->carrierProvider->isOther($carrier)) {
             $this->context
                 ->buildViolation($constraint->carrierNameOtherRequiredMessage)
