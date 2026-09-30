@@ -603,6 +603,7 @@
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius.resolver.shipping_methods" />
             <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+            <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
         <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_amount" />
     </services>

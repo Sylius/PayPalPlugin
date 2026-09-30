@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -30,10 +31,27 @@ final readonly class PayPalShippingCallbackAmountProvider implements PayPalShipp
         private OrderProcessorInterface $orderProcessor,
         private ShippingMethodsResolverInterface $shippingMethodsResolver,
         private PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
     public function provide(
+        PaymentInterface $payment,
+        AddressInterface $shippingAddress,
+        PayPalShippingOption $selectedOption,
+    ): array {
+        $nestingLevel = $this->entityManager->getConnection()->getTransactionNestingLevel();
+        $this->entityManager->beginTransaction();
+
+        try {
+            return $this->calculate($payment, $shippingAddress, $selectedOption);
+        } finally {
+            $this->rollBackTo($nestingLevel);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function calculate(
         PaymentInterface $payment,
         AddressInterface $shippingAddress,
         PayPalShippingOption $selectedOption,
@@ -70,5 +88,13 @@ final readonly class PayPalShippingCallbackAmountProvider implements PayPalShipp
         }
 
         throw ShippingMethodNotAvailableException::withCode($code);
+    }
+
+    private function rollBackTo(int $nestingLevel): void
+    {
+        $connection = $this->entityManager->getConnection();
+        while ($connection->getTransactionNestingLevel() > $nestingLevel) {
+            $connection->rollBack();
+        }
     }
 }

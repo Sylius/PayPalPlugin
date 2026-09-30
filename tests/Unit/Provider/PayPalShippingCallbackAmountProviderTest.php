@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
@@ -46,6 +48,13 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
 
     private AddressInterface&MockObject $walletAddress;
 
+    private EntityManagerInterface&MockObject $entityManager;
+
+    private int $transactionNestingLevel = 0;
+
+    /** @var list<string> */
+    private array $events = [];
+
     private PayPalShippingCallbackAmountProvider $provider;
 
     protected function setUp(): void
@@ -63,10 +72,28 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
         $this->payment->method('getDetails')->willReturn(['reference_id' => 'REFERENCE_ID']);
         $this->order->method('getShipments')->willReturn(new ArrayCollection([$this->shipment]));
 
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getTransactionNestingLevel')->willReturnCallback(fn (): int => $this->transactionNestingLevel);
+        $connection->method('rollBack')->willReturnCallback(function (): bool {
+            --$this->transactionNestingLevel;
+            $this->events[] = 'rollback';
+
+            return true;
+        });
+
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager->method('getConnection')->willReturn($connection);
+        $this->entityManager->method('beginTransaction')->willReturnCallback(function (): void {
+            ++$this->transactionNestingLevel;
+            $this->events[] = 'begin';
+        });
+        $this->entityManager->expects(self::never())->method('commit');
+
         $this->provider = new PayPalShippingCallbackAmountProvider(
             $this->orderProcessor,
             $this->shippingMethodsResolver,
             $this->purchaseUnitFactory,
+            $this->entityManager,
         );
     }
 
@@ -135,6 +162,55 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
         $this->expectException(ShippingMethodNotAvailableException::class);
 
         $this->provider->provide($payment, $this->walletAddress, self::selectedOption());
+    }
+
+    public function test_it_rolls_back_everything_the_processing_wrote(): void
+    {
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([self::shippingMethod('dhl')]);
+        $this->orderProcessor->method('process')->willReturnCallback(function (): void { $this->events[] = 'process'; });
+        $this->purchaseUnitFactory->method('create')->willReturn(self::purchaseUnit());
+
+        $this->provider->provide($this->payment, $this->walletAddress, self::selectedOption());
+
+        self::assertSame(['begin', 'process', 'rollback'], $this->events);
+        self::assertSame(0, $this->transactionNestingLevel);
+    }
+
+    public function test_it_rolls_back_a_transaction_the_processing_left_open(): void
+    {
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([self::shippingMethod('dhl')]);
+        $this->orderProcessor->method('process')->willReturnCallback(function (): void { ++$this->transactionNestingLevel; });
+        $this->purchaseUnitFactory->method('create')->willReturn(self::purchaseUnit());
+
+        $this->provider->provide($this->payment, $this->walletAddress, self::selectedOption());
+
+        self::assertSame(0, $this->transactionNestingLevel);
+    }
+
+    public function test_it_rolls_back_when_the_processing_blows_up(): void
+    {
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([self::shippingMethod('dhl')]);
+        $this->orderProcessor->method('process')->willThrowException(new \RuntimeException('processing failed'));
+
+        try {
+            $this->provider->provide($this->payment, $this->walletAddress, self::selectedOption());
+            self::fail('The exception should have been rethrown.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('processing failed', $exception->getMessage());
+        }
+
+        self::assertSame(['begin', 'rollback'], $this->events);
+    }
+
+    public function test_it_leaves_a_transaction_opened_before_it_alone(): void
+    {
+        $this->transactionNestingLevel = 1;
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([self::shippingMethod('dhl')]);
+        $this->purchaseUnitFactory->method('create')->willReturn(self::purchaseUnit());
+
+        $this->provider->provide($this->payment, $this->walletAddress, self::selectedOption());
+
+        self::assertSame(1, $this->transactionNestingLevel);
     }
 
     private static function shippingMethod(string $code): ShippingMethodInterface
