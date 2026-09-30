@@ -1148,10 +1148,12 @@
    `matchesPayerActionCancelNonce()` to compare them.
 
    The cancel route answers four ways. A payment PayPal has completed after all goes to the thank-you page;
-   one the bank refused says so with `sylius_paypal.something_went_wrong`, as the return route does; a
-   cancellation that actually happened says so with `sylius_paypal.payment_cancelled`; and an order with
-   nothing in flight is redirected with no message at all. Earlier builds of this branch announced a
-   cancellation on all four.
+   one the bank refused (PayPal already reports the capture declined, or sends the payer back with an
+   `errorcode` other than `payment_error`, which it also sends when the payer cancels at the bank) is
+   failed and says so with `sylius_paypal.something_went_wrong`, as the return route does; a cancellation
+   that actually happened says so with `sylius_paypal.payment_cancelled`; and an order with nothing in
+   flight is redirected with no message at all. Earlier builds of this branch announced a cancellation on
+   all four.
 
    Orders created for a redirect method now point `return_url` and `cancel_url` at those two routes instead
    of both at `sylius_shop_checkout_complete`. Wallet and card orders are unchanged.

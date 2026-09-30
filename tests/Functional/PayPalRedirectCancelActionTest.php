@@ -39,7 +39,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
 
         self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
         self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_COMPLETED));
-        self::assertStringEndsWith('/en_US/order/TOKEN', $this->location());
+        self::assertMatchesRegularExpression('#/en_US/pay-with-paypal/TOKEN/\d+$#', $this->location());
     }
 
     public function test_it_keeps_a_payment_the_bank_let_through_after_all(): void
@@ -72,14 +72,38 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_fails_the_attempt_the_bank_refused(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->cancel(self::CANCEL_NONCE, '?errorcode=processing_error');
+        $reloaded = $this->reloadOrder($order);
+
+        self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_FAILED));
+        self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_cancels_the_attempt_the_payer_cancelled_at_the_bank(): void
+    {
+        $order = $this->redirectOrder();
+
+        $this->cancel(self::CANCEL_NONCE, '?errorcode=payment_error');
+        $reloaded = $this->reloadOrder($order);
+
+        self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
+        self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_FAILED));
+        self::assertSame(['sylius_paypal.payment_cancelled'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
     private function location(): string
     {
         return (string) $this->client->getResponse()->headers->get('Location');
     }
 
-    private function cancel(string $nonce): void
+    private function cancel(string $nonce, string $query = ''): void
     {
-        $this->client->request('GET', sprintf('/en_US/paypal/redirect-cancel/TOKEN/%s', $nonce));
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-cancel/TOKEN/%s%s', $nonce, $query));
     }
 
     private function redirectOrder(): OrderInterface
@@ -94,7 +118,7 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         $item->setUnitPrice(20);
         $order->recalculateItemsTotal();
 
-        self::getContainer()->get('sylius.manager.order')->flush();
+        $this->getEntityManager()->flush();
 
         return $order;
     }
