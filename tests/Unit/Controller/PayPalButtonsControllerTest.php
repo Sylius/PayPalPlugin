@@ -238,6 +238,28 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_the_current_locale_itself_when_no_locale_provider_is_passed(): void
+    {
+        $this->twig->method('render')->willReturn('');
+
+        $controller = new PayPalButtonsController(
+            $this->twig,
+            $this->router,
+            $this->channelContext,
+            $this->localeContext,
+            $this->payPalConfigurationProvider,
+            $this->orderRepository,
+            $this->availableCountriesProvider,
+            $this->localeProcessor,
+            $this->webSdkConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+        );
+        $controller->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
+    }
+
+    #[Test]
     public function it_passes_the_current_locale_rather_than_the_order_one_to_the_web_sdk_instance_config_on_the_cart_page(): void
     {
         $order = $this->createMock(OrderInterface::class);
