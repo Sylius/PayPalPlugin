@@ -19,8 +19,8 @@ use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
-use Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 
 final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEventTypesRegistrarInterface
 {
@@ -29,7 +29,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UpdateWebhookApiInterface $updateWebhookApi,
         private WebhookApiInterface $webhookApi,
-        private PayPalWebhookUrlProviderInterface $webhookUrlProvider,
+        private WebhookUrlProviderInterface $webhookUrlProvider,
     ) {
     }
 

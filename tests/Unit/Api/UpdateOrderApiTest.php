@@ -23,7 +23,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApi;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory;
+use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
@@ -48,7 +48,7 @@ final class UpdateOrderApiTest extends TestCase
             $this->client,
             $this->paymentReferenceNumberProvider,
             $this->payPalItemsDataProvider,
-            new PayPalPurchaseUnitFactory($this->paymentReferenceNumberProvider, $this->payPalItemsDataProvider),
+            new PurchaseUnitFactory($this->paymentReferenceNumberProvider, $this->payPalItemsDataProvider),
         );
     }
 

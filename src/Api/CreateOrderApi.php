@@ -17,7 +17,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory;
+use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
@@ -65,7 +65,7 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
     private function getPayPalOrderFactory(): PayPalOrderFactoryInterface
     {
         return $this->payPalOrderFactory ?? new PayPalOrderFactory(
-            new PayPalPurchaseUnitFactory(
+            new PurchaseUnitFactory(
                 $this->paymentReferenceNumberProvider,
                 $this->payPalItemDataProvider,
             ),

@@ -26,14 +26,14 @@ use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalPaymentPageContextProviderTest extends TestCase
 {
     private const SCRIPT_URL = 'https://www.sandbox.paypal.com/web-sdk/v6/core';
 
-    private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+    private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
 
     private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
 
@@ -50,7 +50,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->webSdkConfigurationProvider = $this->createMock(PayPalWebSdkConfigurationProviderInterface::class);
+        $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
         $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn(self::SCRIPT_URL);
 
         $localeProcessor = $this->createStub(LocaleProcessorInterface::class);

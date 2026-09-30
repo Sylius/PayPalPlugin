@@ -153,15 +153,15 @@
         <service id="Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface" alias="sylius_paypal.api.webhook_signature_verifier" />
 
         <service
-            id="sylius_paypal.api.paypal_callback_signature_verifier"
-            class="Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifier"
+            id="sylius_paypal.api.callback_signature_verifier"
+            class="Sylius\PayPalPlugin\Api\CallbackSignatureVerifier"
         >
             <argument type="service" id="sylius.http_client" />
             <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
             <argument type="service" id="sylius_paypal.cache" />
             <argument>%sylius_paypal.callback_certificate_lifetime%</argument>
         </service>
-        <service id="Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface" alias="sylius_paypal.api.paypal_callback_signature_verifier" />
+        <service id="Sylius\PayPalPlugin\Api\CallbackSignatureVerifierInterface" alias="sylius_paypal.api.callback_signature_verifier" />
 
         <service
             id="sylius_paypal.provider.webhook_id"
@@ -172,7 +172,7 @@
             <argument type="service" id="router" />
             <argument>%sylius_paypal.api_base_url%</argument>
             <argument>%sylius_paypal.webhook_base_url%</argument>
-            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
+            <argument type="service" id="sylius_paypal.provider.webhook_url" />
         </service>
 
         <service
@@ -194,7 +194,7 @@
             <argument type="service" id="sylius_paypal.client.paypal" />
             <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
             <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
-            <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+            <argument type="service" id="sylius_paypal.factory.purchase_unit" />
         </service>
         <service id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface" alias="sylius_paypal.api.update_order" />
 
