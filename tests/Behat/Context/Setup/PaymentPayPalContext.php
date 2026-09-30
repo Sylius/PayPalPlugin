@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Setup;
 
 use Behat\Behat\Context\Context;
+use Behat\Step\Given;
 use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -35,18 +36,14 @@ final class PaymentPayPalContext implements Context
     ) {
     }
 
-    /**
-     * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/
-     * @Given /^the store allows paying with "([^"]*)" with "([^"]*)" factory name$/
-     */
+    #[Given('/^the store allows paying with "([^"]*)" with "([^"]*)" factory name at position (\d+)$/')]
+    #[Given('/^the store allows paying with "([^"]*)" with "([^"]*)" factory name$/')]
     public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, ?int $position = 0)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
     }
 
-    /**
-     * @Given /^I should have "([^"]*)" payment method selected$/
-     */
+    #[Given('/^I should have "([^"]*)" payment method selected$/')]
     public function iShouldHavePaymentMethodSelected(string $paymentMethodName): void
     {
         Assert::true($this->selectPaymentPage->hasPaymentMethodSelected($paymentMethodName));

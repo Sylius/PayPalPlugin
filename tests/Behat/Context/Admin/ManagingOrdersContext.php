@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Admin;
 
 use Behat\Behat\Context\Context;
+use Behat\Step\Given;
+use Behat\Step\When;
 use Doctrine\Persistence\ObjectManager;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Behat\Page\Admin\Order\ShowPageInterface;
@@ -36,10 +38,8 @@ final class ManagingOrdersContext implements Context
     ) {
     }
 
-    /**
-     * @Given /^(this order) is already paid as "([^"]+)" PayPal order$/
-     * @Given /^(this order) is already paid as "([^"]+)" PayPal order with "([^"]+)" PayPal payment$/
-     */
+    #[Given('/^(this order) is already paid as "([^"]+)" PayPal order$/')]
+    #[Given('/^(this order) is already paid as "([^"]+)" PayPal order with "([^"]+)" PayPal payment$/')]
     public function thisOrderIsAlreadyPaidAsPayPalOrder(
         OrderInterface $order,
         string $payPalOrderId,
@@ -61,9 +61,7 @@ final class ManagingOrdersContext implements Context
         $this->objectManager->flush();
     }
 
-    /**
-     * @When request from PayPal about :payPalOrderId order refund has been received
-     */
+    #[When('request from PayPal about :payPalOrderId order refund has been received')]
     public function requestFromPayPalAboutOrderRefundHasBeenReceived(string $payPalOrderId): void
     {
         $data = json_encode([
@@ -83,9 +81,7 @@ final class ManagingOrdersContext implements Context
         Assert::same($this->client->getResponse()->getStatusCode(), Response::HTTP_NO_CONTENT);
     }
 
-    /**
-     * @When I view the summary of the refunded order :order
-     */
+    #[When('I view the summary of the refunded order :order')]
     public function iSeeTheRefundedOrder(OrderInterface $order): void
     {
         // During calling `open` method it's verified and FOR SOME REASON it constantly tries to compare it
