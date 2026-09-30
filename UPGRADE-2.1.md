@@ -1247,6 +1247,9 @@
      cart and checkout buttons use it instead of the cart's locale, which Sylius only updates when the order is
      placed. Not passing it is deprecated; `PayPalExtension` then resolves no locale, and
      `PayPalButtonsController` builds one from the locale context and processor it already receives.
+     `ExperienceContextProvider` takes it as an optional constructor argument too, so the PayPal approval
+     window gets the current locale as `experience_context.locale` (none for an unsupported one); without it
+     the order's locale is sent.
    - `PayWithPayPalFormAction` gained a trailing optional `?string $webUrl = null`, bound to the
      `sylius_paypal.web_url` parameter. It scopes the `Permissions-Policy` header that delegates WebAuthn to
      PayPal's card fields iframe to the configured origin instead of both. Not passing it is deprecated and

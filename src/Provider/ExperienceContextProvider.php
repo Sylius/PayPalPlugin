@@ -18,6 +18,10 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 
 final readonly class ExperienceContextProvider implements ExperienceContextProviderInterface
 {
+    public function __construct(private ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null)
+    {
+    }
+
     public function provide(
         OrderInterface $order,
         ?string $returnUrl = null,
@@ -57,7 +61,7 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
 
     private function provideLocaleCode(OrderInterface $order): ?string
     {
-        $localeCode = $order->getLocaleCode();
+        $localeCode = null !== $this->currentLocaleProvider ? $this->currentLocaleProvider->provide() : $order->getLocaleCode();
         if (null === $localeCode) {
             return null;
         }

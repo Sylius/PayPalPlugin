@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 
 final class ExperienceContextProviderTest extends TestCase
@@ -111,6 +112,24 @@ final class ExperienceContextProviderTest extends TestCase
         $this->order->method('isShippingRequired')->willReturn(false);
 
         self::assertSame('en-US', $this->provider->provide($this->order)['locale']);
+    }
+
+    #[Test]
+    public function it_takes_the_current_locale_rather_than_the_order_one(): void
+    {
+        $currentLocaleProvider = $this->createMock(CurrentPayPalLocaleProviderInterface::class);
+        $currentLocaleProvider->method('provide')->willReturn('pl_PL');
+
+        self::assertSame('pl-PL', (new ExperienceContextProvider($currentLocaleProvider))->provide($this->order)['locale']);
+    }
+
+    #[Test]
+    public function it_leaves_the_locale_out_when_paypal_does_not_support_the_current_one(): void
+    {
+        $currentLocaleProvider = $this->createMock(CurrentPayPalLocaleProviderInterface::class);
+        $currentLocaleProvider->method('provide')->willReturn(null);
+
+        self::assertArrayNotHasKey('locale', (new ExperienceContextProvider($currentLocaleProvider))->provide($this->order));
     }
 
     #[Test]
