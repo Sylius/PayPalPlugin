@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
@@ -33,6 +34,8 @@ final readonly class PayPalOrderShippingCallbackAction
     private const ISSUE_ADDRESS_ERROR = 'ADDRESS_ERROR';
 
     private const ISSUE_COUNTRY_ERROR = 'COUNTRY_ERROR';
+
+    private const ISSUE_METHOD_UNAVAILABLE = 'METHOD_UNAVAILABLE';
 
     public function __construct(
         private PayPalCallbackSignatureVerifierInterface $signatureVerifier,
@@ -98,12 +101,13 @@ final readonly class PayPalOrderShippingCallbackAction
         /** @var array<string, mixed> $purchaseUnit */
         $purchaseUnit = (array) ($purchaseUnits[0] ?? []);
 
-        return new JsonResponse($this->responseFactory->create(
-            $payPalOrderId,
-            $purchaseUnit,
-            $this->amountProvider->provide($payment, $shippingAddress, $selectedOption),
-            $shippingOptions,
-        ));
+        try {
+            $amount = $this->amountProvider->provide($payment, $shippingAddress, $selectedOption);
+        } catch (ShippingMethodNotAvailableException) {
+            return $this->unprocessable(self::ISSUE_METHOD_UNAVAILABLE);
+        }
+
+        return new JsonResponse($this->responseFactory->create($payPalOrderId, $purchaseUnit, $amount, $shippingOptions));
     }
 
     private function getPayment(string $payPalOrderId): ?PaymentInterface

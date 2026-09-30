@@ -19,16 +19,16 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
+use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
+use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
-use Sylius\Resource\Doctrine\Persistence\RepositoryInterface;
 
 final readonly class PayPalShippingCallbackAmountProvider implements PayPalShippingCallbackAmountProviderInterface
 {
-    /** @param RepositoryInterface<ShippingMethodInterface> $shippingMethodRepository */
     public function __construct(
         private OrderProcessorInterface $orderProcessor,
-        private RepositoryInterface $shippingMethodRepository,
+        private ShippingMethodsResolverInterface $shippingMethodsResolver,
         private PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
     ) {
     }
@@ -45,10 +45,11 @@ final readonly class PayPalShippingCallbackAmountProvider implements PayPalShipp
         $order->setBillingAddress($shippingAddress);
 
         $shipment = $order->getShipments()->first();
-        $selectedMethod = $this->shippingMethodRepository->findOneBy(['code' => $selectedOption->id()]);
-        if ($shipment instanceof ShipmentInterface && $selectedMethod instanceof ShippingMethodInterface) {
-            $shipment->setMethod($selectedMethod);
+        if (!$shipment instanceof ShipmentInterface) {
+            throw ShippingMethodNotAvailableException::withCode($selectedOption->id());
         }
+
+        $shipment->setMethod($this->getSupportedMethod($shipment, $selectedOption->id()));
 
         $this->orderProcessor->process($order);
 
@@ -58,5 +59,16 @@ final readonly class PayPalShippingCallbackAmountProvider implements PayPalShipp
         );
 
         return (array) $purchaseUnit->toArray()['amount'];
+    }
+
+    private function getSupportedMethod(ShipmentInterface $shipment, string $code): ShippingMethodInterface
+    {
+        foreach ($this->shippingMethodsResolver->getSupportedMethods($shipment) as $method) {
+            if ($code === $method->getCode()) {
+                return $method;
+            }
+        }
+
+        throw ShippingMethodNotAvailableException::withCode($code);
     }
 }

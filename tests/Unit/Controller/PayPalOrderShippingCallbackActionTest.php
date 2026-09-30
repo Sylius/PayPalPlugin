@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\PayPalCallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
@@ -161,6 +162,17 @@ final class PayPalOrderShippingCallbackActionTest extends TestCase
         $this->responseFactory->method('create')->willReturn([]);
 
         ($this->action)($this->callbackRequest(['shipping_option' => ['id' => 'fedex']]));
+    }
+
+    public function test_it_refuses_an_option_the_order_cannot_be_priced_with(): void
+    {
+        $this->availableCountriesProvider->method('provideForChannel')->willReturn(['US']);
+        $this->shippingAddressFactory->method('create')->willReturn($this->createMock(AddressInterface::class));
+        $this->shippingOptionsResolver->method('resolve')->willReturn(self::shippingOptions());
+        $this->amountProvider->method('provide')->willThrowException(ShippingMethodNotAvailableException::withCode('ups'));
+        $this->responseFactory->expects(self::never())->method('create');
+
+        self::assertUnprocessableWithIssue('METHOD_UNAVAILABLE', ($this->action)($this->callbackRequest()));
     }
 
     public function test_it_refuses_a_country_the_channel_does_not_sell_to(): void

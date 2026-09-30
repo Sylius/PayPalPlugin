@@ -22,18 +22,19 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
+use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
+use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProvider;
 use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProviderInterface;
-use Sylius\Resource\Doctrine\Persistence\RepositoryInterface;
 
 final class PayPalShippingCallbackAmountProviderTest extends TestCase
 {
     private OrderProcessorInterface&MockObject $orderProcessor;
 
-    private RepositoryInterface&MockObject $shippingMethodRepository;
+    private ShippingMethodsResolverInterface&MockObject $shippingMethodsResolver;
 
     private PayPalPurchaseUnitFactoryInterface&MockObject $purchaseUnitFactory;
 
@@ -51,7 +52,7 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
     {
         parent::setUp();
         $this->orderProcessor = $this->createMock(OrderProcessorInterface::class);
-        $this->shippingMethodRepository = $this->createMock(RepositoryInterface::class);
+        $this->shippingMethodsResolver = $this->createMock(ShippingMethodsResolverInterface::class);
         $this->purchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
         $this->order = $this->createMock(OrderInterface::class);
@@ -64,7 +65,7 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
 
         $this->provider = new PayPalShippingCallbackAmountProvider(
             $this->orderProcessor,
-            $this->shippingMethodRepository,
+            $this->shippingMethodsResolver,
             $this->purchaseUnitFactory,
         );
     }
@@ -76,8 +77,8 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
 
     public function test_it_returns_the_amount_of_the_order_processed_for_the_wallet_address_and_the_selected_method(): void
     {
-        $selectedMethod = $this->createMock(ShippingMethodInterface::class);
-        $this->shippingMethodRepository->method('findOneBy')->with(['code' => 'dhl'])->willReturn($selectedMethod);
+        $selectedMethod = self::shippingMethod('dhl');
+        $this->shippingMethodsResolver->method('getSupportedMethods')->with($this->shipment)->willReturn([self::shippingMethod('ups'), $selectedMethod]);
 
         $state = [];
         $this->order->method('setShippingAddress')->willReturnCallback(function (?AddressInterface $address) use (&$state): void { $state['shipping'] = $address; });
@@ -96,14 +97,52 @@ final class PayPalShippingCallbackAmountProviderTest extends TestCase
         self::assertSame('3.70', $amount['breakdown']['tax_total']['value']);
     }
 
-    public function test_it_keeps_the_method_of_the_order_when_the_selected_option_matches_no_method(): void
+    public function test_it_looks_the_method_up_for_the_wallet_address(): void
     {
-        $this->shippingMethodRepository->method('findOneBy')->willReturn(null);
+        $addressWhenResolved = null;
+        $this->order->method('setShippingAddress')->willReturnCallback(function (?AddressInterface $address) use (&$addressWhenResolved): void { $addressWhenResolved = $address; });
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturnCallback(function () use (&$addressWhenResolved): array {
+            self::assertSame($this->walletAddress, $addressWhenResolved);
+
+            return [self::shippingMethod('dhl')];
+        });
         $this->purchaseUnitFactory->method('create')->willReturn(self::purchaseUnit());
 
+        $this->provider->provide($this->payment, $this->walletAddress, self::selectedOption());
+    }
+
+    public function test_it_refuses_a_method_that_is_not_available_for_the_address(): void
+    {
+        $this->shippingMethodsResolver->method('getSupportedMethods')->willReturn([self::shippingMethod('ups')]);
+
         $this->shipment->expects(self::never())->method('setMethod');
+        $this->orderProcessor->expects(self::never())->method('process');
+
+        $this->expectException(ShippingMethodNotAvailableException::class);
 
         $this->provider->provide($this->payment, $this->walletAddress, self::selectedOption());
+    }
+
+    public function test_it_refuses_an_order_without_a_shipment(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getShipments')->willReturn(new ArrayCollection());
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
+        $this->orderProcessor->expects(self::never())->method('process');
+
+        $this->expectException(ShippingMethodNotAvailableException::class);
+
+        $this->provider->provide($payment, $this->walletAddress, self::selectedOption());
+    }
+
+    private static function shippingMethod(string $code): ShippingMethodInterface
+    {
+        $method = self::createStub(ShippingMethodInterface::class);
+        $method->method('getCode')->willReturn($code);
+
+        return $method;
     }
 
     private static function selectedOption(): PayPalShippingOption
