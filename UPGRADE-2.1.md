@@ -1233,10 +1233,14 @@
    - `PayPalClient` no longer fails when no channel is in context. The `PayPal-Partner-Attribution-Id`
      header is omitted and a warning logged instead of an exception being thrown, which is what lets the
      webhook handler and the CLI sweeper reach PayPal at all.
-   - `PayPalExtension` gained two trailing optional constructor arguments, `LocaleContextInterface` and
-     `LocaleProcessorInterface`. `sylius_paypal_web_sdk_instance_config()` uses them to resolve the shop's
-     current locale for Pay Later messaging when the caller does not pass one explicitly. Not passing them
-     is deprecated and keeps today's behavior (no locale resolved automatically).
+   - `Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface` is new: it resolves the shop's current
+     locale into the one PayPal expects, or `null` when there is none or PayPal does not support it (e.g.
+     `es_MX`), in which case the buttons and Pay Later messaging render in PayPal's default language.
+     `PayPalExtension` and `PayPalButtonsController` gained it as a trailing optional constructor argument:
+     `sylius_paypal_web_sdk_instance_config()` uses it when the caller does not pass a locale, and the product,
+     cart and checkout buttons use it instead of the cart's locale, which Sylius only updates when the order is
+     placed. Not passing it is deprecated; `PayPalExtension` then resolves no locale, and
+     `PayPalButtonsController` builds one from the locale context and processor it already receives.
    - `PayWithPayPalFormAction` gained a trailing optional `?string $webUrl = null`, bound to the
      `sylius_paypal.web_url` parameter. It scopes the `Permissions-Policy` header that delegates WebAuthn to
      PayPal's card fields iframe to the configured origin instead of both. Not passing it is deprecated and

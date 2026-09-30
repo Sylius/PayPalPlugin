@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Locale\Model\Locale;
 use Sylius\Component\Order\Model\OrderItemInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\FakeFindEligibleMethodsApi;
@@ -160,14 +162,28 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_renders_the_page_in_a_locale_paypal_does_not_support(): void
+    {
+        $this->requestPaymentPage(locale: 'es_MX');
+        $response = $this->client->getResponse();
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-message', (string) $response->getContent());
+    }
+
     private function requestPaymentPage(
         bool $googlePayEnabled = false,
         bool $applePayEnabled = false,
         bool $trustlyEnabled = false,
         bool $venmoEnabled = false,
+        string $locale = 'en_US',
     ): void {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
+
+        if ('en_US' !== $locale) {
+            $this->addChannelLocale($fixtures['channel_web'], $locale);
+        }
 
         if ($googlePayEnabled) {
             $this->enableGatewayConfig(['google_pay_enabled' => true]);
@@ -198,7 +214,17 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment();
 
-        $this->client->request('GET', sprintf('/en_US/pay-with-paypal/%s/%s', $order->getTokenValue(), $payment->getId()));
+        $this->client->request('GET', sprintf('/%s/pay-with-paypal/%s/%s', $locale, $order->getTokenValue(), $payment->getId()));
+    }
+
+    private function addChannelLocale(ChannelInterface $channel, string $code): void
+    {
+        $locale = new Locale();
+        $locale->setCode($code);
+        $channel->addLocale($locale);
+
+        $this->getEntityManager()->persist($locale);
+        $this->getEntityManager()->flush();
     }
 
     /** @param array<string, mixed> $config */

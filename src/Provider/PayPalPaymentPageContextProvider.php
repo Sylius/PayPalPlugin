@@ -48,7 +48,11 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        $processedLocale = $this->localeProcessor->process($locale);
+        try {
+            $processedLocale = $this->localeProcessor->process($locale);
+        } catch (\UnexpectedValueException) {
+            $processedLocale = null;
+        }
 
         return [
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),

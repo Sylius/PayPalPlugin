@@ -21,6 +21,8 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
@@ -45,6 +47,7 @@ final readonly class PayPalButtonsController
         private LocaleProcessorInterface $localeProcessor,
         private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -64,6 +67,15 @@ final readonly class PayPalButtonsController
                 self::class,
             );
         }
+        if (null === $this->currentLocaleProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                CurrentPayPalLocaleProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -72,7 +84,7 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
 
         try {
-            $locale = $this->localeProcessor->process($this->localeContext->getLocaleCode());
+            $locale = $this->resolveLocale();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
@@ -107,7 +119,7 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
-            $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+            $locale = $this->resolveLocale();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
@@ -145,7 +157,7 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
-            $locale = $this->localeProcessor->process((string) $order->getLocaleCode());
+            $locale = $this->resolveLocale();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -185,6 +197,11 @@ final readonly class PayPalButtonsController
         }
 
         return $components;
+    }
+
+    private function resolveLocale(): ?string
+    {
+        return ($this->currentLocaleProvider ?? new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor))->provide();
     }
 
     private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface

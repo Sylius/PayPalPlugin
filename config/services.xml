@@ -294,6 +294,12 @@
         </service>
         <service id="Sylius\PayPalPlugin\Processor\LocaleProcessorInterface" alias="sylius_paypal.processor.locale" />
 
+        <service id="sylius_paypal.provider.current_paypal_locale" class="Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider">
+            <argument type="service" id="sylius.context.locale" />
+            <argument type="service" id="sylius_paypal.processor.locale" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface" alias="sylius_paypal.provider.current_paypal_locale" />
+
         <service
             id="sylius_paypal.processor.payment_refund"
             class="Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor"
@@ -522,8 +528,7 @@
             <argument type="service" id="sylius.context.channel" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" />
             <argument type="service" id="sylius_paypal.checker.payer_action" />
-            <argument type="service" id="sylius.context.locale" />
-            <argument type="service" id="sylius_paypal.processor.locale" />
+            <argument type="service" id="sylius_paypal.provider.current_paypal_locale" />
             <tag name="twig.extension" />
         </service>
 

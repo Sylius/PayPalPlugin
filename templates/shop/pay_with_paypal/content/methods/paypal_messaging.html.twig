@@ -8,7 +8,7 @@
             amount: context.amount,
             currencyCode: context.currency,
             scriptUrl: sylius_paypal_web_sdk_script_url(),
-            instanceConfig: sylius_paypal_web_sdk_instance_config('checkout', context.locale),
+            instanceConfig: sylius_paypal_web_sdk_instance_config('checkout', context.locale ?? null),
         }) }}
         hidden
     ></paypal-message>
