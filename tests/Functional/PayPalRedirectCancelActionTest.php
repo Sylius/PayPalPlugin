@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Order\Model\OrderItemInterface;
 use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
@@ -94,6 +95,35 @@ final class PayPalRedirectCancelActionTest extends JsonApiTestCase
         self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
         self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_FAILED));
         self::assertSame(['sylius_paypal.payment_cancelled'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_shows_the_payer_the_way_back_to_the_bank_on_the_order_page(): void
+    {
+        $this->redirectOrder();
+
+        $this->client->request('GET', '/en_US/order/TOKEN');
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('We are waiting for your bank', $content);
+        self::assertStringContainsString('href="https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID"', $content);
+        self::assertStringNotContainsString('name="sylius_checkout_select_payment"', $content);
+    }
+
+    public function test_it_keeps_the_payment_form_on_the_order_page_when_nothing_awaits_the_bank(): void
+    {
+        $order = $this->redirectOrder();
+        $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
+        $payment = $order->getLastPayment();
+        $payment?->setDetails(array_diff_key($payment->getDetails(), ['payer_action_url' => true]));
+        $this->getEntityManager()->flush();
+
+        $this->client->request('GET', '/en_US/order/TOKEN');
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringNotContainsString('We are waiting for your bank', $content);
+        self::assertStringContainsString('name="sylius_checkout_select_payment"', $content);
     }
 
     private function location(): string
