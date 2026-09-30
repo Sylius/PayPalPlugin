@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
+use Sylius\Bundle\ResourceBundle\Controller\AuthorizationCheckerInterface;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -110,6 +111,19 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertStringContainsString('Please select a carrier when a tracking number is provided.', (string) $response->getContent());
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
         self::assertNull($this->tracking());
+    }
+
+    public function test_it_checks_the_permission_before_validating_the_form(): void
+    {
+        $this->client->disableReboot();
+        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
+        $authorizationChecker->method('isGranted')->willReturn(false);
+        self::getContainer()->set('sylius.resource_controller.authorization_checker', $authorizationChecker);
+
+        $this->ship(['tracking' => 'QA-TRACK-3']);
+
+        self::assertSame(Response::HTTP_FORBIDDEN, $this->client->getResponse()->getStatusCode());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
     }
 
     public function test_it_does_not_ship_when_other_carrier_has_no_name(): void

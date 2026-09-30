@@ -78,15 +78,16 @@ final class ShipmentShipFormComponent
     #[LiveAction]
     public function ship(#[LiveArg] string $redirectTo = self::REDIRECT_TO_ORDER): Response
     {
-        $this->submitForm();
-
-        /** @var ShipmentInterface $shipment */
-        $shipment = $this->getForm()->getData();
         $configuration = $this->requestConfiguration($redirectTo);
 
         if (!$this->authorizationChecker->isGranted($configuration, $configuration->getPermission(ResourceActions::UPDATE))) {
             throw new AccessDeniedException();
         }
+
+        $this->submitForm();
+
+        /** @var ShipmentInterface $shipment */
+        $shipment = $this->getForm()->getData();
 
         $event = $this->eventDispatcher->dispatchPreEvent(ResourceActions::UPDATE, $configuration, $shipment);
         if ($event->isStopped()) {
