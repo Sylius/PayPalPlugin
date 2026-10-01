@@ -83,15 +83,15 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertNotEmpty($tracking->getLastError());
     }
 
-    public function test_it_does_not_ship_and_shows_the_error_at_the_carrier_when_a_tracking_number_has_no_carrier(): void
+    public function test_it_ships_a_tracking_number_without_a_carrier_as_before_and_sends_nothing_to_paypal(): void
     {
         $this->ship(['tracking' => 'QA-TRACK-3']);
 
-        $response = $this->client->getResponse();
-        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
-        self::assertStringContainsString('Please select a carrier when a tracking number is provided.', (string) $response->getContent());
-        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('QA-TRACK-3', $this->shipment()->getTracking());
         self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
     }
 
     public function test_it_checks_the_permission_before_validating_the_form(): void

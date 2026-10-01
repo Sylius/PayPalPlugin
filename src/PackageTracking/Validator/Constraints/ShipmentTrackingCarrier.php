@@ -18,8 +18,6 @@ use Symfony\Component\Validator\Constraint;
 #[\Attribute(\Attribute::TARGET_CLASS)]
 final class ShipmentTrackingCarrier extends Constraint
 {
-    public string $carrierRequiredMessage = 'sylius_paypal.shipment_tracking.carrier_required';
-
     public string $carrierInvalidMessage = 'sylius_paypal.shipment_tracking.carrier_invalid';
 
     public string $carrierNameOtherRequiredMessage = 'sylius_paypal.shipment_tracking.carrier_name_other_required';
