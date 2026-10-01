@@ -963,8 +963,20 @@
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
 
-   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` takes no carrier and does not create a tracking
-   record, so shipping through the Admin API sends no tracking to PayPal.
+   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` takes an optional `carrier` and
+   `carrierNameOther` next to `trackingCode`:
+
+   ```json
+   {"trackingCode": "1Z999AA10123456784", "carrier": "UPS"}
+   ```
+
+   For an order paid with PayPal a sent carrier has to be one of `sylius_paypal.tracking.carriers`, and `OTHER`
+   needs `carrierNameOther`; otherwise the regular `422` violation payload is returned and the shipment stays
+   `ready`. The carrier is saved in the ship's transaction, so the tracking is sent as for the admin form.
+   Without a carrier, and for any other order, the shipment is shipped and nothing is sent to PayPal. The
+   plugin redefines `sylius_api_admin_shipment_patch_ship` in `config/api_platform/Shipment.xml` with
+   `Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier`, which extends Sylius' `ShipShipment`,
+   as its input; an app that redefines that operation has to keep that input.
 
 1. #### Trustly is available on the PayPal payment page.
 

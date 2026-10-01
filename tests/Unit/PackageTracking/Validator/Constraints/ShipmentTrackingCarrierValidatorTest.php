@@ -112,4 +112,17 @@ final class ShipmentTrackingCarrierValidatorTest extends ConstraintValidatorTest
 
         $this->assertNoViolation();
     }
+
+    #[Test]
+    public function it_rejects_a_carrier_that_is_not_configured(): void
+    {
+        $constraint = new ShipmentTrackingCarrier();
+
+        $this->validator->validate(new ShipmentTrackingData('DHL', null, 'TRACK1'), $constraint);
+
+        $this->buildViolation($constraint->carrierInvalidMessage)
+            ->atPath('property.path.carrier')
+            ->assertRaised()
+        ;
+    }
 }

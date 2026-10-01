@@ -1,4 +1,5 @@
 sylius_paypal:
     shipment_tracking:
         carrier_required: 'Please select a carrier when a tracking number is provided.'
+        carrier_invalid: 'This carrier is not supported.'
         carrier_name_other_required: 'Please provide the carrier name when "Other" is selected.'
