@@ -40,10 +40,8 @@ final readonly class ShipShipmentWithCarrierHandler
             $this->updateCarrier($shipShipment);
         }
 
-        $decoratedHandler = $this->decoratedHandler;
-        Assert::isCallable($decoratedHandler);
-
-        $shipment = $decoratedHandler($shipShipment);
+        Assert::isCallable($this->decoratedHandler);
+        $shipment = ($this->decoratedHandler)($shipShipment);
         Assert::isInstanceOf($shipment, ShipmentInterface::class);
 
         return $shipment;

@@ -43,6 +43,11 @@ final class ShipShipmentCarrierValidator extends ConstraintValidator
             throw new UnexpectedValueException($value, ShipShipmentWithCarrier::class);
         }
 
+        $trackingData = new ShipmentTrackingData($value->carrier, $value->carrierNameOther, $value->trackingCode);
+        if (null === $trackingData->getCarrier()) {
+            return;
+        }
+
         $order = $this->shipmentRepository->find($value->shipmentId)?->getOrder();
         if (!$order instanceof OrderInterface || null === $this->orderPayPalPaymentProvider->provide($order)) {
             return;
@@ -54,7 +59,7 @@ final class ShipShipmentCarrierValidator extends ConstraintValidator
             ->getValidator()
             ->inContext($this->context)
             ->validate(
-                new ShipmentTrackingData($value->carrier, $value->carrierNameOther, $value->trackingCode),
+                $trackingData,
                 new ShipmentTrackingCarrier(groups: [$group]),
                 [$group],
             )

@@ -5,7 +5,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\Bundle\AdminBundle\Form\Type\ShipmentShipType;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApi;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
-use Sylius\PayPalPlugin\PackageTracking\ApiPlatform\ShipShipmentWithCarrierResourceMetadataCollectionFactory;
 use Sylius\PayPalPlugin\PackageTracking\CommandHandler\ShipShipmentWithCarrierHandler;
 use Sylius\PayPalPlugin\PackageTracking\Console\Command\SendShipmentTrackingCommand;
 use Sylius\PayPalPlugin\PackageTracking\Dispatcher\ShipmentTrackingDispatcher;
@@ -123,10 +122,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.order_paypal_payment'),
         ])
         ->tag('validator.constraint_validator');
-
-    $services->set('sylius_paypal.api_platform.metadata.resource.metadata_collection_factory.ship_shipment_with_carrier', ShipShipmentWithCarrierResourceMetadataCollectionFactory::class)
-        ->decorate('api_platform.metadata.resource.metadata_collection_factory')
-        ->args([service('.inner')]);
 
     $services->set('sylius_paypal.command_handler.ship_shipment_with_carrier', ShipShipmentWithCarrierHandler::class)
         ->decorate('sylius_api.command_handler.checkout.ship_shipment')

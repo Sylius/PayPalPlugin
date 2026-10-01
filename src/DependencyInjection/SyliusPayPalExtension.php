@@ -52,6 +52,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     public function prepend(ContainerBuilder $container): void
     {
         $this->prependDoctrineMapping($container);
+        $this->prependApiPlatformMapping($container);
 
         if (!$container->hasExtension('doctrine_migrations') || !$container->hasExtension('sylius_labs_doctrine_migrations_extra')) {
             return;
@@ -81,6 +82,15 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
                 'Sylius\PayPalPlugin\Migrations' => ['Sylius\Bundle\CoreBundle\Migrations'],
             ],
         ]);
+    }
+
+    private function prependApiPlatformMapping(ContainerBuilder $container): void
+    {
+        if (!$container->hasExtension('api_platform')) {
+            return;
+        }
+
+        $container->loadFromExtension('api_platform', ['mapping' => ['paths' => [\dirname(__DIR__, 2) . '/config/api_platform']]]);
     }
 
     private function prependDoctrineMapping(ContainerBuilder $container): void

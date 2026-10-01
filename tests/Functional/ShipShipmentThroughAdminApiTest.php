@@ -72,14 +72,15 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertSame('Local Courier', DummyAddTrackingApi::$requests[0]['body']['carrier_name_other']);
     }
 
-    public function test_it_does_not_ship_a_tracking_code_without_a_carrier(): void
+    public function test_it_ships_a_tracking_code_without_a_carrier_as_before_and_sends_nothing_to_paypal(): void
     {
         $this->ship(['trackingCode' => 'API-TRACK-3']);
 
-        $this->assertViolation('carrier', 'Please select a carrier when a tracking number is provided.');
-        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
-        self::assertNull($this->shipment()->getTracking());
+        self::assertSame(Response::HTTP_ACCEPTED, $this->client->getResponse()->getStatusCode());
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('API-TRACK-3', $this->shipment()->getTracking());
         self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
     }
 
     public function test_it_does_not_ship_an_other_carrier_without_a_name(): void

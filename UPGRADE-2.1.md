@@ -963,22 +963,20 @@
                'Sylius\PayPalPlugin\PackageTracking\Message\SendShipmentTracking': async
    ```
 
-   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` takes `carrier` and `carrierNameOther` next to
-   `trackingCode`:
+   **Admin API.** `PATCH /api/v2/admin/shipments/{id}/ship` takes an optional `carrier` and
+   `carrierNameOther` next to `trackingCode`:
 
    ```json
    {"trackingCode": "1Z999AA10123456784", "carrier": "UPS"}
    ```
 
-   For an order paid with PayPal the same rules as the admin form apply, with the regular `422` violation
-   payload and the shipment left `ready`: a carrier is required with a tracking code, `carrierNameOther` is
-   required for `OTHER`, and the carrier has to be one of `sylius_paypal.tracking.carriers`. The carrier is
-   saved in the ship's transaction, so the tracking is sent as for the admin form. For any other order both
-   fields are ignored and the endpoint behaves as before. The operation's input becomes
-   `Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier`, which extends Sylius'
-   `ShipShipment`, through a decorator of `api_platform.metadata.resource.metadata_collection_factory` that
-   changes `sylius_api_admin_shipment_patch_ship`; an app that redefines that operation has to set the input
-   itself.
+   For an order paid with PayPal a sent carrier has to be one of `sylius_paypal.tracking.carriers`, and
+   `OTHER` needs `carrierNameOther`; otherwise the regular `422` violation payload is returned and the shipment
+   stays `ready`. The carrier is saved in the ship's transaction, so the tracking is sent as for the admin
+   form. Without a carrier, and for any other order, the endpoint behaves as before and nothing is sent to
+   PayPal. The plugin redefines `sylius_api_admin_shipment_patch_ship` in `config/api_platform/Shipment.xml`
+   with `Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier`, which extends Sylius'
+   `ShipShipment`, as its input; an app that redefines that operation has to keep that input.
 
 1. #### Trustly is available on the PayPal payment page.
 
