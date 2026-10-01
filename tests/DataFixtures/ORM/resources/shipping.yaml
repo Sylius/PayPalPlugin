@@ -1,0 +1,60 @@
+Sylius\Component\Addressing\Model\Country:
+    country_us:
+        code: "US"
+        provinces: ["@province_texas"]
+
+Sylius\Component\Addressing\Model\Province:
+    province_texas:
+        code: "US-TX"
+        name: "Texas"
+        abbreviation: "TX"
+        country: "@country_us"
+
+Sylius\Component\Addressing\Model\Zone:
+    zone_us:
+        code: "US"
+        name: "United States"
+        type: "country"
+        scope: "all"
+        members: ["@zone_member_us"]
+
+Sylius\Component\Addressing\Model\ZoneMember:
+    zone_member_us:
+        code: "US"
+        belongsTo: "@zone_us"
+
+Sylius\Component\Core\Model\ShippingMethod:
+    shipping_method_standard:
+        code: "STANDARD"
+        position: 0
+        enabled: true
+        zone: "@zone_us"
+        channels: ["@channel_web"]
+        calculator: "flat_rate"
+        configuration:
+            WEB:
+                amount: 500
+        currentLocale: "en_US"
+        fallbackLocale: "en_US"
+    shipping_method_express:
+        code: "EXPRESS"
+        position: 1
+        enabled: true
+        zone: "@zone_us"
+        channels: ["@channel_web"]
+        calculator: "flat_rate"
+        configuration:
+            WEB:
+                amount: 2000
+        currentLocale: "en_US"
+        fallbackLocale: "en_US"
+
+Sylius\Component\Shipping\Model\ShippingMethodTranslation:
+    shipping_method_standard_translation:
+        locale: "en_US"
+        name: "Standard shipping"
+        translatable: "@shipping_method_standard"
+    shipping_method_express_translation:
+        locale: "en_US"
+        name: "Express shipping"
+        translatable: "@shipping_method_express"

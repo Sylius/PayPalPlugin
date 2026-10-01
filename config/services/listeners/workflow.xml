@@ -28,5 +28,11 @@
 
             <tag name="kernel.event_listener" event="workflow.sylius_payment.transition.refund" priority="100" />
         </service>
+
+        <service id="sylius_paypal.listener.workflow.send_shipment_tracking" class="Sylius\PayPalPlugin\PackageTracking\EventListener\Workflow\SendShipmentTrackingListener">
+            <argument type="service" id="sylius_paypal.dispatcher.shipment_tracking" />
+
+            <tag name="kernel.event_listener" event="workflow.sylius_shipment.completed.ship" priority="100" />
+        </service>
     </services>
 </container>

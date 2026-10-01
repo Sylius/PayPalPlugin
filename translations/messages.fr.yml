@@ -1,10 +1,11 @@
 sylius_paypal:
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
+    card_number: 'Numéro de carte'
+    cardholder_name: 'Nom du titulaire de la carte'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     credit_card: 'Carte de crédit'
-    credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
     different_amount: 'Ceci est le montant autorisé. Etant donné que vous avez modifié la commande après son autorisation, vous paierez le montant indiqué comme "Total"'
     enable_paypal: 'Activer PayPal'
@@ -23,3 +24,4 @@ sylius_paypal:
     sftp_username: 'Identifiant SFTP'
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
     tender_type: 'Remboursé sur le porte-monnaie PayPal'
+    tender_type_original_payment_method: "Remboursé sur le moyen de paiement d'origine"

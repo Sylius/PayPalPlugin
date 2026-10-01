@@ -97,4 +97,34 @@ final class PayPalRefundDataProviderTest extends TestCase
         $this->expectException(PayPalWrongDataException::class);
         $this->provider->provide('https://get-refund-data.com');
     }
+
+    public function test_it_reports_a_paypal_response_that_carries_no_links_at_all(): void
+    {
+        $this->authorizeTokenFor('https://get-refund-data.com', ['id' => 'REFUND_ID']);
+
+        $this->expectException(PayPalWrongDataException::class);
+
+        $this->provider->provide('https://get-refund-data.com');
+    }
+
+    public function test_it_reports_a_refund_whose_up_link_carries_no_address(): void
+    {
+        $this->authorizeTokenFor('https://get-refund-data.com', [
+            'links' => [['rel' => 'up']],
+        ]);
+
+        $this->expectException(PayPalWrongDataException::class);
+
+        $this->provider->provide('https://get-refund-data.com');
+    }
+
+    /** @param array<string, mixed> $response */
+    private function authorizeTokenFor(string $url, array $response): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $this->payPalPaymentMethodProvider->method('provide')->willReturn($paymentMethod);
+        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
+        $this->genericApi->method('get')->with('TOKEN', $url)->willReturn($response);
+    }
 }

@@ -19,6 +19,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerInterface
@@ -36,12 +37,12 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = $gatewayConfig->getConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
         $response = $this->client->sendRequest(
             $this->requestFactory->createRequest(
                 'GET',
-                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, (string) $config['merchant_id']),
+                sprintf('%s/seller-permissions/check/%s', $this->baseUrl, $config->merchantId()),
             ),
         );
 

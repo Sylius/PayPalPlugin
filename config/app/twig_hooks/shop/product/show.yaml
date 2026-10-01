@@ -3,4 +3,10 @@ sylius_twig_hooks:
         'sylius_shop.product.show.content.info.summary':
             paypal_checkout:
                 template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_checkout.html.twig'
+                priority: 75
+            paypal_messaging:
+                template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_messaging.html.twig'
                 priority: 50
+            paypal_venmo:
+                template: '@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_venmo.html.twig'
+                priority: 25

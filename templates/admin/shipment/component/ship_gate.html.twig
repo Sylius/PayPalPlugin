@@ -1,0 +1,3 @@
+{% if not sylius_paypal_shipment_is_paid_with_paypal(resource) %}
+    {% include '@SyliusAdmin/shipment/component/ship.html.twig' %}
+{% endif %}

@@ -21,10 +21,12 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class CompletePayPalOrderFromPaymentPageAction
@@ -37,6 +39,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private ObjectManager $orderManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
         private ?OrderProcessorInterface $orderProcessor = null,
+        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -54,6 +57,15 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
                 OrderProcessorInterface::class,
             );
         }
+        if (null === $this->orderOwnershipVerifier) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -61,8 +73,20 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $orderId = $request->attributes->getInt('id');
 
         $order = $this->orderProvider->provideOrderById($orderId);
-        /** @var PaymentInterface $payment */
+        if (null === $this->orderOwnershipVerifier) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to verify order ownership.',
+                OrderOwnershipVerifierInterface::class,
+            ));
+        }
+        $this->orderOwnershipVerifier->verify($order, $request);
+
         $payment = $order->getLastPayment(PaymentInterface::STATE_PROCESSING);
+        if (null === $payment) {
+            return new JsonResponse([], Response::HTTP_CONFLICT);
+        }
+
+        $payPalOrderId = (string) ($payment->getDetails()['paypal_order_id'] ?? '');
 
         try {
             if ($this->paymentAmountVerifier !== null) {
@@ -72,14 +96,20 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
             }
         } catch (PaymentAmountMismatchException) {
             $this->paymentStateManager->cancel($payment);
-            $order->removePayment($payment);
 
             if (null === $this->orderProcessor) {
                 throw new \RuntimeException('Order processor is required to process the order.');
             }
             $this->orderProcessor->process($order);
+            $this->orderManager->flush();
+
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.order_total_changed');
 
             return new JsonResponse([
+                'orderId' => $payPalOrderId,
+                'status' => $payment->getState(),
                 'return_url' => $this->router->generate('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL),
             ]);
         }
@@ -93,6 +123,8 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         $request->getSession()->set('sylius_order_id', $order->getId());
 
         return new JsonResponse([
+            'orderId' => $payPalOrderId,
+            'status' => $payment->getState(),
             'return_url' => $this->router->generate('sylius_shop_order_thank_you', [], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
     }

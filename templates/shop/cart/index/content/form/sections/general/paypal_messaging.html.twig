@@ -1,0 +1,12 @@
+{% if sylius_paypal_is_messaging_enabled() %}
+    {% set cart = hookable_metadata.context.resource %}
+
+    <paypal-message
+        {{ stimulus_controller('@sylius/paypal-plugin/paypal-message', {
+            amount: (cart.total / 100)|number_format(2, '.', ''),
+            currencyCode: cart.currencyCode,
+            scriptUrl: sylius_paypal_web_sdk_script_url(),
+            instanceConfig: sylius_paypal_web_sdk_instance_config('cart'),
+        }) }}
+    ></paypal-message>
+{% endif %}

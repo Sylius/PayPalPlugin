@@ -25,6 +25,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
+use Sylius\Component\Channel\Context\ChannelNotFoundException;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -362,5 +363,66 @@ final class PayPalClientTest extends TestCase
         $this->expectException(PayPalApiTimeoutException::class);
 
         $this->payPalClient->get('v2/get-request/', 'TOKEN');
+    }
+
+    public function test_it_attributes_the_request_to_the_partner(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $this->channelContext->method('getChannel')->willReturn($channel);
+        $this->payPalConfigurationProvider->method('getPartnerAttributionId')->with($channel)->willReturn('BN_CODE');
+
+        self::assertSame('BN_CODE', $this->headersOfNextGetRequest()['PayPal-Partner-Attribution-Id'] ?? null);
+    }
+
+    public function test_it_keeps_talking_to_paypal_when_no_channel_is_in_context(): void
+    {
+        $this->channelContext->method('getChannel')->willThrowException(new ChannelNotFoundException());
+        $this->logger->expects(self::once())->method('warning');
+
+        $headers = $this->headersOfNextGetRequest();
+
+        self::assertArrayNotHasKey('PayPal-Partner-Attribution-Id', $headers);
+        self::assertSame('Bearer TOKEN', $headers['Authorization']);
+    }
+
+    public function test_it_keeps_talking_to_paypal_when_the_channel_has_no_paypal_payment_method(): void
+    {
+        $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
+        $this->payPalConfigurationProvider
+            ->method('getPartnerAttributionId')
+            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'))
+        ;
+        $this->logger->expects(self::once())->method('warning');
+
+        self::assertArrayNotHasKey('PayPal-Partner-Attribution-Id', $this->headersOfNextGetRequest());
+    }
+
+    /** @return array<string, string> */
+    private function headersOfNextGetRequest(): array
+    {
+        $headers = [];
+
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('withHeader')->willReturnCallback(
+            function (string $header, string $value) use (&$headers, $request): RequestInterface {
+                $headers[$header] = $value;
+
+                return $request;
+            },
+        );
+
+        $body = $this->createMock(StreamInterface::class);
+        $body->method('getContents')->willReturn('{}');
+
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(200);
+        $response->method('getBody')->willReturn($body);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $this->client->method('sendRequest')->willReturn($response);
+
+        $this->payPalClient->get('v2/checkout/orders/123123', 'TOKEN');
+
+        return $headers;
     }
 }

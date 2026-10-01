@@ -20,6 +20,7 @@
         <parameter key="sylius_paypal.request_trials_limit">5</parameter>
         <parameter key="sylius_paypal.webhook_base_url"></parameter>
         <parameter key="sylius_paypal.webhook_id_refresh_cooldown">300</parameter>
+        <parameter key="sylius_paypal.callback_certificate_lifetime">86400</parameter>
     </parameters>
     <services>
         <service
@@ -67,6 +68,14 @@
         <service id="Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface" alias="sylius_paypal.api.cache_authorize_client" />
 
         <service
+            id="sylius_paypal.api.find_eligible_methods"
+            class="Sylius\PayPalPlugin\Api\FindEligibleMethodsApi"
+        >
+            <argument type="service" id="sylius_paypal.client.paypal" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface" alias="sylius_paypal.api.find_eligible_methods" />
+
+        <service
             id="sylius_paypal.api.complete_order"
             class="Sylius\PayPalPlugin\Api\CompleteOrderApi"
         >
@@ -90,6 +99,7 @@
             <argument type="service" id="sylius_paypal.client.paypal" />
             <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
             <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
+            <argument type="service" id="sylius_paypal.factory.paypal_order" />
         </service>
         <service id="Sylius\PayPalPlugin\Api\CreateOrderApiInterface" alias="sylius_paypal.api.create_order" />
 
@@ -121,6 +131,17 @@
         <service id="Sylius\PayPalPlugin\Api\WebhookApiInterface" alias="sylius_paypal.api.webhook" />
 
         <service
+            id="sylius_paypal.api.update_webhook"
+            class="Sylius\PayPalPlugin\Api\UpdateWebhookApi"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument>%sylius_paypal.api_base_url%</argument>
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface" alias="sylius_paypal.api.update_webhook" />
+
+        <service
             id="sylius_paypal.api.webhook_signature_verifier"
             class="Sylius\PayPalPlugin\Api\WebhookSignatureVerifier"
         >
@@ -132,6 +153,17 @@
         <service id="Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface" alias="sylius_paypal.api.webhook_signature_verifier" />
 
         <service
+            id="sylius_paypal.api.callback_signature_verifier"
+            class="Sylius\PayPalPlugin\Api\CallbackSignatureVerifier"
+        >
+            <argument type="service" id="sylius.http_client" />
+            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
+            <argument type="service" id="sylius_paypal.cache" />
+            <argument>%sylius_paypal.callback_certificate_lifetime%</argument>
+        </service>
+        <service id="Sylius\PayPalPlugin\Api\CallbackSignatureVerifierInterface" alias="sylius_paypal.api.callback_signature_verifier" />
+
+        <service
             id="sylius_paypal.provider.webhook_id"
             class="Sylius\PayPalPlugin\Provider\WebhookIdProvider"
         >
@@ -140,6 +172,7 @@
             <argument type="service" id="router" />
             <argument>%sylius_paypal.api_base_url%</argument>
             <argument>%sylius_paypal.webhook_base_url%</argument>
+            <argument type="service" id="sylius_paypal.provider.webhook_url" />
         </service>
 
         <service
@@ -149,7 +182,7 @@
         >
             <argument type="service" id=".inner" />
             <argument type="service" id="doctrine.orm.entity_manager" />
-            <argument type="service" id="cache.app" />
+            <argument type="service" id="sylius_paypal.cache" />
             <argument>%sylius_paypal.webhook_id_refresh_cooldown%</argument>
         </service>
         <service id="Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface" alias="sylius_paypal.provider.webhook_id" />
@@ -161,6 +194,7 @@
             <argument type="service" id="sylius_paypal.client.paypal" />
             <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
             <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
+            <argument type="service" id="sylius_paypal.factory.purchase_unit" />
         </service>
         <service id="Sylius\PayPalPlugin\Api\UpdateOrderApiInterface" alias="sylius_paypal.api.update_order" />
 

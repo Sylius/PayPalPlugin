@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Webmozart\Assert\Assert;
@@ -62,12 +63,12 @@ final readonly class BasicOnboardingProcessor implements OnboardingProcessorInte
         }
 
         $gatewayConfig->setConfig([
-            'client_id' => $response['client_id'],
-            'client_secret' => $response['client_secret'],
-            'merchant_id' => $response['merchant_id'],
-            'sylius_merchant_id' => $response['sylius_merchant_id'],
-            'onboarding_id' => $onboardingId,
-            'partner_attribution_id' => $response['partner_attribution_id'],
+            PayPalGatewayConfig::CLIENT_ID => $response['client_id'],
+            PayPalGatewayConfig::CLIENT_SECRET => $response['client_secret'],
+            PayPalGatewayConfig::MERCHANT_ID => $response['merchant_id'],
+            PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $response['sylius_merchant_id'],
+            PayPalGatewayConfig::ONBOARDING_ID => $onboardingId,
+            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $response['partner_attribution_id'],
         ]);
 
         $permissionsGranted = $request->query->get('permissionsGranted') === null || (bool) $request->query->get('permissionsGranted');
