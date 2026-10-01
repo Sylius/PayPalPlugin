@@ -111,15 +111,11 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
     }
 
     #[Test]
-    public function it_adds_a_validation_error_when_the_carrier_is_missing(): void
+    public function it_accepts_a_tracking_number_without_a_carrier(): void
     {
         $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']]);
 
-        self::assertFalse($form->isValid());
-        self::assertSame(
-            'sylius_paypal.shipment_tracking.carrier_required',
-            (string) $form->get('paypal_tracking')->get('carrier')->getErrors()[0]->getMessage(),
-        );
+        self::assertTrue($form->isValid());
     }
 
     #[Test]

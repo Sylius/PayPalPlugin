@@ -66,16 +66,11 @@ final class ShipmentTrackingCarrierValidatorTest extends ConstraintValidatorTest
     }
 
     #[Test]
-    public function it_requires_a_carrier_when_a_tracking_number_is_given(): void
+    public function it_does_not_require_a_carrier_when_a_tracking_number_is_given(): void
     {
-        $constraint = new ShipmentTrackingCarrier();
+        $this->validator->validate(new ShipmentTrackingData(null, null, 'TRACK1'), new ShipmentTrackingCarrier());
 
-        $this->validator->validate(new ShipmentTrackingData(null, null, 'TRACK1'), $constraint);
-
-        $this->buildViolation($constraint->carrierRequiredMessage)
-            ->atPath('property.path.carrier')
-            ->assertRaised()
-        ;
+        $this->assertNoViolation();
     }
 
     #[Test]
