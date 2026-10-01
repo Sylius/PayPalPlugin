@@ -15,15 +15,16 @@ namespace Sylius\PayPalPlugin\Console\Command;
 
 use Doctrine\Persistence\ObjectManager;
 use Payum\Core\Model\GatewayConfigInterface;
+use Psr\Log\NullLogger;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -35,48 +36,110 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 final class CompletePaidPaymentsCommand extends Command
 {
-    /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
+    /**
+     * @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository
+     *
+     * @deprecated the $paymentManager, $authorizeClientApi, $orderDetailsApi and $stateMachine arguments are
+     *             deprecated since Sylius/PayPalPlugin 2.1 and will be removed in Sylius/PayPalPlugin 3.0.
+     *             Pass a $paymentSettlementProcessor instead.
+     */
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
-        private readonly ObjectManager $paymentManager,
-        private readonly CacheAuthorizeClientApiInterface $authorizeClientApi,
-        private readonly OrderDetailsApiInterface $orderDetailsApi,
-        private readonly StateMachineInterface $stateMachine,
+        private readonly ?ObjectManager $paymentManager = null,
+        private readonly ?CacheAuthorizeClientApiInterface $authorizeClientApi = null,
+        private readonly ?OrderDetailsApiInterface $orderDetailsApi = null,
+        private readonly ?StateMachineInterface $stateMachine = null,
+        private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
     ) {
         parent::__construct();
+
+        foreach ([
+            ObjectManager::class => $this->paymentManager,
+            CacheAuthorizeClientApiInterface::class => $this->authorizeClientApi,
+            OrderDetailsApiInterface::class => $this->orderDetailsApi,
+            StateMachineInterface::class => $this->stateMachine,
+        ] as $class => $argument) {
+            if (null !== $argument) {
+                trigger_deprecation(
+                    'sylius/paypal-plugin',
+                    '2.1',
+                    'Passing an instance of "%s" to "%s" constructor is deprecated and will be prohibited in 3.0.',
+                    $class,
+                    self::class,
+                );
+            }
+        }
+
+        if (null === $this->paymentSettlementProcessor) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
+                PaymentSettlementProcessorInterface::class,
+                self::class,
+            );
+        }
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $paymentSettlementProcessor = $this->paymentSettlementProcessor ?? $this->buildPaymentSettlementProcessor();
+
+        if (null === $paymentSettlementProcessor) {
+            $output->writeln(sprintf(
+                '<error>No %s was given, so no payment can be settled.</error>',
+                PaymentSettlementProcessorInterface::class,
+            ));
+
+            return Command::FAILURE;
+        }
+
         $payments = $this->paymentRepository->findBy(['state' => PaymentInterface::STATE_PROCESSING]);
+
         /** @var PaymentInterface $payment */
         foreach ($payments as $payment) {
-            /** @var PaymentMethodInterface $paymentMethod */
-            $paymentMethod = $payment->getMethod();
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $paymentMethod->getGatewayConfig();
-            if ($gatewayConfig->getFactoryName() !== SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
+            if (!$this->isPayPalPayment($payment)) {
                 continue;
             }
 
-            /** @var string $payPalOrderId */
-            $payPalOrderId = $payment->getDetails()['paypal_order_id'];
-
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
-            $details = $this->orderDetailsApi->get($token, $payPalOrderId);
-
-            if ($details['status'] === 'COMPLETED') {
-                $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE);
-
-                $paymentDetails = $payment->getDetails();
-                $paymentDetails['status'] = StatusAction::STATUS_COMPLETED;
-
-                $payment->setDetails($paymentDetails);
-            }
+            $paymentSettlementProcessor->settle($payment);
         }
 
-        $this->paymentManager->flush();
-
         return Command::SUCCESS;
+    }
+
+    private function buildPaymentSettlementProcessor(): ?PaymentSettlementProcessorInterface
+    {
+        if (
+            null === $this->authorizeClientApi ||
+            null === $this->orderDetailsApi ||
+            null === $this->stateMachine ||
+            null === $this->paymentManager
+        ) {
+            return null;
+        }
+
+        return new PayPalPaymentSettlementProcessor(
+            $this->authorizeClientApi,
+            $this->orderDetailsApi,
+            $this->stateMachine,
+            $this->paymentManager,
+            new NullLogger(),
+        );
+    }
+
+    private function isPayPalPayment(PaymentInterface $payment): bool
+    {
+        $paymentMethod = $payment->getMethod();
+        if (!$paymentMethod instanceof PaymentMethodInterface) {
+            return false;
+        }
+
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return
+            $gatewayConfig instanceof GatewayConfigInterface &&
+            $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
+        ;
     }
 }

@@ -1,0 +1,5 @@
+{% set form = hookable_metadata.context.form %}
+
+{% if form.paypal_tracking is defined %}
+    {{ form_widget(form.paypal_tracking.carrier, sylius_test_form_attribute('shipment-carrier')|sylius_merge_recursive({'attr': {'style': 'min-width: 185px', 'data-model': 'on(change)|' ~ form.vars.name ~ '.paypal_tracking.carrier'}})) }}
+{% endif %}

@@ -23,3 +23,8 @@ parameters:
             reportUnmatched: false
 
         - '/Dead catch - Sylius\\PayPalPlugin\\Exception\\PayPalWebhookUrlNotValidException is never thrown in the try block\./' # architectural smell
+
+        # $order is kept only for BC and will be removed in 3.0
+        -
+            identifier: constructor.unusedParameter
+            path: src/Model/PayPalOrder.php

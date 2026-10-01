@@ -28,3 +28,5 @@ Sylius\Component\Core\Model\Payment:
         currencyCode: "USD"
         amount: 40
         state: "cart"
+        details:
+            paypal_order_id: "PAYPAL_ORDER_ID"

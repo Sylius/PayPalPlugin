@@ -30,4 +30,32 @@ final class CreatePayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'processing');
     }
+
+    public function test_it_creates_a_paypal_order_for_the_requested_payment_source(): void
+    {
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
+
+        $this->client->request(
+            'POST',
+            '/en_US/create-pay-pal-order/TOKEN',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"paymentSource":"paypal"}',
+        );
+
+        $this->assertSame(200, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function test_it_rejects_a_payment_source_it_does_not_support(): void
+    {
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
+
+        $this->client->request(
+            'POST',
+            '/en_US/create-pay-pal-order/TOKEN',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"paymentSource":"bitcoin"}',
+        );
+
+        $this->assertSame(422, $this->client->getResponse()->getStatusCode());
+    }
 }

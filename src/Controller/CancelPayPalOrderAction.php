@@ -39,7 +39,7 @@ final readonly class CancelPayPalOrderAction
 
     public function __invoke(Request $request): Response
     {
-        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)->add('success', 'sylius.pay_pal.order_cancelled');
+        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)->add('success', 'sylius_paypal.order_cancelled');
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }

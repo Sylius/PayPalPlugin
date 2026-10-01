@@ -4,3 +4,8 @@ sylius_twig_hooks:
             paypal_missing_billing_address:
                 template: '@SyliusPayPalPlugin/shop/checkout/complete/content/form/summary/addresses/paypal_missing_billing_address.html.twig'
                 priority: -100
+
+        'sylius_shop.checkout.complete.content.form.summary.statuses.payments.list':
+            paypal_cancelled_state_label:
+                template: '@SyliusPayPalPlugin/shop/checkout/complete/content/form/summary/statuses/payments/list/paypal_cancelled_state_label.html.twig'
+                priority: 0

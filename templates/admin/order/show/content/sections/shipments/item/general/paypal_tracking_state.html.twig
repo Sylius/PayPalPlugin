@@ -1,0 +1,38 @@
+{% set shipment = hookable_metadata.context.shipment %}
+{% set tracking = sylius_paypal_shipment_tracking(shipment) %}
+{% set state_failed = constant('Sylius\\PayPalPlugin\\PackageTracking\\Entity\\ShipmentTrackingInterface::STATE_FAILED') %}
+{% set state_synced = constant('Sylius\\PayPalPlugin\\PackageTracking\\Entity\\ShipmentTrackingInterface::STATE_SYNCED') %}
+{% set other_carrier_code = constant('Sylius\\PayPalPlugin\\PackageTracking\\Provider\\CarrierProviderInterface::OTHER_CARRIER_CODE') %}
+
+{% if tracking is not null %}
+    <div class="py-2" {{ sylius_test_html_attribute('shipment-paypal-tracking-state') }}>
+        <strong>{{ 'sylius_paypal.shipment_tracking.paypal_sync'|trans }}:</strong>
+        {% if tracking.state == state_synced %}
+            <span class="badge bg-green-lt">{{ 'sylius_paypal.shipment_tracking.state.synced'|trans }}</span>
+        {% elseif tracking.state == state_failed %}
+            <span class="badge text-bg-danger" title="{{ tracking.lastError }}">{{ 'sylius_paypal.shipment_tracking.state.failed'|trans }}</span>
+        {% else %}
+            <span class="badge text-bg-secondary">{{ 'sylius_paypal.shipment_tracking.state.pending'|trans }}</span>
+        {% endif %}
+
+        {% if tracking.carrier is not empty %}
+            <div class="text-secondary">
+                {{ 'sylius_paypal.shipment_tracking.carrier'|trans }}:
+                {{ tracking.carrier == other_carrier_code ? tracking.carrierNameOther : tracking.carrier }}
+            </div>
+        {% endif %}
+
+        {% if tracking.state == state_failed and tracking.lastError is not empty %}
+            <div class="text-danger small text-wrap text-break">{{ tracking.lastError }}</div>
+        {% endif %}
+
+        {% if tracking.attempts > 0 %}
+            <div class="text-secondary small" title="{{ 'sylius_paypal.shipment_tracking.created_at'|trans }}: {{ tracking.createdAt|date('d-m-Y H:i:s') }}">
+                {{ 'sylius_paypal.shipment_tracking.attempts'|trans }}: {{ tracking.attempts }}
+                {% if tracking.updatedAt is not null %}
+                    &middot; {{ 'sylius_paypal.shipment_tracking.last_attempt'|trans }}: {{ tracking.updatedAt|date('d-m-Y H:i:s') }}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

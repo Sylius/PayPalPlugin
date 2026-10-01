@@ -37,6 +37,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $this->setCommunicationParameters($container, $config);
 
         $container->setParameter('sylius_paypal.supported_locales', $config['supported_locales']);
+        $container->setParameter('sylius_paypal.tracking.carriers', $config['tracking']['carriers']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
 
@@ -50,6 +51,8 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
     public function prepend(ContainerBuilder $container): void
     {
+        $this->prependDoctrineMapping($container);
+
         if (!$container->hasExtension('doctrine_migrations') || !$container->hasExtension('sylius_labs_doctrine_migrations_extra')) {
             return;
         }
@@ -80,20 +83,43 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         ]);
     }
 
+    private function prependDoctrineMapping(ContainerBuilder $container): void
+    {
+        if (!$container->hasExtension('doctrine')) {
+            return;
+        }
+
+        $container->prependExtensionConfig('doctrine', [
+            'orm' => [
+                'mappings' => [
+                    'SyliusPayPalPluginPackageTracking' => [
+                        'type' => 'attribute',
+                        'dir' => \dirname(__DIR__) . '/PackageTracking/Entity',
+                        'prefix' => 'Sylius\PayPalPlugin\PackageTracking\Entity',
+                        'is_bundle' => false,
+                    ],
+                ],
+            ],
+        ]);
+    }
+
     private function setCommunicationParameters(ContainerBuilder $container, array $config): void
     {
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
         $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
+        $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
             $container->setParameter('sylius_paypal.facilitator_url', 'https://paypal.sylius.com');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.sandbox.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
+            $container->setParameter('sylius_paypal.web_url', 'https://www.sandbox.paypal.com');
         } else {
             $container->setParameter('sylius_paypal.facilitator_url', 'https://prod.paypal.sylius.com');
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
+            $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
         }
     }
 
@@ -104,6 +130,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $sandboxEnv = $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] ?? null;
         if ($sandboxEnv !== null) {
             $envConfig['sandbox'] = filter_var($sandboxEnv, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE) ?? false;
+        }
+
+        $testBuyerCountryEnv = $_ENV['SYLIUS_PAYPAL_TEST_BUYER_COUNTRY'] ?? null;
+        if ($testBuyerCountryEnv !== null) {
+            $envConfig['test_buyer_country'] = $testBuyerCountryEnv;
         }
 
         $loggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;
