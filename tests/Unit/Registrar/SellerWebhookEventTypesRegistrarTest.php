@@ -21,8 +21,8 @@ use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
-use Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 
@@ -48,7 +48,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->updateWebhookApi = $this->createMock(UpdateWebhookApiInterface::class);
         $this->webhookApi = $this->createMock(WebhookApiInterface::class);
 
-        $webhookUrlProvider = $this->createStub(PayPalWebhookUrlProviderInterface::class);
+        $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
         $webhookUrlProvider->method('provide')->willReturn('https://shop.example.com/paypal-webhook/api/');
 
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);

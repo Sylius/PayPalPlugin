@@ -33,7 +33,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
     public const VENMO_COMPONENT = 'venmo-payments';
 
     public function __construct(
-        private PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
+        private WebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private UrlGeneratorInterface $router,
         private LocaleProcessorInterface $localeProcessor,
         private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
@@ -108,7 +108,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
     /** @return array<int, string> */
     private function components(ChannelInterface $channel): array
     {
-        $components = [...PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT];
+        $components = [...WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT];
 
         if ($this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel)) {
             $components[] = self::GOOGLE_PAY_COMPONENT;

@@ -69,7 +69,7 @@
    shipping method. It now declares a server-side callback instead, and PayPal calls it directly.
 
    A new route, `sylius_paypal_order_shipping_callback` (`POST /paypal/order-shipping-callback`,
-   controller `Sylius\PayPalPlugin\Controller\PayPalOrderShippingCallbackAction`), answers with every
+   controller `Sylius\PayPalPlugin\Controller\ShippingCallbackAction`), answers with every
    shipping method eligible for the address the buyer chose, each with its own price, or with a `422` naming
    the reason the order cannot be shipped there. Nothing is written to the order: the buyer has approved
    nothing yet.
@@ -89,16 +89,16 @@
    development shop simply does not get wallet shipping options. Two knobs matter if the URL comes out wrong:
    `router.request_context.host` and `router.request_context.scheme`.
 
-   That rule lives in `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface`
-   (`sylius_paypal.provider.paypal_shipping_callback_url`), which returns `null` rather than a URL PayPal
+   That rule lives in `Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface`
+   (`sylius_paypal.provider.shipping_callback_url`), which returns `null` rather than a URL PayPal
    could not call. Decorate or replace it if your shop reaches PayPal some other way — for instance behind a
    proxy that terminates TLS in front of an `http` backend.
 
    Three services carry the work and can be decorated or replaced:
-   `Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface` turns an order plus a partial
+   `Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface` turns an order plus a partial
    address into PayPal's option list, `Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface`
    maps PayPal's redacted address onto a Sylius one, and
-   `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` shapes the answer. The first
+   `Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface` shapes the answer. The first
    two build on stock Sylius services, so the wallet offers the same methods and prices as the normal
    checkout does for the same address.
 
@@ -122,8 +122,8 @@
    find the chosen option.
 
    Which option is selected when the buyer has not chosen one is decided by
-   `Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactoryInterface`
-   (`sylius_paypal.factory.paypal_shipping_options`) — decorate that to change the default, without touching
+   `Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface`
+   (`sylius_paypal.factory.shipping_options`) — decorate that to change the default, without touching
    the resolver.
 
    Each option is labelled with the shipping method's name **in the order's locale**, read through
@@ -309,7 +309,7 @@
     {
         public function __construct(
             // ...
-   +        private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+   +        private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ) {
         }
    ```
@@ -370,7 +370,7 @@
     {
         public function __construct(
             // ...
-   +        private ?PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
+   +        private ?PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
         ) {
         }
    ```
@@ -378,7 +378,7 @@
    ```diff
     <service id="sylius_paypal.api.update_order" class="Sylius\PayPalPlugin\Api\UpdateOrderApi">
         <!-- ... -->
-   +    <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+   +    <argument type="service" id="sylius_paypal.factory.purchase_unit" />
     </service>
    ```
 
@@ -395,11 +395,11 @@
    | Service | Interface | Builds |
    | --- | --- | --- |
    | `sylius_paypal.factory.paypal_order` | `Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface` | the whole `v2/checkout/orders` payload, including the payer return URL and the shipping callback |
-   | `sylius_paypal.factory.paypal_purchase_unit` | `Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface` | one purchase unit, shared by order creation and the `PATCH` that updates it |
-   | `sylius_paypal.provider.paypal_shipping_callback_url` | `Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface` | the shipping callback URL, or `null` when PayPal could not reach it |
-   | `sylius_paypal.factory.paypal_shipping_callback_response` | `Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface` | the body the shipping callback answers with, including the total reconciled against the selected option |
+   | `sylius_paypal.factory.purchase_unit` | `Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface` | one purchase unit, shared by order creation and the `PATCH` that updates it |
+   | `sylius_paypal.provider.shipping_callback_url` | `Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface` | the shipping callback URL, or `null` when PayPal could not reach it |
+   | `sylius_paypal.factory.shipping_callback_response` | `Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface` | the body the shipping callback answers with, including the total reconciled against the selected option |
 
-   `PayPalPurchaseUnitFactoryInterface::create()` takes the merchant id as an optional third argument and
+   `PurchaseUnitFactoryInterface::create()` takes the merchant id as an optional third argument and
    falls back to the `merchant_id` configured on the payment's method, which is what every caller passed
    before. `Sylius\PayPalPlugin\Model\PayPalOrder::INTENT_CAPTURE` now holds the capture intent;
    `CreateOrderApi::PAYPAL_INTENT_CAPTURE` is kept as an alias of it.
@@ -578,7 +578,7 @@
 
 1. #### The following signatures changed.
 
-   `PayPalWebSdkConfigurationProviderInterface::getInstanceConfig()` takes the SDK component list and an
+   `WebSdkConfigurationProviderInterface::getInstanceConfig()` takes the SDK component list and an
    optional locale. Both are optional and default to what the three button placements already send, so
    their configuration is unchanged:
 
@@ -625,7 +625,7 @@
    and an enriched `experience_context`.
 
    Following the PayPal SDD, the `v2/checkout/orders` payload - now assembled by `PayPalOrderFactory` and
-   `PayPalPurchaseUnitFactory` (see above) - changed shape:
+   `PurchaseUnitFactory` (see above) - changed shape:
 
    **The order sends an enriched `payment_source.paypal.experience_context` in place of the deprecated
      `application_context`, on every flow.** It carries `locale`, `shipping_preference`, `contact_preference`,
@@ -730,7 +730,7 @@
             private readonly bool $sandbox,
    +        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
    +        private readonly ?ChannelContextInterface $channelContext = null,
-   +        private readonly ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+   +        private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ) {
         }
    ```
@@ -1040,7 +1040,7 @@
 
    `RefundOrderAction` and its service id keep working and are deprecated in favour of the dispatcher plus
    `RefundOrderWebhookProcessor`. The verification block it used to inline now lives in
-   `Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface`.
+   `Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface`.
 
    The plugin now subscribes to `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
    `PAYMENT.CAPTURE.DECLINED` and `PAYMENT.CAPTURE.PENDING` alongside the existing
@@ -1064,7 +1064,7 @@
    absolute URL from, so the router falls back to `http://localhost/…`, which PayPal will not accept and
    which matches no registered webhook. The same parameter is what makes the plugin agree with itself about
    the webhook URL: registering, looking the id up and verifying a signature all go through
-   `Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface` now, where registration previously
+   `Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface` now, where registration previously
    ignored the parameter and used the request context instead.
 
    **A shop that never runs it is not broken, only slower.** A Trustly payment still settles through the

@@ -127,21 +127,21 @@
         <service id="Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface" alias="sylius_paypal.factory.express_order_address" />
 
         <service
-            id="sylius_paypal.factory.paypal_purchase_unit"
-            class="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory"
+            id="sylius_paypal.factory.purchase_unit"
+            class="Sylius\PayPalPlugin\Factory\PurchaseUnitFactory"
         >
             <argument type="service" id="sylius_paypal.provider.payment_reference_number" />
             <argument type="service" id="sylius_paypal.provider.paypal_item_data" />
         </service>
-        <service id="Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface" alias="sylius_paypal.factory.paypal_purchase_unit" />
+        <service id="Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface" alias="sylius_paypal.factory.purchase_unit" />
 
         <service
             id="sylius_paypal.factory.paypal_order"
             class="Sylius\PayPalPlugin\Factory\PayPalOrderFactory"
         >
-            <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+            <argument type="service" id="sylius_paypal.factory.purchase_unit" />
             <argument type="service" id="router" />
-            <argument type="service" id="sylius_paypal.provider.paypal_shipping_callback_url" />
+            <argument type="service" id="sylius_paypal.provider.shipping_callback_url" />
             <argument type="service" id="sylius_paypal.provider.experience_context" />
             <argument type="service" id="sylius_paypal.provider.paypal_payment_source" />
         </service>
@@ -162,16 +162,16 @@
         <service id="Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface" alias="sylius_paypal.provider.paypal_payment_source" />
 
         <service
-            id="sylius_paypal.factory.paypal_shipping_callback_response"
-            class="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactory"
+            id="sylius_paypal.factory.shipping_callback_response"
+            class="Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactory"
         />
-        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingCallbackResponseFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_callback_response" />
+        <service id="Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface" alias="sylius_paypal.factory.shipping_callback_response" />
 
         <service
-            id="sylius_paypal.factory.paypal_shipping_options"
-            class="Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactory"
+            id="sylius_paypal.factory.shipping_options"
+            class="Sylius\PayPalPlugin\Factory\ShippingOptionsFactory"
         />
-        <service id="Sylius\PayPalPlugin\Factory\PayPalShippingOptionsFactoryInterface" alias="sylius_paypal.factory.paypal_shipping_options" />
+        <service id="Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface" alias="sylius_paypal.factory.shipping_options" />
 
         <service id="sylius_paypal.provider.order" class="Sylius\PayPalPlugin\Provider\OrderProvider">
             <argument type="service" id="sylius.repository.order" />
@@ -179,12 +179,12 @@
         <service id="Sylius\PayPalPlugin\Provider\OrderProviderInterface" alias="sylius_paypal.provider.order" />
 
         <service
-            id="sylius_paypal.provider.paypal_shipping_callback_url"
-            class="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProvider"
+            id="sylius_paypal.provider.shipping_callback_url"
+            class="Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProvider"
         >
             <argument type="service" id="router" />
         </service>
-        <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_url" />
+        <service id="Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface" alias="sylius_paypal.provider.shipping_callback_url" />
 
         <service
             id="sylius_paypal.provider.paypal_order_created_statuses"
@@ -352,21 +352,21 @@
         <service id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_configuration" />
 
         <service
-            id="sylius_paypal.provider.paypal_web_sdk_configuration"
-            class="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProvider"
+            id="sylius_paypal.provider.web_sdk_configuration"
+            class="Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider"
         >
             <argument type="service" id="sylius_paypal.provider.paypal_configuration" />
             <argument>%sylius_paypal.web_url%</argument>
             <argument>%sylius_paypal.sandbox%</argument>
             <argument>%sylius_paypal.test_buyer_country%</argument>
         </service>
-        <service id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.paypal_web_sdk_configuration" />
+        <service id="Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface" alias="sylius_paypal.provider.web_sdk_configuration" />
 
         <service
             id="sylius_paypal.provider.paypal_payment_page_context"
             class="Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider"
         >
-            <argument type="service" id="sylius_paypal.provider.paypal_web_sdk_configuration" />
+            <argument type="service" id="sylius_paypal.provider.web_sdk_configuration" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.processor.locale" />
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
@@ -450,13 +450,13 @@
             <argument type="service" id="monolog.logger.paypal" />
         </service>
 
-        <service id="sylius_paypal.verifier.paypal_webhook_request" class="Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifier">
+        <service id="sylius_paypal.verifier.webhook_request" class="Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier">
             <argument type="service" id="sylius_paypal.provider.paypal_payment_method" />
             <argument type="service" id="sylius_paypal.provider.webhook_id" />
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="sylius_paypal.api.webhook_signature_verifier" />
         </service>
-        <service id="Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface" alias="sylius_paypal.verifier.paypal_webhook_request" />
+        <service id="Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface" alias="sylius_paypal.verifier.webhook_request" />
 
         <service id="sylius_paypal.checker.payer_action" class="Sylius\PayPalPlugin\Checker\PayerActionChecker" />
         <service id="Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface" alias="sylius_paypal.checker.payer_action" />
@@ -470,18 +470,18 @@
         </service>
         <service id="Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface" alias="sylius_paypal.processor.payment_settlement" />
 
-        <service id="sylius_paypal.provider.paypal_webhook_url" class="Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProvider">
+        <service id="sylius_paypal.provider.webhook_url" class="Sylius\PayPalPlugin\Provider\WebhookUrlProvider">
             <argument type="service" id="router" />
             <argument>%sylius_paypal.webhook_base_url%</argument>
         </service>
-        <service id="Sylius\PayPalPlugin\Provider\PayPalWebhookUrlProviderInterface" alias="sylius_paypal.provider.paypal_webhook_url" />
+        <service id="Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface" alias="sylius_paypal.provider.webhook_url" />
 
         <service id="sylius_paypal.registrar.seller_webhook_event_types" class="Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar">
             <argument type="service" id="sylius_paypal.provider.webhook_id" />
             <argument type="service" id="sylius_paypal.api.cache_authorize_client" />
             <argument type="service" id="sylius_paypal.api.update_webhook" />
             <argument type="service" id="sylius_paypal.api.webhook" />
-            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
+            <argument type="service" id="sylius_paypal.provider.webhook_url" />
         </service>
         <service id="Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface" alias="sylius_paypal.registrar.seller_webhook_event_types" />
 
@@ -514,7 +514,7 @@
             <argument type="service" id="sylius_paypal.api.authorize_client" />
             <argument type="service" id="router" />
             <argument type="service" id="sylius_paypal.api.webhook" />
-            <argument type="service" id="sylius_paypal.provider.paypal_webhook_url" />
+            <argument type="service" id="sylius_paypal.provider.webhook_url" />
         </service>
         <service id="Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface" alias="sylius_paypal.registrar.seller_webhook" />
 
@@ -528,7 +528,7 @@
             <argument>%sylius_paypal.sandbox%</argument>
             <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface" />
             <argument type="service" id="sylius.context.channel" />
-            <argument type="service" id="Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface" />
+            <argument type="service" id="Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface" />
             <argument type="service" id="sylius_paypal.checker.payer_action" />
             <argument type="service" id="sylius_paypal.provider.current_paypal_locale" />
             <tag name="twig.extension" />
@@ -594,24 +594,24 @@
         <service id="Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface" alias="sylius_paypal.resolver.supported_locale" />
 
         <service
-            id="sylius_paypal.resolver.paypal_shipping_options"
-            class="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolver"
+            id="sylius_paypal.resolver.shipping_options"
+            class="Sylius\PayPalPlugin\Resolver\ShippingOptionsResolver"
         >
             <argument type="service" id="sylius.resolver.shipping_methods" />
             <argument type="service" id="sylius.calculator.shipping" />
-            <argument type="service" id="sylius_paypal.factory.paypal_shipping_options" />
+            <argument type="service" id="sylius_paypal.factory.shipping_options" />
         </service>
-        <service id="Sylius\PayPalPlugin\Resolver\PayPalShippingOptionsResolverInterface" alias="sylius_paypal.resolver.paypal_shipping_options" />
+        <service id="Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface" alias="sylius_paypal.resolver.shipping_options" />
 
         <service
-            id="sylius_paypal.provider.paypal_shipping_callback_amount"
-            class="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProvider"
+            id="sylius_paypal.provider.shipping_callback_amount"
+            class="Sylius\PayPalPlugin\Provider\ShippingCallbackAmountProvider"
         >
             <argument type="service" id="sylius.order_processing.order_processor" />
             <argument type="service" id="sylius.resolver.shipping_methods" />
-            <argument type="service" id="sylius_paypal.factory.paypal_purchase_unit" />
+            <argument type="service" id="sylius_paypal.factory.purchase_unit" />
             <argument type="service" id="doctrine.orm.entity_manager" />
         </service>
-        <service id="Sylius\PayPalPlugin\Provider\PayPalShippingCallbackAmountProviderInterface" alias="sylius_paypal.provider.paypal_shipping_callback_amount" />
+        <service id="Sylius\PayPalPlugin\Provider\ShippingCallbackAmountProviderInterface" alias="sylius_paypal.provider.shipping_callback_amount" />
     </services>
 </container>

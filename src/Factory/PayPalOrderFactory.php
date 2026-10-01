@@ -21,7 +21,7 @@ use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
+use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
 
@@ -32,9 +32,9 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
     private PayPalPaymentSourceProviderInterface $paymentSourceProvider;
 
     public function __construct(
-        private PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
+        private PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
         private ?UrlGeneratorInterface $router = null,
-        private ?PayPalShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
+        private ?ShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
         ?ExperienceContextProviderInterface $experienceContextProvider = null,
         ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
     ) {

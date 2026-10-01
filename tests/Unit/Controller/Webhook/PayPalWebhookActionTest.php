@@ -19,13 +19,13 @@ use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
-use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface;
+use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final class PayPalWebhookActionTest extends TestCase
 {
-    private PayPalWebhookRequestVerifierInterface&MockObject $requestVerifier;
+    private WebhookRequestVerifierInterface&MockObject $requestVerifier;
 
     private WebhookProcessorInterface&MockObject $refundProcessor;
 
@@ -38,7 +38,7 @@ final class PayPalWebhookActionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->requestVerifier = $this->createMock(PayPalWebhookRequestVerifierInterface::class);
+        $this->requestVerifier = $this->createMock(WebhookRequestVerifierInterface::class);
         $this->refundProcessor = $this->createMock(WebhookProcessorInterface::class);
         $this->captureProcessor = $this->createMock(WebhookProcessorInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);

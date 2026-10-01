@@ -25,7 +25,7 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -47,7 +47,7 @@ final readonly class PayPalButtonsController
         private OrderRepositoryInterface $orderRepository,
         private AvailableCountriesProviderInterface $availableCountriesProvider,
         LocaleProcessorInterface $localeProcessor,
-        private ?PayPalWebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+        private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
     ) {
@@ -65,7 +65,7 @@ final readonly class PayPalButtonsController
                 'sylius/paypal-plugin',
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalWebSdkConfigurationProviderInterface::class,
+                WebSdkConfigurationProviderInterface::class,
                 self::class,
             );
         }
@@ -194,7 +194,7 @@ final readonly class PayPalButtonsController
     /** @return array<int, string> */
     private function getWebSdkComponents(bool $venmoEnabled): array
     {
-        $components = PayPalWebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
+        $components = WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
 
         if ($venmoEnabled) {
             $components[] = self::VENMO_COMPONENT;
@@ -203,12 +203,12 @@ final readonly class PayPalButtonsController
         return $components;
     }
 
-    private function getWebSdkConfigurationProvider(): PayPalWebSdkConfigurationProviderInterface
+    private function getWebSdkConfigurationProvider(): WebSdkConfigurationProviderInterface
     {
         if (null === $this->webSdkConfigurationProvider) {
             throw new \RuntimeException(sprintf(
                 'An instance of "%s" is required to render the v6 Web SDK placements.',
-                PayPalWebSdkConfigurationProviderInterface::class,
+                WebSdkConfigurationProviderInterface::class,
             ));
         }
 

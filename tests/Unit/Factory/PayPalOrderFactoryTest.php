@@ -21,20 +21,20 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
+use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalShippingCallbackUrlProviderInterface;
+use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalOrderFactoryTest extends TestCase
 {
-    private PayPalPurchaseUnitFactoryInterface&MockObject $payPalPurchaseUnitFactory;
+    private PurchaseUnitFactoryInterface&MockObject $payPalPurchaseUnitFactory;
 
     private UrlGeneratorInterface&MockObject $router;
 
-    private PayPalShippingCallbackUrlProviderInterface&MockObject $shippingCallbackUrlProvider;
+    private ShippingCallbackUrlProviderInterface&MockObject $shippingCallbackUrlProvider;
 
     private OrderInterface&MockObject $order;
 
@@ -45,9 +45,9 @@ final class PayPalOrderFactoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $this->payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
         $this->router = $this->createMock(UrlGeneratorInterface::class);
-        $this->shippingCallbackUrlProvider = $this->createMock(PayPalShippingCallbackUrlProviderInterface::class);
+        $this->shippingCallbackUrlProvider = $this->createMock(ShippingCallbackUrlProviderInterface::class);
         $this->order = $this->createMock(OrderInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
@@ -76,7 +76,7 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_captures_and_delegates_the_purchase_unit_to_its_own_factory(): void
     {
-        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
         $payPalPurchaseUnitFactory
             ->expects(self::once())
             ->method('create')
@@ -95,7 +95,7 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_leaves_the_item_taxes_out_when_paypal_calls_back_with_the_address(): void
     {
-        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
         $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($this->payment, 'REFERENCE_ID', null, false)->willReturn($this->purchaseUnit());
 
         (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router, $this->shippingCallbackUrlProvider))->create($this->payment, 'REFERENCE_ID');
@@ -109,7 +109,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
 
-        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
         $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($payment, 'REFERENCE_ID', null, true)->willReturn($this->purchaseUnit());
 
         (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router, $this->shippingCallbackUrlProvider))->create($payment, 'REFERENCE_ID');
@@ -117,7 +117,7 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_sends_the_item_taxes_when_no_shipping_callback_is_declared(): void
     {
-        $payPalPurchaseUnitFactory = $this->createMock(PayPalPurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
         $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($this->payment, 'REFERENCE_ID', null, true)->willReturn($this->purchaseUnit());
 
         (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router))->create($this->payment, 'REFERENCE_ID');
@@ -190,7 +190,7 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_declares_no_shipping_callback_when_its_provider_has_no_url_to_give(): void
     {
-        $shippingCallbackUrlProvider = $this->createMock(PayPalShippingCallbackUrlProviderInterface::class);
+        $shippingCallbackUrlProvider = $this->createMock(ShippingCallbackUrlProviderInterface::class);
         $shippingCallbackUrlProvider->method('provide')->willReturn(null);
 
         $experienceContext = (new PayPalOrderFactory(

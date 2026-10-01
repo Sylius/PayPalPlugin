@@ -25,8 +25,8 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
-use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifier;
-use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface;
+use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier;
+use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,7 +44,7 @@ final readonly class RefundOrderAction
         private WebhookSignatureVerifierInterface $webhookSignatureVerifier,
         private WebhookIdProviderInterface $webhookIdProvider,
         private ?PaypalPaymentQueryInterface $paypalPaymentQuery = null,
-        private ?PayPalWebhookRequestVerifierInterface $requestVerifier = null,
+        private ?WebhookRequestVerifierInterface $requestVerifier = null,
     ) {
         if (null !== $this->paymentProvider) {
             trigger_deprecation(
@@ -95,9 +95,9 @@ final readonly class RefundOrderAction
         return new JsonResponse([], Response::HTTP_NO_CONTENT);
     }
 
-    private function requestVerifier(): PayPalWebhookRequestVerifierInterface
+    private function requestVerifier(): WebhookRequestVerifierInterface
     {
-        return $this->requestVerifier ?? new PayPalWebhookRequestVerifier(
+        return $this->requestVerifier ?? new WebhookRequestVerifier(
             $this->payPalPaymentMethodProvider,
             $this->webhookIdProvider,
             $this->authorizeClientApi,

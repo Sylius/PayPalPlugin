@@ -27,7 +27,7 @@ use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -51,7 +51,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private LocaleProcessorInterface&MockObject $localeProcessor;
 
-    private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+    private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
 
     private PayPalFundingSourcesConfigurationProviderInterface&MockObject $fundingSourcesConfigurationProvider;
 
@@ -76,7 +76,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->orderRepository = $this->createMock(OrderRepositoryInterface::class);
         $this->availableCountriesProvider = $this->createMock(AvailableCountriesProviderInterface::class);
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
-        $this->webSdkConfigurationProvider = $this->createMock(PayPalWebSdkConfigurationProviderInterface::class);
+        $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
         $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
 
         $this->channel = $this->createMock(ChannelInterface::class);

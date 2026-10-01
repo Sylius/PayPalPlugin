@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Controller\Webhook;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\PermanentWebhookFailureInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
-use Sylius\PayPalPlugin\Verifier\PayPalWebhookRequestVerifierInterface;
+use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +25,7 @@ final readonly class PayPalWebhookAction
 {
     /** @param iterable<WebhookProcessorInterface> $processors */
     public function __construct(
-        private PayPalWebhookRequestVerifierInterface $requestVerifier,
+        private WebhookRequestVerifierInterface $requestVerifier,
         private iterable $processors,
         private LoggerInterface $logger,
     ) {

@@ -15,8 +15,8 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactory;
-use Sylius\PayPalPlugin\Factory\PayPalPurchaseUnitFactoryInterface;
+use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
+use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
@@ -26,7 +26,7 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
         private PayPalItemDataProviderInterface $payPalItemsDataProvider,
-        private ?PayPalPurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
+        private ?PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
     ) {
         if (null === $this->payPalPurchaseUnitFactory) {
             trigger_deprecation(
@@ -60,9 +60,9 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
         );
     }
 
-    private function getPayPalPurchaseUnitFactory(): PayPalPurchaseUnitFactoryInterface
+    private function getPayPalPurchaseUnitFactory(): PurchaseUnitFactoryInterface
     {
-        return $this->payPalPurchaseUnitFactory ?? new PayPalPurchaseUnitFactory(
+        return $this->payPalPurchaseUnitFactory ?? new PurchaseUnitFactory(
             $this->paymentReferenceNumberProvider,
             $this->payPalItemsDataProvider,
         );

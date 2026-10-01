@@ -25,7 +25,7 @@ use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalWebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 
 final class PayPalExtensionTest extends TestCase
@@ -34,7 +34,7 @@ final class PayPalExtensionTest extends TestCase
 
     private ChannelContextInterface&MockObject $channelContext;
 
-    private PayPalWebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+    private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
 
     private LocaleContextInterface&MockObject $localeContext;
 
@@ -47,7 +47,7 @@ final class PayPalExtensionTest extends TestCase
         parent::setUp();
         $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
         $this->channelContext = $this->createMock(ChannelContextInterface::class);
-        $this->webSdkConfigurationProvider = $this->createMock(PayPalWebSdkConfigurationProviderInterface::class);
+        $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
         $this->localeContext = $this->createMock(LocaleContextInterface::class);
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
         $this->extension = new PayPalExtension(

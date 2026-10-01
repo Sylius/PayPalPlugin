@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 {
-    private PayPalWebhookUrlProviderInterface $webhookUrlProvider;
+    private WebhookUrlProviderInterface $webhookUrlProvider;
 
     public function __construct(
         private GenericApiInterface $genericApi,
@@ -28,9 +28,9 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         private UrlGeneratorInterface $urlGenerator,
         private string $baseUrl,
         private string $webhookBaseUrl = '',
-        ?PayPalWebhookUrlProviderInterface $webhookUrlProvider = null,
+        ?WebhookUrlProviderInterface $webhookUrlProvider = null,
     ) {
-        $this->webhookUrlProvider = $webhookUrlProvider ?? new PayPalWebhookUrlProvider($urlGenerator, $webhookBaseUrl);
+        $this->webhookUrlProvider = $webhookUrlProvider ?? new WebhookUrlProvider($urlGenerator, $webhookBaseUrl);
     }
 
     public function provide(PaymentMethodInterface $paymentMethod): ?string

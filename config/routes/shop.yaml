@@ -8,7 +8,7 @@ sylius_paypal_shop_redirect_return:
     path: /paypal/redirect-return/{token}/{nonce}
     methods: [GET]
     defaults:
-        _controller: sylius_paypal.controller.paypal_redirect_return
+        _controller: sylius_paypal.controller.redirect_return
     requirements:
         nonce: '[A-Za-z0-9_-]{16,128}'
 
@@ -16,7 +16,7 @@ sylius_paypal_shop_redirect_cancel:
     path: /paypal/redirect-cancel/{token}/{nonce}
     methods: [GET]
     defaults:
-        _controller: sylius_paypal.controller.paypal_redirect_cancel
+        _controller: sylius_paypal.controller.redirect_cancel
     requirements:
         nonce: '[A-Za-z0-9_-]{16,128}'
 
