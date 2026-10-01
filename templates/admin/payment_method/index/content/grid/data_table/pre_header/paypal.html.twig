@@ -43,9 +43,10 @@
         </td>
 
         <td class="payment-method-list__actions text-end" colspan="4">
-            <a href="{{ path('sylius_admin_payment_method_create', { factory: factory }) }}" class="btn">
+            {% set modal_target = sylius_is_paypal_sandbox() ? '#confirmation-modal-create-paypal-sandbox' : '#confirmation-modal-create-pay-pal' %}
+            <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="{{ modal_target }}">
                 {{ ux_icon('tabler:settings', { class: 'icon' }) }} {{ 'sylius_paypal.configure'|trans }}
-            </a>
+            </button>
         </td>
     </tr>
 {% endif %}
