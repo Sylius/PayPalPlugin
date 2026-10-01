@@ -15,11 +15,16 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 
 interface PayPalShippingCallbackAmountProviderInterface
 {
-    /** @return array<string, mixed> */
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws ShippingMethodNotAvailableException
+     */
     public function provide(
         PaymentInterface $payment,
         AddressInterface $shippingAddress,
