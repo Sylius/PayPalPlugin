@@ -15,6 +15,15 @@ parameters:
     ignoreErrors:
         - identifier: missingType.iterableValue
 
+        # Symfony 8.1 made the workflow events generic over their subject, Symfony 6.4 and 7.4 did not,
+        # so no single annotation satisfies every matrix row. The subject is asserted at runtime instead.
+        -
+            identifier: missingType.generics
+            paths:
+                - src/EventListener/Workflow/*
+                - src/PackageTracking/EventListener/Workflow/*
+            reportUnmatched: false
+
         - '/Dead catch - Sylius\\PayPalPlugin\\Exception\\PayPalWebhookUrlNotValidException is never thrown in the try block\./' # architectural smell
 
         # $order is kept only for BC and will be removed in 3.0

@@ -18,7 +18,7 @@ return static function (ECSConfig $config): void {
     ]);
 
     $config->import('vendor/sylius-labs/coding-standard/ecs.php');
-    $config->ruleWithConfiguration(PhpdocSeparationFixer::class, ['groups' => [['ORM\\*'], ['Given', 'When', 'Then']]]);
+    $config->ruleWithConfiguration(PhpdocSeparationFixer::class, ['groups' => [['ORM\\*']]]);
     $config->ruleWithConfiguration(
         HeaderCommentFixer::class,
         [
