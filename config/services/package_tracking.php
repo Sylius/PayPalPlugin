@@ -31,6 +31,7 @@ use Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent
 use Sylius\PayPalPlugin\PackageTracking\Twig\ShipmentTrackingExtension;
 use Sylius\PayPalPlugin\PackageTracking\Validator\Constraints\ShipmentTrackingCarrierValidator;
 use Sylius\PayPalPlugin\PackageTracking\Validator\Constraints\ShipShipmentCarrierValidator;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -124,7 +125,7 @@ return static function (ContainerConfigurator $container) {
         ->tag('validator.constraint_validator');
 
     $services->set('sylius_paypal.command_handler.ship_shipment_with_carrier', ShipShipmentWithCarrierHandler::class)
-        ->decorate('sylius_api.command_handler.checkout.ship_shipment')
+        ->decorate('sylius_api.command_handler.checkout.ship_shipment', null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
         ->args([
             service('.inner'),
             service('sylius.repository.shipment'),

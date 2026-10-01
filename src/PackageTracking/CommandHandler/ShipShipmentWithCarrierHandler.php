@@ -25,13 +25,16 @@ use Webmozart\Assert\Assert;
 
 final readonly class ShipShipmentWithCarrierHandler
 {
+    private \Closure $decoratedHandler;
+
     /** @param ShipmentRepositoryInterface<ShipmentInterface> $shipmentRepository */
     public function __construct(
-        private object $decoratedHandler,
+        callable $decoratedHandler,
         private ShipmentRepositoryInterface $shipmentRepository,
         private OrderPayPalPaymentProviderInterface $orderPayPalPaymentProvider,
         private ShipmentTrackingManagerInterface $shipmentTrackingManager,
     ) {
+        $this->decoratedHandler = $decoratedHandler(...);
     }
 
     public function __invoke(ShipShipment $shipShipment): ShipmentInterface
@@ -40,7 +43,6 @@ final readonly class ShipShipmentWithCarrierHandler
             $this->updateCarrier($shipShipment);
         }
 
-        Assert::isCallable($this->decoratedHandler);
         $shipment = ($this->decoratedHandler)($shipShipment);
         Assert::isInstanceOf($shipment, ShipmentInterface::class);
 

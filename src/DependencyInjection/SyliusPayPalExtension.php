@@ -86,11 +86,16 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
     private function prependApiPlatformMapping(ContainerBuilder $container): void
     {
-        if (!$container->hasExtension('api_platform')) {
+        /** @var array<string, array<string, string>> $bundlesMetadata */
+        $bundlesMetadata = $container->getParameter('kernel.bundles_metadata');
+        if (!$container->hasExtension('api_platform') || !isset($bundlesMetadata['SyliusApiBundle'])) {
             return;
         }
 
-        $container->loadFromExtension('api_platform', ['mapping' => ['paths' => [\dirname(__DIR__, 2) . '/config/api_platform']]]);
+        $container->prependExtensionConfig('api_platform', ['mapping' => ['paths' => [
+            $bundlesMetadata['SyliusApiBundle']['path'] . '/Resources/config/api_platform',
+            \dirname(__DIR__, 2) . '/config/api_platform',
+        ]]]);
     }
 
     private function prependDoctrineMapping(ContainerBuilder $container): void

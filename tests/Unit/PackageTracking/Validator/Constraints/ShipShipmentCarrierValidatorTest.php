@@ -88,7 +88,7 @@ final class ShipShipmentCarrierValidatorTest extends TestCase
             ->expects(self::once())
             ->method('validate')
             ->with(
-                self::equalTo(new ShipmentTrackingData('OTHER', 'Local Courier', 'TRACK1')),
+                self::equalTo(new ShipmentTrackingData('OTHER', 'Local Courier')),
                 self::equalTo(new ShipmentTrackingCarrier(groups: ['sylius'])),
                 ['sylius'],
             )
