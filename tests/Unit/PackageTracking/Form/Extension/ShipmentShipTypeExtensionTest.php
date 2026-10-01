@@ -142,7 +142,7 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
     }
 
     #[Test]
-    public function it_submits_the_chosen_carrier_with_the_tracking_number(): void
+    public function it_submits_the_chosen_carrier(): void
     {
         $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
 
@@ -151,7 +151,6 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
         /** @var ShipmentTrackingData $trackingData */
         $trackingData = $form->get('paypal_tracking')->getData();
         self::assertSame('FEDEX', $trackingData->getCarrier());
-        self::assertSame('TRACK1', $trackingData->getTrackingNumber());
     }
 
     /** @param array<string, mixed> $data */

@@ -891,8 +891,9 @@
 
    **Admin.** For orders paid with PayPal, the shipment ship form - on the order page and in the shipment list -
    gains a carrier selector (with an `OTHER` fallback that reveals a free-text carrier name, which is then
-   required). Without a carrier the shipment ships as before and no tracking is sent to PayPal. Each shipment on
-   the order page shows its PayPal sync state (pending / synced / failed). Orders paid with any other method keep the stock Sylius ship form, untouched.
+   required). Without a carrier the shipment is shipped and no tracking is sent to PayPal. Each shipment on the
+   order page shows its PayPal sync state (pending / synced / failed). Orders paid with any other method keep
+   the stock Sylius ship form, untouched.
 
    The selector is added as an unmapped `paypal_tracking` sub-form (`ShipmentTrackingType`, backed by the
    `ShipmentTrackingData` model), and only for shipments whose order was paid with PayPal - so a template

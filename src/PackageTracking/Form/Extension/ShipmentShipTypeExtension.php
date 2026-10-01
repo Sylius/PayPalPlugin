@@ -38,7 +38,6 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->addEventListener(FormEvents::PRE_SET_DATA, [$this, 'addTrackingFields']);
-        $builder->addEventListener(FormEvents::POST_SUBMIT, [$this, 'synchroniseTrackingNumber'], 10);
     }
 
     public function addTrackingFields(FormEvent $event): void
@@ -53,41 +52,13 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
 
         $event->getForm()->add(self::TRACKING_FIELD_NAME, ShipmentTrackingType::class, [
             'mapped' => false,
-            'data' => new ShipmentTrackingData(
-                $tracking?->getCarrier(),
-                $tracking?->getCarrierNameOther(),
-                $shipment->getTracking(),
-            ),
+            'data' => new ShipmentTrackingData($tracking?->getCarrier(), $tracking?->getCarrierNameOther()),
         ]);
-    }
-
-    public function synchroniseTrackingNumber(FormEvent $event): void
-    {
-        $shipment = $event->getData();
-        $trackingData = $this->getTrackingData($event);
-
-        if (!$shipment instanceof ShipmentInterface || null === $trackingData) {
-            return;
-        }
-
-        $trackingData->setTrackingNumber($shipment->getTracking());
     }
 
     public static function getExtendedTypes(): iterable
     {
         yield ShipmentShipType::class;
-    }
-
-    private function getTrackingData(FormEvent $event): ?ShipmentTrackingData
-    {
-        $form = $event->getForm();
-        if (!$form->has(self::TRACKING_FIELD_NAME)) {
-            return null;
-        }
-
-        $trackingData = $form->get(self::TRACKING_FIELD_NAME)->getData();
-
-        return $trackingData instanceof ShipmentTrackingData ? $trackingData : null;
     }
 
     private function isPaidWithPayPal(mixed $shipment): bool
