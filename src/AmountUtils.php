@@ -28,7 +28,7 @@ final class AmountUtils
 
     public static function toMinorUnits(string $value): int
     {
-        return (int) round(((float) $value) * 100);
+        return (int) round(round((float) $value, 2) * 100);
     }
 
     private static function decimals(string $currencyCode): int
