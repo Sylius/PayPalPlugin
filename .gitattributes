@@ -10,7 +10,7 @@
 .editorconfig                   export-ignore
 .gitattributes                  export-ignore
 .gitignore                      export-ignore
-behat.yml.dist                  export-ignore
+behat.dist.php                  export-ignore
 ecs.php                         export-ignore
 node_modules                    export-ignore
 phpstan.neon.dist               export-ignore
