@@ -13,6 +13,7 @@ export default class extends Controller {
         amount: String,
         createOrderUrl: String,
         completeOrderUrl: String,
+        cancelOrderUrl: String,
         errorUrl: String,
         billingAddress: Object,
     };
@@ -70,8 +71,7 @@ export default class extends Controller {
             }
 
             if (state === 'canceled') {
-                session.release();
-                this.setSubmitting(false);
+                await this.cancel(orderId);
 
                 return;
             }
@@ -96,6 +96,15 @@ export default class extends Controller {
             return;
         }
 
+        window.location.reload();
+    }
+
+    async cancel(payPalOrderId) {
+        await fetch(this.cancelOrderUrlValue, {
+            method: 'post',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ payPalOrderId }),
+        });
         window.location.reload();
     }
 
