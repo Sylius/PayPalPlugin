@@ -3,6 +3,7 @@ sylius_paypal:
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    configure: 'Configurer'
     credit_card: 'Carte de crédit'
     credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
@@ -22,4 +23,6 @@ sylius_paypal:
     sftp_password: 'Mot de passe SFTP'
     sftp_username: 'Identifiant SFTP'
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
+    suggested: 'Suggéré'
+    suggested_payment_method_description: 'Acceptez les paiements PayPal, carte de crédit et carte de débit dans votre boutique.'
     tender_type: 'Remboursé sur le porte-monnaie PayPal'
