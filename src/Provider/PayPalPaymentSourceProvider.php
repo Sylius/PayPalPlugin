@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
@@ -25,8 +26,11 @@ use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
 {
-    public function provide(OrderInterface $order, string $paymentSource, array $experienceContext): array
+    public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext): array
     {
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
         return match ($paymentSource) {
             self::PAYPAL => [self::PAYPAL => ['experience_context' => $experienceContext]],
             self::GOOGLE_PAY => [self::GOOGLE_PAY => [
@@ -35,7 +39,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
             self::APPLE_PAY => [],
             self::TRUSTLY => [self::TRUSTLY => $this->trustly($order, $experienceContext)],
             self::CARD => [self::CARD => [
-                'attributes' => ['verification' => ['method' => $this->cardVerificationMethod($order)]],
+                'attributes' => ['verification' => ['method' => $this->cardVerificationMethod($payment)]],
                 'experience_context' => array_filter([
                     'return_url' => $experienceContext['return_url'] ?? null,
                     'cancel_url' => $experienceContext['cancel_url'] ?? null,
@@ -106,9 +110,9 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
         return array_intersect_key($experienceContext, array_flip(self::BASE_EXPERIENCE_CONTEXT_KEYS));
     }
 
-    private function cardVerificationMethod(OrderInterface $order): string
+    private function cardVerificationMethod(PaymentInterface $payment): string
     {
-        $paymentMethod = $order->getLastPayment()?->getMethod();
+        $paymentMethod = $payment->getMethod();
         $gatewayConfig = $paymentMethod instanceof PaymentMethodInterface ? $paymentMethod->getGatewayConfig() : null;
 
         if (

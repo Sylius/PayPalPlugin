@@ -30,12 +30,16 @@ final class PayPalPaymentSourceProviderTest extends TestCase
 {
     private OrderInterface&MockObject $order;
 
+    private PaymentInterface&MockObject $payment;
+
     private PayPalPaymentSourceProvider $provider;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->order = $this->createMock(OrderInterface::class);
+        $this->payment = $this->createMock(PaymentInterface::class);
+        $this->payment->method('getOrder')->willReturn($this->order);
         $this->provider = new PayPalPaymentSourceProvider();
     }
 
@@ -50,7 +54,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
 
         self::assertSame(
             ['paypal' => ['experience_context' => $experienceContext]],
-            $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::PAYPAL, $experienceContext),
+            $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, $experienceContext),
         );
     }
 
@@ -58,14 +62,14 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         self::assertSame(
             ['google_pay' => ['attributes' => ['verification' => ['method' => 'SCA_WHEN_REQUIRED']]]],
-            $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::GOOGLE_PAY, []),
+            $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::GOOGLE_PAY, []),
         );
     }
 
     public function test_it_sends_no_experience_context_with_google_pay(): void
     {
         $googlePay = $this->provider->provide(
-            $this->order,
+            $this->payment,
             PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
             ['locale' => 'en-US', 'return_url' => 'https://shop.example.com/checkout/complete'],
         );
@@ -78,7 +82,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertSame(
             [],
             $this->provider->provide(
-                $this->order,
+                $this->payment,
                 PayPalPaymentSourceProviderInterface::APPLE_PAY,
                 ['locale' => 'en-US', 'return_url' => 'https://shop.example.com/checkout/complete'],
             ),
@@ -96,7 +100,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
                 'email' => 'patrick.watson@example.com',
                 'experience_context' => [],
             ],
-            $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, [])['trustly'],
+            $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::TRUSTLY, [])['trustly'],
         );
     }
 
@@ -104,7 +108,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $this->orderIsBilledTo('Patrick Watson', 'NL', 'patrick.watson@example.com');
 
-        $trustly = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, [
+        $trustly = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::TRUSTLY, [
             'locale' => 'nl-NL',
             'shipping_preference' => 'SET_PROVIDED_ADDRESS',
             'return_url' => 'https://shop.example.com/return',
@@ -139,7 +143,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->expectException(InvalidPayerDataException::class);
         $this->expectExceptionMessage('The PayPal order needs a billing address to be paid with "trustly"');
 
-        $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
+        $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
     }
 
     public function test_it_refuses_to_pay_with_trustly_without_a_customer_email(): void
@@ -149,7 +153,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->expectException(InvalidPayerDataException::class);
         $this->expectExceptionMessage('The PayPal order needs the payer email to be paid with "trustly"');
 
-        $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
+        $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
     }
 
     public function test_it_refuses_to_pay_with_trustly_without_a_payer_name(): void
@@ -159,7 +163,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->expectException(InvalidPayerDataException::class);
         $this->expectExceptionMessage('The PayPal order needs the payer name to be paid with "trustly"');
 
-        $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
+        $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
     }
 
     public function test_it_refuses_to_pay_with_trustly_from_a_country_code_paypal_does_not_take(): void
@@ -169,7 +173,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->expectException(InvalidPayerDataException::class);
         $this->expectExceptionMessage('PayPal does not accept the country code "nl"');
 
-        $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
+        $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::TRUSTLY, []);
     }
 
     private function orderIsBilledTo(string $fullName, string $countryCode, ?string $email): void
@@ -187,7 +191,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
 
     public function test_it_asks_for_regulatory_authentication_on_card(): void
     {
-        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+        $card = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []);
 
         self::assertSame(
             ['method' => 'SCA_WHEN_REQUIRED'],
@@ -199,7 +203,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $this->payWith('sylius_paypal', ['card_three_d_secure_always' => true]);
 
-        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+        $card = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []);
 
         self::assertSame(['method' => 'SCA_ALWAYS'], $card['card']['attributes']['verification']);
     }
@@ -208,7 +212,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $this->payWith('sylius_paypal', ['card_three_d_secure_always' => false]);
 
-        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+        $card = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []);
 
         self::assertSame(['method' => 'SCA_WHEN_REQUIRED'], $card['card']['attributes']['verification']);
     }
@@ -217,7 +221,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $this->payWith('offline', ['card_three_d_secure_always' => true]);
 
-        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+        $card = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []);
 
         self::assertSame(['method' => 'SCA_WHEN_REQUIRED'], $card['card']['attributes']['verification']);
     }
@@ -225,7 +229,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_sends_its_own_experience_context_with_card(): void
     {
         $card = $this->provider->provide(
-            $this->order,
+            $this->payment,
             PayPalPaymentSourceProviderInterface::CARD,
             [
                 'locale' => 'en-US',
@@ -246,7 +250,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
 
     public function test_it_sends_an_empty_experience_context_with_card_when_no_urls_are_given(): void
     {
-        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, ['locale' => 'en-US']);
+        $card = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, ['locale' => 'en-US']);
 
         self::assertSame([], $card['card']['experience_context']);
     }
@@ -263,7 +267,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
             'cancel_url' => 'https://shop.example.com/checkout/complete',
         ];
 
-        $venmo = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, $experienceContext);
+        $venmo = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::VENMO, $experienceContext);
 
         self::assertSame(
             ['shipping_preference' => 'GET_FROM_FILE', 'user_action' => 'PAY_NOW'],
@@ -273,7 +277,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
 
     public function test_it_sends_an_empty_experience_context_with_venmo_when_nothing_applicable_is_given(): void
     {
-        $venmo = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, ['locale' => 'en-US']);
+        $venmo = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::VENMO, ['locale' => 'en-US']);
 
         self::assertSame([], $venmo['venmo']['experience_context']);
     }
@@ -285,7 +289,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
             'callback_url' => 'https://shop.example.com/paypal/order-shipping-callback',
         ];
 
-        $venmo = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::VENMO, [
+        $venmo = $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::VENMO, [
             'order_update_callback_config' => $callbackConfig,
         ]);
 
@@ -327,7 +331,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->expectException(UnsupportedPayPalPaymentSourceException::class);
         $this->expectExceptionMessage('PayPal payment source "bitcoin" is not supported');
 
-        $this->provider->provide($this->order, 'bitcoin', []);
+        $this->provider->provide($this->payment, 'bitcoin', []);
     }
 
     /** @param array<string, mixed> $config */
@@ -340,9 +344,6 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        $payment = $this->createMock(PaymentInterface::class);
-        $payment->method('getMethod')->willReturn($paymentMethod);
-
-        $this->order->method('getLastPayment')->willReturn($payment);
+        $this->payment->method('getMethod')->willReturn($paymentMethod);
     }
 }
