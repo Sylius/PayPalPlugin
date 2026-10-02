@@ -2,6 +2,7 @@ sylius_paypal:
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
     card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'
+    card_three_d_secure_always: 'Altijd 3D Secure vereisen voor kaartbetalingen'
     card_number: 'Credit Card nummer'
     cardholder_name: 'Kaarthouder Naam'
     client_id: 'Client ID'

@@ -15,9 +15,12 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
@@ -192,6 +195,33 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         );
     }
 
+    public function test_it_always_asks_for_3d_secure_on_card_when_the_payment_method_requires_it(): void
+    {
+        $this->payWith('sylius_paypal', ['card_three_d_secure_always' => true]);
+
+        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+
+        self::assertSame(['method' => 'SCA_ALWAYS'], $card['card']['attributes']['verification']);
+    }
+
+    public function test_it_asks_for_regulatory_authentication_on_card_when_the_payment_method_does_not_require_3d_secure_always(): void
+    {
+        $this->payWith('sylius_paypal', ['card_three_d_secure_always' => false]);
+
+        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+
+        self::assertSame(['method' => 'SCA_WHEN_REQUIRED'], $card['card']['attributes']['verification']);
+    }
+
+    public function test_it_ignores_the_3d_secure_setting_of_a_gateway_that_is_not_paypal(): void
+    {
+        $this->payWith('offline', ['card_three_d_secure_always' => true]);
+
+        $card = $this->provider->provide($this->order, PayPalPaymentSourceProviderInterface::CARD, []);
+
+        self::assertSame(['method' => 'SCA_WHEN_REQUIRED'], $card['card']['attributes']['verification']);
+    }
+
     public function test_it_sends_its_own_experience_context_with_card(): void
     {
         $card = $this->provider->provide(
@@ -298,5 +328,21 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         $this->expectExceptionMessage('PayPal payment source "bitcoin" is not supported');
 
         $this->provider->provide($this->order, 'bitcoin', []);
+    }
+
+    /** @param array<string, mixed> $config */
+    private function payWith(string $factoryName, array $config): void
+    {
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
+        $gatewayConfig->method('getConfig')->willReturn($config);
+
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+
+        $this->order->method('getLastPayment')->willReturn($payment);
     }
 }

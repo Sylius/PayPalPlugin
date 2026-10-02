@@ -13,9 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -31,7 +35,7 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
             self::APPLE_PAY => [],
             self::TRUSTLY => [self::TRUSTLY => $this->trustly($order, $experienceContext)],
             self::CARD => [self::CARD => [
-                'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
+                'attributes' => ['verification' => ['method' => $this->cardVerificationMethod($order)]],
                 'experience_context' => array_filter([
                     'return_url' => $experienceContext['return_url'] ?? null,
                     'cancel_url' => $experienceContext['cancel_url'] ?? null,
@@ -100,5 +104,21 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
     private function baseExperienceContext(array $experienceContext): array
     {
         return array_intersect_key($experienceContext, array_flip(self::BASE_EXPERIENCE_CONTEXT_KEYS));
+    }
+
+    private function cardVerificationMethod(OrderInterface $order): string
+    {
+        $paymentMethod = $order->getLastPayment()?->getMethod();
+        $gatewayConfig = $paymentMethod instanceof PaymentMethodInterface ? $paymentMethod->getGatewayConfig() : null;
+
+        if (
+            $gatewayConfig instanceof GatewayConfigInterface &&
+            SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $gatewayConfig->getFactoryName() &&
+            PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isCardThreeDSecureAlways()
+        ) {
+            return PayPalOrder::VERIFICATION_METHOD_SCA_ALWAYS;
+        }
+
+        return PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED;
     }
 }

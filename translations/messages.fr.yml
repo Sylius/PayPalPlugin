@@ -2,6 +2,7 @@ sylius_paypal:
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     card_fields_invalid: 'Veuillez vérifier les informations de carte en surbrillance.'
+    card_three_d_secure_always: 'Toujours exiger 3D Secure pour les paiements par carte'
     card_number: 'Numéro de carte'
     cardholder_name: 'Nom du titulaire de la carte'
     client_id: 'Client ID'
