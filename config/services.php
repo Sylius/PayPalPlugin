@@ -3,7 +3,6 @@
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use phpseclib3\Net\SFTP;
-use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
@@ -12,6 +11,8 @@ use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
+use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
+use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
 use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
@@ -23,7 +24,6 @@ use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
@@ -118,6 +118,7 @@ use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolver;
 use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
+use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -168,11 +169,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.listener.paypal_payment_method', PayPalPaymentMethodListener::class)
         ->args([
-            service('sylius_paypal.onboarding.initiator'),
             service('router'),
             service('request_stack'),
             service('sylius_paypal.provider.paypal_payment_method'),
-            '%sylius_paypal.sandbox%',
         ])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.initialize_create', 'method' => 'initializeCreate']);
 
@@ -194,13 +193,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalExpressOrderCompleterInterface::class, 'sylius_paypal.completer.express_order');
-
-    $services->set('sylius_paypal.factory.paypal_payment_method_new_resource', PayPalPaymentMethodNewResourceFactory::class)
-        ->decorate('sylius.resource_controller.new_resource_factory')
-        ->args([
-            service('.inner'),
-            service('sylius_paypal.onboarding.processor.basic'),
-        ]);
 
     $services->set('sylius_paypal.factory.paypal_shipping_address', PayPalShippingAddressFactory::class)
         ->args([
@@ -445,11 +437,11 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.enabler.payment_method', PayPalPaymentMethodEnabler::class)
         ->args([
-            service('sylius.http_client'),
-            '%sylius_paypal.facilitator_url%',
+            service('sylius_paypal.api.authorize_client'),
+            service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius.manager.payment_method'),
             service('sylius_paypal.registrar.seller_webhook'),
-            service(RequestFactoryInterface::class),
+            service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(PaymentMethodEnablerInterface::class, 'sylius_paypal.enabler.payment_method');
@@ -566,6 +558,17 @@ return static function (ContainerConfigurator $container) {
             service('doctrine.orm.entity_manager'),
         ]);
 
+    $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
+        ->args([
+            service('sylius_paypal.registrar.seller_webhook'),
+            service('sylius.factory.gateway_config'),
+            service('sylius.factory.payment_method'),
+            service('doctrine.orm.entity_manager'),
+            '%sylius_paypal.partner_attribution_id%',
+        ]);
+
+    $services->alias(PayPalOnboardingPaymentMethodCreatorInterface::class, 'sylius_paypal.creator.onboarding_payment_method');
+
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)
         ->args([
             '%sylius_paypal.sandbox%',
@@ -574,6 +577,7 @@ return static function (ContainerConfigurator $container) {
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
+            '%sylius_paypal.partner_js_url%',
         ])
         ->tag('twig.extension');
 
@@ -589,6 +593,14 @@ return static function (ContainerConfigurator $container) {
             service('router'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:create_sandbox_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig']);
+
+    $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
+        ->args([
+            service('sylius_paypal.provider.onboarding_url'),
+            service('sylius_paypal.provider.seller_nonce'),
+            service('monolog.logger.paypal'),
+        ])
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:create_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
 
     $services->set('sylius_paypal.verifier.payment_amount', PaymentAmountVerifier::class);
 

@@ -9,3 +9,9 @@ sylius_paypal_admin_enable_seller:
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.enable_seller
+
+sylius_paypal_admin_complete_onboarding:
+    path: /onboarding/complete
+    methods: [POST]
+    defaults:
+        _controller: sylius_paypal.controller.complete_onboarding
