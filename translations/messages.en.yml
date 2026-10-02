@@ -3,6 +3,7 @@ sylius_paypal:
     awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
+    card_fields_invalid: 'Please check the highlighted card details.'
     card_number: 'Card number'
     cardholder_name: 'Cardholder name'
     client_id: 'Client ID'

@@ -51,6 +51,37 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         self::assertStringContainsString('https://www.paypal.com/myaccount/privacy/privacyhub', $content);
     }
 
+    public function test_it_renders_the_card_fields_in_polish(): void
+    {
+        $this->requestPaymentPage(locale: 'pl_PL');
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('Numer karty', $content);
+        self::assertStringContainsString('Zapłać kartą', $content);
+        self::assertStringContainsString('Płacąc kartą, przyjmujesz do wiadomości', $content);
+    }
+
+    public function test_it_gives_the_card_fields_the_url_that_cancels_an_abandoned_attempt(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertMatchesRegularExpression(
+            '#data-sylius--paypal-plugin--paypal-payment-card-fields-cancel-order-url-value="[^"]*/cancel-pay-pal-checkout-payment"#',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
+    public function test_it_renders_a_hidden_message_for_invalid_card_details(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertMatchesRegularExpression(
+            '#data-sylius--paypal-plugin--paypal-payment-card-fields-target="invalid"[^>]*hidden\s*>Please check the highlighted card details\.<#',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
     public function test_it_renders_no_google_pay_tile_until_the_channel_opts_in(): void
     {
         $this->requestPaymentPage();

@@ -9,6 +9,11 @@
         width: 100%;
         height: 2.75rem;
     }
+
+    .paypal-card-field.is-invalid {
+        outline: 1px solid var(--tblr-danger, #d63939);
+        border-radius: 4px;
+    }
 </style>
 
 <div
@@ -19,6 +24,7 @@
         amount: context.amount,
         createOrderUrl: context.createPayPalOrderUrl,
         completeOrderUrl: context.completePayPalOrderUrl,
+        cancelOrderUrl: context.cancelPayPalPaymentUrl,
         errorUrl: context.errorPayPalPaymentUrl,
         billingAddress: billingAddress is null ? {} : {
             streetAddress: billingAddress.street,
@@ -63,6 +69,13 @@
                 {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-card-fields', 'name') }}
             ></div>
         </div>
+
+        <div
+            class="alert alert-danger"
+            {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-card-fields', 'invalid') }}
+            {{ sylius_test_html_attribute('paypal-card-fields-invalid') }}
+            hidden
+        >{{ 'sylius_paypal.card_fields_invalid'|trans }}</div>
 
         <div class="btn-list">
             {{ buttons.submit('sylius_paypal.pay_with_card', 'paypal-pay-with-card', null, 'btn-primary') }}

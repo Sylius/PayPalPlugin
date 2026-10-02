@@ -3,8 +3,10 @@ import { paymentPageSession } from '../scripts/paypal-payment-page';
 
 const PAYMENT_SOURCE = 'card';
 
+const REQUIRED_FIELDS = ['number', 'expiry', 'cvv'];
+
 export default class extends Controller {
-    static targets = ['form', 'loader', 'number', 'expiry', 'cvv', 'name'];
+    static targets = ['form', 'loader', 'number', 'expiry', 'cvv', 'name', 'invalid'];
 
     static values = {
         scriptUrl: String,
@@ -13,9 +15,12 @@ export default class extends Controller {
         amount: String,
         createOrderUrl: String,
         completeOrderUrl: String,
+        cancelOrderUrl: String,
         errorUrl: String,
         billingAddress: Object,
     };
+
+    fieldsState = null;
 
     async connect() {
         try {
@@ -33,6 +38,11 @@ export default class extends Controller {
 
             this.cardSession = session.sdkInstance.createCardFieldsOneTimePaymentSession();
             this.mountFields();
+            for (const eventName of ['change', 'validitychange']) {
+                this.cardSession.on(eventName, ({ data }) => {
+                    this.fieldsState = data;
+                });
+            }
 
             this.element.removeAttribute('hidden');
             this.formTarget.addEventListener('submit', (event) => {
@@ -56,6 +66,12 @@ export default class extends Controller {
             return;
         }
 
+        const invalidFields = REQUIRED_FIELDS.filter((field) => !this.fieldsState?.[field]?.isValid);
+        this.markInvalidFields(invalidFields);
+        if (invalidFields.length > 0) {
+            return;
+        }
+
         this.setSubmitting(true);
 
         let orderId = null;
@@ -70,8 +86,7 @@ export default class extends Controller {
             }
 
             if (state === 'canceled') {
-                session.release();
-                this.setSubmitting(false);
+                await this.cancel(orderId);
 
                 return;
             }
@@ -99,6 +114,15 @@ export default class extends Controller {
         window.location.reload();
     }
 
+    async cancel(payPalOrderId) {
+        await fetch(this.cancelOrderUrlValue, {
+            method: 'post',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ payPalOrderId }),
+        });
+        window.location.reload();
+    }
+
     async reportError(message, payPalOrderId = null) {
         await fetch(this.errorUrlValue, {
             method: 'post',
@@ -114,6 +138,16 @@ export default class extends Controller {
         }
 
         return { billingAddress: this.billingAddressValue };
+    }
+
+    markInvalidFields(invalidFields) {
+        for (const field of REQUIRED_FIELDS) {
+            this[`${field}Target`].classList.toggle('is-invalid', invalidFields.includes(field));
+        }
+
+        if (this.hasInvalidTarget) {
+            this.invalidTarget.hidden = invalidFields.length === 0;
+        }
     }
 
     setSubmitting(submitting) {
