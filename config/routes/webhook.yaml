@@ -4,9 +4,3 @@ sylius_paypal_webhook_refund_order:
     defaults:
         _controller: sylius_paypal.controller.webhook.paypal_webhook
 
-# TODO: remove once the real partner-credentials endpoint is in place.
-sylius_paypal_partner_credentials_test:
-    path: /paypal/partner-credentials-test
-    methods: [GET]
-    defaults:
-        _controller: sylius_paypal.controller.partner_credentials_test

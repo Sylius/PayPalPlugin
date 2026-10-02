@@ -2,7 +2,6 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider;
@@ -22,14 +21,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.partner_credentials', PartnerCredentialsProvider::class)
         ->args([
-            service('sylius_paypal.api.onboarding_request_executor'),
-            service(RequestFactoryInterface::class),
-            service('cache.app'),
-            '%sylius_paypal.partner_credentials_url%',
-            3600,
-            '%sylius_paypal.partner_credentials.fallback_partner_id%',
-            '%sylius_paypal.partner_credentials.fallback_partner_client_id%',
-            '%sylius_paypal.partner_credentials.fallback_logo_url%',
+            '%sylius_paypal.partner_credentials.partner_id%',
+            '%sylius_paypal.partner_credentials.partner_client_id%',
+            '%sylius_paypal.partner_credentials.logo_url%',
         ]);
 
     $services->alias(PartnerCredentialsProviderInterface::class, 'sylius_paypal.provider.partner_credentials');
