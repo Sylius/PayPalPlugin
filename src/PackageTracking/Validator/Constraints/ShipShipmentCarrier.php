@@ -16,12 +16,8 @@ namespace Sylius\PayPalPlugin\PackageTracking\Validator\Constraints;
 use Symfony\Component\Validator\Constraint;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
-final class ShipmentTrackingCarrier extends Constraint
+final class ShipShipmentCarrier extends Constraint
 {
-    public string $carrierInvalidMessage = 'sylius_paypal.shipment_tracking.carrier_invalid';
-
-    public string $carrierNameOtherRequiredMessage = 'sylius_paypal.shipment_tracking.carrier_name_other_required';
-
     public function getTargets(): string
     {
         return self::CLASS_CONSTRAINT;
@@ -29,6 +25,6 @@ final class ShipmentTrackingCarrier extends Constraint
 
     public function validatedBy(): string
     {
-        return ShipmentTrackingCarrierValidator::class;
+        return ShipShipmentCarrierValidator::class;
     }
 }

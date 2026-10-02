@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+
+ This file is part of the Sylius package.
+
+ (c) Sylius Sp. z o.o.
+
+ For the full copyright and license information, please view the LICENSE
+ file that was distributed with this source code.
+
+-->
+
+<resources
+    xmlns="https://api-platform.com/schema/metadata/resources-3.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 https://api-platform.com/schema/metadata/resources-3.0.xsd"
+>
+    <resource class="%sylius.model.shipment.class%">
+        <operations>
+            <operation
+                name="sylius_api_admin_shipment_patch_ship"
+                class="ApiPlatform\Metadata\Patch"
+                input="Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier"
+            >
+                <openapi description="Ships the shipment. For an order paid with PayPal, an optional `carrier` (one of the codes configured in `sylius_paypal.tracking.carriers`, or `OTHER` with `carrierNameOther`) sends the `trackingCode` to PayPal. Without a carrier, and for orders paid with another method, the shipment is shipped and nothing is sent to PayPal." />
+            </operation>
+        </operations>
+    </resource>
+</resources>
