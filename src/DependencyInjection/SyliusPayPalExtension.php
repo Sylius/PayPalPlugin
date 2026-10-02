@@ -25,11 +25,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 {
     public const PAYPAL_FACTORY_NAME = 'sylius_paypal';
 
-    private const PAYPAL_FALLBACK_PARTNER_ID = 'PTV9W69CVKNEL';
+    private const PAYPAL_PARTNER_ID = 'PTV9W69CVKNEL';
 
-    private const PAYPAL_FALLBACK_PARTNER_CLIENT_ID = 'ARYYW7lvQsrqKS5TRaaOsH4x1MhT56KhIhY6zEzQPDtMWNLmnNbbapVQMke50UQp6JuWogzrxS_k66Fr';
+    private const PAYPAL_PARTNER_CLIENT_ID = 'ARYYW7lvQsrqKS5TRaaOsH4x1MhT56KhIhY6zEzQPDtMWNLmnNbbapVQMke50UQp6JuWogzrxS_k66Fr';
 
-    private const PAYPAL_FALLBACK_LOGO_URL = 'https://sylius.com/wp-content/uploads/2021/03/sylius-logo_sylius-logo-light-300x124.jpg';
+    private const PAYPAL_LOGO_URL = 'https://sylius.com/wp-content/uploads/2021/03/sylius-logo_sylius-logo-light-300x124.jpg';
 
     public function getAlias(): string
     {
@@ -138,19 +138,17 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.sandbox.paypal.com');
             $container->setParameter('sylius_paypal.partner_js_url', 'https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
-            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_id', '');
-            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_client_id', '');
-            $container->setParameter('sylius_paypal.partner_credentials.fallback_logo_url', '');
-            $container->setParameter('sylius_paypal.partner_credentials_url', '');
+            $container->setParameter('sylius_paypal.partner_credentials.partner_id', '');
+            $container->setParameter('sylius_paypal.partner_credentials.partner_client_id', '');
+            $container->setParameter('sylius_paypal.partner_credentials.logo_url', '');
         } else {
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.paypal.com/');
             $container->setParameter('sylius_paypal.reports_sftp_host', 'reports.paypal.com');
             $container->setParameter('sylius_paypal.web_url', 'https://www.paypal.com');
             $container->setParameter('sylius_paypal.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
-            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_id', self::PAYPAL_FALLBACK_PARTNER_ID);
-            $container->setParameter('sylius_paypal.partner_credentials.fallback_partner_client_id', self::PAYPAL_FALLBACK_PARTNER_CLIENT_ID);
-            $container->setParameter('sylius_paypal.partner_credentials.fallback_logo_url', self::PAYPAL_FALLBACK_LOGO_URL);
-            $container->setParameter('sylius_paypal.partner_credentials_url', 'https://prism.sylius.com/paypal/partner-data');
+            $container->setParameter('sylius_paypal.partner_credentials.partner_id', self::PAYPAL_PARTNER_ID);
+            $container->setParameter('sylius_paypal.partner_credentials.partner_client_id', self::PAYPAL_PARTNER_CLIENT_ID);
+            $container->setParameter('sylius_paypal.partner_credentials.logo_url', self::PAYPAL_LOGO_URL);
         }
     }
 
