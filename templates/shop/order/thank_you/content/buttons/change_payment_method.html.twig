@@ -1,10 +1,10 @@
 {% import '@SyliusShop/shared/buttons.html.twig' as buttons %}
 {% set order = hookable_metadata.context.order %}
-{% set processingPayment = order.lastPayment(constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_PROCESSING')) %}
+{% set processing_payment = order.lastPayment(constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_PROCESSING')) %}
 
 {% if
     order.paymentState == constant('Sylius\\Component\\Core\\OrderPaymentStates::STATE_AWAITING_PAYMENT') and
-    (processingPayment is null or not sylius_paypal_is_awaiting_payer_action(processingPayment))
+    (processing_payment is null or not sylius_paypal_is_awaiting_payer_action(processing_payment))
 %}
     {{ buttons.primary(path('sylius_shop_order_show', {'tokenValue': order.tokenValue}), 'sylius.ui.change_payment_method'|trans, 'payment-method-page', null) }}
 {% endif %}
