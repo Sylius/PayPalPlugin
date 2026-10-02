@@ -72,6 +72,16 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_renders_a_hidden_message_for_invalid_card_details(): void
+    {
+        $this->requestPaymentPage();
+
+        self::assertMatchesRegularExpression(
+            '#data-sylius--paypal-plugin--paypal-payment-card-fields-target="invalid"[^>]*hidden\s*>Please check the highlighted card details\.<#',
+            (string) $this->client->getResponse()->getContent(),
+        );
+    }
+
     public function test_it_renders_no_google_pay_tile_until_the_channel_opts_in(): void
     {
         $this->requestPaymentPage();

@@ -3,6 +3,7 @@ sylius_paypal:
     awaiting_payer_action: 'Czekamy, aż Twój bank prześle pieniądze. Zamówienie potwierdzimy, gdy tylko dotrą.'
     back_to_store: 'Wróć do sklepu'
     billing_info: 'Adres rozliczeniowy taki sam jak w zamówieniu'
+    card_fields_invalid: 'Sprawdź zaznaczone dane karty.'
     card_number: 'Numer karty'
     cardholder_name: 'Imię i nazwisko posiadacza karty'
     client_id: 'Client ID'

@@ -3,8 +3,10 @@ import { paymentPageSession } from '../scripts/paypal-payment-page';
 
 const PAYMENT_SOURCE = 'card';
 
+const REQUIRED_FIELDS = ['number', 'expiry', 'cvv'];
+
 export default class extends Controller {
-    static targets = ['form', 'loader', 'number', 'expiry', 'cvv', 'name'];
+    static targets = ['form', 'loader', 'number', 'expiry', 'cvv', 'name', 'invalid'];
 
     static values = {
         scriptUrl: String,
@@ -17,6 +19,8 @@ export default class extends Controller {
         errorUrl: String,
         billingAddress: Object,
     };
+
+    fieldsState = null;
 
     async connect() {
         try {
@@ -34,6 +38,11 @@ export default class extends Controller {
 
             this.cardSession = session.sdkInstance.createCardFieldsOneTimePaymentSession();
             this.mountFields();
+            for (const eventName of ['change', 'validitychange']) {
+                this.cardSession.on(eventName, ({ data }) => {
+                    this.fieldsState = data;
+                });
+            }
 
             this.element.removeAttribute('hidden');
             this.formTarget.addEventListener('submit', (event) => {
@@ -54,6 +63,12 @@ export default class extends Controller {
 
     async submit(session) {
         if (session.isBusy()) {
+            return;
+        }
+
+        const invalidFields = REQUIRED_FIELDS.filter((field) => !this.fieldsState?.[field]?.isValid);
+        this.markInvalidFields(invalidFields);
+        if (invalidFields.length > 0) {
             return;
         }
 
@@ -123,6 +138,16 @@ export default class extends Controller {
         }
 
         return { billingAddress: this.billingAddressValue };
+    }
+
+    markInvalidFields(invalidFields) {
+        for (const field of REQUIRED_FIELDS) {
+            this[`${field}Target`].classList.toggle('is-invalid', invalidFields.includes(field));
+        }
+
+        if (this.hasInvalidTarget) {
+            this.invalidTarget.hidden = invalidFields.length === 0;
+        }
     }
 
     setSubmitting(submitting) {
