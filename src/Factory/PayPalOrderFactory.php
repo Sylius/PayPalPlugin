@@ -69,7 +69,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
                 withItemTaxes: !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
             ),
             intent: PayPalOrder::INTENT_CAPTURE,
-            paymentSource: $this->paymentSourceProvider->provide($order, $paymentSource, $experienceContext),
+            paymentSource: $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext),
             processingInstruction: null === $redirectPaymentSource
                 ? null
                 : PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,

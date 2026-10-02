@@ -372,7 +372,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $paymentSourceProvider
             ->expects(self::once())
             ->method('provide')
-            ->with($this->order, 'google_pay', self::isType('array'))
+            ->with($this->payment, 'google_pay', self::isType('array'))
             ->willReturn(['google_pay' => ['attributes' => []]])
         ;
 

@@ -36,3 +36,6 @@ sylius_twig_hooks:
             trustly_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/trustly_enabled.html.twig'
                 priority: -1000
+            card_three_d_secure_always:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/card_three_d_secure_always.html.twig'
+                priority: -1100

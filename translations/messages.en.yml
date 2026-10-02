@@ -5,6 +5,7 @@ sylius_paypal:
     billing_info: 'Billing address same as order'
     card_fields_invalid: 'Please check the highlighted card details.'
     card_number: 'Card number'
+    card_three_d_secure_always: 'Always request 3D Secure for card payments'
     cardholder_name: 'Cardholder name'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
