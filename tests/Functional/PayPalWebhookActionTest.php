@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
+use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
 
 final class PayPalWebhookActionTest extends JsonApiTestCase
 {
@@ -27,6 +28,7 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
         parent::setUp();
         DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
         DummyOrderDetailsApi::$failWith = null;
+        DummyRefundPaymentApi::$refundedPaymentIds = [];
     }
 
     public function test_it_completes_the_payment_once_paypal_says_the_capture_completed(): void
@@ -98,6 +100,27 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_it_marks_a_payment_refunded_in_paypal_without_refunding_it_again(): void
+    {
+        DummyOrderDetailsApi::$captureStatus = 'REFUNDED';
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['completed_order'];
+
+        $this->client->request('POST', '/paypal-webhook/api/', [], [], [], json_encode([
+            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
+            'resource' => [
+                'links' => [
+                    ['rel' => 'up', 'href' => 'PAYPAL_ORDER_ID'],
+                ],
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
+        self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
     }
 
     public function test_it_asks_paypal_to_deliver_the_event_again_when_settlement_fails(): void
