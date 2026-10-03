@@ -8,6 +8,7 @@ sylius_paypal:
     cardholder_name: 'Cardholder name'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    configure: 'Configure'
     credit_card: 'Credit Card'
     cvv: 'CVV'
     different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
@@ -34,6 +35,8 @@ sylius_paypal:
     sftp_password: 'SFTP Password'
     sftp_username: 'SFTP Username'
     share_data_consent_confirmation: "By clicking Yes, you accept PayPal share data consent"
+    suggested: 'Suggested'
+    suggested_payment_method_description: 'Accept PayPal, credit and debit card payments in your store.'
     tender_type: 'Refunded to the PayPal wallet'
     tender_type_original_payment_method: 'Refunded to the original payment method'
     trustly_enabled: 'Enable Trustly'
