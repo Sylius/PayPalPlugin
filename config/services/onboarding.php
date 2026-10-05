@@ -21,16 +21,16 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.partner_credentials', PartnerCredentialsProvider::class)
         ->args([
-            '%sylius_paypal.partner_credentials.partner_id%',
-            '%sylius_paypal.partner_credentials.partner_client_id%',
-            '%sylius_paypal.partner_credentials.logo_url%',
+            param('sylius_paypal.partner_credentials.partner_id'),
+            param('sylius_paypal.partner_credentials.partner_client_id'),
+            param('sylius_paypal.partner_credentials.logo_url'),
         ]);
 
     $services->alias(PartnerCredentialsProviderInterface::class, 'sylius_paypal.provider.partner_credentials');
 
     $services->set('sylius_paypal.provider.onboarding_url', PayPalOnboardingUrlProvider::class)
         ->args([
-            '%sylius_paypal.web_url%',
+            param('sylius_paypal.web_url'),
             service('sylius_paypal.provider.partner_credentials'),
             service('router'),
         ]);
