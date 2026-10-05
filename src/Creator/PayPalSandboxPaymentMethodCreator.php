@@ -55,7 +55,7 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
             PayPalGatewayConfig::SYLIUS_MERCHANT_ID => self::SYLIUS_SANDBOX_MERCHANT_ID,
             PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
             PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
-            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => self::PARTNER_ATTRIBUTION_ID,
+            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
         ]);
 
         return $gatewayConfig;

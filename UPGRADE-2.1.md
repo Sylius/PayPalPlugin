@@ -200,6 +200,12 @@
    | `sylius_paypal_shop_cancel_last_payment` | none — the payment page no longer reaps abandoned attempts from the browser |
    | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_order_shipping_callback` |
 
+1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` is deprecated and will be removed in 3.0.
+
+   The BN code is not sandbox specific: it is sent as the `PayPal-Partner-Attribution-Id` header in production
+   too, including the onboarding requests. Use `Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID`
+   or the `sylius_paypal.partner_attribution_id` parameter instead. The old constant now points to the new one.
+
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
    The same value used to be spelled three different ways, and `orderID` meant two different things depending

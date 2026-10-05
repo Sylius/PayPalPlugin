@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
-use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -24,6 +23,8 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 final class SyliusPayPalExtension extends Extension implements PrependExtensionInterface
 {
     public const PAYPAL_FACTORY_NAME = 'sylius_paypal';
+
+    public const PARTNER_ATTRIBUTION_ID = 'Sylius_MP_PPCP';
 
     private const PAYPAL_PARTNER_ID = 'PTV9W69CVKNEL';
 
@@ -131,7 +132,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->setParameter('sylius_paypal.sandbox', (bool) $config['sandbox']);
         $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
-        $container->setParameter('sylius_paypal.partner_attribution_id', PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID);
+        $container->setParameter('sylius_paypal.partner_attribution_id', self::PARTNER_ATTRIBUTION_ID);
 
         if ($container->getParameter('sylius_paypal.sandbox')) {
             $container->setParameter('sylius_paypal.api_base_url', 'https://api.sandbox.paypal.com/');

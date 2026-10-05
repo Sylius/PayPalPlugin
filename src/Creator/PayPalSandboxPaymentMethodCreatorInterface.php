@@ -14,21 +14,14 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Creator;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 interface PayPalSandboxPaymentMethodCreatorInterface
 {
     public const GATEWAY_NAME = 'sylius_paypal_sandbox';
 
-    /**
-     * The BN code PayPal assigned to this integration (SDD v1.5 §1.1.3), sent as the
-     * PayPal-Partner-Attribution-Id header on every API call.
-     *
-     * This constant only seeds payment methods created through the sandbox flow. A production
-     * merchant's value comes from the facilitator's onboarding response
-     * (Onboarding\Processor\BasicOnboardingProcessor), and existing payment methods keep whatever
-     * their gateway config already holds - so changing it here does not retroactively move their volume.
-     */
-    public const PARTNER_ATTRIBUTION_ID = 'Sylius_MP_PPCP';
+    /** @deprecated since 2.1, use SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID instead */
+    public const PARTNER_ATTRIBUTION_ID = SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID;
 
     public const PAYMENT_METHOD_CODE = 'PAYPAL';
 

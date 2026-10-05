@@ -25,11 +25,14 @@ final readonly class PayPalOnboardingRequestExecutor implements PayPalOnboarding
     public function __construct(
         private ClientInterface $client,
         private LoggerInterface $logger,
+        private string $partnerAttributionId,
     ) {
     }
 
     public function execute(RequestInterface $request, string $operation): array
     {
+        $request = $request->withHeader('PayPal-Partner-Attribution-Id', $this->partnerAttributionId);
+
         try {
             $response = $this->client->sendRequest($request);
         } catch (ClientExceptionInterface $exception) {

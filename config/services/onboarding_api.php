@@ -41,6 +41,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.psr18_client.onboarding'),
             service('monolog.logger.paypal'),
+            param('sylius_paypal.partner_attribution_id'),
         ]);
 
     $services->alias(PayPalOnboardingRequestExecutorInterface::class, 'sylius_paypal.api.onboarding_request_executor');

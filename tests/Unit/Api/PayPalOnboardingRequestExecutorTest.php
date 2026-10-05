@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 
+use Nyholm\Psr7\Request;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -37,17 +38,17 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
         $this->client = $this->createMock(ClientInterface::class);
         $logger = $this->createMock(LoggerInterface::class);
 
-        $this->executor = new PayPalOnboardingRequestExecutor($this->client, $logger);
+        $this->executor = new PayPalOnboardingRequestExecutor($this->client, $logger, 'Sylius_MP_PPCP');
     }
 
     #[Test]
     public function it_returns_the_decoded_body_on_success(): void
     {
-        $request = $this->createMock(RequestInterface::class);
+        $request = new Request('GET', 'https://api.sandbox.paypal.com/');
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
 
-        $this->client->method('sendRequest')->with($request)->willReturn($response);
+        $this->client->method('sendRequest')->willReturn($response);
         $response->method('getStatusCode')->willReturn(200);
         $response->method('getBody')->willReturn($body);
         $body->method('getContents')->willReturn('{"foo": "bar"}');
@@ -58,7 +59,7 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
     #[Test]
     public function it_throws_a_plugin_exception_on_a_non_successful_status(): void
     {
-        $request = $this->createMock(RequestInterface::class);
+        $request = new Request('GET', 'https://api.sandbox.paypal.com/');
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
 
@@ -75,7 +76,7 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
     #[Test]
     public function it_rethrows_transport_exceptions(): void
     {
-        $request = $this->createMock(RequestInterface::class);
+        $request = new Request('GET', 'https://api.sandbox.paypal.com/');
         $exception = $this->createMock(ClientExceptionInterface::class);
 
         $this->client->method('sendRequest')->willThrowException($exception);
@@ -88,7 +89,7 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
     #[Test]
     public function it_throws_a_json_exception_on_malformed_body(): void
     {
-        $request = $this->createMock(RequestInterface::class);
+        $request = new Request('GET', 'https://api.sandbox.paypal.com/');
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
 
@@ -101,4 +102,25 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
 
         $this->executor->execute($request, 'Test');
     }
+
+    #[Test]
+    public function it_sends_the_partner_attribution_id_with_every_request(): void
+    {
+        $response = $this->createMock(ResponseInterface::class);
+        $body = $this->createMock(StreamInterface::class);
+
+        $this->client
+            ->expects(self::once())
+            ->method('sendRequest')
+            ->with(self::callback(
+                fn (RequestInterface $request): bool => 'Sylius_MP_PPCP' === $request->getHeaderLine('PayPal-Partner-Attribution-Id'),
+            ))
+            ->willReturn($response);
+        $response->method('getStatusCode')->willReturn(200);
+        $response->method('getBody')->willReturn($body);
+        $body->method('getContents')->willReturn('{}');
+
+        $this->executor->execute(new Request('GET', 'https://api.sandbox.paypal.com/'), 'Test');
+    }
+
 }
