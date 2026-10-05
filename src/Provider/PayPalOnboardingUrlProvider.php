@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\PayPalPlugin\UrlUtils;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlProviderInterface
 {
@@ -23,7 +22,6 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
     public function __construct(
         string $webUrl,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
-        private UrlGeneratorInterface $urlGenerator,
     ) {
         $this->onboardingUrl = $webUrl . '/bizsignup/partner/entry';
     }
@@ -43,11 +41,6 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
                 'partnerLogoUrl' => $partnerCredentials->getPartnerLogoUrl(),
                 'displayMode' => 'minibrowser',
                 'sellerNonce' => $sellerNonce,
-                'returnToPartnerUrl' => $this->urlGenerator->generate(
-                    'sylius_admin_payment_method_index',
-                    [],
-                    UrlGeneratorInterface::ABSOLUTE_URL,
-                ),
             ]),
         );
     }

@@ -36,7 +36,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             param('sylius_paypal.web_url'),
             service('sylius_paypal.provider.partner_credentials'),
-            service('router'),
         ]);
 
     $services->alias(PayPalOnboardingUrlProviderInterface::class, 'sylius_paypal.provider.onboarding_url');
