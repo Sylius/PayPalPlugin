@@ -52,8 +52,8 @@ final readonly class CompleteOnboardingAction
 
             Assert::keyExists($data, 'authCode');
             Assert::keyExists($data, 'sharedId');
-            Assert::stringNotEmpty((string) $data['authCode']);
-            Assert::stringNotEmpty((string) $data['sharedId']);
+            Assert::stringNotEmpty($data['authCode']);
+            Assert::stringNotEmpty($data['sharedId']);
         } catch (\JsonException | \InvalidArgumentException) {
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
@@ -72,7 +72,7 @@ final readonly class CompleteOnboardingAction
         }
 
         try {
-            $result = $this->sellerOnboardingResolver->resolve((string) $data['authCode'], (string) $data['sharedId'], $sellerNonce);
+            $result = $this->sellerOnboardingResolver->resolve($data['authCode'], $data['sharedId'], $sellerNonce);
             $paymentMethod = $this->onboardingPaymentMethodCreator->create($result);
         } catch (\Throwable $exception) {
             $this->logger->error($exception->getMessage());

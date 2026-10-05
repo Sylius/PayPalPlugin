@@ -200,6 +200,20 @@ final class CompleteOnboardingActionTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_bad_request_when_a_required_field_is_not_a_string(): void
+    {
+        $request = $this->requestWithBody(['authCode' => ['AUTH-CODE'], 'sharedId' => 'SHARED-ID']);
+
+        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
+
+        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    #[Test]
     public function it_returns_bad_request_when_the_request_body_is_not_valid_json(): void
     {
         $request = Request::create('/onboarding/complete', 'POST', content: '{not-valid-json');
