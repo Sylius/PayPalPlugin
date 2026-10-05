@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 
@@ -22,7 +21,7 @@ interface OnboardingTokenApiInterface
     /**
      * @throws ClientExceptionInterface
      * @throws PayPalPluginException
-     * @throws JsonException
+     * @throws \JsonException
      */
     public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce): string;
 }
