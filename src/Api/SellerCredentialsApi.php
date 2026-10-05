@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Model\SellerCredentials;
 use Symfony\Component\HttpFoundation\Request;
 
 final readonly class SellerCredentialsApi implements SellerCredentialsApiInterface
@@ -26,7 +27,7 @@ final readonly class SellerCredentialsApi implements SellerCredentialsApiInterfa
     ) {
     }
 
-    public function get(string $onboardingToken, string $partnerId): array
+    public function get(string $onboardingToken, string $partnerId): SellerCredentials
     {
         $request = $this->requestFactory->createRequest(
             Request::METHOD_GET,
@@ -42,10 +43,10 @@ final readonly class SellerCredentialsApi implements SellerCredentialsApiInterfa
             throw new PayPalPluginException('client_id/client_secret/payer_id is missing in response');
         }
 
-        return [
-            'client_id' => (string) $content['client_id'],
-            'client_secret' => (string) $content['client_secret'],
-            'payer_id' => (string) $content['payer_id'],
-        ];
+        return new SellerCredentials(
+            (string) $content['client_id'],
+            (string) $content['client_secret'],
+            (string) $content['payer_id'],
+        );
     }
 }

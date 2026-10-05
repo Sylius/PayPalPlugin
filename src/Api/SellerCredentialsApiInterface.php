@@ -16,15 +16,14 @@ namespace Sylius\PayPalPlugin\Api;
 use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Model\SellerCredentials;
 
 interface SellerCredentialsApiInterface
 {
     /**
-     * @return array{client_id: string, client_secret: string, payer_id: string}
-     *
      * @throws JsonException
      * @throws PayPalPluginException
      * @throws ClientExceptionInterface
      */
-    public function get(string $onboardingToken, string $partnerId): array;
+    public function get(string $onboardingToken, string $partnerId): SellerCredentials;
 }

@@ -66,14 +66,11 @@ final class SellerCredentialsApiTest extends TestCase
                 'payer_id' => 'MERCHANT-ID',
             ]);
 
-        self::assertSame(
-            [
-                'client_id' => 'CLIENT-ID',
-                'client_secret' => 'CLIENT-SECRET',
-                'payer_id' => 'MERCHANT-ID',
-            ],
-            $this->sellerCredentialsApi->get('ONBOARDING-TOKEN', 'PARTNER-ID'),
-        );
+        $credentials = $this->sellerCredentialsApi->get('ONBOARDING-TOKEN', 'PARTNER-ID');
+
+        self::assertSame('CLIENT-ID', $credentials->getClientId());
+        self::assertSame('CLIENT-SECRET', $credentials->getClientSecret());
+        self::assertSame('MERCHANT-ID', $credentials->getPayerId());
     }
 
     #[Test]

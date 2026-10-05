@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
+use Sylius\PayPalPlugin\Model\SellerCredentials;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 
@@ -73,11 +74,7 @@ final class SellerOnboardingResolverTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with('ONBOARDING-TOKEN', 'PARTNER-ID')
-            ->willReturn([
-                'client_id' => 'CLIENT-ID',
-                'client_secret' => 'CLIENT-SECRET',
-                'payer_id' => 'MERCHANT-ID',
-            ]);
+            ->willReturn(new SellerCredentials('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID'));
 
         $this->authorizeClientApi
             ->expects(self::once())

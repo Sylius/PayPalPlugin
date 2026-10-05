@@ -39,14 +39,14 @@ final readonly class SellerOnboardingResolver implements SellerOnboardingResolve
 
         $credentials = $this->sellerCredentialsApi->get($onboardingToken, $partnerId);
 
-        $sellerToken = $this->authorizeClientApi->authorize($credentials['client_id'], $credentials['client_secret']);
+        $sellerToken = $this->authorizeClientApi->authorize($credentials->getClientId(), $credentials->getClientSecret());
 
-        $status = $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $credentials['payer_id']);
+        $status = $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $credentials->getPayerId());
 
         return new SellerOnboardingResult(
-            $credentials['client_id'],
-            $credentials['client_secret'],
-            $credentials['payer_id'],
+            $credentials->getClientId(),
+            $credentials->getClientSecret(),
+            $credentials->getPayerId(),
             $status,
         );
     }
