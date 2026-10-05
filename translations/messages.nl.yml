@@ -7,6 +7,7 @@ sylius_paypal:
     cardholder_name: 'Kaarthouder Naam'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    configure: 'Configureren'
     credit_card: 'Credit Card'
     cvv: 'CVV'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
@@ -25,5 +26,7 @@ sylius_paypal:
     sftp_password: 'SFTP wachtwoord'
     sftp_username: 'SFTP gebruikersnaam'
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
+    suggested: 'Voorgesteld'
+    suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
     tender_type_original_payment_method: 'Teruggestort via de oorspronkelijke betaalmethode'
