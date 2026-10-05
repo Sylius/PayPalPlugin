@@ -17,46 +17,13 @@ use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
-use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
-use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\NonceProvider;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
-use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
-use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CaptureAction implements ActionInterface
 {
-    public const PAYER_ACTION_LINK_REL = 'payer-action';
-
-    public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
-        private CreateOrderApiInterface $createOrderApi,
-        private UuidProviderInterface $uuidProvider,
-        private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
-        private ?NonceProviderInterface $nonceProvider = null,
-    ) {
-        if (null === $this->orderCreatedStatusesProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.1',
-                'Not passing $orderCreatedStatusesProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-
-        if (null === $this->nonceProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.1',
-                'Not passing $nonceProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
+    public function __construct(private PayPalOrderCreatorInterface $payPalOrderCreator)
+    {
     }
 
     /** @param Capture $request */
@@ -66,99 +33,8 @@ final readonly class CaptureAction implements ActionInterface
 
         /** @var PaymentInterface $payment */
         $payment = $request->getModel();
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $payment->getMethod();
 
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
-
-        $referenceId = $this->uuidProvider->provide();
-        $paymentSource = $this->resolvePaymentSource($payment);
-        $payerActionNonces = $this->generatePayerActionNonces($paymentSource);
-        $content = $this->createOrderApi->create(
-            $token,
-            $payment,
-            $referenceId,
-            $paymentSource,
-            $payerActionNonces['payer_action_return_nonce'] ?? null,
-            $payerActionNonces['payer_action_cancel_nonce'] ?? null,
-        );
-
-        if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
-            $details = PayPalPaymentDetails::create()
-                ->withStatus(PayPalPaymentStatus::Captured)
-                ->withPayPalOrderId((string) $content['id'])
-                ->withReferenceId($referenceId)
-                ->withAmount((int) $payment->getAmount())
-                ->withPaymentSource($paymentSource)
-            ;
-
-            $payment->setDetails($this->withPayerAction($details, $content, $payerActionNonces)->toArray());
-        }
-    }
-
-    /** @return array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} */
-    private function generatePayerActionNonces(string $paymentSource): array
-    {
-        if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
-            return [];
-        }
-
-        $provider = $this->nonceProvider ?? new NonceProvider();
-
-        return [
-            'payer_action_return_nonce' => $provider->provide(),
-            'payer_action_cancel_nonce' => $provider->provide(),
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $content
-     * @param array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} $payerActionNonces
-     */
-    private function withPayerAction(PayPalPaymentDetails $details, array $content, array $payerActionNonces): PayPalPaymentDetails
-    {
-        if (!isset($payerActionNonces['payer_action_return_nonce'], $payerActionNonces['payer_action_cancel_nonce'])) {
-            return $details;
-        }
-
-        $payerActionUrl = $this->payerActionUrl($content);
-        if (null === $payerActionUrl) {
-            return $details;
-        }
-
-        return $details->withPayerAction(
-            $payerActionUrl,
-            $payerActionNonces['payer_action_return_nonce'],
-            $payerActionNonces['payer_action_cancel_nonce'],
-        );
-    }
-
-    /** @param array<string, mixed> $content */
-    private function payerActionUrl(array $content): ?string
-    {
-        /** @var array<array{rel?: string, href?: string}> $links */
-        $links = $content['links'] ?? [];
-
-        foreach ($links as $link) {
-            if (self::PAYER_ACTION_LINK_REL === ($link['rel'] ?? null) && isset($link['href'])) {
-                return (string) $link['href'];
-            }
-        }
-
-        return null;
-    }
-
-    private function resolvePaymentSource(PaymentInterface $payment): string
-    {
-        return PayPalPaymentDetails::fromPayment($payment)->paymentSource();
-    }
-
-    /** @return array<int, string> */
-    private function getOrderCreatedStatuses(): array
-    {
-        $provider = $this->orderCreatedStatusesProvider ?? new PayPalOrderCreatedStatusesProvider();
-
-        return $provider->provide();
+        $this->payPalOrderCreator->create($payment, PayPalPaymentDetails::fromPayment($payment)->paymentSource());
     }
 
     public function supports($request): bool

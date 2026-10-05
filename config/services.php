@@ -12,6 +12,8 @@ use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreator;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
 use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
@@ -558,6 +560,17 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(SellerWebhookRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook');
+
+    $services->set('sylius_paypal.creator.paypal_order', PayPalOrderCreator::class)
+        ->args([
+            service('sylius_paypal.api.cache_authorize_client'),
+            service('sylius_paypal.api.create_order'),
+            service('sylius_paypal.provider.uuid'),
+            service('sylius_paypal.provider.paypal_order_created_statuses'),
+            service('sylius_paypal.provider.nonce'),
+        ]);
+
+    $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');
 
     $services->set('sylius_paypal.creator.sandbox_payment_method', PayPalSandboxPaymentMethodCreator::class)
         ->args([
