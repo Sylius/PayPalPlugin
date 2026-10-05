@@ -19,10 +19,13 @@ class ShipmentTrackingData
 
     private ?string $carrierNameOther = null;
 
-    public function __construct(?string $carrier = null, ?string $carrierNameOther = null)
+    private ?string $trackingCode = null;
+
+    public function __construct(?string $carrier = null, ?string $carrierNameOther = null, ?string $trackingCode = null)
     {
         $this->setCarrier($carrier);
         $this->setCarrierNameOther($carrierNameOther);
+        $this->setTrackingCode($trackingCode);
     }
 
     public function getCarrier(): ?string
@@ -43,6 +46,16 @@ class ShipmentTrackingData
     public function setCarrierNameOther(?string $carrierNameOther): void
     {
         $this->carrierNameOther = self::normalize($carrierNameOther);
+    }
+
+    public function getTrackingCode(): ?string
+    {
+        return $this->trackingCode;
+    }
+
+    public function setTrackingCode(?string $trackingCode): void
+    {
+        $this->trackingCode = self::normalize($trackingCode);
     }
 
     private static function normalize(?string $value): ?string

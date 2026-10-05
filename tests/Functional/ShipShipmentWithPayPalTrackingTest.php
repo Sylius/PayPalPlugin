@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -114,6 +115,18 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         $response = $this->client->getResponse();
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
         self::assertStringContainsString('Please provide the carrier name when &quot;Other&quot; is selected.', (string) $response->getContent());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+    }
+
+    public function test_it_does_not_ship_a_carrier_without_a_tracking_code(): void
+    {
+        $this->ship(['paypal_tracking' => ['carrier' => 'DHL']]);
+
+        $response = $this->client->getResponse();
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $trackingRow = (new Crawler((string) $response->getContent()))->filter(sprintf('#%s_tracking', self::FORM_NAME))->closest('.col-12');
+        self::assertStringContainsString('Please provide the tracking code when a carrier is selected.', $trackingRow?->text() ?? '');
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
         self::assertNull($this->tracking());
     }

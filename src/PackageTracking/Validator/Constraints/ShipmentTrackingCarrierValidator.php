@@ -59,5 +59,13 @@ final class ShipmentTrackingCarrierValidator extends ConstraintValidator
                 ->addViolation()
             ;
         }
+
+        if (null !== $carrier && null === $value->getTrackingCode()) {
+            $this->context
+                ->buildViolation($constraint->trackingCodeRequiredMessage)
+                ->atPath('trackingCode')
+                ->addViolation()
+            ;
+        }
     }
 }
