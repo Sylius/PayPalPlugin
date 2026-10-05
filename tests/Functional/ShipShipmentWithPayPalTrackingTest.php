@@ -80,7 +80,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         $tracking = $this->tracking();
         self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking?->getState());
         self::assertSame(1, $tracking->getAttempts());
-        self::assertNotEmpty($tracking->getLastError());
+        self::assertSame('RESOURCE_NOT_FOUND', $tracking->getLastError());
     }
 
     public function test_it_ships_a_tracking_number_without_a_carrier_as_before_and_sends_nothing_to_paypal(): void

@@ -170,7 +170,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         }
 
         self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
-        self::assertStringContainsString('RESOURCE_NOT_FOUND', (string) $tracking->getLastError());
+        self::assertSame('RESOURCE_NOT_FOUND The specified resource does not exist. (debug id: 9afb818786905)', $tracking->getLastError());
     }
 
     #[Test]
@@ -201,7 +201,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
     /** @return iterable<string, array{array<string, mixed>, string}> */
     public static function unrecognisedTrackingResponses(): iterable
     {
-        yield 'invalid token' => [['error' => 'invalid_token', 'error_description' => 'Token signature verification failed'], 'invalid_token'];
+        yield 'invalid token' => [['error' => 'invalid_token', 'error_description' => 'Token signature verification failed'], 'invalid_token Token signature verification failed'];
         yield 'empty body' => [[], 'the response could not be read'];
     }
 
@@ -228,7 +228,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         }
 
         self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
-        self::assertStringContainsString($expectedError, (string) $tracking->getLastError());
+        self::assertSame($expectedError, $tracking->getLastError());
     }
 
     #[Test]
@@ -255,7 +255,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
         }
 
         self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking->getState());
-        self::assertStringContainsString('PayPal is down', (string) $tracking->getLastError());
+        self::assertSame('PayPal is down', $tracking->getLastError());
     }
 
     #[Test]

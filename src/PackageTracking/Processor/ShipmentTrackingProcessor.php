@@ -211,6 +211,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
     private function formatError(\Throwable $exception): string
     {
-        return sprintf('%s: %s', $exception::class, $exception->getMessage());
+        return $exception instanceof PayPalApiErrorException ? $exception->getDescription() : $exception->getMessage();
     }
 }
