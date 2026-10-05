@@ -48,9 +48,11 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.webhook_id_refresh_cooldown', 300);
     $parameters->set('sylius_paypal.callback_certificate_lifetime', 86400);
 
+    $services->alias('sylius_paypal.http_client', 'sylius.http_client');
+
     $services->set('sylius_paypal.client.paypal', \Sylius\PayPalPlugin\Client\PayPalClient::class)
         ->args([
-            service('sylius.http_client'),
+            service('sylius_paypal.http_client'),
             service('monolog.logger.paypal'),
             service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.provider.paypal_configuration'),

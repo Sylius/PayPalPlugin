@@ -16,6 +16,7 @@ use Behat\Config\Filter\TagFilter;
 use Behat\Config\Profile;
 use Behat\Config\Suite;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext;
+use Tests\Sylius\PayPalPlugin\Behat\Context\Hook\PayPalHttpClientContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext;
 
 return (new Config())
@@ -25,6 +26,7 @@ return (new Config())
             (new Suite('ui_managing_payment_methods'))
             ->withContexts(
                 'sylius.behat.context.hook.doctrine_orm',
+                PayPalHttpClientContext::class,
             )
             ->withContexts(
                 'sylius.behat.context.transform.address',
