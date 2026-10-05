@@ -128,35 +128,43 @@ final class PayPalPaymentMethodListenerTest extends TestCase
     }
 
     #[Test]
-    public function it_does_nothing_when_creating_a_supported_payment_method_that_does_not_exist_yet(): void
+    public function it_redirects_with_info_if_the_paypal_payment_method_does_not_exist_yet(): void
     {
         $event = $this->createMock(ResourceControllerEvent::class);
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $session = $this->createMock(SessionInterface::class);
+        $flashBag = $this->createMock(FlashBagInterface::class);
 
-        $event
-            ->expects(self::once())
-            ->method('getSubject')
-            ->willReturn($paymentMethod);
-
-        $paymentMethod
-            ->expects(self::once())
-            ->method('getGatewayConfig')
-            ->willReturn($gatewayConfig);
-
-        $gatewayConfig
-            ->expects(self::once())
-            ->method('getFactoryName')
-            ->willReturn('sylius_paypal');
+        $event->method('getSubject')->willReturn($paymentMethod);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
 
         $this->payPalPaymentMethodProvider
             ->expects(self::once())
             ->method('exists')
             ->willReturn(false);
 
+        $flashBag
+            ->expects(self::once())
+            ->method('add')
+            ->with('info', 'sylius_paypal.create_paypal_payment_method_via_onboarding');
+
+        $session->method('getBag')->with('flashes')->willReturn($flashBag);
+        $this->requestStack->method('getSession')->willReturn($session);
+
+        $this->urlGenerator
+            ->expects(self::once())
+            ->method('generate')
+            ->with('sylius_admin_payment_method_index')
+            ->willReturn('http://redirect-url.com');
+
         $event
-            ->expects($this->never())
-            ->method('setResponse');
+            ->expects(self::once())
+            ->method('setResponse')
+            ->with($this->callback(function (RedirectResponse $response): bool {
+                return 'http://redirect-url.com' === $response->getTargetUrl();
+            }));
 
         $this->payPalPaymentMethodListener->initializeCreate($event);
     }

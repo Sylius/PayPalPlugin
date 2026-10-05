@@ -1,5 +1,6 @@
 sylius_paypal:
     could_not_create_paypal_payment_method: 'Impossible de créer le mode de paiement PayPal. Merci de réessayer plus tard.'
+    create_paypal_payment_method_via_onboarding: 'Merci d''utiliser l''intégration PayPal disponible dans la liste des modes de paiement pour créer le mode de paiement PayPal.'
     invalid_paypal_sandbox_credentials: 'Identifiants PayPal Sandbox invalides. Merci de vérifier votre configuration.'
     more_than_one_seller_not_allowed: 'Vous ne pouvez ajouter plus d''un vendeur PayPal !'
     onboarding_session_expired: 'Votre session d''intégration PayPal a expiré. Merci de réessayer.'
