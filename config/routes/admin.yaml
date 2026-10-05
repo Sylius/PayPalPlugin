@@ -13,5 +13,6 @@ sylius_paypal_admin_enable_seller:
 sylius_paypal_admin_complete_onboarding:
     path: /onboarding/complete
     methods: [POST]
+    condition: "request.headers.get('Content-Type') matches '#^application/json#'"
     defaults:
         _controller: sylius_paypal.controller.complete_onboarding
