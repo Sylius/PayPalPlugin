@@ -79,7 +79,7 @@ export default class extends Controller {
             ({ orderId } = await session.startAttempt(PAYMENT_SOURCE));
             const { data, state } = await this.cardSession.submit(orderId, this.submitOptions());
 
-            if (state === 'succeeded') {
+            if (state === 'succeeded' || (state === 'failed' && data?.liabilityShift)) {
                 await this.complete(orderId);
 
                 return;
