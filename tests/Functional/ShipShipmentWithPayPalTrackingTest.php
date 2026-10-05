@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
 use Sylius\Bundle\ResourceBundle\Controller\AuthorizationCheckerInterface;
+use Sylius\Bundle\ResourceBundle\Controller\ResourceUpdateHandlerInterface;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
@@ -220,9 +221,9 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
     public function test_it_rolls_back_the_ship_when_it_fails_while_shipping(): void
     {
         $this->client->disableReboot();
-        self::getContainer()->get('event_dispatcher')->addListener('workflow.sylius_shipment.transition.ship', static function (): void {
-            throw new \RuntimeException('Shipping failed.');
-        });
+        $resourceUpdateHandler = $this->createStub(ResourceUpdateHandlerInterface::class);
+        $resourceUpdateHandler->method('handle')->willThrowException(new \RuntimeException('Shipping failed.'));
+        self::getContainer()->set('sylius.resource_controller.resource_update_handler', $resourceUpdateHandler);
 
         $this->ship(['tracking' => 'QA-TRACK-8', 'paypal_tracking' => ['carrier' => 'DHL']]);
 
