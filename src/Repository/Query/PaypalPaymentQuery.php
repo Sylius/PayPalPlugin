@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
 {
@@ -101,8 +102,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         ;
 
         foreach ($payments as $payment) {
-            $details = $payment->getDetails();
-            if (isset($details['paypal_order_id']) && $details['paypal_order_id'] === $paypalOrderId) {
+            if (PayPalPaymentDetails::fromPayment($payment)->orderId() === $paypalOrderId) {
                 return $payment;
             }
         }

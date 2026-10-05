@@ -32,7 +32,6 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class CompleteOrderAction implements ActionInterface
@@ -80,10 +79,8 @@ final readonly class CompleteOrderAction implements ActionInterface
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
-        $details = $payment->getDetails();
-        $paymentSource = is_string($details['payment_source'] ?? null)
-            ? $details['payment_source']
-            : PayPalPaymentSourceProviderInterface::PAYPAL;
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $paymentSource = $details->paymentSource();
 
         if (null !== RedirectPaymentSource::tryFrom($paymentSource)) {
             $this->logger?->warning(sprintf(
@@ -106,9 +103,9 @@ final readonly class CompleteOrderAction implements ActionInterface
 
             $this->updateOrderApi->update(
                 $token,
-                (string) $details['paypal_order_id'],
+                (string) $details->orderId(),
                 $payment,
-                (string) $details['reference_id'],
+                (string) $details->referenceId(),
                 $config->merchantId(),
             );
 
@@ -119,8 +116,8 @@ final readonly class CompleteOrderAction implements ActionInterface
         if (null !== $this->updateOrderAddressApi && $order->isShippingRequired()) {
             $this->updateOrderAddressApi->update(
                 $token,
-                (string) $details['paypal_order_id'],
-                (string) $details['reference_id'],
+                (string) $details->orderId(),
+                (string) $details->referenceId(),
                 $order->getShippingAddress(),
             );
         }

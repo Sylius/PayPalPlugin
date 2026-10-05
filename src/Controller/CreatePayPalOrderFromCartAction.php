@@ -121,7 +121,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         $this->paymentManager->flush();
 
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->orderId();
 
         return new JsonResponse([
             'id' => $order->getId(),

@@ -19,7 +19,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 final readonly class PaymentStateManager implements PaymentStateManagerInterface
@@ -50,15 +51,15 @@ final readonly class PaymentStateManager implements PaymentStateManagerInterface
         // TODO - move target state resolving to the separate service
         $this->paypalPaymentCompleteProcessor->completePayment($payment);
 
-        $status = (string) $payment->getDetails()['status'];
-        if ($status === StatusAction::STATUS_COMPLETED) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        if ($details->isStatus(PayPalPaymentStatus::Completed)) {
             $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_COMPLETE);
 
             return;
         }
 
         if (
-            $status === StatusAction::STATUS_PROCESSING &&
+            $details->isStatus(PayPalPaymentStatus::Processing) &&
             $payment->getState() !== PaymentInterface::STATE_PROCESSING
         ) {
             $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_PROCESS);

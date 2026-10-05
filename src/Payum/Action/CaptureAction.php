@@ -27,7 +27,6 @@ use Sylius\PayPalPlugin\Provider\NonceProvider;
 use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final readonly class CaptureAction implements ActionInterface
@@ -140,9 +139,7 @@ final readonly class CaptureAction implements ActionInterface
 
     private function resolvePaymentSource(PaymentInterface $payment): string
     {
-        $paymentSource = $payment->getDetails()['payment_source'] ?? null;
-
-        return is_string($paymentSource) ? $paymentSource : PayPalPaymentSourceProviderInterface::PAYPAL;
+        return PayPalPaymentDetails::fromPayment($payment)->paymentSource();
     }
 
     /** @return array<int, string> */

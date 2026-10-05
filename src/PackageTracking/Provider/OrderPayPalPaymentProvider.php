@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class OrderPayPalPaymentProvider implements OrderPayPalPaymentProviderInterface
 {
@@ -47,8 +48,7 @@ final class OrderPayPalPaymentProvider implements OrderPayPalPaymentProviderInte
                 continue;
             }
 
-            $details = $payment->getDetails();
-            if (!isset($details['paypal_order_id'])) {
+            if (null === PayPalPaymentDetails::fromPayment($payment)->orderId()) {
                 continue;
             }
 

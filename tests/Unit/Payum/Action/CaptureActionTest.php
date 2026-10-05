@@ -26,8 +26,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Payum\Action\CaptureAction;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
@@ -90,7 +90,7 @@ final class CaptureActionTest extends TestCase
         $this->createOrderApi->method('create')->with('ACCESS_TOKEN', $payment, 'UUID')->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_CAPTURED,
+            'status' => PayPalPaymentStatus::Captured->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,
@@ -122,7 +122,7 @@ final class CaptureActionTest extends TestCase
         ;
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_CAPTURED,
+            'status' => PayPalPaymentStatus::Captured->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,
@@ -152,7 +152,7 @@ final class CaptureActionTest extends TestCase
         $this->createOrderApi->method('create')->with('ACCESS_TOKEN', $payment, 'UUID')->willReturn(['status' => 'PAYER_ACTION_REQUIRED', 'id' => '123123']);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_CAPTURED,
+            'status' => PayPalPaymentStatus::Captured->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,
@@ -270,7 +270,7 @@ final class CaptureActionTest extends TestCase
         ]);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_CAPTURED,
+            'status' => PayPalPaymentStatus::Captured->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,
@@ -306,7 +306,7 @@ final class CaptureActionTest extends TestCase
         ]);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_CAPTURED,
+            'status' => PayPalPaymentStatus::Captured->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'UUID',
             'payment_amount' => 1000,

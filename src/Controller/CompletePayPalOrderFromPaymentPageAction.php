@@ -20,6 +20,7 @@ use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
@@ -86,7 +87,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $payPalOrderId = (string) ($payment->getDetails()['paypal_order_id'] ?? '');
+        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->orderId();
 
         try {
             if ($this->paymentAmountVerifier !== null) {
@@ -140,8 +141,6 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
 
     private function getTotalPaymentAmountFromPaypal(PaymentInterface $payment): int
     {
-        $details = $payment->getDetails();
-
-        return $details['payment_amount'] ?? 0;
+        return PayPalPaymentDetails::fromPayment($payment)->amount() ?? 0;
     }
 }

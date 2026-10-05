@@ -36,6 +36,7 @@ use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
@@ -167,7 +168,7 @@ final readonly class ProcessPayPalOrderAction
             ]);
         }
 
-        if (($payment->getDetails()['paypal_order_id'] ?? null) !== $payPalOrderId) {
+        if (PayPalPaymentDetails::fromPayment($payment)->orderId() !== $payPalOrderId) {
             return $this->returnToCheckout($orderId, $payPalOrderId, $payment, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 

@@ -126,7 +126,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         $this->paymentStateManager->create($payment);
         $this->paymentStateManager->process($payment);
 
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->orderId();
 
         return new JsonResponse([
             'id' => $order->getId(),

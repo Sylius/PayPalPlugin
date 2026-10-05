@@ -21,6 +21,8 @@ use Sylius\Component\Order\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Webmozart\Assert\Assert;
 
 final readonly class OrderPaymentProcessor implements OrderProcessorInterface
@@ -39,7 +41,7 @@ final readonly class OrderPaymentProcessor implements OrderProcessorInterface
 
         if (
             $payment !== null &&
-            ($payment->getDetails()['status'] ?? null) === 'CAPTURED' &&
+            PayPalPaymentDetails::fromPayment($payment)->isStatus(PayPalPaymentStatus::Captured) &&
             $this->getFactoryName($payment) === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
         ) {
             return;

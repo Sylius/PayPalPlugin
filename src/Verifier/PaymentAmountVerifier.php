@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class PaymentAmountVerifier implements PaymentAmountVerifierInterface
 {
@@ -49,8 +50,6 @@ final class PaymentAmountVerifier implements PaymentAmountVerifierInterface
 
     private function getPaymentAmountFromDetails(PaymentInterface $payment): int
     {
-        $details = $payment->getDetails();
-
-        return $details['payment_amount'] ?? 0;
+        return PayPalPaymentDetails::fromPayment($payment)->amount() ?? 0;
     }
 }

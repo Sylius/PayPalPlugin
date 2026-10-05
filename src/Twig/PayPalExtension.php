@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -85,6 +86,7 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
             new TwigFunction('sylius_paypal_is_awaiting_payer_action', [$this, 'isAwaitingPayerAction']),
+            new TwigFunction('sylius_paypal_payer_action_url', [$this, 'getPayerActionUrl']),
             new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
         ];
     }
@@ -146,9 +148,14 @@ final class PayPalExtension extends AbstractExtension
         return $this->payerActionChecker->isAwaitingPayerAction($payment);
     }
 
+    public function getPayerActionUrl(PaymentInterface $payment): ?string
+    {
+        return PayPalPaymentDetails::fromPayment($payment)->payerActionUrl();
+    }
+
     public function isRefundedToPayPalWallet(PaymentInterface $payment): bool
     {
-        return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
+        return PayPalPaymentSourceProviderInterface::PAYPAL === PayPalPaymentDetails::fromPayment($payment)->paymentSource();
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool

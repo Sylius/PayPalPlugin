@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Provider;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
 
 trigger_deprecation(
@@ -39,9 +40,7 @@ final readonly class PaymentProvider implements PaymentProviderInterface
         $payments = $this->paymentRepository->findAll();
 
         foreach ($payments as $payment) {
-            $details = $payment->getDetails();
-
-            if (isset($details['paypal_order_id']) && $details['paypal_order_id'] === $orderId) {
+            if (PayPalPaymentDetails::fromPayment($payment)->orderId() === $orderId) {
                 return $payment;
             }
         }

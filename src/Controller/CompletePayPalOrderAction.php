@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -64,7 +65,7 @@ final readonly class CompletePayPalOrderAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $payPalOrderId = (string) ($payment->getDetails()['paypal_order_id'] ?? '');
+        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->orderId();
         $requestedPayPalOrderId = $request->getPayload()->getString('payPalOrderId');
 
         if ('' !== $requestedPayPalOrderId && $requestedPayPalOrderId !== $payPalOrderId) {

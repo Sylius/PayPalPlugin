@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
 final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
@@ -50,8 +51,8 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
             return;
         }
 
-        $details = $payment->getDetails();
-        if (!isset($details['paypal_order_id'])) {
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->orderId();
+        if (null === $payPalOrderId) {
             return;
         }
 
@@ -60,7 +61,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
 
         try {
             $token = $this->authorizeClientApi->authorize($paymentMethod);
-            $details = $this->orderDetailsApi->get($token, (string) $details['paypal_order_id']);
+            $details = $this->orderDetailsApi->get($token, $payPalOrderId);
             $capture = $details['purchase_units'][0]['payments']['captures'][0];
             if (self::CAPTURE_STATUS_REFUNDED === ($capture['status'] ?? null)) {
                 return;
