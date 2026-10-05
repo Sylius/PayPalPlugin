@@ -115,6 +115,14 @@ final class PayPalOrderFactoryTest extends TestCase
         (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router, $this->shippingCallbackUrlProvider))->create($payment, 'REFERENCE_ID');
     }
 
+    public function test_it_hands_the_custom_id_over_to_the_purchase_unit_factory(): void
+    {
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($this->payment, 'REFERENCE_ID', null, true, 'PAYMENT_REQUEST_HASH')->willReturn($this->purchaseUnit());
+
+        (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router))->create($this->payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH');
+    }
+
     public function test_it_sends_the_item_taxes_when_no_shipping_callback_is_declared(): void
     {
         $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);

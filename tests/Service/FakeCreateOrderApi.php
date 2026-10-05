@@ -26,6 +26,8 @@ final class FakeCreateOrderApi implements CreateOrderApiInterface
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
         ?string $payerActionReturnNonce = null,
         ?string $payerActionCancelNonce = null,
+        ?string $customId = null,
+        ?string $requestId = null,
     ): array {
         return ['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED'];
     }

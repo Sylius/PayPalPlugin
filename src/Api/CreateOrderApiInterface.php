@@ -25,5 +25,7 @@ interface CreateOrderApiInterface
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
         ?string $payerActionReturnNonce = null,
         ?string $payerActionCancelNonce = null,
+        ?string $customId = null,
+        ?string $requestId = null,
     ): array;
 }

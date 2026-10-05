@@ -37,6 +37,7 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
         string $referenceId,
         ?string $merchantId = null,
         bool $withItemTaxes = true,
+        ?string $customId = null,
     ): PayPalPurchaseUnit {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -63,7 +64,7 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
             $order->isShippingRequired(),
             $order->getShippingAddress(),
             shippingDiscountValue: $shippingDiscount,
-            customId: $paymentReferenceNumber,
+            customId: $customId ?? $paymentReferenceNumber,
             withItemTaxes: $withItemTaxes,
         );
     }

@@ -48,6 +48,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
         ?string $payerActionReturnNonce = null,
         ?string $payerActionCancelNonce = null,
+        ?string $customId = null,
     ): PayPalOrder {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -67,6 +68,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
                 $payment,
                 $referenceId,
                 withItemTaxes: !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
+                customId: $customId,
             ),
             intent: PayPalOrder::INTENT_CAPTURE,
             paymentSource: $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext),
