@@ -41,6 +41,23 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertFalse($form->get('google_pay_enabled')->getData());
     }
 
+    public function test_the_card_three_d_secure_always_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->get('card_three_d_secure_always')->getData());
+    }
+
+    public function test_the_card_three_d_secure_always_toggle_stays_true_after_being_resubmitted(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit(array_merge($this->submittedFields(), ['card_three_d_secure_always' => '1']));
+
+        self::assertTrue($form->isValid());
+        self::assertTrue($form->getData()['card_three_d_secure_always']);
+    }
+
     public function test_the_venmo_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
@@ -106,6 +123,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertFalse($form->getData()['google_pay_enabled']);
         self::assertFalse($form->getData()['apple_pay_enabled']);
         self::assertFalse($form->getData()['trustly_enabled']);
+        self::assertFalse($form->getData()['card_three_d_secure_always']);
     }
 
     #[Test]

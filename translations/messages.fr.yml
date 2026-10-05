@@ -3,6 +3,7 @@ sylius_paypal:
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     card_fields_invalid: 'Veuillez vérifier les informations de carte en surbrillance.'
     card_number: 'Numéro de carte'
+    card_three_d_secure_always: 'Toujours demander 3D Secure pour les paiements par carte'
     cardholder_name: 'Nom du titulaire de la carte'
     client_id: 'Client ID'
     client_secret: 'Client Secret'

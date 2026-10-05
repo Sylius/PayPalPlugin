@@ -5,6 +5,7 @@ sylius_paypal:
     billing_info: 'Adres rozliczeniowy taki sam jak w zamówieniu'
     card_fields_invalid: 'Sprawdź zaznaczone dane karty.'
     card_number: 'Numer karty'
+    card_three_d_secure_always: 'Zawsze żądaj 3D Secure przy płatnościach kartą'
     cardholder_name: 'Imię i nazwisko posiadacza karty'
     client_id: 'Client ID'
     client_secret: 'Client Secret'

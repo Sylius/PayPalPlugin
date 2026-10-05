@@ -52,6 +52,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::GOOGLE_PAY_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.google_pay_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::APPLE_PAY_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.apple_pay_enabled', 'required' => false])
             ->add(RedirectPaymentSource::Trustly->configurationKey(), CheckboxType::class, ['label' => 'sylius_paypal.trustly_enabled', 'required' => false])
+            ->add(PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS, CheckboxType::class, ['label' => 'sylius_paypal.card_three_d_secure_always', 'required' => false])
         ;
 
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData): void {
@@ -64,6 +65,7 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::GOOGLE_PAY_ENABLED] ??= false;
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
+                $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
                 $event->setData($data);
             }
         });
