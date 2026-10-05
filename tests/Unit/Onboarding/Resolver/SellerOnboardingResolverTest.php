@@ -20,6 +20,8 @@ use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\SellerOnboardingResolutionException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
 use Sylius\PayPalPlugin\Model\SellerCredentials;
@@ -95,5 +97,22 @@ final class SellerOnboardingResolverTest extends TestCase
         self::assertSame('CLIENT-SECRET', $result->getClientSecret());
         self::assertSame('MERCHANT-ID', $result->getMerchantId());
         self::assertSame($status, $result->getStatus());
+    }
+
+    #[Test]
+    public function it_wraps_failures_into_a_seller_onboarding_resolution_exception(): void
+    {
+        $previous = new PayPalPluginException('boom');
+
+        $this->onboardingTokenApi->method('getFromAuthorizationCode')->willThrowException($previous);
+
+        $this->sellerCredentialsApi->expects(self::never())->method('get');
+
+        try {
+            $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE');
+            self::fail('SellerOnboardingResolutionException was not thrown');
+        } catch (SellerOnboardingResolutionException $exception) {
+            self::assertSame($previous, $exception->getPrevious());
+        }
     }
 }
