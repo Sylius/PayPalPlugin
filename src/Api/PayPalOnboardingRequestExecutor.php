@@ -43,12 +43,15 @@ final readonly class PayPalOnboardingRequestExecutor implements PayPalOnboarding
 
         $statusCode = $response->getStatusCode();
         $body = $response->getBody()->getContents();
+        $debugId = $response->getHeaderLine('PayPal-Debug-Id');
 
         if ($statusCode < Response::HTTP_OK || $statusCode >= Response::HTTP_MULTIPLE_CHOICES) {
-            $this->logger->error(sprintf('%s request failed with HTTP %d: %s', $operation, $statusCode, $body));
+            $this->logger->error(sprintf('%s request failed with HTTP %d (PayPal-Debug-Id: %s): %s', $operation, $statusCode, $debugId, $body));
 
-            throw new PayPalPluginException(sprintf('%s request failed with HTTP %d', $operation, $statusCode));
+            throw new PayPalPluginException(sprintf('%s request failed with HTTP %d (PayPal-Debug-Id: %s)', $operation, $statusCode, $debugId));
         }
+
+        $this->logger->info(sprintf('%s request succeeded with HTTP %d (PayPal-Debug-Id: %s)', $operation, $statusCode, $debugId));
 
         return (array) json_decode($body, associative: true, flags: \JSON_THROW_ON_ERROR);
     }

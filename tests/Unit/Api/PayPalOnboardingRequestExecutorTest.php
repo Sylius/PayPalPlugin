@@ -30,15 +30,17 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
 {
     private ClientInterface&MockObject $client;
 
+    private LoggerInterface&MockObject $logger;
+
     private PayPalOnboardingRequestExecutor $executor;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(ClientInterface::class);
-        $logger = $this->createMock(LoggerInterface::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->executor = new PayPalOnboardingRequestExecutor($this->client, $logger, 'Sylius_MP_PPCP');
+        $this->executor = new PayPalOnboardingRequestExecutor($this->client, $this->logger, 'Sylius_MP_PPCP');
     }
 
     #[Test]
@@ -123,4 +125,45 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
         $this->executor->execute(new Request('GET', 'https://api.sandbox.paypal.com/'), 'Test');
     }
 
+    #[Test]
+    public function it_logs_the_paypal_debug_id_of_a_successful_request(): void
+    {
+        $this->client->method('sendRequest')->willReturn($this->response(200, '{}', 'DEBUG-ID'));
+
+        $this->logger
+            ->expects(self::once())
+            ->method('info')
+            ->with('Test request succeeded with HTTP 200 (PayPal-Debug-Id: DEBUG-ID)');
+
+        $this->executor->execute(new Request('GET', 'https://api.sandbox.paypal.com/'), 'Test');
+    }
+
+    #[Test]
+    public function it_logs_the_paypal_debug_id_of_a_failed_request(): void
+    {
+        $this->client->method('sendRequest')->willReturn($this->response(400, '{"name":"INVALID_REQUEST"}', 'DEBUG-ID'));
+
+        $this->logger
+            ->expects(self::once())
+            ->method('error')
+            ->with('Test request failed with HTTP 400 (PayPal-Debug-Id: DEBUG-ID): {"name":"INVALID_REQUEST"}');
+
+        $this->expectException(PayPalPluginException::class);
+        $this->expectExceptionMessage('Test request failed with HTTP 400 (PayPal-Debug-Id: DEBUG-ID)');
+
+        $this->executor->execute(new Request('GET', 'https://api.sandbox.paypal.com/'), 'Test');
+    }
+
+    private function response(int $statusCode, string $body, string $debugId): ResponseInterface
+    {
+        $stream = $this->createMock(StreamInterface::class);
+        $stream->method('getContents')->willReturn($body);
+
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn($statusCode);
+        $response->method('getBody')->willReturn($stream);
+        $response->method('getHeaderLine')->with('PayPal-Debug-Id')->willReturn($debugId);
+
+        return $response;
+    }
 }
