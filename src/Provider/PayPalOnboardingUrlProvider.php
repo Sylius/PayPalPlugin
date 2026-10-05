@@ -18,11 +18,14 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlProviderInterface
 {
+    private string $onboardingUrl;
+
     public function __construct(
-        private string $webUrl,
+        string $webUrl,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
         private UrlGeneratorInterface $urlGenerator,
     ) {
+        $this->onboardingUrl = $webUrl . '/bizsignup/partner/entry';
     }
 
     public function generate(string $sellerNonce): string
@@ -30,7 +33,7 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
         $partnerCredentials = $this->partnerCredentialsProvider->provide();
 
         return UrlUtils::appendQueryString(
-            $this->webUrl . '/bizsignup/partner/entry',
+            $this->onboardingUrl,
             http_build_query([
                 'partnerId' => $partnerCredentials->getPartnerId(),
                 'product' => 'express_checkout',
