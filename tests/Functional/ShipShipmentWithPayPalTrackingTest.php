@@ -131,6 +131,17 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertNull($this->tracking());
     }
 
+    public function test_it_ships_a_tracking_number_through_the_sylius_ship_route_as_before(): void
+    {
+        $this->shipThroughSyliusRoute(['tracking' => 'QA-TRACK-7']);
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/admin/shipments/?id=' . $this->shipment()->getId()));
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('QA-TRACK-7', $this->shipment()->getTracking());
+        self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
+    }
+
     public function test_it_saves_nothing_while_the_form_only_re_renders(): void
     {
         $this->shipForm()->submitForm([self::FORM_NAME => ['tracking' => 'QA-TRACK-5', 'paypal_tracking' => ['carrier' => 'DHL']]]);
@@ -196,6 +207,15 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
             ->submitForm([self::FORM_NAME => $values])
             ->call('ship', ['redirectTo' => $redirectTo])
         ;
+    }
+
+    /** @param array<string, mixed> $values */
+    private function shipThroughSyliusRoute(array $values): void
+    {
+        $crawler = $this->client->request('GET', '/admin/orders/' . $this->order->getId());
+        $values['_token'] = $crawler->filter(sprintf('input[name="%s[_token]"]', self::FORM_NAME))->attr('value');
+
+        $this->client->request('PUT', sprintf('/admin/shipments/%d/ship', $this->shipment()->getId()), [self::FORM_NAME => $values]);
     }
 
     private function onPreShip(callable $listener): void
