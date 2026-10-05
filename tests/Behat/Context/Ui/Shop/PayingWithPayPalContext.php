@@ -21,6 +21,7 @@ use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
+use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage;
 use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 use Tests\Sylius\PayPalPlugin\Service\VoidPayPalPaymentCompleteProcessor;
@@ -34,6 +35,7 @@ final readonly class PayingWithPayPalContext implements Context
         private KernelBrowser $client,
         private DummyOrderDetailsApi $orderDetailsApi,
         private VoidPayPalPaymentCompleteProcessor $paymentCompleteProcessor,
+        private PayPalApiMocker $payPalApiMocker,
     ) {
     }
 
@@ -83,6 +85,7 @@ final readonly class PayingWithPayPalContext implements Context
         /** @var OrderInterface $order */
         $order = $this->sharedStorage->get('order');
 
+        $this->payPalApiMocker->mockCreateOrder();
         $this->client->request(
             'POST',
             sprintf('/en_US/create-pay-pal-order/%s', $order->getTokenValue()),

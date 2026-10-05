@@ -108,5 +108,6 @@ return static function (ContainerConfigurator $container) {
             service('test.client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_paypal.processor.payment_complete'),
+            service(PayPalApiMocker::class),
         ]);
 };

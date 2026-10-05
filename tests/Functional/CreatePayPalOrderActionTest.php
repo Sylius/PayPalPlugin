@@ -17,11 +17,14 @@ use ApiTestCase\JsonApiTestCase;
 
 final class CreatePayPalOrderActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     /** @test */
     public function it_creates_paypal_order_and_returns_its_data(): void
     {
         $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order/TOKEN');
 
         $response = $this->client->getResponse();
@@ -35,6 +38,7 @@ final class CreatePayPalOrderActionTest extends JsonApiTestCase
     {
         $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request(
             'POST',
             '/en_US/create-pay-pal-order/TOKEN',

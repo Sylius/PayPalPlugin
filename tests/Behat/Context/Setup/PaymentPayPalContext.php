@@ -88,6 +88,7 @@ final class PaymentPayPalContext implements Context
             'client_secret' => 'SECRET',
             'partner_attribution_id' => PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',
+            'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
             'reports_sftp_username' => 'USERNAME',
             'reports_sftp_password' => 'PASSWORD',
         ]);

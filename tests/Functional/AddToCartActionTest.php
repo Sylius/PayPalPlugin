@@ -22,6 +22,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class AddToCartActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     public function test_it_adds_the_variant_and_quantity_chosen_on_the_product_page(): void
     {
         $product = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml'])['mug'];
@@ -44,6 +46,7 @@ final class AddToCartActionTest extends JsonApiTestCase
         // this is the guest "buy now" flow exactly as the browser performs it. Guards
         // against the cart this action creates ever becoming unresolvable as the
         // caller's own cart on the very next request.
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', $location);
 
         $response = $this->client->getResponse();

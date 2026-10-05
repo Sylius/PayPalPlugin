@@ -24,6 +24,8 @@ use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     /** @test */
     public function it_creates_paypal_order_from_payment_page_and_returns_its_data(): void
     {
@@ -32,6 +34,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         $order = $fixtures['new_cart'];
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/pay-pal-order-payment-page/' . $order->getId() . '/create');
 
         $response = $this->client->getResponse();
@@ -51,6 +54,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         $abandonedPaymentId = $fixtures['abandoned_paypal_payment']->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/pay-pal-order-payment-page/' . $orderId . '/create');
 
         $response = $this->client->getResponse();
