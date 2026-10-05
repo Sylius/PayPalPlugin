@@ -19,18 +19,27 @@ use Symfony\Component\HttpClient\Psr18Client;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
+    $parameters = $container->parameters();
+    $parameters->set('sylius_paypal.onboarding.http_client.timeout', 10);
+    $parameters->set('sylius_paypal.onboarding.http_client.max_duration', 30);
 
-    $services->set('sylius_paypal.http_client.onboarding', Psr18Client::class)
+    $services->set('sylius_paypal.http_client.onboarding', HttpClient::class)
+        ->private()
+        ->factory([HttpClient::class, 'create'])
+        ->args([[
+            'timeout' => param('sylius_paypal.onboarding.http_client.timeout'),
+            'max_duration' => param('sylius_paypal.onboarding.http_client.max_duration'),
+        ]]);
+
+    $services->set('sylius_paypal.psr18_client.onboarding', Psr18Client::class)
         ->private()
         ->args([
-            inline_service(HttpClient::class)
-                ->factory([HttpClient::class, 'create'])
-                ->args([['timeout' => 2, 'max_duration' => 2]]),
+            service('sylius_paypal.http_client.onboarding'),
         ]);
 
     $services->set('sylius_paypal.api.onboarding_request_executor', PayPalOnboardingRequestExecutor::class)
         ->args([
-            service('sylius_paypal.http_client.onboarding'),
+            service('sylius_paypal.psr18_client.onboarding'),
             service('monolog.logger.paypal'),
         ]);
 
