@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;

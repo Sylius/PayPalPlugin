@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Twig;
 
-use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;

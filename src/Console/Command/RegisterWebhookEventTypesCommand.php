@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Console\Command;
 
-use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;

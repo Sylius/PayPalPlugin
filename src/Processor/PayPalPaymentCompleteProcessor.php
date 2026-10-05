@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Payum;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 

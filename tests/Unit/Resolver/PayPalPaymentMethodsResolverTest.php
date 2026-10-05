@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Resolver;
 
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolver;
 
