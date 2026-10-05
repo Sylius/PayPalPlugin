@@ -124,6 +124,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment_method'),
             service('sylius_paypal.enabler.payment_method'),
+            service('sylius_paypal.provider.onboarding_status_messages'),
         ]);
 
     $services->set('sylius_paypal.controller.complete_onboarding', CompleteOnboardingAction::class)

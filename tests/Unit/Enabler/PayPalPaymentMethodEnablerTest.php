@@ -116,14 +116,18 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->willReturn(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
         $this->authorizeClientApi->method('authorize')->willReturn('SELLER-TOKEN');
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(false, true));
+        $status = new OnboardingStatus(false, true);
+        $this->merchantOnboardingStatusApi->method('get')->willReturn($status);
 
         $this->sellerWebhookRegistrar->expects(self::never())->method('register');
         $paymentMethod->expects(self::never())->method('setEnabled');
         $this->paymentMethodManager->expects(self::never())->method('flush');
 
-        $this->expectException(PaymentMethodCouldNotBeEnabledException::class);
-
-        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+        try {
+            $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+            self::fail('PaymentMethodCouldNotBeEnabledException was not thrown');
+        } catch (PaymentMethodCouldNotBeEnabledException $exception) {
+            self::assertSame($status, $exception->getOnboardingStatus());
+        }
     }
 }

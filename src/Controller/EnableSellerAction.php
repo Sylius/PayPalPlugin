@@ -18,6 +18,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +30,7 @@ final readonly class EnableSellerAction
     public function __construct(
         private PaymentMethodRepositoryInterface $paymentMethodRepository,
         private PaymentMethodEnablerInterface $paymentMethodEnabler,
+        private OnboardingStatusMessagesProviderInterface $onboardingStatusMessagesProvider,
     ) {
     }
 
@@ -40,8 +42,10 @@ final readonly class EnableSellerAction
 
         try {
             $this->paymentMethodEnabler->enable($paymentMethod);
-        } catch (PaymentMethodCouldNotBeEnabledException) {
-            $flashBag->add('error', 'sylius_paypal.payment_not_enabled');
+        } catch (PaymentMethodCouldNotBeEnabledException $exception) {
+            foreach ($this->provideNotEnabledMessages($exception) as $message) {
+                $flashBag->add('error', $message);
+            }
 
             return new RedirectResponse((string) $request->headers->get('referer'));
         } catch (PayPalWebhookUrlNotValidException) {
@@ -53,5 +57,18 @@ final readonly class EnableSellerAction
         $flashBag->add('success', 'sylius_paypal.payment_enabled');
 
         return new RedirectResponse((string) $request->headers->get('referer'));
+    }
+
+    /** @return list<string> */
+    private function provideNotEnabledMessages(PaymentMethodCouldNotBeEnabledException $exception): array
+    {
+        $onboardingStatus = $exception->getOnboardingStatus();
+        if (null === $onboardingStatus) {
+            return ['sylius_paypal.payment_not_enabled'];
+        }
+
+        $messages = $this->onboardingStatusMessagesProvider->provide($onboardingStatus);
+
+        return [] === $messages ? ['sylius_paypal.payment_not_enabled'] : $messages;
     }
 }

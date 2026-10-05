@@ -54,7 +54,7 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         }
 
         if (!$status->isComplete()) {
-            throw new PaymentMethodCouldNotBeEnabledException();
+            throw new PaymentMethodCouldNotBeEnabledException($status);
         }
 
         try {
