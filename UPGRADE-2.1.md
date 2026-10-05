@@ -206,6 +206,15 @@
    too, including the onboarding requests. Use `Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID`
    or the `sylius_paypal.partner_attribution_id` parameter instead. The old constant now points to the new one.
 
+1. #### The PayPal payment method can only be created through the onboarding.
+
+   Opening the admin create form for the `sylius_paypal` gateway (`/admin/payment-methods/new/sylius_paypal`)
+   now always redirects to the payment methods list. In 2.0 the form was blocked only when a PayPal payment
+   method already existed; now it is blocked as well when none exists, and the admin is pointed to the
+   onboarding with the `sylius_paypal.create_paypal_payment_method_via_onboarding` flash. Create the payment
+   method with the onboarding available on the payment methods list (or the sandbox onboarding in sandbox
+   mode) instead of filling the credentials in by hand.
+
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
    The same value used to be spelled three different ways, and `orderID` meant two different things depending
@@ -403,10 +412,11 @@
    ```
 
    ```diff
-    <service id="sylius_paypal.provider.paypal_payment_method" class="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider">
-        <!-- ... -->
-   +    <argument type="service" id="sylius_paypal.repository.query.paypal_payment_method" />
-    </service>
+    $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+   +        service('sylius_paypal.repository.query.paypal_payment_method'),
+        ]);
    ```
 
    This one degrades as well: without the query the provider loads every payment method and filters them in

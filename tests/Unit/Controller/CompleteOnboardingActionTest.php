@@ -137,11 +137,14 @@ final class CompleteOnboardingActionTest extends TestCase
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
 
-        $this->onboardingCompletionProcessor
-            ->method('process')
-            ->willThrowException(new OnboardingFailedException(new PayPalPluginException('boom')));
+        $exception = new OnboardingFailedException(new PayPalPluginException('boom'));
+        $this->onboardingCompletionProcessor->method('process')->willThrowException($exception);
 
-        $this->logger->expects(self::once())->method('error');
+        $this->logger
+            ->expects(self::once())
+            ->method('error')
+            ->with($exception->getMessage(), ['exception' => $exception])
+        ;
 
         $response = ($this->action)($request);
 

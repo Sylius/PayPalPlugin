@@ -16,6 +16,7 @@ use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -23,7 +24,7 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.onboarding.http_client.timeout', 10);
     $parameters->set('sylius_paypal.onboarding.http_client.max_duration', 30);
 
-    $services->set('sylius_paypal.http_client.onboarding', HttpClient::class)
+    $services->set('sylius_paypal.http_client.onboarding', HttpClientInterface::class)
         ->private()
         ->factory([HttpClient::class, 'create'])
         ->args([[

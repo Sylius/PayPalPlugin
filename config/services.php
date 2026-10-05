@@ -621,7 +621,10 @@ return static function (ContainerConfigurator $container) {
     $services->alias(OrderOwnershipVerifierInterface::class, 'sylius_paypal.verifier.order_ownership');
 
     $services->set('sylius_paypal.repository.query.paypal_payment_method', PayPalPaymentMethodQuery::class)
-        ->args([service('sylius.repository.payment_method')]);
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            param('sylius.model.payment_method.class'),
+        ]);
 
     $services->alias(PayPalPaymentMethodQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment_method');
 

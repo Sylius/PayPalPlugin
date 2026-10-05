@@ -13,17 +13,17 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Repository\Query;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
-use Sylius\Bundle\ResourceBundle\Doctrine\ORM\EntityRepository;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 final readonly class PayPalPaymentMethodQuery implements PayPalPaymentMethodQueryInterface
 {
-    /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface>&EntityRepository $paymentMethodRepository */
+    /** @param class-string<PaymentMethodInterface> $paymentMethodClass */
     public function __construct(
-        private PaymentMethodRepositoryInterface&EntityRepository $paymentMethodRepository,
+        private EntityManagerInterface $entityManager,
+        private string $paymentMethodClass,
     ) {
     }
 
@@ -54,8 +54,10 @@ final readonly class PayPalPaymentMethodQuery implements PayPalPaymentMethodQuer
 
     private function getPayPalPaymentMethodQueryBuilder(): QueryBuilder
     {
-        return $this->paymentMethodRepository
-            ->createQueryBuilder('o')
+        return $this->entityManager
+            ->createQueryBuilder()
+            ->select('o')
+            ->from($this->paymentMethodClass, 'o')
             ->innerJoin('o.gatewayConfig', 'gatewayConfig')
             ->andWhere('gatewayConfig.factoryName = :factoryName')
             ->setParameter('factoryName', SyliusPayPalExtension::PAYPAL_FACTORY_NAME)

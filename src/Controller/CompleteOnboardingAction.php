@@ -68,7 +68,7 @@ final readonly class CompleteOnboardingAction
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         } catch (OnboardingFailedException $exception) {
-            $this->logger->error($exception->getMessage());
+            $this->logger->error($exception->getMessage(), ['exception' => $exception]);
             $flashBag->add('error', 'sylius_paypal.could_not_create_paypal_payment_method');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
