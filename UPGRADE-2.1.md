@@ -485,12 +485,15 @@
    that carries no `authentication_result` at all, which is every wallet payment and every card that needed
    no challenge, is captured as before.
 
-   Card orders send `payment_source.card.attributes.verification.method` as `SCA_WHEN_REQUIRED`, hardcoded,
-   with no back-office toggle — 3DS then fires wherever regulation or the card network requires it and
-   nowhere else, matching the SDD's own choice over `SCA_ALWAYS` (a challenge for every card payment,
-   including buyers nobody needed to challenge). `PaymentPageCardFieldsController` names `card` when it
-   starts an attempt, instead of leaving the request to fall back to `paypal` silently — without this,
-   PayPal never runs 3DS at all, so the decision table above never has a result to act on.
+   Card orders send `payment_source.card.attributes.verification.method` as `SCA_WHEN_REQUIRED` — 3DS then
+   fires wherever regulation or the card network requires it and nowhere else, so a merchant outside the SCA
+   regions (e.g. in the US) never gets a challenge. The PayPal payment method's new opt-in toggle "Always
+   request 3D Secure for card payments" (`card_three_d_secure_always`,
+   `PayPalGatewayConfig::isCardThreeDSecureAlways()`, off by default) sends `SCA_ALWAYS` instead, so 3D Secure
+   is requested for every card payment, read from the payment method of the payment the PayPal order is created
+   for. `PaymentPageCardFieldsController` names `card` when it starts an attempt, instead of leaving the
+   request to fall back to `paypal` silently — without this, PayPal never runs 3DS at all, so the decision
+   table above never has a result to act on.
 
    **Shops upgrading will start seeing real 3D Secure challenges on card payments where they saw none
    before** — this is a conversion-visible behavior change, not just an internal correctness fix. Decorate
@@ -744,8 +747,8 @@
    Every order the plugin created carried `payment_source.paypal`, whichever button started it.
    `Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface`
    (`sylius_paypal.provider.paypal_payment_source`) now builds that node per method, and the buyer's choice
-   travels with the order from the button to the API call. Decorate it to teach the plugin a method of your
-   own.
+   travels with the order from the button to the API call. Its `provide()` receives the payment the PayPal
+   order is created for. Decorate it to teach the plugin a method of your own.
 
    The two factory signatures gained trailing optional arguments — the payment source, and the payer action
    nonces the redirect routes are answered with:

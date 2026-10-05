@@ -3,9 +3,11 @@ sylius_paypal:
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     card_fields_invalid: 'Veuillez vérifier les informations de carte en surbrillance.'
     card_number: 'Numéro de carte'
+    card_three_d_secure_always: 'Toujours demander 3D Secure pour les paiements par carte'
     cardholder_name: 'Nom du titulaire de la carte'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    configure: 'Configurer'
     credit_card: 'Carte de crédit'
     cvv: 'CVV'
     different_amount: 'Ceci est le montant autorisé. Etant donné que vous avez modifié la commande après son autorisation, vous paierez le montant indiqué comme "Total"'
@@ -24,5 +26,7 @@ sylius_paypal:
     sftp_password: 'Mot de passe SFTP'
     sftp_username: 'Identifiant SFTP'
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
+    suggested: 'Suggéré'
+    suggested_payment_method_description: 'Acceptez les paiements PayPal, carte de crédit et carte de débit dans votre boutique.'
     tender_type: 'Remboursé sur le porte-monnaie PayPal'
     tender_type_original_payment_method: "Remboursé sur le moyen de paiement d'origine"

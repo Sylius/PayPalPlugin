@@ -1,0 +1,5 @@
+{% set form = hookable_metadata.context.form.gatewayConfig.config %}
+
+<div class="col-12 col-md-6">
+    {{ form_row(form.card_three_d_secure_always, sylius_test_form_attribute('card-three-d-secure-always')) }}
+</div>
