@@ -217,6 +217,21 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertStringContainsString('This shipment can no longer be shipped. Refresh the page to see its current state.', $root->text());
     }
 
+    public function test_it_rolls_back_the_ship_when_it_fails_while_shipping(): void
+    {
+        $this->client->disableReboot();
+        self::getContainer()->get('event_dispatcher')->addListener('workflow.sylius_shipment.transition.ship', static function (): void {
+            throw new \RuntimeException('Shipping failed.');
+        });
+
+        $this->ship(['tracking' => 'QA-TRACK-8', 'paypal_tracking' => ['carrier' => 'DHL']]);
+
+        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $this->client->getResponse()->getStatusCode());
+        self::assertSame(0, self::getContainer()->get('doctrine.dbal.default_connection')->getTransactionNestingLevel());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+    }
+
     public function test_it_renders_nothing_for_a_shipment_already_shipped_when_mounted(): void
     {
         $this->shipElsewhere();
