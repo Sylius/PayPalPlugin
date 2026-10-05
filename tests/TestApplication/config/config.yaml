@@ -9,3 +9,8 @@ parameters:
 twig:
     paths:
         '%kernel.project_dir%/../../../tests/TestApplication/templates': ~
+
+when@test:
+    sylius_payment:
+        encryption:
+            enabled: false
