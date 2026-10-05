@@ -34,7 +34,9 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
             $this->onboardingUrl,
             http_build_query([
                 'partnerId' => $partnerCredentials->getPartnerId(),
-                'product' => 'express_checkout',
+                'product' => 'ppcp',
+                'secondaryProducts' => 'payment_methods',
+                'capabilities' => 'APPLE_PAY,GOOGLE_PAY',
                 'integrationType' => 'FO',
                 'features' => 'payment,refund,access_merchant_information',
                 'partnerClientId' => $partnerCredentials->getPartnerClientId(),

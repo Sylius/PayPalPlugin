@@ -55,7 +55,9 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
         self::assertStringStartsWith('https://www.sandbox.paypal.com/bizsignup/partner/entry?', $result);
         self::assertStringContainsString('partnerId=PARTNER-ID', $result);
         self::assertStringContainsString('partnerClientId=PARTNER-CLIENT-ID', $result);
-        self::assertStringContainsString('product=express_checkout', $result);
+        self::assertStringContainsString('product=ppcp', $result);
+        self::assertStringContainsString('secondaryProducts=payment_methods', $result);
+        self::assertStringContainsString('capabilities=' . rawurlencode('APPLE_PAY,GOOGLE_PAY'), $result);
         self::assertStringContainsString('integrationType=FO', $result);
         self::assertStringContainsString('displayMode=minibrowser', $result);
         self::assertStringContainsString('sellerNonce=SELLER-NONCE', $result);
