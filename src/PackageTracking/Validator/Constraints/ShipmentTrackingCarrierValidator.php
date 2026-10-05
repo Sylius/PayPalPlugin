@@ -67,5 +67,15 @@ final class ShipmentTrackingCarrierValidator extends ConstraintValidator
                 ->addViolation()
             ;
         }
+
+        $trackingCode = $value->getTrackingCode();
+        if (null !== $carrier && null !== $trackingCode && mb_strlen($trackingCode) > ShipmentTrackingCarrier::TRACKING_CODE_MAX_LENGTH) {
+            $this->context
+                ->buildViolation($constraint->trackingCodeTooLongMessage)
+                ->setParameter('{{ limit }}', (string) ShipmentTrackingCarrier::TRACKING_CODE_MAX_LENGTH)
+                ->atPath('trackingCode')
+                ->addViolation()
+            ;
+        }
     }
 }
