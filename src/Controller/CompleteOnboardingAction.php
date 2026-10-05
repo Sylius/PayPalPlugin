@@ -14,10 +14,11 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
-use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
-use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
+use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
+use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
+use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,10 +29,8 @@ use Webmozart\Assert\Assert;
 final readonly class CompleteOnboardingAction
 {
     public function __construct(
-        private SellerOnboardingResolverInterface $sellerOnboardingResolver,
-        private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
-        private SellerNonceProviderInterface $sellerNonceProvider,
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private OnboardingCompletionProcessorInterface $onboardingCompletionProcessor,
+        private OnboardingStatusMessagesProviderInterface $onboardingStatusMessagesProvider,
         private UrlGeneratorInterface $urlGenerator,
         private LoggerInterface $logger,
     ) {
@@ -58,37 +57,33 @@ final readonly class CompleteOnboardingAction
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($this->payPalPaymentMethodProvider->exists()) {
+        try {
+            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId']);
+        } catch (PayPalPaymentMethodAlreadyExistsException) {
             $flashBag->add('error', 'sylius_paypal.more_than_one_seller_not_allowed');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
-        }
-
-        $sellerNonce = $this->sellerNonceProvider->get();
-        if (null === $sellerNonce) {
+        } catch (OnboardingSessionExpiredException) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
-        }
-
-        try {
-            $result = $this->sellerOnboardingResolver->resolve($data['authCode'], $data['sharedId'], $sellerNonce);
-            $paymentMethod = $this->onboardingPaymentMethodCreator->create($result);
-        } catch (\Throwable $exception) {
+        } catch (OnboardingFailedException $exception) {
             $this->logger->error($exception->getMessage());
             $flashBag->add('error', 'sylius_paypal.could_not_create_paypal_payment_method');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        $this->sellerNonceProvider->remove();
+        foreach ($this->onboardingStatusMessagesProvider->provide($result->getStatus()) as $message) {
+            $flashBag->add('warning', $message);
+        }
 
-        if (!$paymentMethod->isEnabled()) {
-            $flashBag->add('warning', 'sylius_paypal.seller_onboarding_incomplete');
+        if (!$result->isWebhookUrlValid()) {
+            $flashBag->add('warning', 'sylius_paypal.webhook_url_not_valid');
         }
 
         return new JsonResponse([
-            'redirectUrl' => $this->urlGenerator->generate('sylius_admin_payment_method_update', ['id' => $paymentMethod->getId()]),
+            'redirectUrl' => $this->urlGenerator->generate('sylius_admin_payment_method_update', ['id' => $result->getPaymentMethod()->getId()]),
         ]);
     }
 }

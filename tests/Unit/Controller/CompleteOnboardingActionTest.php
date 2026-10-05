@@ -19,27 +19,24 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
-use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
+use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
+use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
-use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
-use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
-use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
+use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CompleteOnboardingActionTest extends TestCase
 {
-    private SellerOnboardingResolverInterface&MockObject $sellerOnboardingResolver;
-
-    private PayPalOnboardingPaymentMethodCreatorInterface&MockObject $onboardingPaymentMethodCreator;
-
-    private SellerNonceProviderInterface&MockObject $sellerNonceProvider;
-
-    private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
+    private OnboardingCompletionProcessorInterface&MockObject $onboardingCompletionProcessor;
 
     private UrlGeneratorInterface&MockObject $urlGenerator;
 
@@ -50,67 +47,62 @@ final class CompleteOnboardingActionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->sellerOnboardingResolver = $this->createMock(SellerOnboardingResolverInterface::class);
-        $this->onboardingPaymentMethodCreator = $this->createMock(PayPalOnboardingPaymentMethodCreatorInterface::class);
-        $this->sellerNonceProvider = $this->createMock(SellerNonceProviderInterface::class);
-        $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
+        $this->onboardingCompletionProcessor = $this->createMock(OnboardingCompletionProcessorInterface::class);
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
+        $this->urlGenerator->method('generate')->willReturnCallback(
+            fn (string $name, array $parameters = []): string => match ($name) {
+                'sylius_admin_payment_method_index' => 'http://admin/payment-methods/',
+                'sylius_admin_payment_method_update' => 'http://admin/payment-methods/' . $parameters['id'] . '/edit',
+            },
+        );
+
         $this->action = new CompleteOnboardingAction(
-            $this->sellerOnboardingResolver,
-            $this->onboardingPaymentMethodCreator,
-            $this->sellerNonceProvider,
-            $this->payPalPaymentMethodProvider,
+            $this->onboardingCompletionProcessor,
+            new OnboardingStatusMessagesProvider(),
             $this->urlGenerator,
             $this->logger,
         );
     }
 
     #[Test]
-    public function it_creates_the_payment_method_and_returns_the_edit_url_on_success(): void
+    public function it_returns_the_edit_url_on_success(): void
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
-        $this->urlGenerator->method('generate')->willReturnCallback(
-            fn (string $name, array $parameters = []): string => match ($name) {
-                'sylius_admin_payment_method_index' => 'http://admin/payment-methods/',
-                'sylius_admin_payment_method_update' => 'http://admin/payment-methods/' . $parameters['id'] . '/edit',
-                default => throw new \LogicException('Unexpected route: ' . $name),
-            },
-        );
-
-        $this->payPalPaymentMethodProvider
+        $this->onboardingCompletionProcessor
             ->expects(self::once())
-            ->method('exists')
-            ->willReturn(false);
-
-        $this->sellerNonceProvider->expects(self::once())->method('get')->willReturn('SELLER-NONCE');
-        $this->sellerNonceProvider->expects(self::once())->method('remove');
-
-        $this->sellerOnboardingResolver
-            ->expects(self::once())
-            ->method('resolve')
-            ->with('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE')
-            ->willReturn($result);
-
-        $this->onboardingPaymentMethodCreator
-            ->expects(self::once())
-            ->method('create')
-            ->with($result)
-            ->willReturn($paymentMethod);
-
-        $paymentMethod->method('isEnabled')->willReturn(true);
-        $paymentMethod->method('getId')->willReturn(42);
+            ->method('process')
+            ->with('AUTH-CODE', 'SHARED-ID')
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
 
         $response = ($this->action)($request);
 
-        self::assertSame(200, $response->getStatusCode());
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame(['redirectUrl' => 'http://admin/payment-methods/42/edit'], json_decode((string) $response->getContent(), true));
+        self::assertSame([], $this->flashBag($request)->all());
+    }
+
+    #[Test]
+    public function it_adds_a_warning_for_each_unmet_onboarding_requirement(): void
+    {
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
+
+        $this->onboardingCompletionProcessor
+            ->method('process')
+            ->willReturn($this->completionResult(new OnboardingStatus(false, false), false));
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame(
-            ['redirectUrl' => 'http://admin/payment-methods/42/edit'],
-            json_decode((string) $response->getContent(), true),
+            ['warning' => [
+                'sylius_paypal.seller_onboarding_payments_not_receivable',
+                'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                'sylius_paypal.webhook_url_not_valid',
+            ]],
+            $this->flashBag($request)->all(),
         );
     }
 
@@ -119,82 +111,50 @@ final class CompleteOnboardingActionTest extends TestCase
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
 
-        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
-
-        $this->payPalPaymentMethodProvider
-            ->expects(self::once())
-            ->method('exists')
-            ->willReturn(true);
-
-        $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
+        $this->onboardingCompletionProcessor->method('process')->willThrowException(new PayPalPaymentMethodAlreadyExistsException());
 
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-        self::assertSame(
-            ['error' => ['sylius_paypal.more_than_one_seller_not_allowed']],
-            $request->getSession()->getFlashBag()->all(),
-        );
+        self::assertSame(['error' => ['sylius_paypal.more_than_one_seller_not_allowed']], $this->flashBag($request)->all());
     }
 
     #[Test]
-    public function it_returns_bad_request_when_the_seller_nonce_is_missing(): void
+    public function it_returns_bad_request_when_the_onboarding_session_has_expired(): void
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
 
-        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
-
-        $this->payPalPaymentMethodProvider
-            ->expects(self::once())
-            ->method('exists')
-            ->willReturn(false);
-
-        $this->sellerNonceProvider->expects(self::once())->method('get')->willReturn(null);
-        $this->sellerNonceProvider->expects(self::never())->method('remove');
-        $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
+        $this->onboardingCompletionProcessor->method('process')->willThrowException(new OnboardingSessionExpiredException());
 
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        self::assertSame(['error' => ['sylius_paypal.onboarding_session_expired']], $this->flashBag($request)->all());
     }
 
     #[Test]
-    public function it_returns_bad_request_when_the_resolver_fails(): void
+    public function it_returns_bad_request_and_logs_when_the_onboarding_fails(): void
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
 
-        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
+        $this->onboardingCompletionProcessor
+            ->method('process')
+            ->willThrowException(new OnboardingFailedException(new PayPalPluginException('boom')));
 
-        $this->payPalPaymentMethodProvider
-            ->expects(self::once())
-            ->method('exists')
-            ->willReturn(false);
-
-        $this->sellerNonceProvider->expects(self::once())->method('get')->willReturn('SELLER-NONCE');
-        $this->sellerNonceProvider->expects(self::never())->method('remove');
-
-        $this->sellerOnboardingResolver
-            ->expects(self::once())
-            ->method('resolve')
-            ->willThrowException(new \RuntimeException('PayPal API error'));
-
-        $this->onboardingPaymentMethodCreator->expects(self::never())->method('create');
+        $this->logger->expects(self::once())->method('error');
 
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        self::assertSame(['error' => ['sylius_paypal.could_not_create_paypal_payment_method']], $this->flashBag($request)->all());
     }
 
     #[Test]
     public function it_returns_bad_request_when_the_request_body_is_missing_required_fields(): void
     {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE']);
+        $this->onboardingCompletionProcessor->expects(self::never())->method('process');
 
-        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
-
-        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
-
-        $response = ($this->action)($request);
+        $response = ($this->action)($this->requestWithBody(['authCode' => 'AUTH-CODE']));
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
@@ -202,13 +162,9 @@ final class CompleteOnboardingActionTest extends TestCase
     #[Test]
     public function it_returns_bad_request_when_a_required_field_is_not_a_string(): void
     {
-        $request = $this->requestWithBody(['authCode' => ['AUTH-CODE'], 'sharedId' => 'SHARED-ID']);
+        $this->onboardingCompletionProcessor->expects(self::never())->method('process');
 
-        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
-
-        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
-
-        $response = ($this->action)($request);
+        $response = ($this->action)($this->requestWithBody(['authCode' => ['AUTH-CODE'], 'sharedId' => 'SHARED-ID']));
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
@@ -219,13 +175,27 @@ final class CompleteOnboardingActionTest extends TestCase
         $request = Request::create('/onboarding/complete', 'POST', content: '{not-valid-json');
         $request->setSession(new Session(new MockArraySessionStorage()));
 
-        $this->urlGenerator->method('generate')->with('sylius_admin_payment_method_index')->willReturn('http://admin/payment-methods/');
-
-        $this->payPalPaymentMethodProvider->expects(self::never())->method('exists');
+        $this->onboardingCompletionProcessor->expects(self::never())->method('process');
 
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    private function completionResult(OnboardingStatus $status, bool $webhookUrlValid): OnboardingCompletionResult
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getId')->willReturn(42);
+
+        return new OnboardingCompletionResult($paymentMethod, $status, $webhookUrlValid);
+    }
+
+    private function flashBag(Request $request): FlashBagInterface
+    {
+        /** @var FlashBagInterface $flashBag */
+        $flashBag = $request->getSession()->getBag('flashes');
+
+        return $flashBag;
     }
 
     /** @param array<string, mixed> $body */

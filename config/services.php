@@ -560,7 +560,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
         ->args([
-            service('sylius_paypal.registrar.seller_webhook'),
             service('sylius.factory.gateway_config'),
             service('sylius.factory.payment_method'),
             service('doctrine.orm.entity_manager'),

@@ -18,15 +18,11 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
-use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboardingPaymentMethodCreatorInterface
 {
     public function __construct(
-        private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         private FactoryInterface $gatewayFactory,
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
@@ -43,16 +39,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             $paymentMethod->setEnabled(false);
         }
 
-        try {
-            $this->sellerWebhookRegistrar->register($paymentMethod);
-        } catch (PayPalWebhookUrlNotValidException) {
-            $paymentMethod->setEnabled(false);
-        } catch (PayPalWebhookAlreadyRegisteredException) {
-            // webhook already exists from a previous attempt; keep the onboarding-status decision above
-        }
-
         $this->entityManager->persist($paymentMethod);
-        $this->entityManager->flush();
 
         return $paymentMethod;
     }

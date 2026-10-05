@@ -2,6 +2,10 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
+use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
+use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider;
@@ -36,4 +40,20 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalOnboardingUrlProviderInterface::class, 'sylius_paypal.provider.onboarding_url');
+
+    $services->set('sylius_paypal.provider.onboarding_status_messages', OnboardingStatusMessagesProvider::class);
+
+    $services->alias(OnboardingStatusMessagesProviderInterface::class, 'sylius_paypal.provider.onboarding_status_messages');
+
+    $services->set('sylius_paypal.onboarding.processor.completion', OnboardingCompletionProcessor::class)
+        ->args([
+            service('sylius_paypal.provider.paypal_payment_method'),
+            service('sylius_paypal.provider.seller_nonce'),
+            service('sylius_paypal.onboarding.resolver.seller'),
+            service('sylius_paypal.creator.onboarding_payment_method'),
+            service('sylius_paypal.registrar.seller_webhook'),
+            service('doctrine.orm.entity_manager'),
+        ]);
+
+    $services->alias(OnboardingCompletionProcessorInterface::class, 'sylius_paypal.onboarding.processor.completion');
 };
