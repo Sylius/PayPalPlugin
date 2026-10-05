@@ -7,9 +7,9 @@
  * file that was distributed with this source code.
  */
 
-const PORTALED_MODAL_COMPONENT_NAMES = [
-    'sylius_paypal:create_sandbox_modal',
-    'sylius_paypal:create_onboarding_modal',
+const MODAL_COMPONENT_NAMES = [
+    'sylius_paypal:sandbox_onboarding_modal',
+    'sylius_paypal:live_onboarding_modal',
 ];
 
 function getPortalWrapper(modal) {
@@ -18,7 +18,7 @@ function getPortalWrapper(modal) {
     if (
         parent === null ||
         parent === document.body ||
-        !PORTALED_MODAL_COMPONENT_NAMES.includes(parent.getAttribute('data-live-name-value'))
+        !MODAL_COMPONENT_NAMES.includes(parent.getAttribute('data-live-name-value'))
     ) {
         return null;
     }

@@ -592,7 +592,7 @@ return static function (ContainerConfigurator $container) {
             service('logger'),
             service('router'),
         ])
-        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:create_sandbox_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig']);
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:sandbox_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig']);
 
     $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
         ->args([
@@ -600,7 +600,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.seller_nonce'),
             service('monolog.logger.paypal'),
         ])
-        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:create_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
 
     $services->set('sylius_paypal.verifier.payment_amount', PaymentAmountVerifier::class);
 
