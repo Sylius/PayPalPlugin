@@ -908,7 +908,9 @@
    `form.paypal_tracking` itself - and the ship transition is not applied. For those shipments the form is the
    `sylius_paypal_admin:shipment:ship_form` live component: Ship runs its `ship` action, which validates the form in
    the component and applies the transition the way Sylius' ship route does, including the
-   `sylius.shipment.pre_ship`/`post_ship` events. Its fields are hookables on `sylius_paypal.admin.shipment.ship_form`
+   `sylius.shipment.pre_ship`/`post_ship` events. A shipment that can no longer be shipped (e.g. shipped in another
+   tab) is not shipped again: the action redirects with an error flash, and a re-render shows a notice instead of the
+   form. Its fields are hookables on `sylius_paypal.admin.shipment.ship_form`
    (order page) and `sylius_paypal.admin.shipment.index.ship_form` (shipment list): `tracking`, `carrier`,
    `carrier_name_other` and `submit`. The carrier is saved only by that action, so an override of the two templates
    has to keep submitting through it (the form's `data-action="live#action:prevent"` and

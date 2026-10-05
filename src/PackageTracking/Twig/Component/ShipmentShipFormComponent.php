@@ -14,15 +14,18 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\PackageTracking\Twig\Component;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\ResourceBundle\Controller\AuthorizationCheckerInterface;
 use Sylius\Bundle\ResourceBundle\Controller\EventDispatcherInterface;
 use Sylius\Bundle\ResourceBundle\Controller\FlashHelperInterface;
 use Sylius\Bundle\ResourceBundle\Controller\RequestConfiguration;
 use Sylius\Bundle\ResourceBundle\Controller\RequestConfigurationFactoryInterface;
 use Sylius\Bundle\ResourceBundle\Controller\ResourceUpdateHandlerInterface;
+use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Bundle\UiBundle\Twig\Component\ResourceFormComponentTrait;
 use Sylius\Bundle\UiBundle\Twig\Component\TemplatePropTrait;
 use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\Component\Shipping\ShipmentTransitions;
 use Sylius\PayPalPlugin\PackageTracking\Form\Extension\ShipmentShipTypeExtension;
 use Sylius\PayPalPlugin\PackageTracking\Manager\ShipmentTrackingManagerInterface;
 use Sylius\PayPalPlugin\PackageTracking\Model\ShipmentTrackingData;
@@ -39,6 +42,8 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 #[AsLiveComponent]
 final class ShipmentShipFormComponent
@@ -51,6 +56,9 @@ final class ShipmentShipFormComponent
     public const REDIRECT_TO_ORDER = 'order';
 
     public const REDIRECT_TO_INDEX = 'index';
+
+    #[LiveProp]
+    public bool $shippableOnMount = false;
 
     /**
      * @param RepositoryInterface<ShipmentInterface> $shipmentRepository
@@ -71,6 +79,7 @@ final class ShipmentShipFormComponent
         private readonly EntityManagerInterface $entityManager,
         private readonly ShipmentTrackingManagerInterface $shipmentTrackingManager,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly StateMachineInterface $stateMachine,
     ) {
         $this->initialize($shipmentRepository, $formFactory, $shipmentClass, $formClass);
     }
@@ -82,6 +91,14 @@ final class ShipmentShipFormComponent
 
         if (!$this->authorizationChecker->isGranted($configuration, $configuration->getPermission(ResourceActions::UPDATE))) {
             throw new AccessDeniedException();
+        }
+
+        if (!$this->canBeShipped()) {
+            $event = new ResourceControllerEvent();
+            $event->stop('sylius_paypal.shipment_cannot_be_shipped');
+            $this->flashHelper->addFlashFromEvent($configuration, $event);
+
+            return $this->redirect($this->resource, $redirectTo);
         }
 
         $this->submitForm();
@@ -122,6 +139,17 @@ final class ShipmentShipFormComponent
         $postEvent = $this->eventDispatcher->dispatchPostEvent(ResourceActions::UPDATE, $configuration, $shipment);
 
         return $postEvent->getResponse() ?? $this->redirect($shipment, $redirectTo);
+    }
+
+    #[PostMount]
+    public function rememberShippable(): void
+    {
+        $this->shippableOnMount = $this->canBeShipped();
+    }
+
+    private function canBeShipped(): bool
+    {
+        return null !== $this->resource && $this->stateMachine->can($this->resource, ShipmentTransitions::GRAPH, ShipmentTransitions::TRANSITION_SHIP);
     }
 
     protected function getDataModelValue(): string

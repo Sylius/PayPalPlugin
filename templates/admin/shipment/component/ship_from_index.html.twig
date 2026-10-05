@@ -20,4 +20,10 @@
         {% endif %}
         {{ form_end(form, {'render_rest': false}) }}
     </div>
+{% elseif shippableOnMount %}
+    <div {{ attributes }}>
+        <div class="alert alert-warning mb-0" role="alert" {{ sylius_test_html_attribute('shipment-cannot-be-shipped') }}>
+            {{ 'sylius_paypal.shipment_tracking.shipment_cannot_be_shipped'|trans }}
+        </div>
+    </div>
 {% endif %}

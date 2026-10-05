@@ -8,6 +8,7 @@ sylius_paypal:
     payment_enabled: 'PayPal payment has just been enabled.'
     payment_pending: 'Your payment is on its way. We will confirm your order as soon as your bank has sent the money.'
     payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'
+    shipment_cannot_be_shipped: 'This shipment can no longer be shipped. It may have been shipped in the meantime.'
     something_went_wrong: 'Something went wrong. Please, try again.'
     three_d_secure_declined: 'Your card could not be authenticated. Please use another payment method.'
     three_d_secure_retry: 'Card authentication could not be completed. Please, try again.'
