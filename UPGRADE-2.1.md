@@ -386,6 +386,26 @@
    the providers it already holds. For `CreateOrderApi` that means an order carrying neither the return and
    cancel URLs nor the shipping callback, so the wallet falls back to its plain flow with no shipping options.
 
+   ```diff
+    final readonly class PayPalPaymentMethodProvider
+    {
+        public function __construct(
+            // ...
+   +        private ?PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery = null,
+        ) {
+        }
+   ```
+
+   ```diff
+    <service id="sylius_paypal.provider.paypal_payment_method" class="Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider">
+        <!-- ... -->
+   +    <argument type="service" id="sylius_paypal.repository.query.paypal_payment_method" />
+    </service>
+   ```
+
+   This one degrades as well: without the query the provider loads every payment method and filters them in
+   PHP, as it did in 2.0.
+
 1. #### The PayPal order payload is now assembled by factories.
 
    `Sylius\PayPalPlugin\Api\CreateOrderApi` and `Sylius\PayPalPlugin\Api\UpdateOrderApi` no longer read the

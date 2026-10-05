@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 
 final class PayPalPaymentMethodProviderTest extends TestCase
 {
@@ -69,6 +70,41 @@ final class PayPalPaymentMethodProviderTest extends TestCase
         $this->paymentMethodRepository->method('findAll')->willReturn([]);
 
         self::assertFalse($this->provider->exists());
+    }
+
+    #[Test]
+    public function it_provides_the_paypal_payment_method_from_the_query(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $query = $this->createMock(PayPalPaymentMethodQueryInterface::class);
+        $query->method('findOne')->willReturn($paymentMethod);
+
+        $this->paymentMethodRepository->expects(self::never())->method('findAll');
+
+        self::assertSame($paymentMethod, (new PayPalPaymentMethodProvider($this->paymentMethodRepository, $query))->provide());
+    }
+
+    #[Test]
+    public function it_throws_an_exception_when_the_query_finds_no_paypal_payment_method(): void
+    {
+        $query = $this->createMock(PayPalPaymentMethodQueryInterface::class);
+        $query->method('findOne')->willReturn(null);
+
+        $this->expectException(PayPalPaymentMethodNotFoundException::class);
+
+        (new PayPalPaymentMethodProvider($this->paymentMethodRepository, $query))->provide();
+    }
+
+    #[Test]
+    public function it_checks_existence_with_the_query(): void
+    {
+        $query = $this->createMock(PayPalPaymentMethodQueryInterface::class);
+        $query->expects(self::once())->method('exists')->willReturn(true);
+        $query->expects(self::never())->method('findOne');
+
+        $this->paymentMethodRepository->expects(self::never())->method('findAll');
+
+        self::assertTrue((new PayPalPaymentMethodProvider($this->paymentMethodRepository, $query))->exists());
     }
 
     private function payPalPaymentMethod(): PaymentMethodInterface&MockObject

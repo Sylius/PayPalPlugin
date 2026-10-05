@@ -105,6 +105,8 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
@@ -287,7 +289,10 @@ return static function (ContainerConfigurator $container) {
     $services->alias(PayPalItemFactoryInterface::class, 'sylius_paypal.factory.paypal_item');
 
     $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
-        ->args([service('sylius.repository.payment_method')]);
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.repository.query.paypal_payment_method'),
+        ]);
 
     $services->alias(PayPalPaymentMethodProviderInterface::class, 'sylius_paypal.provider.paypal_payment_method');
 
@@ -614,6 +619,11 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius.context.cart')]);
 
     $services->alias(OrderOwnershipVerifierInterface::class, 'sylius_paypal.verifier.order_ownership');
+
+    $services->set('sylius_paypal.repository.query.paypal_payment_method', PayPalPaymentMethodQuery::class)
+        ->args([service('sylius.repository.payment_method')]);
+
+    $services->alias(PayPalPaymentMethodQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment_method');
 
     $services->set('sylius_paypal.repository.query.paypal_payment', PaypalPaymentQuery::class)
         ->args([

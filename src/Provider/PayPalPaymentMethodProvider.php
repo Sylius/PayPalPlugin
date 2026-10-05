@@ -18,16 +18,31 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 
 final readonly class PayPalPaymentMethodProvider implements PayPalPaymentMethodProviderInterface
 {
     /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
-    public function __construct(private PaymentMethodRepositoryInterface $paymentMethodRepository)
-    {
+    public function __construct(
+        private PaymentMethodRepositoryInterface $paymentMethodRepository,
+        private ?PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery = null,
+    ) {
+        if (null === $this->payPalPaymentMethodQuery) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing $payPalPaymentMethodQuery to "%s" constructor is deprecated and will be prohibited in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function provide(): PaymentMethodInterface
     {
+        if (null !== $this->payPalPaymentMethodQuery) {
+            return $this->payPalPaymentMethodQuery->findOne() ?? throw new PayPalPaymentMethodNotFoundException();
+        }
+
         $paymentMethods = $this->paymentMethodRepository->findAll();
 
         /** @var PaymentMethodInterface $paymentMethod */
@@ -45,6 +60,10 @@ final readonly class PayPalPaymentMethodProvider implements PayPalPaymentMethodP
 
     public function exists(): bool
     {
+        if (null !== $this->payPalPaymentMethodQuery) {
+            return $this->payPalPaymentMethodQuery->exists();
+        }
+
         try {
             $this->provide();
         } catch (PayPalPaymentMethodNotFoundException) {
