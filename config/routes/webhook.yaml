@@ -3,4 +3,3 @@ sylius_paypal_webhook_refund_order:
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.webhook.paypal_webhook
-
