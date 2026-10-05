@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 
@@ -26,6 +27,8 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     private PayPalOnboardingUrlProviderInterface&MockObject $onboardingUrlProvider;
 
     private SellerNonceProviderInterface&MockObject $sellerNonceProvider;
+
+    private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
 
     private LoggerInterface&MockObject $logger;
 
@@ -36,11 +39,13 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         parent::setUp();
         $this->onboardingUrlProvider = $this->createMock(PayPalOnboardingUrlProviderInterface::class);
         $this->sellerNonceProvider = $this->createMock(SellerNonceProviderInterface::class);
+        $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->payPalOnboardingModalComponent = new PayPalOnboardingModalComponent(
             $this->onboardingUrlProvider,
             $this->sellerNonceProvider,
+            $this->payPalPaymentMethodProvider,
             $this->logger,
         );
     }
@@ -89,5 +94,21 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         self::assertSame('', $this->payPalOnboardingModalComponent->onboardingUrl);
         self::assertFalse($this->payPalOnboardingModalComponent->loading);
         self::assertTrue($this->payPalOnboardingModalComponent->failed);
+    }
+
+    #[Test]
+    public function it_does_not_load_the_onboarding_url_when_a_paypal_payment_method_already_exists(): void
+    {
+        $this->payPalPaymentMethodProvider->method('exists')->willReturn(true);
+
+        $this->sellerNonceProvider->expects(self::never())->method('generate');
+        $this->onboardingUrlProvider->expects(self::never())->method('generate');
+
+        $this->payPalOnboardingModalComponent->loadOnboardingUrl();
+
+        self::assertSame('', $this->payPalOnboardingModalComponent->onboardingUrl);
+        self::assertFalse($this->payPalOnboardingModalComponent->loading);
+        self::assertFalse($this->payPalOnboardingModalComponent->failed);
+        self::assertTrue($this->payPalOnboardingModalComponent->sellerAlreadyOnboarded);
     }
 }

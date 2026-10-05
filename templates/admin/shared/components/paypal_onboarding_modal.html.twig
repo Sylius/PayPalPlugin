@@ -20,7 +20,12 @@
                 <div class="modal-body">
                     <p>{{ 'sylius_paypal.onboarding_modal_description'|trans }}</p>
                     <div class="alert alert-danger d-none" data-paypal-onboarding-error></div>
-                    {% if failed %}
+                    {% if sellerAlreadyOnboarded %}
+                        <div class="alert alert-danger" data-paypal-onboarding-seller-exists>
+                            {{ 'sylius_paypal.more_than_one_seller_not_allowed'|trans({}, 'flashes') }}
+                        </div>
+                        {{ button.default({ text: 'sylius.ui.yes_label'|trans, class: 'btn-outline-success', disabled: true }) }}
+                    {% elseif failed %}
                         <div class="alert alert-danger" data-paypal-onboarding-load-error>
                             {{ 'sylius_paypal.could_not_load_onboarding_url'|trans }}
                         </div>
