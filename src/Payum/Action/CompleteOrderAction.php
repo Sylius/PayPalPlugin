@@ -27,6 +27,8 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
@@ -125,20 +127,19 @@ final readonly class CompleteOrderAction implements ActionInterface
         $this->completeOrderApi->complete($token, $request->getOrderId());
         $orderDetails = $this->orderDetailsApi->get($token, $request->getOrderId());
 
-        $details = [
-            'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
-            'paypal_order_id' => $orderDetails['id'],
-            'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
-            'payment_source' => $paymentSource,
-        ];
+        $completedDetails = PayPalPaymentDetails::create()
+            ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
+            ->withOrderId((string) $orderDetails['id'])
+            ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
+            ->withPaymentSource($paymentSource)
+        ;
         if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
-            $details = array_merge(
-                $details,
-                ['transaction_id' => $orderDetails['purchase_units'][0]['payments']['captures'][0]['id']],
+            $completedDetails = $completedDetails->withTransactionId(
+                (string) $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
             );
         }
 
-        $payment->setDetails($details);
+        $payment->setDetails($completedDetails->toArray());
     }
 
     public function supports($request): bool

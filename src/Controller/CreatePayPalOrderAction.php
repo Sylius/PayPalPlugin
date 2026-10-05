@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -63,7 +64,7 @@ final readonly class CreatePayPalOrderAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withPaymentSource($paymentSource)->toArray());
 
         $this->capturePaymentResolver->resolve($payment);
 

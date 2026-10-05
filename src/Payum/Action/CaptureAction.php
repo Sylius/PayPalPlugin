@@ -20,6 +20,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\NonceProvider;
 use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
@@ -83,13 +85,15 @@ final readonly class CaptureAction implements ActionInterface
         );
 
         if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
-            $payment->setDetails([
-                'status' => StatusAction::STATUS_CAPTURED,
-                'paypal_order_id' => $content['id'],
-                'reference_id' => $referenceId,
-                'payment_amount' => $payment->getAmount(),
-                'payment_source' => $paymentSource,
-            ] + $this->payerActionDetails($content, $payerActionNonces));
+            $details = PayPalPaymentDetails::create()
+                ->withStatus(PayPalPaymentStatus::Captured)
+                ->withOrderId((string) $content['id'])
+                ->withReferenceId($referenceId)
+                ->withAmount((int) $payment->getAmount())
+                ->withPaymentSource($paymentSource)
+            ;
+
+            $payment->setDetails($this->withPayerAction($details, $content, $payerActionNonces)->toArray());
         }
     }
 
@@ -111,13 +115,11 @@ final readonly class CaptureAction implements ActionInterface
     /**
      * @param array<string, mixed> $content
      * @param array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} $payerActionNonces
-     *
-     * @return array<string, string>
      */
-    private function payerActionDetails(array $content, array $payerActionNonces): array
+    private function withPayerAction(PayPalPaymentDetails $details, array $content, array $payerActionNonces): PayPalPaymentDetails
     {
-        if ([] === $payerActionNonces) {
-            return [];
+        if (!isset($payerActionNonces['payer_action_return_nonce'], $payerActionNonces['payer_action_cancel_nonce'])) {
+            return $details;
         }
 
         /** @var array<array{rel?: string, href?: string}> $links */
@@ -125,11 +127,15 @@ final readonly class CaptureAction implements ActionInterface
 
         foreach ($links as $link) {
             if (self::PAYER_ACTION_LINK_REL === ($link['rel'] ?? null) && isset($link['href'])) {
-                return ['payer_action_url' => (string) $link['href']] + $payerActionNonces;
+                return $details->withPayerAction(
+                    (string) $link['href'],
+                    $payerActionNonces['payer_action_return_nonce'],
+                    $payerActionNonces['payer_action_cancel_nonce'],
+                );
             }
         }
 
-        return [];
+        return $details;
     }
 
     private function resolvePaymentSource(PaymentInterface $payment): string

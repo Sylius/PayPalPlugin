@@ -25,6 +25,7 @@ use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -110,7 +111,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
 
-        $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withPaymentSource($paymentSource)->toArray());
 
         try {
             $this->capturePaymentResolver->resolve($payment);
