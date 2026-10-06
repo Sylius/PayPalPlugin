@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
 final class CaptureEndPaymentRequestHandler
 {
@@ -31,6 +32,7 @@ final class CaptureEndPaymentRequestHandler
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PaymentCaptureProcessorInterface $paymentCaptureProcessor,
+        private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -53,7 +55,8 @@ final class CaptureEndPaymentRequestHandler
             return;
         }
 
-        $capture = PayPalCapture::fromPayPalOrder($this->paymentCaptureProcessor->capture($payment));
+        $payPalOrderDetails = $this->paymentCaptureProcessor->capture($payment);
+        $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
 
         if (null === $capture) {
             $this->failWithReason($paymentRequest, 'PayPal did not capture the order.');
@@ -61,41 +64,18 @@ final class CaptureEndPaymentRequestHandler
             return;
         }
 
-        if ($capture->amount() !== $payment->getAmount() || $capture->currencyCode() !== $payment->getCurrencyCode()) {
-            $payment->setDetails(
-                PayPalPaymentDetails::fromPayment($payment)->withCapturedAmountMismatch($capture->amount(), $capture->currencyCode())->toArray(),
-            );
-            $this->applyToPayment($payment, PaymentTransitions::TRANSITION_PROCESS);
-            $this->failWithReason($paymentRequest, sprintf(
-                'PayPal captured %s %s while the payment expects %s %s.',
-                (string) ($capture->amount() ?? 'nothing'),
-                $capture->currencyCode() ?? '?',
-                (string) $payment->getAmount(),
-                (string) $payment->getCurrencyCode(),
-            ));
-
-            return;
-        }
+        $this->paymentSettlementProcessor->settle($payment, $payPalOrderDetails);
 
         if (in_array($capture->status(), [PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED], true)) {
-            $this->applyToPayment($payment, PaymentTransitions::TRANSITION_FAIL);
             $this->failWithReason($paymentRequest, sprintf('PayPal reported the capture as %s.', $capture->status()));
 
             return;
         }
 
-        $this->applyToPayment(
-            $payment,
-            PayPalCapture::STATUS_COMPLETED === $capture->status() ? PaymentTransitions::TRANSITION_COMPLETE : PaymentTransitions::TRANSITION_PROCESS,
-        );
+        if ($this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS)) {
+            $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS);
+        }
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
-    }
-
-    private function applyToPayment(PaymentInterface $payment, string $transition): void
-    {
-        if ($this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
-            $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
-        }
     }
 }

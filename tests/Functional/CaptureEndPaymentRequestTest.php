@@ -51,13 +51,14 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_FAILED, $paymentRequest->getPayment()->getState());
     }
 
-    public function test_it_holds_a_payment_captured_for_another_amount_for_review(): void
+    public function test_it_completes_a_payment_captured_for_another_amount_and_records_what_paypal_took(): void
     {
         $paymentRequest = $this->dispatchCaptureEndPaymentRequest('COMPLETED', capturedValue: '0.01');
 
-        self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
-        self::assertSame(PaymentInterface::STATE_PROCESSING, $paymentRequest->getPayment()->getState());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $paymentRequest->getPayment()->getState());
         self::assertSame(1, $paymentRequest->getPayment()->getDetails()['captured_amount']);
+        self::assertSame('USD', $paymentRequest->getPayment()->getDetails()['captured_currency_code']);
     }
 
     private function dispatchCaptureEndPaymentRequest(string $captureStatus, ?string $capturedValue = null): PaymentRequestInterface
