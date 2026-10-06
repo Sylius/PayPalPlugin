@@ -404,14 +404,14 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('.inner'),
             service('sylius.repository.payment_method'),
-            '%sylius_paypal.prioritize_paypal_as_default_method%',
+            param('sylius_paypal.prioritize_paypal_as_default_method'),
         ]);
 
     $services->set('sylius_paypal.resolver.payment_method.paypal_prioritising', PayPalPrioritisingPaymentMethodsResolver::class)
         ->decorate('sylius.resolver.payment_methods')
         ->args([
             service('.inner'),
-            '%sylius_paypal.prioritized_factory_name%',
+            param('sylius_paypal.prioritized_factory_name'),
         ]);
 
     $services->set('sylius_paypal.provider.paypal_configuration', PayPalConfigurationProvider::class)
@@ -426,7 +426,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_configuration'),
             service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.active_mode'),
-            '%sylius_paypal.test_buyer_country%',
+            param('sylius_paypal.test_buyer_country'),
         ]);
 
     $services->alias(WebSdkConfigurationProviderInterface::class, 'sylius_paypal.provider.web_sdk_configuration');
@@ -539,7 +539,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.webhook_url', WebhookUrlProvider::class)
         ->args([
             service('router'),
-            '%sylius_paypal.webhook_base_url%',
+            param('sylius_paypal.webhook_base_url'),
         ]);
 
     $services->alias(WebhookUrlProviderInterface::class, 'sylius_paypal.provider.webhook_url');
@@ -601,7 +601,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.factory.gateway_config'),
             service('sylius.factory.payment_method'),
             service('doctrine.orm.entity_manager'),
-            '%sylius_paypal.partner_attribution_id%',
+            param('sylius_paypal.partner_attribution_id'),
             service('sylius_paypal.provider.paypal_payment_method'),
             service('sylius_paypal.manager.credentials'),
         ]);
@@ -621,7 +621,7 @@ return static function (ContainerConfigurator $container) {
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
-            '%sylius_paypal.partner_js_url%',
+            param('sylius_paypal.partner_js_url'),
         ])
         ->tag('twig.extension');
 
@@ -673,10 +673,10 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.manager.payment'),
             service('sylius.repository.payment'),
-            '%sylius_paypal.repository.query.pay_pal_payment.updatable_states%',
-            '%sylius_paypal.repository.query.pay_pal_payment.cancellable_states%',
-            '%sylius_paypal.repository.query.pay_pal_payment.refundable_states%',
-            '%sylius_paypal.repository.query.pay_pal_payment.settleable_states%',
+            param('sylius_paypal.repository.query.pay_pal_payment.updatable_states'),
+            param('sylius_paypal.repository.query.pay_pal_payment.cancellable_states'),
+            param('sylius_paypal.repository.query.pay_pal_payment.refundable_states'),
+            param('sylius_paypal.repository.query.pay_pal_payment.settleable_states'),
         ]);
 
     $services->alias(PaypalPaymentQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
@@ -689,7 +689,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(PayPalPaymentMethodsResolverInterface::class, 'sylius_paypal.resolver.paypal_payment_methods');
 
     $services->set('sylius_paypal.resolver.supported_locale', SupportedLocaleResolver::class)
-        ->args(['%sylius_paypal.supported_locales%']);
+        ->args([param('sylius_paypal.supported_locales')]);
 
     $services->alias(SupportedLocaleResolverInterface::class, 'sylius_paypal.resolver.supported_locale');
 

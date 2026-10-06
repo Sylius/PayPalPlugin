@@ -34,6 +34,7 @@ use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
+use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Provider\PersistingWebhookIdProvider;
@@ -48,7 +49,7 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.webhook_id_refresh_cooldown', 300);
     $parameters->set('sylius_paypal.callback_certificate_lifetime', 86400);
 
-    $services->set('sylius_paypal.client.paypal', \Sylius\PayPalPlugin\Client\PayPalClient::class)
+    $services->set('sylius_paypal.client.paypal', PayPalClient::class)
         ->args([
             service('sylius.http_client'),
             service('monolog.logger.paypal'),
@@ -56,10 +57,10 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_configuration'),
             service('sylius.context.channel'),
             service('sylius_paypal.provider.host'),
-            '%sylius_paypal.request_trials_limit%',
+            param('sylius_paypal.request_trials_limit'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
-            '%sylius_paypal.logging.increased%',
+            param('sylius_paypal.logging.increased'),
         ]);
 
     $services->alias(PayPalClientInterface::class, 'sylius_paypal.client.paypal');
@@ -69,7 +70,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(AuthorizeClientApiInterface::class, 'sylius_paypal.api.authorize_client');
 
-    $services->set('sylius_paypal.client.paypal.onboarding', \Sylius\PayPalPlugin\Client\PayPalClient::class)
+    $services->set('sylius_paypal.client.paypal.onboarding', PayPalClient::class)
         ->args([
             service('sylius.http_client'),
             service('monolog.logger.paypal'),
@@ -77,10 +78,10 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_configuration'),
             service('sylius.context.channel'),
             service('sylius_paypal.provider.host.production'),
-            '%sylius_paypal.request_trials_limit%',
+            param('sylius_paypal.request_trials_limit'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
-            '%sylius_paypal.logging.increased%',
+            param('sylius_paypal.logging.increased'),
         ]);
 
     $services->set('sylius_paypal.api.authorize_client.onboarding', AuthorizeClientApi::class)
@@ -173,7 +174,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.http_client'),
             service(RequestFactoryInterface::class),
             service('sylius_paypal.cache'),
-            '%sylius_paypal.callback_certificate_lifetime%',
+            param('sylius_paypal.callback_certificate_lifetime'),
         ]);
 
     $services->alias(CallbackSignatureVerifierInterface::class, 'sylius_paypal.api.callback_signature_verifier');
@@ -184,7 +185,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.cache_authorize_client'),
             service('router'),
             service('sylius_paypal.provider.host'),
-            '%sylius_paypal.webhook_base_url%',
+            param('sylius_paypal.webhook_base_url'),
             service('sylius_paypal.provider.webhook_url'),
         ]);
 
@@ -194,7 +195,7 @@ return static function (ContainerConfigurator $container) {
             service('.inner'),
             service('doctrine.orm.entity_manager'),
             service('sylius_paypal.cache'),
-            '%sylius_paypal.webhook_id_refresh_cooldown%',
+            param('sylius_paypal.webhook_id_refresh_cooldown'),
         ]);
 
     $services->alias(WebhookIdProviderInterface::class, 'sylius_paypal.provider.webhook_id');
