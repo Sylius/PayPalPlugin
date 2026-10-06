@@ -89,6 +89,7 @@ sylius_paypal:
         created_at: 'Utworzono'
         last_attempt: 'Ostatnia próba'
         paypal_sync: 'Śledzenie w PayPal'
+        shipment_cannot_be_shipped: 'Tej przesyłki nie można już wysłać. Odśwież stronę, aby zobaczyć jej aktualny stan.'
         state:
             pending: 'Oczekuje'
             synced: 'Wysłano'

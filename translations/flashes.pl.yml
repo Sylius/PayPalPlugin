@@ -8,6 +8,7 @@ sylius_paypal:
     payment_enabled: 'Płatność PayPal została właśnie włączona.'
     payment_pending: 'Płatność jest w drodze. Potwierdzimy zamówienie, gdy tylko Twój bank prześle pieniądze.'
     payment_not_enabled: 'Nie udało się włączyć płatności PayPal. Spróbuj ponownie później.'
+    shipment_cannot_be_shipped: 'Tej przesyłki nie można już wysłać. Mogła zostać wysłana w międzyczasie.'
     something_went_wrong: 'Coś poszło nie tak. Spróbuj ponownie.'
     three_d_secure_declined: 'Nie udało się uwierzytelnić karty. Wybierz inną metodę płatności.'
     three_d_secure_retry: 'Nie udało się dokończyć uwierzytelnienia karty. Spróbuj ponownie.'

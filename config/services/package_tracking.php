@@ -162,6 +162,7 @@ return static function (ContainerConfigurator $container) {
             service('doctrine.orm.entity_manager'),
             service('sylius_paypal.manager.shipment_tracking'),
             service('router'),
+            service('sylius_abstraction.state_machine'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal_admin:shipment:ship_form']);
 
