@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProvider;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -23,14 +24,17 @@ final class ShippingCallbackUrlProviderTest extends TestCase
 {
     private UrlGeneratorInterface&MockObject $router;
 
+    private LoggerInterface&MockObject $logger;
+
     private ShippingCallbackUrlProvider $provider;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->router = $this->createMock(UrlGeneratorInterface::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->provider = new ShippingCallbackUrlProvider($this->router);
+        $this->provider = new ShippingCallbackUrlProvider($this->router, $this->logger);
     }
 
     public function test_it_implements_shipping_callback_url_provider_interface(): void
@@ -46,6 +50,7 @@ final class ShippingCallbackUrlProviderTest extends TestCase
             ->with('sylius_paypal_order_shipping_callback', [], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://shop.example.com/paypal/order-shipping-callback')
         ;
+        $this->logger->expects(self::never())->method('warning');
 
         self::assertSame(
             'https://shop.example.com/paypal/order-shipping-callback',
@@ -53,9 +58,15 @@ final class ShippingCallbackUrlProviderTest extends TestCase
         );
     }
 
-    public function test_it_provides_no_url_paypal_could_not_reach(): void
+    public function test_it_provides_no_url_paypal_could_not_reach_and_warns_about_it(): void
     {
         $this->router->method('generate')->willReturn('http://shop.example.com/paypal/order-shipping-callback');
+
+        $this->logger
+            ->expects(self::once())
+            ->method('warning')
+            ->with('The PayPal shipping callback URL "http://shop.example.com/paypal/order-shipping-callback" is not https, so PayPal will not ask the shop to recalculate shipping and taxes in the wallet.')
+        ;
 
         self::assertNull($this->provider->provide());
     }
@@ -71,6 +82,7 @@ final class ShippingCallbackUrlProviderTest extends TestCase
 
         self::assertSame('https://shop.example.com/other', (new ShippingCallbackUrlProvider(
             $this->router,
+            $this->logger,
             'other_route',
         ))->provide());
     }
