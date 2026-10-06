@@ -10,6 +10,8 @@ sylius_paypal:
     payment_enabled: 'PayPal payment has just been enabled.'
     payment_pending: 'Your payment is on its way. We will confirm your order as soon as your bank has sent the money.'
     payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'
+    production_connected_successfully: 'PayPal Production has been connected successfully.'
+    sandbox_connected_successfully: 'PayPal Sandbox has been connected successfully.'
     shipment_cannot_be_shipped: 'This shipment can no longer be shipped. It may have been shipped in the meantime.'
     seller_onboarding_payments_not_receivable: 'Attention: You currently cannot receive payments due to possible restriction on your PayPal account. Please, reach out to PayPal Customer Support or connect to https://www.paypal.com for more information. Once sorted, simply revisit this page to refresh the onboarding status.'
     seller_onboarding_primary_email_not_confirmed: 'Attention: Please, confirm your email address on https://www.paypal.com/businessprofile/settings in order to receive payments! You currently cannot receive payments. Once done, simply revisit this page to refresh the onboarding status.'

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class PayPalGatewayConfig
@@ -144,6 +145,11 @@ final readonly class PayPalGatewayConfig
     public function isApplePayEnabled(): bool
     {
         return $this->flag(self::APPLE_PAY_ENABLED, false);
+    }
+
+    public function isSandbox(): bool
+    {
+        return $this->flag(PayPalCredentialsManagerInterface::MODE_KEY, false);
     }
 
     public function isCardThreeDSecureAlways(): bool

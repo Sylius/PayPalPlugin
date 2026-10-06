@@ -76,6 +76,33 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
     }
 
     #[Test]
+    public function it_redacts_credentials_from_the_error_log_on_a_non_successful_status(): void
+    {
+        $request = new Request('GET', 'https://api.paypal.com/');
+        $response = $this->createMock(ResponseInterface::class);
+        $body = $this->createMock(StreamInterface::class);
+
+        $this->client->method('sendRequest')->willReturn($response);
+        $response->method('getStatusCode')->willReturn(401);
+        $response->method('getBody')->willReturn($body);
+        $body->method('getContents')->willReturn('{"client_secret": "SUPER-SECRET", "access_token": "TOKEN", "error": "invalid"}');
+
+        $this->logger
+            ->expects(self::once())
+            ->method('error')
+            ->with(self::callback(static function (string $message): bool {
+                return !str_contains($message, 'SUPER-SECRET') &&
+                    !str_contains($message, 'TOKEN') &&
+                    str_contains($message, '[redacted]') &&
+                    str_contains($message, 'invalid');
+            }));
+
+        $this->expectException(PayPalPluginException::class);
+
+        $this->executor->execute($request, 'Seller credentials');
+    }
+
+    #[Test]
     public function it_rethrows_transport_exceptions(): void
     {
         $request = new Request('GET', 'https://api.sandbox.paypal.com/');

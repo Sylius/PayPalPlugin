@@ -23,6 +23,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 
 final class UpdateWebhookApiTest extends TestCase
 {
@@ -41,9 +42,12 @@ final class UpdateWebhookApiTest extends TestCase
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
 
+        $hostProvider = $this->createMock(PayPalHostProviderInterface::class);
+        $hostProvider->method('getApiBaseUrl')->willReturn('https://api-m.sandbox.paypal.com/');
+
         $this->api = new UpdateWebhookApi(
             $this->client,
-            'https://api-m.sandbox.paypal.com/',
+            $hostProvider,
             $this->requestFactory,
             $this->streamFactory,
         );

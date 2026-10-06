@@ -1,12 +1,11 @@
 {% import '@SyliusAdmin/shared/helper/button.html.twig' as button %}
-{% props modal_id = null, type = null %}
 
 <div {{ attributes }} {{ sylius_test_html_attribute('modal', type) }}>
     <div
-        class="modal fade"
-        id="{{ modal_id }}"
+        class="modal{{ opened ? ' show' : '' }}"
+        id="{{ modalId }}"
         tabindex="-1"
-        aria-hidden="true"
+        {% if opened %}style="display: block;" aria-modal="true" role="dialog"{% else %}aria-hidden="true"{% endif %}
         data-paypal-onboarding-complete-url="{{ path('sylius_paypal_admin_complete_onboarding') }}"
         data-paypal-onboarding-partner-js-url="{{ sylius_paypal_partner_js_url() }}"
         data-action="paypal:onboarding-open->live#action"

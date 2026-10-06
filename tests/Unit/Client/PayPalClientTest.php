@@ -32,6 +32,7 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalClientTest extends TestCase
@@ -50,6 +51,8 @@ final class PayPalClientTest extends TestCase
 
     private StreamFactoryInterface&MockObject $streamFactory;
 
+    private PayPalHostProviderInterface&MockObject $hostProvider;
+
     private PayPalClient $payPalClient;
 
     protected function setUp(): void
@@ -62,6 +65,8 @@ final class PayPalClientTest extends TestCase
         $this->channelContext = $this->createMock(ChannelContextInterface::class);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
+        $this->hostProvider = $this->createMock(PayPalHostProviderInterface::class);
+        $this->hostProvider->method('getApiBaseUrl')->willReturn('https://test-api.paypal.com/');
 
         $channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($channel);
@@ -72,7 +77,7 @@ final class PayPalClientTest extends TestCase
             $this->uuidProvider,
             $this->payPalConfigurationProvider,
             $this->channelContext,
-            'https://test-api.paypal.com/',
+            $this->hostProvider,
             5,
             $this->requestFactory,
             $this->streamFactory,

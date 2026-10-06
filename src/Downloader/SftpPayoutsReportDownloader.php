@@ -13,17 +13,20 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Downloader;
 
-use phpseclib3\Net\SFTP;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
+use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\Report;
+use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 
 final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterface
 {
-    public function __construct(private SFTP $sftp)
-    {
+    public function __construct(
+        private SftpClientFactoryInterface $sftpClientFactory,
+        private PayPalHostProviderInterface $hostProvider,
+    ) {
     }
 
     public function downloadFor(\DateTimeInterface $day, PaymentMethodInterface $paymentMethod): Report
@@ -40,12 +43,15 @@ final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloa
         $reportsSftpUsername = (string) $config->reportsSftpUsername();
         $reportsSftpPassword = (string) $config->reportsSftpPassword();
 
-        if (!$this->sftp->login($reportsSftpUsername, $reportsSftpPassword)) {
+        $sftp = $this->sftpClientFactory->createForHost(
+            $this->hostProvider->getReportsSftpHostForMode($config->isSandbox()),
+        );
+
+        if (!$sftp->login($reportsSftpUsername, $reportsSftpPassword)) {
             throw new PayPalReportDownloadException();
         }
 
-        $reportContent = $this
-            ->sftp
+        $reportContent = $sftp
             ->get(sprintf('ppreports/outgoing/PYT.%s.%s.R.0.2.0.CSV', $day->format('Ymd'), $partnerAttributionId))
         ;
 
