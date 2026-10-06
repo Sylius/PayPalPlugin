@@ -139,12 +139,24 @@ export default class extends Controller {
     wireUpButton(buttonTarget, paymentSession, paymentSource = null) {
         buttonTarget.removeAttribute('hidden');
         buttonTarget.addEventListener('click', async () => {
+            if (!this.isAddToCartFormValid()) {
+                return;
+            }
+
             try {
                 await paymentSession.start({ presentationMode: 'auto' }, this.createOrder(paymentSource));
             } catch (error) {
                 console.error('paymentSession.start() failed:', error);
             }
         });
+    }
+
+    isAddToCartFormValid() {
+        if (!this.hasAddToCartFormSelectorValue || this.addToCartFormSelectorValue === '') {
+            return true;
+        }
+
+        return document.querySelector(this.addToCartFormSelectorValue)?.reportValidity() ?? true;
     }
 
     async createOrder(paymentSource = null) {
