@@ -16,12 +16,14 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
 use Sylius\Bundle\ResourceBundle\Controller\AuthorizationCheckerInterface;
+use Sylius\Bundle\ResourceBundle\Controller\ResourceUpdateHandlerInterface;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -80,7 +82,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         $tracking = $this->tracking();
         self::assertSame(ShipmentTrackingInterface::STATE_FAILED, $tracking?->getState());
         self::assertSame(1, $tracking->getAttempts());
-        self::assertNotEmpty($tracking->getLastError());
+        self::assertSame('RESOURCE_NOT_FOUND', $tracking->getLastError());
     }
 
     public function test_it_ships_a_tracking_number_without_a_carrier_as_before_and_sends_nothing_to_paypal(): void
@@ -114,6 +116,41 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         $response = $this->client->getResponse();
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
         self::assertStringContainsString('Please provide the carrier name when &quot;Other&quot; is selected.', (string) $response->getContent());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+    }
+
+    public function test_it_does_not_ship_a_carrier_without_a_tracking_code(): void
+    {
+        $this->ship(['paypal_tracking' => ['carrier' => 'DHL']]);
+
+        $response = $this->client->getResponse();
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $trackingRow = (new Crawler((string) $response->getContent()))->filter(sprintf('#%s_tracking', self::FORM_NAME))->closest('.col-12');
+        self::assertStringContainsString('Please provide the tracking code when a carrier is selected.', $trackingRow?->text() ?? '');
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+    }
+
+    public function test_it_ships_a_tracking_number_through_the_sylius_ship_route_as_before(): void
+    {
+        $this->shipThroughSyliusRoute(['tracking' => 'QA-TRACK-7']);
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/admin/shipments/?id=' . $this->shipment()->getId()));
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('QA-TRACK-7', $this->shipment()->getTracking());
+        self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
+    }
+
+    public function test_it_does_not_ship_a_tracking_code_longer_than_paypal_accepts(): void
+    {
+        $this->ship(['tracking' => str_repeat('A', 65), 'paypal_tracking' => ['carrier' => 'DHL']]);
+
+        $response = $this->client->getResponse();
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $trackingRow = (new Crawler((string) $response->getContent()))->filter(sprintf('#%s_tracking', self::FORM_NAME))->closest('.col-12');
+        self::assertStringContainsString('The tracking code can have at most 64 characters to be sent to PayPal.', $trackingRow?->text() ?? '');
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
         self::assertNull($this->tracking());
     }
@@ -164,16 +201,55 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
     }
 
-    public function test_it_leaves_no_transaction_open_when_the_shipment_was_shipped_in_the_meantime(): void
+    public function test_it_tells_the_shipment_was_shipped_in_the_meantime_instead_of_shipping_it_again(): void
     {
         $form = $this->shipForm();
-        self::getContainer()->get('sylius.command_bus')->dispatch(new ShipShipment($this->shipment()->getId(), 'SHIPPED-ELSEWHERE'));
+        $this->shipElsewhere();
 
         $form->call('ship');
 
-        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $this->client->getResponse()->getStatusCode());
+        self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
         self::assertSame(0, self::getContainer()->get('doctrine.dbal.default_connection')->getTransactionNestingLevel());
         self::assertSame('SHIPPED-ELSEWHERE', $this->shipment()->getTracking());
+
+        $this->client->followRedirect();
+        self::assertStringContainsString('This shipment can no longer be shipped. It may have been shipped in the meantime.', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function test_it_tells_the_shipment_was_shipped_in_the_meantime_when_the_form_re_renders(): void
+    {
+        $form = $this->shipForm();
+        $this->shipElsewhere();
+
+        $form->submitForm([self::FORM_NAME => ['paypal_tracking' => ['carrier' => 'DHL']]]);
+
+        $response = $this->client->getResponse();
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $root = (new Crawler((string) $response->getContent()))->filter('[data-controller~="live"]');
+        self::assertCount(1, $root);
+        self::assertStringContainsString('This shipment can no longer be shipped. Refresh the page to see its current state.', $root->text());
+    }
+
+    public function test_it_rolls_back_the_ship_when_it_fails_while_shipping(): void
+    {
+        $this->client->disableReboot();
+        $resourceUpdateHandler = $this->createStub(ResourceUpdateHandlerInterface::class);
+        $resourceUpdateHandler->method('handle')->willThrowException(new \RuntimeException('Shipping failed.'));
+        self::getContainer()->set('sylius.resource_controller.resource_update_handler', $resourceUpdateHandler);
+
+        $this->ship(['tracking' => 'QA-TRACK-8', 'paypal_tracking' => ['carrier' => 'DHL']]);
+
+        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $this->client->getResponse()->getStatusCode());
+        self::assertSame(0, self::getContainer()->get('doctrine.dbal.default_connection')->getTransactionNestingLevel());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+    }
+
+    public function test_it_renders_nothing_for_a_shipment_already_shipped_when_mounted(): void
+    {
+        $this->shipElsewhere();
+
+        self::assertSame('', trim((string) $this->shipForm()->render()));
     }
 
     /** @param array<string, mixed> $values */
@@ -183,6 +259,20 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
             ->submitForm([self::FORM_NAME => $values])
             ->call('ship', ['redirectTo' => $redirectTo])
         ;
+    }
+
+    /** @param array<string, mixed> $values */
+    private function shipThroughSyliusRoute(array $values): void
+    {
+        $crawler = $this->client->request('GET', '/admin/orders/' . $this->order->getId());
+        $values['_token'] = $crawler->filter(sprintf('input[name="%s[_token]"]', self::FORM_NAME))->attr('value');
+
+        $this->client->request('PUT', sprintf('/admin/shipments/%d/ship', $this->shipment()->getId()), [self::FORM_NAME => $values]);
+    }
+
+    private function shipElsewhere(): void
+    {
+        self::getContainer()->get('sylius.command_bus')->dispatch(new ShipShipment($this->shipment()->getId(), 'SHIPPED-ELSEWHERE'));
     }
 
     private function onPreShip(callable $listener): void

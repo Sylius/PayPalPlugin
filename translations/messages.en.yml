@@ -94,6 +94,7 @@ sylius_paypal:
         created_at: 'Created at'
         last_attempt: 'Last attempt'
         paypal_sync: 'PayPal tracking'
+        shipment_cannot_be_shipped: 'This shipment can no longer be shipped. Refresh the page to see its current state.'
         state:
             pending: 'Pending'
             synced: 'Synced'
