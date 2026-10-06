@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Announcer\PaymentRequestAnnouncerInterface;
 use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -39,6 +40,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         private PaymentRequestFactoryInterface $paymentRequestFactory,
         private PaymentRequestAnnouncerInterface $paymentRequestAnnouncer,
         private StateMachineInterface $stateMachine,
+        private UrlProviderInterface $paymentRequestPayUrlProvider,
     ) {
     }
 
@@ -119,7 +121,10 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
     private function respond(PaymentRequestInterface $paymentRequest): JsonResponse
     {
         return new JsonResponse(
-            ['hash' => $paymentRequest->getId()] + $paymentRequest->getResponseData(),
+            [
+                'hash' => $paymentRequest->getId(),
+                'approve_url' => $this->paymentRequestPayUrlProvider->getUrl($paymentRequest),
+            ] + $paymentRequest->getResponseData(),
             PaymentRequestInterface::STATE_FAILED === $paymentRequest->getState() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK,
         );
     }

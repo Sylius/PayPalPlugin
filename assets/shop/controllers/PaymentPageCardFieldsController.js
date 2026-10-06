@@ -44,6 +44,7 @@ export default class extends Controller {
                 });
             }
 
+            this.session = session;
             this.element.removeAttribute('hidden');
             this.formTarget.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -98,6 +99,12 @@ export default class extends Controller {
     }
 
     async complete(payPalOrderId) {
+        if (this.session.currentApproveUrl()) {
+            window.location.href = this.session.currentApproveUrl();
+
+            return;
+        }
+
         const response = await fetch(this.completeOrderUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
@@ -115,6 +122,13 @@ export default class extends Controller {
     }
 
     async cancel(payPalOrderId) {
+        if (this.session.currentApproveUrl()) {
+            this.session.release();
+            this.setSubmitting(false);
+
+            return;
+        }
+
         await fetch(this.cancelOrderUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
@@ -124,6 +138,13 @@ export default class extends Controller {
     }
 
     async reportError(message, payPalOrderId = null) {
+        if (this.session.currentApproveUrl()) {
+            console.error('PayPal card payment failed:', message);
+            window.location.href = this.session.currentApproveUrl();
+
+            return;
+        }
+
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },

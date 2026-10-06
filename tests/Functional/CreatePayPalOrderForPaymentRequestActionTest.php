@@ -32,7 +32,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $this->createOrder($hash, 'card');
 
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        self::assertSame(['hash' => $hash, 'paypal_order_id' => 'PAYPAL_ORDER_ID'], $this->responseContent());
+        self::assertSame(['hash' => $hash, 'approve_url' => $this->approveUrl($hash), 'paypal_order_id' => 'PAYPAL_ORDER_ID'], $this->responseContent());
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($hash)->getState());
     }
 
@@ -55,7 +55,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $this->createOrder($hash, 'paypal');
         $this->createOrder($hash, 'paypal');
 
-        self::assertSame(['hash' => $hash, 'paypal_order_id' => 'PAYPAL_ORDER_ID'], $this->responseContent());
+        self::assertSame(['hash' => $hash, 'approve_url' => $this->approveUrl($hash), 'paypal_order_id' => 'PAYPAL_ORDER_ID'], $this->responseContent());
     }
 
     public function test_it_starts_another_attempt_when_the_payer_switches_to_another_payment_source(): void
@@ -70,6 +70,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $content = $this->responseContent();
         self::assertNotSame($hash, $content['hash']);
         self::assertSame('ANOTHER_PAYPAL_ORDER_ID', $content['paypal_order_id']);
+        self::assertSame($this->approveUrl($content['hash']), $content['approve_url']);
         self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $this->paymentRequest($hash)->getState());
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
     }
@@ -81,7 +82,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $this->createOrder($hash, 'bitcoin');
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
-        self::assertSame(['hash' => $hash, 'reason' => 'PayPal does not support the requested payment source.'], $this->responseContent());
+        self::assertSame(['hash' => $hash, 'approve_url' => $this->approveUrl($hash), 'reason' => 'PayPal does not support the requested payment source.'], $this->responseContent());
     }
 
     public function test_it_refuses_a_payment_that_is_no_longer_waiting_to_be_paid(): void
@@ -171,5 +172,10 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $paymentRequest = self::getContainer()->get('sylius.repository.payment_request')->find($hash);
 
         return $paymentRequest;
+    }
+
+    private function approveUrl(string $hash): string
+    {
+        return sprintf('/en_US/payment-request/pay/%s', $hash);
     }
 }

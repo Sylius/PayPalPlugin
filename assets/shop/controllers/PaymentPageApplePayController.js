@@ -143,6 +143,10 @@ export default class extends Controller {
     }
 
     async complete(payPalOrderId) {
+        if (this.session.currentApproveUrl()) {
+            return this.session.currentApproveUrl();
+        }
+
         const response = await fetch(this.completeOrderUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
@@ -155,6 +159,12 @@ export default class extends Controller {
 
     async fail(error, context = null) {
         console.error('Apple Pay payment failed:', error);
+
+        if (this.session?.currentApproveUrl()) {
+            window.location.href = this.session.currentApproveUrl();
+
+            return;
+        }
 
         await fetch(this.errorUrlValue, {
             method: 'post',

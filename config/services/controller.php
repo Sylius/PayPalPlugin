@@ -140,6 +140,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.factory.payment_request'),
             service('sylius.announcer.payment_request'),
             service('sylius_abstraction.state_machine'),
+            service('sylius_shop.provider.order_pay.payment_request_pay_url'),
         ]);
 
     $services->set('sylius_paypal.controller.create_paypal_order_from_cart', CreatePayPalOrderFromCartAction::class)

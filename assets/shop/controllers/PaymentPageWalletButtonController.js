@@ -80,6 +80,12 @@ export default class extends Controller {
     }
 
     async onApprove(data) {
+        if (this.session.currentApproveUrl()) {
+            window.location.href = this.session.currentApproveUrl();
+
+            return;
+        }
+
         const response = await fetch(this.completeOrderUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
@@ -97,6 +103,12 @@ export default class extends Controller {
     }
 
     async onCancel(data) {
+        if (this.session.currentApproveUrl()) {
+            this.session.release();
+
+            return;
+        }
+
         await fetch(this.cancelOrderUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
@@ -106,6 +118,13 @@ export default class extends Controller {
     }
 
     async onError(error) {
+        if (this.session?.currentApproveUrl()) {
+            console.error('PayPal payment failed:', error);
+            window.location.href = this.session.currentApproveUrl();
+
+            return;
+        }
+
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },
