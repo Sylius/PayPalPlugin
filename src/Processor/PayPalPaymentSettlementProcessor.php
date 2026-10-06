@@ -39,8 +39,6 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
     public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null): void
     {
         $details = PayPalPaymentDetails::fromPayment($payment);
-        $payPalOrderId = (string) $details->payPalOrderId();
-
         if (!$details->hasPayPalOrderId()) {
             $this->logger->warning(sprintf(
                 'Payment #%s cannot be settled: it carries no PayPal order id.',
@@ -50,6 +48,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             return;
         }
 
+        $payPalOrderId = (string) $details->payPalOrderId();
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
         if (null === $capture) {

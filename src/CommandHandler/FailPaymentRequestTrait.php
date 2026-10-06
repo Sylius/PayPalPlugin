@@ -17,7 +17,7 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 
-trait FailedAwarePaymentRequestHandlerTrait
+trait FailPaymentRequestTrait
 {
     private readonly StateMachineInterface $stateMachine;
 

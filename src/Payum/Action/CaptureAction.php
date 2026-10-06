@@ -121,20 +121,31 @@ final readonly class CaptureAction implements ActionInterface
             return $details;
         }
 
+        $payerActionUrl = $this->payerActionUrl($content);
+        if (null === $payerActionUrl) {
+            return $details;
+        }
+
+        return $details->withPayerAction(
+            $payerActionUrl,
+            $payerActionNonces['payer_action_return_nonce'],
+            $payerActionNonces['payer_action_cancel_nonce'],
+        );
+    }
+
+    /** @param array<string, mixed> $content */
+    private function payerActionUrl(array $content): ?string
+    {
         /** @var array<array{rel?: string, href?: string}> $links */
         $links = $content['links'] ?? [];
 
         foreach ($links as $link) {
             if (self::PAYER_ACTION_LINK_REL === ($link['rel'] ?? null) && isset($link['href'])) {
-                return $details->withPayerAction(
-                    (string) $link['href'],
-                    $payerActionNonces['payer_action_return_nonce'],
-                    $payerActionNonces['payer_action_cancel_nonce'],
-                );
+                return (string) $link['href'];
             }
         }
 
-        return $details;
+        return null;
     }
 
     private function resolvePaymentSource(PaymentInterface $payment): string

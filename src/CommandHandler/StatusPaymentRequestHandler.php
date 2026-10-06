@@ -21,7 +21,7 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class StatusPaymentRequestHandler
 {
-    use FailedAwarePaymentRequestHandlerTrait;
+    use FailPaymentRequestTrait;
 
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
