@@ -1,0 +1,61 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Onboarding\Resolver;
+
+use Psr\Http\Client\ClientExceptionInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
+use Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface;
+use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\SellerOnboardingResolutionException;
+use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
+
+final readonly class SellerOnboardingResolver implements SellerOnboardingResolverInterface
+{
+    public function __construct(
+        private OnboardingTokenApiInterface $onboardingTokenApi,
+        private SellerCredentialsApiInterface $sellerCredentialsApi,
+        private AuthorizeClientApiInterface $authorizeClientApi,
+        private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
+        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
+    ) {
+    }
+
+    public function resolve(string $authCode, string $sharedId, string $sellerNonce): SellerOnboardingResult
+    {
+        try {
+            $partnerId = $this->partnerCredentialsProvider->provide()->getPartnerId();
+
+            $onboardingToken = $this->onboardingTokenApi->getFromAuthorizationCode($sharedId, $authCode, $sellerNonce);
+
+            $credentials = $this->sellerCredentialsApi->get($onboardingToken, $partnerId);
+
+            $sellerToken = $this->authorizeClientApi->authorize($credentials->getClientId(), $credentials->getClientSecret());
+
+            $status = $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $credentials->getPayerId());
+        } catch (PayPalPluginException|PayPalAuthorizationException|ClientExceptionInterface|\JsonException $exception) {
+            throw new SellerOnboardingResolutionException($exception);
+        }
+
+        return new SellerOnboardingResult(
+            $credentials->getClientId(),
+            $credentials->getClientSecret(),
+            $credentials->getPayerId(),
+            $status,
+        );
+    }
+}
