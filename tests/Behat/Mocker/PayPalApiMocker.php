@@ -37,6 +37,20 @@ final readonly class PayPalApiMocker
         ], $order));
     }
 
+    public function mockCapture(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('POST', sprintf('v2/checkout/orders/%s/capture', $payPalOrderId), [
+            'id' => $payPalOrderId,
+            'status' => 'COMPLETED',
+        ], 201);
+    }
+
+    public function mockUpdateOrderAddress(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('PATCH', 'v2/checkout/orders/' . $payPalOrderId, [], 204);
+        $this->client->addExpectation('PATCH', 'v2/checkout/orders/' . $payPalOrderId, [], 204);
+    }
+
     public function mockOrderDetailsWithCapture(
         string $payPalOrderId = 'PAYPAL_ORDER_ID',
         string $captureStatus = 'COMPLETED',
