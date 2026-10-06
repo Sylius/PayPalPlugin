@@ -112,8 +112,8 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         }
 
         $details = PayPalPaymentDetails::fromPayment($payment);
-        $payPalOrderId = (string) $details->orderId();
-        if (!$details->hasOrderId()) {
+        $payPalOrderId = (string) $details->payPalOrderId();
+        if (!$details->hasPayPalOrderId()) {
             $tracking->markAsFailed('Payment details do not carry a PayPal order id.');
 
             return;

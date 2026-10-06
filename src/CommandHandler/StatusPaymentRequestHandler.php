@@ -34,7 +34,7 @@ final class StatusPaymentRequestHandler
     {
         $paymentRequest = $this->paymentRequestProvider->provide($statusPaymentRequest);
 
-        if (!PayPalPaymentDetails::fromPayment($paymentRequest->getPayment())->hasOrderId()) {
+        if (!PayPalPaymentDetails::fromPayment($paymentRequest->getPayment())->hasPayPalOrderId()) {
             $this->failWithReason($paymentRequest, 'The payment carries no PayPal order id.');
 
             return;

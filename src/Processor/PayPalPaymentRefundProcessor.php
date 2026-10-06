@@ -51,7 +51,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
             return;
         }
 
-        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->orderId();
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
         if (null === $payPalOrderId) {
             return;
         }

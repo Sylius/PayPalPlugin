@@ -103,7 +103,7 @@ final readonly class CompleteOrderAction implements ActionInterface
 
             $this->updateOrderApi->update(
                 $token,
-                (string) $details->orderId(),
+                (string) $details->payPalOrderId(),
                 $payment,
                 (string) $details->referenceId(),
                 $config->merchantId(),
@@ -116,7 +116,7 @@ final readonly class CompleteOrderAction implements ActionInterface
         if (null !== $this->updateOrderAddressApi && $order->isShippingRequired()) {
             $this->updateOrderAddressApi->update(
                 $token,
-                (string) $details->orderId(),
+                (string) $details->payPalOrderId(),
                 (string) $details->referenceId(),
                 $order->getShippingAddress(),
             );
@@ -126,7 +126,7 @@ final readonly class CompleteOrderAction implements ActionInterface
 
         $completedDetails = PayPalPaymentDetails::create()
             ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
-            ->withOrderId((string) $orderDetails['id'])
+            ->withPayPalOrderId((string) $orderDetails['id'])
             ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
             ->withPaymentSource($paymentSource)
         ;

@@ -40,7 +40,7 @@ final readonly class PaymentProvider implements PaymentProviderInterface
         $payments = $this->paymentRepository->findAll();
 
         foreach ($payments as $payment) {
-            if (PayPalPaymentDetails::fromPayment($payment)->orderId() === $orderId) {
+            if (PayPalPaymentDetails::fromPayment($payment)->payPalOrderId() === $orderId) {
                 return $payment;
             }
         }

@@ -28,7 +28,7 @@ final readonly class PayPalPaymentCompleteProcessor implements PaymentCompletePr
 
     public function completePayment(PaymentInterface $payment): void
     {
-        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->orderId();
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
         if (null === $payPalOrderId) {
             return;
         }

@@ -81,6 +81,6 @@ final readonly class PayPalOrderCompleteProcessor
 
     private function getTotalPaymentAmountFromPaypal(PaymentInterface $payment): int
     {
-        return PayPalPaymentDetails::fromPayment($payment)->amount() ?? 0;
+        return PayPalPaymentDetails::fromPayment($payment)->amount();
     }
 }

@@ -168,7 +168,7 @@ final readonly class ProcessPayPalOrderAction
             ]);
         }
 
-        if (PayPalPaymentDetails::fromPayment($payment)->orderId() !== $payPalOrderId) {
+        if (PayPalPaymentDetails::fromPayment($payment)->payPalOrderId() !== $payPalOrderId) {
             return $this->returnToCheckout($orderId, $payPalOrderId, $payment, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 

@@ -49,7 +49,7 @@ final class ManagingOrdersContext implements Context
         /** @var PaymentInterface $payment */
         $payment = $order->getPayments()->first();
 
-        $details = PayPalPaymentDetails::create()->withOrderId($payPalOrderId)->toArray();
+        $details = PayPalPaymentDetails::create()->withPayPalOrderId($payPalOrderId)->toArray();
         if ($payPalPaymentId !== null) {
             $details['paypal_payment_id'] = $payPalPaymentId;
         }

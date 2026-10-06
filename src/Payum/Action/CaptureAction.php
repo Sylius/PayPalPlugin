@@ -86,7 +86,7 @@ final readonly class CaptureAction implements ActionInterface
         if (in_array($content['status'] ?? null, $this->getOrderCreatedStatuses(), true)) {
             $details = PayPalPaymentDetails::create()
                 ->withStatus(PayPalPaymentStatus::Captured)
-                ->withOrderId((string) $content['id'])
+                ->withPayPalOrderId((string) $content['id'])
                 ->withReferenceId($referenceId)
                 ->withAmount((int) $payment->getAmount())
                 ->withPaymentSource($paymentSource)

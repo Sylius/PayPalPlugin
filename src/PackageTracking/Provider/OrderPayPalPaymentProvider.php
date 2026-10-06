@@ -48,7 +48,7 @@ final class OrderPayPalPaymentProvider implements OrderPayPalPaymentProviderInte
                 continue;
             }
 
-            if (null === PayPalPaymentDetails::fromPayment($payment)->orderId()) {
+            if (null === PayPalPaymentDetails::fromPayment($payment)->payPalOrderId()) {
                 continue;
             }
 

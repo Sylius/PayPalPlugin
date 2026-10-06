@@ -73,14 +73,14 @@ final readonly class PayPalPaymentDetails
         return $status === $this->status();
     }
 
-    public function orderId(): ?string
+    public function payPalOrderId(): ?string
     {
         return $this->optional(self::ORDER_ID);
     }
 
-    public function hasOrderId(): bool
+    public function hasPayPalOrderId(): bool
     {
-        return null !== $this->orderId() && '' !== $this->orderId();
+        return null !== $this->payPalOrderId() && '' !== $this->payPalOrderId();
     }
 
     public function referenceId(): ?string
@@ -88,11 +88,11 @@ final readonly class PayPalPaymentDetails
         return $this->optional(self::REFERENCE_ID);
     }
 
-    public function amount(): ?int
+    public function amount(): int
     {
         $amount = $this->details[self::AMOUNT] ?? null;
 
-        return is_numeric($amount) ? (int) $amount : null;
+        return is_numeric($amount) ? (int) $amount : 0;
     }
 
     public function paymentSource(): string
@@ -127,9 +127,9 @@ final readonly class PayPalPaymentDetails
         return $this->with([self::STATUS => $status->value]);
     }
 
-    public function withOrderId(string $orderId): self
+    public function withPayPalOrderId(string $payPalOrderId): self
     {
-        return $this->with([self::ORDER_ID => $orderId]);
+        return $this->with([self::ORDER_ID => $payPalOrderId]);
     }
 
     public function withReferenceId(string $referenceId): self
@@ -161,21 +161,21 @@ final readonly class PayPalPaymentDetails
         ]);
     }
 
-    public function withoutPayerAction(): self
+    public function withCapturedAmount(?int $amount, ?string $currencyCode): self
+    {
+        return $this->with([
+            self::CAPTURED_AMOUNT => $amount,
+            self::CAPTURED_CURRENCY_CODE => $currencyCode,
+        ]);
+    }
+
+    public function clearPayerAction(): self
     {
         return new self(array_diff_key($this->details, array_flip([
             self::PAYER_ACTION_URL,
             self::PAYER_ACTION_RETURN_NONCE,
             self::PAYER_ACTION_CANCEL_NONCE,
         ])));
-    }
-
-    public function withCapturedAmountMismatch(?int $amount, ?string $currencyCode): self
-    {
-        return $this->with([
-            self::CAPTURED_AMOUNT => $amount,
-            self::CAPTURED_CURRENCY_CODE => $currencyCode,
-        ]);
     }
 
     /** @return array<string, mixed> */

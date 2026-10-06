@@ -102,7 +102,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         ;
 
         foreach ($payments as $payment) {
-            if (PayPalPaymentDetails::fromPayment($payment)->orderId() === $paypalOrderId) {
+            if (PayPalPaymentDetails::fromPayment($payment)->payPalOrderId() === $paypalOrderId) {
                 return $payment;
             }
         }

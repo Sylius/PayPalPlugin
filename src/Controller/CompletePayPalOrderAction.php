@@ -65,7 +65,7 @@ final readonly class CompletePayPalOrderAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->orderId();
+        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
         $requestedPayPalOrderId = $request->getPayload()->getString('payPalOrderId');
 
         if ('' !== $requestedPayPalOrderId && $requestedPayPalOrderId !== $payPalOrderId) {

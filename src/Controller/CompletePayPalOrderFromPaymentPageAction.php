@@ -87,7 +87,7 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->orderId();
+        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
 
         try {
             if ($this->paymentAmountVerifier !== null) {
@@ -141,6 +141,6 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
 
     private function getTotalPaymentAmountFromPaypal(PaymentInterface $payment): int
     {
-        return PayPalPaymentDetails::fromPayment($payment)->amount() ?? 0;
+        return PayPalPaymentDetails::fromPayment($payment)->amount();
     }
 }

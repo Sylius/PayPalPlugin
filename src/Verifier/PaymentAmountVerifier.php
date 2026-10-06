@@ -50,6 +50,6 @@ final class PaymentAmountVerifier implements PaymentAmountVerifierInterface
 
     private function getPaymentAmountFromDetails(PaymentInterface $payment): int
     {
-        return PayPalPaymentDetails::fromPayment($payment)->amount() ?? 0;
+        return PayPalPaymentDetails::fromPayment($payment)->amount();
     }
 }

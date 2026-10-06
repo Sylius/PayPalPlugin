@@ -36,8 +36,8 @@ final class PayPalPaymentDetailsTest extends TestCase
 
         self::assertSame(PayPalPaymentStatus::Captured, $details->status());
         self::assertTrue($details->isStatus(PayPalPaymentStatus::Captured));
-        self::assertSame('PAYPAL_ORDER_ID', $details->orderId());
-        self::assertTrue($details->hasOrderId());
+        self::assertSame('PAYPAL_ORDER_ID', $details->payPalOrderId());
+        self::assertTrue($details->hasPayPalOrderId());
         self::assertSame('REFERENCE_ID', $details->referenceId());
         self::assertSame(1000, $details->amount());
         self::assertSame('trustly', $details->paymentSource());
@@ -52,19 +52,19 @@ final class PayPalPaymentDetailsTest extends TestCase
         $details = PayPalPaymentDetails::create();
 
         self::assertNull($details->status());
-        self::assertNull($details->orderId());
-        self::assertFalse($details->hasOrderId());
+        self::assertNull($details->payPalOrderId());
+        self::assertFalse($details->hasPayPalOrderId());
         self::assertNull($details->referenceId());
-        self::assertNull($details->amount());
+        self::assertSame(0, $details->amount());
         self::assertSame('paypal', $details->paymentSource());
         self::assertNull($details->transactionId());
         self::assertNull($details->payerActionUrl());
         self::assertSame([], $details->toArray());
     }
 
-    public function test_it_does_not_treat_an_empty_order_id_as_present(): void
+    public function test_it_does_not_treat_an_empty_paypal_order_id_as_present(): void
     {
-        self::assertFalse(PayPalPaymentDetails::fromArray(['paypal_order_id' => ''])->hasOrderId());
+        self::assertFalse(PayPalPaymentDetails::fromArray(['paypal_order_id' => ''])->hasPayPalOrderId());
     }
 
     public function test_it_ignores_a_status_it_does_not_know(): void
@@ -77,20 +77,20 @@ final class PayPalPaymentDetailsTest extends TestCase
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
 
-        self::assertSame('PAYPAL_ORDER_ID', PayPalPaymentDetails::fromPayment($payment)->orderId());
+        self::assertSame('PAYPAL_ORDER_ID', PayPalPaymentDetails::fromPayment($payment)->payPalOrderId());
     }
 
     public function test_it_writes_the_details_in_their_stored_shape(): void
     {
         $details = PayPalPaymentDetails::create()
             ->withStatus(PayPalPaymentStatus::Completed)
-            ->withOrderId('PAYPAL_ORDER_ID')
+            ->withPayPalOrderId('PAYPAL_ORDER_ID')
             ->withReferenceId('REFERENCE_ID')
             ->withAmount(1000)
             ->withPaymentSource('paypal')
             ->withTransactionId('CAPTURE_ID')
             ->withPayerAction('https://www.paypal.com/payer-action', 'RETURN_NONCE', 'CANCEL_NONCE')
-            ->withCapturedAmountMismatch(900, 'USD')
+            ->withCapturedAmount(900, 'USD')
         ;
 
         self::assertSame([
@@ -115,14 +115,14 @@ final class PayPalPaymentDetailsTest extends TestCase
         self::assertSame(['custom' => 'value', 'status' => 'PROCESSING'], $details->toArray());
     }
 
-    public function test_it_drops_only_the_payer_action(): void
+    public function test_it_clears_only_the_payer_action(): void
     {
         $details = PayPalPaymentDetails::fromArray([
             'paypal_order_id' => 'PAYPAL_ORDER_ID',
             'payer_action_url' => 'https://www.paypal.com/payer-action',
             'payer_action_return_nonce' => 'RETURN_NONCE',
             'payer_action_cancel_nonce' => 'CANCEL_NONCE',
-        ])->withoutPayerAction();
+        ])->clearPayerAction();
 
         self::assertSame(['paypal_order_id' => 'PAYPAL_ORDER_ID'], $details->toArray());
     }
@@ -130,7 +130,7 @@ final class PayPalPaymentDetailsTest extends TestCase
     public function test_it_leaves_the_original_untouched_when_writing(): void
     {
         $details = PayPalPaymentDetails::create();
-        $details->withOrderId('PAYPAL_ORDER_ID');
+        $details->withPayPalOrderId('PAYPAL_ORDER_ID');
 
         self::assertSame([], $details->toArray());
     }
