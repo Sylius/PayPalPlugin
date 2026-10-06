@@ -14,12 +14,15 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
@@ -34,6 +37,7 @@ final readonly class CreatePayPalOrderAction
         private OrderProviderInterface $orderProvider,
         private CapturePaymentResolverInterface $capturePaymentResolver,
         private ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
+        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
         if (null === $this->paymentSourceProvider) {
             trigger_deprecation(
@@ -41,6 +45,15 @@ final readonly class CreatePayPalOrderAction
                 '2.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalPaymentSourceProviderInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalFundingSourcesConfigurationProviderInterface::class,
                 self::class,
             );
         }
@@ -55,6 +68,10 @@ final readonly class CreatePayPalOrderAction
 
         $token = (string) $request->attributes->get('token');
         $order = $this->orderProvider->provideOrderByToken($token);
+
+        if (!$this->isPaymentSourceOffered($paymentSource, $order)) {
+            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         $this->cancelLiveAttempt($order);
 
@@ -117,6 +134,31 @@ final readonly class CreatePayPalOrderAction
     private function supportsPaymentSource(string $paymentSource): bool
     {
         return ($this->paymentSourceProvider ?? new PayPalPaymentSourceProvider())->supports($paymentSource);
+    }
+
+    private function isPaymentSourceOffered(string $paymentSource, OrderInterface $order): bool
+    {
+        if (in_array($paymentSource, [PayPalPaymentSourceProviderInterface::PAYPAL, PayPalPaymentSourceProviderInterface::CARD], true)) {
+            return true;
+        }
+
+        /** @var ChannelInterface|null $channel */
+        $channel = $order->getChannel();
+        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+            return false;
+        }
+
+        try {
+            return match ($paymentSource) {
+                PayPalPaymentSourceProviderInterface::VENMO => $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel),
+                PayPalPaymentSourceProviderInterface::GOOGLE_PAY => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
+                PayPalPaymentSourceProviderInterface::APPLE_PAY => $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
+                RedirectPaymentSource::Trustly->value => $this->fundingSourcesConfigurationProvider->isTrustlyEnabled($channel),
+                default => false,
+            };
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
     }
 
     private function cancelLiveAttempt(OrderInterface $order): void

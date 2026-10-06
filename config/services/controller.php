@@ -131,6 +131,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.order'),
             service('sylius_paypal.resolver.capture_payment'),
             service('sylius_paypal.provider.paypal_payment_source'),
+            service(PayPalFundingSourcesConfigurationProviderInterface::class),
         ]);
 
     $services->set('sylius_paypal.controller.create_paypal_order_from_cart', CreatePayPalOrderFromCartAction::class)
