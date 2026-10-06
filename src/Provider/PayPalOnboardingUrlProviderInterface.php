@@ -13,18 +13,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use JsonException;
-use Psr\Cache\InvalidArgumentException;
-use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 
 interface PayPalOnboardingUrlProviderInterface
 {
     /**
-     * @throws ClientExceptionInterface
-     * @throws InvalidArgumentException
      * @throws PayPalPluginException
-     * @throws JsonException
      */
     public function generate(string $sellerNonce): string;
 }
