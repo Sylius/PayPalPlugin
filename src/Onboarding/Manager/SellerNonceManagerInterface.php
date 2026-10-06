@@ -11,9 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Provider;
+namespace Sylius\PayPalPlugin\Onboarding\Manager;
 
-interface SellerNonceProviderInterface
+interface SellerNonceManagerInterface
 {
     public function generate(): string;
 

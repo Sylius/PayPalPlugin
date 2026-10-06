@@ -22,16 +22,16 @@ use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
+use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
-use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class OnboardingCompletionProcessor implements OnboardingCompletionProcessorInterface
 {
     public function __construct(
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        private SellerNonceProviderInterface $sellerNonceProvider,
+        private SellerNonceManagerInterface $sellerNonceManager,
         private SellerOnboardingResolverInterface $sellerOnboardingResolver,
         private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
         private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
@@ -45,7 +45,7 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
             throw new PayPalPaymentMethodAlreadyExistsException();
         }
 
-        $sellerNonce = $this->sellerNonceProvider->get();
+        $sellerNonce = $this->sellerNonceManager->get();
         if (null === $sellerNonce) {
             throw new OnboardingSessionExpiredException();
         }
@@ -60,7 +60,7 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
             throw new OnboardingFailedException($exception);
         }
 
-        $this->sellerNonceProvider->remove();
+        $this->sellerNonceManager->remove();
 
         return new OnboardingCompletionResult($paymentMethod, $sellerOnboardingResult->getStatus(), $webhookUrlValid);
     }

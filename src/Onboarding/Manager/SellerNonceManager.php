@@ -11,11 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Provider;
+namespace Sylius\PayPalPlugin\Onboarding\Manager;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 
-final readonly class SellerNonceProvider implements SellerNonceProviderInterface
+final readonly class SellerNonceManager implements SellerNonceManagerInterface
 {
     private const SESSION_KEY = 'sylius_paypal.onboarding.seller_nonce';
 

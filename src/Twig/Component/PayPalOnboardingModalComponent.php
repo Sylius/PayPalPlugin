@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig\Component;
 
 use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
-use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -41,7 +41,7 @@ final class PayPalOnboardingModalComponent
 
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
-        private readonly SellerNonceProviderInterface $sellerNonceProvider,
+        private readonly SellerNonceManagerInterface $sellerNonceManager,
         private readonly PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         private readonly LoggerInterface $logger,
     ) {
@@ -59,7 +59,7 @@ final class PayPalOnboardingModalComponent
 
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(
-                $this->sellerNonceProvider->generate(),
+                $this->sellerNonceManager->generate(),
             );
         } catch (\Throwable $exception) {
             $this->logger->error(

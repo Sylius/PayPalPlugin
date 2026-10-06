@@ -17,16 +17,16 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
-use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 
 final class PayPalOnboardingModalComponentTest extends TestCase
 {
     private PayPalOnboardingUrlProviderInterface&MockObject $onboardingUrlProvider;
 
-    private SellerNonceProviderInterface&MockObject $sellerNonceProvider;
+    private SellerNonceManagerInterface&MockObject $sellerNonceManager;
 
     private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
 
@@ -38,13 +38,13 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     {
         parent::setUp();
         $this->onboardingUrlProvider = $this->createMock(PayPalOnboardingUrlProviderInterface::class);
-        $this->sellerNonceProvider = $this->createMock(SellerNonceProviderInterface::class);
+        $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->payPalOnboardingModalComponent = new PayPalOnboardingModalComponent(
             $this->onboardingUrlProvider,
-            $this->sellerNonceProvider,
+            $this->sellerNonceManager,
             $this->payPalPaymentMethodProvider,
             $this->logger,
         );
@@ -54,7 +54,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     public function it_starts_in_a_loading_state_without_calling_any_dependency(): void
     {
         $this->onboardingUrlProvider->expects(self::never())->method('generate');
-        $this->sellerNonceProvider->expects(self::never())->method('generate');
+        $this->sellerNonceManager->expects(self::never())->method('generate');
 
         self::assertTrue($this->payPalOnboardingModalComponent->loading);
         self::assertFalse($this->payPalOnboardingModalComponent->failed);
@@ -64,7 +64,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     #[Test]
     public function it_loads_the_onboarding_url_when_the_action_is_triggered(): void
     {
-        $this->sellerNonceProvider->method('generate')->willReturn('NONCE');
+        $this->sellerNonceManager->method('generate')->willReturn('NONCE');
         $this->onboardingUrlProvider
             ->expects(self::once())
             ->method('generate')
@@ -84,7 +84,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     #[Test]
     public function it_marks_the_component_as_failed_and_logs_when_the_url_provider_throws(): void
     {
-        $this->sellerNonceProvider->method('generate')->willReturn('NONCE');
+        $this->sellerNonceManager->method('generate')->willReturn('NONCE');
         $this->onboardingUrlProvider->method('generate')->willThrowException(new \RuntimeException('endpoint unreachable'));
 
         $this->logger->expects(self::once())->method('error');
@@ -101,7 +101,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     {
         $this->payPalPaymentMethodProvider->method('exists')->willReturn(true);
 
-        $this->sellerNonceProvider->expects(self::never())->method('generate');
+        $this->sellerNonceManager->expects(self::never())->method('generate');
         $this->onboardingUrlProvider->expects(self::never())->method('generate');
 
         $this->payPalOnboardingModalComponent->loadOnboardingUrl();

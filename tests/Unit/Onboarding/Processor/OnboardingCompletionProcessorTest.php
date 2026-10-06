@@ -27,17 +27,17 @@ use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
+use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
-use Sylius\PayPalPlugin\Provider\SellerNonceProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class OnboardingCompletionProcessorTest extends TestCase
 {
     private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
 
-    private SellerNonceProviderInterface&MockObject $sellerNonceProvider;
+    private SellerNonceManagerInterface&MockObject $sellerNonceManager;
 
     private SellerOnboardingResolverInterface&MockObject $sellerOnboardingResolver;
 
@@ -53,7 +53,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
     {
         parent::setUp();
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
-        $this->sellerNonceProvider = $this->createMock(SellerNonceProviderInterface::class);
+        $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
         $this->sellerOnboardingResolver = $this->createMock(SellerOnboardingResolverInterface::class);
         $this->onboardingPaymentMethodCreator = $this->createMock(PayPalOnboardingPaymentMethodCreatorInterface::class);
         $this->sellerWebhookRegistrar = $this->createMock(SellerWebhookRegistrarInterface::class);
@@ -61,7 +61,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
 
         $this->processor = new OnboardingCompletionProcessor(
             $this->payPalPaymentMethodProvider,
-            $this->sellerNonceProvider,
+            $this->sellerNonceManager,
             $this->sellerOnboardingResolver,
             $this->onboardingPaymentMethodCreator,
             $this->sellerWebhookRegistrar,
@@ -77,7 +77,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
         $sellerOnboardingResult = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', $status);
 
         $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
-        $this->sellerNonceProvider->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
         $this->sellerOnboardingResolver
             ->expects(self::once())
             ->method('resolve')
@@ -87,7 +87,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
         $this->sellerWebhookRegistrar->expects(self::once())->method('register')->with($paymentMethod);
         $paymentMethod->expects(self::never())->method('setEnabled');
         $this->entityManager->expects(self::once())->method('flush');
-        $this->sellerNonceProvider->expects(self::once())->method('remove');
+        $this->sellerNonceManager->expects(self::once())->method('remove');
 
         $result = $this->processor->process('AUTH-CODE', 'SHARED-ID');
 
@@ -141,7 +141,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
     public function it_throws_an_exception_when_the_seller_nonce_is_missing(): void
     {
         $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
-        $this->sellerNonceProvider->method('get')->willReturn(null);
+        $this->sellerNonceManager->method('get')->willReturn(null);
 
         $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
 
@@ -154,11 +154,11 @@ final class OnboardingCompletionProcessorTest extends TestCase
     public function it_wraps_failures_and_keeps_the_seller_nonce(): void
     {
         $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
-        $this->sellerNonceProvider->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
         $this->sellerOnboardingResolver->method('resolve')->willThrowException(new PayPalPluginException('boom'));
 
         $this->entityManager->expects(self::never())->method('flush');
-        $this->sellerNonceProvider->expects(self::never())->method('remove');
+        $this->sellerNonceManager->expects(self::never())->method('remove');
 
         $this->expectException(OnboardingFailedException::class);
 
@@ -168,7 +168,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
     private function mockSuccessfulResolution(PaymentMethodInterface $paymentMethod): void
     {
         $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
-        $this->sellerNonceProvider->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
         $this->sellerOnboardingResolver->method('resolve')->willReturn(
             new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true)),
         );

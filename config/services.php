@@ -601,7 +601,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
         ->args([
             service('sylius_paypal.provider.onboarding_url'),
-            service('sylius_paypal.provider.seller_nonce'),
+            service('sylius_paypal.manager.seller_nonce'),
             service('sylius_paypal.provider.paypal_payment_method'),
             service('monolog.logger.paypal'),
         ])
