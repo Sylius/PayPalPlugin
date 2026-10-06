@@ -14,6 +14,7 @@
         </div>
         {{ form_errors(form.tracking) }}
         {% if form.paypal_tracking is defined %}
+            {{ form_errors(form.paypal_tracking) }}
             {{ form_errors(form.paypal_tracking.carrier) }}
             {{ form_errors(form.paypal_tracking.carrier_name_other) }}
         {% endif %}

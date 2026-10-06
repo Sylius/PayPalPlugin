@@ -22,6 +22,8 @@ final class ShipmentTrackingCarrier extends Constraint
 
     public string $carrierNameOtherRequiredMessage = 'sylius_paypal.shipment_tracking.carrier_name_other_required';
 
+    public string $trackingCodeRequiredMessage = 'sylius_paypal.shipment_tracking.tracking_code_required';
+
     public function getTargets(): string
     {
         return self::CLASS_CONSTRAINT;

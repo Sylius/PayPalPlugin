@@ -99,6 +99,14 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
     }
 
+    public function test_it_does_not_ship_a_carrier_without_a_tracking_code(): void
+    {
+        $this->ship(['carrier' => 'DHL']);
+
+        $this->assertViolation('trackingCode', 'Please provide the tracking code when a carrier is selected.');
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+    }
+
     public function test_it_ships_and_leaves_a_retryable_failed_record_when_paypal_errors(): void
     {
         DummyOrderDetailsApi::$failWith = new PayPalApiErrorException('GET v2/checkout/orders/PAYPAL_ORDER_ID', ['name' => 'RESOURCE_NOT_FOUND']);

@@ -43,7 +43,7 @@ final class ShipShipmentCarrierValidator extends ConstraintValidator
             throw new UnexpectedValueException($value, ShipShipmentWithCarrier::class);
         }
 
-        $trackingData = new ShipmentTrackingData($value->carrier, $value->carrierNameOther);
+        $trackingData = new ShipmentTrackingData($value->carrier, $value->carrierNameOther, $value->trackingCode);
         if (null === $trackingData->getCarrier()) {
             return;
         }
