@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Behat\Mocker;
 
+use GuzzleHttp\Exception\ConnectException;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Client\ClientInterface;
@@ -24,6 +25,8 @@ use Psr\Http\Message\StreamFactoryInterface;
 final readonly class PayPalHttpClientWithExpectations implements ClientInterface
 {
     public const CACHE_KEY = 'paypal_http_client_expectations';
+
+    private const CONNECTION_FAILURE = 0;
 
     public function __construct(
         private CacheItemPoolInterface $cache,
@@ -44,6 +47,11 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         ];
 
         $this->saveExpectations($expectations);
+    }
+
+    public function addConnectionFailure(string $method, string $path): void
+    {
+        $this->addExpectation($method, $path, [], self::CONNECTION_FAILURE);
     }
 
     public function resetExpectations(): void
@@ -82,6 +90,10 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         }
 
         $this->saveExpectations($expectations);
+
+        if (self::CONNECTION_FAILURE === $expectation['statusCode']) {
+            throw new ConnectException(sprintf('Could not connect for the PayPal test request "%s".', $currentRequest), $request);
+        }
 
         return $this->responseFactory
             ->createResponse($expectation['statusCode'])

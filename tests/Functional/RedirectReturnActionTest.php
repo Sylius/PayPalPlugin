@@ -17,24 +17,19 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class RedirectReturnActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     private const RETURN_NONCE = '0123456789abcdef0123456789abcdef';
 
     private const CANCEL_NONCE = 'fedcba9876543210fedcba9876543210';
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
-        DummyOrderDetailsApi::$failWith = null;
-    }
-
     public function test_it_settles_the_payment_of_the_payer_action_it_started(): void
     {
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
 
         $this->client->request('GET', sprintf('/en_US/paypal/redirect-return/TOKEN/%s', self::RETURN_NONCE));
 

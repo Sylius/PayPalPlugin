@@ -19,7 +19,6 @@ use Sylius\Bundle\ResourceBundle\Controller\AuthorizationCheckerInterface;
 use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Sylius\PayPalPlugin\PackageTracking\Twig\Component\ShipmentShipFormComponent;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -30,11 +29,11 @@ use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 use Tests\Sylius\PayPalPlugin\Service\DummyAddTrackingApi;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 {
     use InteractsWithLiveComponents;
+    use MocksPayPalApiTrait;
     use ShipsShippablePayPalOrderTrait;
 
     private const FORM_NAME = 'sylius_admin_shipment_ship';
@@ -59,6 +58,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 
     public function test_it_ships_and_sends_the_tracking_to_paypal(): void
     {
+        $this->mockShippablePayPalOrderDetails();
         $this->ship(['tracking' => 'QA-TRACK-1', 'paypal_tracking' => ['carrier' => 'DHL']]);
 
         self::assertTrue($this->client->getResponse()->isRedirect('/admin/orders/' . $this->order->getId()));
@@ -71,7 +71,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 
     public function test_it_ships_and_records_the_tracking_as_failed_when_paypal_errors(): void
     {
-        DummyOrderDetailsApi::$failWith = new PayPalApiErrorException('GET v2/checkout/orders/PAYPAL_ORDER_ID', ['name' => 'RESOURCE_NOT_FOUND']);
+        $this->payPalApi()->mockOrderDetailsNotFound();
 
         $this->ship(['tracking' => 'QA-TRACK-2', 'paypal_tracking' => ['carrier' => 'DHL']]);
 
@@ -130,6 +130,7 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
 
     public function test_it_ships_with_tracking_from_the_shipment_list(): void
     {
+        $this->mockShippablePayPalOrderDetails();
         $this->ship(['tracking' => 'QA-TRACK-6', 'paypal_tracking' => ['carrier' => 'DHL']], ShipmentShipFormComponent::REDIRECT_TO_INDEX);
 
         self::assertTrue($this->client->getResponse()->isRedirect('/admin/shipments/'));

@@ -8,9 +8,6 @@ services:
     sylius_paypal.api.authorize_client:
         class: Tests\Sylius\PayPalPlugin\Service\DummyAuthorizeClientApi
 
-    sylius_paypal.api.order_details:
-        class: Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi
-
     sylius_paypal.api.add_tracking:
         class: Tests\Sylius\PayPalPlugin\Service\DummyAddTrackingApi
 
