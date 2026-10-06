@@ -276,5 +276,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.resource_controller.request_configuration_factory'),
             service('router'),
             service(CartStorageInterface::class),
+            service(PayPalFundingSourcesConfigurationProviderInterface::class),
         ]);
 };

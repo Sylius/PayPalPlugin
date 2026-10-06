@@ -1420,8 +1420,10 @@
    If you implement that interface yourself rather than decorating
    `sylius_paypal.provider.paypal_configuration`, add the method.
 
-   Orders created for Venmo carry `payment_source.venmo`. `CreatePayPalOrderFromCartAction` and
+   Orders created for Venmo carry `payment_source.venmo`. `AddToCartAction`, `CreatePayPalOrderFromCartAction` and
    `CreatePayPalOrderFromPaymentPageAction` read the `paymentSource` query parameter and accept `paypal` (the
-   default) and `venmo` while it is enabled on the order's channel; anything else answers `400`. Both gained a
+   default) and `venmo` while it is enabled on the order's channel; anything else answers `400` with the
+   `sylius_paypal.payment_source_not_available` error flash, and `AddToCartAction` answers it before creating the
+   cart. All three gained a
    trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
    argument; not passing it is deprecated, and without it `venmo` is refused.

@@ -18,6 +18,7 @@ use Sylius\Bundle\OrderBundle\Controller\AddToCartCommandInterface;
 use Sylius\Bundle\OrderBundle\Factory\AddToCartCommandFactoryInterface;
 use Sylius\Bundle\ResourceBundle\Controller\NewResourceFactoryInterface;
 use Sylius\Bundle\ResourceBundle\Controller\RequestConfigurationFactoryInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
@@ -25,6 +26,8 @@ use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Modifier\OrderItemQuantityModifierInterface;
 use Sylius\Component\Order\Modifier\OrderModifierInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\Resource\Metadata\MetadataInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -32,6 +35,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 final readonly class AddToCartAction
@@ -49,6 +53,7 @@ final readonly class AddToCartAction
         private RequestConfigurationFactoryInterface $requestConfigurationFactory,
         private RouterInterface $router,
         private ?CartStorageInterface $cartStorage = null,
+        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
         if (null === $this->cartStorage) {
             trigger_deprecation(
@@ -59,12 +64,30 @@ final readonly class AddToCartAction
                 self::class,
             );
         }
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.1',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                PayPalFundingSourcesConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
         /** @var OrderInterface $cart */
         $cart = $this->cartContext->getCart();
+
+        if (!$this->isPaymentSourceOffered($request, $cart)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
         $configuration = $this->requestConfigurationFactory->create($this->metadata, $request);
 
         /** @var OrderItemInterface $orderItem */
@@ -112,5 +135,31 @@ final readonly class AddToCartAction
         }
 
         return new RedirectResponse($this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', $routeParameters));
+    }
+
+    private function isPaymentSourceOffered(Request $request, OrderInterface $cart): bool
+    {
+        $paymentSource = $request->query->get('paymentSource');
+
+        if (null === $paymentSource || '' === $paymentSource || PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource) {
+            return true;
+        }
+
+        return PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($cart);
+    }
+
+    private function isVenmoEnabled(OrderInterface $cart): bool
+    {
+        /** @var ChannelInterface|null $channel */
+        $channel = $cart->getChannel();
+        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+            return false;
+        }
+
+        try {
+            return $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel);
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
     }
 }
