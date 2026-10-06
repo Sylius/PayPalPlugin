@@ -28,14 +28,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.payum.action.complete_order', CompleteOrderAction::class)
         ->public()
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
-            service('sylius_paypal.api.update_order'),
-            service('sylius_paypal.api.complete_order'),
-            service('sylius_paypal.api.order_details'),
-            null,
-            service('sylius_paypal.updater.payment'),
-            service('sylius.state_resolver.order_payment'),
-            service('sylius_paypal.api.update_order_address'),
+            service('sylius_paypal.processor.payment_capture'),
             service('monolog.logger.paypal'),
         ])
         ->tag('payum.action', ['factory' => 'sylius_paypal', 'alias' => 'payum.action.complete_order']);
