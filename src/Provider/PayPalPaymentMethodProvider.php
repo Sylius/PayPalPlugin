@@ -13,33 +13,23 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
-use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 
 final readonly class PayPalPaymentMethodProvider implements PayPalPaymentMethodProviderInterface
 {
-    /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
-    public function __construct(private PaymentMethodRepositoryInterface $paymentMethodRepository)
+    public function __construct(private PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery)
     {
     }
 
     public function provide(): PaymentMethodInterface
     {
-        $paymentMethods = $this->paymentMethodRepository->findAll();
+        return $this->payPalPaymentMethodQuery->findOne() ?? throw new PayPalPaymentMethodNotFoundException();
+    }
 
-        /** @var PaymentMethodInterface $paymentMethod */
-        foreach ($paymentMethods as $paymentMethod) {
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-            if ($gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
-                return $paymentMethod;
-            }
-        }
-
-        throw new PayPalPaymentMethodNotFoundException();
+    public function exists(): bool
+    {
+        return $this->payPalPaymentMethodQuery->exists();
     }
 }
