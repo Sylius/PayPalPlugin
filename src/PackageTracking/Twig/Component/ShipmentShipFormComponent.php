@@ -95,7 +95,8 @@ final class ShipmentShipFormComponent
 
         if (!$this->canBeShipped()) {
             $event = new ResourceControllerEvent();
-            $event->stop('sylius_paypal.shipment_cannot_be_shipped');
+            $event->setMessageType(ResourceControllerEvent::TYPE_ERROR);
+            $event->setMessage('sylius_paypal.shipment_cannot_be_shipped');
             $this->flashHelper->addFlashFromEvent($configuration, $event);
 
             return $this->redirect($this->resource, $redirectTo);
