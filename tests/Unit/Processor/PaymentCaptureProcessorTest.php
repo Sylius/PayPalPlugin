@@ -36,7 +36,7 @@ final class PaymentCaptureProcessorTest extends TestCase
     private const ORDER_DETAILS = [
         'status' => 'COMPLETED',
         'id' => '123123',
-        'purchase_units' => [['reference_id' => 'REFERENCE_ID']],
+        'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['captures' => [['id' => 'TRANSACTION_ID', 'status' => 'COMPLETED']]]]],
     ];
 
     private UpdateOrderApiInterface&MockObject $updateOrderApi;
@@ -105,6 +105,7 @@ final class PaymentCaptureProcessorTest extends TestCase
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
             'payment_source' => 'paypal',
+            'transaction_id' => 'TRANSACTION_ID',
         ]);
 
         self::assertSame(self::ORDER_DETAILS, $this->processor->capture($this->payment));
@@ -122,6 +123,17 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
+    public function test_it_leaves_the_payment_details_alone_when_paypal_captured_nothing(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);
+        $notCaptured = ['status' => 'CREATED', 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
+
+        $this->orderDetailsApi->method('get')->willReturn($notCaptured);
+        $this->payment->expects(self::never())->method('setDetails');
+
+        self::assertSame($notCaptured, $this->processor->capture($this->payment));
+    }
+
     public function test_it_carries_the_payment_source_and_the_transaction_id_through_the_capture(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'google_pay'], amount: 1000, total: 1000);
@@ -129,7 +141,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->orderDetailsApi->method('get')->willReturn([
             'status' => 'COMPLETED',
             'id' => '123123',
-            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['captures' => [['id' => 'TRANSACTION_ID']]]]],
+            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['captures' => [['id' => 'TRANSACTION_ID', 'status' => 'COMPLETED']]]]],
         ]);
         $this->payment->expects(self::once())->method('setDetails')->with([
             'status' => PayPalPaymentStatus::Completed->value,

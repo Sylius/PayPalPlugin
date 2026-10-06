@@ -29,6 +29,10 @@ final class CaptureEndPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
+    private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', 'PAYER_ACTION_REQUIRED', 'VOIDED'];
+
+    private const REFUSED_CAPTURE_STATUSES = [PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED];
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PaymentCaptureProcessorInterface $paymentCaptureProcessor,
@@ -55,18 +59,40 @@ final class CaptureEndPaymentRequestHandler
             return;
         }
 
-        $payPalOrderDetails = $this->paymentCaptureProcessor->capture($payment);
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
+        $payPalOrder = $this->paymentCaptureProcessor->capture($payment);
+        $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
 
         if (null === $capture) {
+            $this->endWithoutCapture($paymentRequest, $payPalOrder['status'] ?? null);
+
+            return;
+        }
+
+        $this->endWithCapture($paymentRequest, $payment, $payPalOrder, $capture);
+    }
+
+    private function endWithoutCapture(PaymentRequestInterface $paymentRequest, mixed $payPalOrderStatus): void
+    {
+        if (!in_array($payPalOrderStatus, self::UNAPPROVED_ORDER_STATUSES, true)) {
             $this->failWithReason($paymentRequest, 'PayPal did not capture the order.');
 
             return;
         }
 
-        $this->paymentSettlementProcessor->settle($payment, $payPalOrderDetails);
+        $paymentRequest->setResponseData(['reason' => 'The payer did not approve the PayPal order.']);
+        $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+    }
 
-        if (in_array($capture->status(), [PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED], true)) {
+    /** @param array<string, mixed> $payPalOrder */
+    private function endWithCapture(
+        PaymentRequestInterface $paymentRequest,
+        PaymentInterface $payment,
+        array $payPalOrder,
+        PayPalCapture $capture,
+    ): void {
+        $this->paymentSettlementProcessor->settle($payment, $payPalOrder);
+
+        if (in_array($capture->status(), self::REFUSED_CAPTURE_STATUSES, true)) {
             $this->failWithReason($paymentRequest, sprintf('PayPal reported the capture as %s.', $capture->status()));
 
             return;
