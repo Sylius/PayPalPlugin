@@ -146,6 +146,19 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertCount(0, DummyAddTrackingApi::$requests);
     }
 
+    public function test_it_sends_the_tracking_with_the_carrier_of_an_existing_tracking_record_when_no_carrier_is_sent(): void
+    {
+        self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($this->shipment(), 'DHL', null);
+
+        $this->ship(['trackingCode' => 'API-TRACK-10']);
+
+        self::assertSame(Response::HTTP_ACCEPTED, $this->client->getResponse()->getStatusCode());
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('DHL', $this->tracking()?->getCarrier());
+        self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
+        self::assertCount(1, DummyAddTrackingApi::$requests);
+    }
+
     public function test_it_sends_the_tracking_when_sylius_ship_shipment_command_ships_a_shipment_that_already_has_a_carrier(): void
     {
         $shipment = $this->shipment();
