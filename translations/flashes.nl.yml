@@ -7,6 +7,7 @@ sylius_paypal:
     payment_cancelled: 'PayPal betaling is geannuleerd'
     payment_enabled: 'PayPal betaling is zojuist ingeschakeld.'
     payment_not_enabled: 'PayPal betaling kon niet worden ingeschakeld. Probeer het later nog eens.'
+    payment_source_not_available: 'De gekozen betaalmethode is niet beschikbaar. Kies een andere.'
     something_went_wrong: 'Er is iets fout gegaan. Probeer het alstublieft opnieuw.'
     three_d_secure_declined: 'Uw kaart kon niet worden geverifieerd. Gebruik alstublieft een andere betaalmethode.'
     three_d_secure_retry: 'De verificatie van de kaart kon niet worden voltooid. Probeer het alstublieft opnieuw.'

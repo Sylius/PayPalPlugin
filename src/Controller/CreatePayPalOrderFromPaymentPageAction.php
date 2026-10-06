@@ -98,6 +98,10 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         $paymentSource = $this->resolvePaymentSource($request, $order);
         if (null === $paymentSource) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
