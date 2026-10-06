@@ -50,6 +50,7 @@ return function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.command_handler.status', StatusPaymentRequestHandler::class)
         ->args([
             service('sylius.provider.payment_request'),
+            service('sylius_paypal.processor.payment_settlement'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
