@@ -290,7 +290,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
         ->args([
-            service('sylius.repository.payment_method'),
             service('sylius_paypal.repository.query.paypal_payment_method'),
         ]);
 

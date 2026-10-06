@@ -200,21 +200,6 @@
    | `sylius_paypal_shop_cancel_last_payment` | none — the payment page no longer reaps abandoned attempts from the browser |
    | `sylius_paypal_shop_update_paypal_order` | `sylius_paypal_order_shipping_callback` |
 
-1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` is deprecated and will be removed in 3.0.
-
-   The BN code is not sandbox specific: it is sent as the `PayPal-Partner-Attribution-Id` header in production
-   too, including the onboarding requests. Use `Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID`
-   or the `sylius_paypal.partner_attribution_id` parameter instead. The old constant now points to the new one.
-
-1. #### The PayPal payment method can only be created through the onboarding.
-
-   Opening the admin create form for the `sylius_paypal` gateway (`/admin/payment-methods/new/sylius_paypal`)
-   now always redirects to the payment methods list. In 2.0 the form was blocked only when a PayPal payment
-   method already existed; now it is blocked as well when none exists, and the admin is pointed to the
-   onboarding with the `sylius_paypal.create_paypal_payment_method_via_onboarding` flash. Create the payment
-   method with the onboarding available on the payment methods list (or the sandbox onboarding in sandbox
-   mode) instead of filling the credentials in by hand.
-
 1. #### The create/capture-order JSON contract is now consistent across the three v6 placements.
 
    The same value used to be spelled three different ways, and `orderID` meant two different things depending
@@ -400,27 +385,6 @@
    Both degrade rather than throw: without the factory each API builds the same payload it built in 2.0 from
    the providers it already holds. For `CreateOrderApi` that means an order carrying neither the return and
    cancel URLs nor the shipping callback, so the wallet falls back to its plain flow with no shipping options.
-
-   ```diff
-    final readonly class PayPalPaymentMethodProvider
-    {
-        public function __construct(
-            // ...
-   +        private ?PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery = null,
-        ) {
-        }
-   ```
-
-   ```diff
-    $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
-        ->args([
-            service('sylius.repository.payment_method'),
-   +        service('sylius_paypal.repository.query.paypal_payment_method'),
-        ]);
-   ```
-
-   This one degrades as well: without the query the provider loads every payment method and filters them in
-   PHP, as it did in 2.0.
 
 1. #### The PayPal order payload is now assembled by factories.
 
