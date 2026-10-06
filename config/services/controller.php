@@ -195,6 +195,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.repository.shipping_method'),
             service('sylius_paypal.factory.express_order_address'),
             service('sylius_paypal.verifier.order_ownership'),
+            service('sylius_paypal.api.update_order'),
         ]);
 
     $services->set('sylius_paypal.controller.update_paypal_order', UpdatePayPalOrderAction::class)

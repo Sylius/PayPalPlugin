@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
+use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Symfony\Component\BrowserKit\Cookie;
@@ -120,7 +121,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame('15559876543', $customer->getPhoneNumber());
     }
 
-    public function test_it_frees_the_order_and_returns_the_buyer_to_checkout_when_the_amount_does_not_match(): void
+    public function test_it_frees_the_order_and_returns_the_buyer_to_checkout_when_the_total_grew_above_the_approved_amount(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
         /** @var OrderInterface $order */
@@ -136,7 +137,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
                 'address' => ['country_code' => 'US'],
             ],
             'purchase_units' => [[
-                'amount' => ['value' => '999.00'],
+                'amount' => ['value' => '0.01'],
                 'shipping' => [
                     'name' => ['full_name' => 'Oliver Queen'],
                     'address' => [
@@ -163,7 +164,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertNotSame($originalPaymentId, $payment->getId());
     }
 
-    public function test_it_tells_the_buyer_why_the_payment_was_not_taken(): void
+    public function test_it_lowers_the_approved_amount_and_completes_the_order_when_the_total_dropped(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
         /** @var OrderInterface $order */
@@ -171,6 +172,28 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
 
         $orderDetails = $this->orderDetails();
         $orderDetails['purchase_units'][0]['amount']['value'] = '999.00';
+        $this->mockOrderDetailsApi($orderDetails);
+        $this->mockSuccessfulPaymentCompleteProcessor();
+        $updateOrderApi = $this->mockUpdateOrderApi();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+        $this->assertSame('completed', $order->getCheckoutState());
+        $this->assertSame([['orderId' => 'PAYPAL_ORDER_ID', 'amount' => $order->getTotal()]], $updateOrderApi->updates);
+    }
+
+    public function test_it_tells_the_buyer_why_the_payment_was_not_taken(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails();
+        $orderDetails['purchase_units'][0]['amount']['value'] = '0.01';
         $this->mockOrderDetailsApi($orderDetails);
 
         $this->seedCurrentCart($order);
@@ -541,6 +564,24 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
     private function mockOrderDetailsApi(array $orderDetails): void
     {
         self::getContainer()->set('sylius_paypal.api.order_details', new FakeOrderDetailsApi($orderDetails));
+    }
+
+    private function mockUpdateOrderApi(): object
+    {
+        $updateOrderApi = new class() implements UpdateOrderApiInterface {
+            /** @var list<array{orderId: string, amount: int|null}> */
+            public array $updates = [];
+
+            public function update(string $token, string $orderId, PaymentInterface $payment, string $referenceId, string $merchantId): array
+            {
+                $this->updates[] = ['orderId' => $orderId, 'amount' => $payment->getAmount()];
+
+                return [];
+            }
+        };
+        self::getContainer()->set('sylius_paypal.api.update_order', $updateOrderApi);
+
+        return $updateOrderApi;
     }
 
     private function mockSuccessfulPaymentCompleteProcessor(): void
