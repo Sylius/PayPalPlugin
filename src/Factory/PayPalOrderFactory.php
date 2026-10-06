@@ -85,7 +85,11 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         ?string $payerActionNonce,
     ): ?string {
         if (null === $redirectPaymentSource) {
-            return $this->router?->generate('sylius_shop_checkout_complete', [], UrlGeneratorInterface::ABSOLUTE_URL);
+            return $this->router?->generate(
+                'sylius_shop_checkout_complete',
+                ['_locale' => $order->getLocaleCode()],
+                UrlGeneratorInterface::ABSOLUTE_URL,
+            );
         }
 
         Assert::stringNotEmpty(
@@ -95,7 +99,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
         return $this->router?->generate(
             $route,
-            ['token' => $order->getTokenValue(), 'nonce' => $payerActionNonce],
+            ['_locale' => $order->getLocaleCode(), 'token' => $order->getTokenValue(), 'nonce' => $payerActionNonce],
             UrlGeneratorInterface::ABSOLUTE_URL,
         );
     }

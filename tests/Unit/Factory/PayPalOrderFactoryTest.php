@@ -301,6 +301,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
         $order->method('getBillingAddress')->willReturn($billingAddress);
         $order->method('getCustomer')->willReturn($customer);
+        $order->method('getLocaleCode')->willReturn('en_US');
 
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
@@ -316,8 +317,8 @@ final class PayPalOrderFactoryTest extends TestCase
             ->method('provide')
             ->with(
                 self::anything(),
-                'https://shop.example.com/sylius_paypal_shop_redirect_return/RETURN_NONCE',
-                'https://shop.example.com/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
+                'https://shop.example.com/en_US/sylius_paypal_shop_redirect_return/RETURN_NONCE',
+                'https://shop.example.com/en_US/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
                 null,
             )
             ->willReturn([])
@@ -340,14 +341,20 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_puts_no_payer_action_nonce_in_the_urls_of_a_wallet_order(): void
     {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getLocaleCode')->willReturn('en_US');
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
         $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
         $experienceContextProvider
             ->expects(self::once())
             ->method('provide')
             ->with(
                 self::anything(),
-                'https://shop.example.com/sylius_shop_checkout_complete',
-                'https://shop.example.com/sylius_shop_checkout_complete',
+                'https://shop.example.com/en_US/sylius_shop_checkout_complete',
+                'https://shop.example.com/en_US/sylius_shop_checkout_complete',
                 self::anything(),
             )
             ->willReturn([])
@@ -358,7 +365,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $this->routeReflectingRouter(),
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->payment, 'REFERENCE_ID');
+        ))->create($payment, 'REFERENCE_ID');
     }
 
     private function routeReflectingRouter(): UrlGeneratorInterface&MockObject
@@ -366,7 +373,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(
             static fn (string $route, array $parameters = []): string => rtrim(
-                'https://shop.example.com/' . $route . '/' . ($parameters['nonce'] ?? ''),
+                'https://shop.example.com/' . $parameters['_locale'] . '/' . $route . '/' . ($parameters['nonce'] ?? ''),
                 '/',
             ),
         );
