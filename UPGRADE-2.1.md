@@ -894,7 +894,8 @@
 
    **Admin.** For orders paid with PayPal, the shipment ship form - on the order page and in the shipment list -
    gains a carrier selector (with an `OTHER` fallback that reveals a free-text carrier name, which is then
-   required); a selected carrier requires a tracking number. Without a carrier the shipment is shipped and no
+   required); a selected carrier requires a tracking number of at most 64 characters (PayPal's limit).
+   Without a carrier the shipment is shipped and no
    tracking is sent to PayPal, unless the shipment already has a tracking record with a carrier. Each shipment on the
    order page shows its PayPal sync state (pending / synced /
    failed). Orders paid with any other method keep the stock Sylius ship form, untouched.
@@ -979,7 +980,8 @@
    ```
 
    For an order paid with PayPal a sent carrier has to be one of `sylius_paypal.tracking.carriers`, and `OTHER`
-   needs `carrierNameOther`; a sent carrier also needs `trackingCode`. Otherwise the regular `422` violation
+   needs `carrierNameOther`; a sent carrier also needs a `trackingCode` of at most 64 characters. Otherwise the
+   regular `422` violation
    payload is returned and the shipment stays `ready`. The carrier is saved in the ship's transaction, so the
    tracking is sent as for the admin form.
    Without a carrier the shipment is shipped and the tracking is sent only if the shipment already has a
