@@ -13,10 +13,12 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -24,6 +26,7 @@ use Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,6 +42,8 @@ final class CreatePayPalOrderActionTest extends TestCase
 
     private PayPalPaymentSourceProviderInterface&Stub $paymentSourceProvider;
 
+    private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
+
     private OrderInterface&Stub $order;
 
     private CreatePayPalOrderAction $action;
@@ -50,11 +55,13 @@ final class CreatePayPalOrderActionTest extends TestCase
         $this->orderProvider = $this->createStub(OrderProviderInterface::class);
         $this->capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
         $this->paymentSourceProvider = $this->createStub(PayPalPaymentSourceProviderInterface::class);
+        $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
         $this->order = $this->createStub(OrderInterface::class);
+        $this->order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
 
         $this->paymentSourceProvider
             ->method('supports')
-            ->willReturnCallback(static fn (string $paymentSource): bool => in_array($paymentSource, ['paypal', 'google_pay'], true))
+            ->willReturnCallback(static fn (string $paymentSource): bool => in_array($paymentSource, ['paypal', 'card', 'venmo', 'google_pay', 'apple_pay', 'trustly'], true))
         ;
 
         $this->orderProvider->method('provideOrderByToken')->with('ORDER_TOKEN')->willReturn($this->order);
@@ -64,6 +71,7 @@ final class CreatePayPalOrderActionTest extends TestCase
             $this->orderProvider,
             $this->capturePaymentResolver,
             $this->paymentSourceProvider,
+            $this->fundingSourcesConfigurationProvider,
         );
     }
 
@@ -134,6 +142,7 @@ final class CreatePayPalOrderActionTest extends TestCase
 
     public function test_it_records_the_requested_payment_source_on_the_payment(): void
     {
+        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
         $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
         $this->payments(processing: null, new: $payment);
 
@@ -185,6 +194,71 @@ final class CreatePayPalOrderActionTest extends TestCase
             Response::HTTP_UNPROCESSABLE_ENTITY,
             ($this->action)($this->request('{"paymentSource":"bitcoin"}'))->getStatusCode(),
         );
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function paymentSourcesTheMerchantCanDisable(): iterable
+    {
+        yield 'venmo' => ['venmo', 'isVenmoEnabled'];
+        yield 'google pay' => ['google_pay', 'isGooglePayEnabled'];
+        yield 'apple pay' => ['apple_pay', 'isApplePayEnabled'];
+        yield 'trustly' => ['trustly', 'isTrustlyEnabled'];
+    }
+
+    #[DataProvider('paymentSourcesTheMerchantCanDisable')]
+    public function test_it_rejects_a_payment_source_the_merchant_disabled_without_touching_the_payments(string $paymentSource, string $toggle): void
+    {
+        $this->fundingSourcesConfigurationProvider->method($toggle)->willReturn(false);
+        $this->payments(processing: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME), new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        $this->paymentStateManager->expects(self::never())->method('cancel');
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+
+        self::assertSame(
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            ($this->action)($this->request(sprintf('{"paymentSource":"%s"}', $paymentSource)))->getStatusCode(),
+        );
+    }
+
+    #[DataProvider('paymentSourcesTheMerchantCanDisable')]
+    public function test_it_accepts_a_payment_source_the_merchant_enabled(string $paymentSource, string $toggle): void
+    {
+        $this->fundingSourcesConfigurationProvider->method($toggle)->willReturn(true);
+        $this->payments(processing: null, new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        self::assertSame(
+            Response::HTTP_OK,
+            ($this->action)($this->request(sprintf('{"paymentSource":"%s"}', $paymentSource)))->getStatusCode(),
+        );
+    }
+
+    public function test_it_rejects_a_payment_source_the_merchant_can_disable_without_the_funding_sources_configuration_provider(): void
+    {
+        $this->payments(processing: null, new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        $action = new CreatePayPalOrderAction(
+            $this->paymentStateManager,
+            $this->orderProvider,
+            $this->capturePaymentResolver,
+            $this->paymentSourceProvider,
+        );
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $action($this->request('{"paymentSource":"venmo"}'))->getStatusCode());
+    }
+
+    public function test_it_rejects_a_payment_source_the_merchant_can_disable_when_the_channel_has_no_paypal_method(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+        $this->payments(processing: null, new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, ($this->action)($this->request('{"paymentSource":"venmo"}'))->getStatusCode());
+    }
+
+    public function test_it_accepts_a_card_payment_without_asking_for_a_toggle(): void
+    {
+        $this->payments(processing: null, new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        self::assertSame(Response::HTTP_OK, ($this->action)($this->request('{"paymentSource":"card"}'))->getStatusCode());
     }
 
     public function test_it_still_accepts_a_real_payment_source_without_an_injected_provider(): void

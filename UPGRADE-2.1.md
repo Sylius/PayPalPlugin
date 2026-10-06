@@ -783,6 +783,10 @@
 
    `CreatePayPalOrderAction` gained a nullable `?PayPalPaymentSourceProviderInterface`. Not passing it is
    deprecated and will be prohibited in 3.0; without it the endpoint accepts `paypal` and nothing else.
+   It also gained a trailing nullable `?PayPalFundingSourcesConfigurationProviderInterface`: `venmo`,
+   `google_pay`, `apple_pay` and `trustly` are accepted only while enabled on the order's channel, otherwise the
+   endpoint answers `422` before touching the payments. Not passing it is deprecated, and without it those
+   sources are refused.
 
    `PayPalPaymentPageContextProvider` gained a **required** `PayPalFundingSourcesConfigurationProviderInterface`,
    because it decides which SDK components the page asks for. That class is new in 2.1 and has no released
