@@ -160,6 +160,8 @@ export default class extends Controller {
     }
 
     async createOrder(paymentSource = null) {
+        this.validationFailed = false;
+
         const requestInit = { method: 'post' };
         if (this.hasAddToCartFormSelectorValue && this.addToCartFormSelectorValue !== '') {
             requestInit.body = new FormData(document.querySelector(this.addToCartFormSelectorValue));
