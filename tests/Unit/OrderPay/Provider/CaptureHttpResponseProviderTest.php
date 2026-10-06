@@ -90,6 +90,19 @@ final class CaptureHttpResponseProviderTest extends TestCase
         );
     }
 
+    public function test_it_renders_the_payment_page_for_the_plain_request_sylius_2_3_hands_over(): void
+    {
+        $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_NEW);
+        $request = new Request();
+        $request->setLocale('pl_PL');
+
+        $this->contextProvider->expects(self::once())->method('provide')->with($paymentRequest->getPayment(), 'pl_PL')->willReturn([]);
+        $this->twig->method('render')->willReturn('PAGE');
+
+        self::assertTrue($this->provider->supports($request, $paymentRequest));
+        self::assertSame('PAGE', $this->provider->getResponse($request, $paymentRequest)->getContent());
+    }
+
     public function test_it_sends_the_payer_of_an_abandoned_attempt_back_to_pay_the_order(): void
     {
         $this->router->method('generate')->with('sylius_shop_order_pay', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN/pay');

@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -34,7 +35,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
     ) {
     }
 
-    public function supports(RequestConfiguration $requestConfiguration, PaymentRequestInterface $paymentRequest): bool
+    public function supports(RequestConfiguration|Request $request, PaymentRequestInterface $paymentRequest): bool
     {
         return in_array(
             $paymentRequest->getState(),
@@ -43,7 +44,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         );
     }
 
-    public function getResponse(RequestConfiguration $requestConfiguration, PaymentRequestInterface $paymentRequest): Response
+    public function getResponse(RequestConfiguration|Request $request, PaymentRequestInterface $paymentRequest): Response
     {
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
@@ -54,7 +55,11 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
             return new RedirectResponse($this->router->generate('sylius_shop_order_pay', ['tokenValue' => $order->getTokenValue()]));
         }
 
-        $context = $this->paymentPageContextProvider->provide($payment, $requestConfiguration->getRequest()->getLocale());
+        if ($request instanceof RequestConfiguration) {
+            $request = $request->getRequest();
+        }
+
+        $context = $this->paymentPageContextProvider->provide($payment, $request->getLocale());
         $context['createPayPalOrderUrl'] = $this->router->generate(
             'sylius_paypal_shop_create_paypal_order_for_payment_request',
             ['hash' => $paymentRequest->getId()],
