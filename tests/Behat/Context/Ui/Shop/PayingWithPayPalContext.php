@@ -23,18 +23,18 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage;
-use Tests\Sylius\PayPalPlugin\Service\VoidPayPalPaymentCompleteProcessor;
 use Webmozart\Assert\Assert;
 
 final readonly class PayingWithPayPalContext implements Context
 {
-    private const CARD_ORDER_DETAILS = 'paypal_card_order_details';
+    private const THREE_D_SECURE_AUTHENTICATION_STATUS = 'paypal_three_d_secure_authentication_status';
+
+    private const APPROVE_URL = 'paypal_approve_url';
 
     public function __construct(
         private SharedStorageInterface $sharedStorage,
         private PayWithPayPalPage $payWithPayPalPage,
         private KernelBrowser $client,
-        private VoidPayPalPaymentCompleteProcessor $paymentCompleteProcessor,
         private PayPalApiMocker $payPalApiMocker,
     ) {
     }
@@ -42,84 +42,69 @@ final readonly class PayingWithPayPalContext implements Context
     #[Given('PayPal will approve the capture of my card payment')]
     public function payPalWillApproveTheCaptureOfMyCardPayment(): void
     {
-        $this->paymentCompleteProcessor->completeSuccessfullyNext();
+        $this->sharedStorage->set(self::THREE_D_SECURE_AUTHENTICATION_STATUS, 'Y');
     }
 
     #[Given('PayPal will decline the 3D Secure challenge for my card payment')]
     public function payPalWillDeclineTheThreeDSecureChallengeForMyCardPayment(): void
     {
-        $this->configureThreeDSecureResult(authenticationStatus: 'N');
+        $this->sharedStorage->set(self::THREE_D_SECURE_AUTHENTICATION_STATUS, 'N');
     }
 
     #[Given('PayPal will ask to retry the 3D Secure challenge for my card payment')]
     public function payPalWillAskToRetryTheThreeDSecureChallengeForMyCardPayment(): void
     {
-        $this->configureThreeDSecureResult(authenticationStatus: 'C');
+        $this->sharedStorage->set(self::THREE_D_SECURE_AUTHENTICATION_STATUS, 'C');
     }
 
     #[When('I go to the PayPal payment page of my order')]
     public function iGoToThePayPalPaymentPageOfMyOrder(): void
     {
-        /** @var OrderInterface $order */
-        $order = $this->sharedStorage->get('order');
-        /** @var PaymentInterface $payment */
-        $payment = $order->getLastPayment();
-
-        $this->payWithPayPalPage->open([
-            '_locale' => 'en_US',
-            'orderToken' => $order->getTokenValue(),
-            'paymentId' => $payment->getId(),
-        ]);
+        $this->payWithPayPalPage->tryToOpen(['_locale' => 'en_US', 'tokenValue' => $this->order()->getTokenValue()]);
     }
 
     #[When('I start a card payment for my order')]
     public function iStartACardPaymentForMyOrder(): void
     {
-        // Keep one kernel/container (and so the same test-double instances, such as
-        // $paymentCompleteProcessor above) alive for the rest of the
-        // scenario. The client reboots the kernel before each request by default, which
-        // would otherwise silently discard a Given step's configuration of a test double
-        // before a later request gets to exercise it.
-        $this->client->disableReboot();
-
-        /** @var OrderInterface $order */
-        $order = $this->sharedStorage->get('order');
+        $this->client->request('GET', sprintf('/en_US/order/%s/pay', $this->order()->getTokenValue()));
+        $payUrl = (string) $this->client->getResponse()->headers->get('Location');
+        Assert::regex($payUrl, '#/payment-request/pay/[0-9a-f-]{36}$#', 'The order is not paid through a PayPal Payment Request.');
 
         $this->payPalApiMocker->mockCreateOrder();
         $this->client->request(
             'POST',
-            sprintf('/en_US/create-pay-pal-order/%s', $order->getTokenValue()),
+            sprintf('/en_US/paypal/payment-requests/%s/order', basename($payUrl)),
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
             json_encode(['paymentSource' => 'card'], \JSON_THROW_ON_ERROR),
         );
 
-        Assert::same(
-            $this->client->getResponse()->getStatusCode(),
-            200,
-            'Could not start a card payment attempt for the order.',
-        );
+        Assert::same($this->client->getResponse()->getStatusCode(), 200, 'Could not start a card payment attempt for the order.');
+
+        /** @var array{approve_url: string} $attempt */
+        $attempt = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        $this->sharedStorage->set(self::APPROVE_URL, $attempt['approve_url']);
     }
 
     #[When('I complete the card payment')]
     public function iCompleteTheCardPayment(): void
     {
-        /** @var OrderInterface $order */
-        $order = $this->sharedStorage->get('order');
+        $authenticationStatus = (string) $this->sharedStorage->get(self::THREE_D_SECURE_AUTHENTICATION_STATUS);
 
-        $this->payPalApiMocker->mockOrderDetails(
-            'PAYPAL_ORDER_ID',
-            $this->sharedStorage->has(self::CARD_ORDER_DETAILS) ? $this->sharedStorage->get(self::CARD_ORDER_DETAILS) : ['status' => 'COMPLETED'],
-        );
-        $this->client->request(
-            'POST',
-            sprintf('/en_US/complete-pay-pal-order/%s', $order->getTokenValue()),
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            '{}',
-        );
+        $this->payPalApiMocker->mockCardOrderDetails(authenticationStatus: $authenticationStatus);
+        if ('Y' === $authenticationStatus) {
+            $this->payPalApiMocker->mockUpdateOrderAddress();
+            $this->payPalApiMocker->mockCapture();
+            $this->payPalApiMocker->mockOrderDetailsWithCapture(
+                value: number_format($this->order()->getTotal() / 100, 2, '.', ''),
+                currencyCode: (string) $this->order()->getCurrencyCode(),
+            );
+        }
+
+        $this->client->followRedirects();
+        $this->client->request('GET', (string) $this->sharedStorage->get(self::APPROVE_URL));
+        $this->client->followRedirects(false);
     }
 
     #[Then('I should be able to pay with Trustly')]
@@ -161,74 +146,51 @@ final readonly class PayingWithPayPalContext implements Context
     #[Then('the card payment should be completed')]
     public function theCardPaymentShouldBeCompleted(): void
     {
-        $response = $this->completeOrderResponse();
-
-        Assert::same($response['status'], PaymentInterface::STATE_COMPLETED);
-        Assert::contains(
-            $response['return_url'],
-            '/order/thank-you',
-            'A completed card payment should send the buyer to the thank-you page.',
-        );
+        Assert::contains($this->currentPath(), '/order/thank-you', 'A completed card payment should send the buyer to the thank-you page.');
+        Assert::notNull($this->lastPayment(PaymentInterface::STATE_COMPLETED), 'The card payment was not completed.');
     }
 
     #[Then('the card payment should be declined, leaving the order payable')]
     public function theCardPaymentShouldBeDeclined(): void
     {
-        $response = $this->completeOrderResponse();
-
-        Assert::same($response['status'], PaymentInterface::STATE_CANCELLED);
-        Assert::contains(
-            $response['return_url'],
-            '/order/',
+        Assert::endsWith(
+            $this->currentPath(),
+            sprintf('/order/%s', $this->order()->getTokenValue()),
             'A declined (non-retryable) card payment should send the buyer to the order page.',
         );
-        Assert::notContains(
-            $response['return_url'],
-            '/pay-with-paypal/',
-            'A declined (non-retryable) card payment should not send the buyer back to the payment page - that is the retryable case.',
-        );
+        Assert::notNull($this->lastPayment(PaymentInterface::STATE_FAILED), 'The declined card payment was not failed.');
+        Assert::notNull($this->lastPayment(PaymentInterface::STATE_NEW), 'The order is not payable again.');
     }
 
     #[Then('the card payment should require a retry, returning the buyer to the payment page')]
     public function theCardPaymentShouldRequireARetry(): void
     {
-        $response = $this->completeOrderResponse();
-
-        Assert::same($response['status'], PaymentInterface::STATE_CANCELLED);
-        Assert::contains(
-            $response['return_url'],
-            '/pay-with-paypal/',
-            'A retryable card payment should send the buyer back to the PayPal payment page.',
-        );
+        Assert::contains($this->currentPath(), '/payment-request/pay/', 'A retryable card payment should send the buyer back to the PayPal payment page.');
+        Assert::null($this->lastPayment(PaymentInterface::STATE_FAILED), 'A retryable card payment should not fail the payment.');
+        Assert::notNull($this->lastPayment(PaymentInterface::STATE_NEW), 'The order is not payable again.');
     }
 
-    private function configureThreeDSecureResult(string $authenticationStatus): void
+    private function order(): OrderInterface
     {
-        $this->sharedStorage->set(self::CARD_ORDER_DETAILS, [
-            'status' => 'COMPLETED',
-            'payment_source' => [
-                'card' => [
-                    'authentication_result' => [
-                        'three_d_secure' => [
-                            'enrollment_status' => 'Y',
-                            'authentication_status' => $authenticationStatus,
-                        ],
-                        'liability_shift' => 'NO',
-                    ],
-                ],
-            ],
-            'purchase_units' => [['payments' => ['captures' => [['id' => '123123']]]]],
-        ]);
+        /** @var OrderInterface $order */
+        $order = $this->sharedStorage->get('order');
+
+        return $order;
     }
 
-    /** @return array<string, mixed> */
-    private function completeOrderResponse(): array
+    private function currentPath(): string
     {
-        $response = json_decode($this->client->getResponse()->getContent() ?: '{}', true, flags: \JSON_THROW_ON_ERROR);
+        return $this->client->getRequest()->getPathInfo();
+    }
 
-        Assert::keyExists($response, 'status', 'The complete-order response did not carry a payment status.');
-        Assert::keyExists($response, 'return_url', 'The complete-order response did not carry a return_url.');
+    private function lastPayment(string $state): ?PaymentInterface
+    {
+        $entityManager = $this->client->getContainer()->get('doctrine.orm.entity_manager');
+        $entityManager->clear();
 
-        return $response;
+        /** @var OrderInterface $order */
+        $order = $entityManager->getRepository(OrderInterface::class)->findOneBy(['tokenValue' => $this->order()->getTokenValue()]);
+
+        return $order->getLastPayment($state);
     }
 }

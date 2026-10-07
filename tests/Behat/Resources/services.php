@@ -107,7 +107,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.behat.shared_storage'),
             service(PayWithPayPalPage::class),
             service('test.client'),
-            service('sylius_paypal.processor.payment_complete'),
             service(PayPalApiMocker::class),
         ]);
 };
