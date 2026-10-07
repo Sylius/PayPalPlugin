@@ -22,13 +22,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.payum.action.capture', CaptureAction::class)
         ->public()
-        ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
-            service('sylius_paypal.api.create_order'),
-            service('sylius_paypal.provider.uuid'),
-            service('sylius_paypal.provider.paypal_order_created_statuses'),
-            service('sylius_paypal.provider.nonce'),
-        ])
+        ->args([service('sylius_paypal.creator.paypal_order')])
         ->tag('payum.action', ['factory' => 'sylius_paypal', 'alias' => 'payum.action.capture']);
 
     $services->set('sylius_paypal.payum.action.complete_order', CompleteOrderAction::class)

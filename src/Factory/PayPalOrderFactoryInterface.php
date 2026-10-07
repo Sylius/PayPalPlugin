@@ -25,5 +25,6 @@ interface PayPalOrderFactoryInterface
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
         ?string $payerActionReturnNonce = null,
         ?string $payerActionCancelNonce = null,
+        ?string $customId = null,
     ): PayPalOrder;
 }

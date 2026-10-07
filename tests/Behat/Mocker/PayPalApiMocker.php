@@ -29,6 +29,15 @@ final readonly class PayPalApiMocker
     }
 
     /** @param array<string, mixed> $order */
+    public function mockCreateOrder(string $payPalOrderId = 'PAYPAL_ORDER_ID', array $order = []): void
+    {
+        $this->client->addExpectation('POST', 'v2/checkout/orders', array_merge([
+            'id' => $payPalOrderId,
+            'status' => 'CREATED',
+        ], $order));
+    }
+
+    /** @param array<string, mixed> $order */
     public function mockOrderDetails(string $payPalOrderId, array $order = []): void
     {
         $this->client->addExpectation('GET', 'v2/checkout/orders/' . $payPalOrderId, array_merge([

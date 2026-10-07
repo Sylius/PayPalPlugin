@@ -113,6 +113,32 @@ final class CreateOrderApiTest extends TestCase
         $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID', 'google_pay');
     }
 
+    public function test_it_names_the_order_with_the_given_custom_id(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+
+        $this->payPalOrderFactory->expects(self::once())->method('create')->with($payment, 'REFERENCE_ID', 'paypal', null, null, 'PAYMENT_REQUEST_HASH')->willReturn(new PayPalOrder($this->createMock(OrderInterface::class), $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []));
+        $this->client->method('post')->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH');
+    }
+
+    public function test_it_identifies_the_order_request_with_the_given_request_id(): void
+    {
+        $this->payPalOrderFactory->method('create')->willReturn($payPalOrder = new PayPalOrder($this->createMock(OrderInterface::class), $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []));
+        $this->client->expects(self::once())->method('post')->with('v2/checkout/orders', 'TOKEN', $payPalOrder->toArray(), ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH'])->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $this->createMock(PaymentInterface::class), 'REFERENCE_ID', requestId: 'PAYMENT_REQUEST_HASH');
+    }
+
+    public function test_it_leaves_the_request_id_to_the_client_when_it_is_given_none(): void
+    {
+        $this->payPalOrderFactory->method('create')->willReturn($payPalOrder = new PayPalOrder($this->createMock(OrderInterface::class), $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []));
+        $this->client->expects(self::once())->method('post')->with('v2/checkout/orders', 'TOKEN', $payPalOrder->toArray(), [])->willReturn(['status' => 'CREATED', 'id' => 123]);
+
+        $this->createOrderApi->create('TOKEN', $this->createMock(PaymentInterface::class), 'REFERENCE_ID');
+    }
+
     #[Test]
     public function it_still_creates_an_order_when_it_is_given_no_factory(): void
     {

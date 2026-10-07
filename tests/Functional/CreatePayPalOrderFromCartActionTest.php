@@ -25,6 +25,8 @@ use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     /** @test */
     public function it_creates_paypal_order_from_cart_and_returns_its_data(): void
     {
@@ -34,6 +36,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
 
         $response = $this->client->getResponse();
@@ -54,6 +57,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
 
         $response = $this->client->getResponse();
@@ -83,6 +87,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $order = $this->seededCart();
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
 
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
@@ -94,6 +99,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $order = $this->seededCart(venmoEnabled: true);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
 
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());

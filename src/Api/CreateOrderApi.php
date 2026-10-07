@@ -50,6 +50,8 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
         ?string $payerActionReturnNonce = null,
         ?string $payerActionCancelNonce = null,
+        ?string $customId = null,
+        ?string $requestId = null,
     ): array {
         $payPalOrder = $this->getPayPalOrderFactory()->create(
             $payment,
@@ -57,9 +59,15 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             $paymentSource,
             $payerActionReturnNonce,
             $payerActionCancelNonce,
+            $customId,
         );
 
-        return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
+        return $this->client->post(
+            'v2/checkout/orders',
+            $token,
+            $payPalOrder->toArray(),
+            null === $requestId ? [] : ['PayPal-Request-Id' => $requestId],
+        );
     }
 
     private function getPayPalOrderFactory(): PayPalOrderFactoryInterface

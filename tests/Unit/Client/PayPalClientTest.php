@@ -397,8 +397,34 @@ final class PayPalClientTest extends TestCase
         self::assertArrayNotHasKey('PayPal-Partner-Attribution-Id', $this->headersOfNextGetRequest());
     }
 
+    public function test_it_identifies_a_post_request_with_a_fresh_request_id(): void
+    {
+        $this->uuidProvider->method('provide')->willReturn('FRESH_REQUEST_ID');
+
+        $headers = $this->headersOfNextRequest(fn () => $this->payPalClient->post('v2/checkout/orders', 'TOKEN', []));
+
+        self::assertSame('FRESH_REQUEST_ID', $headers['PayPal-Request-Id']);
+    }
+
+    public function test_it_identifies_a_post_request_with_the_request_id_given_by_the_caller(): void
+    {
+        $this->uuidProvider->method('provide')->willReturn('FRESH_REQUEST_ID');
+
+        $headers = $this->headersOfNextRequest(
+            fn () => $this->payPalClient->post('v2/checkout/orders', 'TOKEN', [], ['PayPal-Request-Id' => 'CALLER_REQUEST_ID']),
+        );
+
+        self::assertSame('CALLER_REQUEST_ID', $headers['PayPal-Request-Id']);
+    }
+
     /** @return array<string, string> */
     private function headersOfNextGetRequest(): array
+    {
+        return $this->headersOfNextRequest(fn () => $this->payPalClient->get('v2/checkout/orders/123123', 'TOKEN'));
+    }
+
+    /** @return array<string, string> */
+    private function headersOfNextRequest(callable $sendRequest): array
     {
         $headers = [];
 
@@ -410,6 +436,7 @@ final class PayPalClientTest extends TestCase
                 return $request;
             },
         );
+        $request->method('withBody')->willReturn($request);
 
         $body = $this->createMock(StreamInterface::class);
         $body->method('getContents')->willReturn('{}');
@@ -421,7 +448,7 @@ final class PayPalClientTest extends TestCase
         $this->requestFactory->method('createRequest')->willReturn($request);
         $this->client->method('sendRequest')->willReturn($response);
 
-        $this->payPalClient->get('v2/checkout/orders/123123', 'TOKEN');
+        $sendRequest();
 
         return $headers;
     }

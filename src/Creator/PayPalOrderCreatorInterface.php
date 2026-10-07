@@ -11,21 +11,17 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Api;
+namespace Sylius\PayPalPlugin\Creator;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
-interface CreateOrderApiInterface
+interface PayPalOrderCreatorInterface
 {
     public function create(
-        string $token,
         PaymentInterface $payment,
-        string $referenceId,
-        string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
-        ?string $payerActionReturnNonce = null,
-        ?string $payerActionCancelNonce = null,
+        string $paymentSource,
         ?string $customId = null,
         ?string $requestId = null,
-    ): array;
+    ): ?PayPalPaymentDetails;
 }

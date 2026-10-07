@@ -115,6 +115,14 @@ final class PayPalOrderFactoryTest extends TestCase
         (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router, $this->shippingCallbackUrlProvider))->create($payment, 'REFERENCE_ID');
     }
 
+    public function test_it_hands_the_custom_id_over_to_the_purchase_unit_factory(): void
+    {
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory->expects(self::once())->method('create')->with($this->payment, 'REFERENCE_ID', null, true, 'PAYMENT_REQUEST_HASH')->willReturn($this->purchaseUnit());
+
+        (new PayPalOrderFactory($payPalPurchaseUnitFactory, $this->router))->create($this->payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH');
+    }
+
     public function test_it_sends_the_item_taxes_when_no_shipping_callback_is_declared(): void
     {
         $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
@@ -293,6 +301,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
         $order->method('getBillingAddress')->willReturn($billingAddress);
         $order->method('getCustomer')->willReturn($customer);
+        $order->method('getLocaleCode')->willReturn('en_US');
 
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
@@ -308,8 +317,8 @@ final class PayPalOrderFactoryTest extends TestCase
             ->method('provide')
             ->with(
                 self::anything(),
-                'https://shop.example.com/sylius_paypal_shop_redirect_return/RETURN_NONCE',
-                'https://shop.example.com/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
+                'https://shop.example.com/en_US/sylius_paypal_shop_redirect_return/RETURN_NONCE',
+                'https://shop.example.com/en_US/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
                 null,
             )
             ->willReturn([])
@@ -332,14 +341,20 @@ final class PayPalOrderFactoryTest extends TestCase
 
     public function test_it_puts_no_payer_action_nonce_in_the_urls_of_a_wallet_order(): void
     {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getLocaleCode')->willReturn('en_US');
+
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+
         $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
         $experienceContextProvider
             ->expects(self::once())
             ->method('provide')
             ->with(
                 self::anything(),
-                'https://shop.example.com/sylius_shop_checkout_complete',
-                'https://shop.example.com/sylius_shop_checkout_complete',
+                'https://shop.example.com/en_US/sylius_shop_checkout_complete',
+                'https://shop.example.com/en_US/sylius_shop_checkout_complete',
                 self::anything(),
             )
             ->willReturn([])
@@ -350,7 +365,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $this->routeReflectingRouter(),
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->payment, 'REFERENCE_ID');
+        ))->create($payment, 'REFERENCE_ID');
     }
 
     private function routeReflectingRouter(): UrlGeneratorInterface&MockObject
@@ -358,7 +373,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(
             static fn (string $route, array $parameters = []): string => rtrim(
-                'https://shop.example.com/' . $route . '/' . ($parameters['nonce'] ?? ''),
+                'https://shop.example.com/' . $parameters['_locale'] . '/' . $route . '/' . ($parameters['nonce'] ?? ''),
                 '/',
             ),
         );
