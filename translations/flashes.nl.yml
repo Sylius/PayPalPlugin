@@ -1,6 +1,8 @@
 sylius_paypal:
     could_not_create_paypal_payment_method: 'PayPal betaalmethode kon niet worden aangemaakt. Probeer het later opnieuw.'
     invalid_paypal_sandbox_credentials: 'Ongeldige PayPal Sandbox referenties. Controleer uw configuratie.'
+    late_capture_not_refunded: 'Het bedrag dat PayPal voor de afgesloten poging heeft geïnd, kon niet worden terugbetaald.'
+    late_capture_refunded: 'Het bedrag dat PayPal voor de afgesloten poging heeft geïnd, is terugbetaald.'
     more_than_one_seller_not_allowed: 'U kunt niet meer dan één PayPal verkoper instellen!'
     order_cancelled: 'PayPal bestelling is geannuleerd'
     order_total_changed: 'Het totaalbedrag van uw bestelling is gewijzigd sinds de betaling werd gestart. Controleer uw bestelling en probeer het opnieuw.'

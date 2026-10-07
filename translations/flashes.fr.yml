@@ -1,6 +1,8 @@
 sylius_paypal:
     could_not_create_paypal_payment_method: 'Impossible de créer le mode de paiement PayPal. Merci de réessayer plus tard.'
     invalid_paypal_sandbox_credentials: 'Identifiants PayPal Sandbox invalides. Merci de vérifier votre configuration.'
+    late_capture_not_refunded: 'Le montant encaissé par PayPal pour la tentative close n''a pas pu être remboursé.'
+    late_capture_refunded: 'Le montant encaissé par PayPal pour la tentative close a été remboursé.'
     more_than_one_seller_not_allowed: 'Vous ne pouvez ajouter plus d''un vendeur PayPal !'
     order_cancelled: 'La commande PayPal a été annulée'
     order_total_changed: 'Le total de votre commande a changé depuis le début du paiement. Merci de vérifier votre commande et de réessayer.'

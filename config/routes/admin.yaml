@@ -9,3 +9,9 @@ sylius_paypal_admin_enable_seller:
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.enable_seller
+
+sylius_paypal_admin_order_payment_refund_late_capture:
+    path: /orders/{orderId}/payments/{id}/refund-paypal-capture
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.refund_late_capture

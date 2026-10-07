@@ -73,6 +73,23 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_FAILED, $this->reloadPayment($order)->getState());
     }
 
+    public function test_it_keeps_a_capture_completed_for_a_cancelled_payment_to_be_refunded(): void
+    {
+        $order = $this->processingOrder();
+        $order->getLastPayment()?->setState(PaymentInterface::STATE_CANCELLED);
+        $this->getEntityManager()->flush();
+
+        $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
+        self::assertSame(
+            ['id' => '123123', 'amount' => 20, 'currency_code' => 'USD'],
+            $payment->getDetails()['paypal_late_capture'] ?? null,
+        );
+    }
+
     public function test_it_accepts_an_event_it_does_not_handle(): void
     {
         $order = $this->processingOrder();
