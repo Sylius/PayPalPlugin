@@ -42,7 +42,7 @@ final readonly class CaptureAction implements ActionInterface
         if (null === $this->orderCreatedStatusesProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $orderCreatedStatusesProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
@@ -51,7 +51,7 @@ final readonly class CaptureAction implements ActionInterface
         if (null === $this->nonceProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $nonceProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );

@@ -42,7 +42,7 @@ final readonly class CreatePayPalOrderAction
         if (null === $this->paymentSourceProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalPaymentSourceProviderInterface::class,
                 self::class,
@@ -51,7 +51,7 @@ final readonly class CreatePayPalOrderAction
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalFundingSourcesConfigurationProviderInterface::class,
                 self::class,
