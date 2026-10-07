@@ -25,7 +25,7 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final class CapturePaymentRequestHandler
 {
-    use FailedAwarePaymentRequestHandlerTrait;
+    use FailPaymentRequestTrait;
 
     public const PAYLOAD_PAYMENT_SOURCE = 'payment_source';
 
@@ -77,7 +77,7 @@ final class CapturePaymentRequestHandler
         }
 
         $paymentRequest->setResponseData(array_filter([
-            'paypal_order_id' => $details->orderId(),
+            'paypal_order_id' => $details->payPalOrderId(),
             'payer_action_url' => $details->payerActionUrl(),
         ]));
 

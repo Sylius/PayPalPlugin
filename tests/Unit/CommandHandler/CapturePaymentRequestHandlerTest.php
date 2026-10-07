@@ -58,7 +58,7 @@ final class CapturePaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestWith(['payment_source' => 'card']);
 
-        $this->payPalOrderCreator->expects(self::once())->method('create')->with($this->payment, 'card', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')->willReturn(PayPalPaymentDetails::create()->withOrderId('PAYPAL_ORDER_ID'));
+        $this->payPalOrderCreator->expects(self::once())->method('create')->with($this->payment, 'card', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
 
@@ -69,7 +69,7 @@ final class CapturePaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestWith(['payment_source' => 'trustly']);
 
-        $this->payPalOrderCreator->method('create')->willReturn(PayPalPaymentDetails::create()->withOrderId('PAYPAL_ORDER_ID')->withPayerAction('https://www.paypal.com/payment/trustly', 'RETURN_NONCE', 'CANCEL_NONCE'));
+        $this->payPalOrderCreator->method('create')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID')->withPayerAction('https://www.paypal.com/payment/trustly', 'RETURN_NONCE', 'CANCEL_NONCE'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://www.paypal.com/payment/trustly']);
 
         ($this->handler)(new CapturePaymentRequest('PAYMENT_REQUEST_HASH'));
