@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -150,6 +151,43 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
 
         self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
         self::assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function walletPaymentSources(): iterable
+    {
+        yield 'PayPal and Pay Later' => ['paypal'];
+        yield 'Venmo' => ['venmo'];
+        yield 'Apple Pay' => ['apple_pay'];
+        yield 'Google Pay' => ['google_pay'];
+    }
+
+    #[DataProvider('walletPaymentSources')]
+    public function test_it_completes_a_wallet_payment_the_payer_approved(string $paymentSource): void
+    {
+        $payment = $this->payPalOrder();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $payment->setAmount($order->getTotal());
+        $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_NEW);
+
+        $this->payPalApi()->mockCreateOrder();
+        $this->client->request('POST', sprintf('/en_US/paypal/payment-requests/%s/order', $hash), server: ['CONTENT_TYPE' => 'application/json'], content: json_encode(['paymentSource' => $paymentSource], \JSON_THROW_ON_ERROR));
+        /** @var array{approve_url: string} $attempt */
+        $attempt = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+
+        if ('google_pay' === $paymentSource) {
+            $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'APPROVED']);
+        }
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockCapture();
+        $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($order->getTotal() / 100, 2, '.', ''));
+        $this->client->request('GET', $attempt['approve_url']);
+
+        $completed = $this->reloadedPayment(PaymentInterface::STATE_COMPLETED);
+        self::assertNotNull($completed);
+        self::assertSame($paymentSource, $completed->getDetails()['payment_source']);
     }
 
     private function redirectPaymentRequestHash(): string
