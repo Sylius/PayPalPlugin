@@ -1,4 +1,4 @@
-# UPGRADE FROM 2.0 to 2.1
+# UPGRADE FROM 2.1 to 2.2
 
 1. #### The shop-facing PayPal button placements now run on PayPal's Web SDK v6.
 
@@ -193,7 +193,7 @@
 
 1. #### The following routes are deprecated and will be removed in 3.0.
 
-   Both are superseded and have no caller left in the package. They keep working unchanged in 2.1 and only
+   Both are superseded and have no caller left in the package. They keep working unchanged in 2.2 and only
    emit a deprecation notice.
 
    | Deprecated route | Replacement |
@@ -217,7 +217,7 @@
    \* `status` is the payment state, so `ProcessPayPalOrderAction` omits it in the one response it returns when
    the order has no payment left in the cart state — there is no payment to report a state for.
 
-   **This is not a break in 2.1.** Every old key is still sent alongside its replacement, with the same value
+   **This is not a break in 2.2.** Every old key is still sent alongside its replacement, with the same value
    and the same meaning it had in 2.0, so JavaScript reading the old names keeps working. The old keys are
    deprecated and **will be removed in 3.0** — move your code to the new names before then.
 
@@ -692,7 +692,7 @@
    - `pay_later_enabled` — hides the Pay Later button when off.
    - `messaging_enabled` — hides the `<paypal-message>` financing message (see below) when off.
 
-   Both default to `true`, including for existing (pre-2.1) payment methods, whose stored config simply
+   Both default to `true`, including for existing (pre-2.2) payment methods, whose stored config simply
    won't have these keys yet — these are merchant opt-outs, not opt-ins.
 
    `<paypal-message>` (e.g. "Pay in 4 interest-free payments of $X") now renders real content on the
@@ -779,7 +779,7 @@
    Existing **calls** keep working, positional ones included. An existing **implementation** of
    `CreateOrderApiInterface` does not: PHP requires it to declare every parameter the interface declares, so
    a class still carrying the three-argument signature is a fatal error rather than a deprecation. Add both
-   arguments to it. `PayPalOrderFactoryInterface` is new in 2.1 and has no released signature to preserve.
+   arguments to it. `PayPalOrderFactoryInterface` is new in 2.2 and has no released signature to preserve.
    A factory that builds a redirect order without a nonce now throws, because the URLs it would hand PayPal
    could not be told apart from anyone else's.
 
@@ -791,7 +791,7 @@
    sources are refused.
 
    `PayPalPaymentPageContextProvider` gained a **required** `PayPalFundingSourcesConfigurationProviderInterface`,
-   because it decides which SDK components the page asks for. That class is new in 2.1 and has no released
+   because it decides which SDK components the page asks for. That class is new in 2.2 and has no released
    signature to preserve; if you build it yourself, pass `sylius_paypal.provider.paypal_configuration`.
 
    `PayPalFundingSourcesConfigurationProviderInterface` gained `isGooglePayEnabled(ChannelInterface $channel)`.
@@ -870,7 +870,7 @@
                    enabled: false
    ```
 
-   That hook is new in 2.1 and split into two levels. The outer one,
+   That hook is new in 2.2 and split into two levels. The outer one,
    `sylius_paypal.shop.pay_with_paypal.content`, carries `flashes` 200, `methods` 100 and `privacy_notice`
    0. Every payment method lives one level down, on `sylius_paypal.shop.pay_with_paypal.content.methods` —
    `paypal` 600, `paypal_messaging` 500, `venmo` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods`
