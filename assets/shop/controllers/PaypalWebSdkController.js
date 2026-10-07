@@ -139,6 +139,10 @@ export default class extends Controller {
     wireUpButton(buttonTarget, paymentSession, paymentSource = null) {
         buttonTarget.removeAttribute('hidden');
         buttonTarget.addEventListener('click', async () => {
+            if (!this.isAddToCartFormValid()) {
+                return;
+            }
+
             try {
                 await paymentSession.start({ presentationMode: 'auto' }, this.createOrder(paymentSource));
             } catch (error) {
@@ -147,7 +151,17 @@ export default class extends Controller {
         });
     }
 
+    isAddToCartFormValid() {
+        if (!this.hasAddToCartFormSelectorValue || this.addToCartFormSelectorValue === '') {
+            return true;
+        }
+
+        return document.querySelector(this.addToCartFormSelectorValue)?.reportValidity() ?? true;
+    }
+
     async createOrder(paymentSource = null) {
+        this.validationFailed = false;
+
         const requestInit = { method: 'post' };
         if (this.hasAddToCartFormSelectorValue && this.addToCartFormSelectorValue !== '') {
             requestInit.body = new FormData(document.querySelector(this.addToCartFormSelectorValue));
