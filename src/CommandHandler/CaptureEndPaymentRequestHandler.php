@@ -20,14 +20,22 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
+use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 
 final class CaptureEndPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
+
+    public const THREE_D_SECURE = 'three_d_secure';
+
+    public const THREE_D_SECURE_RETRY = 'retry';
+
+    public const THREE_D_SECURE_DECLINED = 'declined';
 
     private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', 'PAYER_ACTION_REQUIRED', 'VOIDED'];
 
@@ -35,6 +43,7 @@ final class CaptureEndPaymentRequestHandler
 
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
+        private readonly PaymentThreeDSecureVerifierInterface $paymentThreeDSecureVerifier,
         private readonly PaymentCaptureProcessorInterface $paymentCaptureProcessor,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         StateMachineInterface $stateMachine,
@@ -59,6 +68,14 @@ final class CaptureEndPaymentRequestHandler
             return;
         }
 
+        try {
+            $this->paymentThreeDSecureVerifier->verify($payment);
+        } catch (ThreeDSecureAuthenticationFailedException $exception) {
+            $this->endWithFailedAuthentication($paymentRequest, $payment, $exception->isRetryable());
+
+            return;
+        }
+
         $payPalOrder = $this->paymentCaptureProcessor->capture($payment);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
 
@@ -69,6 +86,26 @@ final class CaptureEndPaymentRequestHandler
         }
 
         $this->endWithCapture($paymentRequest, $payment, $payPalOrder, $capture);
+    }
+
+    private function endWithFailedAuthentication(PaymentRequestInterface $paymentRequest, PaymentInterface $payment, bool $retryable): void
+    {
+        if ($retryable) {
+            $paymentRequest->setResponseData([
+                'reason' => 'The 3D Secure authentication of the card did not finish.',
+                self::THREE_D_SECURE => self::THREE_D_SECURE_RETRY,
+            ]);
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+
+            return;
+        }
+
+        $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL);
+        $paymentRequest->setResponseData([
+            'reason' => 'The 3D Secure authentication refused the card.',
+            self::THREE_D_SECURE => self::THREE_D_SECURE_DECLINED,
+        ]);
+        $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
     }
 
     private function endWithoutCapture(PaymentRequestInterface $paymentRequest, mixed $payPalOrderStatus): void

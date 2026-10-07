@@ -24,6 +24,8 @@ use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
@@ -37,6 +39,8 @@ final class CaptureHttpResponseProviderTest extends TestCase
 
     private RequestConfiguration&MockObject $requestConfiguration;
 
+    private Session $session;
+
     private CaptureHttpResponseProvider $provider;
 
     protected function setUp(): void
@@ -46,8 +50,10 @@ final class CaptureHttpResponseProviderTest extends TestCase
         $this->router = $this->createMock(UrlGeneratorInterface::class);
         $this->requestConfiguration = $this->createMock(RequestConfiguration::class);
 
+        $this->session = new Session(new MockArraySessionStorage());
         $request = new Request();
         $request->setLocale('en_US');
+        $request->setSession($this->session);
         $this->requestConfiguration->method('getRequest')->willReturn($request);
 
         $this->provider = new CaptureHttpResponseProvider($this->twig, $this->contextProvider, $this->router, 'https://www.sandbox.paypal.com');
@@ -103,6 +109,32 @@ final class CaptureHttpResponseProviderTest extends TestCase
         self::assertSame('PAGE', $this->provider->getResponse($request, $paymentRequest)->getContent());
     }
 
+    public function test_it_answers_a_failed_payment_request_only_when_3d_secure_refused_the_card(): void
+    {
+        self::assertTrue($this->provider->supports($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['three_d_secure' => 'declined'])));
+        self::assertFalse($this->provider->supports($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['reason' => 'PayPal did not capture the order.'])));
+    }
+
+    public function test_it_asks_the_payer_to_authenticate_the_card_again(): void
+    {
+        $this->router->method('generate')->with('sylius_shop_order_pay', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN/pay');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_CANCELLED, ['three_d_secure' => 'retry']));
+
+        self::assertSame('/en_US/order/TOKEN/pay', $response->headers->get('Location'));
+        self::assertSame(['sylius_paypal.three_d_secure_retry'], $this->session->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_sends_the_payer_of_a_refused_card_to_the_order(): void
+    {
+        $this->router->method('generate')->with('sylius_shop_order_show', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['three_d_secure' => 'declined']));
+
+        self::assertSame('/en_US/order/TOKEN', $response->headers->get('Location'));
+        self::assertSame(['sylius_paypal.three_d_secure_declined'], $this->session->getFlashBag()->peek('error'));
+    }
+
     public function test_it_sends_the_payer_of_an_abandoned_attempt_back_to_pay_the_order(): void
     {
         $this->router->method('generate')->with('sylius_shop_order_pay', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN/pay');
@@ -112,9 +144,11 @@ final class CaptureHttpResponseProviderTest extends TestCase
 
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertSame('/en_US/order/TOKEN/pay', $response->getTargetUrl());
+        self::assertSame([], $this->session->getFlashBag()->peek('error'));
     }
 
-    private function paymentRequestIn(string $state): PaymentRequestInterface&MockObject
+    /** @param array<string, mixed> $responseData */
+    private function paymentRequestIn(string $state, array $responseData = []): PaymentRequestInterface&MockObject
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getTokenValue')->willReturn('TOKEN');
@@ -124,6 +158,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
         $paymentRequest->method('getState')->willReturn($state);
+        $paymentRequest->method('getResponseData')->willReturn($responseData);
         $paymentRequest->method('getPayment')->willReturn($payment);
 
         return $paymentRequest;
