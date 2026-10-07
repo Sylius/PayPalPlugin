@@ -240,7 +240,7 @@ final readonly class ProcessPayPalOrderAction
                 $this->verify($payment, $data);
             }
         } catch (PaymentAmountMismatchException) {
-            if (null === $this->updateOrderApi || $order->getTotal() > $this->approvedAmount($purchaseUnit)) {
+            if (null === $this->updateOrderApi || !$this->isLowerThanApproved($order, $purchaseUnit)) {
                 $this->abandonPayment($order, $payment);
 
                 /** @var FlashBagInterface $flashBag */
@@ -320,9 +320,9 @@ final readonly class ProcessPayPalOrderAction
     }
 
     /** @param array<string, mixed> $purchaseUnit */
-    private function approvedAmount(array $purchaseUnit): int
+    private function isLowerThanApproved(OrderInterface $order, array $purchaseUnit): bool
     {
-        return (int) round((float) ($purchaseUnit['amount']['value'] ?? '0') * 100);
+        return $order->getTotal() < (int) round((float) ($purchaseUnit['amount']['value'] ?? '0') * 100);
     }
 
     private function lowerApprovedAmount(UpdateOrderApiInterface $updateOrderApi, PaymentInterface $payment, string $payPalOrderId): void

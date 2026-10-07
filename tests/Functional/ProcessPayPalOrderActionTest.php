@@ -186,6 +186,37 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame([['orderId' => 'PAYPAL_ORDER_ID', 'amount' => $order->getTotal()]], $updateOrderApi->updates);
     }
 
+    public function test_it_does_not_update_the_approved_amount_when_it_matches_the_total(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails(
+            shippingOptions: [
+                ['id' => 'EXPRESS', 'amount' => ['currency_code' => 'USD', 'value' => '20.00'], 'selected' => true],
+            ],
+            shippingTotal: self::EXPRESS_SHIPPING_COST,
+        );
+        $orderDetails['purchase_units'][] = ['amount' => ['value' => '0.01']];
+        $this->mockOrderDetailsApi($orderDetails);
+        $updateOrderApi = $this->mockUpdateOrderApi();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame(self::ITEMS_TOTAL + self::EXPRESS_SHIPPING_COST, $order->getTotal());
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertNotSame('completed', $order->getCheckoutState());
+        $this->assertSame([], $updateOrderApi->updates);
+    }
+
     public function test_it_tells_the_buyer_why_the_payment_was_not_taken(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
