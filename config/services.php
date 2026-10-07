@@ -327,7 +327,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(ChannelAvailableCountriesProviderInterface::class, 'sylius_paypal.provider.available_countries');
 
     $services->set('sylius_paypal.resolver.capture_payment', CapturePaymentResolver::class)
-        ->args([service('payum')]);
+        ->args([service('sylius_paypal.creator.paypal_order')]);
 
     $services->alias(CapturePaymentResolverInterface::class, 'sylius_paypal.resolver.capture_payment');
 
@@ -350,7 +350,10 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set('sylius_paypal.processor.payment_complete', PayPalPaymentCompleteProcessor::class)
-        ->args([service('payum')]);
+        ->args([
+            service('sylius_paypal.processor.payment_capture'),
+            service('monolog.logger.paypal'),
+        ]);
 
     $services->alias(PaymentCompleteProcessorInterface::class, 'sylius_paypal.processor.payment_complete');
 

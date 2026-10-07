@@ -13,57 +13,48 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Resolver;
 
-use Payum\Core\GatewayInterface;
-use Payum\Core\Payum;
-use Payum\Core\Request\Capture;
-use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolver;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 
 final class CapturePaymentResolverTest extends TestCase
 {
-    private Payum&MockObject $payum;
+    private PayPalOrderCreatorInterface&MockObject $payPalOrderCreator;
 
     private CapturePaymentResolver $capturePaymentResolver;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->payum = $this->createMock(Payum::class);
+        $this->payPalOrderCreator = $this->createMock(PayPalOrderCreatorInterface::class);
 
-        $this->capturePaymentResolver = new CapturePaymentResolver($this->payum);
+        $this->capturePaymentResolver = new CapturePaymentResolver($this->payPalOrderCreator);
     }
 
-    #[Test]
-    public function it_is_an_capture_payment_resolver(): void
+    public function test_it_is_a_capture_payment_resolver(): void
     {
         self::assertInstanceOf(CapturePaymentResolverInterface::class, $this->capturePaymentResolver);
     }
 
-    #[Test]
-    public function it_executes_capture_action_on_payment(): void
+    public function test_it_creates_the_paypal_order_for_the_payment_source_recorded_on_the_payment(): void
     {
         $payment = $this->createMock(PaymentInterface::class);
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gateway = $this->createMock(GatewayInterface::class);
+        $payment->method('getDetails')->willReturn(['payment_source' => 'venmo']);
 
-        $payment->method('getMethod')->willReturn($paymentMethod);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $gatewayConfig->method('getGatewayName')->willReturn('gateway-12');
+        $this->payPalOrderCreator->expects(self::once())->method('create')->with($payment, 'venmo');
 
-        $this->payum->method('getGateway')->with('gateway-12')->willReturn($gateway);
+        $this->capturePaymentResolver->resolve($payment);
+    }
 
-        $gateway->expects(self::once())
-            ->method('execute')
-            ->with($this->callback(function (Capture $request) use ($payment): bool {
-                return $request->getModel() === $payment;
-            }));
+    public function test_it_creates_a_paypal_wallet_order_when_the_payment_records_no_payment_source(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn([]);
+
+        $this->payPalOrderCreator->expects(self::once())->method('create')->with($payment, 'paypal');
 
         $this->capturePaymentResolver->resolve($payment);
     }
