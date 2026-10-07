@@ -103,9 +103,9 @@ final readonly class AddToCartAction
             $configuration->getFormOptions(),
         );
 
-        $form = $form->handleRequest($request);
+        $form->submit($request->request->all($form->getName()));
 
-        if ($form->isSubmitted() && !$form->isValid()) {
+        if (!$form->isValid()) {
             $errors = [];
             /** @var FormError $error */
             foreach ($form->getErrors(true) as $error) {

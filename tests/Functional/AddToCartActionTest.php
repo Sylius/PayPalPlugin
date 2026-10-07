@@ -76,6 +76,22 @@ final class AddToCartActionTest extends JsonApiTestCase
         self::assertSame(1, self::getContainer()->get('sylius.repository.order')->count([]));
     }
 
+    public function test_it_rejects_a_request_without_the_add_to_cart_form(): void
+    {
+        $product = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml'])['mug'];
+
+        $this->client->request('POST', '/en_US/paypal-add-to-cart/' . $product->getId());
+
+        $response = $this->client->getResponse();
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        self::assertSame(
+            ['errors' => ['The CSRF token is invalid. Please try to resubmit the form.']],
+            json_decode((string) $response->getContent(), true),
+        );
+        self::assertSame(1, self::getContainer()->get('sylius.repository.order')->count([]));
+    }
+
     private function addToCartForm(): Form
     {
         $this->client->enableProfiler();
