@@ -43,8 +43,6 @@ final class PayPalPaymentDetailsTest extends TestCase
         self::assertSame('trustly', $details->paymentSource());
         self::assertSame('CAPTURE_ID', $details->transactionId());
         self::assertSame('https://www.paypal.com/payer-action', $details->payerActionUrl());
-        self::assertSame('RETURN_NONCE', $details->payerActionReturnNonce());
-        self::assertSame('CANCEL_NONCE', $details->payerActionCancelNonce());
     }
 
     public function test_it_reads_nothing_from_empty_details(): void
@@ -89,7 +87,7 @@ final class PayPalPaymentDetailsTest extends TestCase
             ->withAmount(1000)
             ->withPaymentSource('paypal')
             ->withTransactionId('CAPTURE_ID')
-            ->withPayerAction('https://www.paypal.com/payer-action', 'RETURN_NONCE', 'CANCEL_NONCE')
+            ->withPayerAction('https://www.paypal.com/payer-action')
             ->withCapturedAmount(900, 'USD')
         ;
 
@@ -101,19 +99,9 @@ final class PayPalPaymentDetailsTest extends TestCase
             'payment_source' => 'paypal',
             'transaction_id' => 'CAPTURE_ID',
             'payer_action_url' => 'https://www.paypal.com/payer-action',
-            'payer_action_return_nonce' => 'RETURN_NONCE',
-            'payer_action_cancel_nonce' => 'CANCEL_NONCE',
             'captured_amount' => 900,
             'captured_currency_code' => 'USD',
         ], $details->toArray());
-    }
-
-    public function test_it_records_a_payer_action_without_nonces(): void
-    {
-        $details = PayPalPaymentDetails::create()->withPayerAction('https://www.paypal.com/payer-action');
-
-        self::assertSame(['payer_action_url' => 'https://www.paypal.com/payer-action'], $details->toArray());
-        self::assertNull($details->payerActionReturnNonce());
     }
 
     public function test_it_keeps_keys_it_does_not_know_when_writing(): void

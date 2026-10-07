@@ -22,7 +22,6 @@ use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
@@ -54,15 +53,11 @@ final class PayPalOrderCreatorTest extends TestCase
         $uuidProvider = $this->createMock(UuidProviderInterface::class);
         $uuidProvider->method('provide')->willReturn('UUID');
 
-        $nonceProvider = $this->createMock(NonceProviderInterface::class);
-        $nonceProvider->method('provide')->willReturnOnConsecutiveCalls('RETURN_NONCE', 'CANCEL_NONCE');
-
         $this->creator = new PayPalOrderCreator(
             $this->authorizeClientApi,
             $this->createOrderApi,
             $uuidProvider,
             new PayPalOrderCreatedStatusesProvider(),
-            $nonceProvider,
         );
     }
 
@@ -99,7 +94,7 @@ final class PayPalOrderCreatorTest extends TestCase
 
     public function test_it_names_the_order_and_its_request_as_it_is_told(): void
     {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'paypal', null, null, 'CUSTOM_ID', 'REQUEST_ID')->willReturn(['status' => 'CREATED', 'id' => '123123']);
+        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'paypal', 'CUSTOM_ID', 'REQUEST_ID')->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $this->creator->create($this->payment, 'paypal', 'CUSTOM_ID', 'REQUEST_ID');
     }
@@ -123,7 +118,6 @@ final class PayPalOrderCreatorTest extends TestCase
             $this->createOrderApi,
             $this->createMock(UuidProviderInterface::class),
             $orderCreatedStatusesProvider,
-            $this->createMock(NonceProviderInterface::class),
         );
         $this->createOrderApi->method('create')->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
@@ -150,8 +144,6 @@ final class PayPalOrderCreatorTest extends TestCase
             'payment_amount' => 1000,
             'payment_source' => 'trustly',
             'payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123',
-            'payer_action_return_nonce' => 'RETURN_NONCE',
-            'payer_action_cancel_nonce' => 'CANCEL_NONCE',
         ]);
 
         self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=123123', $this->creator->create($this->payment, 'trustly')?->payerActionUrl());
@@ -168,16 +160,9 @@ final class PayPalOrderCreatorTest extends TestCase
         self::assertNull($this->creator->create($this->payment, 'paypal')?->payerActionUrl());
     }
 
-    public function test_it_sends_paypal_payer_action_nonces_for_a_redirect_payment_source(): void
+    public function test_it_sends_the_payer_back_to_the_return_url_it_is_given(): void
     {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'trustly', 'RETURN_NONCE', 'CANCEL_NONCE')->willReturn(['status' => 'CREATED', 'id' => '123123']);
-
-        $this->creator->create($this->payment, 'trustly');
-    }
-
-    public function test_it_sends_the_payer_back_to_the_return_url_it_is_given_instead_of_minting_nonces(): void
-    {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'trustly', null, null, 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH')->willReturn([
+        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'trustly', 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH')->willReturn([
             'status' => 'PAYER_ACTION_REQUIRED',
             'id' => '123123',
             'links' => [['href' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123', 'rel' => 'payer-action', 'method' => 'GET']],
@@ -186,13 +171,5 @@ final class PayPalOrderCreatorTest extends TestCase
         $details = $this->creator->create($this->payment, 'trustly', 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH');
 
         self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=123123', $details?->payerActionUrl());
-        self::assertNull($details?->payerActionReturnNonce());
-    }
-
-    public function test_it_sends_paypal_no_payer_action_nonce_for_a_wallet_payment_source(): void
-    {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'paypal', null, null)->willReturn(['status' => 'CREATED', 'id' => '123123']);
-
-        $this->creator->create($this->payment, 'paypal');
     }
 }

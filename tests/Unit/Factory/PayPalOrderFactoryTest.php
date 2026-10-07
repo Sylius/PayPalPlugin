@@ -235,7 +235,7 @@ final class PayPalOrderFactoryTest extends TestCase
     public function test_it_asks_paypal_to_complete_a_redirect_order_on_payment_approval(): void
     {
         $payPalOrder = $this->factory
-            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE')
+            ->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, returnUrl: 'https://shop.example.com/pay/HASH')
             ->toArray()
         ;
 
@@ -261,7 +261,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $this->router,
             $this->shippingCallbackUrlProvider,
             $experienceContextProvider,
-        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE');
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, returnUrl: 'https://shop.example.com/pay/HASH');
     }
 
     public function test_it_still_declares_a_shipping_callback_on_a_wallet_order(): void
@@ -309,37 +309,14 @@ final class PayPalOrderFactoryTest extends TestCase
         return $payment;
     }
 
-    public function test_it_sends_a_redirect_order_its_own_return_and_cancel_urls(): void
-    {
-        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
-        $experienceContextProvider
-            ->expects(self::once())
-            ->method('provide')
-            ->with(
-                self::anything(),
-                'https://shop.example.com/en_US/sylius_paypal_shop_redirect_return/RETURN_NONCE',
-                'https://shop.example.com/en_US/sylius_paypal_shop_redirect_cancel/CANCEL_NONCE',
-                null,
-            )
-            ->willReturn([])
-        ;
-
-        (new PayPalOrderFactory(
-            $this->payPalPurchaseUnitFactory,
-            $this->routeReflectingRouter(),
-            $this->shippingCallbackUrlProvider,
-            $experienceContextProvider,
-        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, 'RETURN_NONCE', 'CANCEL_NONCE');
-    }
-
-    public function test_it_refuses_to_build_a_redirect_order_without_a_payer_action_nonce(): void
+    public function test_it_refuses_to_build_a_redirect_order_without_a_url_to_come_back_to(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
         $this->factory->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY);
     }
 
-    public function test_it_puts_no_payer_action_nonce_in_the_urls_of_a_wallet_order(): void
+    public function test_it_sends_the_payer_of_a_wallet_order_back_to_the_checkout_by_default(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getLocaleCode')->willReturn('en_US');
@@ -368,7 +345,7 @@ final class PayPalOrderFactoryTest extends TestCase
         ))->create($payment, 'REFERENCE_ID');
     }
 
-    public function test_it_sends_the_payer_back_to_the_return_url_it_is_given_without_a_nonce(): void
+    public function test_it_sends_the_payer_back_to_the_return_url_it_is_given(): void
     {
         $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
         $experienceContextProvider
@@ -409,7 +386,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $router = $this->createMock(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(
             static fn (string $route, array $parameters = []): string => rtrim(
-                'https://shop.example.com/' . $parameters['_locale'] . '/' . $route . '/' . ($parameters['nonce'] ?? ''),
+                'https://shop.example.com/' . $parameters['_locale'] . '/' . $route,
                 '/',
             ),
         );

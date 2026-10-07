@@ -69,8 +69,6 @@ use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
-use Sylius\PayPalPlugin\Provider\NonceProvider;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProvider;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderProvider;
@@ -448,10 +446,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(UuidProviderInterface::class, 'sylius_paypal.provider.uuid');
 
-    $services->set('sylius_paypal.provider.nonce', NonceProvider::class);
-
-    $services->alias(NonceProviderInterface::class, 'sylius_paypal.provider.nonce');
-
     $services->set('sylius_paypal.client.sftp', SFTP::class)
         ->args(['%sylius_paypal.reports_sftp_host%']);
 
@@ -591,7 +585,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.create_order'),
             service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.provider.paypal_order_created_statuses'),
-            service('sylius_paypal.provider.nonce'),
         ]);
 
     $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');

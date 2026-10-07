@@ -16,8 +16,6 @@ use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction;
-use Sylius\PayPalPlugin\Controller\RedirectCancelAction;
-use Sylius\PayPalPlugin\Controller\RedirectReturnAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
 use Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
@@ -183,27 +181,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.verifier.payment_amount'),
             service('sylius.order_processing.order_processor'),
             service('sylius_paypal.verifier.order_ownership'),
-        ]);
-
-    $services->set('sylius_paypal.controller.redirect_return', RedirectReturnAction::class)
-        ->args([
-            service('sylius_paypal.provider.order'),
-            service('sylius_paypal.processor.payment_settlement'),
-            service('sylius_paypal.checker.payer_action'),
-            service('router'),
-            service('request_stack'),
-        ]);
-
-    $services->set('sylius_paypal.controller.redirect_cancel', RedirectCancelAction::class)
-        ->args([
-            service('sylius_paypal.provider.order'),
-            service('sylius_paypal.processor.payment_settlement'),
-            service('sylius_paypal.checker.payer_action'),
-            service('sylius_abstraction.state_machine'),
-            service('sylius.order_processing.order_payment_processor.after_checkout'),
-            service('doctrine.orm.entity_manager'),
-            service('router'),
-            service('request_stack'),
         ]);
 
     $services->set('sylius_paypal.controller.paypal_payment_on_error', PayPalPaymentOnErrorAction::class)
