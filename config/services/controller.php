@@ -5,13 +5,9 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\Component\Resource\Metadata\MetadataInterface;
 use Sylius\PayPalPlugin\Controller\AddToCartAction;
-use Sylius\PayPalPlugin\Controller\CancelLastPayPalPaymentAction;
-use Sylius\PayPalPlugin\Controller\CancelPayPalCheckoutPaymentAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
-use Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction;
-use Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderForPaymentRequestAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
@@ -19,7 +15,6 @@ use Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction;
 use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
-use Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction;
 use Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\RedirectCancelAction;
 use Sylius\PayPalPlugin\Controller\RedirectReturnAction;
@@ -77,31 +72,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.repository.query.paypal_payment'),
         ]);
 
-    $services->set('sylius_paypal.controller.cancel_last_paypal_payment', CancelLastPayPalPaymentAction::class)
-        ->args([
-            service('doctrine.orm.entity_manager'),
-            service('sylius_abstraction.state_machine'),
-            service('sylius.order_processing.order_payment_processor.checkout'),
-            service('sylius.repository.order'),
-        ]);
-
-    $services->set('sylius_paypal.controller.cancel_paypal_checkout_payment', CancelPayPalCheckoutPaymentAction::class)
-        ->args([
-            service('sylius_paypal.provider.payment'),
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.repository.query.paypal_payment'),
-        ]);
-
-    $services->set('sylius_paypal.controller.complete_paypal_order', CompletePayPalOrderAction::class)
-        ->args([
-            service('sylius_paypal.manager.payment_state'),
-            service('router'),
-            service('sylius_paypal.provider.order'),
-            service('sylius_paypal.api.cache_authorize_client'),
-            service('sylius_paypal.api.order_details'),
-            service('sylius_paypal.verifier.three_d_secure'),
-        ]);
-
     $services->set('sylius_paypal.controller.create_paypal_order_from_payment_page', CreatePayPalOrderFromPaymentPageAction::class)
         ->args([
             service('sylius_abstraction.state_machine'),
@@ -124,14 +94,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment_method'),
             service('sylius_paypal.enabler.payment_method'),
-        ]);
-
-    $services->set('sylius_paypal.controller.create_paypal_order', CreatePayPalOrderAction::class)
-        ->args([
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.provider.order'),
-            service('sylius_paypal.resolver.capture_payment'),
-            service('sylius_paypal.provider.paypal_payment_source'),
         ]);
 
     $services->set('sylius_paypal.controller.create_paypal_order_for_payment_request', CreatePayPalOrderForPaymentRequestAction::class)
@@ -168,21 +130,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.web_sdk_configuration'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.current_paypal_locale'),
-        ]);
-
-    $services->set('sylius_paypal.controller.pay_with_paypal_form', PayWithPayPalFormAction::class)
-        ->args([
-            service('twig'),
-            service('sylius.repository.payment'),
-            null,
-            null,
-            null,
-            null,
-            null,
-            service('sylius_paypal.provider.paypal_payment_page_context'),
-            service('router'),
-            service('sylius_paypal.checker.payer_action'),
-            '%sylius_paypal.web_url%',
         ]);
 
     $services->set('sylius_paypal.controller.process_paypal_order', ProcessPayPalOrderAction::class)

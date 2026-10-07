@@ -17,7 +17,6 @@ export default class extends Controller {
         countryCode: String,
         storeName: String,
         createOrderUrl: String,
-        completeOrderUrl: String,
         errorUrl: String,
     };
 
@@ -116,7 +115,7 @@ export default class extends Controller {
                 throw new Error('Apple Pay payment requires an additional buyer action, which is not supported yet.');
             }
 
-            const returnUrl = await this.complete(orderId);
+            const returnUrl = this.complete();
 
             sheet.completePayment({ status: window.ApplePaySession.STATUS_SUCCESS });
             window.location.href = returnUrl ?? window.location.href;
@@ -142,19 +141,8 @@ export default class extends Controller {
         return described.join(' | ');
     }
 
-    async complete(payPalOrderId) {
-        if (this.session.currentApproveUrl()) {
-            return this.session.currentApproveUrl();
-        }
-
-        const response = await fetch(this.completeOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId }),
-        });
-        const details = await response.json();
-
-        return details.return_url ?? null;
+    complete() {
+        return this.session.currentApproveUrl();
     }
 
     async fail(error, context = null) {

@@ -115,14 +115,10 @@ final readonly class RedirectCancelAction
 
     private function payPalPageUrl(OrderInterface $order): string
     {
-        $payment = $order->getLastPayment(PaymentInterface::STATE_NEW);
-        if (null === $payment) {
+        if (null === $order->getLastPayment(PaymentInterface::STATE_NEW)) {
             return $this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]);
         }
 
-        return $this->router->generate('sylius_paypal_shop_pay_with_paypal_form', [
-            'orderToken' => $order->getTokenValue(),
-            'paymentId' => $payment->getId(),
-        ]);
+        return $this->router->generate('sylius_shop_order_pay', ['tokenValue' => $order->getTokenValue()]);
     }
 }

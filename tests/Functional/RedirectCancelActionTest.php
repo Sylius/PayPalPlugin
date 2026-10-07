@@ -35,7 +35,7 @@ final class RedirectCancelActionTest extends JsonApiTestCase
 
         self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
         self::assertNull($reloaded->getLastPayment(PaymentInterface::STATE_COMPLETED));
-        self::assertMatchesRegularExpression('#/en_US/pay-with-paypal/TOKEN/\d+$#', $this->location());
+        self::assertSame('/en_US/order/TOKEN/pay', $this->location());
     }
 
     public function test_it_keeps_a_payment_the_bank_let_through_after_all(): void

@@ -174,7 +174,7 @@ final class RedirectCancelActionTest extends TestCase
         $response = ($this->action)($this->request());
 
         self::assertSame(
-            'https://shop.example.com/sylius_paypal_shop_pay_with_paypal_form',
+            'https://shop.example.com/sylius_shop_order_pay',
             $response->getTargetUrl(),
         );
     }
