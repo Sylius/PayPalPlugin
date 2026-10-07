@@ -30,10 +30,22 @@ final class GatewayConfigTypeExtensionTest extends TypeTestCase
         )];
     }
 
-    public function test_it_keeps_a_paypal_gateway_on_payum_authorizing_first(): void
+    public function test_it_starts_a_new_paypal_gateway_on_payment_requests(): void
     {
-        $gatewayConfig = $this->submit($this->gatewayConfig('sylius_paypal', usePayum: true, config: ['client_id' => 'CLIENT_ID']));
+        $gatewayConfig = $this->gatewayConfig('sylius_paypal', usePayum: true, config: []);
 
+        $this->factory->create(GatewayConfigType::class, $gatewayConfig);
+
+        self::assertFalse($gatewayConfig->getUsePayum());
+    }
+
+    public function test_it_keeps_an_existing_paypal_gateway_on_payum_authorizing_first(): void
+    {
+        $gatewayConfig = $this->gatewayConfig('sylius_paypal', usePayum: true, config: ['client_id' => 'CLIENT_ID'], id: 7);
+
+        $gatewayConfig = $this->submit($gatewayConfig);
+
+        self::assertTrue($gatewayConfig->getUsePayum());
         self::assertSame(['client_id' => 'CLIENT_ID', 'use_authorize' => true], $gatewayConfig->getConfig());
     }
 
@@ -52,9 +64,12 @@ final class GatewayConfigTypeExtensionTest extends TypeTestCase
     }
 
     /** @param array<string, mixed> $config */
-    private function gatewayConfig(string $factoryName, bool $usePayum, array $config): GatewayConfig
+    private function gatewayConfig(string $factoryName, bool $usePayum, array $config, ?int $id = null): GatewayConfig
     {
         $gatewayConfig = new GatewayConfig();
+        if (null !== $id) {
+            (new \ReflectionProperty($gatewayConfig, 'id'))->setValue($gatewayConfig, $id);
+        }
         $gatewayConfig->setFactoryName($factoryName);
         $gatewayConfig->setUsePayum($usePayum);
         $gatewayConfig->setConfig($config);
