@@ -15,8 +15,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Console\Command;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;

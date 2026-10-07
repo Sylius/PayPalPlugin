@@ -27,8 +27,8 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
@@ -106,7 +106,7 @@ final class CompleteOrderActionTest extends TestCase
         ]);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_COMPLETED,
+            'status' => PayPalPaymentStatus::Completed->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
             'payment_source' => 'paypal',
@@ -143,7 +143,7 @@ final class CompleteOrderActionTest extends TestCase
         ]);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_COMPLETED,
+            'status' => PayPalPaymentStatus::Completed->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
             'payment_source' => 'google_pay',
@@ -185,7 +185,7 @@ final class CompleteOrderActionTest extends TestCase
         ]);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_COMPLETED,
+            'status' => PayPalPaymentStatus::Completed->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
             'payment_source' => 'paypal',
@@ -245,7 +245,7 @@ final class CompleteOrderActionTest extends TestCase
         ]);
 
         $payment->expects(self::once())->method('setDetails')->with([
-            'status' => StatusAction::STATUS_COMPLETED,
+            'status' => PayPalPaymentStatus::Completed->value,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
             'payment_source' => 'paypal',

@@ -16,21 +16,22 @@ namespace Sylius\PayPalPlugin\Payum\Action;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Psr\Log\LoggerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\StateResolver\StateResolverInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class CompleteOrderAction implements ActionInterface
@@ -78,10 +79,8 @@ final readonly class CompleteOrderAction implements ActionInterface
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
-        $details = $payment->getDetails();
-        $paymentSource = is_string($details['payment_source'] ?? null)
-            ? $details['payment_source']
-            : PayPalPaymentSourceProviderInterface::PAYPAL;
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $paymentSource = $details->paymentSource();
 
         if (null !== RedirectPaymentSource::tryFrom($paymentSource)) {
             $this->logger?->warning(sprintf(
@@ -104,9 +103,9 @@ final readonly class CompleteOrderAction implements ActionInterface
 
             $this->updateOrderApi->update(
                 $token,
-                (string) $details['paypal_order_id'],
+                (string) $details->payPalOrderId(),
                 $payment,
-                (string) $details['reference_id'],
+                (string) $details->referenceId(),
                 $config->merchantId(),
             );
 
@@ -117,28 +116,27 @@ final readonly class CompleteOrderAction implements ActionInterface
         if (null !== $this->updateOrderAddressApi && $order->isShippingRequired()) {
             $this->updateOrderAddressApi->update(
                 $token,
-                (string) $details['paypal_order_id'],
-                (string) $details['reference_id'],
+                (string) $details->payPalOrderId(),
+                (string) $details->referenceId(),
                 $order->getShippingAddress(),
             );
         }
         $this->completeOrderApi->complete($token, $request->getOrderId());
         $orderDetails = $this->orderDetailsApi->get($token, $request->getOrderId());
 
-        $details = [
-            'status' => $orderDetails['status'] === 'COMPLETED' ? StatusAction::STATUS_COMPLETED : StatusAction::STATUS_PROCESSING,
-            'paypal_order_id' => $orderDetails['id'],
-            'reference_id' => $orderDetails['purchase_units'][0]['reference_id'],
-            'payment_source' => $paymentSource,
-        ];
+        $completedDetails = PayPalPaymentDetails::create()
+            ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
+            ->withPayPalOrderId((string) $orderDetails['id'])
+            ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
+            ->withPaymentSource($paymentSource)
+        ;
         if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
-            $details = array_merge(
-                $details,
-                ['transaction_id' => $orderDetails['purchase_units'][0]['payments']['captures'][0]['id']],
+            $completedDetails = $completedDetails->withTransactionId(
+                (string) $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
             );
         }
 
-        $payment->setDetails($details);
+        $payment->setDetails($completedDetails->toArray());
     }
 
     public function supports($request): bool

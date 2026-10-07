@@ -16,15 +16,16 @@ namespace Sylius\PayPalPlugin\Controller;
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\GuzzleException;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -110,7 +111,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         $this->stateMachineFactory->apply($order, OrderCheckoutTransitions::GRAPH, OrderCheckoutTransitions::TRANSITION_SELECT_PAYMENT);
 
-        $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withPaymentSource($paymentSource)->toArray());
 
         try {
             $this->capturePaymentResolver->resolve($payment);
@@ -125,7 +126,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         $this->paymentStateManager->create($payment);
         $this->paymentStateManager->process($payment);
 
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
 
         return new JsonResponse([
             'id' => $order->getId(),

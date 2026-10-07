@@ -13,12 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -63,28 +64,26 @@ final readonly class CreatePayPalOrderAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withPaymentSource($paymentSource)->toArray());
 
         $this->capturePaymentResolver->resolve($payment);
 
         $this->paymentStateManager->process($payment);
 
-        $details = $payment->getDetails();
-        $payPalOrderId = $details['paypal_order_id'];
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $payPalOrderId = $details->payPalOrderId();
 
         return new JsonResponse(array_filter([
             'orderId' => $payPalOrderId,
             'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
             'status' => $payment->getState(),
-            'payerActionUrl' => $this->payerActionUrl($details),
+            'payerActionUrl' => $this->payerActionUrl($details->payerActionUrl()),
         ], static fn (mixed $value): bool => null !== $value));
     }
 
-    /** @param array<string, mixed> $details */
-    private function payerActionUrl(array $details): ?string
+    private function payerActionUrl(?string $payerActionUrl): ?string
     {
-        $payerActionUrl = $details['payer_action_url'] ?? null;
-        if (!is_string($payerActionUrl)) {
+        if (null === $payerActionUrl) {
             return null;
         }
 

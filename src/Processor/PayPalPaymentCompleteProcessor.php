@@ -13,10 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use Payum\Core\Model\GatewayConfigInterface;
 use Payum\Core\Payum;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 
 final readonly class PayPalPaymentCompleteProcessor implements PaymentCompleteProcessorInterface
@@ -27,8 +28,8 @@ final readonly class PayPalPaymentCompleteProcessor implements PaymentCompletePr
 
     public function completePayment(PaymentInterface $payment): void
     {
-        $details = $payment->getDetails();
-        if (!isset($details['paypal_order_id'])) {
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
+        if (null === $payPalOrderId) {
             return;
         }
 
@@ -40,7 +41,7 @@ final readonly class PayPalPaymentCompleteProcessor implements PaymentCompletePr
         $this
             ->payum
             ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new CompleteOrder($payment, (string) $details['paypal_order_id']))
+            ->execute(new CompleteOrder($payment, $payPalOrderId))
         ;
     }
 }

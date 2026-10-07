@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Service;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 /**
@@ -36,6 +37,6 @@ final class VoidPayPalPaymentCompleteProcessor implements PaymentCompleteProcess
             return;
         }
 
-        $payment->setDetails(array_merge($payment->getDetails(), ['status' => StatusAction::STATUS_COMPLETED]));
+        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withStatus(PayPalPaymentStatus::Completed)->toArray());
     }
 }

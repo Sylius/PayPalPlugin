@@ -15,9 +15,9 @@ namespace Sylius\PayPalPlugin\Resolver;
 
 use Payum\Core\Payum;
 use Payum\Core\Request\Capture;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 
 final readonly class CapturePaymentResolver implements CapturePaymentResolverInterface
 {
