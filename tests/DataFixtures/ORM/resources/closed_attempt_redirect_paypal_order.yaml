@@ -1,0 +1,57 @@
+Sylius\Component\Core\Model\Address:
+    closed_attempt_redirect_billing_address:
+        firstName: "Patrick"
+        lastName: "Watson"
+        street: "1 Main St"
+        city: "Berlin"
+        postcode: "10115"
+        countryCode: "DE"
+
+Sylius\Component\Core\Model\Order:
+    closed_attempt_redirect_order:
+        channel: "@channel_web"
+        items: ["@closed_attempt_redirect_mug_item"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        state: "new"
+        checkoutState: "completed"
+        tokenValue: "CLOSED_ATTEMPT_TOKEN"
+        billingAddress: "@closed_attempt_redirect_billing_address"
+        payments: ["@closed_attempt_redirect_earlier_paypal_payment", "@closed_attempt_redirect_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    closed_attempt_redirect_mug_item:
+        units: ["@closed_attempt_redirect_mug_item_unit"]
+        variant: "@mug_sw"
+        order: "@closed_attempt_redirect_order"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    closed_attempt_redirect_mug_item_unit:
+        __construct: ["@closed_attempt_redirect_mug_item"]
+
+Sylius\Component\Core\Model\Payment:
+    closed_attempt_redirect_earlier_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 20
+        state: "cancelled"
+        details:
+            paypal_order_id: "EARLIER_PAYPAL_ORDER_ID"
+            payment_source: "trustly"
+            payer_action_url: "https://www.sandbox.paypal.com/payment/trustly?token=EARLIER_PAYPAL_ORDER_ID"
+            payer_action_return_nonce: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            payer_action_cancel_nonce: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    closed_attempt_redirect_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 20
+        state: "processing"
+        details:
+            status: "CAPTURED"
+            paypal_order_id: "PAYPAL_ORDER_ID"
+            payment_amount: 20
+            payment_source: "trustly"
+            payer_action_url: "https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID"
+            payer_action_return_nonce: "0123456789abcdef0123456789abcdef"
+            payer_action_cancel_nonce: "fedcba9876543210fedcba9876543210"
