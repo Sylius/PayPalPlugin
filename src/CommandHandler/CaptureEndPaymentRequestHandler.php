@@ -27,7 +27,7 @@ use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
 final class CaptureEndPaymentRequestHandler
 {
-    use FailedAwarePaymentRequestHandlerTrait;
+    use FailPaymentRequestTrait;
 
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
@@ -49,7 +49,7 @@ final class CaptureEndPaymentRequestHandler
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
 
-        if (!PayPalPaymentDetails::fromPayment($payment)->hasOrderId()) {
+        if (!PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId()) {
             $this->failWithReason($paymentRequest, 'The payment carries no PayPal order id.');
 
             return;
