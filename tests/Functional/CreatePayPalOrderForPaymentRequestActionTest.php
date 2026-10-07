@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -75,6 +76,23 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
     }
 
+    public function test_it_sends_the_payer_to_the_bank_and_back_to_the_payment_request(): void
+    {
+        $hash = $this->paymentRequestHash();
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID', [
+            'status' => 'PAYER_ACTION_REQUIRED',
+            'links' => [['href' => 'https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', 'rel' => 'payer-action', 'method' => 'GET']],
+        ]);
+
+        $this->createOrder($hash, 'trustly');
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', $this->responseContent()['payer_action_url']);
+        $details = $this->paymentRequest($hash)->getPayment()->getDetails();
+        self::assertArrayNotHasKey('payer_action_return_nonce', $details);
+        self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', $details['payer_action_url']);
+    }
+
     public function test_it_tells_why_paypal_could_not_be_asked_for_the_order(): void
     {
         $hash = $this->paymentRequestHash();
@@ -130,6 +148,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         /** @var PaymentInterface $payment */
         $payment = $fixtures['paypal_payment'];
         $payment->setState($paymentState);
+        $payment->getOrder()?->setBillingAddress($this->billingAddress());
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -177,5 +196,19 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
     private function approveUrl(string $hash): string
     {
         return sprintf('/en_US/payment-request/pay/%s', $hash);
+    }
+
+    private function billingAddress(): AddressInterface
+    {
+        /** @var AddressInterface $address */
+        $address = self::getContainer()->get('sylius.factory.address')->createNew();
+        $address->setFirstName('Patrick');
+        $address->setLastName('Watson');
+        $address->setStreet('Damrak 1');
+        $address->setCity('Amsterdam');
+        $address->setPostcode('1012 LG');
+        $address->setCountryCode('NL');
+
+        return $address;
     }
 }

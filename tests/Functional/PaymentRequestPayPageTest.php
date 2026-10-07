@@ -97,6 +97,78 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment(PaymentInterface::STATE_COMPLETED)?->getState());
     }
 
+    public function test_it_completes_a_trustly_payment_paypal_captured_once_the_payer_comes_back_from_the_bank(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_COMPLETED));
+    }
+
+    public function test_it_leaves_a_trustly_payment_the_bank_has_not_settled_yet_to_the_webhook(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING', value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_PROCESSING));
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/thank-you'));
+        self::assertSame(['sylius_paypal.payment_pending'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_sends_the_payer_who_cancelled_at_the_bank_back_to_a_fresh_payment_page(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
+        self::assertNotNull($this->reloadedPayment());
+    }
+
+    public function test_it_tells_the_payer_who_cancelled_at_the_bank_that_the_payment_was_cancelled(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?payer_cancelled=1&errorcode=payment_error', $hash));
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
+        self::assertSame(['sylius_paypal.payment_cancelled'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_tells_the_payer_the_bank_refused_that_something_went_wrong(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?payer_cancelled=1&errorcode=processing_error', $hash));
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+    }
+
+    private function redirectPaymentRequestHash(): string
+    {
+        $payment = $this->payPalOrder();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $payment->setAmount($order->getTotal());
+        $payment->setDetails([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'trustly',
+            'payer_action_url' => 'https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID',
+        ]);
+
+        return $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING);
+    }
+
     private function cardPaymentRequestHash(): string
     {
         $payment = $this->payPalOrder();

@@ -108,6 +108,14 @@ final class PayPalPaymentDetailsTest extends TestCase
         ], $details->toArray());
     }
 
+    public function test_it_records_a_payer_action_without_nonces(): void
+    {
+        $details = PayPalPaymentDetails::create()->withPayerAction('https://www.paypal.com/payer-action');
+
+        self::assertSame(['payer_action_url' => 'https://www.paypal.com/payer-action'], $details->toArray());
+        self::assertNull($details->payerActionReturnNonce());
+    }
+
     public function test_it_keeps_keys_it_does_not_know_when_writing(): void
     {
         $details = PayPalPaymentDetails::fromArray(['custom' => 'value'])->withStatus(PayPalPaymentStatus::Processing);

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -22,6 +23,7 @@ use Sylius\PayPalPlugin\Command\CapturePaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CapturePaymentRequestHandler
 {
@@ -29,10 +31,13 @@ final class CapturePaymentRequestHandler
 
     public const PAYLOAD_PAYMENT_SOURCE = 'payment_source';
 
+    public const PAYER_CANCELLED_QUERY_PARAMETER = 'payer_cancelled';
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PayPalOrderCreatorInterface $payPalOrderCreator,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
+        private readonly UrlProviderInterface $paymentRequestPayUrlProvider,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -63,7 +68,15 @@ final class CapturePaymentRequestHandler
         $hash = (string) $paymentRequest->getId();
 
         try {
-            $details = $this->payPalOrderCreator->create($payment, $paymentSource, $hash, $hash);
+            $payUrl = $this->paymentRequestPayUrlProvider->getUrl($paymentRequest, UrlGeneratorInterface::ABSOLUTE_URL);
+            $details = $this->payPalOrderCreator->create(
+                $payment,
+                $paymentSource,
+                $hash,
+                $hash,
+                $payUrl,
+                sprintf('%s?%s=1', $payUrl, self::PAYER_CANCELLED_QUERY_PARAMETER),
+            );
         } catch (InvalidPayerDataException $exception) {
             $this->failWithReason($paymentRequest, $exception->getMessage());
 

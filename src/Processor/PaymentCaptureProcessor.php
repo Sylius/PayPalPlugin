@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
@@ -54,6 +55,42 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
+        if (null === RedirectPaymentSource::tryFrom($details->paymentSource())) {
+            $this->captureApprovedOrder($token, $payment, $order, $paymentMethod, $details);
+        }
+
+        $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
+
+        if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
+            return $orderDetails;
+        }
+
+        $capturedDetails = PayPalPaymentDetails::create()
+            ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
+            ->withPayPalOrderId((string) $orderDetails['id'])
+            ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
+            ->withPaymentSource($details->paymentSource())
+        ;
+        if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
+            $capturedDetails = $capturedDetails->withTransactionId(
+                (string) $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
+            );
+        }
+
+        $payment->setDetails($capturedDetails->toArray());
+
+        return $orderDetails;
+    }
+
+    private function captureApprovedOrder(
+        string $token,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        PayPalPaymentDetails $details,
+    ): void {
+        $payPalOrderId = (string) $details->payPalOrderId();
+
         if ($payment->getAmount() !== $order->getTotal()) {
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $paymentMethod->getGatewayConfig();
@@ -80,26 +117,5 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         }
 
         $this->completeOrderApi->complete($token, $payPalOrderId);
-        $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
-
-        if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
-            return $orderDetails;
-        }
-
-        $capturedDetails = PayPalPaymentDetails::create()
-            ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
-            ->withPayPalOrderId((string) $orderDetails['id'])
-            ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
-            ->withPaymentSource($details->paymentSource())
-        ;
-        if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
-            $capturedDetails = $capturedDetails->withTransactionId(
-                (string) $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
-            );
-        }
-
-        $payment->setDetails($capturedDetails->toArray());
-
-        return $orderDetails;
     }
 }

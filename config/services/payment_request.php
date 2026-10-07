@@ -44,6 +44,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius.provider.payment_request'),
             service('sylius_paypal.creator.paypal_order'),
             service('sylius_paypal.provider.paypal_payment_source'),
+            service('sylius_shop.provider.order_pay.payment_request_pay_url'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);

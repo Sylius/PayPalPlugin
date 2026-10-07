@@ -135,6 +135,43 @@ final class CaptureHttpResponseProviderTest extends TestCase
         self::assertSame(['sylius_paypal.three_d_secure_declined'], $this->session->getFlashBag()->peek('error'));
     }
 
+    public function test_it_tells_the_payer_who_cancelled_at_the_bank_that_the_payment_was_cancelled(): void
+    {
+        $this->router->method('generate')->willReturn('/en_US/order/TOKEN/pay');
+        $this->requestConfiguration->getRequest()->query->set('payer_cancelled', '1');
+        $this->requestConfiguration->getRequest()->query->set('errorcode', 'payment_error');
+
+        $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_CANCELLED));
+
+        self::assertSame(['sylius_paypal.payment_cancelled'], $this->session->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_tells_the_payer_the_bank_refused_that_something_went_wrong(): void
+    {
+        $this->router->method('generate')->willReturn('/en_US/order/TOKEN/pay');
+        $this->requestConfiguration->getRequest()->query->set('payer_cancelled', '1');
+        $this->requestConfiguration->getRequest()->query->set('errorcode', 'processing_error');
+
+        $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_CANCELLED));
+
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->session->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_thanks_the_payer_of_a_payment_the_bank_has_not_settled_yet(): void
+    {
+        $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_COMPLETED, paymentState: 'processing');
+        $this->router->method('generate')->with('sylius_shop_order_thank_you')->willReturn('/en_US/order/thank-you');
+
+        self::assertTrue($this->provider->supports($this->requestConfiguration, $paymentRequest));
+        self::assertSame('/en_US/order/thank-you', $this->provider->getResponse($this->requestConfiguration, $paymentRequest)->headers->get('Location'));
+        self::assertSame(['sylius_paypal.payment_pending'], $this->session->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_leaves_a_completed_payment_to_the_after_pay_page(): void
+    {
+        self::assertFalse($this->provider->supports($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_COMPLETED, paymentState: 'completed')));
+    }
+
     public function test_it_sends_the_payer_of_an_abandoned_attempt_back_to_pay_the_order(): void
     {
         $this->router->method('generate')->with('sylius_shop_order_pay', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN/pay');
@@ -148,12 +185,13 @@ final class CaptureHttpResponseProviderTest extends TestCase
     }
 
     /** @param array<string, mixed> $responseData */
-    private function paymentRequestIn(string $state, array $responseData = []): PaymentRequestInterface&MockObject
+    private function paymentRequestIn(string $state, array $responseData = [], string $paymentState = 'new'): PaymentRequestInterface&MockObject
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getTokenValue')->willReturn('TOKEN');
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
+        $payment->method('getState')->willReturn($paymentState);
 
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
