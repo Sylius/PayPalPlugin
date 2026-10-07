@@ -91,7 +91,8 @@
 
    That rule lives in `Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface`
    (`sylius_paypal.provider.shipping_callback_url`), which returns `null` rather than a URL PayPal
-   could not call. Decorate or replace it if your shop reaches PayPal some other way — for instance behind a
+   could not call, and logs a warning to the `paypal` channel when it does. Decorate or replace it if your shop
+   reaches PayPal some other way — for instance behind a
    proxy that terminates TLS in front of an `http` backend.
 
    Three services carry the work and can be decorated or replaced:

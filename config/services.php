@@ -260,7 +260,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(OrderProviderInterface::class, 'sylius_paypal.provider.order');
 
     $services->set('sylius_paypal.provider.shipping_callback_url', ShippingCallbackUrlProvider::class)
-        ->args([service('router')]);
+        ->args([service('router'), service('monolog.logger.paypal')]);
 
     $services->alias(ShippingCallbackUrlProviderInterface::class, 'sylius_paypal.provider.shipping_callback_url');
 
