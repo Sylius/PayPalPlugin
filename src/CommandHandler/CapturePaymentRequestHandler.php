@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -37,7 +37,7 @@ final class CapturePaymentRequestHandler
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PayPalOrderCreatorInterface $payPalOrderCreator,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
-        private readonly UrlProviderInterface $paymentRequestPayUrlProvider,
+        private readonly UrlGeneratorInterface $router,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -68,7 +68,7 @@ final class CapturePaymentRequestHandler
         $hash = (string) $paymentRequest->getId();
 
         try {
-            $payUrl = $this->paymentRequestPayUrlProvider->getUrl($paymentRequest, UrlGeneratorInterface::ABSOLUTE_URL);
+            $payUrl = $this->payUrl($paymentRequest, $payment);
             $details = $this->payPalOrderCreator->create(
                 $payment,
                 $paymentSource,
@@ -95,5 +95,17 @@ final class CapturePaymentRequestHandler
         ]));
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+    }
+
+    private function payUrl(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): string
+    {
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
+        return $this->router->generate(
+            'sylius_shop_payment_request_pay',
+            ['_locale' => $order->getLocaleCode(), 'hash' => $paymentRequest->getId()],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
     }
 }

@@ -16,8 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\CommandHandler;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CapturePaymentRequestHandlerTest extends TestCase
 {
@@ -47,14 +48,22 @@ final class CapturePaymentRequestHandlerTest extends TestCase
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
-        $payUrlProvider = $this->createMock(UrlProviderInterface::class);
-        $payUrlProvider->method('getUrl')->willReturn('https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH');
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getLocaleCode')->willReturn('en_US');
+        $this->payment->method('getOrder')->willReturn($order);
+
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router
+            ->method('generate')
+            ->with('sylius_shop_payment_request_pay', ['_locale' => 'en_US', 'hash' => 'PAYMENT_REQUEST_HASH'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH')
+        ;
 
         $this->handler = new CapturePaymentRequestHandler(
             $this->paymentRequestProvider,
             $this->payPalOrderCreator,
             new PayPalPaymentSourceProvider(),
-            $payUrlProvider,
+            $router,
             $this->stateMachine,
         );
     }
