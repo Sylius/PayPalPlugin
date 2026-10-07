@@ -257,7 +257,8 @@
    the order's addresses and onto a newly created customer, and a payment amount mismatch no longer leaves the
    request in an error. When the order total dropped below the amount approved in the wallet (for instance tax
    recalculated for the payer's country), the PayPal order is updated to the new total and the order is
-   completed. When it grew, the payment is detached from the order, the order is reprocessed, and the buyer is
+   completed; if PayPal refuses the update, it is treated as any other mismatch. When it grew, the payment is
+   detached from the order, the order is reprocessed, and the buyer is
    returned to the checkout summary so the purchase can be retried.
 
    The action also cross-references the posted `payPalOrderId` against the `paypal_order_id` the plugin itself

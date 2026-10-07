@@ -186,6 +186,29 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame([['orderId' => 'PAYPAL_ORDER_ID', 'amount' => $order->getTotal()]], $updateOrderApi->updates);
     }
 
+    public function test_it_frees_the_order_when_pay_pal_refuses_to_lower_the_approved_amount(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails();
+        $orderDetails['purchase_units'][0]['amount']['value'] = '999.00';
+        $this->mockOrderDetailsApi($orderDetails);
+        $updateOrderApi = $this->mockUpdateOrderApi(['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID']);
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertNotSame('completed', $this->refreshOrder($orderId)->getCheckoutState());
+        $this->assertCount(1, $updateOrderApi->updates);
+
+        $flashes = $this->client->getRequest()->getSession()->getBag('flashes')->peekAll();
+        self::assertSame(['sylius_paypal.order_total_changed'], $flashes['error'] ?? []);
+    }
+
     public function test_it_does_not_update_the_approved_amount_when_it_matches_the_total(): void
     {
         $fixtures = $this->loadFixturesFromFiles([
@@ -597,17 +620,23 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         self::getContainer()->set('sylius_paypal.api.order_details', new FakeOrderDetailsApi($orderDetails));
     }
 
-    private function mockUpdateOrderApi(): object
+    /** @param array<string, mixed> $response */
+    private function mockUpdateOrderApi(array $response = []): object
     {
-        $updateOrderApi = new class() implements UpdateOrderApiInterface {
+        $updateOrderApi = new class($response) implements UpdateOrderApiInterface {
             /** @var list<array{orderId: string, amount: int|null}> */
             public array $updates = [];
+
+            /** @param array<string, mixed> $response */
+            public function __construct(private readonly array $response)
+            {
+            }
 
             public function update(string $token, string $orderId, PaymentInterface $payment, string $referenceId, string $merchantId): array
             {
                 $this->updates[] = ['orderId' => $orderId, 'amount' => $payment->getAmount()];
 
-                return [];
+                return $this->response;
             }
         };
         self::getContainer()->set('sylius_paypal.api.update_order', $updateOrderApi);

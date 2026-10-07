@@ -240,7 +240,11 @@ final readonly class ProcessPayPalOrderAction
                 $this->verify($payment, $data);
             }
         } catch (PaymentAmountMismatchException) {
-            if (null === $this->updateOrderApi || !$this->isLowerThanApproved($order, $purchaseUnit)) {
+            if (
+                null === $this->updateOrderApi ||
+                !$this->isLowerThanApproved($order, $purchaseUnit) ||
+                !$this->lowerApprovedAmount($this->updateOrderApi, $payment, $payPalOrderId)
+            ) {
                 $this->abandonPayment($order, $payment);
 
                 /** @var FlashBagInterface $flashBag */
@@ -249,8 +253,6 @@ final readonly class ProcessPayPalOrderAction
 
                 return $this->returnToCheckout($orderId, $payPalOrderId, $payment);
             }
-
-            $this->lowerApprovedAmount($this->updateOrderApi, $payment, $payPalOrderId);
         }
 
         if (null === $this->orderCompleter) {
@@ -325,14 +327,14 @@ final readonly class ProcessPayPalOrderAction
         return $order->getTotal() < (int) round((float) ($purchaseUnit['amount']['value'] ?? '0') * 100);
     }
 
-    private function lowerApprovedAmount(UpdateOrderApiInterface $updateOrderApi, PaymentInterface $payment, string $payPalOrderId): void
+    private function lowerApprovedAmount(UpdateOrderApiInterface $updateOrderApi, PaymentInterface $payment, string $payPalOrderId): bool
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $updateOrderApi->update(
+        return [] === $updateOrderApi->update(
             $this->authorizeClientApi->authorize($paymentMethod),
             $payPalOrderId,
             $payment,
