@@ -117,7 +117,9 @@ final readonly class PayPalPaymentOnErrorAction
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        $this->orderPaymentProcessor->process($order);
+        if ($order->canBeProcessed()) {
+            $this->orderPaymentProcessor->process($order);
+        }
         $this->objectManager->flush();
     }
 

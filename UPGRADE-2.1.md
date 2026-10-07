@@ -576,8 +576,9 @@
 
    `PayPalPaymentOnErrorAction` gained four nullable arguments — a `PaypalPaymentQueryInterface`, a
    `StateMachineInterface`, an `OrderProcessorInterface` wired to
-   `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which together
-   perform the cancellation. Not passing them is deprecated and will be prohibited in 3.0; without them the
+   `sylius.order_processing.order_payment_processor.checkout` and run only for an order still in the cart, and
+   an `ObjectManager` — which together perform the cancellation. Not passing them is deprecated and will be
+   prohibited in 3.0; without them the
    endpoint only logs and flashes, as it did in 2.0.
 
 1. #### The following signatures changed.
