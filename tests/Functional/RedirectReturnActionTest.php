@@ -25,6 +25,10 @@ final class RedirectReturnActionTest extends JsonApiTestCase
 
     private const CANCEL_NONCE = 'fedcba9876543210fedcba9876543210';
 
+    private const EARLIER_RETURN_NONCE = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+    private const EARLIER_CANCEL_NONCE = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -72,6 +76,37 @@ final class RedirectReturnActionTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
     }
 
+    public function test_it_sends_a_return_from_an_earlier_attempt_to_the_order_page(): void
+    {
+        $order = $this->closedAttemptOrder();
+
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-return/CLOSED_ATTEMPT_TOKEN/%s', self::EARLIER_RETURN_NONCE));
+
+        self::assertResponseRedirects('/en_US/order/CLOSED_ATTEMPT_TOKEN');
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_it_keeps_the_capture_of_an_earlier_attempt_the_payer_returns_from(): void
+    {
+        $order = $this->closedAttemptOrder();
+
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-return/CLOSED_ATTEMPT_TOKEN/%s', self::EARLIER_RETURN_NONCE));
+
+        $earlierPayment = $this->reloadEarlierPayment($order);
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $earlierPayment->getState());
+        self::assertSame('123123', $earlierPayment->getDetails()['paypal_late_capture']['id'] ?? null);
+    }
+
+    public function test_it_sends_a_cancellation_from_an_earlier_attempt_to_the_order_page(): void
+    {
+        $order = $this->closedAttemptOrder();
+
+        $this->client->request('GET', sprintf('/en_US/paypal/redirect-cancel/CLOSED_ATTEMPT_TOKEN/%s', self::EARLIER_CANCEL_NONCE));
+
+        self::assertResponseRedirects('/en_US/order/CLOSED_ATTEMPT_TOKEN');
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+    }
+
     private function redirectOrder(): OrderInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/redirect_paypal_order.yaml']);
@@ -80,6 +115,29 @@ final class RedirectReturnActionTest extends JsonApiTestCase
         $order = $fixtures['redirect_order'];
 
         return $order;
+    }
+
+    private function closedAttemptOrder(): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/closed_attempt_redirect_paypal_order.yaml']);
+
+        /** @var OrderInterface $order */
+        $order = $fixtures['closed_attempt_redirect_order'];
+
+        return $order;
+    }
+
+    private function reloadEarlierPayment(OrderInterface $order): PaymentInterface
+    {
+        self::getContainer()->get('sylius.manager.order')->clear();
+
+        /** @var OrderInterface $reloaded */
+        $reloaded = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+
+        /** @var PaymentInterface $payment */
+        $payment = $reloaded->getPayments()->first();
+
+        return $payment;
     }
 
     private function reloadPayment(OrderInterface $order): PaymentInterface
