@@ -1000,7 +1000,9 @@
    payload is returned and the shipment stays `ready`. The carrier is saved in the ship's transaction, so the
    tracking is sent as for the admin form.
    Without a carrier the shipment is shipped and the tracking is sent only if the shipment already has a
-   tracking record with a carrier; for any other order nothing is sent to PayPal. The
+   tracking record with a carrier; for any other order nothing is sent to PayPal. A field other than
+   `trackingCode`, `carrier` and `carrierNameOther` is rejected with `400`, so a misspelt carrier field does
+   not ship the shipment without the tracking. The
    plugin redefines `sylius_api_admin_shipment_patch_ship` in `config/api_platform/Shipment.xml` with
    `Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier`, which extends Sylius' `ShipShipment`,
    as its input; an app that redefines that operation has to keep that input.
