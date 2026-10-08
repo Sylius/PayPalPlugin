@@ -18,22 +18,17 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Order\Model\OrderItemInterface;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class RedirectCancelActionTest extends JsonApiTestCase
 {
-    private const CANCEL_NONCE = 'fedcba9876543210fedcba9876543210';
+    use MocksPayPalApiTrait;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        DummyOrderDetailsApi::$captureStatus = 'PENDING';
-        DummyOrderDetailsApi::$failWith = null;
-    }
+    private const CANCEL_NONCE = 'fedcba9876543210fedcba9876543210';
 
     public function test_it_cancels_the_attempt_the_payer_walked_away_from(): void
     {
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
 
         $this->cancel(self::CANCEL_NONCE);
         $reloaded = $this->reloadOrder($order);
@@ -45,8 +40,8 @@ final class RedirectCancelActionTest extends JsonApiTestCase
 
     public function test_it_keeps_a_payment_the_bank_let_through_after_all(): void
     {
-        DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
 
         $this->cancel(self::CANCEL_NONCE);
         $reloaded = $this->reloadOrder($order);
@@ -59,6 +54,7 @@ final class RedirectCancelActionTest extends JsonApiTestCase
     public function test_it_cancels_nothing_the_second_time_the_payer_comes_back(): void
     {
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
 
         $this->cancel(self::CANCEL_NONCE);
         $this->cancel(self::CANCEL_NONCE);
@@ -76,6 +72,7 @@ final class RedirectCancelActionTest extends JsonApiTestCase
     public function test_it_fails_the_attempt_the_bank_refused(): void
     {
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
 
         $this->cancel(self::CANCEL_NONCE, '?errorcode=processing_error');
         $reloaded = $this->reloadOrder($order);
@@ -89,6 +86,7 @@ final class RedirectCancelActionTest extends JsonApiTestCase
     public function test_it_cancels_the_attempt_the_payer_cancelled_at_the_bank(): void
     {
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
 
         $this->cancel(self::CANCEL_NONCE, '?errorcode=payment_error');
         $reloaded = $this->reloadOrder($order);
@@ -130,6 +128,7 @@ final class RedirectCancelActionTest extends JsonApiTestCase
     public function test_it_replaces_a_cancelled_attempt_with_exactly_one_new_payment(): void
     {
         $order = $this->redirectOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
 
         $this->cancel(self::CANCEL_NONCE);
 

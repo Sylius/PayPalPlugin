@@ -21,30 +21,68 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
 final class StatusPaymentRequestTest extends JsonApiTestCase
 {
-    public function test_it_completes_a_status_payment_request_for_a_payment_carrying_a_paypal_order(): void
+    use MocksPayPalApiTrait;
+
+    public function test_it_completes_the_payment_once_paypal_says_the_capture_completed(): void
     {
-        $paymentRequest = $this->dispatchStatusPaymentRequest(['status' => 'CREATED', 'paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $paymentRequest = $this->dispatchStatusPaymentRequest();
+
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $paymentRequest->getPayment()->getState());
+    }
+
+    public function test_it_leaves_the_payment_processing_while_the_capture_is_pending(): void
+    {
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
+
+        $paymentRequest = $this->dispatchStatusPaymentRequest();
+
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $paymentRequest->getPayment()->getState());
+    }
+
+    public function test_it_asks_paypal_nothing_about_a_payment_that_is_already_settled(): void
+    {
+        $paymentRequest = $this->dispatchStatusPaymentRequest(paymentState: PaymentInterface::STATE_COMPLETED);
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
         self::assertSame([], $paymentRequest->getResponseData());
     }
 
-    public function test_it_fails_a_status_payment_request_for_a_payment_carrying_no_paypal_order(): void
+    public function test_it_fails_when_paypal_cannot_be_reached(): void
     {
-        $paymentRequest = $this->dispatchStatusPaymentRequest([]);
+        $this->payPalApi()->mockOrderDetailsUnreachable();
+
+        $paymentRequest = $this->dispatchStatusPaymentRequest();
+
+        self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
+        self::assertSame(['reason' => 'PayPal could not be reached to read the order.'], $paymentRequest->getResponseData());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $paymentRequest->getPayment()->getState());
+    }
+
+    public function test_it_fails_for_a_payment_carrying_no_paypal_order(): void
+    {
+        $paymentRequest = $this->dispatchStatusPaymentRequest(details: []);
 
         self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
         self::assertSame(['reason' => 'The payment carries no PayPal order id.'], $paymentRequest->getResponseData());
     }
 
-    /** @param array<string, mixed> $details */
-    private function dispatchStatusPaymentRequest(array $details): PaymentRequestInterface
-    {
-        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_cart.yaml']);
+    /** @param array<string, mixed>|null $details */
+    private function dispatchStatusPaymentRequest(
+        string $paymentState = PaymentInterface::STATE_PROCESSING,
+        ?array $details = null,
+    ): PaymentRequestInterface {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
 
         /** @var PaymentInterface $payment */
-        $payment = $fixtures['abandoned_paypal_payment'];
-        $payment->setDetails($details);
+        $payment = $fixtures['processing_paypal_payment'];
+        $payment->setState($paymentState);
+        if (null !== $details) {
+            $payment->setDetails($details);
+        }
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();

@@ -46,6 +46,8 @@ use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Processor\OrderPaymentProcessor;
+use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
+use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
@@ -347,6 +349,19 @@ return static function (ContainerConfigurator $container) {
         ->args([service('payum')]);
 
     $services->alias(PaymentCompleteProcessorInterface::class, 'sylius_paypal.processor.payment_complete');
+
+    $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
+        ->args([
+            service('sylius_paypal.api.cache_authorize_client'),
+            service('sylius_paypal.api.update_order'),
+            service('sylius_paypal.api.update_order_address'),
+            service('sylius_paypal.api.complete_order'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.updater.payment'),
+            service('sylius.state_resolver.order_payment'),
+        ]);
+
+    $services->alias(PaymentCaptureProcessorInterface::class, 'sylius_paypal.processor.payment_capture');
 
     $services->set('sylius_paypal.processor.locale', LocaleProcessor::class)
         ->args([service('sylius_paypal.resolver.supported_locale')]);

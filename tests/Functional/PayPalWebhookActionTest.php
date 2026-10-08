@@ -16,24 +16,23 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Symfony\Component\HttpFoundation\Response;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
 
 final class PayPalWebhookActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     protected function setUp(): void
     {
         parent::setUp();
-        DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
-        DummyOrderDetailsApi::$failWith = null;
         DummyRefundPaymentApi::$refundedPaymentIds = [];
     }
 
     public function test_it_completes_the_payment_once_paypal_says_the_capture_completed(): void
     {
         $order = $this->processingOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
 
         $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
 
@@ -44,6 +43,8 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
     public function test_it_changes_nothing_when_the_same_event_is_delivered_again(): void
     {
         $order = $this->processingOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
 
         $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
         $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
@@ -54,8 +55,8 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
     public function test_it_leaves_the_payment_processing_while_the_capture_is_pending(): void
     {
-        DummyOrderDetailsApi::$captureStatus = 'PENDING';
         $order = $this->processingOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
 
         $this->sendWebhook('PAYMENT.CAPTURE.PENDING');
 
@@ -65,8 +66,8 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
     public function test_it_fails_the_payment_once_paypal_says_the_capture_was_denied(): void
     {
-        DummyOrderDetailsApi::$captureStatus = 'DECLINED';
         $order = $this->processingOrder();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'DECLINED');
 
         $this->sendWebhook('PAYMENT.CAPTURE.DENIED');
 
@@ -85,6 +86,7 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
     public function test_it_still_refunds_a_completed_payment(): void
     {
+        $this->payPalApi()->mockOrderDetailsWithCapture();
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
         /** @var OrderInterface $order */
         $order = $fixtures['completed_order'];
@@ -104,7 +106,7 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
     public function test_it_marks_a_payment_refunded_in_paypal_without_refunding_it_again(): void
     {
-        DummyOrderDetailsApi::$captureStatus = 'REFUNDED';
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'REFUNDED');
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
         /** @var OrderInterface $order */
         $order = $fixtures['completed_order'];
@@ -125,8 +127,8 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
     public function test_it_asks_paypal_to_deliver_the_event_again_when_settlement_fails(): void
     {
-        DummyOrderDetailsApi::$failWith = new PayPalApiTimeoutException();
         $order = $this->processingOrder();
+        $this->payPalApi()->mockOrderDetailsUnreachable();
 
         $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
 

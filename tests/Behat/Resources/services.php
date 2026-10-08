@@ -64,6 +64,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.manager.order'),
             service('test.client'),
             service('sylius.behat.page.admin.order.show'),
+            service(PayPalApiMocker::class),
         ]);
 
     $services->set(ManagingPaymentMethodsContext::class)
@@ -106,7 +107,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.behat.shared_storage'),
             service(PayWithPayPalPage::class),
             service('test.client'),
-            service('sylius_paypal.api.order_details'),
             service('sylius_paypal.processor.payment_complete'),
             service(PayPalApiMocker::class),
         ]);

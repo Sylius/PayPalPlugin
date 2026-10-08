@@ -23,17 +23,17 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 use Tests\Sylius\PayPalPlugin\Service\VoidPayPalPaymentCompleteProcessor;
 use Webmozart\Assert\Assert;
 
 final readonly class PayingWithPayPalContext implements Context
 {
+    private const CARD_ORDER_DETAILS = 'paypal_card_order_details';
+
     public function __construct(
         private SharedStorageInterface $sharedStorage,
         private PayWithPayPalPage $payWithPayPalPage,
         private KernelBrowser $client,
-        private DummyOrderDetailsApi $orderDetailsApi,
         private VoidPayPalPaymentCompleteProcessor $paymentCompleteProcessor,
         private PayPalApiMocker $payPalApiMocker,
     ) {
@@ -76,7 +76,7 @@ final readonly class PayingWithPayPalContext implements Context
     public function iStartACardPaymentForMyOrder(): void
     {
         // Keep one kernel/container (and so the same test-double instances, such as
-        // $orderDetailsApi and $paymentCompleteProcessor above) alive for the rest of the
+        // $paymentCompleteProcessor above) alive for the rest of the
         // scenario. The client reboots the kernel before each request by default, which
         // would otherwise silently discard a Given step's configuration of a test double
         // before a later request gets to exercise it.
@@ -108,6 +108,10 @@ final readonly class PayingWithPayPalContext implements Context
         /** @var OrderInterface $order */
         $order = $this->sharedStorage->get('order');
 
+        $this->payPalApiMocker->mockOrderDetails(
+            'PAYPAL_ORDER_ID',
+            $this->sharedStorage->has(self::CARD_ORDER_DETAILS) ? $this->sharedStorage->get(self::CARD_ORDER_DETAILS) : ['status' => 'COMPLETED'],
+        );
         $this->client->request(
             'POST',
             sprintf('/en_US/complete-pay-pal-order/%s', $order->getTokenValue()),
@@ -200,7 +204,7 @@ final readonly class PayingWithPayPalContext implements Context
 
     private function configureThreeDSecureResult(string $authenticationStatus): void
     {
-        $this->orderDetailsApi->useResponse([
+        $this->sharedStorage->set(self::CARD_ORDER_DETAILS, [
             'status' => 'COMPLETED',
             'payment_source' => [
                 'card' => [

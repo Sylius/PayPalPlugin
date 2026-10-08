@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalHttpClientWithExpectations;
@@ -65,6 +66,19 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
             ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'],
             $this->payPalClient->get('v2/checkout/orders/MISSING', 'ACCESS_TOKEN'),
         );
+    }
+
+    public function test_it_fails_to_connect_as_many_times_as_it_is_told(): void
+    {
+        $this->mocker->mockOrderDetailsUnreachable('PAYPAL_ORDER_ID', attempts: 5);
+
+        $this->expectException(PayPalApiTimeoutException::class);
+
+        try {
+            $this->payPalClient->get('v2/checkout/orders/PAYPAL_ORDER_ID', 'ACCESS_TOKEN');
+        } finally {
+            self::assertFalse($this->httpClient->hasExpectations());
+        }
     }
 
     public function test_it_rejects_a_request_nobody_declared(): void

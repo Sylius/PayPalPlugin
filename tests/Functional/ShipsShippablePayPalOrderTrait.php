@@ -17,7 +17,6 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Tests\Sylius\PayPalPlugin\Service\DummyAddTrackingApi;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 trait ShipsShippablePayPalOrderTrait
 {
@@ -37,8 +36,6 @@ trait ShipsShippablePayPalOrderTrait
     private function loadShippablePayPalOrder(): array
     {
         DummyAddTrackingApi::reset();
-        DummyOrderDetailsApi::$failWith = null;
-        DummyOrderDetailsApi::$response = self::PAYPAL_ORDER_DETAILS;
 
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml', 'resources/shippable_paypal_order.yaml']);
         $this->order = $fixtures['shippable_order'];
@@ -49,8 +46,11 @@ trait ShipsShippablePayPalOrderTrait
     private function resetPayPalDummies(): void
     {
         DummyAddTrackingApi::reset();
-        DummyOrderDetailsApi::$failWith = null;
-        DummyOrderDetailsApi::$response = null;
+    }
+
+    private function mockShippablePayPalOrderDetails(): void
+    {
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', self::PAYPAL_ORDER_DETAILS);
     }
 
     private function shipment(): ShipmentInterface

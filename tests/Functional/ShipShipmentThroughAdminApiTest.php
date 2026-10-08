@@ -18,14 +18,13 @@ use Sylius\Bundle\ApiBundle\Command\Checkout\ShipShipment;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyAddTrackingApi;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 
 final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
     use ShipsShippablePayPalOrderTrait;
 
     /** @var array<string, object> */
@@ -52,6 +51,7 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
 
     public function test_it_ships_and_sends_the_tracking_with_the_carrier_to_paypal(): void
     {
+        $this->mockShippablePayPalOrderDetails();
         $this->ship(['trackingCode' => 'API-TRACK-1', 'carrier' => 'DHL']);
 
         self::assertSame(Response::HTTP_ACCEPTED, $this->client->getResponse()->getStatusCode());
@@ -65,6 +65,7 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
 
     public function test_it_sends_the_name_of_an_other_carrier(): void
     {
+        $this->mockShippablePayPalOrderDetails();
         $this->ship(['trackingCode' => 'API-TRACK-2', 'carrier' => 'OTHER', 'carrierNameOther' => 'Local Courier']);
 
         self::assertSame(Response::HTTP_ACCEPTED, $this->client->getResponse()->getStatusCode());
@@ -101,7 +102,7 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
 
     public function test_it_ships_and_leaves_a_retryable_failed_record_when_paypal_errors(): void
     {
-        DummyOrderDetailsApi::$failWith = new PayPalApiErrorException('GET v2/checkout/orders/PAYPAL_ORDER_ID', ['name' => 'RESOURCE_NOT_FOUND']);
+        $this->payPalApi()->mockOrderDetailsNotFound();
 
         $this->ship(['trackingCode' => 'API-TRACK-6', 'carrier' => 'DHL']);
 
@@ -140,6 +141,7 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
 
     public function test_it_sends_the_tracking_when_sylius_ship_shipment_command_ships_a_shipment_that_already_has_a_carrier(): void
     {
+        $this->mockShippablePayPalOrderDetails();
         $shipment = $this->shipment();
         self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($shipment, 'DHL', null);
 

@@ -37,6 +37,51 @@ final readonly class PayPalApiMocker
         ], $order));
     }
 
+    public function mockCapture(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('POST', sprintf('v2/checkout/orders/%s/capture', $payPalOrderId), [
+            'id' => $payPalOrderId,
+            'status' => 'COMPLETED',
+        ], 201);
+    }
+
+    public function mockUpdateOrderAddress(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('PATCH', 'v2/checkout/orders/' . $payPalOrderId, [], 204);
+        $this->client->addExpectation('PATCH', 'v2/checkout/orders/' . $payPalOrderId, [], 204);
+    }
+
+    public function mockOrderDetailsWithCapture(
+        string $payPalOrderId = 'PAYPAL_ORDER_ID',
+        string $captureStatus = 'COMPLETED',
+        string $value = '0.20',
+        string $currencyCode = 'USD',
+    ): void {
+        $this->mockOrderDetails($payPalOrderId, [
+            'status' => 'COMPLETED',
+            'purchase_units' => [[
+                'reference_id' => 'REFERENCE_ID',
+                'payments' => ['captures' => [[
+                    'id' => 'CAPTURE_ID',
+                    'status' => $captureStatus,
+                    'amount' => ['currency_code' => $currencyCode, 'value' => $value],
+                ]]],
+            ]],
+        ]);
+    }
+
+    public function mockOrderDetailsNotFound(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('GET', 'v2/checkout/orders/' . $payPalOrderId, ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'], 404);
+    }
+
+    public function mockOrderDetailsUnreachable(string $payPalOrderId = 'PAYPAL_ORDER_ID', int $attempts = 5): void
+    {
+        for ($attempt = 0; $attempt < $attempts; ++$attempt) {
+            $this->client->addConnectionFailure('GET', 'v2/checkout/orders/' . $payPalOrderId);
+        }
+    }
+
     /** @param array<string, mixed> $order */
     public function mockOrderDetails(string $payPalOrderId, array $order = []): void
     {
