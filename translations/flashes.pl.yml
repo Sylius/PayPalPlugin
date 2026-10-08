@@ -1,6 +1,8 @@
 sylius_paypal:
     could_not_create_paypal_payment_method: 'Nie udało się utworzyć metody płatności PayPal. Spróbuj ponownie później.'
     invalid_paypal_sandbox_credentials: 'Nieprawidłowe dane dostępowe do sandboksa PayPal. Sprawdź konfigurację.'
+    late_capture_not_refunded: 'Nie udało się zwrócić kwoty pobranej przez PayPal dla zamkniętej próby.'
+    late_capture_refunded: 'Kwota pobrana przez PayPal dla zamkniętej próby została zwrócona.'
     more_than_one_seller_not_allowed: 'Nie można podłączyć więcej niż jednego sprzedawcy PayPal!'
     order_cancelled: 'Zamówienie PayPal zostało anulowane'
     order_total_changed: 'Kwota zamówienia zmieniła się od rozpoczęcia płatności. Sprawdź zamówienie i spróbuj ponownie.'

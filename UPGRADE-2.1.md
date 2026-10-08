@@ -1237,16 +1237,23 @@
      interface rather than a method on `PaypalPaymentQueryInterface`, which shipped in 1.7 — adding to that
      one would break every shop implementing it instead of decorating it. `PaypalPaymentQuery` implements
      both, and the container aliases both to it. The settleable states deliberately cover `cancelled` and
-     `failed` as well, so a late webhook can find its payment and log the mismatch rather than throw.
+     `failed` as well, so a late webhook can find its payment rather than throw. A capture PayPal completes for
+     such a payment (for instance a Trustly transfer finished at the bank after the buyer cancelled the attempt)
+     is kept in its details as `paypal_late_capture`. The admin order page shows it on the payment with a
+     Refund button (`sylius_paypal_admin_order_payment_refund_late_capture`, handled by
+     `sylius_paypal.processor.late_capture_refund`) that refunds that capture at PayPal without changing the
+     payment state. Don't complete the order's new payment by hand for that money: it carries no
+     `paypal_order_id`, so a later refund in Sylius would not reach PayPal.
    - `Sylius\PayPalPlugin\Model\PayPalCapture` is new: a read-only view of the capture buried in
      `purchase_units[0].payments.captures[0]`, built with `PayPalCapture::fromPayPalOrder()`, which answers
      `null` for an order that has no capture yet. It owns the conversion of PayPal's decimal string into
-     Sylius minor units and carries the `STATUS_*` constants the settlement processor used to declare.
+     Sylius minor units and carries the `STATUS_*` constants the settlement processor used to declare, plus
+     `STATUS_REFUNDED`.
    - `PaymentSettlementProcessorInterface` still completes a payment whose capture does not match the
      amount or currency it expected. The money is real, and refusing to settle would leave a paid order
      unpaid — the worse of the two errors. The mismatch is no longer only a log line, though: the capture's
-     `captured_amount` and `captured_currency_code` now land in the payment details, so it can be seen in
-     the admin panel and reconciled instead of being looked for in logs.
+     `captured_amount` and `captured_currency_code` now land in the payment details, so it can be reconciled
+     instead of being looked for in logs.
    - `PaypalPaymentQuery` narrowed the return type of its finders to `PaymentInterface`. None of them ever
      answered `null` — they throw `PaymentNotFoundException` — so reading code can stop null-checking today.
      `PaypalPaymentQueryInterface`, which shipped in 1.7, still declares `?PaymentInterface` on its three

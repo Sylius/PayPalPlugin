@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction;
 use Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\RedirectCancelAction;
 use Sylius\PayPalPlugin\Controller\RedirectReturnAction;
+use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
 use Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
@@ -278,5 +279,13 @@ return static function (ContainerConfigurator $container) {
             service('router'),
             service(CartStorageInterface::class),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
+        ]);
+
+    $services->set('sylius_paypal.controller.refund_late_capture', RefundPayPalLateCaptureAction::class)
+        ->args([
+            service('sylius.repository.payment'),
+            service('sylius_paypal.processor.late_capture_refund'),
+            service('security.csrf.token_manager'),
+            service('router'),
         ]);
 };

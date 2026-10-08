@@ -132,12 +132,60 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
     }
 
-    public function test_it_reports_money_it_cannot_record_against_a_cancelled_payment(): void
+    public function test_it_keeps_a_capture_paypal_completed_for_a_cancelled_payment_to_be_refunded(): void
+    {
+        $this->assertKeepsLateCapture(PaymentInterface::STATE_CANCELLED);
+    }
+
+    public function test_it_keeps_a_capture_paypal_completed_for_a_failed_payment_to_be_refunded(): void
+    {
+        $this->assertKeepsLateCapture(PaymentInterface::STATE_FAILED);
+    }
+
+    public function test_it_keeps_the_same_late_capture_only_once(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_CANCELLED);
+        $payment->method('getDetails')->willReturn([
+            'paypal_order_id' => '5O190127TN364715T',
+            PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'amount' => 1539, 'currency_code' => 'EUR'],
+        ]);
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $payment->expects(self::never())->method('setDetails');
+        $this->paymentManager->expects(self::never())->method('flush');
+        $this->logger->expects(self::never())->method('error');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($payment, $this->orderDetails('COMPLETED'));
+    }
+
+    public function test_it_only_reports_a_refused_capture_for_a_cancelled_payment(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_CANCELLED);
         $this->stateMachine->method('can')->willReturn(false);
 
-        $this->logger->expects(self::once())->method('error');
+        $this->logger->expects(self::once())->method('error')->with(self::stringContains('Reconcile it by hand.'));
+        $this->payment->expects(self::never())->method('setDetails');
+        $this->paymentManager->expects(self::never())->method('flush');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($this->payment, $this->orderDetails('DECLINED'));
+    }
+
+    private function assertKeepsLateCapture(string $state): void
+    {
+        $this->payment->method('getState')->willReturn($state);
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => '5O190127TN364715T',
+            'payment_source' => 'trustly',
+            PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'amount' => 1539, 'currency_code' => 'EUR'],
+        ]);
+        $this->paymentManager->expects(self::once())->method('flush');
+        $this->logger->expects(self::once())->method('error')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
         $this->stateMachine->expects(self::never())->method('apply');
 
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));

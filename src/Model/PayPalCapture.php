@@ -25,6 +25,8 @@ final readonly class PayPalCapture
 
     public const STATUS_PENDING = 'PENDING';
 
+    public const STATUS_REFUNDED = 'REFUNDED';
+
     public function __construct(
         private string $status,
         private ?string $id = null,

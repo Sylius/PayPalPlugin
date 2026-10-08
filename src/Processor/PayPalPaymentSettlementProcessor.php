@@ -26,6 +26,8 @@ use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final readonly class PayPalPaymentSettlementProcessor implements PaymentSettlementProcessorInterface
 {
+    public const LATE_CAPTURE = 'paypal_late_capture';
+
     public function __construct(
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
@@ -74,14 +76,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         }
 
         if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
-            $this->logger->error(sprintf(
-                'PayPal order %s settled as %s, but payment #%s is %s and cannot be %s. Reconcile it by hand.',
-                $payPalOrderId,
-                $capture->status(),
-                (string) $payment->getId(),
-                (string) $payment->getState(),
-                $state,
-            ));
+            $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, $state);
 
             return;
         }
@@ -100,6 +95,47 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         ));
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+        $this->paymentManager->flush();
+    }
+
+    private function keepLateCapture(
+        PaymentInterface $payment,
+        string $payPalOrderId,
+        PayPalCapture $capture,
+        string $transition,
+        string $state,
+    ): void {
+        $details = $payment->getDetails();
+        $lateCapture = $details[self::LATE_CAPTURE] ?? null;
+        if (is_array($lateCapture) && ($lateCapture['id'] ?? null) === $capture->id()) {
+            return;
+        }
+
+        $kept = PaymentTransitions::TRANSITION_COMPLETE === $transition &&
+            null !== $capture->id() &&
+            null !== $capture->amount() &&
+            null !== $capture->currencyCode();
+
+        $this->logger->error(sprintf(
+            'PayPal order %s settled as %s, but payment #%s is %s and cannot be %s. %s',
+            $payPalOrderId,
+            $capture->status(),
+            (string) $payment->getId(),
+            (string) $payment->getState(),
+            $state,
+            $kept ? 'The capture is kept on the payment to be refunded from the admin panel.' : 'Reconcile it by hand.',
+        ));
+
+        if (!$kept) {
+            return;
+        }
+
+        $details[self::LATE_CAPTURE] = [
+            'id' => $capture->id(),
+            'amount' => $capture->amount(),
+            'currency_code' => $capture->currencyCode(),
+        ];
+        $payment->setDetails($details);
         $this->paymentManager->flush();
     }
 
