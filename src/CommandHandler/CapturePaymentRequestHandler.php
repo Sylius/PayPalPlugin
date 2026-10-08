@@ -32,6 +32,10 @@ final class CapturePaymentRequestHandler
 
     public const PAYLOAD_PAYMENT_SOURCE = 'payment_source';
 
+    public const RESPONSE_PAYPAL_ORDER_ID = 'paypal_order_id';
+
+    public const RESPONSE_PAYER_ACTION_URL = 'payer_action_url';
+
     public const PAYER_CANCELLED_QUERY_PARAMETER = 'payer_cancelled';
 
     public function __construct(
@@ -100,8 +104,8 @@ final class CapturePaymentRequestHandler
         }
 
         $paymentRequest->setResponseData(array_filter([
-            'paypal_order_id' => $details->payPalOrderId(),
-            'payer_action_url' => $details->payerActionUrl(),
+            self::RESPONSE_PAYPAL_ORDER_ID => $details->payPalOrderId(),
+            self::RESPONSE_PAYER_ACTION_URL => $details->payerActionUrl(),
         ]));
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);

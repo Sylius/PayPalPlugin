@@ -81,16 +81,12 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
     /** @param array<string, mixed> $content */
     private function withPayerAction(PayPalPaymentDetails $details, array $content, string $paymentSource): PayPalPaymentDetails
     {
-        if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
-            return $details;
+        $payerActionUrl = null !== RedirectPaymentSource::tryFrom($paymentSource) ? $this->payerActionUrl($content) : null;
+        if (null !== $payerActionUrl) {
+            $details = $details->withPayerAction($payerActionUrl);
         }
 
-        $payerActionUrl = $this->payerActionUrl($content);
-        if (null === $payerActionUrl) {
-            return $details;
-        }
-
-        return $details->withPayerAction($payerActionUrl);
+        return $details;
     }
 
     /** @param array<string, mixed> $content */

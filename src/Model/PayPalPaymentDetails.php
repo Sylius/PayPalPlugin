@@ -20,7 +20,7 @@ final readonly class PayPalPaymentDetails
 {
     public const STATUS = 'status';
 
-    public const ORDER_ID = 'paypal_order_id';
+    public const PAYPAL_ORDER_ID = 'paypal_order_id';
 
     public const REFERENCE_ID = 'reference_id';
 
@@ -75,7 +75,7 @@ final readonly class PayPalPaymentDetails
 
     public function payPalOrderId(): ?string
     {
-        return $this->optional(self::ORDER_ID);
+        return $this->optional(self::PAYPAL_ORDER_ID);
     }
 
     public function hasPayPalOrderId(): bool
@@ -119,7 +119,7 @@ final readonly class PayPalPaymentDetails
 
     public function withPayPalOrderId(string $payPalOrderId): self
     {
-        return $this->with([self::ORDER_ID => $payPalOrderId]);
+        return $this->with([self::PAYPAL_ORDER_ID => $payPalOrderId]);
     }
 
     public function withReferenceId(string $referenceId): self
