@@ -787,7 +787,8 @@
    deprecated and will be prohibited in 3.0; without it the endpoint accepts `paypal` and nothing else.
    It also gained a trailing nullable `?PayPalFundingSourcesConfigurationProviderInterface`: `venmo`,
    `google_pay`, `apple_pay` and `trustly` are accepted only while enabled on the order's channel, otherwise the
-   endpoint answers `422` before touching the payments. Not passing it is deprecated, and without it those
+   endpoint answers `422` with the `sylius_paypal.payment_source_not_available` flash before touching the
+   payments, and the payment page reloads to show it. Not passing it is deprecated, and without it those
    sources are refused.
 
    `PayPalPaymentPageContextProvider` gained a **required** `PayPalFundingSourcesConfigurationProviderInterface`,

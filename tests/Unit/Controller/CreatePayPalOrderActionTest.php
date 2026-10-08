@@ -31,6 +31,9 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 final class CreatePayPalOrderActionTest extends TestCase
 {
@@ -46,6 +49,8 @@ final class CreatePayPalOrderActionTest extends TestCase
 
     private OrderInterface&Stub $order;
 
+    private FlashBag $flashBag;
+
     private CreatePayPalOrderAction $action;
 
     protected function setUp(): void
@@ -56,6 +61,7 @@ final class CreatePayPalOrderActionTest extends TestCase
         $this->capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
         $this->paymentSourceProvider = $this->createStub(PayPalPaymentSourceProviderInterface::class);
         $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
+        $this->flashBag = new FlashBag();
         $this->order = $this->createStub(OrderInterface::class);
         $this->order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
 
@@ -221,6 +227,24 @@ final class CreatePayPalOrderActionTest extends TestCase
     }
 
     #[DataProvider('paymentSourcesTheMerchantCanDisable')]
+    public function test_it_tells_the_payer_a_payment_source_the_merchant_disabled_is_not_available(string $paymentSource, string $toggle): void
+    {
+        $this->fundingSourcesConfigurationProvider->method($toggle)->willReturn(false);
+        $this->payments(processing: null, new: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        ($this->action)($this->request(sprintf('{"paymentSource":"%s"}', $paymentSource)));
+
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $this->flashBag->peek('error'));
+    }
+
+    public function test_it_says_nothing_about_a_payment_source_it_does_not_support(): void
+    {
+        ($this->action)($this->request('{"paymentSource":"bitcoin"}'));
+
+        self::assertSame([], $this->flashBag->peekAll());
+    }
+
+    #[DataProvider('paymentSourcesTheMerchantCanDisable')]
     public function test_it_accepts_a_payment_source_the_merchant_enabled(string $paymentSource, string $toggle): void
     {
         $this->fundingSourcesConfigurationProvider->method($toggle)->willReturn(true);
@@ -362,6 +386,9 @@ final class CreatePayPalOrderActionTest extends TestCase
 
     private function request(?string $content = null): Request
     {
-        return new Request([], [], ['token' => 'ORDER_TOKEN'], [], [], [], $content);
+        $request = new Request([], [], ['token' => 'ORDER_TOKEN'], [], [], [], $content);
+        $request->setSession(new Session(new MockArraySessionStorage(), null, $this->flashBag));
+
+        return $request;
     }
 }

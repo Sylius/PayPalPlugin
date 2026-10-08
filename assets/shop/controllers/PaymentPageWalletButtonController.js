@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { paymentPageSession } from '../scripts/paypal-payment-page';
+import { PaymentSourceNotAvailableError, paymentPageSession } from '../scripts/paypal-payment-page';
 
 export default class extends Controller {
     static targets = ['button', 'payLaterButton', 'venmoButton'];
@@ -75,6 +75,13 @@ export default class extends Controller {
             await paymentSession.start({ presentationMode: 'auto' }, session.startAttempt(paymentSource));
         } catch (error) {
             session.release();
+
+            if (error instanceof PaymentSourceNotAvailableError) {
+                window.location.reload();
+
+                return;
+            }
+
             console.error('paymentSession.start() failed:', error);
         }
     }

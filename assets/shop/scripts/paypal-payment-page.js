@@ -1,5 +1,7 @@
 import { loadWebSdkOnce } from './paypal-web-sdk';
 
+export class PaymentSourceNotAvailableError extends Error {}
+
 let session = null;
 let busy = false;
 let attemptOrderId = null;
@@ -27,6 +29,12 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
             body: JSON.stringify({ paymentSource }),
         }),
     });
+    if (response.status === 422) {
+        busy = false;
+
+        throw new PaymentSourceNotAvailableError('The selected payment source is not available.');
+    }
+
     if (!response.ok) {
         busy = false;
 
