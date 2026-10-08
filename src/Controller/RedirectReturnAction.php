@@ -46,7 +46,10 @@ final readonly class RedirectReturnAction
             $nonce = (string) $request->attributes->get('nonce');
 
             if (!$this->payerActionChecker->matchesPayerActionReturnNonce($payment, $nonce)) {
-                if ($this->isReturnOfEarlierAttempt($order, $payment, $nonce)) {
+                $earlierPayment = $this->findEarlierAttempt($order, $payment, $nonce);
+                if (null !== $earlierPayment) {
+                    $this->paymentSettlementProcessor->settle($earlierPayment);
+
                     return new RedirectResponse($this->destination($order, null));
                 }
 
@@ -62,7 +65,7 @@ final readonly class RedirectReturnAction
         return new RedirectResponse($this->destination($order, $payment));
     }
 
-    private function isReturnOfEarlierAttempt(OrderInterface $order, PaymentInterface $payment, string $nonce): bool
+    private function findEarlierAttempt(OrderInterface $order, PaymentInterface $payment, string $nonce): ?PaymentInterface
     {
         foreach ($order->getPayments() as $orderPayment) {
             if (
@@ -70,11 +73,11 @@ final readonly class RedirectReturnAction
                 $orderPayment !== $payment &&
                 $this->payerActionChecker->matchesPayerActionReturnNonce($orderPayment, $nonce)
             ) {
-                return true;
+                return $orderPayment;
             }
         }
 
-        return false;
+        return null;
     }
 
     private function destination(OrderInterface $order, ?PaymentInterface $payment): string

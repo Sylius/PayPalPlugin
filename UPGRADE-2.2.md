@@ -1174,7 +1174,7 @@
    `payer_action_cancel_nonce` — stores them in the payment details next to `payer_action_url` and puts one
    in each of the URLs PayPal is given; a request whose nonce does not match its own route answers `404`,
    unless it is a nonce of an earlier attempt of the same order, which is sent to the order page and leaves
-   the payment in flight untouched.
+   the payment in flight untouched; a return from such an attempt settles that attempt first.
    One per route rather than one per attempt, so a value that leaks from the return URL cannot be used to
    cancel a transfer that is on its way. Each is per attempt rather than per request — PayPal may send the
    buyer back more than once — and a new attempt replaces both. Settling the payment drops all three keys

@@ -162,7 +162,7 @@ final class RedirectReturnActionTest extends TestCase
         $action($this->request());
     }
 
-    public function test_it_sends_the_payer_returning_from_an_earlier_attempt_to_the_order_page(): void
+    public function test_it_settles_the_earlier_attempt_the_payer_returns_from_and_sends_them_to_the_order_page(): void
     {
         $payment = $this->payment(PaymentInterface::STATE_PROCESSING);
         $earlierPayment = $this->createMock(PaymentInterface::class);
@@ -184,7 +184,7 @@ final class RedirectReturnActionTest extends TestCase
             $requestStack,
         );
 
-        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($earlierPayment);
 
         $response = $action($this->request());
 
