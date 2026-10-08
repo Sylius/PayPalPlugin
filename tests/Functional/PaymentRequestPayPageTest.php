@@ -241,7 +241,10 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $gatewayConfig->setUsePayum(false);
-        $gatewayConfig->setConfig(array_diff_key($gatewayConfig->getConfig(), ['use_authorize' => true]));
+        $gatewayConfig->setConfig(array_merge(
+            array_diff_key($gatewayConfig->getConfig(), ['use_authorize' => true]),
+            ['venmo_enabled' => true, 'google_pay_enabled' => true, 'apple_pay_enabled' => true, 'trustly_enabled' => true],
+        ));
 
         $this->getEntityManager()->flush();
 

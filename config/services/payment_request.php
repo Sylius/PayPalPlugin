@@ -44,6 +44,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius.provider.payment_request'),
             service('sylius_paypal.creator.paypal_order'),
             service('sylius_paypal.provider.paypal_payment_source'),
+            service('sylius_paypal.checker.payment_source_enabled'),
             service('router'),
             service('sylius_abstraction.state_machine'),
         ])
