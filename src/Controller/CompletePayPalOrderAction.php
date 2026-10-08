@@ -45,7 +45,7 @@ final readonly class CompletePayPalOrderAction
         ) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $authorizeClientApi, $orderDetailsApi and $threeDSecureVerifier to "%s" constructor' .
                 ' is deprecated and will be prohibited in 3.0. Without them the 3D Secure authentication result' .
                 ' is not verified before the payment is captured.',

@@ -65,7 +65,7 @@ final readonly class UpdatePayPalOrderAction
     {
         trigger_deprecation(
             'sylius/paypal-plugin',
-            '2.1',
+            '2.2',
             'The "sylius_paypal_shop_update_paypal_order" route is deprecated and will be removed in 3.0.' .
             ' Use "sylius_paypal_order_shipping_callback", the server-side shipping callback PayPal' .
             ' calls on its own, instead.',

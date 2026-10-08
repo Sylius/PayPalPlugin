@@ -58,7 +58,7 @@ final readonly class AddToCartAction
         if (null === $this->cartStorage) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
                 CartStorageInterface::class,
                 self::class,
@@ -67,7 +67,7 @@ final readonly class AddToCartAction
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
                 PayPalFundingSourcesConfigurationProviderInterface::class,
                 self::class,

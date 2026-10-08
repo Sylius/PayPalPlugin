@@ -46,7 +46,7 @@ final readonly class PayPalPaymentOnErrorAction
         if (!$this->canCancelPayments()) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing instances of "%s", "%s", "%s" and "%s" as the third to sixth arguments is deprecated and will be prohibited in 3.0.',
                 PaypalPaymentQueryInterface::class,
                 StateMachineInterface::class,

@@ -45,7 +45,7 @@ final class PayPalExtension extends AbstractExtension
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $fundingSourcesConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
                 self::class,
             );
@@ -53,7 +53,7 @@ final class PayPalExtension extends AbstractExtension
         if (null === $this->channelContext) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $channelContext to %s constructor is deprecated and will be required in 3.0',
                 self::class,
             );
@@ -61,7 +61,7 @@ final class PayPalExtension extends AbstractExtension
         if (null === $this->webSdkConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $webSdkConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
                 self::class,
             );
@@ -69,7 +69,7 @@ final class PayPalExtension extends AbstractExtension
         if (null === $this->currentLocaleProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $currentLocaleProvider to %s constructor is deprecated and will be required in 3.0',
                 self::class,
             );
