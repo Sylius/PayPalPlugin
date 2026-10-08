@@ -330,7 +330,8 @@
    +        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
    +        private ?OrderProcessorInterface $orderProcessor = null,
    +        private ?RepositoryInterface $shippingMethodRepository = null,
-   +        private ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+   +        ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+   +        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
    +        private ?UpdateOrderApiInterface $updateOrderApi = null,
         ) {
         }
@@ -344,6 +345,7 @@
    +    <argument type="service" id="sylius.order_processing.order_processor" />
    +    <argument type="service" id="sylius.repository.shipping_method" />
    +    <argument type="service" id="sylius_paypal.factory.express_order_address" />
+   +    <argument type="service" id="sylius_paypal.verifier.order_ownership" />
    +    <argument type="service" id="sylius_paypal.api.update_order" />
     </service>
    ```

@@ -30,6 +30,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
+use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
@@ -324,7 +325,7 @@ final readonly class ProcessPayPalOrderAction
     /** @param array<string, mixed> $purchaseUnit */
     private function isLowerThanApproved(OrderInterface $order, array $purchaseUnit): bool
     {
-        return $order->getTotal() < (int) round((float) ($purchaseUnit['amount']['value'] ?? '0') * 100);
+        return $order->getTotal() < AmountUtils::toMinorUnits((string) ($purchaseUnit['amount']['value'] ?? '0'));
     }
 
     private function lowerApprovedAmount(UpdateOrderApiInterface $updateOrderApi, PaymentInterface $payment, string $payPalOrderId): bool
