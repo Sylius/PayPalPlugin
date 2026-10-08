@@ -167,6 +167,17 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertCount(1, DummyAddTrackingApi::$requests);
     }
 
+    public function test_it_does_not_ship_a_tracking_code_longer_than_paypal_accepts_for_the_carrier_the_shipment_already_has(): void
+    {
+        self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($this->shipment(), 'DHL', null);
+
+        $this->ship(['trackingCode' => str_repeat('A', 65)]);
+
+        $this->assertViolation('trackingCode', 'The tracking code can have at most 64 characters to be sent to PayPal.');
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
+    }
+
     public function test_it_sends_the_tracking_when_sylius_ship_shipment_command_ships_a_shipment_that_already_has_a_carrier(): void
     {
         $shipment = $this->shipment();

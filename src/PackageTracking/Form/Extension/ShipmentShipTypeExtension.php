@@ -67,8 +67,16 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
         }
 
         $trackingData = $form->get(self::TRACKING_FIELD_NAME)->getData();
-        if ($trackingData instanceof ShipmentTrackingData) {
-            $trackingData->setTrackingCode($shipment->getTracking());
+        if (!$trackingData instanceof ShipmentTrackingData) {
+            return;
+        }
+
+        $trackingData->setTrackingCode($shipment->getTracking());
+
+        if (null === $trackingData->getCarrier()) {
+            $tracking = $this->shipmentTrackingRepository->findOneByShipment($shipment);
+            $trackingData->setCarrier($tracking?->getCarrier());
+            $trackingData->setCarrierNameOther($tracking?->getCarrierNameOther());
         }
     }
 

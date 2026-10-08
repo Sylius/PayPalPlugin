@@ -121,6 +121,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.shipment'),
             service('sylius_paypal.provider.order_paypal_payment'),
+            service('sylius_paypal.repository.shipment_tracking'),
         ])
         ->tag('validator.constraint_validator');
 

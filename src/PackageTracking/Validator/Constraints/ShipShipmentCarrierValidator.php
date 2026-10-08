@@ -19,6 +19,7 @@ use Sylius\Component\Core\Repository\ShipmentRepositoryInterface;
 use Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier;
 use Sylius\PayPalPlugin\PackageTracking\Model\ShipmentTrackingData;
 use Sylius\PayPalPlugin\PackageTracking\Provider\OrderPayPalPaymentProviderInterface;
+use Sylius\PayPalPlugin\PackageTracking\Repository\ShipmentTrackingRepositoryInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
@@ -30,6 +31,7 @@ final class ShipShipmentCarrierValidator extends ConstraintValidator
     public function __construct(
         private readonly ShipmentRepositoryInterface $shipmentRepository,
         private readonly OrderPayPalPaymentProviderInterface $orderPayPalPaymentProvider,
+        private readonly ShipmentTrackingRepositoryInterface $shipmentTrackingRepository,
     ) {
     }
 
@@ -44,12 +46,23 @@ final class ShipShipmentCarrierValidator extends ConstraintValidator
         }
 
         $trackingData = new ShipmentTrackingData($value->carrier, $value->carrierNameOther, $value->trackingCode);
-        if (null === $trackingData->getCarrier()) {
+        if (null === $trackingData->getCarrier() && null === $trackingData->getTrackingCode()) {
             return;
         }
 
-        $order = $this->shipmentRepository->find($value->shipmentId)?->getOrder();
-        if (!$order instanceof OrderInterface || null === $this->orderPayPalPaymentProvider->provide($order)) {
+        $shipment = $this->shipmentRepository->find($value->shipmentId);
+        $order = $shipment?->getOrder();
+        if (!$shipment instanceof ShipmentInterface || !$order instanceof OrderInterface || null === $this->orderPayPalPaymentProvider->provide($order)) {
+            return;
+        }
+
+        if (null === $trackingData->getCarrier()) {
+            $tracking = $this->shipmentTrackingRepository->findOneByShipment($shipment);
+            $trackingData->setCarrier($tracking?->getCarrier());
+            $trackingData->setCarrierNameOther($tracking?->getCarrierNameOther());
+        }
+
+        if (null === $trackingData->getCarrier()) {
             return;
         }
 

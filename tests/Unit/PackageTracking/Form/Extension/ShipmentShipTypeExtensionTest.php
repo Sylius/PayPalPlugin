@@ -166,11 +166,64 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
         self::assertSame('TRACK1', $trackingData->getTrackingCode());
     }
 
+    #[Test]
+    public function it_checks_the_tracking_number_against_the_carrier_the_shipment_already_has(): void
+    {
+        $form = $this->submit(
+            ['tracking' => str_repeat('A', 65), 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']],
+            $this->tracking('FEDEX'),
+        );
+
+        self::assertFalse($form->isValid());
+        self::assertSame(
+            'sylius_paypal.shipment_tracking.tracking_code_too_long',
+            (string) $form->get('paypal_tracking')->getErrors()[0]->getMessage(),
+        );
+    }
+
+    #[Test]
+    public function it_takes_the_carrier_the_shipment_already_has_when_none_is_chosen(): void
+    {
+        $form = $this->submit(
+            ['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => '', 'carrier_name_other' => '']],
+            $this->tracking(CarrierProviderInterface::OTHER_CARRIER_CODE, 'Pigeon Post'),
+        );
+
+        self::assertTrue($form->isValid());
+
+        /** @var ShipmentTrackingData $trackingData */
+        $trackingData = $form->get('paypal_tracking')->getData();
+        self::assertSame(CarrierProviderInterface::OTHER_CARRIER_CODE, $trackingData->getCarrier());
+        self::assertSame('Pigeon Post', $trackingData->getCarrierNameOther());
+    }
+
+    #[Test]
+    public function it_keeps_the_chosen_carrier_over_the_one_the_shipment_already_has(): void
+    {
+        $form = $this->submit(
+            ['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']],
+            $this->tracking(CarrierProviderInterface::OTHER_CARRIER_CODE, 'Pigeon Post'),
+        );
+
+        /** @var ShipmentTrackingData $trackingData */
+        $trackingData = $form->get('paypal_tracking')->getData();
+        self::assertSame('FEDEX', $trackingData->getCarrier());
+    }
+
+    private function tracking(string $carrier, ?string $carrierNameOther = null): ShipmentTracking
+    {
+        $tracking = new ShipmentTracking($this->shipment());
+        $tracking->setCarrier($carrier);
+        $tracking->setCarrierNameOther($carrierNameOther);
+
+        return $tracking;
+    }
+
     /** @param array<string, mixed> $data */
-    private function submit(array $data): FormInterface
+    private function submit(array $data, ?ShipmentTracking $tracking = null): FormInterface
     {
         $this->payPalPaidOrder();
-        $this->shipmentTrackingRepository->method('findOneByShipment')->willReturn(null);
+        $this->shipmentTrackingRepository->method('findOneByShipment')->willReturn($tracking);
 
         $form = $this->factory->create(ShipmentShipType::class, $this->shipment());
         $form->submit($data);

@@ -155,6 +155,20 @@ final class ShipShipmentWithPayPalTrackingTest extends JsonApiTestCase
         self::assertNull($this->tracking());
     }
 
+    public function test_it_does_not_ship_a_tracking_code_longer_than_paypal_accepts_for_the_carrier_the_shipment_already_has(): void
+    {
+        self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($this->shipment(), 'DHL', null);
+
+        $this->ship(['tracking' => str_repeat('A', 65), 'paypal_tracking' => ['carrier' => '']]);
+
+        $response = $this->client->getResponse();
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $trackingRow = (new Crawler((string) $response->getContent()))->filter(sprintf('#%s_tracking', self::FORM_NAME))->closest('.col-12');
+        self::assertStringContainsString('The tracking code can have at most 64 characters to be sent to PayPal.', $trackingRow?->text() ?? '');
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertSame('DHL', $this->tracking()?->getCarrier());
+    }
+
     public function test_it_saves_nothing_while_the_form_only_re_renders(): void
     {
         $this->shipForm()->submitForm([self::FORM_NAME => ['tracking' => 'QA-TRACK-5', 'paypal_tracking' => ['carrier' => 'DHL']]]);
