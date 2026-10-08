@@ -20,6 +20,8 @@ sylius_paypal:
     google_pay_enabled: 'Włącz Google Pay'
     invalid_form: 'Formularz jest nieprawidłowy'
     label: 'PayPal'
+    late_capture: 'PayPal pobrał %amount% dla tej próby już po jej zamknięciu.'
+    late_capture_refunded: 'PayPal pobrał %amount% dla tej próby już po jej zamknięciu. Kwota została zwrócona.'
     merchant_id: 'Merchant ID'
     messaging_enabled: 'Włącz komunikaty Pay Later'
     missing_billing_address_content: 'Wróć do kroku Adres i uzupełnij go'

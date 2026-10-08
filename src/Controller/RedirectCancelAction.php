@@ -57,6 +57,10 @@ final readonly class RedirectCancelAction
 
         $nonce = (string) $request->attributes->get('nonce');
         if (!$this->payerActionChecker->matchesPayerActionCancelNonce($payment, $nonce)) {
+            if ($this->isCancellationOfEarlierAttempt($order, $payment, $nonce)) {
+                return new RedirectResponse($this->payPalPageUrl($order));
+            }
+
             throw new NotFoundHttpException(sprintf(
                 'Payment "%s" was not started by the payer action that came back.',
                 (string) $payment->getId(),
@@ -88,6 +92,21 @@ final readonly class RedirectCancelAction
         }
 
         return new RedirectResponse($this->payPalPageUrl($order));
+    }
+
+    private function isCancellationOfEarlierAttempt(OrderInterface $order, PaymentInterface $payment, string $nonce): bool
+    {
+        foreach ($order->getPayments() as $orderPayment) {
+            if (
+                $orderPayment instanceof PaymentInterface &&
+                $orderPayment !== $payment &&
+                $this->payerActionChecker->matchesPayerActionCancelNonce($orderPayment, $nonce)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isRefusal(string $errorCode): bool

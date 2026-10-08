@@ -67,7 +67,7 @@ final readonly class PayWithPayPalFormAction
         if (null === $this->webUrl) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing the "sylius_paypal.web_url" parameter to "%s" constructor is deprecated and will be required in 3.0.',
                 self::class,
             );
@@ -117,7 +117,7 @@ final readonly class PayWithPayPalFormAction
 
         trigger_deprecation(
             'sylius/paypal-plugin',
-            '2.1',
+            '2.2',
             'Passing an instance of "%s" to "%s" constructor is deprecated and will be prohibited in 3.0.' .
             ' It is no longer used since the page moved to PayPal Web SDK v6.',
             $interface,
@@ -133,7 +133,7 @@ final readonly class PayWithPayPalFormAction
 
         trigger_deprecation(
             'sylius/paypal-plugin',
-            '2.1',
+            '2.2',
             'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
             $interface,
             self::class,

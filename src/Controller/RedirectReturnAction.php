@@ -46,6 +46,13 @@ final readonly class RedirectReturnAction
             $nonce = (string) $request->attributes->get('nonce');
 
             if (!$this->payerActionChecker->matchesPayerActionReturnNonce($payment, $nonce)) {
+                $earlierPayment = $this->findEarlierAttempt($order, $payment, $nonce);
+                if (null !== $earlierPayment) {
+                    $this->paymentSettlementProcessor->settle($earlierPayment);
+
+                    return new RedirectResponse($this->destination($order, null));
+                }
+
                 throw new NotFoundHttpException(sprintf(
                     'Payment "%s" was not started by the payer action that came back.',
                     (string) $payment->getId(),
@@ -56,6 +63,21 @@ final readonly class RedirectReturnAction
         }
 
         return new RedirectResponse($this->destination($order, $payment));
+    }
+
+    private function findEarlierAttempt(OrderInterface $order, PaymentInterface $payment, string $nonce): ?PaymentInterface
+    {
+        foreach ($order->getPayments() as $orderPayment) {
+            if (
+                $orderPayment instanceof PaymentInterface &&
+                $orderPayment !== $payment &&
+                $this->payerActionChecker->matchesPayerActionReturnNonce($orderPayment, $nonce)
+            ) {
+                return $orderPayment;
+            }
+        }
+
+        return null;
     }
 
     private function destination(OrderInterface $order, ?PaymentInterface $payment): string

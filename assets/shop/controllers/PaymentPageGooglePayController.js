@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { paymentPageSession } from '../scripts/paypal-payment-page';
+import { PaymentSourceNotAvailableError, paymentPageSession } from '../scripts/paypal-payment-page';
 import { loadGooglePaySdkOnce } from '../scripts/google-pay';
 
 const PAYMENT_SOURCE = 'google_pay';
@@ -119,7 +119,11 @@ export default class extends Controller {
             return { transactionState: 'SUCCESS' };
         } catch (error) {
             this.session.release();
-            await this.reportError(error);
+
+            if (!(error instanceof PaymentSourceNotAvailableError)) {
+                await this.reportError(error);
+            }
+
             this.reported = true;
 
             return { transactionState: 'ERROR', error: { message: String(error) } };

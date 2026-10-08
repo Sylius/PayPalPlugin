@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { paymentPageSession } from '../scripts/paypal-payment-page';
+import { PaymentSourceNotAvailableError, paymentPageSession } from '../scripts/paypal-payment-page';
 import { loadApplePaySdkOnce } from '../scripts/apple-pay';
 
 const PAYMENT_SOURCE = 'apple_pay';
@@ -154,16 +154,18 @@ export default class extends Controller {
     }
 
     async fail(error, context = null) {
-        console.error('Apple Pay payment failed:', error);
+        if (!(error instanceof PaymentSourceNotAvailableError)) {
+            console.error('Apple Pay payment failed:', error);
 
-        await fetch(this.errorUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                error: this.describe(error, context),
-                payPalOrderId: this.session?.currentOrderId() ?? null,
-            }),
-        });
+            await fetch(this.errorUrlValue, {
+                method: 'post',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    error: this.describe(error, context),
+                    payPalOrderId: this.session?.currentOrderId() ?? null,
+                }),
+            });
+        }
 
         this.session.release();
         window.location.reload();

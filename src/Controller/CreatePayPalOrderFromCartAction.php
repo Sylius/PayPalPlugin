@@ -72,7 +72,7 @@ final readonly class CreatePayPalOrderFromCartAction
         if (null === $this->orderOwnershipVerifier) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
                 OrderOwnershipVerifierInterface::class,
                 self::class,
@@ -81,7 +81,7 @@ final readonly class CreatePayPalOrderFromCartAction
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalFundingSourcesConfigurationProviderInterface::class,
                 self::class,
@@ -103,6 +103,10 @@ final readonly class CreatePayPalOrderFromCartAction
 
         $paymentSource = $this->resolvePaymentSource($request, $order);
         if (null === $paymentSource) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 

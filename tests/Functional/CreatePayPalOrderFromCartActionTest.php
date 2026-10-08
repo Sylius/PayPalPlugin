@@ -21,6 +21,7 @@ use Sylius\Component\Core\Storage\CartStorageInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
@@ -108,6 +109,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
 
         $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
     }
 
     /** @test */
@@ -147,6 +149,18 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
 
         return $order->getLastPayment(PaymentInterface::STATE_CART)?->getDetails()['payment_source'] ?? null;
+    }
+
+    private function clientSession(): Session
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        /** @var Session $session */
+        $session = $sessionFactory->createSession();
+        $session->setId((string) $this->client->getCookieJar()->get($session->getName())?->getValue());
+        $session->start();
+
+        return $session;
     }
 
     private function seedCurrentCart(OrderInterface $order): void

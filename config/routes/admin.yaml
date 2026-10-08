@@ -16,3 +16,9 @@ sylius_paypal_admin_complete_onboarding:
     condition: "request.headers.get('Content-Type') matches '#^application/json#'"
     defaults:
         _controller: sylius_paypal.controller.complete_onboarding
+
+sylius_paypal_admin_order_payment_refund_late_capture:
+    path: /orders/{orderId}/payments/{id}/refund-paypal-capture
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.refund_late_capture

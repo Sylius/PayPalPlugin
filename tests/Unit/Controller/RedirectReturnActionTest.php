@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -159,6 +160,35 @@ final class RedirectReturnActionTest extends TestCase
         $this->expectException(NotFoundHttpException::class);
 
         $action($this->request());
+    }
+
+    public function test_it_settles_the_earlier_attempt_the_payer_returns_from_and_sends_them_to_the_order_page(): void
+    {
+        $payment = $this->payment(PaymentInterface::STATE_PROCESSING);
+        $earlierPayment = $this->createMock(PaymentInterface::class);
+        $this->order->method('getPayments')->willReturn(new ArrayCollection([$earlierPayment, $payment]));
+
+        $payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
+        $payerActionChecker->method('matchesPayerActionReturnNonce')->willReturnCallback(
+            static fn (PaymentInterface $checkedPayment): bool => $checkedPayment === $earlierPayment,
+        );
+
+        $requestStack = new RequestStack();
+        $requestStack->push($this->request());
+
+        $action = new RedirectReturnAction(
+            $this->orderProvider,
+            $this->paymentSettlementProcessor,
+            $payerActionChecker,
+            $this->router,
+            $requestStack,
+        );
+
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($earlierPayment);
+
+        $response = $action($this->request());
+
+        self::assertSame('https://shop.example.com/sylius_shop_order_show', $response->getTargetUrl());
     }
 
     private function payment(string $state): PaymentInterface&MockObject

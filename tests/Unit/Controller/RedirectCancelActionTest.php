@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -247,6 +248,41 @@ final class RedirectCancelActionTest extends TestCase
         $this->expectException(NotFoundHttpException::class);
 
         $action($this->request());
+    }
+
+    public function test_it_cancels_nothing_for_the_payer_leaving_an_earlier_attempt(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $earlierPayment = $this->createMock(PaymentInterface::class);
+        $this->order->method('getPayments')->willReturn(new ArrayCollection([$earlierPayment, $payment]));
+        $this->order->method('getLastPayment')->willReturnMap([
+            [PaymentInterface::STATE_PROCESSING, $payment],
+            [PaymentInterface::STATE_NEW, null],
+        ]);
+
+        $payerActionChecker = $this->createMock(PayerActionCheckerInterface::class);
+        $payerActionChecker->method('matchesPayerActionCancelNonce')->willReturnCallback(
+            static fn (PaymentInterface $checkedPayment): bool => $checkedPayment === $earlierPayment,
+        );
+
+        $action = new RedirectCancelAction(
+            $this->orderProvider,
+            $this->paymentSettlementProcessor,
+            $payerActionChecker,
+            $this->stateMachine,
+            $this->orderPaymentProcessor,
+            $this->objectManager,
+            $this->router,
+            new RequestStack(),
+        );
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $response = $action($this->request());
+
+        self::assertSame('https://shop.example.com/sylius_shop_order_show', $response->getTargetUrl());
     }
 
     private function request(): Request

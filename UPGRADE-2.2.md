@@ -1,4 +1,4 @@
-# UPGRADE FROM 2.0 to 2.1
+# UPGRADE FROM 2.1 to 2.2
 
 1. #### The shop-facing PayPal button placements now run on PayPal's Web SDK v6.
 
@@ -91,7 +91,8 @@
 
    That rule lives in `Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface`
    (`sylius_paypal.provider.shipping_callback_url`), which returns `null` rather than a URL PayPal
-   could not call. Decorate or replace it if your shop reaches PayPal some other way — for instance behind a
+   could not call, and logs a warning to the `paypal` channel when it does. Decorate or replace it if your shop
+   reaches PayPal some other way — for instance behind a
    proxy that terminates TLS in front of an `http` backend.
 
    Three services carry the work and can be decorated or replaced:
@@ -192,7 +193,7 @@
 
 1. #### The following routes are deprecated and will be removed in 3.0.
 
-   Both are superseded and have no caller left in the package. They keep working unchanged in 2.1 and only
+   Both are superseded and have no caller left in the package. They keep working unchanged in 2.2 and only
    emit a deprecation notice.
 
    | Deprecated route | Replacement |
@@ -216,7 +217,7 @@
    \* `status` is the payment state, so `ProcessPayPalOrderAction` omits it in the one response it returns when
    the order has no payment left in the cart state — there is no payment to report a state for.
 
-   **This is not a break in 2.1.** Every old key is still sent alongside its replacement, with the same value
+   **This is not a break in 2.2.** Every old key is still sent alongside its replacement, with the same value
    and the same meaning it had in 2.0, so JavaScript reading the old names keeps working. The old keys are
    deprecated and **will be removed in 3.0** — move your code to the new names before then.
 
@@ -254,7 +255,10 @@
 
    Two smaller changes come with it: the buyer's phone number from PayPal's `payer` payload is now written onto
    the order's addresses and onto a newly created customer, and a payment amount mismatch no longer leaves the
-   request in an error, the payment is detached from the order, the order is reprocessed, and the buyer is
+   request in an error. When the order total dropped below the amount approved in the wallet (for instance tax
+   recalculated for the payer's country), the PayPal order is updated to the new total and the order is
+   completed; if PayPal refuses the update, it is treated as any other mismatch. When it grew, the payment is
+   detached from the order, the order is reprocessed, and the buyer is
    returned to the checkout summary so the purchase can be retried.
 
    The action also cross-references the posted `payPalOrderId` against the `paypal_order_id` the plugin itself
@@ -326,7 +330,9 @@
    +        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
    +        private ?OrderProcessorInterface $orderProcessor = null,
    +        private ?RepositoryInterface $shippingMethodRepository = null,
-   +        private ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+   +        ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+   +        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+   +        private ?UpdateOrderApiInterface $updateOrderApi = null,
         ) {
         }
    ```
@@ -339,6 +345,8 @@
    +    <argument type="service" id="sylius.order_processing.order_processor" />
    +    <argument type="service" id="sylius.repository.shipping_method" />
    +    <argument type="service" id="sylius_paypal.factory.express_order_address" />
+   +    <argument type="service" id="sylius_paypal.verifier.order_ownership" />
+   +    <argument type="service" id="sylius_paypal.api.update_order" />
     </service>
    ```
 
@@ -347,6 +355,8 @@
    as it did in 2.0, which means the shipping method the buyer chose in the wallet is not applied, and the
    region is not stored because the action falls back to an address factory that resolves none. The first of
    those two fails the amount check and sends the buyer back to the checkout instead of the thank-you page.
+   Without the `UpdateOrderApiInterface` a total that dropped below the approved amount is treated as any other
+   mismatch.
 
    ```diff
     final readonly class CreateOrderApi
@@ -575,8 +585,9 @@
 
    `PayPalPaymentOnErrorAction` gained four nullable arguments — a `PaypalPaymentQueryInterface`, a
    `StateMachineInterface`, an `OrderProcessorInterface` wired to
-   `sylius.order_processing.order_payment_processor.checkout`, and an `ObjectManager` — which together
-   perform the cancellation. Not passing them is deprecated and will be prohibited in 3.0; without them the
+   `sylius.order_processing.order_payment_processor.checkout` and run only for an order still in the cart, and
+   an `ObjectManager` — which together perform the cancellation. Not passing them is deprecated and will be
+   prohibited in 3.0; without them the
    endpoint only logs and flashes, as it did in 2.0.
 
 1. #### The following signatures changed.
@@ -690,7 +701,7 @@
    - `pay_later_enabled` — hides the Pay Later button when off.
    - `messaging_enabled` — hides the `<paypal-message>` financing message (see below) when off.
 
-   Both default to `true`, including for existing (pre-2.1) payment methods, whose stored config simply
+   Both default to `true`, including for existing (pre-2.2) payment methods, whose stored config simply
    won't have these keys yet — these are merchant opt-outs, not opt-ins.
 
    `<paypal-message>` (e.g. "Pay in 4 interest-free payments of $X") now renders real content on the
@@ -777,15 +788,20 @@
    Existing **calls** keep working, positional ones included. An existing **implementation** of
    `CreateOrderApiInterface` does not: PHP requires it to declare every parameter the interface declares, so
    a class still carrying the three-argument signature is a fatal error rather than a deprecation. Add both
-   arguments to it. `PayPalOrderFactoryInterface` is new in 2.1 and has no released signature to preserve.
+   arguments to it. `PayPalOrderFactoryInterface` is new in 2.2 and has no released signature to preserve.
    A factory that builds a redirect order without a nonce now throws, because the URLs it would hand PayPal
    could not be told apart from anyone else's.
 
    `CreatePayPalOrderAction` gained a nullable `?PayPalPaymentSourceProviderInterface`. Not passing it is
    deprecated and will be prohibited in 3.0; without it the endpoint accepts `paypal` and nothing else.
+   It also gained a trailing nullable `?PayPalFundingSourcesConfigurationProviderInterface`: `venmo`,
+   `google_pay`, `apple_pay` and `trustly` are accepted only while enabled on the order's channel, otherwise the
+   endpoint answers `422` with the `sylius_paypal.payment_source_not_available` flash before touching the
+   payments, and the payment page reloads to show it. Not passing it is deprecated, and without it those
+   sources are refused.
 
    `PayPalPaymentPageContextProvider` gained a **required** `PayPalFundingSourcesConfigurationProviderInterface`,
-   because it decides which SDK components the page asks for. That class is new in 2.1 and has no released
+   because it decides which SDK components the page asks for. That class is new in 2.2 and has no released
    signature to preserve; if you build it yourself, pass `sylius_paypal.provider.paypal_configuration`.
 
    `PayPalFundingSourcesConfigurationProviderInterface` gained `isGooglePayEnabled(ChannelInterface $channel)`.
@@ -864,7 +880,7 @@
                    enabled: false
    ```
 
-   That hook is new in 2.1 and split into two levels. The outer one,
+   That hook is new in 2.2 and split into two levels. The outer one,
    `sylius_paypal.shop.pay_with_paypal.content`, carries `flashes` 200, `methods` 100 and `privacy_notice`
    0. Every payment method lives one level down, on `sylius_paypal.shop.pay_with_paypal.content.methods` —
    `paypal` 600, `paypal_messaging` 500, `venmo` 400, `google_pay` 300, `apple_pay` 200, `redirect_methods`
@@ -1166,7 +1182,9 @@
    the cancel route reaches the payment state machine directly and so bypasses the `payer_action_url` guard
    above. Each attempt therefore mints two nonces — `payer_action_return_nonce` and
    `payer_action_cancel_nonce` — stores them in the payment details next to `payer_action_url` and puts one
-   in each of the URLs PayPal is given; a request whose nonce does not match its own route answers `404`.
+   in each of the URLs PayPal is given; a request whose nonce does not match its own route answers `404`,
+   unless it is a nonce of an earlier attempt of the same order, which is sent to the order page and leaves
+   the payment in flight untouched; a return from such an attempt settles that attempt first.
    One per route rather than one per attempt, so a value that leaks from the return URL cannot be used to
    cancel a transfer that is on its way. Each is per attempt rather than per request — PayPal may send the
    buyer back more than once — and a new attempt replaces both. Settling the payment drops all three keys
@@ -1231,16 +1249,23 @@
      interface rather than a method on `PaypalPaymentQueryInterface`, which shipped in 1.7 — adding to that
      one would break every shop implementing it instead of decorating it. `PaypalPaymentQuery` implements
      both, and the container aliases both to it. The settleable states deliberately cover `cancelled` and
-     `failed` as well, so a late webhook can find its payment and log the mismatch rather than throw.
+     `failed` as well, so a late webhook can find its payment rather than throw. A capture PayPal completes for
+     such a payment (for instance a Trustly transfer finished at the bank after the buyer cancelled the attempt)
+     is kept in its details as `paypal_late_capture`. The admin order page shows it on the payment with a
+     Refund button (`sylius_paypal_admin_order_payment_refund_late_capture`, handled by
+     `sylius_paypal.processor.late_capture_refund`) that refunds that capture at PayPal without changing the
+     payment state. Don't complete the order's new payment by hand for that money: it carries no
+     `paypal_order_id`, so a later refund in Sylius would not reach PayPal.
    - `Sylius\PayPalPlugin\Model\PayPalCapture` is new: a read-only view of the capture buried in
      `purchase_units[0].payments.captures[0]`, built with `PayPalCapture::fromPayPalOrder()`, which answers
      `null` for an order that has no capture yet. It owns the conversion of PayPal's decimal string into
-     Sylius minor units and carries the `STATUS_*` constants the settlement processor used to declare.
+     Sylius minor units and carries the `STATUS_*` constants the settlement processor used to declare, plus
+     `STATUS_REFUNDED`.
    - `PaymentSettlementProcessorInterface` still completes a payment whose capture does not match the
      amount or currency it expected. The money is real, and refusing to settle would leave a paid order
      unpaid — the worse of the two errors. The mismatch is no longer only a log line, though: the capture's
-     `captured_amount` and `captured_currency_code` now land in the payment details, so it can be seen in
-     the admin panel and reconciled instead of being looked for in logs.
+     `captured_amount` and `captured_currency_code` now land in the payment details, so it can be reconciled
+     instead of being looked for in logs.
    - `PaypalPaymentQuery` narrowed the return type of its finders to `PaymentInterface`. None of them ever
      answered `null` — they throw `PaymentNotFoundException` — so reading code can stop null-checking today.
      `PaypalPaymentQueryInterface`, which shipped in 1.7, still declares `?PaymentInterface` on its three
@@ -1422,8 +1447,10 @@
    If you implement that interface yourself rather than decorating
    `sylius_paypal.provider.paypal_configuration`, add the method.
 
-   Orders created for Venmo carry `payment_source.venmo`. `CreatePayPalOrderFromCartAction` and
+   Orders created for Venmo carry `payment_source.venmo`. `AddToCartAction`, `CreatePayPalOrderFromCartAction` and
    `CreatePayPalOrderFromPaymentPageAction` read the `paymentSource` query parameter and accept `paypal` (the
-   default) and `venmo` while it is enabled on the order's channel; anything else answers `400`. Both gained a
+   default) and `venmo` while it is enabled on the order's channel; anything else answers `400` with the
+   `sylius_paypal.payment_source_not_available` error flash, and `AddToCartAction` answers it before creating the
+   cart. All three gained a
    trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
    argument; not passing it is deprecated, and without it `venmo` is refused.
