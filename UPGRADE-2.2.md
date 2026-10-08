@@ -255,7 +255,10 @@
 
    Two smaller changes come with it: the buyer's phone number from PayPal's `payer` payload is now written onto
    the order's addresses and onto a newly created customer, and a payment amount mismatch no longer leaves the
-   request in an error, the payment is detached from the order, the order is reprocessed, and the buyer is
+   request in an error. When the order total dropped below the amount approved in the wallet (for instance tax
+   recalculated for the payer's country), the PayPal order is updated to the new total and the order is
+   completed; if PayPal refuses the update, it is treated as any other mismatch. When it grew, the payment is
+   detached from the order, the order is reprocessed, and the buyer is
    returned to the checkout summary so the purchase can be retried.
 
    The action also cross-references the posted `payPalOrderId` against the `paypal_order_id` the plugin itself
@@ -327,7 +330,9 @@
    +        private ?PayPalExpressOrderCompleterInterface $orderCompleter = null,
    +        private ?OrderProcessorInterface $orderProcessor = null,
    +        private ?RepositoryInterface $shippingMethodRepository = null,
-   +        private ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+   +        ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
+   +        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+   +        private ?UpdateOrderApiInterface $updateOrderApi = null,
         ) {
         }
    ```
@@ -340,6 +345,8 @@
    +    <argument type="service" id="sylius.order_processing.order_processor" />
    +    <argument type="service" id="sylius.repository.shipping_method" />
    +    <argument type="service" id="sylius_paypal.factory.express_order_address" />
+   +    <argument type="service" id="sylius_paypal.verifier.order_ownership" />
+   +    <argument type="service" id="sylius_paypal.api.update_order" />
     </service>
    ```
 
@@ -348,6 +355,8 @@
    as it did in 2.0, which means the shipping method the buyer chose in the wallet is not applied, and the
    region is not stored because the action falls back to an address factory that resolves none. The first of
    those two fails the amount check and sends the buyer back to the checkout instead of the thank-you page.
+   Without the `UpdateOrderApiInterface` a total that dropped below the approved amount is treated as any other
+   mismatch.
 
    ```diff
     final readonly class CreateOrderApi
