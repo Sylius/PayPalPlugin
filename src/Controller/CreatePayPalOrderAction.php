@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final readonly class CreatePayPalOrderAction
 {
@@ -70,6 +71,10 @@ final readonly class CreatePayPalOrderAction
         $order = $this->orderProvider->provideOrderByToken($token);
 
         if (!$this->isPaymentSourceOffered($paymentSource, $order)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
             return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 

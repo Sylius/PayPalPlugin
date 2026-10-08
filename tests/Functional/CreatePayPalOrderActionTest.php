@@ -71,6 +71,10 @@ final class CreatePayPalOrderActionTest extends JsonApiTestCase
 
         $this->assertSame(422, $this->client->getResponse()->getStatusCode());
         $this->assertSame([PaymentInterface::STATE_PROCESSING], $this->paymentStates($order));
+        $this->assertSame(
+            ['sylius_paypal.payment_source_not_available'],
+            $this->client->getRequest()->getSession()->getBag('flashes')->peek('error'),
+        );
     }
 
     public function test_it_creates_a_paypal_order_for_venmo_enabled_by_the_merchant(): void
