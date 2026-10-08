@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor;
 
 use Doctrine\Persistence\ObjectManager;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -160,9 +161,24 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($payment, $this->orderDetails('COMPLETED'));
     }
 
-    public function test_it_only_reports_a_refused_capture_for_a_cancelled_payment(): void
+    #[DataProvider('refusedCaptureStatuses')]
+    public function test_it_ignores_a_refused_capture_for_an_attempt_the_payer_cancelled(string $status): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_CANCELLED);
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $this->logger->expects(self::never())->method('error');
+        $this->payment->expects(self::never())->method('setDetails');
+        $this->paymentManager->expects(self::never())->method('flush');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($this->payment, $this->orderDetails($status));
+    }
+
+    #[DataProvider('refusedCaptureStatuses')]
+    public function test_it_reports_a_refused_capture_for_a_completed_payment(string $status): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_COMPLETED);
         $this->stateMachine->method('can')->willReturn(false);
 
         $this->logger->expects(self::once())->method('error')->with(self::stringContains('Reconcile it by hand.'));
@@ -170,7 +186,14 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->paymentManager->expects(self::never())->method('flush');
         $this->stateMachine->expects(self::never())->method('apply');
 
-        $this->processor->settle($this->payment, $this->orderDetails('DECLINED'));
+        $this->processor->settle($this->payment, $this->orderDetails($status));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function refusedCaptureStatuses(): iterable
+    {
+        yield 'declined' => ['DECLINED'];
+        yield 'failed' => ['FAILED'];
     }
 
     private function assertKeepsLateCapture(string $state): void
