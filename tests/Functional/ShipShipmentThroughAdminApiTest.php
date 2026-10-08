@@ -178,6 +178,17 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
     }
 
+    public function test_it_does_not_ship_with_a_field_it_does_not_know(): void
+    {
+        $this->ship(['trackingCode' => 'API-TRACK-8', 'carrierCode' => 'DHL']);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('carrierCode', (string) $this->client->getResponse()->getContent());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
+    }
+
     public function test_it_documents_the_carrier_fields(): void
     {
         $this->client->request('GET', '/api/v2/docs', server: ['HTTP_ACCEPT' => 'application/vnd.openapi+json']);

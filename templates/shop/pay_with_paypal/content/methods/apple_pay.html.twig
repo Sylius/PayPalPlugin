@@ -18,7 +18,7 @@
             instanceConfig: context.webSdkInstanceConfig,
             currencyCode: context.currency,
             amount: context.amount,
-            countryCode: context.countryCode,
+            countryCode: context.countryCode ?? null,
             storeName: context.order.channel.name,
             createOrderUrl: context.createPayPalOrderUrl,
             completeOrderUrl: context.completePayPalOrderUrl,
