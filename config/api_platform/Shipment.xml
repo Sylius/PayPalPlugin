@@ -23,7 +23,17 @@
                 class="ApiPlatform\Metadata\Patch"
                 input="Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier"
             >
-                <openapi description="Ships the shipment. For an order paid with PayPal, an optional `carrier` (one of the codes configured in `sylius_paypal.tracking.carriers`, or `OTHER` with `carrierNameOther`) sends the `trackingCode` to PayPal. Without a carrier, and for orders paid with another method, the shipment is shipped and nothing is sent to PayPal." />
+                <denormalizationContext>
+                    <values>
+                        <value name="groups">
+                            <values>
+                                <value>sylius:admin:shipment:update</value>
+                            </values>
+                        </value>
+                        <value name="allow_extra_attributes">false</value>
+                    </values>
+                </denormalizationContext>
+                <openapi description="Ships the shipment. For an order paid with PayPal, an optional `carrier` (one of the codes configured in `sylius_paypal.tracking.carriers`, or `OTHER` with `carrierNameOther`) sends the `trackingCode` to PayPal. Without a carrier, and for orders paid with another method, the shipment is shipped and nothing is sent to PayPal. A field other than `trackingCode`, `carrier` and `carrierNameOther` is rejected with `400`." />
             </operation>
         </operations>
     </resource>
