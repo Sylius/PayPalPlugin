@@ -162,6 +162,18 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_renders_the_payment_page_when_the_shop_billing_data_has_no_country(): void
+    {
+        $this->requestPaymentPage(applePayEnabled: true, shopCountryCode: null);
+        $response = $this->client->getResponse();
+
+        $content = (string) $response->getContent();
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-apple-pay', $content);
+        self::assertStringNotContainsString('data-sylius--paypal-plugin--paypal-payment-apple-pay-country-code-value', $content);
+    }
+
     public function test_it_renders_the_trustly_tile_once_the_channel_opts_in_and_paypal_says_it_is_eligible(): void
     {
         FakeFindEligibleMethodsApi::$eligibleMethods = ['trustly' => []];
@@ -208,9 +220,15 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         bool $trustlyEnabled = false,
         bool $venmoEnabled = false,
         string $locale = 'en_US',
+        ?string $shopCountryCode = 'US',
     ): void {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);
         $orderId = (int) $fixtures['processing_order']->getId();
+
+        if ('US' !== $shopCountryCode) {
+            $fixtures['channel_web']->getShopBillingData()->setCountryCode($shopCountryCode);
+            $this->getEntityManager()->flush();
+        }
 
         if ('en_US' !== $locale) {
             $this->addChannelLocale($fixtures['channel_web'], $locale);
