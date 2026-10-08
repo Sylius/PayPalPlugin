@@ -72,7 +72,7 @@ return static function (ContainerConfigurator $container) {
             service('doctrine.orm.entity_manager'),
             service('request_stack'),
             service('sylius_abstraction.state_machine'),
-            service('sylius.order_processing.order_payment_processor.after_checkout'),
+            service('sylius.order_processing.order_payment_processor.checkout'),
             service('sylius_paypal.repository.query.paypal_payment'),
         ]);
 
@@ -256,7 +256,7 @@ return static function (ContainerConfigurator $container) {
             service('monolog.logger.paypal'),
             service('sylius_paypal.repository.query.paypal_payment'),
             service('sylius_abstraction.state_machine'),
-            service('sylius.order_processing.order_payment_processor.after_checkout'),
+            service('sylius.order_processing.order_payment_processor.checkout'),
             service('doctrine.orm.entity_manager'),
             service('sylius_paypal.checker.payer_action'),
         ]);
