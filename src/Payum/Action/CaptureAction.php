@@ -73,6 +73,7 @@ final readonly class CaptureAction implements ActionInterface
         $referenceId = $this->uuidProvider->provide();
         $paymentSource = $this->resolvePaymentSource($payment);
         $payerActionNonces = $this->generatePayerActionNonces($paymentSource);
+        /** @phpstan-ignore arguments.count */
         $content = $this->createOrderApi->create(
             $token,
             $payment,
