@@ -9,6 +9,7 @@ sylius_paypal:
     client_secret: 'Client Secret'
     configure: 'Configurer'
     credit_card: 'Carte de crédit'
+    credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
     different_amount: 'Ceci est le montant autorisé. Etant donné que vous avez modifié la commande après son autorisation, vous paierez le montant indiqué comme "Total"'
     enable_paypal: 'Activer PayPal'

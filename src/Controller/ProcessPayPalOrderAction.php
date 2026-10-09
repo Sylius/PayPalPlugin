@@ -178,7 +178,7 @@ final readonly class ProcessPayPalOrderAction
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
                 'return_url' => $this->generateReturnUrl($route),
-                'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+                'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
             ]);
         }
 
@@ -269,7 +269,7 @@ final readonly class ProcessPayPalOrderAction
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
             'return_url' => $this->generateReturnUrl('sylius_shop_order_thank_you'),
-            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+            'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
         ]);
     }
 
@@ -284,7 +284,7 @@ final readonly class ProcessPayPalOrderAction
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
             'return_url' => $this->generateReturnUrl('sylius_shop_checkout_complete'),
-            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+            'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
         ], $status);
     }
 
