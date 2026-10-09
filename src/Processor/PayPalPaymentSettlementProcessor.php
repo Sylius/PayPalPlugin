@@ -76,6 +76,10 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         }
 
         if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+            if (PaymentTransitions::TRANSITION_FAIL === $transition && PaymentInterface::STATE_CANCELLED === $payment->getState()) {
+                return;
+            }
+
             $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, $state);
 
             return;
