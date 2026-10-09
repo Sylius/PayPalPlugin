@@ -64,7 +64,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
     {
         yield 'waiting for the payer' => [PaymentRequestInterface::STATE_NEW, true];
         yield 'abandoned' => [PaymentRequestInterface::STATE_CANCELLED, true];
-        yield 'waiting for capture-end' => [PaymentRequestInterface::STATE_PROCESSING, false];
+        yield 'waiting for the PayPal order capture' => [PaymentRequestInterface::STATE_PROCESSING, false];
         yield 'completed' => [PaymentRequestInterface::STATE_COMPLETED, false];
         yield 'failed' => [PaymentRequestInterface::STATE_FAILED, false];
     }

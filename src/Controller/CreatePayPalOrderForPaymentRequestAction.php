@@ -22,7 +22,7 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
-use Sylius\PayPalPlugin\CommandHandler\CapturePaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -70,7 +70,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
             return new JsonResponse([], Response::HTTP_CONFLICT);
         }
 
-        $paymentRequest->setPayload([CapturePaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE => $paymentSource]);
+        $paymentRequest->setPayload([CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE => $paymentSource]);
         $this->paymentRequestRepository->add($paymentRequest);
 
         $this->paymentRequestAnnouncer->dispatchPaymentRequestCommand($paymentRequest);
@@ -105,7 +105,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
     {
         $payload = $paymentRequest->getPayload();
 
-        return is_array($payload) ? ($payload[CapturePaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE] ?? null) : null;
+        return is_array($payload) ? ($payload[CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE] ?? null) : null;
     }
 
     private function startAnotherAttempt(PaymentRequestInterface $paymentRequest): PaymentRequestInterface

@@ -19,7 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
+use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -27,7 +27,7 @@ use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 
-final class CaptureEndPaymentRequestHandler
+final class CapturePayPalOrderPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
@@ -51,9 +51,9 @@ final class CaptureEndPaymentRequestHandler
         $this->stateMachine = $stateMachine;
     }
 
-    public function __invoke(CaptureEndPaymentRequest $captureEndPaymentRequest): void
+    public function __invoke(CapturePayPalOrderPaymentRequest $capturePayPalOrderPaymentRequest): void
     {
-        $paymentRequest = $this->paymentRequestProvider->provide($captureEndPaymentRequest);
+        $paymentRequest = $this->paymentRequestProvider->provide($capturePayPalOrderPaymentRequest);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
             return;

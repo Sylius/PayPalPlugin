@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Command;
 use Sylius\Bundle\PaymentBundle\Command\PaymentRequestHashAwareInterface;
 use Sylius\Bundle\PaymentBundle\Command\PaymentRequestHashAwareTrait;
 
-final class CapturePaymentRequest implements PaymentRequestHashAwareInterface
+final class CreatePayPalOrderPaymentRequest implements PaymentRequestHashAwareInterface
 {
     use PaymentRequestHashAwareTrait;
 
