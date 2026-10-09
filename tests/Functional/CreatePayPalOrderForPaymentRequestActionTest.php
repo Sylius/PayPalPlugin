@@ -93,6 +93,16 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', $details['payer_action_url']);
     }
 
+    public function test_it_refuses_a_payment_source_the_payment_method_has_not_enabled(): void
+    {
+        $hash = $this->paymentRequestHash();
+
+        $this->createOrder($hash, 'venmo');
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        self::assertSame('The requested payment source is not enabled for this payment method.', $this->responseContent()['reason']);
+    }
+
     public function test_it_tells_why_paypal_could_not_be_asked_for_the_order(): void
     {
         $hash = $this->paymentRequestHash();
@@ -155,6 +165,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $gatewayConfig->setUsePayum(false);
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['trustly_enabled' => true]));
 
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
         $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);

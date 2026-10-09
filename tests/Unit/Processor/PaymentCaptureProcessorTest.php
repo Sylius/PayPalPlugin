@@ -197,6 +197,18 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
+    public function test_it_captures_an_order_that_needs_shipping_but_has_no_shipping_address(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000, shippingRequired: true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+
+        $this->updateOrderAddressApi->expects(self::never())->method('update');
+        $this->completeOrderApi->expects(self::once())->method('complete')->with('TOKEN', '123123');
+        $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
+
+        $this->processor->capture($this->payment);
+    }
+
     public function test_it_sends_paypal_no_shipping_address_for_an_order_that_needs_no_shipping(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);

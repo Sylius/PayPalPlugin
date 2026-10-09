@@ -8,6 +8,8 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
@@ -516,6 +518,10 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.checker.payer_action', PayerActionChecker::class);
 
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
+
+    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class);
+
+    $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
 
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([

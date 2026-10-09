@@ -92,7 +92,7 @@ final class CaptureEndPaymentRequestHandler
     {
         if ($retryable) {
             $paymentRequest->setResponseData([
-                'reason' => 'The 3D Secure authentication of the card did not finish.',
+                self::RESPONSE_REASON => 'The 3D Secure authentication of the card did not finish.',
                 self::THREE_D_SECURE => self::THREE_D_SECURE_RETRY,
             ]);
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
@@ -102,7 +102,7 @@ final class CaptureEndPaymentRequestHandler
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL);
         $paymentRequest->setResponseData([
-            'reason' => 'The 3D Secure authentication refused the card.',
+            self::RESPONSE_REASON => 'The 3D Secure authentication refused the card.',
             self::THREE_D_SECURE => self::THREE_D_SECURE_DECLINED,
         ]);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
@@ -116,7 +116,7 @@ final class CaptureEndPaymentRequestHandler
             return;
         }
 
-        $paymentRequest->setResponseData(['reason' => 'The payer did not approve the PayPal order.']);
+        $paymentRequest->setResponseData([self::RESPONSE_REASON => 'The payer did not approve the PayPal order.']);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
     }
 

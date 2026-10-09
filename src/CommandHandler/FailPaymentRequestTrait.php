@@ -19,11 +19,13 @@ use Sylius\Component\Payment\PaymentRequestTransitions;
 
 trait FailPaymentRequestTrait
 {
+    public const RESPONSE_REASON = 'reason';
+
     private readonly StateMachineInterface $stateMachine;
 
     private function failWithReason(PaymentRequestInterface $paymentRequest, string $reason): void
     {
-        $paymentRequest->setResponseData(['reason' => $reason]);
+        $paymentRequest->setResponseData([self::RESPONSE_REASON => $reason]);
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
     }

@@ -107,12 +107,13 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             $this->orderPaymentStateResolver->resolve($order);
         }
 
-        if ($order->isShippingRequired()) {
+        $shippingAddress = $order->getShippingAddress();
+        if ($order->isShippingRequired() && null !== $shippingAddress) {
             $this->updateOrderAddressApi->update(
                 $token,
                 $payPalOrderId,
                 (string) $details->referenceId(),
-                $order->getShippingAddress(),
+                $shippingAddress,
             );
         }
 
