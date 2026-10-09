@@ -78,6 +78,7 @@ final class PaymentPayPalContext implements Context
             'description' => $description,
             'gatewayName' => $gatewayFactory,
             'gatewayFactory' => $gatewayFactory,
+            'usePayum' => false,
             'enabled' => true,
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);

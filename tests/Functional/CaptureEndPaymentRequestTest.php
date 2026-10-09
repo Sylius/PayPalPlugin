@@ -89,7 +89,7 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
             'paypal_order_id' => 'PAYPAL_ORDER_ID',
             'reference_id' => 'REFERENCE_ID',
             'payment_amount' => $order->getTotal(),
-            'payment_source' => 'card',
+            'payment_source' => 'paypal',
         ]);
 
         /** @var PaymentMethodInterface $paymentMethod */

@@ -16,8 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Creator;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
 
@@ -51,13 +51,14 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())
             ->method('setGatewayName')
             ->with('sylius_paypal_sandbox');
+        $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
         $gatewayConfig->expects(self::once())
             ->method('setConfig')
             ->with(self::callback(function ($config) use ($clientId, $clientSecret, $merchantId) {
                 return $config['client_id'] === $clientId &&
                     $config['client_secret'] === $clientSecret &&
                     $config['merchant_id'] === $merchantId &&
-                    $config['use_authorize'] === 1 &&
+                    !array_key_exists('use_authorize', $config) &&
                     isset($config['sylius_merchant_id']) &&
                     array_key_exists('reports_sftp_password', $config) &&
                     array_key_exists('reports_sftp_username', $config) &&

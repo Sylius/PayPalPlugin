@@ -51,6 +51,7 @@ return function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.command_handler.capture_end', CaptureEndPaymentRequestHandler::class)
         ->args([
             service('sylius.provider.payment_request'),
+            service('sylius_paypal.verifier.payment_three_d_secure'),
             service('sylius_paypal.processor.payment_capture'),
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius_abstraction.state_machine'),

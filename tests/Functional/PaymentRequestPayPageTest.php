@@ -60,6 +60,65 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
     }
 
+    public function test_it_asks_the_payer_to_authenticate_the_card_again_when_3d_secure_did_not_finish(): void
+    {
+        $hash = $this->cardPaymentRequestHash();
+
+        $this->payPalApi()->mockCardOrderDetails(authenticationStatus: 'U');
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
+        self::assertSame(['sylius_paypal.three_d_secure_retry'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+        self::assertSame(PaymentInterface::STATE_NEW, $this->reloadedPayment()->getState());
+    }
+
+    public function test_it_sends_the_payer_to_the_order_when_3d_secure_refused_the_card(): void
+    {
+        $hash = $this->cardPaymentRequestHash();
+
+        $this->payPalApi()->mockCardOrderDetails(authenticationStatus: 'N');
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN'));
+        self::assertSame(['sylius_paypal.three_d_secure_declined'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_FAILED));
+    }
+
+    public function test_it_captures_a_card_payment_3d_secure_authenticated(): void
+    {
+        $hash = $this->cardPaymentRequestHash();
+
+        $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockCapture();
+        $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment(PaymentInterface::STATE_COMPLETED)?->getState());
+    }
+
+    private function cardPaymentRequestHash(): string
+    {
+        $payment = $this->payPalOrder();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $payment->setAmount($order->getTotal());
+        $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'reference_id' => 'REFERENCE_ID', 'payment_source' => 'card']);
+
+        return $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING);
+    }
+
+    private function reloadedPayment(string $state = PaymentInterface::STATE_NEW): ?PaymentInterface
+    {
+        $this->getEntityManager()->clear();
+
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->findOneBy(['tokenValue' => 'TOKEN']);
+
+        return $order->getLastPayment($state);
+    }
+
     private function payPalOrder(): PaymentInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);

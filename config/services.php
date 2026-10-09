@@ -132,6 +132,8 @@ use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifier;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifier;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
+use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifier;
+use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier;
@@ -327,7 +329,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(ChannelAvailableCountriesProviderInterface::class, 'sylius_paypal.provider.available_countries');
 
     $services->set('sylius_paypal.resolver.capture_payment', CapturePaymentResolver::class)
-        ->args([service('payum')]);
+        ->args([service('sylius_paypal.creator.paypal_order')]);
 
     $services->alias(CapturePaymentResolverInterface::class, 'sylius_paypal.resolver.capture_payment');
 
@@ -350,7 +352,10 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set('sylius_paypal.processor.payment_complete', PayPalPaymentCompleteProcessor::class)
-        ->args([service('payum')]);
+        ->args([
+            service('sylius_paypal.processor.payment_capture'),
+            service('monolog.logger.paypal'),
+        ]);
 
     $services->alias(PaymentCompleteProcessorInterface::class, 'sylius_paypal.processor.payment_complete');
 
@@ -629,6 +634,15 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.verifier.three_d_secure', ThreeDSecureVerifier::class);
 
     $services->alias(ThreeDSecureVerifierInterface::class, 'sylius_paypal.verifier.three_d_secure');
+
+    $services->set('sylius_paypal.verifier.payment_three_d_secure', PaymentThreeDSecureVerifier::class)
+        ->args([
+            service('sylius_paypal.api.cache_authorize_client'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.verifier.three_d_secure'),
+        ]);
+
+    $services->alias(PaymentThreeDSecureVerifierInterface::class, 'sylius_paypal.verifier.payment_three_d_secure');
 
     $services->set('sylius_paypal.verifier.order_ownership', OrderOwnershipVerifier::class)
         ->args([service('sylius.context.cart')]);

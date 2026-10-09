@@ -13,29 +13,18 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Resolver;
 
-use Payum\Core\Payum;
-use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final readonly class CapturePaymentResolver implements CapturePaymentResolverInterface
 {
-    public function __construct(private Payum $payum)
+    public function __construct(private PayPalOrderCreatorInterface $payPalOrderCreator)
     {
     }
 
     public function resolve(PaymentInterface $payment): void
     {
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        $this
-            ->payum
-            ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new Capture($payment))
-        ;
+        $this->payPalOrderCreator->create($payment, PayPalPaymentDetails::fromPayment($payment)->paymentSource());
     }
 }

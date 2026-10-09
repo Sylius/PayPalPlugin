@@ -23,12 +23,16 @@ use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CaptureEndPaymentRequestHandler;
+use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 
 final class CaptureEndPaymentRequestHandlerTest extends TestCase
 {
     private PaymentRequestProviderInterface&MockObject $paymentRequestProvider;
+
+    private PaymentThreeDSecureVerifierInterface&MockObject $paymentThreeDSecureVerifier;
 
     private PaymentCaptureProcessorInterface&MockObject $paymentCaptureProcessor;
 
@@ -46,6 +50,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
     protected function setUp(): void
     {
         $this->paymentRequestProvider = $this->createMock(PaymentRequestProviderInterface::class);
+        $this->paymentThreeDSecureVerifier = $this->createMock(PaymentThreeDSecureVerifierInterface::class);
         $this->paymentCaptureProcessor = $this->createMock(PaymentCaptureProcessorInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
@@ -57,6 +62,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
 
         $this->handler = new CaptureEndPaymentRequestHandler(
             $this->paymentRequestProvider,
+            $this->paymentThreeDSecureVerifier,
             $this->paymentCaptureProcessor,
             $this->paymentSettlementProcessor,
             $this->stateMachine,
@@ -128,6 +134,35 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
+    }
+
+    public function test_it_sends_the_payer_back_to_retry_a_card_authentication_that_did_not_finish(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->paymentThreeDSecureVerifier->method('verify')->with($this->payment)->willThrowException(new ThreeDSecureAuthenticationFailedException(retryable: true));
+
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The 3D Secure authentication of the card did not finish.', 'three_d_secure' => 'retry']);
+
+        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
+    }
+
+    public function test_it_fails_the_payment_of_a_card_the_authentication_refused(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->paymentThreeDSecureVerifier->method('verify')->willThrowException(new ThreeDSecureAuthenticationFailedException(retryable: false));
+
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The 3D Secure authentication refused the card.', 'three_d_secure' => 'declined']);
+
+        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
+            [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
+        ], $this->appliedTransitions);
     }
 
     public function test_it_fails_the_payment_request_when_the_payment_carries_no_paypal_order(): void

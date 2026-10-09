@@ -80,6 +80,18 @@ final readonly class PayPalApiMocker
         ]);
     }
 
+    public function mockCardOrderDetails(
+        string $payPalOrderId = 'PAYPAL_ORDER_ID',
+        string $enrollmentStatus = 'Y',
+        string $authenticationStatus = 'Y',
+        string $liabilityShift = 'POSSIBLE',
+    ): void {
+        $this->mockOrderDetails($payPalOrderId, ['payment_source' => ['card' => ['authentication_result' => [
+            'liability_shift' => $liabilityShift,
+            'three_d_secure' => ['enrollment_status' => $enrollmentStatus, 'authentication_status' => $authenticationStatus],
+        ]]]]);
+    }
+
     public function mockOrderDetailsNotFound(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
     {
         $this->client->addExpectation('GET', 'v2/checkout/orders/' . $payPalOrderId, ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'], 404);

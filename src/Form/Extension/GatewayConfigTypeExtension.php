@@ -27,6 +27,17 @@ final class GatewayConfigTypeExtension extends AbstractTypeExtension
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event): void {
+            $gatewayConfig = $event->getData();
+            if (
+                $gatewayConfig instanceof PayumGatewayConfigInterface &&
+                null === $gatewayConfig->getId() &&
+                SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $gatewayConfig->getFactoryName()
+            ) {
+                $gatewayConfig->setUsePayum(false);
+            }
+        });
+
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $gatewayConfig = $event->getData();
             if (
