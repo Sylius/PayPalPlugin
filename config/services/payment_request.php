@@ -11,6 +11,7 @@ use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\StatusPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 
 return function (ContainerConfigurator $container): void {
     $services = $container->services();
@@ -28,6 +29,15 @@ return function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.provider.http_response', ActionsHttpResponseProvider::class)
         ->args([tagged_locator('sylius_paypal.provider.http_response', 'action')])
         ->tag('sylius.payment_request.provider.http_response', ['gateway_factory' => SyliusPayPalExtension::PAYPAL_FACTORY_NAME]);
+
+    $services->set('sylius_paypal.provider.http_response.capture', CaptureHttpResponseProvider::class)
+        ->args([
+            service('twig'),
+            service('sylius_paypal.provider.paypal_payment_page_context'),
+            service('router'),
+            '%sylius_paypal.web_url%',
+        ])
+        ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
 
     $services->set('sylius_paypal.command_handler.capture', CapturePaymentRequestHandler::class)
         ->args([

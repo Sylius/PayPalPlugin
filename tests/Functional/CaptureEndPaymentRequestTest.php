@@ -61,8 +61,21 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
         self::assertSame('USD', $paymentRequest->getPayment()->getDetails()['captured_currency_code']);
     }
 
-    private function dispatchCaptureEndPaymentRequest(string $captureStatus, ?string $capturedValue = null): PaymentRequestInterface
+    public function test_it_cancels_an_attempt_the_payer_never_approved_and_leaves_the_payment_payable(): void
     {
+        $paymentRequest = $this->dispatchCaptureEndPaymentRequest(approved: false);
+
+        self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $paymentRequest->getState());
+        self::assertSame(['reason' => 'The payer did not approve the PayPal order.'], $paymentRequest->getResponseData());
+        self::assertSame(PaymentInterface::STATE_NEW, $paymentRequest->getPayment()->getState());
+        self::assertSame('CAPTURED', $paymentRequest->getPayment()->getDetails()['status']);
+    }
+
+    private function dispatchCaptureEndPaymentRequest(
+        string $captureStatus = 'COMPLETED',
+        ?string $capturedValue = null,
+        bool $approved = true,
+    ): PaymentRequestInterface {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
         /** @var PaymentInterface $payment */
@@ -94,11 +107,15 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
         $entityManager->flush();
 
         $this->payPalApi()->mockUpdateOrderAddress();
-        $this->payPalApi()->mockCapture();
-        $this->payPalApi()->mockOrderDetailsWithCapture(
-            captureStatus: $captureStatus,
-            value: $capturedValue ?? number_format($order->getTotal() / 100, 2, '.', ''),
-        );
+        if ($approved) {
+            $this->payPalApi()->mockCapture();
+            $this->payPalApi()->mockOrderDetailsWithCapture(
+                captureStatus: $captureStatus,
+                value: $capturedValue ?? number_format($order->getTotal() / 100, 2, '.', ''),
+            );
+        } else {
+            $this->payPalApi()->mockCaptureOfUnapprovedOrder();
+        }
 
         self::getContainer()->get('sylius.announcer.payment_request')->dispatchPaymentRequestCommand($paymentRequest);
 

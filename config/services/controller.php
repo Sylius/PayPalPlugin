@@ -12,6 +12,7 @@ use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction;
+use Sylius\PayPalPlugin\Controller\CreatePayPalOrderForPaymentRequestAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction;
@@ -131,6 +132,15 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.order'),
             service('sylius_paypal.resolver.capture_payment'),
             service('sylius_paypal.provider.paypal_payment_source'),
+        ]);
+
+    $services->set('sylius_paypal.controller.create_paypal_order_for_payment_request', CreatePayPalOrderForPaymentRequestAction::class)
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius.factory.payment_request'),
+            service('sylius.announcer.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius_shop.provider.order_pay.payment_request_pay_url'),
         ]);
 
     $services->set('sylius_paypal.controller.create_paypal_order_from_cart', CreatePayPalOrderFromCartAction::class)

@@ -117,6 +117,19 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
     }
 
+    public function test_it_cancels_an_attempt_the_payer_never_approved_and_leaves_the_payment_payable(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED']);
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payer did not approve the PayPal order.']);
+
+        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
+    }
+
     public function test_it_fails_the_payment_request_when_the_payment_carries_no_paypal_order(): void
     {
         $paymentRequest = $this->paymentRequestWith([]);

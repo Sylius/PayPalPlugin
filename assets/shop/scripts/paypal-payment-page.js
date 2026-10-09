@@ -3,6 +3,7 @@ import { loadWebSdkOnce } from './paypal-web-sdk';
 let session = null;
 let busy = false;
 let attemptOrderId = null;
+let attemptApproveUrl = null;
 
 export function isBusy() {
     return busy;
@@ -16,9 +17,14 @@ export function currentOrderId() {
     return attemptOrderId;
 }
 
+export function currentApproveUrl() {
+    return attemptApproveUrl;
+}
+
 export async function startAttempt(createOrderUrl, paymentSource = null) {
     busy = true;
     attemptOrderId = null;
+    attemptApproveUrl = null;
 
     const response = await fetch(createOrderUrl, {
         method: 'post',
@@ -34,9 +40,14 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
     }
 
     const data = await response.json();
-    attemptOrderId = data.orderId;
+    attemptOrderId = data.orderId ?? data.paypal_order_id ?? null;
+    attemptApproveUrl = data.approve_url ?? null;
 
-    return data;
+    return {
+        orderId: attemptOrderId,
+        approveUrl: attemptApproveUrl,
+        payerActionUrl: data.payerActionUrl ?? data.payer_action_url ?? null,
+    };
 }
 
 export function paymentPageSession(config) {
@@ -65,6 +76,8 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, 
         isBusy,
 
         currentOrderId,
+
+        currentApproveUrl,
 
         release,
 

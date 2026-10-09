@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -80,6 +81,10 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $this->completeOrderApi->complete($token, $payPalOrderId);
         $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
+
+        if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
+            return $orderDetails;
+        }
 
         $capturedDetails = PayPalPaymentDetails::create()
             ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)

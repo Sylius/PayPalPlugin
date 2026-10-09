@@ -1,3 +1,11 @@
+sylius_paypal_shop_create_paypal_order_for_payment_request:
+    path: /paypal/payment-requests/{hash}/order
+    methods: [POST]
+    defaults:
+        _controller: sylius_paypal.controller.create_paypal_order_for_payment_request
+    requirements:
+        hash: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+
 sylius_paypal_shop_pay_with_paypal_form:
     path: /pay-with-paypal/{orderToken}/{paymentId}
     methods: [GET]
