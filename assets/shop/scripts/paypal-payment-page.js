@@ -40,13 +40,13 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
     }
 
     const data = await response.json();
-    attemptOrderId = data.orderId ?? data.paypal_order_id ?? null;
+    attemptOrderId = data.paypal_order_id ?? null;
     attemptApproveUrl = data.approve_url ?? null;
 
     return {
         orderId: attemptOrderId,
         approveUrl: attemptApproveUrl,
-        payerActionUrl: data.payerActionUrl ?? data.payer_action_url ?? null,
+        payerActionUrl: data.payer_action_url ?? null,
     };
 }
 

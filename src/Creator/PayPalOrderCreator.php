@@ -20,7 +20,6 @@ use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
@@ -33,7 +32,6 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
         private CreateOrderApiInterface $createOrderApi,
         private UuidProviderInterface $uuidProvider,
         private PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider,
-        private NonceProviderInterface $nonceProvider,
     ) {
     }
 
@@ -51,14 +49,11 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $referenceId = $this->uuidProvider->provide();
-        $payerActionNonces = null === $returnUrl ? $this->generatePayerActionNonces($paymentSource) : [];
         $content = $this->createOrderApi->create(
             $token,
             $payment,
             $referenceId,
             $paymentSource,
-            $payerActionNonces['payer_action_return_nonce'] ?? null,
-            $payerActionNonces['payer_action_cancel_nonce'] ?? null,
             $customId,
             $requestId,
             $returnUrl,
@@ -76,36 +71,16 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
             ->withAmount((int) $payment->getAmount())
             ->withPaymentSource($paymentSource)
         ;
-        $details = $this->withPayerAction($details, $content, $paymentSource, $payerActionNonces);
+        $details = $this->withPayerAction($details, $content, $paymentSource);
 
         $payment->setDetails($details->toArray());
 
         return $details;
     }
 
-    /** @return array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} */
-    private function generatePayerActionNonces(string $paymentSource): array
+    /** @param array<string, mixed> $content */
+    private function withPayerAction(PayPalPaymentDetails $details, array $content, string $paymentSource): PayPalPaymentDetails
     {
-        if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
-            return [];
-        }
-
-        return [
-            'payer_action_return_nonce' => $this->nonceProvider->provide(),
-            'payer_action_cancel_nonce' => $this->nonceProvider->provide(),
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $content
-     * @param array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} $payerActionNonces
-     */
-    private function withPayerAction(
-        PayPalPaymentDetails $details,
-        array $content,
-        string $paymentSource,
-        array $payerActionNonces,
-    ): PayPalPaymentDetails {
         if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
             return $details;
         }
@@ -115,11 +90,7 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
             return $details;
         }
 
-        return $details->withPayerAction(
-            $payerActionUrl,
-            $payerActionNonces['payer_action_return_nonce'] ?? null,
-            $payerActionNonces['payer_action_cancel_nonce'] ?? null,
-        );
+        return $details->withPayerAction($payerActionUrl);
     }
 
     /** @param array<string, mixed> $content */

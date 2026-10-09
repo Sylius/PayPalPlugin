@@ -10,8 +10,6 @@ export default class extends Controller {
         currencyCode: String,
         amount: String,
         createOrderUrl: String,
-        completeOrderUrl: String,
-        cancelOrderUrl: String,
         errorUrl: String,
         payLaterEnabled: Boolean,
     };
@@ -79,42 +77,12 @@ export default class extends Controller {
         }
     }
 
-    async onApprove(data) {
-        if (this.session.currentApproveUrl()) {
-            window.location.href = this.session.currentApproveUrl();
-
-            return;
-        }
-
-        const response = await fetch(this.completeOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId: data.orderId }),
-        });
-        const details = await response.json();
-
-        if (details.return_url) {
-            window.location.href = details.return_url;
-
-            return;
-        }
-
-        window.location.reload();
+    onApprove() {
+        window.location.href = this.session.currentApproveUrl();
     }
 
-    async onCancel(data) {
-        if (this.session.currentApproveUrl()) {
-            this.session.release();
-
-            return;
-        }
-
-        await fetch(this.cancelOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId: data.orderId }),
-        });
-        window.location.reload();
+    onCancel() {
+        this.session.release();
     }
 
     async onError(error) {

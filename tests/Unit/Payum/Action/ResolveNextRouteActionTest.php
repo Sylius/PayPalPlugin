@@ -34,7 +34,7 @@ final class ResolveNextRouteActionTest extends TestCase
     }
 
     #[Test]
-    public function it_executes_resolve_next_route_request_with_processing_payment(): void
+    public function it_sends_a_new_payment_to_the_order_page(): void
     {
         $request = $this->createMock(ResolveNextRoute::class);
         $payment = $this->createMock(PaymentInterface::class);
@@ -53,8 +53,8 @@ final class ResolveNextRouteActionTest extends TestCase
         $payment->method('getOrder')->willReturn($order);
         $order->method('getTokenValue')->willReturn('123!@#asd');
 
-        $request->expects(self::once())->method('setRouteName')->with('sylius_paypal_shop_pay_with_paypal_form');
-        $request->expects(self::once())->method('setRouteParameters')->with(['orderToken' => '123!@#asd', 'paymentId' => 12]);
+        $request->expects(self::once())->method('setRouteName')->with('sylius_shop_order_show');
+        $request->expects(self::once())->method('setRouteParameters')->with(['tokenValue' => '123!@#asd']);
 
         $this->resolveNextRouteAction->execute($request);
     }

@@ -32,9 +32,9 @@ final readonly class PayPalPaymentDetails
 
     public const PAYER_ACTION_URL = 'payer_action_url';
 
-    public const PAYER_ACTION_RETURN_NONCE = 'payer_action_return_nonce';
+    private const LEGACY_PAYER_ACTION_RETURN_NONCE = 'payer_action_return_nonce';
 
-    public const PAYER_ACTION_CANCEL_NONCE = 'payer_action_cancel_nonce';
+    private const LEGACY_PAYER_ACTION_CANCEL_NONCE = 'payer_action_cancel_nonce';
 
     public const CAPTURED_AMOUNT = 'captured_amount';
 
@@ -112,16 +112,6 @@ final readonly class PayPalPaymentDetails
         return $this->optional(self::PAYER_ACTION_URL);
     }
 
-    public function payerActionReturnNonce(): ?string
-    {
-        return $this->optional(self::PAYER_ACTION_RETURN_NONCE);
-    }
-
-    public function payerActionCancelNonce(): ?string
-    {
-        return $this->optional(self::PAYER_ACTION_CANCEL_NONCE);
-    }
-
     public function withStatus(PayPalPaymentStatus $status): self
     {
         return $this->with([self::STATUS => $status->value]);
@@ -152,13 +142,9 @@ final readonly class PayPalPaymentDetails
         return $this->with([self::TRANSACTION_ID => $transactionId]);
     }
 
-    public function withPayerAction(string $url, ?string $returnNonce = null, ?string $cancelNonce = null): self
+    public function withPayerAction(string $url): self
     {
-        return $this->with(array_filter([
-            self::PAYER_ACTION_URL => $url,
-            self::PAYER_ACTION_RETURN_NONCE => $returnNonce,
-            self::PAYER_ACTION_CANCEL_NONCE => $cancelNonce,
-        ], static fn (?string $value): bool => null !== $value));
+        return $this->with([self::PAYER_ACTION_URL => $url]);
     }
 
     public function withCapturedAmount(?int $amount, ?string $currencyCode): self
@@ -173,8 +159,8 @@ final readonly class PayPalPaymentDetails
     {
         return new self(array_diff_key($this->details, array_flip([
             self::PAYER_ACTION_URL,
-            self::PAYER_ACTION_RETURN_NONCE,
-            self::PAYER_ACTION_CANCEL_NONCE,
+            self::LEGACY_PAYER_ACTION_RETURN_NONCE,
+            self::LEGACY_PAYER_ACTION_CANCEL_NONCE,
         ])));
     }
 
