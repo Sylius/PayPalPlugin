@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Provider;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Cache\CacheItemPoolInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInterface
 {
@@ -35,8 +36,8 @@ final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInt
         }
 
         $config = $gatewayConfig->getConfig();
-        if (isset($config['webhook_id']) && '' !== $config['webhook_id']) {
-            return (string) $config['webhook_id'];
+        if (isset($config[PayPalGatewayConfig::WEBHOOK_ID]) && '' !== $config[PayPalGatewayConfig::WEBHOOK_ID]) {
+            return (string) $config[PayPalGatewayConfig::WEBHOOK_ID];
         }
 
         $webhookId = $this->webhookIdProvider->provide($paymentMethod);
@@ -84,7 +85,7 @@ final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInt
         }
 
         $config = $gatewayConfig->getConfig();
-        $config['webhook_id'] = $webhookId;
+        $config[PayPalGatewayConfig::WEBHOOK_ID] = $webhookId;
         $gatewayConfig->setConfig($config);
         $this->paymentMethodManager->flush();
     }

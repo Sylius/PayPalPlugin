@@ -16,8 +16,10 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingOrdersContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext;
+use Tests\Sylius\PayPalPlugin\Behat\Context\Ui\Shop\PayingWithPayPalContext;
 use Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElement;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage;
+use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\PayWithPayPalPage;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -67,4 +69,17 @@ return static function (ContainerConfigurator $container) {
     $services->set(PayPalSelectPaymentPage::class)
         ->private()
         ->parent('sylius.behat.page.shop.checkout.select_payment');
+
+    $services->set(PayWithPayPalPage::class, PayWithPayPalPage::class)
+        ->private()
+        ->parent('sylius.behat.symfony_page');
+
+    $services->set(PayingWithPayPalContext::class)
+        ->args([
+            service('sylius.behat.shared_storage'),
+            service(PayWithPayPalPage::class),
+            service('test.client'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.processor.payment_complete'),
+        ]);
 };

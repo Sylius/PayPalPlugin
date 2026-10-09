@@ -14,15 +14,66 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig;
 
 use Payum\Core\Model\GatewayConfigInterface;
+use Sylius\Component\Channel\Context\ChannelContextInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 final class PayPalExtension extends AbstractExtension
 {
-    public function __construct(private readonly bool $sandbox)
-    {
+    private readonly PayerActionCheckerInterface $payerActionChecker;
+
+    public function __construct(
+        private readonly bool $sandbox,
+        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private readonly ?ChannelContextInterface $channelContext = null,
+        private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
+        ?PayerActionCheckerInterface $payerActionChecker = null,
+        private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+    ) {
+        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
+
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing $fundingSourcesConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->channelContext) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing $channelContext to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->webSdkConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing $webSdkConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
+        if (null === $this->currentLocaleProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing $currentLocaleProvider to %s constructor is deprecated and will be required in 3.0',
+                self::class,
+            );
+        }
     }
 
     public function getFunctions(): array
@@ -30,12 +81,74 @@ final class PayPalExtension extends AbstractExtension
         return [
             new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
             new TwigFunction('sylius_is_paypal_sandbox', [$this, 'isSandbox']),
+            new TwigFunction('sylius_paypal_is_messaging_enabled', [$this, 'isMessagingEnabled']),
+            new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
+            new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
+            new TwigFunction('sylius_paypal_is_awaiting_payer_action', [$this, 'isAwaitingPayerAction']),
+            new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
         ];
     }
 
     public function isSandbox(): bool
     {
         return $this->sandbox;
+    }
+
+    public function isMessagingEnabled(): bool
+    {
+        if (null === $this->fundingSourcesConfigurationProvider || null === $this->channelContext) {
+            return false;
+        }
+
+        try {
+            /** @var ChannelInterface $channel */
+            $channel = $this->channelContext->getChannel();
+
+            return $this->fundingSourcesConfigurationProvider->isMessagingEnabled($channel);
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
+    }
+
+    public function getWebSdkScriptUrl(): string
+    {
+        if (null === $this->webSdkConfigurationProvider) {
+            return '';
+        }
+
+        return $this->webSdkConfigurationProvider->getScriptUrl();
+    }
+
+    /** @return array<string, mixed> */
+    public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null): array
+    {
+        if (null === $this->webSdkConfigurationProvider || null === $this->channelContext) {
+            return [];
+        }
+
+        try {
+            /** @var ChannelInterface $channel */
+            $channel = $this->channelContext->getChannel();
+
+            return $this->webSdkConfigurationProvider->getInstanceConfig(
+                $channel,
+                $pageType,
+                ['paypal-messages'],
+                $locale ?? $this->currentLocaleProvider?->provide(),
+            );
+        } catch (\InvalidArgumentException) {
+            return [];
+        }
+    }
+
+    public function isAwaitingPayerAction(PaymentInterface $payment): bool
+    {
+        return $this->payerActionChecker->isAwaitingPayerAction($payment);
+    }
+
+    public function isRefundedToPayPalWallet(PaymentInterface $payment): bool
+    {
+        return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool

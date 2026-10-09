@@ -18,7 +18,7 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 
-class AvailableCountriesProvider implements AvailableCountriesProviderInterface
+class AvailableCountriesProvider implements AvailableCountriesProviderInterface, ChannelAvailableCountriesProviderInterface
 {
     public function __construct(
         private readonly RepositoryInterface $countryRepository,
@@ -31,6 +31,11 @@ class AvailableCountriesProvider implements AvailableCountriesProviderInterface
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
 
+        return $this->provideForChannel($channel);
+    }
+
+    public function provideForChannel(ChannelInterface $channel): array
+    {
         $channelCountries = $channel->getCountries()->toArray();
 
         if (count($channelCountries)) {

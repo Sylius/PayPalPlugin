@@ -16,6 +16,7 @@ use Behat\Config\Filter\TagFilter;
 use Behat\Config\Profile;
 use Behat\Config\Suite;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext;
+use Tests\Sylius\PayPalPlugin\Behat\Context\Ui\Shop\PayingWithPayPalContext;
 
 return (new Config())
     ->withProfile(
@@ -84,6 +85,7 @@ return (new Config())
                 'sylius.behat.context.ui.shop.currency',
                 'sylius.behat.context.ui.shop.homepage',
                 'sylius.behat.context.ui.shop.locale',
+                PayingWithPayPalContext::class,
             )
             ->withFilter(new TagFilter('@checkout&&@ui'))
             ->withPaths('features'),

@@ -1,6 +1,9 @@
 sylius_twig_hooks:
     hooks:
         'sylius_shop.shared.order.show.summary.statuses.payments.list':
+            paypal_awaiting_payer_action:
+                template: '@SyliusPayPalPlugin/shop/shared/order/show/summary/statuses/payments/list/paypal_awaiting_payer_action.html.twig'
+                priority: 160
             paypal_different_amount:
                 template: '@SyliusPayPalPlugin/shop/shared/order/show/summary/statuses/payments/list/paypal_different_amount.html.twig'
                 priority: 150

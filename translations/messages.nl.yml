@@ -1,6 +1,10 @@
 sylius_paypal:
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
+    card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'
+    card_number: 'Credit Card nummer'
+    card_three_d_secure_always: 'Altijd 3D Secure aanvragen voor kaartbetalingen'
+    cardholder_name: 'Kaarthouder Naam'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
     configure: 'Configureren'
@@ -26,3 +30,4 @@ sylius_paypal:
     suggested: 'Voorgesteld'
     suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
+    tender_type_original_payment_method: 'Teruggestort via de oorspronkelijke betaalmethode'

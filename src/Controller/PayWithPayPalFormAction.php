@@ -14,35 +14,61 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\IdentityApiInterface;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
 final readonly class PayWithPayPalFormAction
 {
+    private const WEBAUTHN_PERMISSIONS_POLICY_FALLBACK_ORIGINS = '"https://www.paypal.com" "https://www.sandbox.paypal.com"';
+
+    private PayerActionCheckerInterface $payerActionChecker;
+
     /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
     public function __construct(
         private Environment $twig,
         private PaymentRepositoryInterface $paymentRepository,
-        private AvailableCountriesProviderInterface $countriesProvider,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
-        private IdentityApiInterface $identityApi,
+        private ?AvailableCountriesProviderInterface $countriesProvider = null,
+        private ?CacheAuthorizeClientApiInterface $authorizeClientApi = null,
+        private ?IdentityApiInterface $identityApi = null,
         private ?LocaleProcessorInterface $localeProcessor = null,
+        private ?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null,
+        private ?PayPalPaymentPageContextProviderInterface $contextProvider = null,
+        private ?UrlGeneratorInterface $router = null,
+        ?PayerActionCheckerInterface $payerActionChecker = null,
+        private ?string $webUrl = null,
     ) {
-        if (null === $this->localeProcessor) {
+        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
+
+        $this->deprecateUnusedArgument($this->countriesProvider, AvailableCountriesProviderInterface::class);
+        $this->deprecateUnusedArgument($this->authorizeClientApi, CacheAuthorizeClientApiInterface::class);
+        $this->deprecateUnusedArgument($this->identityApi, IdentityApiInterface::class);
+        $this->deprecateUnusedArgument($this->localeProcessor, LocaleProcessorInterface::class);
+        $this->deprecateUnusedArgument($this->payPalConfigurationProvider, PayPalConfigurationProviderInterface::class);
+
+        $this->deprecateMissingArgument($this->contextProvider, PayPalPaymentPageContextProviderInterface::class);
+        $this->deprecateMissingArgument($this->router, UrlGeneratorInterface::class);
+
+        if (null === $this->webUrl) {
             trigger_deprecation(
-                'SyliusPayPalPlugin',
-                '1.7',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                LocaleProcessorInterface::class,
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing the "sylius_paypal.web_url" parameter to "%s" constructor is deprecated and will be required in 3.0.',
                 self::class,
             );
         }
@@ -50,38 +76,110 @@ final readonly class PayWithPayPalFormAction
 
     public function __invoke(Request $request): Response
     {
-        $paymentId = (string) $request->attributes->get('paymentId');
         $orderToken = (string) $request->attributes->get('orderToken');
+        $payment = $this->paymentRepository->findOneByOrderToken($request->attributes->get('paymentId'), $orderToken);
 
-        /** @var PaymentInterface $payment */
-        $payment = $this->paymentRepository->findOneByOrderToken($paymentId, $orderToken);
-        /** @var PaymentMethodInterface $paymentMethod */
+        if (null === $payment || !$this->isPayPalPayment($payment)) {
+            throw new NotFoundHttpException(sprintf('There is no PayPal payment for order "%s".', $orderToken));
+        }
+
+        if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
+            return new RedirectResponse(
+                $this->requireArgument($this->router, UrlGeneratorInterface::class)
+                    ->generate('sylius_shop_order_thank_you'),
+            );
+        }
+
+        if ($this->payerActionChecker->isAwaitingPayerAction($payment)) {
+            return new RedirectResponse(
+                $this->requireArgument($this->router, UrlGeneratorInterface::class)
+                    ->generate('sylius_shop_order_show', ['tokenValue' => $orderToken]),
+            );
+        }
+
+        $response = new Response($this->twig->render(
+            '@SyliusPayPalPlugin/pay_with_paypal.html.twig',
+            $this->requireArgument($this->contextProvider, PayPalPaymentPageContextProviderInterface::class)
+                ->provide($payment, $request->getLocale()),
+        ));
+
+        $response->headers->set('Cache-Control', 'no-store, private');
+        $response->headers->set('Permissions-Policy', $this->webAuthnPermissionsPolicy());
+
+        return $response;
+    }
+
+    private function deprecateUnusedArgument(?object $argument, string $interface): void
+    {
+        if (null === $argument) {
+            return;
+        }
+
+        trigger_deprecation(
+            'sylius/paypal-plugin',
+            '2.2',
+            'Passing an instance of "%s" to "%s" constructor is deprecated and will be prohibited in 3.0.' .
+            ' It is no longer used since the page moved to PayPal Web SDK v6.',
+            $interface,
+            self::class,
+        );
+    }
+
+    private function deprecateMissingArgument(?object $argument, string $interface): void
+    {
+        if (null !== $argument) {
+            return;
+        }
+
+        trigger_deprecation(
+            'sylius/paypal-plugin',
+            '2.2',
+            'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
+            $interface,
+            self::class,
+        );
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param T|null $argument
+     *
+     * @return T
+     */
+    private function requireArgument(?object $argument, string $interface): object
+    {
+        if (null === $argument) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to render the PayPal payment page.',
+                $interface,
+            ));
+        }
+
+        return $argument;
+    }
+
+    private function webAuthnPermissionsPolicy(): string
+    {
+        $origins = null !== $this->webUrl
+            ? sprintf('"%s"', $this->webUrl)
+            : self::WEBAUTHN_PERMISSIONS_POLICY_FALLBACK_ORIGINS;
+
+        return sprintf('publickey-credentials-get=(self %1$s), publickey-credentials-create=(self %1$s)', $origins);
+    }
+
+    private function isPayPalPayment(PaymentInterface $payment): bool
+    {
         $paymentMethod = $payment->getMethod();
+        if (!$paymentMethod instanceof PaymentMethodInterface) {
+            return false;
+        }
 
-        /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        /** @var string $clientId */
-        $clientId = $gatewayConfig->getConfig()['client_id'];
-        /** @var string $partnerAttributionId */
-        $partnerAttributionId = $gatewayConfig->getConfig()['partner_attribution_id'];
 
-        /** @var OrderInterface $order */
-        $order = $payment->getOrder();
-
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
-        $clientToken = $this->identityApi->generateToken($token);
-        $locale = $request->getLocale();
-
-        return new Response($this->twig->render('@SyliusPayPalPlugin/pay_with_paypal.html.twig', [
-            'available_countries' => $this->countriesProvider->provide(),
-            'billing_address' => $order->getBillingAddress(),
-            'client_id' => $clientId,
-            'client_token' => $clientToken,
-            'currency' => $order->getCurrencyCode(),
-            'locale' => null !== $this->localeProcessor ? $this->localeProcessor->process($locale) : $locale,
-            'merchant_id' => $gatewayConfig->getConfig()['merchant_id'],
-            'order_token' => $order->getTokenValue(),
-            'partner_attribution_id' => $partnerAttributionId,
-        ]));
+        return
+            $gatewayConfig instanceof GatewayConfigInterface &&
+            $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
+        ;
     }
 }
