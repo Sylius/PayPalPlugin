@@ -65,6 +65,16 @@ final class CompletePaidPaymentsCommand extends Command
             $token = $this->authorizeClientApi->authorize($paymentMethod);
             $details = $this->orderDetailsApi->get($token, $payPalOrderId);
 
+            // When the PayPal API call fails (e.g. 404 RESOURCE_NOT_FOUND once an
+            // uncaptured order has expired after ~3h), PayPalClient::request()
+            // silently returns the error payload instead of throwing, so the array
+            // has no "status" key. Skip those payments — an error has already been
+            // logged inside the client — rather than emitting a PHP warning on
+            // every hourly cron tick forever.
+            if (!isset($details['status'])) {
+                continue;
+            }
+
             if ($details['status'] === 'COMPLETED') {
                 $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE);
 
