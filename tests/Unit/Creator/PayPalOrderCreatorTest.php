@@ -175,6 +175,20 @@ final class PayPalOrderCreatorTest extends TestCase
         $this->creator->create($this->payment, 'trustly');
     }
 
+    public function test_it_sends_the_payer_back_to_the_return_url_it_is_given_instead_of_minting_nonces(): void
+    {
+        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'trustly', null, null, 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH')->willReturn([
+            'status' => 'PAYER_ACTION_REQUIRED',
+            'id' => '123123',
+            'links' => [['href' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123', 'rel' => 'payer-action', 'method' => 'GET']],
+        ]);
+
+        $details = $this->creator->create($this->payment, 'trustly', 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH');
+
+        self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=123123', $details?->payerActionUrl());
+        self::assertNull($details?->payerActionReturnNonce());
+    }
+
     public function test_it_sends_paypal_no_payer_action_nonce_for_a_wallet_payment_source(): void
     {
         $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'paypal', null, null)->willReturn(['status' => 'CREATED', 'id' => '123123']);

@@ -26,5 +26,7 @@ interface PayPalOrderFactoryInterface
         ?string $payerActionReturnNonce = null,
         ?string $payerActionCancelNonce = null,
         ?string $customId = null,
+        ?string $returnUrl = null,
+        ?string $cancelUrl = null,
     ): PayPalOrder;
 }

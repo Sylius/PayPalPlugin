@@ -152,13 +152,13 @@ final readonly class PayPalPaymentDetails
         return $this->with([self::TRANSACTION_ID => $transactionId]);
     }
 
-    public function withPayerAction(string $url, string $returnNonce, string $cancelNonce): self
+    public function withPayerAction(string $url, ?string $returnNonce = null, ?string $cancelNonce = null): self
     {
-        return $this->with([
+        return $this->with(array_filter([
             self::PAYER_ACTION_URL => $url,
             self::PAYER_ACTION_RETURN_NONCE => $returnNonce,
             self::PAYER_ACTION_CANCEL_NONCE => $cancelNonce,
-        ]);
+        ], static fn (?string $value): bool => null !== $value));
     }
 
     public function withCapturedAmount(?int $amount, ?string $currencyCode): self

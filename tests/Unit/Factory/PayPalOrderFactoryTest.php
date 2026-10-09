@@ -368,6 +368,42 @@ final class PayPalOrderFactoryTest extends TestCase
         ))->create($payment, 'REFERENCE_ID');
     }
 
+    public function test_it_sends_the_payer_back_to_the_return_url_it_is_given_without_a_nonce(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(self::anything(), 'https://shop.example.com/en_US/payment-request/pay/HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH', null)
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->routeReflectingRouter(),
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, returnUrl: 'https://shop.example.com/en_US/payment-request/pay/HASH');
+    }
+
+    public function test_it_sends_the_payer_who_cancels_to_the_cancel_url_it_is_given(): void
+    {
+        $experienceContextProvider = $this->createMock(ExperienceContextProviderInterface::class);
+        $experienceContextProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with(self::anything(), 'https://shop.example.com/pay/HASH', 'https://shop.example.com/pay/HASH?payer_cancelled=1', null)
+            ->willReturn([])
+        ;
+
+        (new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->routeReflectingRouter(),
+            $this->shippingCallbackUrlProvider,
+            $experienceContextProvider,
+        ))->create($this->redirectPayment(), 'REFERENCE_ID', PayPalPaymentSourceProviderInterface::TRUSTLY, returnUrl: 'https://shop.example.com/pay/HASH', cancelUrl: 'https://shop.example.com/pay/HASH?payer_cancelled=1');
+    }
+
     private function routeReflectingRouter(): UrlGeneratorInterface&MockObject
     {
         $router = $this->createMock(UrlGeneratorInterface::class);

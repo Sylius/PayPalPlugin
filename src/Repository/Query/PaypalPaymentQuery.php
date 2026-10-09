@@ -31,7 +31,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         private readonly array $updatableStates = ['cart', 'new', 'processing'],
         private readonly array $cancellableStates = ['cart', 'new', 'processing', 'completed'],
         private readonly array $refundableStates = ['completed'],
-        private readonly array $settleableStates = ['processing', 'completed', 'cancelled', 'failed'],
+        private readonly array $settleableStates = ['new', 'processing', 'completed', 'cancelled', 'failed'],
     ) {
     }
 

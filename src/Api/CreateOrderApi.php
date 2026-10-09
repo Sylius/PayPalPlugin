@@ -52,6 +52,8 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         ?string $payerActionCancelNonce = null,
         ?string $customId = null,
         ?string $requestId = null,
+        ?string $returnUrl = null,
+        ?string $cancelUrl = null,
     ): array {
         $payPalOrder = $this->getPayPalOrderFactory()->create(
             $payment,
@@ -60,6 +62,8 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
             $payerActionReturnNonce,
             $payerActionCancelNonce,
             $customId,
+            $returnUrl,
+            $cancelUrl,
         );
 
         return $this->client->post(

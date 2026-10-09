@@ -23,5 +23,7 @@ interface PayPalOrderCreatorInterface
         string $paymentSource,
         ?string $customId = null,
         ?string $requestId = null,
+        ?string $returnUrl = null,
+        ?string $cancelUrl = null,
     ): ?PayPalPaymentDetails;
 }

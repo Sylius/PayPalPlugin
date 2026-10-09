@@ -17,6 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -26,6 +27,7 @@ use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CapturePaymentRequestHandlerTest extends TestCase
 {
@@ -46,10 +48,22 @@ final class CapturePaymentRequestHandlerTest extends TestCase
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getLocaleCode')->willReturn('en_US');
+        $this->payment->method('getOrder')->willReturn($order);
+
+        $router = $this->createMock(UrlGeneratorInterface::class);
+        $router
+            ->method('generate')
+            ->with('sylius_shop_payment_request_pay', ['_locale' => 'en_US', 'hash' => 'PAYMENT_REQUEST_HASH'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH')
+        ;
+
         $this->handler = new CapturePaymentRequestHandler(
             $this->paymentRequestProvider,
             $this->payPalOrderCreator,
             new PayPalPaymentSourceProvider(),
+            $router,
             $this->stateMachine,
         );
     }
@@ -58,7 +72,7 @@ final class CapturePaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestWith(['payment_source' => 'card']);
 
-        $this->payPalOrderCreator->expects(self::once())->method('create')->with($this->payment, 'card', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'));
+        $this->payPalOrderCreator->expects(self::once())->method('create')->with($this->payment, 'card', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH', 'https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH', 'https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH?payer_cancelled=1')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
 
@@ -69,7 +83,7 @@ final class CapturePaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestWith(['payment_source' => 'trustly']);
 
-        $this->payPalOrderCreator->method('create')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID')->withPayerAction('https://www.paypal.com/payment/trustly', 'RETURN_NONCE', 'CANCEL_NONCE'));
+        $this->payPalOrderCreator->method('create')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID')->withPayerAction('https://www.paypal.com/payment/trustly'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://www.paypal.com/payment/trustly']);
 
         ($this->handler)(new CapturePaymentRequest('PAYMENT_REQUEST_HASH'));

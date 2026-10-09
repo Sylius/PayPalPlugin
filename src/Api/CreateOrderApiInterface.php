@@ -27,5 +27,7 @@ interface CreateOrderApiInterface
         ?string $payerActionCancelNonce = null,
         ?string $customId = null,
         ?string $requestId = null,
+        ?string $returnUrl = null,
+        ?string $cancelUrl = null,
     ): array;
 }

@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -22,6 +23,7 @@ use Sylius\PayPalPlugin\Command\CapturePaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CapturePaymentRequestHandler
 {
@@ -29,10 +31,13 @@ final class CapturePaymentRequestHandler
 
     public const PAYLOAD_PAYMENT_SOURCE = 'payment_source';
 
+    public const PAYER_CANCELLED_QUERY_PARAMETER = 'payer_cancelled';
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PayPalOrderCreatorInterface $payPalOrderCreator,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
+        private readonly UrlGeneratorInterface $router,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -63,7 +68,15 @@ final class CapturePaymentRequestHandler
         $hash = (string) $paymentRequest->getId();
 
         try {
-            $details = $this->payPalOrderCreator->create($payment, $paymentSource, $hash, $hash);
+            $payUrl = $this->payUrl($paymentRequest, $payment);
+            $details = $this->payPalOrderCreator->create(
+                $payment,
+                $paymentSource,
+                $hash,
+                $hash,
+                $payUrl,
+                sprintf('%s?%s=1', $payUrl, self::PAYER_CANCELLED_QUERY_PARAMETER),
+            );
         } catch (InvalidPayerDataException $exception) {
             $this->failWithReason($paymentRequest, $exception->getMessage());
 
@@ -82,5 +95,17 @@ final class CapturePaymentRequestHandler
         ]));
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+    }
+
+    private function payUrl(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): string
+    {
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
+        return $this->router->generate(
+            'sylius_shop_payment_request_pay',
+            ['_locale' => $order->getLocaleCode(), 'hash' => $paymentRequest->getId()],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
     }
 }
