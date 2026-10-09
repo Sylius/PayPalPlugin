@@ -75,7 +75,9 @@
    nothing yet.
 
    It is loaded from `@SyliusPayPalPlugin/config/routes/callback.yaml`, **outside the shop's `/{_locale}`
-   prefix** — this is not a page a buyer opens but a request PayPal makes and waits on, and its URL is stored
+   prefix**. A shop importing `@SyliusPayPalPlugin/config/routes.yaml` gets it automatically; a shop importing
+   the files under `config/routes/` one by one has to import `callback.yaml` itself, without a prefix, or the
+   wallet silently offers no shipping options. This is not a page a buyer opens but a request PayPal makes and waits on, and its URL is stored
    with the order at PayPal for that order's lifetime. Under the locale prefix,
    `Sylius\Bundle\ShopBundle\EventListener\NonChannelLocaleListener` answers a locale the channel no longer
    offers with a redirect to the shop homepage, which would hand PayPal HTML where it expects JSON. The
@@ -236,7 +238,14 @@
    argument; a missing instance only triggers a deprecation notice here, no exception.
 
    `Sylius\PayPalPlugin\Exception\OrderNotFoundException` now extends `NotFoundHttpException` instead of
-   implementing `HttpExceptionInterface` directly.
+   `\Exception`. Left uncaught it renders as `404` instead of `500`, and a `catch (HttpExceptionInterface)` or
+   `catch (\RuntimeException)` block now catches it too.
+
+   The ownership check itself answers `404` too: `Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifier` accepts
+   only the session's current cart or the order whose id the session keeps as `sylius_order_id` after checkout.
+   `sylius_paypal_shop_create_paypal_order_from_cart`, `sylius_paypal_shop_create_paypal_order_from_payment_page`,
+   `sylius_paypal_shop_complete_paypal_order_from_payment_page` and `sylius_paypal_shop_process_paypal_order`
+   called for any other order — from another session, or by a headless client — now answer `404`.
 
 1. #### Express checkout completes the purchase in the PayPal wallet.
 
@@ -450,7 +459,7 @@
 
    `@SyliusPayPalPlugin/pay_with_paypal.html.twig` was a standalone HTML document that loaded PayPal's JS
    SDK v5 and built a PayPal button and Hosted Fields from inline script. It now extends
-   `@SyliusShop/shared/layout/base.html.twig` and renders two funding sources — PayPal and card — through
+   `@SyliusShop/checkout/common/layout.html.twig` and renders two funding sources — PayPal and card — through
    PayPal's Web SDK v6. **This was the last JS SDK v5 in the package; no template loads it any more.**
 
    The two methods are hookables on `sylius_paypal.shop.pay_with_paypal.content.methods`, so a shop can
@@ -627,8 +636,9 @@
    `LocaleProcessorInterface` and `PayPalConfigurationProviderInterface` — are no longer used, because the
    page neither mints a Hosted Fields client token nor prices shipping in the browser, and everything it
    renders now comes from the context provider. They became nullable, **passing them is deprecated** and
-   they will be removed in 3.0. Its service definition uses named arguments, so dropping them does not
-   shift the remaining positions.
+   they will be removed in 3.0. The service definition passes `null` in their positions and appends the new
+   arguments after them, so a definition copied from 2.1 still passes the five unused services and lacks the
+   two required ones: the page then throws a `\RuntimeException` when rendered.
 
    `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface`
    (`sylius_paypal.provider.paypal_payment_page_context`) builds everything the page renders: the URLs it
@@ -683,16 +693,17 @@
    argument; existing positional calls keep working.
 
    `Sylius\PayPalPlugin\Model\PayPalOrder` keeps its existing `$order`, `$payPalPurchaseUnit` and `$intent`
-   arguments and gains a required trailing `array $paymentSource` one, although `$order` is now unused - it
-   is deprecated and will be removed in 3.0. The model no longer assembles the payment source itself - it
-   only carries the one it is given - so its `toArray()` always sends that array as `payment_source`, never
-   the legacy `application_context`. Build the payment source with
+   arguments and gains trailing optional `?array $paymentSource = null` and `?string $processingInstruction = null`
+   ones. Given a payment source, `toArray()` sends it as `payment_source` (or omits the key when the array is
+   empty) and never the legacy `application_context`. Not passing one is deprecated and will be prohibited in
+   3.0; the model then sends the 2.1 `application_context.shipping_preference` derived from `$order`. `$order`
+   is read only on that path, and will be removed in 3.0. Build the payment source with
    `Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface`
    (`sylius_paypal.provider.paypal_payment_source`) the way `PayPalOrderFactory` does; it wraps the
    experience context built by `Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface`
    (`sylius_paypal.provider.experience_context`) under the `paypal` key.
 
-19. #### Pay Later has a real button, and `<paypal-message>` finally renders real content.
+1. #### Pay Later has a real button, and `<paypal-message>` finally renders real content.
 
    The Pay Later payment method now has its own v6 button (`createPayLaterOneTimePaymentSession`), shown on
    the product, cart, and checkout payment-page placements whenever `findEligibleMethods()` says the buyer
@@ -785,10 +796,11 @@
     ): PayPalOrder;
    ```
 
-   Existing **calls** keep working, positional ones included. An existing **implementation** of
-   `CreateOrderApiInterface` does not: PHP requires it to declare every parameter the interface declares, so
-   a class still carrying the three-argument signature is a fatal error rather than a deprecation. Add both
-   arguments to it. `PayPalOrderFactoryInterface` is new in 2.2 and has no released signature to preserve.
+   `CreateOrderApiInterface` declares the three new arguments only as commented-out parameters, so an existing
+   implementation with the 2.1 signature keeps loading; the plugin passes them anyway, and `CreateOrderApi`
+   declares them. Such an implementation never receives the payment source or the nonces, so it creates every
+   order as `paypal`. Add the three arguments before 3.0, which declares them on the interface.
+   `PayPalOrderFactoryInterface` is new in 2.2 and has no released signature to preserve.
    A factory that builds a redirect order without a nonce now throws, because the URLs it would hand PayPal
    could not be told apart from anyone else's.
 
@@ -1003,7 +1015,8 @@
    Without a carrier the shipment is shipped and the tracking is sent only if the shipment already has a
    tracking record with a carrier; for any other order nothing is sent to PayPal. A field other than
    `trackingCode`, `carrier` and `carrierNameOther` is rejected with `400`, so a misspelt carrier field does
-   not ship the shipment without the tracking. The
+   not ship the shipment without the tracking. **This applies to every order, whatever it was paid with**: a
+   client of the core operation that sends an extra field, which Sylius ignores, now gets a `400`. The
    plugin redefines `sylius_api_admin_shipment_patch_ship` in `config/api_platform/Shipment.xml` with
    `Sylius\PayPalPlugin\PackageTracking\Command\ShipShipmentWithCarrier`, which extends Sylius' `ShipShipment`,
    as its input; an app that redefines that operation has to keep that input.
@@ -1080,8 +1093,10 @@
    `Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction` verifies the request once and hands the
    payload to whichever `Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface` claims the event.
 
-   `RefundOrderAction` and its service id keep working and are deprecated in favour of the dispatcher plus
-   `RefundOrderWebhookProcessor`. The verification block it used to inline now lives in
+   `RefundOrderAction` and its service id still exist and are deprecated in favour of the dispatcher plus
+   `RefundOrderWebhookProcessor`, but the `sylius_paypal_webhook_refund_order` route now points at
+   `sylius_paypal.controller.webhook.paypal_webhook`, so decorating or replacing
+   `sylius_paypal.controller.webhook.refund_order` no longer affects the endpoint. The verification block it used to inline now lives in
    `Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface`.
 
    The plugin now subscribes to `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
@@ -1456,3 +1471,70 @@
    cart. All three gained a
    trailing optional `?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider`
    argument; not passing it is deprecated, and without it `venmo` is refused.
+
+1. #### Further changes to existing routes and responses.
+
+   - `sylius_paypal_shop_add_to_cart` (`AddToCartAction`) answers an invalid add-to-cart form with
+     `422 {"errors": [...]}` instead of a redirect to the product page, and always submits the form. The route's
+     form type moved from `Sylius\Bundle\CoreBundle\Form\Type\Order\AddToCartType` to
+     `Sylius\Bundle\ShopBundle\Form\Type\AddToCartType`, so the posted fields are named
+     `sylius_shop_add_to_cart[...]` instead of `sylius_add_to_cart[...]`.
+   - `sylius_paypal_shop_complete_paypal_order` (`CompletePayPalOrderAction`) cancels the payment when the capture
+     does not complete it, e.g. a capture PayPal reports as `PENDING`, flashes `sylius_paypal.something_went_wrong`
+     and returns a `return_url` back to the payment page. In 2.1 it returned the thank-you page and left the
+     payment `processing` for `sylius-paypal:complete-payments`. A capture PayPal completes later for that payment
+     is kept as `paypal_late_capture` (see "Smaller changes worth knowing about").
+   - `sylius_paypal_shop_pay_with_paypal_form` (`PayWithPayPalFormAction`) answers `404` for a missing payment or a
+     payment of another gateway, and sends `Cache-Control: no-store, private`.
+   - `sylius_paypal_shop_cancel_checkout_payment` (`CancelPayPalCheckoutPaymentAction`) flashes `success` /
+     `sylius_paypal.payment_cancelled` instead of `error` / `sylius_paypal.something_went_wrong`.
+   - `sylius_paypal_shop_cancel_order` (`CancelPayPalOrderAction`) flashes `sylius_paypal.order_cancelled` instead of the untranslated
+     `sylius.pay_pal.order_cancelled`.
+
+1. #### Further template and Twig hook changes.
+
+   - `pay_with_paypal.html.twig` receives its variables from `PayPalPaymentPageContextProviderInterface`.
+     `billing_address` is now `billingAddress`, and `available_countries`, `client_id`, `client_token`,
+     `merchant_id`, `order_token` and `partner_attribution_id` are gone.
+   - `pay_from_cart_page.html.twig`, `pay_from_product_page.html.twig` and `pay_from_payment_page.html.twig` no
+     longer render `#paypal-button-container`; CSS or JavaScript targeting it finds nothing.
+   - The thank-you page's "Change payment method" button
+     (`@SyliusPayPalPlugin/shop/order/thank_you/content/buttons/change_payment_method.html.twig`) shows only
+     while the order's payment state is `awaiting_payment`. It used to show whenever the last payment was not
+     completed.
+   - The plugin replaces these core hookables, so a shop override of the core template behind them is no longer
+     rendered:
+     - `sylius_admin.order.show.content.sections.shipments` → `items`;
+     - the `template` prop of `sylius_admin.order.show.content.sections.shipments.item.actions` → `ship`, now
+       `@SyliusPayPalPlugin/admin/shipment/component/ship_gate.html.twig`. For an order paid with PayPal it
+       renders the plugin's ship form with `render_rest: false`, so fields a shop added to `ShipmentShipType`
+       are not rendered there;
+     - the `ship_with_tracking_code` grid action template (`sylius_grid.templates.action`);
+     - `sylius_shop.order.show.content` → `form`.
+   - `sylius_shop.checkout.select_payment.content` gains a `flashes` hookable at priority `50`. Remove it if your
+     shop already renders flashes on that step.
+   - `paypal_checkout` on `sylius_shop.product.show.content.info.summary` moved from priority `50` to `75`.
+
+1. #### Further service, configuration and model changes.
+
+   - `sylius_paypal.command_handler.ship_shipment_with_carrier` decorates `sylius_api.command_handler.checkout.ship_shipment`.
+   - The plugin prepends a `SyliusPayPalPluginPackageTracking` mapping to `doctrine.orm.mappings`, which lands in
+     the default entity manager.
+   - A new `sylius_paypal.test_buyer_country` option (env `SYLIUS_PAYPAL_TEST_BUYER_COUNTRY`, default `null`)
+     sends `testBuyerCountry` to the Web SDK in sandbox mode only.
+   - `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` changed from `sylius-ppcp4p-bn-code` to
+     `Sylius_MP_PPCP`. It seeds only payment methods created through the sandbox flow; existing gateway configs
+     keep their stored value.
+   - `PayPalPurchaseUnit` gained a trailing optional `bool $withItemTaxes = true`; `false` drops `tax` from every
+     item, which `PayPalOrderFactory` does when the order declares the shipping callback.
+   - `PayPalButtonsController` throws a `\RuntimeException` on render without its
+     `?PayPalFundingSourcesConfigurationProviderInterface` argument, like it does without
+     `?WebSdkConfigurationProviderInterface`.
+   - `CompletePayPalOrderAction`'s 2.1 service definition passed `sylius_paypal.api.authorize_client` and
+     `sylius_paypal.api.complete_order` as unused fourth and fifth arguments. Those positions now take
+     `CacheAuthorizeClientApiInterface` and `OrderDetailsApiInterface`, so a definition copied from 2.1 fails with
+     a `TypeError`.
+   - `Sylius\PayPalPlugin\Provider\AvailableCountriesProvider`, which is not final, gained a public `provideForChannel(ChannelInterface): array`.
+   - In sandbox mode the Web SDK loads from `https://www.sandbox.paypal.com` (`sylius_paypal.web_url`); the v5 SDK
+     always loaded from `https://www.paypal.com`. A Content-Security-Policy has to allow it.
+   - `composer.json` requires `ext-openssl` and `psr/cache`.
