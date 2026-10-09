@@ -11,6 +11,7 @@ sylius_paypal:
     client_secret: 'Client Secret'
     configure: 'Configure'
     credit_card: 'Credit Card'
+    credit_card_number: 'Credit Card number'
     cvv: 'CVV'
     different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
     enable_paypal: 'Enable PayPal'

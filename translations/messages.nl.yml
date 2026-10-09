@@ -9,6 +9,7 @@ sylius_paypal:
     client_secret: 'Client Secret'
     configure: 'Configureren'
     credit_card: 'Credit Card'
+    credit_card_number: 'Credit Card nummer'
     cvv: 'CVV'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
     enable_paypal: 'PayPal inschakelen'
