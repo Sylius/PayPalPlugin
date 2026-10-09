@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
@@ -131,5 +132,44 @@ final class PayPalOrderTest extends TestCase
             'ORDER_COMPLETE_ON_PAYMENT_APPROVAL',
             $payPalOrder->toArray()['processing_instruction'],
         );
+    }
+
+    public function test_it_sends_the_legacy_application_context_when_no_payment_source_is_given(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
+
+        self::assertSame([
+            'intent' => 'CAPTURE',
+            'purchase_units' => [
+                ['reference_id' => 'REFERENCE_ID'],
+            ],
+            'application_context' => ['shipping_preference' => 'SET_PROVIDED_ADDRESS'],
+        ], $payPalOrder->toArray());
+    }
+
+    public function test_it_lets_paypal_collect_the_address_in_the_legacy_application_context_when_the_order_has_none(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
+
+        self::assertSame(['shipping_preference' => 'GET_FROM_FILE'], $payPalOrder->toArray()['application_context']);
+    }
+
+    public function test_it_asks_for_no_shipping_in_the_legacy_application_context_when_the_order_needs_none(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+        $this->order->method('isShippingRequired')->willReturn(false);
+
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
+
+        self::assertSame(['shipping_preference' => 'NO_SHIPPING'], $payPalOrder->toArray()['application_context']);
+        self::assertArrayNotHasKey('payment_source', $payPalOrder->toArray());
     }
 }
