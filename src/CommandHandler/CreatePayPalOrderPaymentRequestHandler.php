@@ -20,13 +20,13 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
-use Sylius\PayPalPlugin\Command\CapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-final class CapturePaymentRequestHandler
+final class CreatePayPalOrderPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
@@ -49,9 +49,9 @@ final class CapturePaymentRequestHandler
         $this->stateMachine = $stateMachine;
     }
 
-    public function __invoke(CapturePaymentRequest $capturePaymentRequest): void
+    public function __invoke(CreatePayPalOrderPaymentRequest $createPayPalOrderPaymentRequest): void
     {
-        $paymentRequest = $this->paymentRequestProvider->provide($capturePaymentRequest);
+        $paymentRequest = $this->paymentRequestProvider->provide($createPayPalOrderPaymentRequest);
 
         if (PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState()) {
             return;
