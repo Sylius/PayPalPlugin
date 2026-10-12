@@ -28,10 +28,25 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PaymentRepositoryInterface&EntityRepository $paymentRepository,
-        private readonly array $updatableStates = ['cart', 'new', 'processing'],
-        private readonly array $cancellableStates = ['cart', 'new', 'processing', 'completed'],
-        private readonly array $refundableStates = ['completed'],
-        private readonly array $settleableStates = ['new', 'processing', 'completed', 'cancelled', 'failed'],
+        private readonly array $updatableStates = [
+            PaymentInterface::STATE_CART,
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+        ],
+        private readonly array $cancellableStates = [
+            PaymentInterface::STATE_CART,
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+            PaymentInterface::STATE_COMPLETED,
+        ],
+        private readonly array $refundableStates = [PaymentInterface::STATE_COMPLETED],
+        private readonly array $settleableStates = [
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+            PaymentInterface::STATE_COMPLETED,
+            PaymentInterface::STATE_CANCELLED,
+            PaymentInterface::STATE_FAILED,
+        ],
     ) {
     }
 
