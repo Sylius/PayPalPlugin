@@ -17,9 +17,9 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ChannelInterface;
-use Sylius\PayPalPlugin\Provider\PayPalActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalHostProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider;
 
 final class WebSdkConfigurationProviderTest extends TestCase
@@ -139,12 +139,12 @@ final class WebSdkConfigurationProviderTest extends TestCase
 
     private function createProvider(bool $sandbox, ?string $testBuyerCountry): WebSdkConfigurationProvider
     {
-        $activeModeProvider = $this->createMock(PayPalActiveModeProviderInterface::class);
+        $activeModeProvider = $this->createMock(ActiveModeProviderInterface::class);
         $activeModeProvider->method('isSandbox')->willReturn($sandbox);
 
         return new WebSdkConfigurationProvider(
             $this->payPalConfigurationProvider,
-            new PayPalHostProvider($activeModeProvider),
+            new HostProvider($activeModeProvider),
             $activeModeProvider,
             $testBuyerCountry,
         );

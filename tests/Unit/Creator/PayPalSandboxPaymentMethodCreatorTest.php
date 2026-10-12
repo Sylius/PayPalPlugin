@@ -20,7 +20,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
@@ -52,8 +52,8 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         /** @var PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider */
         $payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
-        /** @var PayPalCredentialsManagerInterface&MockObject $credentialsManager */
-        $credentialsManager = $this->createMock(PayPalCredentialsManagerInterface::class);
+        /** @var CredentialsManagerInterface&MockObject $credentialsManager */
+        $credentialsManager = $this->createMock(CredentialsManagerInterface::class);
         /** @var CachedAccessTokenRemoverInterface&MockObject $cachedAccessTokenRemover */
         $cachedAccessTokenRemover = $this->createMock(CachedAccessTokenRemoverInterface::class);
         $cachedAccessTokenRemover->expects(self::never())->method('remove');
@@ -132,8 +132,8 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         /** @var PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider */
         $payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
-        /** @var PayPalCredentialsManagerInterface&MockObject $credentialsManager */
-        $credentialsManager = $this->createMock(PayPalCredentialsManagerInterface::class);
+        /** @var CredentialsManagerInterface&MockObject $credentialsManager */
+        $credentialsManager = $this->createMock(CredentialsManagerInterface::class);
         /** @var CachedAccessTokenRemoverInterface&MockObject $cachedAccessTokenRemover */
         $cachedAccessTokenRemover = $this->createMock(CachedAccessTokenRemoverInterface::class);
         /** @var GatewayConfigInterface&MockObject $gatewayConfig */

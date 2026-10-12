@@ -11,10 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Model;
+namespace Sylius\PayPalPlugin\Provider;
 
-enum PayPalMode: string
+interface ActiveModeProviderInterface
 {
-    case Sandbox = 'sandbox';
-    case Production = 'production';
+    public function isSandbox(): bool;
 }

@@ -15,15 +15,15 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sylius\PayPalPlugin\Provider\PayPalActiveModeProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalHostProvider;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 
-final class PayPalHostProviderTest extends TestCase
+final class HostProviderTest extends TestCase
 {
     #[Test]
     public function it_provides_sandbox_hosts_when_the_active_mode_is_sandbox(): void
     {
-        $hostProvider = new PayPalHostProvider($this->activeModeProvider(true));
+        $hostProvider = new HostProvider($this->activeModeProvider(true));
 
         self::assertSame('https://api.sandbox.paypal.com/', $hostProvider->getApiBaseUrl());
         self::assertSame('reports.sandbox.paypal.com', $hostProvider->getReportsSftpHost());
@@ -33,7 +33,7 @@ final class PayPalHostProviderTest extends TestCase
     #[Test]
     public function it_provides_production_hosts_when_the_active_mode_is_production(): void
     {
-        $hostProvider = new PayPalHostProvider($this->activeModeProvider(false));
+        $hostProvider = new HostProvider($this->activeModeProvider(false));
 
         self::assertSame('https://api.paypal.com/', $hostProvider->getApiBaseUrl());
         self::assertSame('reports.paypal.com', $hostProvider->getReportsSftpHost());
@@ -43,10 +43,10 @@ final class PayPalHostProviderTest extends TestCase
     #[Test]
     public function it_provides_hosts_for_a_given_mode_regardless_of_the_active_one(): void
     {
-        $activeModeProvider = $this->createMock(PayPalActiveModeProviderInterface::class);
+        $activeModeProvider = $this->createMock(ActiveModeProviderInterface::class);
         $activeModeProvider->expects(self::never())->method('isSandbox');
 
-        $hostProvider = new PayPalHostProvider($activeModeProvider);
+        $hostProvider = new HostProvider($activeModeProvider);
 
         self::assertSame('https://api.sandbox.paypal.com/', $hostProvider->getApiBaseUrlForMode(true));
         self::assertSame('https://api.paypal.com/', $hostProvider->getApiBaseUrlForMode(false));
@@ -56,9 +56,9 @@ final class PayPalHostProviderTest extends TestCase
         self::assertSame('https://www.paypal.com', $hostProvider->getWebUrlForMode(false));
     }
 
-    private function activeModeProvider(bool $sandbox): PayPalActiveModeProviderInterface
+    private function activeModeProvider(bool $sandbox): ActiveModeProviderInterface
     {
-        $activeModeProvider = $this->createMock(PayPalActiveModeProviderInterface::class);
+        $activeModeProvider = $this->createMock(ActiveModeProviderInterface::class);
         $activeModeProvider->method('isSandbox')->willReturn($sandbox);
 
         return $activeModeProvider;

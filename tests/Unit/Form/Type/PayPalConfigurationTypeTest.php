@@ -15,7 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Form\Type;
 
 use PHPUnit\Framework\Attributes\Test;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManager;
+use Sylius\PayPalPlugin\Manager\CredentialsManager;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -27,7 +27,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $translator = $this->createMock(TranslatorInterface::class);
         $translator->method('trans')->willReturnArgument(0);
 
-        return [new PreloadedExtension([new PayPalConfigurationType(new PayPalCredentialsManager(), $translator)], [])];
+        return [new PreloadedExtension([new PayPalConfigurationType(new CredentialsManager(), $translator)], [])];
     }
 
     #[Test]

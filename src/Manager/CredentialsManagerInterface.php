@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Manager;
 
-interface PayPalCredentialsManagerInterface
+interface CredentialsManagerInterface
 {
     public const MODE_KEY = 'sandbox';
 

@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Api;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final readonly class WebhookApi implements WebhookApiInterface
 {
@@ -31,7 +31,7 @@ final readonly class WebhookApi implements WebhookApiInterface
 
     public function __construct(
         private ClientInterface $client,
-        private PayPalHostProviderInterface $hostProvider,
+        private HostProviderInterface $hostProvider,
         private RequestFactoryInterface $requestFactory,
         private StreamFactoryInterface $streamFactory,
     ) {

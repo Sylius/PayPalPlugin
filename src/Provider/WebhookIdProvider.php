@@ -26,7 +26,7 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         private GenericApiInterface $genericApi,
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
-        private PayPalHostProviderInterface $hostProvider,
+        private HostProviderInterface $hostProvider,
         private string $webhookBaseUrl = '',
         ?WebhookUrlProviderInterface $webhookUrlProvider = null,
     ) {

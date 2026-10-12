@@ -24,8 +24,8 @@ use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -52,7 +52,7 @@ final readonly class PayWithPayPalFormAction
         private ?PayPalPaymentPageContextProviderInterface $contextProvider = null,
         private ?UrlGeneratorInterface $router = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
-        private ?PayPalHostProviderInterface $hostProvider = null,
+        private ?HostProviderInterface $hostProvider = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
 
@@ -64,7 +64,7 @@ final readonly class PayWithPayPalFormAction
 
         $this->deprecateMissingArgument($this->contextProvider, PayPalPaymentPageContextProviderInterface::class);
         $this->deprecateMissingArgument($this->router, UrlGeneratorInterface::class);
-        $this->deprecateMissingArgument($this->hostProvider, PayPalHostProviderInterface::class);
+        $this->deprecateMissingArgument($this->hostProvider, HostProviderInterface::class);
     }
 
     public function __invoke(Request $request): Response

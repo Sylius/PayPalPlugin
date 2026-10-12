@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
-final readonly class PayPalModeSwitchView
+final readonly class ModeSwitchView
 {
     /**
      * @param array{
@@ -31,6 +31,6 @@ final readonly class PayPalModeSwitchView
 
     public function isSandboxMode(): bool
     {
-        return PayPalMode::Sandbox->value === $this->currentMode;
+        return Mode::Sandbox->value === $this->currentMode;
     }
 }

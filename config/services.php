@@ -20,6 +20,8 @@ use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
+use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
+use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
@@ -28,22 +30,20 @@ use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
+use Sylius\PayPalPlugin\Factory\SftpClientFactory;
+use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactory;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface;
 use Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension;
-use Sylius\PayPalPlugin\Factory\PayPalModeSwitchViewFactory;
-use Sylius\PayPalPlugin\Factory\PayPalModeSwitchViewFactoryInterface;
-use Sylius\PayPalPlugin\Factory\SftpClientFactory;
-use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManager;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
+use Sylius\PayPalPlugin\Manager\CredentialsManager;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManager;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
@@ -62,6 +62,8 @@ use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Processor\UiPayPalPaymentRefundProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
+use Sylius\PayPalPlugin\Provider\ActiveModeProvider;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProvider;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
@@ -71,6 +73,8 @@ use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\NonceProvider;
 use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProvider;
@@ -88,10 +92,6 @@ use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalActiveModeProvider;
-use Sylius\PayPalPlugin\Provider\PayPalActiveModeProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalHostProvider;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
@@ -314,24 +314,24 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalPaymentMethodProviderInterface::class, 'sylius_paypal.provider.paypal_payment_method');
 
-    $services->set('sylius_paypal.provider.active_mode', PayPalActiveModeProvider::class)
+    $services->set('sylius_paypal.provider.active_mode', ActiveModeProvider::class)
         ->args([service('sylius_paypal.provider.paypal_payment_method')]);
 
-    $services->alias(PayPalActiveModeProviderInterface::class, 'sylius_paypal.provider.active_mode');
+    $services->alias(ActiveModeProviderInterface::class, 'sylius_paypal.provider.active_mode');
 
-    $services->set('sylius_paypal.provider.host', PayPalHostProvider::class)
+    $services->set('sylius_paypal.provider.host', HostProvider::class)
         ->args([service('sylius_paypal.provider.active_mode')]);
 
-    $services->alias(PayPalHostProviderInterface::class, 'sylius_paypal.provider.host');
+    $services->alias(HostProviderInterface::class, 'sylius_paypal.provider.host');
 
     $services->set('sylius_paypal.provider.production_mode', ProductionModeProvider::class);
 
-    $services->set('sylius_paypal.provider.host.production', PayPalHostProvider::class)
+    $services->set('sylius_paypal.provider.host.production', HostProvider::class)
         ->args([service('sylius_paypal.provider.production_mode')]);
 
-    $services->set('sylius_paypal.manager.credentials', PayPalCredentialsManager::class);
+    $services->set('sylius_paypal.manager.credentials', CredentialsManager::class);
 
-    $services->alias(PayPalCredentialsManagerInterface::class, 'sylius_paypal.manager.credentials');
+    $services->alias(CredentialsManagerInterface::class, 'sylius_paypal.manager.credentials');
 
     $services->set('sylius_paypal.provider.paypal_refund_data', PayPalRefundDataProvider::class)
         ->args([
@@ -630,9 +630,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalOnboardingPaymentMethodCreatorInterface::class, 'sylius_paypal.creator.onboarding_payment_method');
 
-    $services->set('sylius_paypal.factory.mode_switch_view', PayPalModeSwitchViewFactory::class);
+    $services->set('sylius_paypal.factory.mode_switch_view', ModeSwitchViewFactory::class);
 
-    $services->alias(PayPalModeSwitchViewFactoryInterface::class, 'sylius_paypal.factory.mode_switch_view');
+    $services->alias(ModeSwitchViewFactoryInterface::class, 'sylius_paypal.factory.mode_switch_view');
 
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)
         ->args([

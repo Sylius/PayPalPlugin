@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-interface PayPalHostProviderInterface
+interface HostProviderInterface
 {
     public const SANDBOX_API_BASE_URL = 'https://api.sandbox.paypal.com/';
 

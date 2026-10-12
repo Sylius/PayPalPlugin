@@ -15,16 +15,16 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sylius\PayPalPlugin\Factory\PayPalModeSwitchViewFactory;
+use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
 
-final class PayPalModeSwitchViewFactoryTest extends TestCase
+final class ModeSwitchViewFactoryTest extends TestCase
 {
-    private PayPalModeSwitchViewFactory $factory;
+    private ModeSwitchViewFactory $factory;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->factory = new PayPalModeSwitchViewFactory();
+        $this->factory = new ModeSwitchViewFactory();
     }
 
     #[Test]

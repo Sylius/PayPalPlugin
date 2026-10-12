@@ -18,7 +18,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
@@ -30,7 +30,7 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        private PayPalCredentialsManagerInterface $credentialsManager,
+        private CredentialsManagerInterface $credentialsManager,
         private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
     ) {
     }

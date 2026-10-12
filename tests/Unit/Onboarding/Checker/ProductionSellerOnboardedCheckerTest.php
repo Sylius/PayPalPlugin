@@ -18,7 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManager;
+use Sylius\PayPalPlugin\Manager\CredentialsManager;
 use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedChecker;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
@@ -34,7 +34,7 @@ final class ProductionSellerOnboardedCheckerTest extends TestCase
 
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
 
-        $this->checker = new ProductionSellerOnboardedChecker($this->payPalPaymentMethodProvider, new PayPalCredentialsManager());
+        $this->checker = new ProductionSellerOnboardedChecker($this->payPalPaymentMethodProvider, new CredentialsManager());
     }
 
     #[Test]

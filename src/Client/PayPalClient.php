@@ -24,8 +24,8 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,7 +37,7 @@ final class PayPalClient implements PayPalClientInterface
         private readonly UuidProviderInterface $uuidProvider,
         private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         private readonly ChannelContextInterface $channelContext,
-        private readonly PayPalHostProviderInterface $hostProvider,
+        private readonly HostProviderInterface $hostProvider,
         private int $requestTrialsLimit,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,

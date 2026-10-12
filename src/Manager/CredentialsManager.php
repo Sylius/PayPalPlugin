@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Manager;
 
-final class PayPalCredentialsManager implements PayPalCredentialsManagerInterface
+final class CredentialsManager implements CredentialsManagerInterface
 {
     public function store(array $config, bool $sandbox, array $credentials): array
     {

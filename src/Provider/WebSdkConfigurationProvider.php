@@ -19,8 +19,8 @@ final readonly class WebSdkConfigurationProvider implements WebSdkConfigurationP
 {
     public function __construct(
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private PayPalHostProviderInterface $hostProvider,
-        private PayPalActiveModeProviderInterface $activeModeProvider,
+        private HostProviderInterface $hostProvider,
+        private ActiveModeProviderInterface $activeModeProvider,
         private ?string $testBuyerCountry,
     ) {
     }

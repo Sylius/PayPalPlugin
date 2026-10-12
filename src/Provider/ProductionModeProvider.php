@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-final class ProductionModeProvider implements PayPalActiveModeProviderInterface
+final class ProductionModeProvider implements ActiveModeProviderInterface
 {
     public function isSandbox(): bool
     {

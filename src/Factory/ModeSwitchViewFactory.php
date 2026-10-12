@@ -13,26 +13,26 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
-use Sylius\PayPalPlugin\Model\PayPalMode;
-use Sylius\PayPalPlugin\Model\PayPalModeSwitchView;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
+use Sylius\PayPalPlugin\Model\Mode;
+use Sylius\PayPalPlugin\Model\ModeSwitchView;
 
-final class PayPalModeSwitchViewFactory implements PayPalModeSwitchViewFactoryInterface
+final class ModeSwitchViewFactory implements ModeSwitchViewFactoryInterface
 {
-    public function createFromConfig(array $config): PayPalModeSwitchView
+    public function createFromConfig(array $config): ModeSwitchView
     {
-        $currentMode = ($config[PayPalCredentialsManagerInterface::MODE_KEY] ?? false)
-            ? PayPalMode::Sandbox->value
-            : PayPalMode::Production->value;
+        $currentMode = ($config[CredentialsManagerInterface::MODE_KEY] ?? false)
+            ? Mode::Sandbox->value
+            : Mode::Production->value;
         $activeClientId = (string) ($config['client_id'] ?? '');
 
-        return new PayPalModeSwitchView(
+        return new ModeSwitchView(
             currentMode: $currentMode,
-            sandboxConfigured: $this->isConfigured($config, PayPalCredentialsManagerInterface::SANDBOX_CREDENTIALS_KEY, PayPalMode::Sandbox->value, $currentMode, $activeClientId),
-            productionConfigured: $this->isConfigured($config, PayPalCredentialsManagerInterface::PRODUCTION_CREDENTIALS_KEY, PayPalMode::Production->value, $currentMode, $activeClientId),
+            sandboxConfigured: $this->isConfigured($config, CredentialsManagerInterface::SANDBOX_CREDENTIALS_KEY, Mode::Sandbox->value, $currentMode, $activeClientId),
+            productionConfigured: $this->isConfigured($config, CredentialsManagerInterface::PRODUCTION_CREDENTIALS_KEY, Mode::Production->value, $currentMode, $activeClientId),
             credentialsPreview: [
-                PayPalMode::Sandbox->value => $this->credentialsFor($config, PayPalCredentialsManagerInterface::SANDBOX_CREDENTIALS_KEY, PayPalMode::Sandbox->value, $currentMode, $activeClientId),
-                PayPalMode::Production->value => $this->credentialsFor($config, PayPalCredentialsManagerInterface::PRODUCTION_CREDENTIALS_KEY, PayPalMode::Production->value, $currentMode, $activeClientId),
+                Mode::Sandbox->value => $this->credentialsFor($config, CredentialsManagerInterface::SANDBOX_CREDENTIALS_KEY, Mode::Sandbox->value, $currentMode, $activeClientId),
+                Mode::Production->value => $this->credentialsFor($config, CredentialsManagerInterface::PRODUCTION_CREDENTIALS_KEY, Mode::Production->value, $currentMode, $activeClientId),
             ],
         );
     }

@@ -14,14 +14,14 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Onboarding\Checker;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
 final readonly class ProductionSellerOnboardedChecker implements ProductionSellerOnboardedCheckerInterface
 {
     public function __construct(
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        private PayPalCredentialsManagerInterface $credentialsManager,
+        private CredentialsManagerInterface $credentialsManager,
     ) {
     }
 

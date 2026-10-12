@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
-use Sylius\PayPalPlugin\Model\PayPalModeSwitchView;
+use Sylius\PayPalPlugin\Model\ModeSwitchView;
 
-interface PayPalModeSwitchViewFactoryInterface
+interface ModeSwitchViewFactoryInterface
 {
     /**
      * @param array<string, mixed> $config the PayPal gateway config vault
      */
-    public function createFromConfig(array $config): PayPalModeSwitchView;
+    public function createFromConfig(array $config): ModeSwitchView;
 }

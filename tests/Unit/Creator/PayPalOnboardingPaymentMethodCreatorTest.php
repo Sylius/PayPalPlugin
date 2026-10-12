@@ -22,7 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
@@ -58,7 +58,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
     private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
 
-    private PayPalCredentialsManagerInterface&MockObject $credentialsManager;
+    private CredentialsManagerInterface&MockObject $credentialsManager;
 
     private CachedAccessTokenRemoverInterface&MockObject $cachedAccessTokenRemover;
 
@@ -71,7 +71,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->paymentMethodFactory = $this->createMock(FactoryInterface::class);
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
-        $this->credentialsManager = $this->createMock(PayPalCredentialsManagerInterface::class);
+        $this->credentialsManager = $this->createMock(CredentialsManagerInterface::class);
         $this->cachedAccessTokenRemover = $this->createMock(CachedAccessTokenRemoverInterface::class);
 
         $this->creator = new PayPalOnboardingPaymentMethodCreator(

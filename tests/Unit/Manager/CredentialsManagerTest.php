@@ -15,17 +15,17 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Manager;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManager;
+use Sylius\PayPalPlugin\Manager\CredentialsManager;
 
-final class PayPalCredentialsManagerTest extends TestCase
+final class CredentialsManagerTest extends TestCase
 {
-    private PayPalCredentialsManager $manager;
+    private CredentialsManager $manager;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->manager = new PayPalCredentialsManager();
+        $this->manager = new CredentialsManager();
     }
 
     #[Test]

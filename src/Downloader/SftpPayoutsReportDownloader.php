@@ -19,13 +19,13 @@ use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\Report;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterface
 {
     public function __construct(
         private SftpClientFactoryInterface $sftpClientFactory,
-        private PayPalHostProviderInterface $hostProvider,
+        private HostProviderInterface $hostProvider,
     ) {
     }
 

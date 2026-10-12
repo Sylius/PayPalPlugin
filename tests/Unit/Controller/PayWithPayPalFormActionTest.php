@@ -22,7 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -142,7 +142,7 @@ final class PayWithPayPalFormActionTest extends TestCase
 
     public function test_it_delegates_web_authn_permissions_to_only_the_web_url_of_the_active_mode(): void
     {
-        $hostProvider = $this->createStub(PayPalHostProviderInterface::class);
+        $hostProvider = $this->createStub(HostProviderInterface::class);
         $hostProvider->method('getWebUrl')->willReturn('https://www.sandbox.paypal.com');
 
         $action = new PayWithPayPalFormAction(

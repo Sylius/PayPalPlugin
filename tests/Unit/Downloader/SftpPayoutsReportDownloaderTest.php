@@ -24,7 +24,7 @@ use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Model\Report;
-use Sylius\PayPalPlugin\Provider\PayPalHostProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class SftpPayoutsReportDownloaderTest extends TestCase
 {
@@ -32,7 +32,7 @@ final class SftpPayoutsReportDownloaderTest extends TestCase
 
     private SftpClientFactoryInterface&MockObject $sftpClientFactory;
 
-    private PayPalHostProviderInterface&MockObject $hostProvider;
+    private HostProviderInterface&MockObject $hostProvider;
 
     private SftpPayoutsReportDownloader $sftpPayoutsReportDownloader;
 
@@ -41,7 +41,7 @@ final class SftpPayoutsReportDownloaderTest extends TestCase
         parent::setUp();
         $this->sftp = $this->createMock(SFTP::class);
         $this->sftpClientFactory = $this->createMock(SftpClientFactoryInterface::class);
-        $this->hostProvider = $this->createMock(PayPalHostProviderInterface::class);
+        $this->hostProvider = $this->createMock(HostProviderInterface::class);
         $this->hostProvider->method('getReportsSftpHostForMode')->willReturn('reports.paypal.com');
         $this->sftpClientFactory->method('createForHost')->willReturn($this->sftp);
         $this->sftpPayoutsReportDownloader = new SftpPayoutsReportDownloader(

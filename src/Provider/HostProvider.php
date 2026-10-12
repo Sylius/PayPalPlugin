@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-final readonly class PayPalHostProvider implements PayPalHostProviderInterface
+final readonly class HostProvider implements HostProviderInterface
 {
-    public function __construct(private PayPalActiveModeProviderInterface $activeModeProvider)
+    public function __construct(private ActiveModeProviderInterface $activeModeProvider)
     {
     }
 

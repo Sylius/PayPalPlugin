@@ -18,7 +18,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
@@ -31,7 +31,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         private EntityManagerInterface $entityManager,
         private string $partnerAttributionId,
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        private PayPalCredentialsManagerInterface $credentialsManager,
+        private CredentialsManagerInterface $credentialsManager,
         private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
     ) {
     }

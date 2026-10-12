@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
+use Sylius\PayPalPlugin\Model\Mode;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Model\PayPalMode;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -40,7 +40,7 @@ final class PayPalConfigurationType extends AbstractType
     private const SANDBOX_MODE_FIELD = 'sandbox_mode';
 
     public function __construct(
-        private readonly PayPalCredentialsManagerInterface $credentialsManager,
+        private readonly CredentialsManagerInterface $credentialsManager,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -59,7 +59,7 @@ final class PayPalConfigurationType extends AbstractType
                     'sylius_paypal.mode_production' => false,
                     'sylius_paypal.mode_sandbox' => true,
                 ],
-                'choice_value' => static fn (?bool $mode): string => (true === $mode ? PayPalMode::Sandbox : PayPalMode::Production)->value,
+                'choice_value' => static fn (?bool $mode): string => (true === $mode ? Mode::Sandbox : Mode::Production)->value,
             ])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
@@ -97,7 +97,7 @@ final class PayPalConfigurationType extends AbstractType
         $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
             $data = $event->getData();
             if (is_array($data)) {
-                $event->getForm()->get(self::SANDBOX_MODE_FIELD)->setData((bool) ($data[PayPalCredentialsManagerInterface::MODE_KEY] ?? false));
+                $event->getForm()->get(self::SANDBOX_MODE_FIELD)->setData((bool) ($data[CredentialsManagerInterface::MODE_KEY] ?? false));
             }
         });
 
@@ -133,7 +133,7 @@ final class PayPalConfigurationType extends AbstractType
      */
     private function applyModeSwitch(FormEvent $event, array $config): array
     {
-        $currentSandbox = (bool) ($config[PayPalCredentialsManagerInterface::MODE_KEY] ?? false);
+        $currentSandbox = (bool) ($config[CredentialsManagerInterface::MODE_KEY] ?? false);
         $requestedSandbox = (bool) $event->getForm()->get(self::SANDBOX_MODE_FIELD)->getData();
         $config = $this->credentialsManager->store($config, $currentSandbox, $config);
 

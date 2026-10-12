@@ -19,14 +19,14 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
-use Sylius\PayPalPlugin\Provider\PayPalActiveModeProvider;
+use Sylius\PayPalPlugin\Provider\ActiveModeProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
-final class PayPalActiveModeProviderTest extends TestCase
+final class ActiveModeProviderTest extends TestCase
 {
     private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
 
-    private PayPalActiveModeProvider $activeModeProvider;
+    private ActiveModeProvider $activeModeProvider;
 
     protected function setUp(): void
     {
@@ -34,7 +34,7 @@ final class PayPalActiveModeProviderTest extends TestCase
 
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
 
-        $this->activeModeProvider = new PayPalActiveModeProvider($this->payPalPaymentMethodProvider);
+        $this->activeModeProvider = new ActiveModeProvider($this->payPalPaymentMethodProvider);
     }
 
     #[Test]
