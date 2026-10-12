@@ -39,13 +39,23 @@ return function (ContainerConfigurator $container): void {
         ])
         ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
 
+    $services->set('sylius_paypal.provider.payment_request_return_url')
+        ->parent('sylius.provider.order_pay.payment_request_pay_url')
+        ->args([
+            '%sylius_shop.order_pay.payment_request_pay_route%',
+            [
+                'hash' => 'paymentRequest.getHash()',
+                '_locale' => 'payment.getOrder().getLocaleCode()',
+            ],
+        ]);
+
     $services->set('sylius_paypal.command_handler.create_paypal_order', CreatePayPalOrderPaymentRequestHandler::class)
         ->args([
             service('sylius.provider.payment_request'),
             service('sylius_paypal.creator.paypal_order'),
             service('sylius_paypal.provider.paypal_payment_source'),
             service('sylius_paypal.checker.payment_source_enabled'),
-            service('router'),
+            service('sylius_paypal.provider.payment_request_return_url'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);

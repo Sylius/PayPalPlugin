@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
 {
@@ -119,6 +120,16 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $this->paymentRequest($hash)->getState());
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
         self::assertSame(['PAYPAL_ORDER_ID' => 'trustly'], $this->paymentRequest($hash)->getPayment()->getDetails()['superseded_paypal_orders']);
+    }
+
+    public function test_it_brings_the_payer_back_from_paypal_to_the_payment_request_in_the_order_language(): void
+    {
+        $paymentRequest = $this->paymentRequest($this->paymentRequestHash());
+        $paymentRequest->getPayment()->getOrder()?->setLocaleCode('pl_PL');
+
+        $returnUrl = self::getContainer()->get('sylius_paypal.provider.payment_request_return_url')->getUrl($paymentRequest, UrlGeneratorInterface::ABSOLUTE_URL);
+
+        self::assertSame(sprintf('http://localhost/pl_PL/payment-request/pay/%s', $paymentRequest->getId()), $returnUrl);
     }
 
     public function test_it_refuses_a_payment_source_the_payment_method_has_not_enabled_and_keeps_the_live_attempt(): void
