@@ -134,6 +134,18 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertSame(['sylius_paypal.payment_pending'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
     }
 
+    public function test_it_sends_the_payer_who_cancelled_at_the_bank_after_paypal_started_the_capture_to_the_order(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING', value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?errorcode=payment_error&payer_cancelled=1', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_PROCESSING));
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN'));
+        self::assertSame(['sylius_paypal.payment_cancellation_pending'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
     public function test_it_keeps_the_attempt_open_for_the_payer_who_comes_back_while_still_at_the_bank(): void
     {
         $hash = $this->redirectPaymentRequestHash();

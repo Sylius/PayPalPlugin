@@ -193,6 +193,18 @@ final class CaptureHttpResponseProviderTest extends TestCase
         self::assertSame(['sylius_paypal.payment_pending'], $this->session->getFlashBag()->peek('info'));
     }
 
+    public function test_it_sends_the_payer_who_cancelled_at_the_bank_after_paypal_started_the_capture_to_the_order(): void
+    {
+        $this->router->method('generate')->with('sylius_shop_order_show', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN');
+        $this->requestConfiguration->getRequest()->query->set('payer_cancelled', '1');
+        $this->requestConfiguration->getRequest()->query->set('errorcode', 'payment_error');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_COMPLETED, paymentState: 'processing'));
+
+        self::assertSame('/en_US/order/TOKEN', $response->headers->get('Location'));
+        self::assertSame(['sylius_paypal.payment_cancellation_pending'], $this->session->getFlashBag()->peek('info'));
+    }
+
     public function test_it_leaves_a_completed_payment_to_the_after_pay_page(): void
     {
         self::assertFalse($this->provider->supports($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_COMPLETED, paymentState: 'completed')));

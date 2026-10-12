@@ -65,7 +65,9 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         return match ($paymentRequest->getState()) {
             PaymentRequestInterface::STATE_CANCELLED => $this->sendBackToPay($request, $paymentRequest, $order),
             PaymentRequestInterface::STATE_FAILED => $this->sendToOrder($request, $order),
-            PaymentRequestInterface::STATE_COMPLETED => $this->sendToThankYou($request),
+            PaymentRequestInterface::STATE_COMPLETED => $this->hasPayerCancelled($request)
+                ? $this->sendToOrderAwaitingCancellation($request, $order)
+                : $this->sendToThankYou($request),
             PaymentRequestInterface::STATE_PROCESSING => $this->renderPaymentPageAwaitingPayer($request, $paymentRequest, $payment),
             default => $this->renderPaymentPage($request, $paymentRequest, $payment),
         };
@@ -85,6 +87,13 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
     private function sendToOrder(Request $request, OrderInterface $order): Response
     {
         $this->addFlash($request, 'error', 'sylius_paypal.three_d_secure_declined');
+
+        return new RedirectResponse($this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]));
+    }
+
+    private function sendToOrderAwaitingCancellation(Request $request, OrderInterface $order): Response
+    {
+        $this->addFlash($request, 'info', 'sylius_paypal.payment_cancellation_pending');
 
         return new RedirectResponse($this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]));
     }
