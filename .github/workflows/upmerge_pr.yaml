@@ -32,6 +32,9 @@ jobs:
                     -
                         base_branch: "phase-1"
                         target_branch: "phase-2"
+                    -
+                        base_branch: "phase-2"
+                        target_branch: "phase-2-payment-requests"
 
         steps:
             -
