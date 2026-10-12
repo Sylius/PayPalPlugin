@@ -96,7 +96,7 @@ final readonly class CreatePayPalOrderAction
 
         return new JsonResponse(array_filter([
             'orderId' => $payPalOrderId,
-            'orderID' => $payPalOrderId, // BC with 2.0. Deprecated in 2.1; use "orderId" instead.
+            'orderID' => $payPalOrderId, // BC with 2.1. Deprecated in 2.2; use "orderId" instead.
             'status' => $payment->getState(),
             'payerActionUrl' => $this->payerActionUrl($details),
         ], static fn (mixed $value): bool => null !== $value));

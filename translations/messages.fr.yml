@@ -10,6 +10,7 @@ sylius_paypal:
     configure: 'Configurer'
     could_not_load_onboarding_url: "Impossible de charger le lien de connexion PayPal. Veuillez fermer cette fenêtre et réessayer."
     credit_card: 'Carte de crédit'
+    credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
     different_amount: 'Ceci est le montant autorisé. Etant donné que vous avez modifié la commande après son autorisation, vous paierez le montant indiqué comme "Total"'
     enable_paypal: 'Activer PayPal'

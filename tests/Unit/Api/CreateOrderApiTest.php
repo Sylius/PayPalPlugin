@@ -195,4 +195,16 @@ final class CreateOrderApiTest extends TestCase
             false,
         );
     }
+
+    public function test_an_implementation_with_the_2_1_signature_still_satisfies_the_interface(): void
+    {
+        $createOrderApi = new class() implements CreateOrderApiInterface {
+            public function create(string $token, PaymentInterface $payment, string $referenceId): array
+            {
+                return ['id' => 'PAYPAL_ORDER_ID'];
+            }
+        };
+
+        self::assertSame(['id' => 'PAYPAL_ORDER_ID'], $createOrderApi->create('TOKEN', $this->createMock(PaymentInterface::class), 'REFERENCE_ID'));
+    }
 }

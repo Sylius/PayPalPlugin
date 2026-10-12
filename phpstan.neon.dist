@@ -23,8 +23,3 @@ parameters:
                 - src/EventListener/Workflow/*
                 - src/PackageTracking/EventListener/Workflow/*
             reportUnmatched: false
-
-        # $order is kept only for BC and will be removed in 3.0
-        -
-            identifier: constructor.unusedParameter
-            path: src/Model/PayPalOrder.php
