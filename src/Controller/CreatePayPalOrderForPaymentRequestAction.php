@@ -25,6 +25,7 @@ use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,6 +37,8 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
     public const RESPONSE_ERROR = 'error';
 
     public const PAYMENT_SOURCE_NOT_AVAILABLE = 'payment_source_not_available';
+
+    public const ATTEMPT_CLOSED = 'attempt_closed';
 
     /**
      * @param PaymentRequestRepositoryInterface<PaymentRequestInterface> $paymentRequestRepository
@@ -59,7 +62,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         }
 
         if (PaymentInterface::STATE_NEW !== $paymentRequest->getPayment()->getState()) {
-            return new JsonResponse([], Response::HTTP_CONFLICT);
+            return $this->attemptClosed();
         }
 
         $paymentSource = $this->paymentSource($request);
@@ -80,9 +83,13 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
                 return $this->respond($paymentRequest);
             }
 
+            if ($this->isPaidAtTheBank($paymentRequest)) {
+                return $this->attemptClosed();
+            }
+
             $paymentRequest = $this->startAnotherAttempt($paymentRequest);
         } elseif (PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState()) {
-            return new JsonResponse([], Response::HTTP_CONFLICT);
+            return $this->attemptClosed();
         }
 
         $paymentRequest->setPayload([CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE => $paymentSource]);
@@ -123,14 +130,33 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         return is_array($payload) ? ($payload[CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE] ?? null) : null;
     }
 
+    private function isPaidAtTheBank(PaymentRequestInterface $paymentRequest): bool
+    {
+        $requestedPaymentSource = $this->requestedPaymentSource($paymentRequest);
+        if (!is_string($requestedPaymentSource) || null === RedirectPaymentSource::tryFrom($requestedPaymentSource)) {
+            return false;
+        }
+
+        $this->paymentRequestAnnouncer->dispatchPaymentRequestCommand($paymentRequest);
+
+        return PaymentInterface::STATE_NEW !== $paymentRequest->getPayment()->getState();
+    }
+
     private function startAnotherAttempt(PaymentRequestInterface $paymentRequest): PaymentRequestInterface
     {
-        $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+        if ($this->stateMachine->can($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL)) {
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+        }
 
         $anotherAttempt = $this->paymentRequestFactory->createFromPaymentRequest($paymentRequest);
         $anotherAttempt->setAction(PaymentRequestInterface::ACTION_CAPTURE);
 
         return $anotherAttempt;
+    }
+
+    private function attemptClosed(): JsonResponse
+    {
+        return new JsonResponse([self::RESPONSE_ERROR => self::ATTEMPT_CLOSED], Response::HTTP_CONFLICT);
     }
 
     private function respond(PaymentRequestInterface $paymentRequest): JsonResponse

@@ -93,6 +93,33 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', $details['payer_action_url']);
     }
 
+    public function test_it_keeps_the_bank_attempt_the_payer_already_paid_instead_of_starting_another(): void
+    {
+        $hash = $this->bankAttemptHash();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING');
+
+        $this->createOrder($hash, 'paypal');
+
+        self::assertSame(Response::HTTP_CONFLICT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(['error' => 'attempt_closed'], $this->responseContent());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->paymentRequest($hash)->getState());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->paymentRequest($hash)->getPayment()->getState());
+    }
+
+    public function test_it_starts_another_attempt_while_the_payer_has_not_paid_at_the_bank_yet(): void
+    {
+        $hash = $this->bankAttemptHash();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
+        $this->payPalApi()->mockCreateOrder('ANOTHER_PAYPAL_ORDER_ID');
+
+        $this->createOrder($hash, 'paypal');
+
+        $content = $this->responseContent();
+        self::assertSame('ANOTHER_PAYPAL_ORDER_ID', $content['paypal_order_id']);
+        self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $this->paymentRequest($hash)->getState());
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
+    }
+
     public function test_it_refuses_a_payment_source_the_payment_method_has_not_enabled_and_keeps_the_live_attempt(): void
     {
         $hash = $this->paymentRequestHash();
@@ -124,6 +151,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $this->createOrder($hash, 'paypal');
 
         self::assertSame(Response::HTTP_CONFLICT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(['error' => 'attempt_closed'], $this->responseContent());
     }
 
     public function test_it_refuses_a_payment_request_that_is_over(): void
@@ -180,6 +208,18 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $entityManager->flush();
 
         return (string) $paymentRequest->getId();
+    }
+
+    private function bankAttemptHash(): string
+    {
+        $hash = $this->paymentRequestHash();
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID', [
+            'status' => 'PAYER_ACTION_REQUIRED',
+            'links' => [['href' => 'https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', 'rel' => 'payer-action', 'method' => 'GET']],
+        ]);
+        $this->createOrder($hash, 'trustly');
+
+        return $hash;
     }
 
     private function createOrder(string $hash, string $paymentSource): void
