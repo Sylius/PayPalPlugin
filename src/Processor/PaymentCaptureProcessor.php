@@ -70,6 +70,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             ->withPayPalOrderId((string) $orderDetails['id'])
             ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
             ->withPaymentSource($details->paymentSource())
+            ->withSupersededPayPalOrders($details->supersededPayPalOrders())
         ;
         if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
             $capturedDetails = $capturedDetails->withTransactionId(

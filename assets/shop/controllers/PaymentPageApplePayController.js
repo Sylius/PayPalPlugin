@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { PaymentSourceNotAvailableError, paymentPageSession } from '../scripts/paypal-payment-page';
+import { AttemptRefusedError, paymentPageSession } from '../scripts/paypal-payment-page';
 import { loadApplePaySdkOnce } from '../scripts/apple-pay';
 
 const PAYMENT_SOURCE = 'apple_pay';
@@ -146,7 +146,7 @@ export default class extends Controller {
     }
 
     async fail(error, context = null) {
-        if (!(error instanceof PaymentSourceNotAvailableError)) {
+        if (!(error instanceof AttemptRefusedError)) {
             console.error('Apple Pay payment failed:', error);
 
             if (this.session?.currentApproveUrl()) {

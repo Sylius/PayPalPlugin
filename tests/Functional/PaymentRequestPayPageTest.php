@@ -134,15 +134,29 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertSame(['sylius_paypal.payment_pending'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
     }
 
-    public function test_it_sends_the_payer_who_cancelled_at_the_bank_back_to_a_fresh_payment_page(): void
+    public function test_it_sends_the_payer_who_cancelled_at_the_bank_after_paypal_started_the_capture_to_the_order(): void
+    {
+        $hash = $this->redirectPaymentRequestHash();
+
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'PENDING', value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?errorcode=payment_error&payer_cancelled=1', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_PROCESSING));
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN'));
+        self::assertSame(['sylius_paypal.payment_cancellation_pending'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_keeps_the_attempt_open_for_the_payer_who_comes_back_while_still_at_the_bank(): void
     {
         $hash = $this->redirectPaymentRequestHash();
 
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
         $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
 
-        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
+        self::assertResponseIsSuccessful();
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->reloadedPaymentRequest($hash)->getState());
         self::assertNotNull($this->reloadedPayment());
+        self::assertStringContainsString('Your payment at the bank has not finished yet.', (string) $this->client->getResponse()->getContent());
     }
 
     public function test_it_tells_the_payer_who_cancelled_at_the_bank_that_the_payment_was_cancelled(): void
@@ -152,19 +166,19 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
         $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?payer_cancelled=1&errorcode=payment_error', $hash));
 
-        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
-        self::assertSame(['sylius_paypal.payment_cancelled'], $this->client->getRequest()->getSession()->getFlashBag()->peek('info'));
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('PayPal payment has been cancelled', (string) $this->client->getResponse()->getContent());
     }
 
-    public function test_it_tells_the_payer_the_bank_refused_that_something_went_wrong(): void
+    public function test_it_tells_the_payer_something_went_wrong_when_paypal_reports_an_error(): void
     {
         $hash = $this->redirectPaymentRequestHash();
 
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
         $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?payer_cancelled=1&errorcode=processing_error', $hash));
 
-        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
-        self::assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getFlashBag()->peek('error'));
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Something went wrong. Please, try again.', (string) $this->client->getResponse()->getContent());
     }
 
     /** @return iterable<string, array{string}> */
@@ -241,6 +255,16 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $order = self::getContainer()->get('sylius.repository.order')->findOneBy(['tokenValue' => 'TOKEN']);
 
         return $order->getLastPayment($state);
+    }
+
+    private function reloadedPaymentRequest(string $hash): PaymentRequestInterface
+    {
+        $this->getEntityManager()->clear();
+
+        /** @var PaymentRequestInterface $paymentRequest */
+        $paymentRequest = self::getContainer()->get('sylius.repository.payment_request')->find($hash);
+
+        return $paymentRequest;
     }
 
     private function payPalOrder(): PaymentInterface

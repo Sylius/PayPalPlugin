@@ -16,8 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\CommandHandler;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -55,14 +55,10 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentSourceEnabledChecker = $this->createMock(PaymentSourceEnabledCheckerInterface::class);
         $this->paymentSourceEnabledChecker->method('isEnabled')->willReturnCallback(static fn (string $paymentSource): bool => 'venmo' !== $paymentSource);
 
-        $order = $this->createMock(OrderInterface::class);
-        $order->method('getLocaleCode')->willReturn('en_US');
-        $this->payment->method('getOrder')->willReturn($order);
-
-        $router = $this->createMock(UrlGeneratorInterface::class);
-        $router
-            ->method('generate')
-            ->with('sylius_shop_payment_request_pay', ['_locale' => 'en_US', 'hash' => 'PAYMENT_REQUEST_HASH'], UrlGeneratorInterface::ABSOLUTE_URL)
+        $returnUrlProvider = $this->createMock(UrlProviderInterface::class);
+        $returnUrlProvider
+            ->method('getUrl')
+            ->with(self::isInstanceOf(PaymentRequestInterface::class), UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH')
         ;
 
@@ -71,7 +67,7 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->payPalOrderCreator,
             new PayPalPaymentSourceProvider(),
             $this->paymentSourceEnabledChecker,
-            $router,
+            $returnUrlProvider,
             $this->stateMachine,
         );
     }

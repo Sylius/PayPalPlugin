@@ -40,6 +40,8 @@ final readonly class PayPalPaymentDetails
 
     public const CAPTURED_CURRENCY_CODE = 'captured_currency_code';
 
+    public const SUPERSEDED_PAYPAL_ORDERS = 'superseded_paypal_orders';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -112,6 +114,45 @@ final readonly class PayPalPaymentDetails
         return $this->optional(self::PAYER_ACTION_URL);
     }
 
+    /** @return array<string, string> */
+    public function supersededPayPalOrders(): array
+    {
+        $supersededPayPalOrders = $this->details[self::SUPERSEDED_PAYPAL_ORDERS] ?? null;
+        if (!is_array($supersededPayPalOrders)) {
+            return [];
+        }
+
+        $paymentSources = [];
+        foreach ($supersededPayPalOrders as $payPalOrderId => $paymentSource) {
+            if (is_string($paymentSource)) {
+                $paymentSources[(string) $payPalOrderId] = $paymentSource;
+            }
+        }
+
+        return $paymentSources;
+    }
+
+    public function isSupersededPayPalOrder(string $payPalOrderId): bool
+    {
+        return array_key_exists($payPalOrderId, $this->supersededPayPalOrders());
+    }
+
+    public function isPayPalOrder(string $payPalOrderId): bool
+    {
+        return $payPalOrderId === $this->payPalOrderId() || $this->isSupersededPayPalOrder($payPalOrderId);
+    }
+
+    /** @return array<string, string> */
+    public function payPalOrdersToSupersede(): array
+    {
+        $supersededPayPalOrders = $this->supersededPayPalOrders();
+        if ($this->hasPayPalOrderId()) {
+            $supersededPayPalOrders[(string) $this->payPalOrderId()] = $this->paymentSource();
+        }
+
+        return $supersededPayPalOrders;
+    }
+
     public function withStatus(PayPalPaymentStatus $status): self
     {
         return $this->with([self::STATUS => $status->value]);
@@ -153,6 +194,30 @@ final readonly class PayPalPaymentDetails
             self::CAPTURED_AMOUNT => $amount,
             self::CAPTURED_CURRENCY_CODE => $currencyCode,
         ]);
+    }
+
+    /** @param array<string, string> $supersededPayPalOrders */
+    public function withSupersededPayPalOrders(array $supersededPayPalOrders): self
+    {
+        if ([] === $supersededPayPalOrders) {
+            return new self(array_diff_key($this->details, [self::SUPERSEDED_PAYPAL_ORDERS => true]));
+        }
+
+        return $this->with([self::SUPERSEDED_PAYPAL_ORDERS => $supersededPayPalOrders]);
+    }
+
+    public function withSupersededPayPalOrderRestored(string $payPalOrderId): self
+    {
+        $supersededPayPalOrders = $this->payPalOrdersToSupersede();
+        $paymentSource = $supersededPayPalOrders[$payPalOrderId] ?? PayPalPaymentSourceProviderInterface::PAYPAL;
+        unset($supersededPayPalOrders[$payPalOrderId]);
+
+        return (new self(array_diff_key($this->details, array_flip([self::REFERENCE_ID, self::TRANSACTION_ID]))))
+            ->withPayPalOrderId($payPalOrderId)
+            ->withPaymentSource($paymentSource)
+            ->withSupersededPayPalOrders($supersededPayPalOrders)
+            ->clearPayerAction()
+        ;
     }
 
     public function clearPayerAction(): self

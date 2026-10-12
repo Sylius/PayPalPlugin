@@ -30,7 +30,9 @@ use Twig\Environment;
 
 final readonly class CaptureHttpResponseProvider implements HttpResponseProviderInterface
 {
-    private const BUYER_CANCELLATION_ERROR_CODE = 'payment_error';
+    private const ERROR_CODE_QUERY_PARAMETER = 'errorcode';
+
+    private const PAYER_CANCELLED_ERROR_CODE = 'payment_error';
 
     public function __construct(
         private Environment $twig,
@@ -46,6 +48,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
             PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_CANCELLED => true,
             PaymentRequestInterface::STATE_FAILED => $this->isThreeDSecure($paymentRequest, CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE_DECLINED),
             PaymentRequestInterface::STATE_COMPLETED => PaymentInterface::STATE_PROCESSING === $paymentRequest->getPayment()->getState(),
+            PaymentRequestInterface::STATE_PROCESSING => $this->isPayerAtTheBank($paymentRequest),
             default => false,
         };
     }
@@ -64,7 +67,10 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         return match ($paymentRequest->getState()) {
             PaymentRequestInterface::STATE_CANCELLED => $this->sendBackToPay($request, $paymentRequest, $order),
             PaymentRequestInterface::STATE_FAILED => $this->sendToOrder($request, $order),
-            PaymentRequestInterface::STATE_COMPLETED => $this->sendToThankYou($request),
+            PaymentRequestInterface::STATE_COMPLETED => $this->hasPayerCancelled($request)
+                ? $this->sendToOrderAwaitingCancellation($request, $order)
+                : $this->sendToThankYou($request),
+            PaymentRequestInterface::STATE_PROCESSING => $this->renderPaymentPageAwaitingPayer($request, $paymentRequest, $payment),
             default => $this->renderPaymentPage($request, $paymentRequest, $payment),
         };
     }
@@ -73,10 +79,8 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
     {
         if ($this->isThreeDSecure($paymentRequest, CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE_RETRY)) {
             $this->addFlash($request, 'error', 'sylius_paypal.three_d_secure_retry');
-        } elseif ($request->query->has(CreatePayPalOrderPaymentRequestHandler::PAYER_CANCELLED_QUERY_PARAMETER)) {
-            $this->isRefusedByTheBank($request)
-                ? $this->addFlash($request, 'error', 'sylius_paypal.something_went_wrong')
-                : $this->addFlash($request, 'info', 'sylius_paypal.payment_cancelled');
+        } elseif ($this->hasPayerCancelled($request)) {
+            $this->addPayerCancelledFlash($request);
         }
 
         return new RedirectResponse($this->router->generate('sylius_shop_order_pay', ['tokenValue' => $order->getTokenValue()]));
@@ -89,11 +93,27 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         return new RedirectResponse($this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]));
     }
 
+    private function sendToOrderAwaitingCancellation(Request $request, OrderInterface $order): Response
+    {
+        $this->addFlash($request, 'info', 'sylius_paypal.payment_cancellation_pending');
+
+        return new RedirectResponse($this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]));
+    }
+
     private function sendToThankYou(Request $request): Response
     {
         $this->addFlash($request, 'info', 'sylius_paypal.payment_pending');
 
         return new RedirectResponse($this->router->generate('sylius_shop_order_thank_you'));
+    }
+
+    private function renderPaymentPageAwaitingPayer(Request $request, PaymentRequestInterface $paymentRequest, PaymentInterface $payment): Response
+    {
+        $this->hasPayerCancelled($request)
+            ? $this->addPayerCancelledFlash($request)
+            : $this->addFlash($request, 'info', 'sylius_paypal.payment_awaiting_payer');
+
+        return $this->renderPaymentPage($request, $paymentRequest, $payment);
     }
 
     private function renderPaymentPage(Request $request, PaymentRequestInterface $paymentRequest, PaymentInterface $payment): Response
@@ -119,11 +139,28 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         return $outcome === ($paymentRequest->getResponseData()[CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE] ?? null);
     }
 
-    private function isRefusedByTheBank(Request $request): bool
+    private function isPayerAtTheBank(PaymentRequestInterface $paymentRequest): bool
     {
-        $errorCode = $request->query->getString('errorcode');
+        return true === ($paymentRequest->getResponseData()[CapturePayPalOrderPaymentRequestHandler::RESPONSE_AWAITING_PAYER] ?? null);
+    }
 
-        return '' !== $errorCode && self::BUYER_CANCELLATION_ERROR_CODE !== $errorCode;
+    private function hasPayerCancelled(Request $request): bool
+    {
+        return $request->query->has(CreatePayPalOrderPaymentRequestHandler::PAYER_CANCELLED_QUERY_PARAMETER);
+    }
+
+    private function addPayerCancelledFlash(Request $request): void
+    {
+        $this->hasPayPalReportedAnError($request)
+            ? $this->addFlash($request, 'error', 'sylius_paypal.something_went_wrong')
+            : $this->addFlash($request, 'info', 'sylius_paypal.payment_cancelled');
+    }
+
+    private function hasPayPalReportedAnError(Request $request): bool
+    {
+        $errorCode = $request->query->getString(self::ERROR_CODE_QUERY_PARAMETER);
+
+        return '' !== $errorCode && self::PAYER_CANCELLED_ERROR_CODE !== $errorCode;
     }
 
     private function addFlash(Request $request, string $type, string $message): void

@@ -169,6 +169,22 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
+    public function test_it_keeps_the_paypal_orders_earlier_attempts_superseded_through_the_capture(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'google_pay', 'superseded_paypal_orders' => ['TRUSTLY_ORDER_ID' => 'trustly']], amount: 1000, total: 1000);
+
+        $this->orderDetailsApi->method('get')->willReturn([
+            'status' => 'COMPLETED',
+            'id' => '123123',
+            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['captures' => [['id' => 'TRANSACTION_ID', 'status' => 'COMPLETED']]]]],
+        ]);
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => ['TRUSTLY_ORDER_ID' => 'trustly'] === $details['superseded_paypal_orders'],
+        ));
+
+        $this->processor->capture($this->payment);
+    }
+
     public function test_it_brings_the_paypal_order_up_to_the_order_total_before_capturing(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1200);

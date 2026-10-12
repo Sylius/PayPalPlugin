@@ -189,6 +189,51 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderDetails($status));
     }
 
+    public function test_it_pays_an_unpaid_payment_with_the_paypal_order_another_attempt_superseded(): void
+    {
+        $payment = $this->paymentWithSupersededPayPalOrder(PaymentInterface::STATE_NEW);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'COMPLETED',
+            'paypal_order_id' => '5O190127TN364715T',
+            'payment_source' => 'trustly',
+            'superseded_paypal_orders' => ['8XN46231DT201694L' => 'paypal'],
+            'transaction_id' => '892032536L382192T',
+        ]);
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE);
+
+        $this->processor->settle($payment, $this->orderDetails('COMPLETED'), '5O190127TN364715T');
+    }
+
+    public function test_it_keeps_the_capture_of_a_superseded_paypal_order_on_a_paid_payment_to_be_refunded(): void
+    {
+        $payment = $this->paymentWithSupersededPayPalOrder(PaymentInterface::STATE_COMPLETED);
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $payment->expects(self::once())->method('setDetails')->with(self::callback(static fn (array $details): bool => [
+            'id' => '892032536L382192T',
+            'order_id' => '5O190127TN364715T',
+            'amount' => 1539,
+            'currency_code' => 'EUR',
+        ] === $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] && '8XN46231DT201694L' === $details['paypal_order_id']));
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($payment, $this->orderDetails('COMPLETED'), '5O190127TN364715T');
+    }
+
+    #[DataProvider('refusedCaptureStatuses')]
+    public function test_it_ignores_a_refused_capture_of_a_superseded_paypal_order(string $status): void
+    {
+        $payment = $this->paymentWithSupersededPayPalOrder(PaymentInterface::STATE_NEW);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $payment->expects(self::never())->method('setDetails');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($payment, $this->orderDetails($status), '5O190127TN364715T');
+    }
+
     /** @return iterable<string, array{string}> */
     public static function refusedCaptureStatuses(): iterable
     {
@@ -205,7 +250,7 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             'status' => 'CAPTURED',
             'paypal_order_id' => '5O190127TN364715T',
             'payment_source' => 'trustly',
-            PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'amount' => 1539, 'currency_code' => 'EUR'],
+            PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'order_id' => '5O190127TN364715T', 'amount' => 1539, 'currency_code' => 'EUR'],
         ]);
         $this->paymentManager->expects(self::once())->method('flush');
         $this->logger->expects(self::once())->method('error')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
@@ -311,6 +356,24 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->orderDetailsApi->expects(self::never())->method('get');
 
         $this->processor->settle($payment);
+    }
+
+    private function paymentWithSupersededPayPalOrder(string $state): PaymentInterface&MockObject
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getId')->willReturn(7);
+        $payment->method('getState')->willReturn($state);
+        $payment->method('getAmount')->willReturn(1539);
+        $payment->method('getCurrencyCode')->willReturn('EUR');
+        $payment->method('getDetails')->willReturn([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => '8XN46231DT201694L',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
+            'superseded_paypal_orders' => ['5O190127TN364715T' => 'trustly'],
+        ]);
+
+        return $payment;
     }
 
     /** @return array<string, mixed> */

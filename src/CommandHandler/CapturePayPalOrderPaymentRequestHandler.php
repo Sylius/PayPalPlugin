@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
@@ -37,7 +38,11 @@ final class CapturePayPalOrderPaymentRequestHandler
 
     public const THREE_D_SECURE_DECLINED = 'declined';
 
-    private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', 'PAYER_ACTION_REQUIRED', 'VOIDED'];
+    public const RESPONSE_AWAITING_PAYER = 'awaiting_payer';
+
+    private const PAYER_ACTION_REQUIRED_ORDER_STATUS = 'PAYER_ACTION_REQUIRED';
+
+    private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', self::PAYER_ACTION_REQUIRED_ORDER_STATUS, 'VOIDED'];
 
     private const REFUSED_CAPTURE_STATUSES = [PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED];
 
@@ -62,6 +67,13 @@ final class CapturePayPalOrderPaymentRequestHandler
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
 
+        if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
+            $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+
+            return;
+        }
+
         if (!PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId()) {
             $this->failWithReason($paymentRequest, 'The payment carries no PayPal order id.');
 
@@ -79,13 +91,26 @@ final class CapturePayPalOrderPaymentRequestHandler
         $payPalOrder = $this->paymentCaptureProcessor->capture($payment);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
 
-        if (null === $capture) {
-            $this->endWithoutCapture($paymentRequest, $payPalOrder['status'] ?? null);
+        if (null !== $capture) {
+            $this->paymentSettlementProcessor->settle($payment, $payPalOrder);
+        }
+
+        $refusalReason = $this->refusalReason($payPalOrder, $capture);
+        if (null !== $refusalReason) {
+            $this->failWithReason($paymentRequest, $refusalReason);
 
             return;
         }
 
-        $this->endWithCapture($paymentRequest, $payment, $payPalOrder, $capture);
+        if (null === $capture) {
+            $this->isPayerAtTheBank($payment, $payPalOrder)
+                ? $this->awaitPayer($paymentRequest)
+                : $this->cancelUnapproved($paymentRequest);
+
+            return;
+        }
+
+        $this->complete($paymentRequest, $payment);
     }
 
     private function endWithFailedAuthentication(PaymentRequestInterface $paymentRequest, PaymentInterface $payment, bool $retryable): void
@@ -108,33 +133,42 @@ final class CapturePayPalOrderPaymentRequestHandler
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
     }
 
-    private function endWithoutCapture(PaymentRequestInterface $paymentRequest, mixed $payPalOrderStatus): void
+    /** @param array<string, mixed> $payPalOrder */
+    private function refusalReason(array $payPalOrder, ?PayPalCapture $capture): ?string
     {
-        if (!in_array($payPalOrderStatus, self::UNAPPROVED_ORDER_STATUSES, true)) {
-            $this->failWithReason($paymentRequest, 'PayPal did not capture the order.');
-
-            return;
+        if (null === $capture) {
+            return in_array($payPalOrder['status'] ?? null, self::UNAPPROVED_ORDER_STATUSES, true)
+                ? null
+                : 'PayPal did not capture the order.';
         }
 
+        return in_array($capture->status(), self::REFUSED_CAPTURE_STATUSES, true)
+            ? sprintf('PayPal reported the capture as %s.', $capture->status())
+            : null;
+    }
+
+    /** @param array<string, mixed> $payPalOrder */
+    private function isPayerAtTheBank(PaymentInterface $payment, array $payPalOrder): bool
+    {
+        return
+            null !== RedirectPaymentSource::tryFrom(PayPalPaymentDetails::fromPayment($payment)->paymentSource()) &&
+            self::PAYER_ACTION_REQUIRED_ORDER_STATUS === ($payPalOrder['status'] ?? null)
+        ;
+    }
+
+    private function awaitPayer(PaymentRequestInterface $paymentRequest): void
+    {
+        $paymentRequest->setResponseData([self::RESPONSE_AWAITING_PAYER => true] + $paymentRequest->getResponseData());
+    }
+
+    private function cancelUnapproved(PaymentRequestInterface $paymentRequest): void
+    {
         $paymentRequest->setResponseData([self::RESPONSE_REASON => 'The payer did not approve the PayPal order.']);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
     }
 
-    /** @param array<string, mixed> $payPalOrder */
-    private function endWithCapture(
-        PaymentRequestInterface $paymentRequest,
-        PaymentInterface $payment,
-        array $payPalOrder,
-        PayPalCapture $capture,
-    ): void {
-        $this->paymentSettlementProcessor->settle($payment, $payPalOrder);
-
-        if (in_array($capture->status(), self::REFUSED_CAPTURE_STATUSES, true)) {
-            $this->failWithReason($paymentRequest, sprintf('PayPal reported the capture as %s.', $capture->status()));
-
-            return;
-        }
-
+    private function complete(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): void
+    {
         if ($this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS)) {
             $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS);
         }

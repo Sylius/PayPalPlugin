@@ -47,7 +47,7 @@ final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundPr
     {
         $details = $payment->getDetails();
         $lateCapture = $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] ?? null;
-        $payPalOrderId = $details['paypal_order_id'] ?? null;
+        $payPalOrderId = (is_array($lateCapture) ? $lateCapture['order_id'] ?? null : null) ?? $details['paypal_order_id'] ?? null;
 
         if (
             !$this->isPayPalPayment($payment) ||

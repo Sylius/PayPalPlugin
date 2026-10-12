@@ -1,8 +1,11 @@
 import { loadWebSdkOnce } from './paypal-web-sdk';
 
-const PAYMENT_SOURCE_NOT_AVAILABLE = 'payment_source_not_available';
+const REFUSED_ATTEMPTS = {
+    409: 'attempt_closed',
+    422: 'payment_source_not_available',
+};
 
-export class PaymentSourceNotAvailableError extends Error {}
+export class AttemptRefusedError extends Error {}
 
 let session = null;
 let busy = false;
@@ -37,10 +40,10 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
             body: JSON.stringify({ paymentSource }),
         }),
     });
-    if (await isPaymentSourceNotAvailable(response)) {
+    if (await isAttemptRefused(response)) {
         busy = false;
 
-        throw new PaymentSourceNotAvailableError('The selected payment source is not available.');
+        throw new AttemptRefusedError(`The shop refused to start a payment attempt (${response.status}).`);
     }
 
     if (!response.ok) {
@@ -60,14 +63,15 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
     };
 }
 
-async function isPaymentSourceNotAvailable(response) {
-    if (response.status !== 422) {
+async function isAttemptRefused(response) {
+    const error = REFUSED_ATTEMPTS[response.status];
+    if (!error) {
         return false;
     }
 
     const data = await response.json().catch(() => ({}));
 
-    return data.error === PAYMENT_SOURCE_NOT_AVAILABLE;
+    return data.error === error;
 }
 
 export function paymentPageSession(config) {

@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -43,7 +43,7 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly PayPalOrderCreatorInterface $payPalOrderCreator,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
         private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
-        private readonly UrlGeneratorInterface $router,
+        private readonly UrlProviderInterface $returnUrlProvider,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -77,12 +77,10 @@ final class CreatePayPalOrderPaymentRequestHandler
 
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
-        /** @var OrderInterface $order */
-        $order = $payment->getOrder();
         $hash = (string) $paymentRequest->getId();
 
         try {
-            $payUrl = $this->payUrl($paymentRequest, $order);
+            $payUrl = $this->returnUrlProvider->getUrl($paymentRequest, UrlGeneratorInterface::ABSOLUTE_URL);
             $details = $this->payPalOrderCreator->create(
                 $payment,
                 $paymentSource,
@@ -109,14 +107,5 @@ final class CreatePayPalOrderPaymentRequestHandler
         ]));
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
-    }
-
-    private function payUrl(PaymentRequestInterface $paymentRequest, OrderInterface $order): string
-    {
-        return $this->router->generate(
-            'sylius_shop_payment_request_pay',
-            ['_locale' => $order->getLocaleCode(), 'hash' => $paymentRequest->getId()],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
     }
 }

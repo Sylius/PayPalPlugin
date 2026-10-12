@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { paymentPageSession } from '../scripts/paypal-payment-page';
+import { AttemptRefusedError, paymentPageSession } from '../scripts/paypal-payment-page';
 
 const PAYMENT_SOURCE = 'card';
 
@@ -92,6 +92,12 @@ export default class extends Controller {
 
             await this.reportError(data?.message ?? 'PayPal could not process the card payment.', orderId);
         } catch (error) {
+            if (error instanceof AttemptRefusedError) {
+                window.location.reload();
+
+                return;
+            }
+
             await this.reportError(String(error), orderId);
         }
     }

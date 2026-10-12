@@ -503,6 +503,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.repository.query.paypal_payment'),
             service('sylius_abstraction.state_machine'),
             service('sylius.manager.payment'),
+            service('sylius_paypal.repository.query.paypal_payment'),
         ]);
 
     $services->set('sylius_paypal.processor.webhook.capture_payment', CapturePaymentWebhookProcessor::class)
