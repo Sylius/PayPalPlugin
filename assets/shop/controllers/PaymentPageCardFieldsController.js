@@ -14,8 +14,6 @@ export default class extends Controller {
         currencyCode: String,
         amount: String,
         createOrderUrl: String,
-        completeOrderUrl: String,
-        cancelOrderUrl: String,
         errorUrl: String,
         billingAddress: Object,
     };
@@ -81,13 +79,13 @@ export default class extends Controller {
             const { data, state } = await this.cardSession.submit(orderId, this.submitOptions());
 
             if (state === 'succeeded' || (state === 'failed' && data?.liabilityShift)) {
-                await this.complete(orderId);
+                this.complete();
 
                 return;
             }
 
             if (state === 'canceled') {
-                await this.cancel(orderId);
+                this.cancel();
 
                 return;
             }
@@ -98,43 +96,13 @@ export default class extends Controller {
         }
     }
 
-    async complete(payPalOrderId) {
-        if (this.session.currentApproveUrl()) {
-            window.location.href = this.session.currentApproveUrl();
-
-            return;
-        }
-
-        const response = await fetch(this.completeOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId }),
-        });
-        const details = await response.json();
-
-        if (details.return_url) {
-            window.location.href = details.return_url;
-
-            return;
-        }
-
-        window.location.reload();
+    complete() {
+        window.location.href = this.session.currentApproveUrl();
     }
 
-    async cancel(payPalOrderId) {
-        if (this.session.currentApproveUrl()) {
-            this.session.release();
-            this.setSubmitting(false);
-
-            return;
-        }
-
-        await fetch(this.cancelOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId }),
-        });
-        window.location.reload();
+    cancel() {
+        this.session.release();
+        this.setSubmitting(false);
     }
 
     async reportError(message, payPalOrderId = null) {

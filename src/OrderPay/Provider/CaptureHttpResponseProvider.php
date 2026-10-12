@@ -18,7 +18,8 @@ use Sylius\Bundle\ResourceBundle\Controller\RequestConfiguration;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\CommandHandler\CaptureEndPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +30,8 @@ use Twig\Environment;
 
 final readonly class CaptureHttpResponseProvider implements HttpResponseProviderInterface
 {
+    private const BUYER_CANCELLATION_ERROR_CODE = 'payment_error';
+
     public function __construct(
         private Environment $twig,
         private PayPalPaymentPageContextProviderInterface $paymentPageContextProvider,
@@ -41,7 +44,8 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
     {
         return match ($paymentRequest->getState()) {
             PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_CANCELLED => true,
-            PaymentRequestInterface::STATE_FAILED => $this->isThreeDSecure($paymentRequest, CaptureEndPaymentRequestHandler::THREE_D_SECURE_DECLINED),
+            PaymentRequestInterface::STATE_FAILED => $this->isThreeDSecure($paymentRequest, CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE_DECLINED),
+            PaymentRequestInterface::STATE_COMPLETED => PaymentInterface::STATE_PROCESSING === $paymentRequest->getPayment()->getState(),
             default => false,
         };
     }
@@ -60,14 +64,19 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         return match ($paymentRequest->getState()) {
             PaymentRequestInterface::STATE_CANCELLED => $this->sendBackToPay($request, $paymentRequest, $order),
             PaymentRequestInterface::STATE_FAILED => $this->sendToOrder($request, $order),
+            PaymentRequestInterface::STATE_COMPLETED => $this->sendToThankYou($request),
             default => $this->renderPaymentPage($request, $paymentRequest, $payment),
         };
     }
 
     private function sendBackToPay(Request $request, PaymentRequestInterface $paymentRequest, OrderInterface $order): Response
     {
-        if ($this->isThreeDSecure($paymentRequest, CaptureEndPaymentRequestHandler::THREE_D_SECURE_RETRY)) {
-            $this->addErrorFlash($request, 'sylius_paypal.three_d_secure_retry');
+        if ($this->isThreeDSecure($paymentRequest, CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE_RETRY)) {
+            $this->addFlash($request, 'error', 'sylius_paypal.three_d_secure_retry');
+        } elseif ($request->query->has(CreatePayPalOrderPaymentRequestHandler::PAYER_CANCELLED_QUERY_PARAMETER)) {
+            $this->isRefusedByTheBank($request)
+                ? $this->addFlash($request, 'error', 'sylius_paypal.something_went_wrong')
+                : $this->addFlash($request, 'info', 'sylius_paypal.payment_cancelled');
         }
 
         return new RedirectResponse($this->router->generate('sylius_shop_order_pay', ['tokenValue' => $order->getTokenValue()]));
@@ -75,9 +84,16 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
 
     private function sendToOrder(Request $request, OrderInterface $order): Response
     {
-        $this->addErrorFlash($request, 'sylius_paypal.three_d_secure_declined');
+        $this->addFlash($request, 'error', 'sylius_paypal.three_d_secure_declined');
 
         return new RedirectResponse($this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]));
+    }
+
+    private function sendToThankYou(Request $request): Response
+    {
+        $this->addFlash($request, 'info', 'sylius_paypal.payment_pending');
+
+        return new RedirectResponse($this->router->generate('sylius_shop_order_thank_you'));
     }
 
     private function renderPaymentPage(Request $request, PaymentRequestInterface $paymentRequest, PaymentInterface $payment): Response
@@ -100,13 +116,20 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
 
     private function isThreeDSecure(PaymentRequestInterface $paymentRequest, string $outcome): bool
     {
-        return $outcome === ($paymentRequest->getResponseData()[CaptureEndPaymentRequestHandler::THREE_D_SECURE] ?? null);
+        return $outcome === ($paymentRequest->getResponseData()[CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE] ?? null);
     }
 
-    private function addErrorFlash(Request $request, string $message): void
+    private function isRefusedByTheBank(Request $request): bool
+    {
+        $errorCode = $request->query->getString('errorcode');
+
+        return '' !== $errorCode && self::BUYER_CANCELLATION_ERROR_CODE !== $errorCode;
+    }
+
+    private function addFlash(Request $request, string $type, string $message): void
     {
         /** @var FlashBagInterface $flashBag */
         $flashBag = $request->getSession()->getBag('flashes');
-        $flashBag->add('error', $message);
+        $flashBag->add($type, $message);
     }
 }

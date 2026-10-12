@@ -40,6 +40,20 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
     }
 
+    public function test_it_completes_a_payment_whose_payer_never_came_back_from_the_bank(): void
+    {
+        $order = $this->processingOrder();
+        $payment = $order->getLastPayment();
+        $payment?->setState(PaymentInterface::STATE_NEW);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+    }
+
     public function test_it_changes_nothing_when_the_same_event_is_delivered_again(): void
     {
         $order = $this->processingOrder();

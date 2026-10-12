@@ -19,7 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
+use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -27,7 +27,7 @@ use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 
-final class CaptureEndPaymentRequestHandler
+final class CapturePayPalOrderPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
@@ -51,9 +51,9 @@ final class CaptureEndPaymentRequestHandler
         $this->stateMachine = $stateMachine;
     }
 
-    public function __invoke(CaptureEndPaymentRequest $captureEndPaymentRequest): void
+    public function __invoke(CapturePayPalOrderPaymentRequest $capturePayPalOrderPaymentRequest): void
     {
-        $paymentRequest = $this->paymentRequestProvider->provide($captureEndPaymentRequest);
+        $paymentRequest = $this->paymentRequestProvider->provide($capturePayPalOrderPaymentRequest);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
             return;
@@ -92,7 +92,7 @@ final class CaptureEndPaymentRequestHandler
     {
         if ($retryable) {
             $paymentRequest->setResponseData([
-                'reason' => 'The 3D Secure authentication of the card did not finish.',
+                self::RESPONSE_REASON => 'The 3D Secure authentication of the card did not finish.',
                 self::THREE_D_SECURE => self::THREE_D_SECURE_RETRY,
             ]);
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
@@ -102,7 +102,7 @@ final class CaptureEndPaymentRequestHandler
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL);
         $paymentRequest->setResponseData([
-            'reason' => 'The 3D Secure authentication refused the card.',
+            self::RESPONSE_REASON => 'The 3D Secure authentication refused the card.',
             self::THREE_D_SECURE => self::THREE_D_SECURE_DECLINED,
         ]);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
@@ -116,7 +116,7 @@ final class CaptureEndPaymentRequestHandler
             return;
         }
 
-        $paymentRequest->setResponseData(['reason' => 'The payer did not approve the PayPal order.']);
+        $paymentRequest->setResponseData([self::RESPONSE_REASON => 'The payer did not approve the PayPal order.']);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
     }
 

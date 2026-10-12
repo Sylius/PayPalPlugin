@@ -20,7 +20,6 @@ use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
@@ -33,7 +32,6 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
         private CreateOrderApiInterface $createOrderApi,
         private UuidProviderInterface $uuidProvider,
         private PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider,
-        private NonceProviderInterface $nonceProvider,
     ) {
     }
 
@@ -42,6 +40,8 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
         string $paymentSource,
         ?string $customId = null,
         ?string $requestId = null,
+        ?string $returnUrl = null,
+        ?string $cancelUrl = null,
     ): ?PayPalPaymentDetails {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -49,16 +49,15 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $referenceId = $this->uuidProvider->provide();
-        $payerActionNonces = $this->generatePayerActionNonces($paymentSource);
         $content = $this->createOrderApi->create(
             $token,
             $payment,
             $referenceId,
             $paymentSource,
-            $payerActionNonces['payer_action_return_nonce'] ?? null,
-            $payerActionNonces['payer_action_cancel_nonce'] ?? null,
             $customId,
             $requestId,
+            $returnUrl,
+            $cancelUrl,
         );
 
         if (!in_array($content['status'] ?? null, $this->orderCreatedStatusesProvider->provide(), true)) {
@@ -72,46 +71,22 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
             ->withAmount((int) $payment->getAmount())
             ->withPaymentSource($paymentSource)
         ;
-        $details = $this->withPayerAction($details, $content, $payerActionNonces);
+        $details = $this->withPayerAction($details, $content, $paymentSource);
 
         $payment->setDetails($details->toArray());
 
         return $details;
     }
 
-    /** @return array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} */
-    private function generatePayerActionNonces(string $paymentSource): array
+    /** @param array<string, mixed> $content */
+    private function withPayerAction(PayPalPaymentDetails $details, array $content, string $paymentSource): PayPalPaymentDetails
     {
-        if (null === RedirectPaymentSource::tryFrom($paymentSource)) {
-            return [];
+        $payerActionUrl = null !== RedirectPaymentSource::tryFrom($paymentSource) ? $this->payerActionUrl($content) : null;
+        if (null !== $payerActionUrl) {
+            $details = $details->withPayerAction($payerActionUrl);
         }
 
-        return [
-            'payer_action_return_nonce' => $this->nonceProvider->provide(),
-            'payer_action_cancel_nonce' => $this->nonceProvider->provide(),
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $content
-     * @param array{payer_action_return_nonce?: string, payer_action_cancel_nonce?: string} $payerActionNonces
-     */
-    private function withPayerAction(PayPalPaymentDetails $details, array $content, array $payerActionNonces): PayPalPaymentDetails
-    {
-        if (!isset($payerActionNonces['payer_action_return_nonce'], $payerActionNonces['payer_action_cancel_nonce'])) {
-            return $details;
-        }
-
-        $payerActionUrl = $this->payerActionUrl($content);
-        if (null === $payerActionUrl) {
-            return $details;
-        }
-
-        return $details->withPayerAction(
-            $payerActionUrl,
-            $payerActionNonces['payer_action_return_nonce'],
-            $payerActionNonces['payer_action_cancel_nonce'],
-        );
+        return $details;
     }
 
     /** @param array<string, mixed> $content */

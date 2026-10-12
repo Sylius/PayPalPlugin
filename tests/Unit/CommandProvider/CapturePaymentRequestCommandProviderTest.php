@@ -15,8 +15,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\CommandProvider;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
-use Sylius\PayPalPlugin\Command\CapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
 
 final class CapturePaymentRequestCommandProviderTest extends TestCase
@@ -37,7 +37,7 @@ final class CapturePaymentRequestCommandProviderTest extends TestCase
         self::assertFalse((new CapturePaymentRequestCommandProvider())->supports($paymentRequest));
     }
 
-    public function test_it_provides_a_capture_command_for_the_payment_request(): void
+    public function test_it_provides_a_create_paypal_order_command_for_a_new_payment_request(): void
     {
         $paymentRequest = $this->createStub(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
@@ -45,11 +45,11 @@ final class CapturePaymentRequestCommandProviderTest extends TestCase
 
         $command = (new CapturePaymentRequestCommandProvider())->provide($paymentRequest);
 
-        self::assertInstanceOf(CapturePaymentRequest::class, $command);
+        self::assertInstanceOf(CreatePayPalOrderPaymentRequest::class, $command);
         self::assertSame('PAYMENT_REQUEST_HASH', $command->getHash());
     }
 
-    public function test_it_provides_a_capture_end_command_once_the_payer_has_approved_the_order(): void
+    public function test_it_provides_a_capture_paypal_order_command_once_the_payer_has_approved_the_order(): void
     {
         $paymentRequest = $this->createStub(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
@@ -57,7 +57,7 @@ final class CapturePaymentRequestCommandProviderTest extends TestCase
 
         $command = (new CapturePaymentRequestCommandProvider())->provide($paymentRequest);
 
-        self::assertInstanceOf(CaptureEndPaymentRequest::class, $command);
+        self::assertInstanceOf(CapturePayPalOrderPaymentRequest::class, $command);
         self::assertSame('PAYMENT_REQUEST_HASH', $command->getHash());
     }
 }

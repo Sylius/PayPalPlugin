@@ -32,15 +32,6 @@ final class ResolveNextRouteAction implements ActionInterface
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        if ($payment->getState() === PaymentInterface::STATE_NEW) {
-            $request->setRouteName('sylius_paypal_shop_pay_with_paypal_form');
-            $request->setRouteParameters(
-                ['orderToken' => $order->getTokenValue(), 'paymentId' => $payment->getId()],
-            );
-
-            return;
-        }
-
         if ($payment->getState() === PaymentInterface::STATE_COMPLETED) {
             $request->setRouteName('sylius_shop_order_thank_you');
 

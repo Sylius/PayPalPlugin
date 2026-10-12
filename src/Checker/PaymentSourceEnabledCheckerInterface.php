@@ -11,12 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Provider;
+namespace Sylius\PayPalPlugin\Checker;
 
-final readonly class NonceProvider implements NonceProviderInterface
+use Sylius\Component\Payment\Model\PaymentMethodInterface;
+
+interface PaymentSourceEnabledCheckerInterface
 {
-    public function provide(): string
-    {
-        return bin2hex(random_bytes(16));
-    }
+    public function isEnabled(string $paymentSource, PaymentMethodInterface $paymentMethod): bool;
 }

@@ -21,13 +21,13 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
-final class CaptureEndPaymentRequestTest extends JsonApiTestCase
+final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
 {
     use MocksPayPalApiTrait;
 
     public function test_it_completes_the_payment_paypal_captured(): void
     {
-        $paymentRequest = $this->dispatchCaptureEndPaymentRequest('COMPLETED');
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('COMPLETED');
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
         self::assertSame(PaymentInterface::STATE_COMPLETED, $paymentRequest->getPayment()->getState());
@@ -36,7 +36,7 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
 
     public function test_it_leaves_a_pending_capture_processing(): void
     {
-        $paymentRequest = $this->dispatchCaptureEndPaymentRequest('PENDING');
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('PENDING');
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
         self::assertSame(PaymentInterface::STATE_PROCESSING, $paymentRequest->getPayment()->getState());
@@ -44,7 +44,7 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
 
     public function test_it_fails_the_payment_paypal_declined_to_capture(): void
     {
-        $paymentRequest = $this->dispatchCaptureEndPaymentRequest('DECLINED');
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('DECLINED');
 
         self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
         self::assertSame(['reason' => 'PayPal reported the capture as DECLINED.'], $paymentRequest->getResponseData());
@@ -53,7 +53,7 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
 
     public function test_it_completes_a_payment_captured_for_another_amount_and_records_what_paypal_took(): void
     {
-        $paymentRequest = $this->dispatchCaptureEndPaymentRequest('COMPLETED', capturedValue: '0.01');
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('COMPLETED', capturedValue: '0.01');
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
         self::assertSame(PaymentInterface::STATE_COMPLETED, $paymentRequest->getPayment()->getState());
@@ -63,7 +63,7 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
 
     public function test_it_cancels_an_attempt_the_payer_never_approved_and_leaves_the_payment_payable(): void
     {
-        $paymentRequest = $this->dispatchCaptureEndPaymentRequest(approved: false);
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest(approved: false);
 
         self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $paymentRequest->getState());
         self::assertSame(['reason' => 'The payer did not approve the PayPal order.'], $paymentRequest->getResponseData());
@@ -71,7 +71,7 @@ final class CaptureEndPaymentRequestTest extends JsonApiTestCase
         self::assertSame('CAPTURED', $paymentRequest->getPayment()->getDetails()['status']);
     }
 
-    private function dispatchCaptureEndPaymentRequest(
+    private function dispatchCapturePayPalOrderPaymentRequest(
         string $captureStatus = 'COMPLETED',
         ?string $capturedValue = null,
         bool $approved = true,

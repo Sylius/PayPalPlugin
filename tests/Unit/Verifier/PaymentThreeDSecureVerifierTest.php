@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Verifier;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -59,12 +60,30 @@ final class PaymentThreeDSecureVerifierTest extends TestCase
         $this->verifier->verify($this->paymentWith('card'));
     }
 
-    public function test_it_asks_paypal_nothing_for_a_payment_source_other_than_a_card(): void
+    public function test_it_verifies_the_3d_secure_result_paypal_holds_for_a_google_pay_payment(): void
+    {
+        $this->orderDetailsApi->method('get')->willReturn(['id' => 'PAYPAL_ORDER_ID']);
+        $this->threeDSecureVerifier->expects(self::once())->method('verify')->with(['id' => 'PAYPAL_ORDER_ID']);
+
+        $this->verifier->verify($this->paymentWith('google_pay'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function paymentSourcesWithout3DSecure(): iterable
+    {
+        yield 'paypal' => ['paypal'];
+        yield 'venmo' => ['venmo'];
+        yield 'apple_pay' => ['apple_pay'];
+        yield 'trustly' => ['trustly'];
+    }
+
+    #[DataProvider('paymentSourcesWithout3DSecure')]
+    public function test_it_asks_paypal_nothing_for_a_payment_source_without_3d_secure(string $paymentSource): void
     {
         $this->orderDetailsApi->expects(self::never())->method('get');
         $this->threeDSecureVerifier->expects(self::never())->method('verify');
 
-        $this->verifier->verify($this->paymentWith('paypal'));
+        $this->verifier->verify($this->paymentWith($paymentSource));
     }
 
     private function paymentWith(string $paymentSource): PaymentInterface&MockObject

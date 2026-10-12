@@ -21,14 +21,14 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
-use Sylius\PayPalPlugin\CommandHandler\CaptureEndPaymentRequestHandler;
+use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 
-final class CaptureEndPaymentRequestHandlerTest extends TestCase
+final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 {
     private PaymentRequestProviderInterface&MockObject $paymentRequestProvider;
 
@@ -45,7 +45,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
     /** @var list<array{string, string}> */
     private array $appliedTransitions = [];
 
-    private CaptureEndPaymentRequestHandler $handler;
+    private CapturePayPalOrderPaymentRequestHandler $handler;
 
     protected function setUp(): void
     {
@@ -60,7 +60,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
             $this->appliedTransitions[] = [$graph, $transition];
         });
 
-        $this->handler = new CaptureEndPaymentRequestHandler(
+        $this->handler = new CapturePayPalOrderPaymentRequestHandler(
             $this->paymentRequestProvider,
             $this->paymentThreeDSecureVerifier,
             $this->paymentCaptureProcessor,
@@ -78,7 +78,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
 
         $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, $capturedOrder);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
     }
@@ -89,7 +89,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentCaptureProcessor->method('capture')->willReturn($this->capturedOrder('PENDING'));
         $this->stateMachine->method('can')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS)->willReturn(true);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([
             [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS],
@@ -105,7 +105,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentSettlementProcessor->expects(self::once())->method('settle');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal reported the capture as DECLINED.']);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
     }
@@ -118,7 +118,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not capture the order.']);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
     }
@@ -131,7 +131,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payer did not approve the PayPal order.']);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
     }
@@ -144,7 +144,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentCaptureProcessor->expects(self::never())->method('capture');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The 3D Secure authentication of the card did not finish.', 'three_d_secure' => 'retry']);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
     }
@@ -157,7 +157,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentCaptureProcessor->expects(self::never())->method('capture');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The 3D Secure authentication refused the card.', 'three_d_secure' => 'declined']);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([
             [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
@@ -172,7 +172,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
         $this->paymentCaptureProcessor->expects(self::never())->method('capture');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment carries no PayPal order id.']);
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
     public function test_it_leaves_a_payment_request_that_is_not_processing_alone(): void
@@ -181,7 +181,7 @@ final class CaptureEndPaymentRequestHandlerTest extends TestCase
 
         $this->paymentCaptureProcessor->expects(self::never())->method('capture');
 
-        ($this->handler)(new CaptureEndPaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([], $this->appliedTransitions);
     }

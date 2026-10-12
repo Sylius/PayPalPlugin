@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
@@ -54,32 +55,10 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-        if ($payment->getAmount() !== $order->getTotal()) {
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-            $this->updateOrderApi->update(
-                $token,
-                $payPalOrderId,
-                $payment,
-                (string) $details->referenceId(),
-                PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
-            );
-
-            $this->paymentUpdater->updateAmount($payment, $order->getTotal());
-            $this->orderPaymentStateResolver->resolve($order);
+        if (null === RedirectPaymentSource::tryFrom($details->paymentSource())) {
+            $this->captureApprovedOrder($token, $payment, $order, $paymentMethod, $details);
         }
 
-        if ($order->isShippingRequired()) {
-            $this->updateOrderAddressApi->update(
-                $token,
-                $payPalOrderId,
-                (string) $details->referenceId(),
-                $order->getShippingAddress(),
-            );
-        }
-
-        $this->completeOrderApi->complete($token, $payPalOrderId);
         $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
 
         if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
@@ -101,5 +80,43 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $payment->setDetails($capturedDetails->toArray());
 
         return $orderDetails;
+    }
+
+    private function captureApprovedOrder(
+        string $token,
+        PaymentInterface $payment,
+        OrderInterface $order,
+        PaymentMethodInterface $paymentMethod,
+        PayPalPaymentDetails $details,
+    ): void {
+        $payPalOrderId = (string) $details->payPalOrderId();
+
+        if ($payment->getAmount() !== $order->getTotal()) {
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+            $this->updateOrderApi->update(
+                $token,
+                $payPalOrderId,
+                $payment,
+                (string) $details->referenceId(),
+                PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
+            );
+
+            $this->paymentUpdater->updateAmount($payment, $order->getTotal());
+            $this->orderPaymentStateResolver->resolve($order);
+        }
+
+        $shippingAddress = $order->getShippingAddress();
+        if ($order->isShippingRequired() && null !== $shippingAddress) {
+            $this->updateOrderAddressApi->update(
+                $token,
+                $payPalOrderId,
+                (string) $details->referenceId(),
+                $shippingAddress,
+            );
+        }
+
+        $this->completeOrderApi->complete($token, $payPalOrderId);
     }
 }

@@ -8,6 +8,8 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
@@ -69,8 +71,6 @@ use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
-use Sylius\PayPalPlugin\Provider\NonceProvider;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProvider;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderProvider;
@@ -148,7 +148,7 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.cancellable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.refundable_states', [PaymentInterface::STATE_COMPLETED]);
-    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
+    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
 
     $services->set('sylius_paypal.form.extension.payment_method', PaymentMethodTypeExtension::class)
         ->tag('form.type_extension');
@@ -448,10 +448,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(UuidProviderInterface::class, 'sylius_paypal.provider.uuid');
 
-    $services->set('sylius_paypal.provider.nonce', NonceProvider::class);
-
-    $services->alias(NonceProviderInterface::class, 'sylius_paypal.provider.nonce');
-
     $services->set('sylius_paypal.client.sftp', SFTP::class)
         ->args(['%sylius_paypal.reports_sftp_host%']);
 
@@ -523,6 +519,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
 
+    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class);
+
+    $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
+
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([
             service('sylius_paypal.api.cache_authorize_client'),
@@ -591,7 +591,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.create_order'),
             service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.provider.paypal_order_created_statuses'),
-            service('sylius_paypal.provider.nonce'),
         ]);
 
     $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');

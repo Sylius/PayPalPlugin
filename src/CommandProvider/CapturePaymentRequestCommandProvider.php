@@ -15,8 +15,8 @@ namespace Sylius\PayPalPlugin\CommandProvider;
 
 use Sylius\Bundle\PaymentBundle\CommandProvider\PaymentRequestCommandProviderInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\Command\CaptureEndPaymentRequest;
-use Sylius\PayPalPlugin\Command\CapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 
 final class CapturePaymentRequestCommandProvider implements PaymentRequestCommandProviderInterface
 {
@@ -28,9 +28,9 @@ final class CapturePaymentRequestCommandProvider implements PaymentRequestComman
     public function provide(PaymentRequestInterface $paymentRequest): object
     {
         if (PaymentRequestInterface::STATE_PROCESSING === $paymentRequest->getState()) {
-            return new CaptureEndPaymentRequest($paymentRequest->getId());
+            return new CapturePayPalOrderPaymentRequest($paymentRequest->getId());
         }
 
-        return new CapturePaymentRequest($paymentRequest->getId());
+        return new CreatePayPalOrderPaymentRequest($paymentRequest->getId());
     }
 }

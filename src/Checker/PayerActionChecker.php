@@ -32,23 +32,4 @@ final readonly class PayerActionChecker implements PayerActionCheckerInterface
             null !== RedirectPaymentSource::tryFrom($details->paymentSource())
         ;
     }
-
-    public function matchesPayerActionReturnNonce(PaymentInterface $payment, string $nonce): bool
-    {
-        return $this->matchesNonce(PayPalPaymentDetails::fromPayment($payment)->payerActionReturnNonce(), $nonce);
-    }
-
-    public function matchesPayerActionCancelNonce(PaymentInterface $payment, string $nonce): bool
-    {
-        return $this->matchesNonce(PayPalPaymentDetails::fromPayment($payment)->payerActionCancelNonce(), $nonce);
-    }
-
-    private function matchesNonce(?string $expectedNonce, string $nonce): bool
-    {
-        if (null === $expectedNonce || '' === $expectedNonce || '' === $nonce) {
-            return false;
-        }
-
-        return hash_equals($expectedNonce, $nonce);
-    }
 }

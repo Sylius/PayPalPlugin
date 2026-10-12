@@ -15,32 +15,43 @@ namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
-use Sylius\PayPalPlugin\Command\CapturePaymentRequest;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
+use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-final class CapturePaymentRequestHandler
+final class CreatePayPalOrderPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
     public const PAYLOAD_PAYMENT_SOURCE = 'payment_source';
 
+    public const RESPONSE_PAYPAL_ORDER_ID = 'paypal_order_id';
+
+    public const RESPONSE_PAYER_ACTION_URL = 'payer_action_url';
+
+    public const PAYER_CANCELLED_QUERY_PARAMETER = 'payer_cancelled';
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PayPalOrderCreatorInterface $payPalOrderCreator,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
+        private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
+        private readonly UrlGeneratorInterface $router,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
     }
 
-    public function __invoke(CapturePaymentRequest $capturePaymentRequest): void
+    public function __invoke(CreatePayPalOrderPaymentRequest $createPayPalOrderPaymentRequest): void
     {
-        $paymentRequest = $this->paymentRequestProvider->provide($capturePaymentRequest);
+        $paymentRequest = $this->paymentRequestProvider->provide($createPayPalOrderPaymentRequest);
 
         if (PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState()) {
             return;
@@ -58,12 +69,28 @@ final class CapturePaymentRequestHandler
             return;
         }
 
+        if (!$this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentRequest->getMethod())) {
+            $this->failWithReason($paymentRequest, 'The requested payment source is not enabled for this payment method.');
+
+            return;
+        }
+
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
         $hash = (string) $paymentRequest->getId();
 
         try {
-            $details = $this->payPalOrderCreator->create($payment, $paymentSource, $hash, $hash);
+            $payUrl = $this->payUrl($paymentRequest, $order);
+            $details = $this->payPalOrderCreator->create(
+                $payment,
+                $paymentSource,
+                $hash,
+                $hash,
+                $payUrl,
+                sprintf('%s?%s=1', $payUrl, self::PAYER_CANCELLED_QUERY_PARAMETER),
+            );
         } catch (InvalidPayerDataException $exception) {
             $this->failWithReason($paymentRequest, $exception->getMessage());
 
@@ -77,10 +104,19 @@ final class CapturePaymentRequestHandler
         }
 
         $paymentRequest->setResponseData(array_filter([
-            'paypal_order_id' => $details->payPalOrderId(),
-            'payer_action_url' => $details->payerActionUrl(),
+            self::RESPONSE_PAYPAL_ORDER_ID => $details->payPalOrderId(),
+            self::RESPONSE_PAYER_ACTION_URL => $details->payerActionUrl(),
         ]));
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+    }
+
+    private function payUrl(PaymentRequestInterface $paymentRequest, OrderInterface $order): string
+    {
+        return $this->router->generate(
+            'sylius_shop_payment_request_pay',
+            ['_locale' => $order->getLocaleCode(), 'hash' => $paymentRequest->getId()],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
     }
 }

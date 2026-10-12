@@ -19,7 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
-final class CapturePaymentRequestTest extends JsonApiTestCase
+final class CreatePayPalOrderPaymentRequestTest extends JsonApiTestCase
 {
     use MocksPayPalApiTrait;
 
@@ -27,7 +27,7 @@ final class CapturePaymentRequestTest extends JsonApiTestCase
     {
         $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID');
 
-        $paymentRequest = $this->dispatchCapturePaymentRequest(['payment_source' => 'card']);
+        $paymentRequest = $this->dispatchCreatePayPalOrderPaymentRequest(['payment_source' => 'card']);
 
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $paymentRequest->getState());
         self::assertSame(['paypal_order_id' => 'PAYPAL_ORDER_ID'], $paymentRequest->getResponseData());
@@ -40,7 +40,7 @@ final class CapturePaymentRequestTest extends JsonApiTestCase
 
     public function test_it_waits_for_the_payer_to_choose_a_payment_source(): void
     {
-        $paymentRequest = $this->dispatchCapturePaymentRequest(null);
+        $paymentRequest = $this->dispatchCreatePayPalOrderPaymentRequest(null);
 
         self::assertSame(PaymentRequestInterface::STATE_NEW, $paymentRequest->getState());
         self::assertSame([], $paymentRequest->getPayment()->getDetails());
@@ -48,7 +48,7 @@ final class CapturePaymentRequestTest extends JsonApiTestCase
 
     public function test_it_fails_for_a_payment_source_paypal_does_not_support(): void
     {
-        $paymentRequest = $this->dispatchCapturePaymentRequest(['payment_source' => 'bitcoin']);
+        $paymentRequest = $this->dispatchCreatePayPalOrderPaymentRequest(['payment_source' => 'bitcoin']);
 
         self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
         self::assertSame(['reason' => 'PayPal does not support the requested payment source.'], $paymentRequest->getResponseData());
@@ -58,14 +58,14 @@ final class CapturePaymentRequestTest extends JsonApiTestCase
     {
         $this->payPalHttpClient()->addExpectation('POST', 'v2/checkout/orders', ['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID'], 422);
 
-        $paymentRequest = $this->dispatchCapturePaymentRequest(['payment_source' => 'paypal']);
+        $paymentRequest = $this->dispatchCreatePayPalOrderPaymentRequest(['payment_source' => 'paypal']);
 
         self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
         self::assertSame(['reason' => 'PayPal did not create the order.'], $paymentRequest->getResponseData());
         self::assertSame(PaymentInterface::STATE_NEW, $paymentRequest->getPayment()->getState());
     }
 
-    private function dispatchCapturePaymentRequest(mixed $payload): PaymentRequestInterface
+    private function dispatchCreatePayPalOrderPaymentRequest(mixed $payload): PaymentRequestInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 

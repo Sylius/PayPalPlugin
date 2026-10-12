@@ -6,45 +6,11 @@ sylius_paypal_shop_create_paypal_order_for_payment_request:
     requirements:
         hash: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
-sylius_paypal_shop_pay_with_paypal_form:
-    path: /pay-with-paypal/{orderToken}/{paymentId}
-    methods: [GET]
-    defaults:
-        _controller: sylius_paypal.controller.pay_with_paypal_form
-
-sylius_paypal_shop_redirect_return:
-    path: /paypal/redirect-return/{token}/{nonce}
-    methods: [GET]
-    defaults:
-        _controller: sylius_paypal.controller.redirect_return
-    requirements:
-        nonce: '[A-Za-z0-9_-]{16,128}'
-
-sylius_paypal_shop_redirect_cancel:
-    path: /paypal/redirect-cancel/{token}/{nonce}
-    methods: [GET]
-    defaults:
-        _controller: sylius_paypal.controller.redirect_cancel
-    requirements:
-        nonce: '[A-Za-z0-9_-]{16,128}'
-
-sylius_paypal_shop_create_paypal_order:
-    path: /create-pay-pal-order/{token}
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.create_paypal_order
-
 sylius_paypal_shop_create_paypal_order_from_cart:
     path: /create-pay-pal-order-from-cart/{id}
     methods: [POST, GET]
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_cart
-
-sylius_paypal_shop_complete_paypal_order:
-    path: /complete-pay-pal-order/{token}
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.complete_paypal_order
 
 sylius_paypal_shop_process_paypal_order:
     path: /process-pay-pal-order/
@@ -81,18 +47,6 @@ sylius_paypal_shop_cancel_payment:
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.cancel_paypal_payment
-
-sylius_paypal_shop_cancel_last_payment:
-    path: /order/{token}/cancel-last-pay-pal-payment
-    methods: [GET]
-    defaults:
-        _controller: sylius_paypal.controller.cancel_last_paypal_payment
-
-sylius_paypal_shop_cancel_checkout_payment:
-    path: /cancel-pay-pal-checkout-payment
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.cancel_paypal_checkout_payment
 
 sylius_paypal_shop_payment_error:
     path: /pay-pal-payment-error

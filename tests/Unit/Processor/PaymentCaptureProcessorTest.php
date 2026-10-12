@@ -134,6 +134,21 @@ final class PaymentCaptureProcessorTest extends TestCase
         self::assertSame($notCaptured, $this->processor->capture($this->payment));
     }
 
+    public function test_it_only_reads_an_order_paypal_captures_on_payment_approval(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'trustly'], amount: 1000, total: 1200, shippingRequired: true);
+
+        $this->updateOrderApi->expects(self::never())->method('update');
+        $this->updateOrderAddressApi->expects(self::never())->method('update');
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->orderDetailsApi->method('get')->with('TOKEN', '123123')->willReturn(self::ORDER_DETAILS);
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            fn (array $details): bool => 'trustly' === $details['payment_source'] && 'TRANSACTION_ID' === $details['transaction_id'],
+        ));
+
+        self::assertSame(self::ORDER_DETAILS, $this->processor->capture($this->payment));
+    }
+
     public function test_it_carries_the_payment_source_and_the_transaction_id_through_the_capture(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'google_pay'], amount: 1000, total: 1000);
@@ -177,6 +192,18 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->order->method('getShippingAddress')->willReturn($shippingAddress);
 
         $this->updateOrderAddressApi->expects(self::once())->method('update')->with('TOKEN', '123123', 'REFERENCE_ID', $shippingAddress);
+        $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
+
+        $this->processor->capture($this->payment);
+    }
+
+    public function test_it_captures_an_order_that_needs_shipping_but_has_no_shipping_address(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000, shippingRequired: true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+
+        $this->updateOrderAddressApi->expects(self::never())->method('update');
+        $this->completeOrderApi->expects(self::once())->method('complete')->with('TOKEN', '123123');
         $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
 
         $this->processor->capture($this->payment);

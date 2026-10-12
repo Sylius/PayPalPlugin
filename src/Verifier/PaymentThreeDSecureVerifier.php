@@ -22,6 +22,11 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class PaymentThreeDSecureVerifier implements PaymentThreeDSecureVerifierInterface
 {
+    private const THREE_D_SECURE_PAYMENT_SOURCES = [
+        PayPalPaymentSourceProviderInterface::CARD,
+        PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+    ];
+
     public function __construct(
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
@@ -32,7 +37,7 @@ final readonly class PaymentThreeDSecureVerifier implements PaymentThreeDSecureV
     public function verify(PaymentInterface $payment): void
     {
         $details = PayPalPaymentDetails::fromPayment($payment);
-        if (PayPalPaymentSourceProviderInterface::CARD !== $details->paymentSource()) {
+        if (!in_array($details->paymentSource(), self::THREE_D_SECURE_PAYMENT_SOURCES, true)) {
             return;
         }
 
