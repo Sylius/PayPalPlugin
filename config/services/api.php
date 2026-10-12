@@ -40,6 +40,8 @@ use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Provider\PersistingWebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemover;
+use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -100,6 +102,14 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(CacheAuthorizeClientApiInterface::class, 'sylius_paypal.api.cache_authorize_client');
+
+    $services->set('sylius_paypal.remover.cached_access_token', CachedAccessTokenRemover::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            service('sylius_paypal.repository.paypal_credentials'),
+        ]);
+
+    $services->alias(CachedAccessTokenRemoverInterface::class, 'sylius_paypal.remover.cached_access_token');
 
     $services->set('sylius_paypal.api.find_eligible_methods', FindEligibleMethodsApi::class)
         ->args([service('sylius_paypal.client.paypal')]);

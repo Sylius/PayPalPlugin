@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
+use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 {
@@ -59,6 +60,8 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
     private PayPalCredentialsManagerInterface&MockObject $credentialsManager;
 
+    private CachedAccessTokenRemoverInterface&MockObject $cachedAccessTokenRemover;
+
     private PayPalOnboardingPaymentMethodCreator $creator;
 
     protected function setUp(): void
@@ -69,6 +72,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
         $this->credentialsManager = $this->createMock(PayPalCredentialsManagerInterface::class);
+        $this->cachedAccessTokenRemover = $this->createMock(CachedAccessTokenRemoverInterface::class);
 
         $this->creator = new PayPalOnboardingPaymentMethodCreator(
             $this->gatewayFactory,
@@ -77,6 +81,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             'sylius-ppcp4p-bn-code',
             $this->payPalPaymentMethodProvider,
             $this->credentialsManager,
+            $this->cachedAccessTokenRemover,
         );
     }
 
@@ -150,6 +155,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $this->cachedAccessTokenRemover->expects(self::once())->method('remove')->with($paymentMethod);
 
         $this->gatewayFactory->expects(self::never())->method('createNew');
         $this->paymentMethodFactory->expects(self::never())->method('createNew');

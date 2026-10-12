@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
+use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxPaymentMethodCreatorInterface
 {
@@ -30,6 +31,7 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         private EntityManagerInterface $entityManager,
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         private PayPalCredentialsManagerInterface $credentialsManager,
+        private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
     ) {
     }
 
@@ -50,6 +52,7 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
             $gatewayConfig->setConfig(
                 $this->credentialsManager->store($gatewayConfig->getConfig(), true, $credentials),
             );
+            $this->cachedAccessTokenRemover->remove($paymentMethod);
             $paymentMethod->setEnabled(true);
 
             $this->entityManager->flush();

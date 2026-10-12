@@ -17,6 +17,7 @@ use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
+use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
@@ -189,6 +190,10 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_payment_method'),
         ])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.initialize_create', 'method' => 'initializeCreate']);
+
+    $services->set('sylius_paypal.listener.remove_cached_access_token', RemoveCachedAccessTokenListener::class)
+        ->args([service('sylius_paypal.remover.cached_access_token')])
+        ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.pre_update']);
 
     $services->set('sylius_paypal.manager.payment_state', PaymentStateManager::class)
         ->args([
@@ -605,6 +610,7 @@ return static function (ContainerConfigurator $container) {
             service('doctrine.orm.entity_manager'),
             service('sylius_paypal.provider.paypal_payment_method'),
             service('sylius_paypal.manager.credentials'),
+            service('sylius_paypal.remover.cached_access_token'),
         ]);
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
@@ -615,6 +621,7 @@ return static function (ContainerConfigurator $container) {
             param('sylius_paypal.partner_attribution_id'),
             service('sylius_paypal.provider.paypal_payment_method'),
             service('sylius_paypal.manager.credentials'),
+            service('sylius_paypal.remover.cached_access_token'),
         ]);
 
     $services->alias(PayPalOnboardingPaymentMethodCreatorInterface::class, 'sylius_paypal.creator.onboarding_payment_method');

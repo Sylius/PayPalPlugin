@@ -61,8 +61,8 @@ final class PayPalConfigurationType extends AbstractType
                 ],
                 'choice_value' => static fn (?bool $mode): string => (true === $mode ? PayPalMode::Sandbox : PayPalMode::Production)->value,
             ])
-            ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'attr' => ['readonly' => true]])
-            ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
+            ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
             ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::SYLIUS_MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])

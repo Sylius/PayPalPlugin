@@ -46,14 +46,17 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
         try {
-            $partnerId = $this->partnerCredentialsProvider->provide()->getPartnerId();
             $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret());
-            $status = $this->merchantOnboardingStatusApi->get($token, $partnerId, $config->merchantId());
+            $status = $config->isSandbox() ? null : $this->merchantOnboardingStatusApi->get(
+                $token,
+                $this->partnerCredentialsProvider->provide()->getPartnerId(),
+                $config->merchantId(),
+            );
         } catch (PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
 
-        if (!$status->isComplete()) {
+        if (null !== $status && !$status->isComplete()) {
             throw new PaymentMethodCouldNotBeEnabledException($status);
         }
 

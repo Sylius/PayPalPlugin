@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
+use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboardingPaymentMethodCreatorInterface
 {
@@ -31,6 +32,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         private string $partnerAttributionId,
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         private PayPalCredentialsManagerInterface $credentialsManager,
+        private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
     ) {
     }
 
@@ -62,6 +64,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             $gatewayConfig->setConfig(
                 $this->credentialsManager->store($gatewayConfig->getConfig(), false, $credentials),
             );
+            $this->cachedAccessTokenRemover->remove($paymentMethod);
 
             $this->entityManager->flush();
 

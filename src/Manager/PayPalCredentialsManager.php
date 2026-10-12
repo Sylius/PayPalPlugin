@@ -38,6 +38,10 @@ final class PayPalCredentialsManager implements PayPalCredentialsManagerInterfac
 
     public function hasCredentials(array $config, bool $sandbox): bool
     {
+        if ($sandbox === (bool) ($config[self::MODE_KEY] ?? false)) {
+            $config = $this->snapshotActiveIntoVault($config);
+        }
+
         /** @var array<string, mixed> $vault */
         $vault = $config[$this->vaultKey($sandbox)] ?? [];
 
@@ -51,16 +55,12 @@ final class PayPalCredentialsManager implements PayPalCredentialsManagerInterfac
      */
     private function snapshotActiveIntoVault(array $config): array
     {
-        if (!array_key_exists(self::MODE_KEY, $config)) {
-            return $config;
-        }
-
         $activeCredentials = $this->extractMirroredKeys($config);
         if ([] === $activeCredentials) {
             return $config;
         }
 
-        $config[$this->vaultKey((bool) $config[self::MODE_KEY])] = $activeCredentials;
+        $config[$this->vaultKey((bool) ($config[self::MODE_KEY] ?? false))] = $activeCredentials;
 
         return $config;
     }
