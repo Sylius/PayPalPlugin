@@ -100,6 +100,7 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
+use Sylius\PayPalPlugin\Provider\ProductionModeProvider;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackAmountProvider;
@@ -323,7 +324,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalHostProviderInterface::class, 'sylius_paypal.provider.host');
 
-    $services->set('sylius_paypal.provider.host.production', PayPalHostProvider::class);
+    $services->set('sylius_paypal.provider.production_mode', ProductionModeProvider::class);
+
+    $services->set('sylius_paypal.provider.host.production', PayPalHostProvider::class)
+        ->args([service('sylius_paypal.provider.production_mode')]);
 
     $services->set('sylius_paypal.manager.credentials', PayPalCredentialsManager::class);
 
@@ -639,7 +643,7 @@ return static function (ContainerConfigurator $container) {
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
-            param('sylius_paypal.partner_js_url'),
+            param('sylius_paypal.onboarding.partner_js_url'),
         ])
         ->tag('twig.extension');
 
@@ -660,9 +664,8 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.provider.onboarding_url'),
             service('sylius_paypal.manager.seller_nonce'),
-            service('sylius_paypal.provider.paypal_payment_method'),
+            service('sylius_paypal.onboarding.checker.production_seller_onboarded'),
             service('monolog.logger.paypal'),
-            service('sylius_paypal.manager.credentials'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
 

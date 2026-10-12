@@ -46,9 +46,9 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
     }
 
     /**
-     * @dataProvider productionCommunicationParametersProvider
+     * @dataProvider onboardingParametersProvider
      */
-    public function test_it_always_sets_production_communication_parameters(
+    public function test_it_sets_the_onboarding_parameters(
         string $parameterName,
         string $expectedValue,
     ): void {
@@ -57,20 +57,20 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
     }
 
-    public static function productionCommunicationParametersProvider(): iterable
+    public static function onboardingParametersProvider(): iterable
     {
         yield 'api base url' => [
-            'sylius_paypal.api_base_url',
+            'sylius_paypal.onboarding.api_base_url',
             'https://api.paypal.com/',
         ];
 
         yield 'web url' => [
-            'sylius_paypal.web_url',
+            'sylius_paypal.onboarding.web_url',
             'https://www.paypal.com',
         ];
 
         yield 'partner js url' => [
-            'sylius_paypal.partner_js_url',
+            'sylius_paypal.onboarding.partner_js_url',
             'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js',
         ];
     }

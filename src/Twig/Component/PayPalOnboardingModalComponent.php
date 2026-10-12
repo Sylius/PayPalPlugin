@@ -14,11 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig\Component;
 
 use Psr\Log\LoggerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Manager\PayPalCredentialsManagerInterface;
+use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -53,9 +51,8 @@ final class PayPalOnboardingModalComponent
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceManagerInterface $sellerNonceManager,
-        private readonly PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private readonly ProductionSellerOnboardedCheckerInterface $productionSellerOnboardedChecker,
         private readonly LoggerInterface $logger,
-        private readonly PayPalCredentialsManagerInterface $credentialsManager,
     ) {
     }
 
@@ -64,7 +61,7 @@ final class PayPalOnboardingModalComponent
     {
         $this->opened = true;
 
-        if ($this->isProductionSellerOnboarded()) {
+        if ($this->productionSellerOnboardedChecker->isOnboarded()) {
             $this->sellerAlreadyOnboarded = true;
             $this->loading = false;
 
@@ -83,17 +80,5 @@ final class PayPalOnboardingModalComponent
         }
 
         $this->loading = false;
-    }
-
-    private function isProductionSellerOnboarded(): bool
-    {
-        if (!$this->payPalPaymentMethodProvider->exists()) {
-            return false;
-        }
-
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $this->payPalPaymentMethodProvider->provide()->getGatewayConfig();
-
-        return $this->credentialsManager->hasCredentials($gatewayConfig->getConfig(), false);
     }
 }

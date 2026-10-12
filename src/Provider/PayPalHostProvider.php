@@ -15,23 +15,23 @@ namespace Sylius\PayPalPlugin\Provider;
 
 final readonly class PayPalHostProvider implements PayPalHostProviderInterface
 {
-    public function __construct(private ?PayPalActiveModeProviderInterface $activeModeProvider = null)
+    public function __construct(private PayPalActiveModeProviderInterface $activeModeProvider)
     {
     }
 
     public function getApiBaseUrl(): string
     {
-        return $this->getApiBaseUrlForMode($this->activeModeProvider?->isSandbox() ?? false);
+        return $this->getApiBaseUrlForMode($this->activeModeProvider->isSandbox());
     }
 
     public function getReportsSftpHost(): string
     {
-        return $this->getReportsSftpHostForMode($this->activeModeProvider?->isSandbox() ?? false);
+        return $this->getReportsSftpHostForMode($this->activeModeProvider->isSandbox());
     }
 
     public function getWebUrl(): string
     {
-        return $this->getWebUrlForMode($this->activeModeProvider?->isSandbox() ?? false);
+        return $this->getWebUrlForMode($this->activeModeProvider->isSandbox());
     }
 
     public function getApiBaseUrlForMode(bool $sandbox): string

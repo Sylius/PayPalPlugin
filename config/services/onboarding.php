@@ -2,6 +2,8 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedChecker;
+use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManager;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
@@ -34,7 +36,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.onboarding_url', PayPalOnboardingUrlProvider::class)
         ->args([
-            param('sylius_paypal.web_url'),
+            param('sylius_paypal.onboarding.web_url'),
             service('sylius_paypal.provider.partner_credentials'),
         ]);
 
@@ -44,15 +46,22 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(OnboardingStatusMessagesProviderInterface::class, 'sylius_paypal.provider.onboarding_status_messages');
 
-    $services->set('sylius_paypal.onboarding.processor.completion', OnboardingCompletionProcessor::class)
+    $services->set('sylius_paypal.onboarding.checker.production_seller_onboarded', ProductionSellerOnboardedChecker::class)
         ->args([
             service('sylius_paypal.provider.paypal_payment_method'),
+            service('sylius_paypal.manager.credentials'),
+        ]);
+
+    $services->alias(ProductionSellerOnboardedCheckerInterface::class, 'sylius_paypal.onboarding.checker.production_seller_onboarded');
+
+    $services->set('sylius_paypal.onboarding.processor.completion', OnboardingCompletionProcessor::class)
+        ->args([
+            service('sylius_paypal.onboarding.checker.production_seller_onboarded'),
             service('sylius_paypal.manager.seller_nonce'),
             service('sylius_paypal.onboarding.resolver.seller'),
             service('sylius_paypal.creator.onboarding_payment_method'),
             service('sylius_paypal.registrar.seller_webhook'),
             service('doctrine.orm.entity_manager'),
-            service('sylius_paypal.manager.credentials'),
         ]);
 
     $services->alias(OnboardingCompletionProcessorInterface::class, 'sylius_paypal.onboarding.processor.completion');

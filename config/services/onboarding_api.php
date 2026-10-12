@@ -50,7 +50,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.onboarding_token', OnboardingTokenApi::class)
         ->args([
             service('sylius_paypal.api.onboarding_request_executor'),
-            param('sylius_paypal.api_base_url'),
+            param('sylius_paypal.onboarding.api_base_url'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
         ]);
@@ -60,7 +60,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.seller_credentials', SellerCredentialsApi::class)
         ->args([
             service('sylius_paypal.api.onboarding_request_executor'),
-            param('sylius_paypal.api_base_url'),
+            param('sylius_paypal.onboarding.api_base_url'),
             service(RequestFactoryInterface::class),
         ]);
 
@@ -70,7 +70,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.api.onboarding_request_executor'),
             service(RequestFactoryInterface::class),
-            param('sylius_paypal.api_base_url'),
+            param('sylius_paypal.onboarding.api_base_url'),
         ]);
 
     $services->alias(MerchantOnboardingStatusApiInterface::class, 'sylius_paypal.api.merchant_onboarding_status');
