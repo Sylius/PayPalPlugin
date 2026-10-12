@@ -17,7 +17,7 @@ sylius_paypal:
     sandbox_connected_successfully: 'PayPal Sandbox has been connected successfully.'
     shipment_cannot_be_shipped: 'This shipment can no longer be shipped. It may have been shipped in the meantime.'
     seller_onboarding_payments_not_receivable: 'Attention: You currently cannot receive payments due to possible restriction on your PayPal account. Please, reach out to PayPal Customer Support or connect to https://www.paypal.com for more information. Once sorted, simply revisit this page to refresh the onboarding status.'
-    seller_onboarding_primary_email_not_confirmed: 'Attention: Please, confirm your email address on https://www.paypal.com/businessprofile/settings in order to receive payments! You currently cannot receive payments. Once done, simply revisit this page to refresh the onboarding status.'
+    seller_onboarding_primary_email_not_confirmed: 'Attention: Please, confirm your email address on %business_profile_url% in order to receive payments! You currently cannot receive payments. Once done, simply revisit this page to refresh the onboarding status.'
     something_went_wrong: 'Something went wrong. Please, try again.'
     three_d_secure_declined: 'Your card could not be authenticated. Please use another payment method.'
     three_d_secure_retry: 'Card authentication could not be completed. Please, try again.'

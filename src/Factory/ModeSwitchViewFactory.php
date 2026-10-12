@@ -16,12 +16,13 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\Mode;
 use Sylius\PayPalPlugin\Model\ModeSwitchView;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 final class ModeSwitchViewFactory implements ModeSwitchViewFactoryInterface
 {
     public function createFromConfig(array $config): ModeSwitchView
     {
-        $currentMode = ($config[CredentialsManagerInterface::MODE_KEY] ?? false)
+        $currentMode = PayPalGatewayConfig::fromArray($config)->isSandbox()
             ? Mode::Sandbox->value
             : Mode::Production->value;
         $activeClientId = (string) ($config['client_id'] ?? '');

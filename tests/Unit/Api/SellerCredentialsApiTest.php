@@ -21,6 +21,7 @@ use Psr\Http\Message\RequestInterface;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApi;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class SellerCredentialsApiTest extends TestCase
 {
@@ -38,7 +39,7 @@ final class SellerCredentialsApiTest extends TestCase
 
         $this->sellerCredentialsApi = new SellerCredentialsApi(
             $this->requestExecutor,
-            'http://base-url.com/',
+            $this->createConfiguredStub(HostProviderInterface::class, ['getApiBaseUrl' => 'http://base-url.com/']),
             $this->requestFactory,
         );
     }

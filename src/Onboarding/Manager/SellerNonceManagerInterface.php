@@ -15,9 +15,11 @@ namespace Sylius\PayPalPlugin\Onboarding\Manager;
 
 interface SellerNonceManagerInterface
 {
-    public function generate(): string;
+    public function generate(bool $sandbox = false): string;
 
     public function get(): ?string;
+
+    public function isSandbox(): bool;
 
     public function remove(): void;
 }

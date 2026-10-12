@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Model\ModeSwitchView;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Twig\Extension\AbstractExtension;
@@ -43,7 +44,6 @@ final class PayPalExtension extends AbstractExtension
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
-        private readonly string $partnerJsUrl = '',
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
 
@@ -166,9 +166,9 @@ final class PayPalExtension extends AbstractExtension
         return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
     }
 
-    public function getPartnerJsUrl(): string
+    public function getPartnerJsUrl(bool $sandbox = false): string
     {
-        return $this->partnerJsUrl;
+        return $sandbox ? HostProviderInterface::SANDBOX_PARTNER_JS_URL : HostProviderInterface::PRODUCTION_PARTNER_JS_URL;
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool

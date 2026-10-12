@@ -79,7 +79,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.provider.paypal_configuration'),
             service('sylius.context.channel'),
-            service('sylius_paypal.provider.host.production'),
+            service('sylius_paypal.provider.host.onboarding'),
             param('sylius_paypal.request_trials_limit'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),

@@ -19,18 +19,25 @@ use Sylius\PayPalPlugin\Model\PartnerCredentials;
 final readonly class PartnerCredentialsProvider implements PartnerCredentialsProviderInterface
 {
     public function __construct(
+        private ActiveModeProviderInterface $modeProvider,
         private string $partnerId,
         private string $partnerClientId,
+        private string $sandboxPartnerId,
+        private string $sandboxPartnerClientId,
         private string $partnerLogoUrl = '',
     ) {
     }
 
     public function provide(): PartnerCredentials
     {
-        if ('' === $this->partnerId || '' === $this->partnerClientId) {
+        $sandbox = $this->modeProvider->isSandbox();
+        $partnerId = $sandbox ? $this->sandboxPartnerId : $this->partnerId;
+        $partnerClientId = $sandbox ? $this->sandboxPartnerClientId : $this->partnerClientId;
+
+        if ('' === $partnerId || '' === $partnerClientId) {
             throw new PayPalPluginException('partner_id/partner_client_id is not configured');
         }
 
-        return new PartnerCredentials($this->partnerId, $this->partnerClientId, $this->partnerLogoUrl);
+        return new PartnerCredentials($partnerId, $partnerClientId, $this->partnerLogoUrl);
     }
 }

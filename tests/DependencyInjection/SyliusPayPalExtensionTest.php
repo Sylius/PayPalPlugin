@@ -45,36 +45,6 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         $this->load();
     }
 
-    /**
-     * @dataProvider onboardingParametersProvider
-     */
-    public function test_it_sets_the_onboarding_parameters(
-        string $parameterName,
-        string $expectedValue,
-    ): void {
-        $this->load();
-
-        $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
-    }
-
-    public static function onboardingParametersProvider(): iterable
-    {
-        yield 'api base url' => [
-            'sylius_paypal.onboarding.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'web url' => [
-            'sylius_paypal.onboarding.web_url',
-            'https://www.paypal.com',
-        ];
-
-        yield 'partner js url' => [
-            'sylius_paypal.onboarding.partner_js_url',
-            'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js',
-        ];
-    }
-
     public function test_it_increases_logging_via_env(): void
     {
         $this->setEnvVar('SYLIUS_PAYPAL_LOGGING_INCREASED', 'true');

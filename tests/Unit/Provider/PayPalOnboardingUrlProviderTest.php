@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 
@@ -36,7 +37,7 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
             ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID', 'https://shop.example.com/logo.png'));
 
         $this->payPalOnboardingUrlProvider = new PayPalOnboardingUrlProvider(
-            'https://www.sandbox.paypal.com',
+            $this->createConfiguredStub(HostProviderInterface::class, ['getWebUrl' => 'https://www.sandbox.paypal.com']),
             $this->partnerCredentialsProvider,
         );
     }

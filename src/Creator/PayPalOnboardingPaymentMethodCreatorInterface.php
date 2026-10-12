@@ -26,5 +26,5 @@ interface PayPalOnboardingPaymentMethodCreatorInterface
 
     public const PAYMENT_METHOD_DESCRIPTION = 'Pay with PayPal';
 
-    public function create(SellerOnboardingResult $result): PaymentMethodInterface;
+    public function create(SellerOnboardingResult $result, bool $sandbox = false): PaymentMethodInterface;
 }

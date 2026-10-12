@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Checker;
 
-interface ProductionSellerOnboardedCheckerInterface
+interface SellerOnboardedCheckerInterface
 {
-    public function isOnboarded(): bool;
+    public function isOnboarded(bool $sandbox): bool;
 }

@@ -36,7 +36,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
     ) {
     }
 
-    public function create(SellerOnboardingResult $result): PaymentMethodInterface
+    public function create(SellerOnboardingResult $result, bool $sandbox = false): PaymentMethodInterface
     {
         $credentials = [
             'client_id' => $result->getClientId(),
@@ -46,7 +46,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             'partner_attribution_id' => $this->partnerAttributionId,
         ];
 
-        $paymentMethod = $this->upsertPaymentMethod($credentials);
+        $paymentMethod = $this->upsertPaymentMethod($credentials, $sandbox);
         $paymentMethod->setEnabled($result->getStatus()->isComplete());
 
         return $paymentMethod;
@@ -55,14 +55,14 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
     /**
      * @param array<string, mixed> $credentials
      */
-    private function upsertPaymentMethod(array $credentials): PaymentMethodInterface
+    private function upsertPaymentMethod(array $credentials, bool $sandbox): PaymentMethodInterface
     {
         if ($this->payPalPaymentMethodProvider->exists()) {
             $paymentMethod = $this->payPalPaymentMethodProvider->provide();
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $paymentMethod->getGatewayConfig();
             $gatewayConfig->setConfig(
-                $this->credentialsManager->store($gatewayConfig->getConfig(), false, $credentials),
+                $this->credentialsManager->store($gatewayConfig->getConfig(), $sandbox, $credentials),
             );
             $this->cachedAccessTokenRemover->remove($paymentMethod);
 
@@ -71,7 +71,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             return $paymentMethod;
         }
 
-        $paymentMethod = $this->createPaymentMethod($this->createGatewayConfig($credentials));
+        $paymentMethod = $this->createPaymentMethod($this->createGatewayConfig($credentials, $sandbox));
 
         $this->entityManager->persist($paymentMethod);
 
@@ -81,7 +81,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
     /**
      * @param array<string, mixed> $credentials
      */
-    private function createGatewayConfig(array $credentials): GatewayConfigInterface
+    private function createGatewayConfig(array $credentials, bool $sandbox): GatewayConfigInterface
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $this->gatewayFactory->createNew();
@@ -92,7 +92,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             'use_authorize' => 1,
             'reports_sftp_password' => null,
             'reports_sftp_username' => null,
-        ], false, $credentials));
+        ], $sandbox, $credentials));
 
         return $gatewayConfig;
     }

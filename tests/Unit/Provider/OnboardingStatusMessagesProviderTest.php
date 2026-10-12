@@ -32,7 +32,10 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
         self::assertSame(
             [
                 'sylius_paypal.seller_onboarding_payments_not_receivable',
-                'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                    'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
+                ],
             ],
             (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(false, false)),
         );
@@ -51,8 +54,23 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     public function it_provides_only_the_primary_email_not_confirmed_message(): void
     {
         self::assertSame(
-            ['sylius_paypal.seller_onboarding_primary_email_not_confirmed'],
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
+            ]],
             (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(true, false)),
+        );
+    }
+
+    #[Test]
+    public function it_links_the_sandbox_business_profile_in_sandbox_mode(): void
+    {
+        self::assertSame(
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                'parameters' => ['%business_profile_url%' => 'https://www.sandbox.paypal.com/businessprofile/settings'],
+            ]],
+            (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(true, false), true),
         );
     }
 }

@@ -27,6 +27,10 @@ interface HostProviderInterface
 
     public const PRODUCTION_WEB_URL = 'https://www.paypal.com';
 
+    public const SANDBOX_PARTNER_JS_URL = 'https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js';
+
+    public const PRODUCTION_PARTNER_JS_URL = 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js';
+
     public function getApiBaseUrl(): string;
 
     public function getReportsSftpHost(): string;

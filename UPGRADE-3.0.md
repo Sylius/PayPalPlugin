@@ -101,14 +101,6 @@
 1. #### The following signatures have gained new optional arguments.
 
    ```diff
-    // Sylius\PayPalPlugin\Twig\PayPalExtension
-    public function __construct(
-        // ...
-   +    private readonly string $partnerJsUrl = '',
-    ) {
-   ```
-
-   ```diff
     // Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException
    -public function __construct()
    +public function __construct(private readonly ?OnboardingStatus $onboardingStatus = null)
@@ -139,10 +131,10 @@
    | Removed | Replacement |
    |---|---|
    | `sylius_paypal.sandbox` parameter | `Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface` (`sylius_paypal.provider.active_mode`) |
-   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.onboarding.api_base_url` for the onboarding |
-   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.onboarding.web_url` for the onboarding |
+   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.provider.host.onboarding` for the onboarding |
+   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.provider.host.onboarding` for the onboarding |
    | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.partner_js_url` parameter | `sylius_paypal.onboarding.partner_js_url` |
+   | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::SANDBOX_PARTNER_JS_URL` and `PRODUCTION_PARTNER_JS_URL` |
    | `sylius_paypal.client.sftp` service | `Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface` (`sylius_paypal.factory.sftp_client`) |
 
    The following constructor signatures have changed:

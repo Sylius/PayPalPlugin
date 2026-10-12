@@ -99,7 +99,10 @@ final class CompleteOnboardingActionTest extends TestCase
         self::assertSame(
             ['warning' => [
                 'sylius_paypal.seller_onboarding_payments_not_receivable',
-                'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                    'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
+                ],
                 'sylius_paypal.webhook_url_not_valid',
             ]],
             $this->flashBag($request)->all(),

@@ -8,9 +8,10 @@
     {% component 'sylius_paypal:live_onboarding_modal' with {modalId: 'confirmation-modal-create-pay-pal', type: 'create-pay-pal'} %}
     {% endcomponent %}
 
-    {% component 'sylius_paypal:sandbox_onboarding_modal' with {
+    {% component 'sylius_paypal:live_onboarding_modal' with {
         modalId: 'confirmation-modal-create-paypal-sandbox',
-        type: 'sylius-create-paypal-sandbox'
+        type: 'sylius-create-paypal-sandbox',
+        sandbox: true
     } %}
     {% endcomponent %}
 {% endif %}

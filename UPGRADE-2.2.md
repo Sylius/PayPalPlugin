@@ -81,7 +81,7 @@
 
 1. **Update your Content-Security-Policy, if your shop sends one.**
 
-   - The Web SDK loads from `sylius_paypal.web_url`: `https://www.paypal.com` in production and
+   - The Web SDK loads from the PayPal web origin of the active mode: `https://www.paypal.com` in production and
      `https://www.sandbox.paypal.com` in sandbox mode. The v5 SDK always loaded from `https://www.paypal.com`.
    - Google Pay, when enabled: allow `pay.google.com` in `script-src`, and
      `pay.google.com google.com account.google.com www.google.com` in `connect-src`. A nonce-based CSP also needs
@@ -518,7 +518,7 @@ unchanged.
    | `sylius_paypal_shop_complete_paypal_order` | `409` when no payment is being processed; `422` when the posted PayPal order id is not the payment's |
    | `sylius_paypal_shop_complete_paypal_order_from_payment_page` | `409` when the order has no payment in `processing` (it used to answer `500`) |
    | `sylius_paypal_shop_process_paypal_order` | `422` when the posted `payPalOrderId` is not the payment's `paypal_order_id`, with a `return_url` to the checkout summary; an amount mismatch still answers `200` |
-   | `sylius_paypal_shop_pay_with_paypal_form` | `404` for a missing payment or one of another gateway; redirect to the thank-you page for a completed payment and to the order page for one awaiting the payer's bank; `Cache-Control: no-store, private` and a `Permissions-Policy` delegating WebAuthn to `sylius_paypal.web_url` |
+   | `sylius_paypal_shop_pay_with_paypal_form` | `404` for a missing payment or one of another gateway; redirect to the thank-you page for a completed payment and to the order page for one awaiting the payer's bank; `Cache-Control: no-store, private` and a `Permissions-Policy` delegating WebAuthn to the PayPal web origin of the active mode |
    | `sylius_paypal_webhook_refund_order` | `503` for an event it could not finish; `204` for an unknown order |
    | `PATCH /api/v2/admin/shipments/{id}/ship` | `400` for any field other than `trackingCode`, `carrier` and `carrierNameOther`, **for every order, whatever it was paid with**; extra fields that Sylius core ignores are now rejected |
 
@@ -652,7 +652,7 @@ The "Without it" column says what happens when a new argument is missing:
 | `Controller\CompletePayPalOrderFromPaymentPageAction` | `OrderOwnershipVerifierInterface` | **throws** on every request |
 | `Controller\ProcessPayPalOrderAction` | `UrlGeneratorInterface`, `PayPalExpressOrderCompleterInterface`, `OrderProcessorInterface`, `RepositoryInterface` (shipping methods), `ExpressOrderAddressFactoryInterface`, `OrderOwnershipVerifierInterface`, `UpdateOrderApiInterface` | verifier: **throws** on every request; router, completer, processor: **throw** when needed; shipping method repository: the wallet's method is not applied and the amount check fails; address factory: no region stored; update API: a lower total is a mismatch |
 | `Controller\PayPalButtonsController` | `WebSdkConfigurationProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface`, `CurrentPayPalLocaleProviderInterface` | Web SDK and funding sources: **throw** on render; locale: built from the locale context |
-| `Controller\PayWithPayPalFormAction` | `PayPalConfigurationProviderInterface`, `PayPalPaymentPageContextProviderInterface`, `UrlGeneratorInterface`, `PayerActionCheckerInterface`, `?string $webUrl` | context provider and router: **throw** on render; `$webUrl`: the `Permissions-Policy` allows both PayPal origins |
+| `Controller\PayWithPayPalFormAction` | `PayPalConfigurationProviderInterface`, `PayPalPaymentPageContextProviderInterface`, `UrlGeneratorInterface`, `PayerActionCheckerInterface`, `HostProviderInterface` | context provider and router: **throw** on render; host provider: the `Permissions-Policy` allows both PayPal origins |
 | `Controller\CompletePayPalOrderAction` | `CacheAuthorizeClientApiInterface`, `OrderDetailsApiInterface`, `ThreeDSecureVerifierInterface` | degrades, no 3D Secure check |
 | `Controller\CreatePayPalOrderAction` | `PayPalPaymentSourceProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface` | only `paypal` accepted |
 | `Controller\PayPalPaymentOnErrorAction` | `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface` (`sylius.order_processing.order_payment_processor.checkout`), `ObjectManager`, `PayerActionCheckerInterface` | degrades, only logs and flashes |

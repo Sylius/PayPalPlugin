@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedCheckerInterface;
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
@@ -28,7 +28,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
 
     private SellerNonceManagerInterface&MockObject $sellerNonceManager;
 
-    private ProductionSellerOnboardedCheckerInterface&MockObject $productionSellerOnboardedChecker;
+    private SellerOnboardedCheckerInterface&MockObject $sellerOnboardedChecker;
 
     private LoggerInterface&MockObject $logger;
 
@@ -39,13 +39,13 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         parent::setUp();
         $this->onboardingUrlProvider = $this->createMock(PayPalOnboardingUrlProviderInterface::class);
         $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
-        $this->productionSellerOnboardedChecker = $this->createMock(ProductionSellerOnboardedCheckerInterface::class);
+        $this->sellerOnboardedChecker = $this->createMock(SellerOnboardedCheckerInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->payPalOnboardingModalComponent = new PayPalOnboardingModalComponent(
             $this->onboardingUrlProvider,
             $this->sellerNonceManager,
-            $this->productionSellerOnboardedChecker,
+            $this->sellerOnboardedChecker,
             $this->logger,
         );
     }
@@ -82,6 +82,40 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_load_the_onboarding_url_when_a_sandbox_seller_is_already_onboarded_in_sandbox_mode(): void
+    {
+        $this->payPalOnboardingModalComponent->sandbox = true;
+        $this->sellerOnboardedChecker->method('isOnboarded')->with(true)->willReturn(true);
+
+        $this->sellerNonceManager->expects(self::never())->method('generate');
+        $this->onboardingUrlProvider->expects(self::never())->method('generate');
+
+        $this->payPalOnboardingModalComponent->loadOnboardingUrl();
+
+        self::assertTrue($this->payPalOnboardingModalComponent->sellerAlreadyOnboarded);
+    }
+
+    #[Test]
+    public function it_starts_a_sandbox_onboarding_session_in_sandbox_mode(): void
+    {
+        $this->payPalOnboardingModalComponent->sandbox = true;
+
+        $this->sellerNonceManager->expects(self::once())->method('generate')->with(true)->willReturn('NONCE');
+        $this->onboardingUrlProvider
+            ->expects(self::once())
+            ->method('generate')
+            ->with('NONCE')
+            ->willReturn('https://www.sandbox.paypal.com/bizsignup/partner/entry?sellerNonce=NONCE');
+
+        $this->payPalOnboardingModalComponent->loadOnboardingUrl();
+
+        self::assertSame(
+            'https://www.sandbox.paypal.com/bizsignup/partner/entry?sellerNonce=NONCE',
+            $this->payPalOnboardingModalComponent->onboardingUrl,
+        );
+    }
+
+    #[Test]
     public function it_marks_the_component_as_failed_and_logs_when_the_url_provider_throws(): void
     {
         $this->sellerNonceManager->method('generate')->willReturn('NONCE');
@@ -99,7 +133,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     #[Test]
     public function it_does_not_load_the_onboarding_url_when_a_production_seller_is_already_onboarded(): void
     {
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(true);
+        $this->sellerOnboardedChecker->method('isOnboarded')->with(false)->willReturn(true);
 
         $this->sellerNonceManager->expects(self::never())->method('generate');
         $this->onboardingUrlProvider->expects(self::never())->method('generate');
@@ -115,7 +149,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     #[Test]
     public function it_loads_the_onboarding_url_when_no_production_seller_is_onboarded(): void
     {
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(false);
+        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('generate')->willReturn('SELLER-NONCE');
         $this->onboardingUrlProvider->method('generate')->with('SELLER-NONCE')->willReturn('https://www.paypal.com/onboarding');
 

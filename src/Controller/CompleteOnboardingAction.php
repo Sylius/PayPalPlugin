@@ -75,10 +75,10 @@ final readonly class CompleteOnboardingAction
         }
 
         if ($result->getPaymentMethod()->isEnabled()) {
-            $flashBag->add('success', 'sylius_paypal.production_connected_successfully');
+            $flashBag->add('success', $result->isSandbox() ? 'sylius_paypal.sandbox_connected_successfully' : 'sylius_paypal.production_connected_successfully');
         }
 
-        foreach ($this->onboardingStatusMessagesProvider->provide($result->getStatus()) as $message) {
+        foreach ($this->onboardingStatusMessagesProvider->provide($result->getStatus(), $result->isSandbox()) as $message) {
             $flashBag->add('warning', $message);
         }
 

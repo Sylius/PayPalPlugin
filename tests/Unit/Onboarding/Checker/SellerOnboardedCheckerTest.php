@@ -19,14 +19,14 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Manager\CredentialsManager;
-use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedChecker;
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedChecker;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
-final class ProductionSellerOnboardedCheckerTest extends TestCase
+final class SellerOnboardedCheckerTest extends TestCase
 {
     private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
 
-    private ProductionSellerOnboardedChecker $checker;
+    private SellerOnboardedChecker $checker;
 
     protected function setUp(): void
     {
@@ -34,7 +34,7 @@ final class ProductionSellerOnboardedCheckerTest extends TestCase
 
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
 
-        $this->checker = new ProductionSellerOnboardedChecker($this->payPalPaymentMethodProvider, new CredentialsManager());
+        $this->checker = new SellerOnboardedChecker($this->payPalPaymentMethodProvider, new CredentialsManager());
     }
 
     #[Test]
@@ -43,7 +43,8 @@ final class ProductionSellerOnboardedCheckerTest extends TestCase
         $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
         $this->payPalPaymentMethodProvider->expects(self::never())->method('provide');
 
-        self::assertFalse($this->checker->isOnboarded());
+        self::assertFalse($this->checker->isOnboarded(false));
+        self::assertFalse($this->checker->isOnboarded(true));
     }
 
     #[Test]
@@ -51,7 +52,7 @@ final class ProductionSellerOnboardedCheckerTest extends TestCase
     {
         $this->mockExistingPaymentMethod(['sandbox' => true, 'production_credentials' => ['client_id' => 'PROD']]);
 
-        self::assertTrue($this->checker->isOnboarded());
+        self::assertTrue($this->checker->isOnboarded(false));
     }
 
     #[Test]
@@ -59,15 +60,32 @@ final class ProductionSellerOnboardedCheckerTest extends TestCase
     {
         $this->mockExistingPaymentMethod(['client_id' => 'PROD']);
 
-        self::assertTrue($this->checker->isOnboarded());
+        self::assertTrue($this->checker->isOnboarded(false));
+        self::assertFalse($this->checker->isOnboarded(true));
     }
 
     #[Test]
-    public function it_is_not_onboarded_when_only_sandbox_credentials_are_stored(): void
+    public function it_is_not_onboarded_in_production_when_only_sandbox_credentials_are_stored(): void
     {
         $this->mockExistingPaymentMethod(['sandbox' => true, 'client_id' => 'SB', 'sandbox_credentials' => ['client_id' => 'SB']]);
 
-        self::assertFalse($this->checker->isOnboarded());
+        self::assertFalse($this->checker->isOnboarded(false));
+    }
+
+    #[Test]
+    public function it_is_onboarded_in_sandbox_when_sandbox_credentials_are_stored(): void
+    {
+        $this->mockExistingPaymentMethod(['sandbox' => true, 'client_id' => 'SB', 'sandbox_credentials' => ['client_id' => 'SB']]);
+
+        self::assertTrue($this->checker->isOnboarded(true));
+    }
+
+    #[Test]
+    public function it_is_not_onboarded_in_sandbox_when_only_production_credentials_are_stored(): void
+    {
+        $this->mockExistingPaymentMethod(['sandbox' => false, 'client_id' => 'PROD', 'production_credentials' => ['client_id' => 'PROD']]);
+
+        self::assertFalse($this->checker->isOnboarded(true));
     }
 
     /**
