@@ -1,0 +1,52 @@
+Sylius\Component\Core\Model\Address:
+    checkout_shipping_address:
+        firstName: "Oliver"
+        lastName: "Queen"
+        street: "1 Main St"
+        city: "Dallas"
+        postcode: "75001"
+        countryCode: "US"
+        provinceCode: "US-TX"
+    checkout_billing_address:
+        firstName: "Oliver"
+        lastName: "Queen"
+        street: "1 Main St"
+        city: "Dallas"
+        postcode: "75001"
+        countryCode: "US"
+        provinceCode: "US-TX"
+
+Sylius\Component\Core\Model\Order:
+    addressed_cart:
+        channel: "@channel_web"
+        items: ["@addressed_sw_mug_item"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        state: "cart"
+        checkoutState: "payment_selected"
+        tokenValue: "TOKEN"
+        shippingAddress: "@checkout_shipping_address"
+        billingAddress: "@checkout_billing_address"
+        payments: ["@addressed_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    addressed_sw_mug_item:
+        units: ["@addressed_sw_mug_item_unit1", "@addressed_sw_mug_item_unit2"]
+        variant: "@mug_sw"
+        order: "@addressed_cart"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    addressed_sw_mug_item_unit1:
+        __construct: ["@addressed_sw_mug_item"]
+    addressed_sw_mug_item_unit2:
+        __construct: ["@addressed_sw_mug_item"]
+
+Sylius\Component\Core\Model\Payment:
+    addressed_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 40
+        state: "cart"
+        details:
+            paypal_order_id: "PAYPAL_ORDER_ID"

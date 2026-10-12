@@ -18,9 +18,10 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Webmozart\Assert\Assert;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
-final readonly class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface
+final readonly class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface, PayPalFundingSourcesConfigurationProviderInterface
 {
     /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
     public function __construct(private PaymentMethodRepositoryInterface $paymentMethodRepository)
@@ -29,21 +30,47 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
 
     public function getClientId(ChannelInterface $channel): string
     {
-        $config = $this->getPayPalPaymentMethodConfig($channel);
-        Assert::keyExists($config, 'client_id');
-
-        return (string) $config['client_id'];
+        return $this->getPayPalPaymentMethodConfig($channel)->clientId();
     }
 
     public function getPartnerAttributionId(ChannelInterface $channel): string
     {
-        $config = $this->getPayPalPaymentMethodConfig($channel);
-        Assert::keyExists($config, 'partner_attribution_id');
-
-        return (string) $config['partner_attribution_id'];
+        return $this->getPayPalPaymentMethodConfig($channel)->partnerAttributionId();
     }
 
-    private function getPayPalPaymentMethodConfig(ChannelInterface $channel): array
+    public function isPayLaterEnabled(ChannelInterface $channel): bool
+    {
+        return $this->getPayPalPaymentMethodConfig($channel)->isPayLaterEnabled();
+    }
+
+    public function isMessagingEnabled(ChannelInterface $channel): bool
+    {
+        $config = $this->getPayPalPaymentMethodConfig($channel);
+
+        return $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+    }
+
+    public function isVenmoEnabled(ChannelInterface $channel): bool
+    {
+        return $this->getPayPalPaymentMethodConfig($channel)->isVenmoEnabled();
+    }
+
+    public function isGooglePayEnabled(ChannelInterface $channel): bool
+    {
+        return $this->getPayPalPaymentMethodConfig($channel)->isGooglePayEnabled();
+    }
+
+    public function isApplePayEnabled(ChannelInterface $channel): bool
+    {
+        return $this->getPayPalPaymentMethodConfig($channel)->isApplePayEnabled();
+    }
+
+    public function isTrustlyEnabled(ChannelInterface $channel): bool
+    {
+        return $this->getPayPalPaymentMethodConfig($channel)->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly);
+    }
+
+    private function getPayPalPaymentMethodConfig(ChannelInterface $channel): PayPalGatewayConfig
     {
         $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);
 
@@ -56,7 +83,7 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
                 continue;
             }
 
-            return $gatewayConfig->getConfig();
+            return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
         }
 
         throw new \InvalidArgumentException('No PayPal payment method defined');

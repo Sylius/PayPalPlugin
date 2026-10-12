@@ -4,6 +4,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\PayPalPlugin\EventListener\Workflow\CompletePayPalOrderListener;
 use Sylius\PayPalPlugin\EventListener\Workflow\RefundPaymentListener;
+use Sylius\PayPalPlugin\PackageTracking\EventListener\Workflow\SendShipmentTrackingListener;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -15,4 +16,8 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.listener.workflow.refund_payment', RefundPaymentListener::class)
         ->args([service('sylius_paypal.processor.payment_refund')])
         ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.transition.refund', 'priority' => 100]);
+
+    $services->set('sylius_paypal.listener.workflow.send_shipment_tracking', SendShipmentTrackingListener::class)
+        ->args([service('sylius_paypal.dispatcher.shipment_tracking')])
+        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_shipment.completed.ship', 'priority' => 100]);
 };

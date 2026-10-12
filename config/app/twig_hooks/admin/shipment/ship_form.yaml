@@ -1,0 +1,29 @@
+sylius_twig_hooks:
+    hooks:
+        'sylius_paypal.admin.shipment.ship_form':
+            tracking:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship/tracking.html.twig'
+                priority: 300
+            carrier:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship/carrier.html.twig'
+                priority: 200
+            carrier_name_other:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship/carrier_name_other.html.twig'
+                priority: 100
+            submit:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship/submit.html.twig'
+                priority: 0
+
+        'sylius_paypal.admin.shipment.index.ship_form':
+            tracking:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship_from_index/tracking.html.twig'
+                priority: 300
+            carrier:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship_from_index/carrier.html.twig'
+                priority: 200
+            carrier_name_other:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship_from_index/carrier_name_other.html.twig'
+                priority: 100
+            submit:
+                template: '@SyliusPayPalPlugin/admin/shipment/component/ship_from_index/submit.html.twig'
+                priority: 0

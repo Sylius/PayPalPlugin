@@ -1,0 +1,23 @@
+{% set context = hookable_metadata.context %}
+
+{% if context.googlePayEnabled %}
+    <div
+        {{ stimulus_controller('@sylius/paypal-plugin/paypal-payment-google-pay', {
+            scriptUrl: context.webSdkScriptUrl,
+            instanceConfig: context.webSdkInstanceConfig,
+            currencyCode: context.currency,
+            amount: context.amount,
+            languageCode: context.languageCode,
+            sandbox: sylius_is_paypal_sandbox(),
+            createOrderUrl: context.createPayPalOrderUrl,
+            completeOrderUrl: context.completePayPalOrderUrl,
+            errorUrl: context.errorPayPalPaymentUrl,
+        }) }}
+        class="mb-3"
+    >
+        <div
+            {{ stimulus_target('@sylius/paypal-plugin/paypal-payment-google-pay', 'button') }}
+            style="height: 45px"
+        ></div>
+    </div>
+{% endif %}

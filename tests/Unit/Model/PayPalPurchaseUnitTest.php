@@ -167,6 +167,31 @@ final class PayPalPurchaseUnitTest extends TestCase
     }
 
     #[Test]
+    public function it_includes_custom_id_when_provided(): void
+    {
+        $payPalPurchaseUnit = new PayPalPurchaseUnit(
+            'REFERENCE_ID',
+            'INVOICE_ID',
+            'CURRENCY_CODE',
+            10000,
+            1000,
+            80,
+            10,
+            0,
+            'MERCHANT_ID',
+            [['test_item']],
+            false,
+            null,
+            shippingDiscountValue: 0,
+            customId: 'CUSTOM_ID',
+        );
+
+        $result = $payPalPurchaseUnit->toArray();
+
+        self::assertSame('CUSTOM_ID', $result['custom_id']);
+    }
+
+    #[Test]
     public function it_returns_proper_paypal_purchase_unit_if_shipping_is_not_set(): void
     {
         $payPalPurchaseUnit = new PayPalPurchaseUnit(
@@ -223,5 +248,30 @@ final class PayPalPurchaseUnitTest extends TestCase
                 ['test_item'],
             ],
         ], $result);
+    }
+
+    public function test_it_sends_the_region_of_the_shipping_address(): void
+    {
+        $this->shippingAddress->method('getCountryCode')->willReturn('US');
+        $this->shippingAddress->method('getProvinceCode')->willReturn('US-TX');
+
+        self::assertSame('TX', $this->payPalPurchaseUnit->toArray()['shipping']['address']['admin_area_1']);
+    }
+
+    public function test_it_leaves_the_region_out_when_the_address_carries_none(): void
+    {
+        $this->shippingAddress->method('getCountryCode')->willReturn('US');
+
+        self::assertArrayNotHasKey('admin_area_1', $this->payPalPurchaseUnit->toArray()['shipping']['address']);
+    }
+
+    public function test_it_leaves_the_item_taxes_out_when_told_to(): void
+    {
+        $item = ['name' => 'PRODUCT', 'quantity' => 3, 'tax' => ['value' => '1.64', 'currency_code' => 'USD']];
+
+        $purchaseUnit = new PayPalPurchaseUnit('REFERENCE_ID', 'INVOICE_ID', 'USD', 7679, 161, 70.26, 4.92, 0, 'MERCHANT_ID', [$item], true, withItemTaxes: false);
+
+        self::assertSame([['name' => 'PRODUCT', 'quantity' => 3]], $purchaseUnit->toArray()['items']);
+        self::assertSame('4.92', $purchaseUnit->toArray()['amount']['breakdown']['tax_total']['value']);
     }
 }

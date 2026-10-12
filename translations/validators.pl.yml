@@ -1,0 +1,6 @@
+sylius_paypal:
+    shipment_tracking:
+        carrier_invalid: 'Ten przewoźnik nie jest obsługiwany.'
+        carrier_name_other_required: 'Podaj nazwę przewoźnika, gdy wybrano „Inny”.'
+        tracking_code_required: 'Podaj kod śledzenia, gdy wybrano przewoźnika.'
+        tracking_code_too_long: 'Kod śledzenia może mieć najwyżej {{ limit }} znaki, aby można go było wysłać do PayPal.'

@@ -1,0 +1,23 @@
+{% form_theme form '@SyliusAdmin/shared/form_theme.html.twig' %}
+
+{% if sylius_sm_can(resource, 'sylius_shipment', 'ship') %}
+    <div {{ attributes }}>
+        {{ form_start(form, {'attr': {
+            'class': 'ui loadable form',
+            'novalidate': 'novalidate',
+            'data-action': 'live#action:prevent',
+            'data-live-action-param': 'ship',
+            'data-live-redirect-to-param': constant('Sylius\\PayPalPlugin\\PackageTracking\\Twig\\Component\\ShipmentShipFormComponent::REDIRECT_TO_ORDER'),
+        }}) }}
+        <div class="row g-3 align-items-start">
+            {% hook 'sylius_paypal.admin.shipment.ship_form' with { form, resource } %}
+        </div>
+        {{ form_end(form, {'render_rest': false}) }}
+    </div>
+{% elseif shippableOnMount %}
+    <div {{ attributes }}>
+        <div class="alert alert-warning mb-0" role="alert" {{ sylius_test_html_attribute('shipment-cannot-be-shipped') }}>
+            {{ 'sylius_paypal.shipment_tracking.shipment_cannot_be_shipped'|trans }}
+        </div>
+    </div>
+{% endif %}

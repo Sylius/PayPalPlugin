@@ -1,0 +1,5 @@
+{% if app.session is not null and app.session.started and app.session.flashbag.peekAll() is not empty %}
+    <div class="mb-4">
+        {% hook 'flashes' %}
+    </div>
+{% endif %}

@@ -1,0 +1,664 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Tests\Sylius\PayPalPlugin\Functional;
+
+use ApiTestCase\JsonApiTestCase;
+use Sylius\Component\Core\Model\CustomerInterface;
+use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\ShipmentInterface;
+use Sylius\Component\Core\Storage\CartStorageInterface;
+use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
+use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Tests\Sylius\PayPalPlugin\Service\FakeOrderDetailsApi;
+
+final class ProcessPayPalOrderActionTest extends JsonApiTestCase
+{
+    private const ITEMS_TOTAL = 40;
+
+    private const STANDARD_SHIPPING_COST = 500;
+
+    private const EXPRESS_SHIPPING_COST = 2000;
+
+    public function test_it_completes_the_order_in_one_call_when_the_buyer_approves_in_the_wallet(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi([
+            'payer' => [
+                'email_address' => 'oliver.queen@star-city.com',
+                'name' => ['given_name' => 'Oliver', 'surname' => 'Queen'],
+                'phone' => ['phone_number' => ['national_number' => '15551234567']],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => '0.60'],
+                'shipping' => [
+                    'name' => ['full_name' => 'Oliver Queen'],
+                    'address' => [
+                        'address_line_1' => '1 Star City Plaza',
+                        'admin_area_2' => 'Star City',
+                        'postal_code' => '10001',
+                        'country_code' => 'US',
+                    ],
+                ],
+            ]],
+        ]);
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($orderId, $content['orderID']);
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+        $this->assertSame('completed', $order->getCheckoutState());
+
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        $this->assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+    }
+
+    public function test_it_creates_a_new_customer_from_the_pay_pal_payer_data_when_the_order_has_none_yet(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart_without_customer.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart_without_customer'];
+
+        $this->mockOrderDetailsApi([
+            'payer' => [
+                'email_address' => 'new.buyer@example.com',
+                'name' => ['given_name' => 'Jane', 'surname' => 'Doe'],
+                'phone' => ['phone_number' => ['national_number' => '15559876543']],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => '0.60'],
+                'shipping' => [
+                    'name' => ['full_name' => 'Jane Doe'],
+                    'address' => [
+                        'address_line_1' => '42 Wallaby Way',
+                        'admin_area_2' => 'Sydney',
+                        'postal_code' => '20500',
+                        'country_code' => 'US',
+                    ],
+                ],
+            ]],
+        ]);
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+
+        /** @var CustomerInterface $customer */
+        $customer = $order->getCustomer();
+        $this->assertNotNull($customer);
+        $this->assertSame('new.buyer@example.com', $customer->getEmail());
+        $this->assertSame('15559876543', $customer->getPhoneNumber());
+    }
+
+    public function test_it_frees_the_order_and_returns_the_buyer_to_checkout_when_the_total_grew_above_the_approved_amount(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $originalPayment */
+        $originalPayment = $fixtures['paypal_payment'];
+        $originalPaymentId = $originalPayment->getId();
+
+        $this->mockOrderDetailsApi([
+            'payer' => [
+                'email_address' => 'oliver.queen@star-city.com',
+                'name' => ['given_name' => 'Oliver', 'surname' => 'Queen'],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => '0.01'],
+                'shipping' => [
+                    'name' => ['full_name' => 'Oliver Queen'],
+                    'address' => [
+                        'address_line_1' => '1 Star City Plaza',
+                        'admin_area_2' => 'Star City',
+                        'postal_code' => '10001',
+                        'country_code' => 'US',
+                    ],
+                ],
+            ]],
+        ]);
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertNotSame('completed', $order->getCheckoutState());
+
+        /** @var PaymentInterface|null $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertNotNull($payment);
+        $this->assertNotSame($originalPaymentId, $payment->getId());
+    }
+
+    public function test_it_lowers_the_approved_amount_and_completes_the_order_when_the_total_dropped(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails();
+        $orderDetails['purchase_units'][0]['amount']['value'] = '999.00';
+        $this->mockOrderDetailsApi($orderDetails);
+        $this->mockSuccessfulPaymentCompleteProcessor();
+        $updateOrderApi = $this->mockUpdateOrderApi();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+        $this->assertSame('completed', $order->getCheckoutState());
+        $this->assertSame([['orderId' => 'PAYPAL_ORDER_ID', 'amount' => $order->getTotal()]], $updateOrderApi->updates);
+    }
+
+    public function test_it_frees_the_order_when_pay_pal_refuses_to_lower_the_approved_amount(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails();
+        $orderDetails['purchase_units'][0]['amount']['value'] = '999.00';
+        $this->mockOrderDetailsApi($orderDetails);
+        $updateOrderApi = $this->mockUpdateOrderApi(['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID']);
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertNotSame('completed', $this->refreshOrder($orderId)->getCheckoutState());
+        $this->assertCount(1, $updateOrderApi->updates);
+
+        $flashes = $this->client->getRequest()->getSession()->getBag('flashes')->peekAll();
+        self::assertSame(['sylius_paypal.order_total_changed'], $flashes['error'] ?? []);
+    }
+
+    public function test_it_does_not_update_the_approved_amount_when_it_matches_the_total(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails(
+            shippingOptions: [
+                ['id' => 'EXPRESS', 'amount' => ['currency_code' => 'USD', 'value' => '20.00'], 'selected' => true],
+            ],
+            shippingTotal: self::EXPRESS_SHIPPING_COST,
+        );
+        $orderDetails['purchase_units'][] = ['amount' => ['value' => '0.01']];
+        $this->mockOrderDetailsApi($orderDetails);
+        $updateOrderApi = $this->mockUpdateOrderApi();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame(self::ITEMS_TOTAL + self::EXPRESS_SHIPPING_COST, $order->getTotal());
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertNotSame('completed', $order->getCheckoutState());
+        $this->assertSame([], $updateOrderApi->updates);
+    }
+
+    public function test_it_tells_the_buyer_why_the_payment_was_not_taken(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $orderDetails = $this->orderDetails();
+        $orderDetails['purchase_units'][0]['amount']['value'] = '0.01';
+        $this->mockOrderDetailsApi($orderDetails);
+
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($order->getId());
+
+        $flashes = $this->client->getRequest()->getSession()->getBag('flashes')->peekAll();
+        self::assertSame(['sylius_paypal.order_total_changed'], $flashes['error'] ?? []);
+    }
+
+    public function test_it_refuses_the_request_when_the_pay_pal_order_id_does_not_match_the_payment(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $payment */
+        $payment = $fixtures['paypal_payment'];
+
+        $orderId = $order->getId();
+        $paymentId = $payment->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId, 'OTHER_PAYPAL_ORDER_ID');
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertSame('shipping_selected', $order->getCheckoutState());
+        $this->assertNull($order->getShippingAddress());
+
+        /** @var PaymentInterface|null $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertNotNull($payment);
+        $this->assertSame($paymentId, $payment->getId());
+    }
+
+    public function test_it_refuses_the_request_when_the_payment_carries_no_pay_pal_order_id(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentInterface $payment */
+        $payment = $fixtures['paypal_payment'];
+
+        $orderId = $order->getId();
+        $paymentId = $payment->getId();
+        $this->clearPaymentDetails($paymentId);
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
+        $this->assertSame('shipping_selected', $order->getCheckoutState());
+        $this->assertNull($order->getShippingAddress());
+
+        /** @var PaymentInterface|null $payment */
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertNotNull($payment);
+        $this->assertSame($paymentId, $payment->getId());
+    }
+
+    public function test_it_returns_the_buyer_to_the_thank_you_page_when_the_order_is_already_completed(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_order'];
+
+        $this->seedCompletedOrder($order);
+        $content = $this->processPayPalOrder($order->getId());
+
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+    }
+
+    public function test_it_returns_not_found_when_the_order_does_not_belong_to_the_caller(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        // No cart seeded in the session at all - the caller owns nothing.
+        $this->processPayPalOrder($order->getId());
+
+        $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function test_it_applies_the_shipping_method_the_buyer_picked_in_the_wallet(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails(
+            shippingOptions: [
+                ['id' => 'STANDARD', 'amount' => ['currency_code' => 'USD', 'value' => '5.00'], 'selected' => false],
+                ['id' => 'EXPRESS', 'amount' => ['currency_code' => 'USD', 'value' => '20.00'], 'selected' => true],
+            ],
+            shippingTotal: self::EXPRESS_SHIPPING_COST,
+        ));
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shipment = $order->getShipments()->first();
+        $this->assertInstanceOf(ShipmentInterface::class, $shipment);
+
+        $shippingMethod = $shipment->getMethod();
+        $this->assertNotNull($shippingMethod);
+        $this->assertSame('EXPRESS', $shippingMethod->getCode());
+        $this->assertSame(self::EXPRESS_SHIPPING_COST, $order->getShippingTotal());
+        $this->assertSame(self::ITEMS_TOTAL, $order->getItemsTotal());
+        $this->assertSame(self::ITEMS_TOTAL + self::EXPRESS_SHIPPING_COST, $order->getTotal());
+        $this->assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
+    }
+
+    public function test_it_keeps_the_default_shipping_method_when_the_wallet_sends_no_options(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shipment = $order->getShipments()->first();
+        $this->assertInstanceOf(ShipmentInterface::class, $shipment);
+
+        $shippingMethod = $shipment->getMethod();
+        $this->assertNotNull($shippingMethod);
+        $this->assertSame('STANDARD', $shippingMethod->getCode());
+        $this->assertSame(self::STANDARD_SHIPPING_COST, $order->getShippingTotal());
+    }
+
+    public function test_it_stores_the_region_of_the_pay_pal_shipping_address_as_a_province_code(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails(adminArea1: 'TX'));
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertSame('US-TX', $shippingAddress->getProvinceCode());
+        $this->assertNull($shippingAddress->getProvinceName());
+    }
+
+    public function test_it_keeps_an_unknown_region_as_a_province_name(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails(adminArea1: 'Nowhere County'));
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertNull($shippingAddress->getProvinceCode());
+        $this->assertSame('Nowhere County', $shippingAddress->getProvinceName());
+    }
+
+    public function test_it_builds_both_addresses_from_what_the_buyer_picked_in_the_wallet(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/new_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertSame('Oliver', $shippingAddress->getFirstName());
+        $this->assertSame('Queen', $shippingAddress->getLastName());
+        $this->assertSame('1 Star City Plaza', $shippingAddress->getStreet());
+        $this->assertSame('Star City', $shippingAddress->getCity());
+        $this->assertSame('10001', $shippingAddress->getPostcode());
+        $this->assertSame('US', $shippingAddress->getCountryCode());
+        $this->assertSame('15551234567', $shippingAddress->getPhoneNumber());
+
+        $billingAddress = $order->getBillingAddress();
+        $this->assertNotNull($billingAddress);
+        $this->assertNotSame($shippingAddress->getId(), $billingAddress->getId());
+        $this->assertSame('1 Star City Plaza', $billingAddress->getStreet());
+        $this->assertSame('15551234567', $billingAddress->getPhoneNumber());
+    }
+
+    public function test_it_keeps_the_addresses_the_buyer_entered_in_checkout(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles([
+            'resources/shop.yaml',
+            'resources/shipping.yaml',
+            'resources/addressed_cart.yaml',
+        ]);
+        /** @var OrderInterface $order */
+        $order = $fixtures['addressed_cart'];
+
+        $this->mockOrderDetailsApi($this->orderDetails());
+        $this->mockSuccessfulPaymentCompleteProcessor();
+
+        $orderId = $order->getId();
+        $shippingAddressId = $order->getShippingAddress()?->getId();
+        $billingAddressId = $order->getBillingAddress()?->getId();
+
+        $this->seedCurrentCart($order);
+        $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $shippingAddress = $order->getShippingAddress();
+        $this->assertNotNull($shippingAddress);
+        $this->assertSame($shippingAddressId, $shippingAddress->getId());
+        $this->assertSame('1 Main St', $shippingAddress->getStreet());
+        $this->assertSame('Dallas', $shippingAddress->getCity());
+        $this->assertSame('75001', $shippingAddress->getPostcode());
+        $this->assertSame('US-TX', $shippingAddress->getProvinceCode());
+        $this->assertNull($shippingAddress->getProvinceName());
+        $this->assertNull($shippingAddress->getPhoneNumber());
+
+        $billingAddress = $order->getBillingAddress();
+        $this->assertNotNull($billingAddress);
+        $this->assertSame($billingAddressId, $billingAddress->getId());
+        $this->assertSame('US-TX', $billingAddress->getProvinceCode());
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $shippingOptions
+     *
+     * @return array<string, mixed>
+     */
+    private function orderDetails(
+        array $shippingOptions = [],
+        ?string $adminArea1 = null,
+        int $shippingTotal = self::STANDARD_SHIPPING_COST,
+    ): array {
+        $address = [
+            'address_line_1' => '1 Star City Plaza',
+            'admin_area_2' => 'Star City',
+            'postal_code' => '10001',
+            'country_code' => 'US',
+        ];
+
+        if (null !== $adminArea1) {
+            $address['admin_area_1'] = $adminArea1;
+        }
+
+        $shipping = ['name' => ['full_name' => 'Oliver Queen'], 'address' => $address];
+
+        if ([] !== $shippingOptions) {
+            $shipping['options'] = $shippingOptions;
+        }
+
+        return [
+            'payer' => [
+                'email_address' => 'oliver.queen@star-city.com',
+                'name' => ['given_name' => 'Oliver', 'surname' => 'Queen'],
+                'phone' => ['phone_number' => ['national_number' => '15551234567']],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => number_format((self::ITEMS_TOTAL + $shippingTotal) / 100, 2, '.', '')],
+                'shipping' => $shipping,
+            ]],
+        ];
+    }
+
+    private function seedCurrentCart(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        self::getContainer()->get('request_stack')->push(new Request());
+        self::getContainer()->get('request_stack')->getCurrentRequest()->setSession($session);
+        self::getContainer()->get(CartStorageInterface::class)->setForChannel($order->getChannel(), $order);
+        $session->save();
+        self::getContainer()->get('request_stack')->pop();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
+    }
+
+    private function seedCompletedOrder(OrderInterface $order): void
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        $session = $sessionFactory->createSession();
+        $session->set('sylius_order_id', $order->getId());
+        $session->save();
+
+        $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
+    }
+
+    /** @return array<string, mixed> */
+    private function processPayPalOrder(int $orderId, string $payPalOrderId = 'PAYPAL_ORDER_ID'): array
+    {
+        $this->client->request(
+            'POST',
+            '/en_US/process-pay-pal-order/',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            (string) json_encode(['payPalOrderId' => $payPalOrderId, 'orderId' => $orderId]),
+        );
+
+        return (array) json_decode((string) $this->client->getResponse()->getContent(), true);
+    }
+
+    private function clearPaymentDetails(int $paymentId): void
+    {
+        $manager = self::getContainer()->get('sylius.manager.payment');
+        /** @var PaymentInterface $payment */
+        $payment = self::getContainer()->get('sylius.repository.payment')->find($paymentId);
+
+        $payment->setDetails([]);
+        $manager->flush();
+    }
+
+    private function refreshOrder(int $orderId): OrderInterface
+    {
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($orderId);
+
+        return $order;
+    }
+
+    /** @param array<string, mixed> $orderDetails */
+    private function mockOrderDetailsApi(array $orderDetails): void
+    {
+        self::getContainer()->set('sylius_paypal.api.order_details', new FakeOrderDetailsApi($orderDetails));
+    }
+
+    /** @param array<string, mixed> $response */
+    private function mockUpdateOrderApi(array $response = []): object
+    {
+        $updateOrderApi = new class($response) implements UpdateOrderApiInterface {
+            /** @var list<array{orderId: string, amount: int|null}> */
+            public array $updates = [];
+
+            /** @param array<string, mixed> $response */
+            public function __construct(private readonly array $response)
+            {
+            }
+
+            public function update(string $token, string $orderId, PaymentInterface $payment, string $referenceId, string $merchantId): array
+            {
+                $this->updates[] = ['orderId' => $orderId, 'amount' => $payment->getAmount()];
+
+                return $this->response;
+            }
+        };
+        self::getContainer()->set('sylius_paypal.api.update_order', $updateOrderApi);
+
+        return $updateOrderApi;
+    }
+
+    private function mockSuccessfulPaymentCompleteProcessor(): void
+    {
+        self::getContainer()->set('sylius_paypal.processor.payment_complete', new class() implements PaymentCompleteProcessorInterface {
+            public function completePayment(PaymentInterface $payment): void
+            {
+                $payment->setDetails(['status' => StatusAction::STATUS_COMPLETED]);
+            }
+        });
+    }
+
+    private function generateUrl(string $route): string
+    {
+        /** @var UrlGeneratorInterface $router */
+        $router = self::getContainer()->get('router');
+
+        return $router->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
+    }
+}
