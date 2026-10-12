@@ -83,6 +83,24 @@ final class PayPalOrderCreatorTest extends TestCase
         self::assertSame('123123', $details?->payPalOrderId());
     }
 
+    public function test_it_remembers_the_paypal_order_it_supersedes(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getMethod')->willReturn($this->paymentMethod);
+        $payment->method('getAmount')->willReturn(1000);
+        $payment->method('getDetails')->willReturn([
+            'paypal_order_id' => 'TRUSTLY_ORDER_ID',
+            'payment_source' => 'trustly',
+            'superseded_paypal_orders' => ['FIRST_ORDER_ID' => 'card'],
+        ]);
+        $this->createOrderApi->method('create')->willReturn(['status' => 'CREATED', 'id' => '123123']);
+
+        $payment->expects(self::once())->method('setDetails')->with(self::callback(static fn (array $details): bool => '123123' === $details['paypal_order_id'] &&
+            ['FIRST_ORDER_ID' => 'card', 'TRUSTLY_ORDER_ID' => 'trustly'] === $details['superseded_paypal_orders']));
+
+        $this->creator->create($payment, 'paypal');
+    }
+
     public function test_it_records_an_order_paypal_needs_the_payer_to_act_on(): void
     {
         $this->createOrderApi->method('create')->willReturn(['status' => 'PAYER_ACTION_REQUIRED', 'id' => '123123']);

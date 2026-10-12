@@ -18,5 +18,5 @@ use Sylius\Component\Core\Model\PaymentInterface;
 interface PaymentSettlementProcessorInterface
 {
     /** @param array<string, mixed>|null $payPalOrderDetails */
-    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null): void;
+    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null, ?string $payPalOrderId = null): void;
 }

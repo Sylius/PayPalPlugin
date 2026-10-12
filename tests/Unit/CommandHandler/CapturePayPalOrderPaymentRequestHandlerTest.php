@@ -198,6 +198,19 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
+    public function test_it_cancels_an_attempt_whose_payment_another_paypal_order_has_already_paid(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_COMPLETED);
+
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'Another PayPal order has already paid the payment.']);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
+    }
+
     public function test_it_leaves_a_payment_request_that_is_not_processing_alone(): void
     {
         $this->paymentRequestWith(state: PaymentRequestInterface::STATE_COMPLETED);

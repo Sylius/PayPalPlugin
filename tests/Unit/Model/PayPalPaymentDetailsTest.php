@@ -123,6 +123,58 @@ final class PayPalPaymentDetailsTest extends TestCase
         self::assertSame(['paypal_order_id' => 'PAYPAL_ORDER_ID'], $details->toArray());
     }
 
+    public function test_it_knows_the_paypal_orders_it_has_superseded(): void
+    {
+        $details = PayPalPaymentDetails::fromArray([
+            'paypal_order_id' => 'CURRENT',
+            'superseded_paypal_orders' => ['SUPERSEDED' => 'trustly', 'BROKEN' => 13],
+        ]);
+
+        self::assertSame(['SUPERSEDED' => 'trustly'], $details->supersededPayPalOrders());
+        self::assertTrue($details->isSupersededPayPalOrder('SUPERSEDED'));
+        self::assertFalse($details->isSupersededPayPalOrder('CURRENT'));
+        self::assertTrue($details->isPayPalOrder('CURRENT'));
+        self::assertTrue($details->isPayPalOrder('SUPERSEDED'));
+        self::assertFalse($details->isPayPalOrder('UNKNOWN'));
+    }
+
+    public function test_it_supersedes_the_current_paypal_order_along_with_the_earlier_ones(): void
+    {
+        self::assertSame(
+            ['SUPERSEDED' => 'card', 'CURRENT' => 'trustly'],
+            PayPalPaymentDetails::fromArray([
+                'paypal_order_id' => 'CURRENT',
+                'payment_source' => 'trustly',
+                'superseded_paypal_orders' => ['SUPERSEDED' => 'card'],
+            ])->payPalOrdersToSupersede(),
+        );
+        self::assertSame([], PayPalPaymentDetails::create()->payPalOrdersToSupersede());
+    }
+
+    public function test_it_writes_no_superseded_paypal_orders_when_there_are_none(): void
+    {
+        self::assertSame([], PayPalPaymentDetails::fromArray(['superseded_paypal_orders' => ['SUPERSEDED' => 'card']])->withSupersededPayPalOrders([])->toArray());
+    }
+
+    public function test_it_restores_a_superseded_paypal_order_as_the_current_one(): void
+    {
+        $details = PayPalPaymentDetails::fromArray([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => 'CURRENT',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
+            'transaction_id' => 'CAPTURE_ID',
+            'superseded_paypal_orders' => ['SUPERSEDED' => 'trustly'],
+        ])->withSupersededPayPalOrderRestored('SUPERSEDED');
+
+        self::assertSame([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => 'SUPERSEDED',
+            'payment_source' => 'trustly',
+            'superseded_paypal_orders' => ['CURRENT' => 'paypal'],
+        ], $details->toArray());
+    }
+
     public function test_it_leaves_the_original_untouched_when_writing(): void
     {
         $details = PayPalPaymentDetails::create();

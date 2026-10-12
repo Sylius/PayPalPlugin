@@ -76,33 +76,25 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
             ->addOrderBy('o.updatedAt', 'DESC')
         ;
 
-        return $this->doGetPayment($queryBuilder, $paypalOrderId);
+        return $this->doGetPayment($queryBuilder, $paypalOrderId, includingSuperseded: true);
     }
 
-    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): PaymentInterface
+    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface
     {
         if ($this->isCastAvailable()) {
-            $payment = $queryBuilder
+            $queryBuilder
                 ->andWhere('CAST(o.details AS text) LIKE :orderId')
                 ->setParameter('orderId', '%"' . $paypalOrderId . '"%')
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult()
             ;
-            if (null !== $payment) {
-                return $payment;
-            }
-
-            throw new PaymentNotFoundException();
         }
 
-        $payments = $queryBuilder
-            ->getQuery()
-            ->toIterable()
-        ;
-
-        foreach ($payments as $payment) {
-            if (PayPalPaymentDetails::fromPayment($payment)->payPalOrderId() === $paypalOrderId) {
+        /** @var PaymentInterface $payment */
+        foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
+            $details = PayPalPaymentDetails::fromPayment($payment);
+            if (
+                $paypalOrderId === $details->payPalOrderId() ||
+                ($includingSuperseded && $details->isSupersededPayPalOrder($paypalOrderId))
+            ) {
                 return $payment;
             }
         }

@@ -100,8 +100,38 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
         $payment = $this->reloadPayment($order);
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
-        self::assertSame(
-            ['id' => 'CAPTURE_ID', 'amount' => 20, 'currency_code' => 'USD'],
+        self::assertEquals(
+            ['id' => 'CAPTURE_ID', 'order_id' => 'PAYPAL_ORDER_ID', 'amount' => 20, 'currency_code' => 'USD'],
+            $payment->getDetails()['paypal_late_capture'] ?? null,
+        );
+    }
+
+    public function test_it_pays_the_payment_with_the_bank_order_another_attempt_superseded(): void
+    {
+        $order = $this->orderPaidAfterAnotherAttempt(PaymentInterface::STATE_NEW);
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        self::assertSame('PAYPAL_ORDER_ID', $payment->getDetails()['paypal_order_id']);
+        self::assertSame('trustly', $payment->getDetails()['payment_source']);
+        self::assertSame(['ANOTHER_PAYPAL_ORDER_ID' => 'paypal'], $payment->getDetails()['superseded_paypal_orders']);
+    }
+
+    public function test_it_keeps_the_capture_of_a_superseded_bank_order_on_a_paid_payment_to_be_refunded(): void
+    {
+        $order = $this->orderPaidAfterAnotherAttempt(PaymentInterface::STATE_COMPLETED);
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->sendWebhook('PAYMENT.CAPTURE.COMPLETED');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        self::assertSame('ANOTHER_PAYPAL_ORDER_ID', $payment->getDetails()['paypal_order_id']);
+        self::assertEquals(
+            ['id' => 'CAPTURE_ID', 'order_id' => 'PAYPAL_ORDER_ID', 'amount' => 20, 'currency_code' => 'USD'],
             $payment->getDetails()['paypal_late_capture'] ?? null,
         );
     }
@@ -193,6 +223,22 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
 
         /** @var OrderInterface $order */
         $order = $fixtures['processing_order'];
+
+        return $order;
+    }
+
+    private function orderPaidAfterAnotherAttempt(string $paymentState): OrderInterface
+    {
+        $order = $this->processingOrder();
+        $payment = $order->getLastPayment();
+        $payment?->setState($paymentState);
+        $payment?->setDetails([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => 'ANOTHER_PAYPAL_ORDER_ID',
+            'payment_source' => 'paypal',
+            'superseded_paypal_orders' => ['PAYPAL_ORDER_ID' => 'trustly'],
+        ]);
+        $this->getEntityManager()->flush();
 
         return $order;
     }

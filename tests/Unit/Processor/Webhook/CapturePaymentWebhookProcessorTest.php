@@ -71,7 +71,7 @@ final class CapturePaymentWebhookProcessorTest extends TestCase
             ->willReturn($payment)
         ;
 
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment);
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment, null, '5O190127TN364715T');
 
         $this->processor->process($this->payload());
     }

@@ -118,6 +118,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame('ANOTHER_PAYPAL_ORDER_ID', $content['paypal_order_id']);
         self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $this->paymentRequest($hash)->getState());
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
+        self::assertSame(['PAYPAL_ORDER_ID' => 'trustly'], $this->paymentRequest($hash)->getPayment()->getDetails()['superseded_paypal_orders']);
     }
 
     public function test_it_refuses_a_payment_source_the_payment_method_has_not_enabled_and_keeps_the_live_attempt(): void

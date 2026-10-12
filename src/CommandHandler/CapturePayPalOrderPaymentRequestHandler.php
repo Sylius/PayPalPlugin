@@ -67,6 +67,13 @@ final class CapturePayPalOrderPaymentRequestHandler
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
 
+        if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
+            $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+
+            return;
+        }
+
         if (!PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId()) {
             $this->failWithReason($paymentRequest, 'The payment carries no PayPal order id.');
 

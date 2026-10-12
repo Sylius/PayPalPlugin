@@ -38,10 +38,11 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
     ) {
     }
 
-    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null): void
+    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null, ?string $payPalOrderId = null): void
     {
         $details = PayPalPaymentDetails::fromPayment($payment);
-        if (!$details->hasPayPalOrderId()) {
+        $payPalOrderId ??= $details->payPalOrderId();
+        if (null === $payPalOrderId || '' === $payPalOrderId) {
             $this->logger->warning(sprintf(
                 'Payment #%s cannot be settled: it carries no PayPal order id.',
                 (string) $payment->getId(),
@@ -50,7 +51,6 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             return;
         }
 
-        $payPalOrderId = (string) $details->payPalOrderId();
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
         if (null === $capture) {
@@ -65,6 +65,20 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
 
         if (null === $transition) {
             return;
+        }
+
+        if ($details->isSupersededPayPalOrder($payPalOrderId)) {
+            if (PaymentTransitions::TRANSITION_COMPLETE !== $transition) {
+                return;
+            }
+
+            if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+                $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, PaymentInterface::STATE_COMPLETED);
+
+                return;
+            }
+
+            $details = $details->withSupersededPayPalOrderRestored($payPalOrderId);
         }
 
         $state = PaymentTransitions::TRANSITION_COMPLETE === $transition
@@ -137,6 +151,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
 
         $details[self::LATE_CAPTURE] = [
             'id' => $capture->id(),
+            'order_id' => $payPalOrderId,
             'amount' => $capture->amount(),
             'currency_code' => $capture->currencyCode(),
         ];

@@ -70,6 +70,7 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
             ->withReferenceId($referenceId)
             ->withAmount((int) $payment->getAmount())
             ->withPaymentSource($paymentSource)
+            ->withSupersededPayPalOrders(PayPalPaymentDetails::fromPayment($payment)->payPalOrdersToSupersede())
         ;
         $details = $this->withPayerAction($details, $content, $paymentSource);
 
