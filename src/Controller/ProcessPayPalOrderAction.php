@@ -26,16 +26,20 @@ use Sylius\Component\Core\OrderCheckoutStates;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Core\Repository\CustomerRepositoryInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
+use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
@@ -73,6 +77,7 @@ final readonly class ProcessPayPalOrderAction
         private ?RepositoryInterface $shippingMethodRepository = null,
         ?ExpressOrderAddressFactoryInterface $expressOrderAddressFactory = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private ?UpdateOrderApiInterface $updateOrderApi = null,
     ) {
         if (null === $this->paymentAmountVerifier) {
             trigger_deprecation(
@@ -87,7 +92,7 @@ final readonly class ProcessPayPalOrderAction
         if (null === $this->router) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $router to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
@@ -95,7 +100,7 @@ final readonly class ProcessPayPalOrderAction
         if (null === $this->orderCompleter) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $orderCompleter to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
@@ -103,7 +108,7 @@ final readonly class ProcessPayPalOrderAction
         if (null === $this->orderProcessor) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $orderProcessor to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
@@ -111,7 +116,7 @@ final readonly class ProcessPayPalOrderAction
         if (null === $this->shippingMethodRepository) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $shippingMethodRepository to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
@@ -119,7 +124,7 @@ final readonly class ProcessPayPalOrderAction
         if (null === $expressOrderAddressFactory) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $expressOrderAddressFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );
@@ -127,9 +132,19 @@ final readonly class ProcessPayPalOrderAction
         if (null === $this->orderOwnershipVerifier) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
                 OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
+
+        if (null === $this->updateOrderApi) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                UpdateOrderApiInterface::class,
                 self::class,
             );
         }
@@ -164,7 +179,7 @@ final readonly class ProcessPayPalOrderAction
                 'syliusOrderId' => $orderId,
                 'orderId' => $payPalOrderId,
                 'return_url' => $this->generateReturnUrl($route),
-                'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+                'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
             ]);
         }
 
@@ -227,13 +242,19 @@ final readonly class ProcessPayPalOrderAction
                 $this->verify($payment, $data);
             }
         } catch (PaymentAmountMismatchException) {
-            $this->abandonPayment($order, $payment);
+            if (
+                null === $this->updateOrderApi ||
+                !$this->isLowerThanApproved($order, $purchaseUnit) ||
+                !$this->lowerApprovedAmount($this->updateOrderApi, $payment, $payPalOrderId)
+            ) {
+                $this->abandonPayment($order, $payment);
 
-            /** @var FlashBagInterface $flashBag */
-            $flashBag = $request->getSession()->getBag('flashes');
-            $flashBag->add('error', 'sylius_paypal.order_total_changed');
+                /** @var FlashBagInterface $flashBag */
+                $flashBag = $request->getSession()->getBag('flashes');
+                $flashBag->add('error', 'sylius_paypal.order_total_changed');
 
-            return $this->returnToCheckout($orderId, $payPalOrderId, $payment);
+                return $this->returnToCheckout($orderId, $payPalOrderId, $payment);
+            }
         }
 
         if (null === $this->orderCompleter) {
@@ -249,7 +270,7 @@ final readonly class ProcessPayPalOrderAction
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
             'return_url' => $this->generateReturnUrl('sylius_shop_order_thank_you'),
-            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+            'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
         ]);
     }
 
@@ -264,7 +285,7 @@ final readonly class ProcessPayPalOrderAction
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),
             'return_url' => $this->generateReturnUrl('sylius_shop_checkout_complete'),
-            'orderID' => $orderId, // BC with 2.0. Deprecated in 2.1; use "syliusOrderId" instead.
+            'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
         ], $status);
     }
 
@@ -300,6 +321,28 @@ final readonly class ProcessPayPalOrderAction
         if ($shippingMethod instanceof ShippingMethodInterface) {
             $shipment->setMethod($shippingMethod);
         }
+    }
+
+    /** @param array<string, mixed> $purchaseUnit */
+    private function isLowerThanApproved(OrderInterface $order, array $purchaseUnit): bool
+    {
+        return $order->getTotal() < AmountUtils::toMinorUnits((string) ($purchaseUnit['amount']['value'] ?? '0'));
+    }
+
+    private function lowerApprovedAmount(UpdateOrderApiInterface $updateOrderApi, PaymentInterface $payment, string $payPalOrderId): bool
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return [] === $updateOrderApi->update(
+            $this->authorizeClientApi->authorize($paymentMethod),
+            $payPalOrderId,
+            $payment,
+            (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
+            PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
+        );
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void

@@ -71,7 +71,7 @@ final class ShipmentTrackingCarrierValidatorTest extends ConstraintValidatorTest
         $constraint = new ShipmentTrackingCarrier();
 
         $this->validator->validate(
-            new ShipmentTrackingData(CarrierProviderInterface::OTHER_CARRIER_CODE, null),
+            new ShipmentTrackingData(CarrierProviderInterface::OTHER_CARRIER_CODE, null, 'TRACK1'),
             $constraint,
         );
 
@@ -85,7 +85,7 @@ final class ShipmentTrackingCarrierValidatorTest extends ConstraintValidatorTest
     public function it_accepts_the_other_carrier_with_a_carrier_name(): void
     {
         $this->validator->validate(
-            new ShipmentTrackingData(CarrierProviderInterface::OTHER_CARRIER_CODE, 'Pigeon Post'),
+            new ShipmentTrackingData(CarrierProviderInterface::OTHER_CARRIER_CODE, 'Pigeon Post', 'TRACK1'),
             new ShipmentTrackingCarrier(),
         );
 
@@ -95,7 +95,50 @@ final class ShipmentTrackingCarrierValidatorTest extends ConstraintValidatorTest
     #[Test]
     public function it_accepts_a_known_carrier(): void
     {
-        $this->validator->validate(new ShipmentTrackingData('FEDEX', null), new ShipmentTrackingCarrier());
+        $this->validator->validate(new ShipmentTrackingData('FEDEX', null, 'TRACK1'), new ShipmentTrackingCarrier());
+
+        $this->assertNoViolation();
+    }
+
+    #[Test]
+    public function it_requires_the_tracking_code_when_a_carrier_is_selected(): void
+    {
+        $constraint = new ShipmentTrackingCarrier();
+
+        $this->validator->validate(new ShipmentTrackingData('FEDEX', null, ' '), $constraint);
+
+        $this->buildViolation($constraint->trackingCodeRequiredMessage)
+            ->atPath('property.path.trackingCode')
+            ->assertRaised()
+        ;
+    }
+
+    #[Test]
+    public function it_rejects_a_tracking_code_longer_than_paypal_accepts(): void
+    {
+        $constraint = new ShipmentTrackingCarrier();
+
+        $this->validator->validate(new ShipmentTrackingData('FEDEX', null, str_repeat('A', 65)), $constraint);
+
+        $this->buildViolation($constraint->trackingCodeTooLongMessage)
+            ->setParameter('{{ limit }}', '64')
+            ->atPath('property.path.trackingCode')
+            ->assertRaised()
+        ;
+    }
+
+    #[Test]
+    public function it_accepts_a_tracking_code_of_the_length_paypal_accepts(): void
+    {
+        $this->validator->validate(new ShipmentTrackingData('FEDEX', null, str_repeat('Ż', 64)), new ShipmentTrackingCarrier());
+
+        $this->assertNoViolation();
+    }
+
+    #[Test]
+    public function it_does_not_limit_the_tracking_code_without_a_carrier(): void
+    {
+        $this->validator->validate(new ShipmentTrackingData(null, null, str_repeat('A', 65)), new ShipmentTrackingCarrier());
 
         $this->assertNoViolation();
     }

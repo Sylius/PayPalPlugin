@@ -38,6 +38,7 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->addEventListener(FormEvents::PRE_SET_DATA, [$this, 'addTrackingFields']);
+        $builder->addEventListener(FormEvents::POST_SUBMIT, [$this, 'synchroniseTrackingCode'], 10);
     }
 
     public function addTrackingFields(FormEvent $event): void
@@ -52,8 +53,23 @@ final class ShipmentShipTypeExtension extends AbstractTypeExtension
 
         $event->getForm()->add(self::TRACKING_FIELD_NAME, ShipmentTrackingType::class, [
             'mapped' => false,
+            'error_bubbling' => false,
             'data' => new ShipmentTrackingData($tracking?->getCarrier(), $tracking?->getCarrierNameOther()),
         ]);
+    }
+
+    public function synchroniseTrackingCode(FormEvent $event): void
+    {
+        $shipment = $event->getData();
+        $form = $event->getForm();
+        if (!$shipment instanceof ShipmentInterface || !$form->has(self::TRACKING_FIELD_NAME)) {
+            return;
+        }
+
+        $trackingData = $form->get(self::TRACKING_FIELD_NAME)->getData();
+        if ($trackingData instanceof ShipmentTrackingData) {
+            $trackingData->setTrackingCode($shipment->getTracking());
+        }
     }
 
     public static function getExtendedTypes(): iterable

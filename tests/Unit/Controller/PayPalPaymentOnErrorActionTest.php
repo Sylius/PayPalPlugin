@@ -85,9 +85,10 @@ final class PayPalPaymentOnErrorActionTest extends TestCase
         ($this->action)($this->request((string) json_encode(['error' => 'AbortError: the window timed out'])));
     }
 
-    public function test_it_cancels_the_payment_named_by_the_payload(): void
+    public function test_it_cancels_the_payment_named_by_the_payload_and_gives_a_cart_a_new_payment(): void
     {
         $order = $this->createStub(OrderInterface::class);
+        $order->method('canBeProcessed')->willReturn(true);
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
         $this->paypalPaymentQuery->method('getForCancellationByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
@@ -95,6 +96,22 @@ final class PayPalPaymentOnErrorActionTest extends TestCase
 
         $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
         $this->orderPaymentProcessor->expects(self::once())->method('process')->with($order);
+        $this->objectManager->expects(self::once())->method('flush');
+
+        ($this->action)($this->request($this->payload()));
+    }
+
+    public function test_it_leaves_the_new_payment_of_a_placed_order_to_the_cancel_transition(): void
+    {
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('canBeProcessed')->willReturn(false);
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+        $this->paypalPaymentQuery->method('getForCancellationByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
+        $this->orderPaymentProcessor->expects(self::never())->method('process');
         $this->objectManager->expects(self::once())->method('flush');
 
         ($this->action)($this->request($this->payload()));

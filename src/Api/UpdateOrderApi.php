@@ -31,7 +31,7 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
         if (null === $this->payPalPurchaseUnitFactory) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing $payPalPurchaseUnitFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
                 self::class,
             );

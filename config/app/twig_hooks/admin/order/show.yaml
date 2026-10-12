@@ -4,3 +4,11 @@ sylius_twig_hooks:
             refunded_paypal:
                 template: '@SyliusPayPalPlugin/admin/order/show/content/sections/payments/item/refunded_paypal.html.twig'
                 priority: 150
+            paypal_late_capture:
+                template: '@SyliusPayPalPlugin/admin/order/show/content/sections/payments/item/paypal_late_capture.html.twig'
+                priority: 140
+
+        'sylius_admin.order.show.content.sections.payments.item.actions':
+            refund_paypal_late_capture:
+                template: '@SyliusPayPalPlugin/admin/order/show/content/sections/payments/item/actions/refund_paypal_late_capture.html.twig'
+                priority: 0

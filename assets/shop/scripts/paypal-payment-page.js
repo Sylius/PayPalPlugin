@@ -1,5 +1,9 @@
 import { loadWebSdkOnce } from './paypal-web-sdk';
 
+const PAYMENT_SOURCE_NOT_AVAILABLE = 'payment_source_not_available';
+
+export class PaymentSourceNotAvailableError extends Error {}
+
 let session = null;
 let busy = false;
 let attemptOrderId = null;
@@ -33,6 +37,12 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
             body: JSON.stringify({ paymentSource }),
         }),
     });
+    if (await isPaymentSourceNotAvailable(response)) {
+        busy = false;
+
+        throw new PaymentSourceNotAvailableError('The selected payment source is not available.');
+    }
+
     if (!response.ok) {
         busy = false;
 
@@ -48,6 +58,16 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
         approveUrl: attemptApproveUrl,
         payerActionUrl: data.payer_action_url ?? null,
     };
+}
+
+async function isPaymentSourceNotAvailable(response) {
+    if (response.status !== 422) {
+        return false;
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    return data.error === PAYMENT_SOURCE_NOT_AVAILABLE;
 }
 
 export function paymentPageSession(config) {

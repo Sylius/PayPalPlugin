@@ -27,7 +27,7 @@ final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
         if (null === $urlGenerator) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.1',
+                '2.2',
                 'Not passing a $urlGenerator to "%s" constructor is deprecated and will be prohibited in 3.0.',
                 self::class,
             );

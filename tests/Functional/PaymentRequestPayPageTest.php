@@ -44,6 +44,20 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertStringContainsString('publickey-credentials-get', (string) $response->headers->get('Permissions-Policy'));
     }
 
+    public function test_it_shows_the_payment_page_when_the_shop_billing_data_has_no_country(): void
+    {
+        $payment = $this->payPalOrder();
+        $payment->getOrder()?->getChannel()?->getShopBillingData()?->setCountryCode(null);
+        $this->getEntityManager()->flush();
+
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_NEW)));
+        $response = $this->client->getResponse();
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-apple-pay', (string) $response->getContent());
+        self::assertStringNotContainsString('data-sylius--paypal-plugin--paypal-payment-apple-pay-country-code-value', (string) $response->getContent());
+    }
+
     public function test_it_sends_the_payer_back_to_a_fresh_payment_page_after_an_abandoned_attempt(): void
     {
         $payment = $this->payPalOrder();

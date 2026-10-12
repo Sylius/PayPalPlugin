@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { isBusy, release, startAttempt } from '../scripts/paypal-payment-page';
+import { PaymentSourceNotAvailableError, isBusy, release, startAttempt } from '../scripts/paypal-payment-page';
 
 export default class extends Controller {
     static values = {
@@ -25,7 +25,11 @@ export default class extends Controller {
             window.location.href = payerActionUrl;
         } catch (error) {
             release();
-            await this.reportError(error);
+
+            if (!(error instanceof PaymentSourceNotAvailableError)) {
+                await this.reportError(error);
+            }
+
             window.location.reload();
         }
     }

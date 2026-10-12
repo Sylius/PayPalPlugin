@@ -41,6 +41,42 @@ final class PayPalPaymentOnErrorActionTest extends JsonApiTestCase
         )->count());
     }
 
+    public function test_it_gives_a_cart_a_new_payment_to_choose_after_the_failed_one(): void
+    {
+        $order = $this->cartWithProcessingPayment();
+
+        $this->client->request(
+            'POST',
+            '/en_US/pay-pal-payment-error',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['error' => 'Wallet failed', 'payPalOrderId' => 'PAYPAL_ORDER_ID'], \JSON_THROW_ON_ERROR),
+        );
+
+        $reloaded = $this->reloadOrder($order);
+        self::assertNotNull($reloaded->getLastPayment(PaymentInterface::STATE_CANCELLED));
+        self::assertSame(1, $reloaded->getPayments()->filter(
+            static fn (PaymentInterface $payment): bool => PaymentInterface::STATE_CART === $payment->getState(),
+        )->count());
+    }
+
+    private function cartWithProcessingPayment(): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/addressed_cart.yaml']);
+
+        /** @var OrderInterface $order */
+        $order = $fixtures['addressed_cart'];
+
+        /** @var OrderItemInterface $item */
+        $item = $order->getItems()->first();
+        $item->setUnitPrice(20);
+        $order->recalculateItemsTotal();
+        $order->getLastPayment()?->setState(PaymentInterface::STATE_PROCESSING);
+
+        $this->getEntityManager()->flush();
+
+        return $order;
+    }
+
     private function processingOrder(): OrderInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);

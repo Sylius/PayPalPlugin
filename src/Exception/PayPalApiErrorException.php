@@ -15,10 +15,19 @@ namespace Sylius\PayPalPlugin\Exception;
 
 final class PayPalApiErrorException extends \Exception
 {
+    private readonly string $description;
+
     /** @param array<string, mixed> $response */
     public function __construct(string $request, array $response)
     {
-        parent::__construct(sprintf('PayPal rejected the "%s" request: %s', $request, self::describe($response)));
+        $this->description = self::describe($response);
+
+        parent::__construct(sprintf('PayPal rejected the "%s" request: %s', $request, $this->description));
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description;
     }
 
     /** @param array<string, mixed> $response */

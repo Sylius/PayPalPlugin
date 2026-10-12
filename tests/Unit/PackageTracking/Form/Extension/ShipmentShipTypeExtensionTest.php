@@ -142,6 +142,18 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
     }
 
     #[Test]
+    public function it_adds_a_validation_error_when_a_carrier_has_no_tracking_number(): void
+    {
+        $form = $this->submit(['tracking' => '', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
+
+        self::assertFalse($form->isValid());
+        self::assertSame(
+            'sylius_paypal.shipment_tracking.tracking_code_required',
+            (string) $form->get('paypal_tracking')->getErrors()[0]->getMessage(),
+        );
+    }
+
+    #[Test]
     public function it_submits_the_chosen_carrier(): void
     {
         $form = $this->submit(['tracking' => 'TRACK1', 'paypal_tracking' => ['carrier' => 'FEDEX', 'carrier_name_other' => '']]);
@@ -151,6 +163,7 @@ final class ShipmentShipTypeExtensionTest extends TypeTestCase
         /** @var ShipmentTrackingData $trackingData */
         $trackingData = $form->get('paypal_tracking')->getData();
         self::assertSame('FEDEX', $trackingData->getCarrier());
+        self::assertSame('TRACK1', $trackingData->getTrackingCode());
     }
 
     /** @param array<string, mixed> $data */

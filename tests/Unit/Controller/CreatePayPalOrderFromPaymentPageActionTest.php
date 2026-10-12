@@ -216,8 +216,10 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
 
         $this->paymentStateManager->expects(self::never())->method('cancel');
         $this->capturePaymentResolver->expects(self::never())->method('resolve');
+        $request = $this->request(['paymentSource' => 'venmo']);
 
-        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($this->request(['paymentSource' => 'venmo']))->getStatusCode());
+        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($request)->getStatusCode());
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $request->getSession()->getFlashBag()->peek('error'));
     }
 
     public function test_it_rejects_venmo_without_the_funding_sources_configuration_provider(): void

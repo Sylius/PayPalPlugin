@@ -22,15 +22,21 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final readonly class CreatePayPalOrderForPaymentRequestAction
 {
+    public const RESPONSE_ERROR = 'error';
+
+    public const PAYMENT_SOURCE_NOT_AVAILABLE = 'payment_source_not_available';
+
     /**
      * @param PaymentRequestRepositoryInterface<PaymentRequestInterface> $paymentRequestRepository
      * @param PaymentRequestFactoryInterface<PaymentRequestInterface> $paymentRequestFactory
@@ -41,6 +47,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         private PaymentRequestAnnouncerInterface $paymentRequestAnnouncer,
         private StateMachineInterface $stateMachine,
         private UrlProviderInterface $paymentRequestPayUrlProvider,
+        private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
     ) {
     }
 
@@ -58,6 +65,14 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         $paymentSource = $this->paymentSource($request);
         if (null === $paymentSource) {
             return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (!$this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentRequest->getMethod())) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
+            return new JsonResponse([self::RESPONSE_ERROR => self::PAYMENT_SOURCE_NOT_AVAILABLE], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if (PaymentRequestInterface::STATE_PROCESSING === $paymentRequest->getState()) {

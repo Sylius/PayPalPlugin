@@ -20,4 +20,6 @@ interface PayPalPaymentMethodProviderInterface
 {
     /** @throws PayPalPaymentMethodNotFoundException */
     public function provide(): PaymentMethodInterface;
+
+    public function exists(): bool;
 }

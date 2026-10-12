@@ -100,6 +100,22 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
     }
 
+    public function test_it_does_not_ship_a_carrier_without_a_tracking_code(): void
+    {
+        $this->ship(['carrier' => 'DHL']);
+
+        $this->assertViolation('trackingCode', 'Please provide the tracking code when a carrier is selected.');
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+    }
+
+    public function test_it_does_not_ship_a_tracking_code_longer_than_paypal_accepts(): void
+    {
+        $this->ship(['trackingCode' => str_repeat('A', 65), 'carrier' => 'DHL']);
+
+        $this->assertViolation('trackingCode', 'The tracking code can have at most 64 characters to be sent to PayPal.');
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+    }
+
     public function test_it_ships_and_leaves_a_retryable_failed_record_when_paypal_errors(): void
     {
         $this->payPalApi()->mockOrderDetailsNotFound();
@@ -139,6 +155,20 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
         self::assertCount(0, DummyAddTrackingApi::$requests);
     }
 
+    public function test_it_sends_the_tracking_with_the_carrier_of_an_existing_tracking_record_when_no_carrier_is_sent(): void
+    {
+        $this->mockShippablePayPalOrderDetails();
+        self::getContainer()->get('sylius_paypal.manager.shipment_tracking')->updateCarrier($this->shipment(), 'DHL', null);
+
+        $this->ship(['trackingCode' => 'API-TRACK-10']);
+
+        self::assertSame(Response::HTTP_ACCEPTED, $this->client->getResponse()->getStatusCode());
+        self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
+        self::assertSame('DHL', $this->tracking()?->getCarrier());
+        self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
+        self::assertCount(1, DummyAddTrackingApi::$requests);
+    }
+
     public function test_it_sends_the_tracking_when_sylius_ship_shipment_command_ships_a_shipment_that_already_has_a_carrier(): void
     {
         $this->mockShippablePayPalOrderDetails();
@@ -149,6 +179,17 @@ final class ShipShipmentThroughAdminApiTest extends JsonApiTestCase
 
         self::assertSame(ShipmentInterface::STATE_SHIPPED, $this->shipment()->getState());
         self::assertSame(ShipmentTrackingInterface::STATE_SYNCED, $this->tracking()?->getState());
+    }
+
+    public function test_it_does_not_ship_with_a_field_it_does_not_know(): void
+    {
+        $this->ship(['trackingCode' => 'API-TRACK-8', 'carrierCode' => 'DHL']);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('carrierCode', (string) $this->client->getResponse()->getContent());
+        self::assertSame(ShipmentInterface::STATE_READY, $this->shipment()->getState());
+        self::assertNull($this->tracking());
+        self::assertCount(0, DummyAddTrackingApi::$requests);
     }
 
     public function test_it_documents_the_carrier_fields(): void

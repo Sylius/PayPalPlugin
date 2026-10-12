@@ -22,10 +22,11 @@ final class ShipmentTrackingDataTest extends TestCase
     #[Test]
     public function it_normalises_blank_values_to_null(): void
     {
-        $shipmentTrackingData = new ShipmentTrackingData('', '   ');
+        $shipmentTrackingData = new ShipmentTrackingData('', '   ', ' ');
 
         self::assertNull($shipmentTrackingData->getCarrier());
         self::assertNull($shipmentTrackingData->getCarrierNameOther());
+        self::assertNull($shipmentTrackingData->getTrackingCode());
     }
 
     #[Test]
@@ -34,8 +35,10 @@ final class ShipmentTrackingDataTest extends TestCase
         $shipmentTrackingData = new ShipmentTrackingData();
         $shipmentTrackingData->setCarrier(' FEDEX ');
         $shipmentTrackingData->setCarrierNameOther(' Pigeon Post ');
+        $shipmentTrackingData->setTrackingCode(' TRACK1 ');
 
         self::assertSame('FEDEX', $shipmentTrackingData->getCarrier());
         self::assertSame('Pigeon Post', $shipmentTrackingData->getCarrierNameOther());
+        self::assertSame('TRACK1', $shipmentTrackingData->getTrackingCode());
     }
 }

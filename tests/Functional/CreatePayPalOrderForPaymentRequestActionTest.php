@@ -93,14 +93,18 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame('https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID', $details['payer_action_url']);
     }
 
-    public function test_it_refuses_a_payment_source_the_payment_method_has_not_enabled(): void
+    public function test_it_refuses_a_payment_source_the_payment_method_has_not_enabled_and_keeps_the_live_attempt(): void
     {
         $hash = $this->paymentRequestHash();
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID');
+        $this->createOrder($hash, 'paypal');
 
         $this->createOrder($hash, 'venmo');
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
-        self::assertSame('The requested payment source is not enabled for this payment method.', $this->responseContent()['reason']);
+        self::assertSame(['error' => 'payment_source_not_available'], $this->responseContent());
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $this->client->getRequest()->getSession()->getBag('flashes')->peek('error'));
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($hash)->getState());
     }
 
     public function test_it_tells_why_paypal_could_not_be_asked_for_the_order(): void

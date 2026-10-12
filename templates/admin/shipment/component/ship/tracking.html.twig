@@ -3,4 +3,7 @@
 
 <div class="col-12 col-md">
     {{ form_row(form.tracking, sylius_test_form_attribute('shipment-tracking')|sylius_merge_recursive({'attr': {'placeholder': tracking_placeholder}})) }}
+    {% if form.paypal_tracking is defined %}
+        {{ form_errors(form.paypal_tracking) }}
+    {% endif %}
 </div>
