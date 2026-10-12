@@ -159,6 +159,14 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(WebhookApiInterface::class, 'sylius_paypal.api.webhook');
 
+    $services->set('sylius_paypal.api.webhook.onboarding', WebhookApi::class)
+        ->args([
+            service('sylius.http_client'),
+            service('sylius_paypal.provider.host.onboarding'),
+            service(RequestFactoryInterface::class),
+            service(StreamFactoryInterface::class),
+        ]);
+
     $services->set('sylius_paypal.api.update_webhook', UpdateWebhookApi::class)
         ->args([
             service('sylius.http_client'),

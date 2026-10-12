@@ -43,21 +43,20 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
 
     public function process(string $authCode, string $sharedId): OnboardingCompletionResult
     {
+        $sellerNonce = $this->sellerNonceManager->get();
+        if (null === $sellerNonce) {
+            throw new OnboardingSessionExpiredException();
+        }
+
         $sandbox = $this->onboardingModeProvider->isSandbox();
 
         if ($this->sellerOnboardedChecker->isOnboarded($sandbox)) {
             throw new PayPalPaymentMethodAlreadyExistsException();
         }
 
-        $sellerNonce = $this->sellerNonceManager->get();
-        if (null === $sellerNonce) {
-            throw new OnboardingSessionExpiredException();
-        }
-
         try {
             $sellerOnboardingResult = $this->sellerOnboardingResolver->resolve($authCode, $sharedId, $sellerNonce);
             $paymentMethod = $this->onboardingPaymentMethodCreator->create($sellerOnboardingResult, $sandbox);
-            $this->entityManager->flush();
             $webhookUrlValid = $this->registerWebhook($paymentMethod);
 
             $this->entityManager->flush();

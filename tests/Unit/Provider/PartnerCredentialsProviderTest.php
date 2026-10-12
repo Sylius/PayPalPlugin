@@ -16,8 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
-use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
 
 final class PartnerCredentialsProviderTest extends TestCase
 {

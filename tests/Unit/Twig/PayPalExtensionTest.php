@@ -246,6 +246,13 @@ final class PayPalExtensionTest extends TestCase
         self::assertSame($toWallet, $this->extension->isRefundedToPayPalWallet($payment));
     }
 
+    #[Test]
+    public function it_returns_the_partner_js_url_of_the_given_mode(): void
+    {
+        self::assertSame('https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js', $this->extension->getPartnerJsUrl());
+        self::assertSame('https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js', $this->extension->getPartnerJsUrl(true));
+    }
+
     /** @return iterable<array{array<string, string>, bool}> */
     public static function refundedPaymentDetails(): iterable
     {

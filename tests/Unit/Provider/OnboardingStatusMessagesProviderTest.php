@@ -16,6 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 
 final class OnboardingStatusMessagesProviderTest extends TestCase
@@ -23,7 +25,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     #[Test]
     public function it_provides_no_messages_when_onboarding_is_complete(): void
     {
-        self::assertSame([], (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(true, true)));
+        self::assertSame([], (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, true)));
     }
 
     #[Test]
@@ -37,7 +39,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                     'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
                 ],
             ],
-            (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(false, false)),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, false)),
         );
     }
 
@@ -46,7 +48,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     {
         self::assertSame(
             ['sylius_paypal.seller_onboarding_payments_not_receivable'],
-            (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(false, true)),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, true)),
         );
     }
 
@@ -58,7 +60,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                 'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                 'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
             ]],
-            (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(true, false)),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, false)),
         );
     }
 
@@ -70,7 +72,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                 'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                 'parameters' => ['%business_profile_url%' => 'https://www.sandbox.paypal.com/businessprofile/settings'],
             ]],
-            (new OnboardingStatusMessagesProvider())->provide(new OnboardingStatus(true, false), true),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, false), true),
         );
     }
 }

@@ -98,6 +98,17 @@
    Instead of the general `sylius_paypal.payment_not_enabled` message, the admin is shown the reasons provided
    by `OnboardingStatusMessagesProviderInterface` for the seller's onboarding status.
 
+1. #### The sandbox credentials modal has been removed.
+
+   The sandbox is connected through the same PayPal onboarding as production (`sylius_paypal:live_onboarding_modal`
+   with `sandbox: true`). The following has been removed:
+   - `Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent` (`sylius_paypal:sandbox_onboarding_modal`)
+     and the `@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig` template
+   - `Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator` and its interface
+     (`sylius_paypal.creator.sandbox_payment_method`)
+   - `Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType` and `Sylius\PayPalPlugin\Model\PayPalSandboxCredentials`
+   - the `sylius_paypal.invalid_paypal_sandbox_credentials` flash message
+
 1. #### The following signatures have gained new optional arguments.
 
    ```diff
@@ -134,7 +145,7 @@
    | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.provider.host.onboarding` for the onboarding |
    | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.provider.host.onboarding` for the onboarding |
    | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::SANDBOX_PARTNER_JS_URL` and `PRODUCTION_PARTNER_JS_URL` |
+   | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (used by the `sylius_paypal_partner_js_url()` Twig function) |
    | `sylius_paypal.client.sftp` service | `Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface` (`sylius_paypal.factory.sftp_client`) |
 
    The following constructor signatures have changed:
@@ -183,18 +194,6 @@
    ```
 
    ```diff
-    // Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator
-    public function __construct(
-        private FactoryInterface $gatewayFactory,
-        private FactoryInterface $paymentMethodFactory,
-        private EntityManagerInterface $entityManager,
-   +    private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-   +    private CredentialsManagerInterface $credentialsManager,
-   +    private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
-    ) {
-   ```
-
-   ```diff
     // Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType
    +public function __construct(
    +    private readonly CredentialsManagerInterface $credentialsManager,
@@ -210,6 +209,7 @@
    +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         // ...
+   +    ?HostProviderInterface $hostProvider = null,
     ) {
    ```
 

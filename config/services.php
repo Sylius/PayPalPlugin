@@ -12,7 +12,6 @@ use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
-use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
 use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
@@ -38,7 +37,6 @@ use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface;
 use Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
-use Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
@@ -132,7 +130,6 @@ use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
-use Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
@@ -167,9 +164,6 @@ return static function (ContainerConfigurator $container) {
         ])
         ->tag('form.type')
         ->tag('sylius.gateway_configuration_type', ['type' => 'sylius_paypal', 'label' => 'sylius_paypal.label']);
-
-    $services->set('sylius_paypal.form.type.paypal_sandbox_credentials', PayPalSandboxCredentialsType::class)
-        ->tag('form.type');
 
     $services->set('sylius_paypal.generator.paypal_auth_assertion', PayPalAuthAssertionGenerator::class);
 
@@ -604,14 +598,12 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(SellerWebhookRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook');
 
-    $services->set('sylius_paypal.creator.sandbox_payment_method', PayPalSandboxPaymentMethodCreator::class)
+    $services->set('sylius_paypal.registrar.seller_webhook.onboarding', SellerWebhookRegistrar::class)
         ->args([
-            service('sylius.factory.gateway_config'),
-            service('sylius.factory.payment_method'),
-            service('doctrine.orm.entity_manager'),
-            service('sylius_paypal.provider.paypal_payment_method'),
-            service('sylius_paypal.manager.credentials'),
-            service('sylius_paypal.remover.cached_access_token'),
+            service('sylius_paypal.api.authorize_client.onboarding'),
+            service('router'),
+            service('sylius_paypal.api.webhook.onboarding'),
+            service('sylius_paypal.provider.webhook_url'),
         ]);
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
@@ -640,21 +632,12 @@ return static function (ContainerConfigurator $container) {
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
+            service('sylius_paypal.provider.host'),
         ])
         ->tag('twig.extension');
 
     $services->set('sylius_paypal.twig.extension.order_address', OrderAddressExtension::class)
         ->tag('twig.extension');
-
-    $services->set('sylius_paypal.twig.component.paypal_sandbox_modal', PayPalSandboxModalComponent::class)
-        ->args([
-            service('form.factory'),
-            service('sylius_paypal.creator.sandbox_payment_method'),
-            service('request_stack'),
-            service('logger'),
-            service('router'),
-        ])
-        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:sandbox_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig']);
 
     $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
         ->args([

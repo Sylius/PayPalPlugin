@@ -66,8 +66,6 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             );
             $this->cachedAccessTokenRemover->remove($paymentMethod);
 
-            $this->entityManager->flush();
-
             return $paymentMethod;
         }
 

@@ -160,7 +160,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->gatewayFactory->expects(self::never())->method('createNew');
         $this->paymentMethodFactory->expects(self::never())->method('createNew');
         $this->entityManager->expects(self::never())->method('persist');
-        $this->entityManager->expects(self::once())->method('flush');
+        $this->entityManager->expects(self::never())->method('flush');
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
