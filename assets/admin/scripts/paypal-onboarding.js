@@ -87,18 +87,19 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
     observer.observe(onboardingModal, { childList: true, subtree: true });
 }
 
-function bindOnboardingUrlLoader(onboardingModal) {
-    document.querySelectorAll(`[data-bs-target="#${onboardingModal.id}"]`).forEach((trigger) => {
-        trigger.addEventListener('click', () => {
+function bindOnboardingUrlLoader() {
+    document.addEventListener('live:connect', (event) => {
+        const onboardingModal = event.target.querySelector('.modal.show[data-paypal-onboarding-complete-url]');
+        if (onboardingModal !== null) {
             onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
-        });
+        }
     });
 }
 
 function initOnboardingModal() {
     const onboardingModal = findOnboardingModal();
     if (onboardingModal !== null) {
-        bindOnboardingUrlLoader(onboardingModal);
+        bindOnboardingUrlLoader();
         loadPartnerJsOnceButtonExists(onboardingModal);
     }
 }
