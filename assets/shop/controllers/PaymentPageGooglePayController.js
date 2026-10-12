@@ -15,7 +15,6 @@ export default class extends Controller {
         languageCode: String,
         sandbox: Boolean,
         createOrderUrl: String,
-        completeOrderUrl: String,
         errorUrl: String,
     };
 
@@ -114,7 +113,7 @@ export default class extends Controller {
                 throw new Error('Google Pay payment requires an additional buyer action, which is not supported yet.');
             }
 
-            this.returnUrl = await this.complete(orderId);
+            this.returnUrl = this.complete();
 
             return { transactionState: 'SUCCESS' };
         } catch (error) {
@@ -130,18 +129,17 @@ export default class extends Controller {
         }
     }
 
-    async complete(payPalOrderId) {
-        const response = await fetch(this.completeOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId }),
-        });
-        const details = await response.json();
-
-        return details.return_url ?? null;
+    complete() {
+        return this.session.currentApproveUrl();
     }
 
     async reportError(error) {
+        if (this.session?.currentApproveUrl()) {
+            console.error('Google Pay payment failed:', error);
+
+            return;
+        }
+
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },

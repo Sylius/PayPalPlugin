@@ -22,8 +22,10 @@ use Sylius\Behat\Page\Admin\Order\ShowPageInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
+use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Webmozart\Assert\Assert;
 
 final class ManagingOrdersContext implements Context
@@ -35,6 +37,7 @@ final class ManagingOrdersContext implements Context
         private readonly ObjectManager $objectManager,
         private readonly KernelBrowser $client,
         private readonly ShowPageInterface $showPage,
+        private readonly PayPalApiMocker $payPalApiMocker,
     ) {
     }
 
@@ -48,7 +51,7 @@ final class ManagingOrdersContext implements Context
         /** @var PaymentInterface $payment */
         $payment = $order->getPayments()->first();
 
-        $details = ['paypal_order_id' => $payPalOrderId];
+        $details = PayPalPaymentDetails::create()->withPayPalOrderId($payPalOrderId)->toArray();
         if ($payPalPaymentId !== null) {
             $details['paypal_payment_id'] = $payPalPaymentId;
         }
@@ -59,6 +62,8 @@ final class ManagingOrdersContext implements Context
         $this->refundAmount = $order->getTotal();
 
         $this->objectManager->flush();
+
+        $this->payPalApiMocker->mockOrderDetailsWithCapture($payPalOrderId);
     }
 
     #[When('request from PayPal about :payPalOrderId order refund has been received')]

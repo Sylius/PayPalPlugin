@@ -1,10 +1,13 @@
 import { loadWebSdkOnce } from './paypal-web-sdk';
 
+const PAYMENT_SOURCE_NOT_AVAILABLE = 'payment_source_not_available';
+
 export class PaymentSourceNotAvailableError extends Error {}
 
 let session = null;
 let busy = false;
 let attemptOrderId = null;
+let attemptApproveUrl = null;
 
 export function isBusy() {
     return busy;
@@ -18,9 +21,14 @@ export function currentOrderId() {
     return attemptOrderId;
 }
 
+export function currentApproveUrl() {
+    return attemptApproveUrl;
+}
+
 export async function startAttempt(createOrderUrl, paymentSource = null) {
     busy = true;
     attemptOrderId = null;
+    attemptApproveUrl = null;
 
     const response = await fetch(createOrderUrl, {
         method: 'post',
@@ -29,7 +37,7 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
             body: JSON.stringify({ paymentSource }),
         }),
     });
-    if (response.status === 422) {
+    if (await isPaymentSourceNotAvailable(response)) {
         busy = false;
 
         throw new PaymentSourceNotAvailableError('The selected payment source is not available.');
@@ -42,9 +50,24 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
     }
 
     const data = await response.json();
-    attemptOrderId = data.orderId;
+    attemptOrderId = data.paypal_order_id ?? null;
+    attemptApproveUrl = data.approve_url ?? null;
 
-    return data;
+    return {
+        orderId: attemptOrderId,
+        approveUrl: attemptApproveUrl,
+        payerActionUrl: data.payer_action_url ?? null,
+    };
+}
+
+async function isPaymentSourceNotAvailable(response) {
+    if (response.status !== 422) {
+        return false;
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    return data.error === PAYMENT_SOURCE_NOT_AVAILABLE;
 }
 
 export function paymentPageSession(config) {
@@ -73,6 +96,8 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, 
         isBusy,
 
         currentOrderId,
+
+        currentApproveUrl,
 
         release,
 

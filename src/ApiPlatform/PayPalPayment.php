@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\ApiPlatform;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
@@ -80,16 +80,6 @@ final class PayPalPayment
 
         return [
             'clientId' => $config->clientId(),
-            'completePayPalOrderFromPaymentPageUrl' => $this->router->generate(
-                'sylius_paypal_shop_complete_paypal_order',
-                ['token' => $order->getTokenValue()],
-                UrlGeneratorInterface::ABSOLUTE_URL,
-            ),
-            'createPayPalOrderFromPaymentPageUrl' => $this->router->generate(
-                'sylius_paypal_shop_create_paypal_order',
-                ['token' => $order->getTokenValue()],
-                UrlGeneratorInterface::ABSOLUTE_URL,
-            ),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment', [], UrlGeneratorInterface::ABSOLUTE_URL),
             'partnerAttributionId' => $partnerAttributionId,
             'locale' => $order->getLocaleCode(),

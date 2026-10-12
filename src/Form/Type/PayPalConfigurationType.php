@@ -29,7 +29,6 @@ final class PayPalConfigurationType extends AbstractType
         PayPalGatewayConfig::MERCHANT_ID,
         PayPalGatewayConfig::SYLIUS_MERCHANT_ID,
         PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
-        PayPalGatewayConfig::USE_AUTHORIZE,
     ];
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -42,8 +41,6 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::SYLIUS_MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
-            // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
-            ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])

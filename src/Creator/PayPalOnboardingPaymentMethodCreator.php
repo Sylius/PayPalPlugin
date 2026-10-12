@@ -14,10 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
 final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboardingPaymentMethodCreatorInterface
@@ -52,15 +54,18 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         $gatewayConfig->setGatewayName(self::GATEWAY_NAME);
 
         $gatewayConfig->setConfig([
-            'client_id' => $result->getClientId(),
-            'client_secret' => $result->getClientSecret(),
-            'merchant_id' => $result->getMerchantId(),
-            'use_authorize' => 1,
-            'sylius_merchant_id' => $result->getMerchantId(),
-            'reports_sftp_password' => null,
-            'reports_sftp_username' => null,
-            'partner_attribution_id' => $this->partnerAttributionId,
+            PayPalGatewayConfig::CLIENT_ID => $result->getClientId(),
+            PayPalGatewayConfig::CLIENT_SECRET => $result->getClientSecret(),
+            PayPalGatewayConfig::MERCHANT_ID => $result->getMerchantId(),
+            PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $result->getMerchantId(),
+            PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
+            PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
+            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
         ]);
+
+        if ($gatewayConfig instanceof PayumGatewayConfigInterface) {
+            $gatewayConfig->setUsePayum(false);
+        }
 
         return $gatewayConfig;
     }

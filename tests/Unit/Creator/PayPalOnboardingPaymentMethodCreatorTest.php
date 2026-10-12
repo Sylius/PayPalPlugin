@@ -69,12 +69,12 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             'client_id' => 'CLIENT-ID',
             'client_secret' => 'CLIENT-SECRET',
             'merchant_id' => 'MERCHANT-ID',
-            'use_authorize' => 1,
             'sylius_merchant_id' => 'MERCHANT-ID',
             'reports_sftp_password' => null,
             'reports_sftp_username' => null,
             'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         ]);
+        $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
 
         $paymentMethod->expects(self::never())->method('setEnabled');
         $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);

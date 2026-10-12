@@ -13,34 +13,36 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use Payum\Core\Model\GatewayConfigInterface;
-use Payum\Core\Payum;
+use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 final readonly class PayPalPaymentCompleteProcessor implements PaymentCompleteProcessorInterface
 {
-    public function __construct(private Payum $payum)
-    {
+    public function __construct(
+        private PaymentCaptureProcessorInterface $paymentCaptureProcessor,
+        private LoggerInterface $logger,
+    ) {
     }
 
     public function completePayment(PaymentInterface $payment): void
     {
-        $details = $payment->getDetails();
-        if (!isset($details['paypal_order_id'])) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        if (!$details->hasPayPalOrderId()) {
             return;
         }
 
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $paymentSource = $details->paymentSource();
+        if (null !== RedirectPaymentSource::tryFrom($paymentSource)) {
+            $this->logger->warning(sprintf(
+                'A "%s" PayPal order is captured by PayPal on payment approval and must not be completed here.',
+                $paymentSource,
+            ));
 
-        $this
-            ->payum
-            ->getGateway($gatewayConfig->getGatewayName())
-            ->execute(new CompleteOrder($payment, (string) $details['paypal_order_id']))
-        ;
+            return;
+        }
+
+        $this->paymentCaptureProcessor->capture($payment);
     }
 }

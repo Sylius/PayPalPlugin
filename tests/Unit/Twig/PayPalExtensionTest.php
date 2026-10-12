@@ -224,6 +224,22 @@ final class PayPalExtensionTest extends TestCase
         self::assertFalse($this->extension->isAwaitingPayerAction($payment));
     }
 
+    public function test_it_gives_a_template_the_url_where_the_payer_finishes_off_site(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['payer_action_url' => 'https://www.paypal.com/payment/trustly?token=X']);
+
+        self::assertSame('https://www.paypal.com/payment/trustly?token=X', $this->extension->getPayerActionUrl($payment));
+    }
+
+    public function test_it_gives_a_template_no_url_when_the_payer_has_nothing_to_finish(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn([]);
+
+        self::assertNull($this->extension->getPayerActionUrl($payment));
+    }
+
     #[Test]
     #[DataProvider('refundedPaymentDetails')]
     public function it_tells_a_refund_went_back_to_the_paypal_wallet_only_for_a_paypal_payment(array $details, bool $toWallet): void

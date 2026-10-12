@@ -101,10 +101,8 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     {
         $context = $this->provider->provide($this->payment, 'en_US');
 
-        self::assertSame('sylius_paypal_shop_create_paypal_order', $context['createPayPalOrderUrl']);
-        self::assertSame('sylius_paypal_shop_complete_paypal_order', $context['completePayPalOrderUrl']);
-        self::assertSame('sylius_paypal_shop_cancel_checkout_payment', $context['cancelPayPalPaymentUrl']);
         self::assertSame('sylius_paypal_shop_payment_error', $context['errorPayPalPaymentUrl']);
+        self::assertArrayNotHasKey('createPayPalOrderUrl', $context);
     }
 
     public function test_it_provides_the_order_the_buyer_is_paying_for(): void

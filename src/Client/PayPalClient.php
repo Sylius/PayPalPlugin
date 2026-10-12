@@ -69,7 +69,7 @@ final class PayPalClient implements PayPalClientInterface
 
     public function post(string $url, string $token, ?array $data = null, array $extraHeaders = []): array
     {
-        $headers = array_merge($extraHeaders, ['PayPal-Request-Id' => $this->uuidProvider->provide()]);
+        $headers = array_merge(['PayPal-Request-Id' => $this->uuidProvider->provide()], $extraHeaders);
 
         return $this->request('POST', $url, $token, $data, $headers);
     }

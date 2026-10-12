@@ -14,8 +14,6 @@ export default class extends Controller {
         currencyCode: String,
         amount: String,
         createOrderUrl: String,
-        completeOrderUrl: String,
-        cancelOrderUrl: String,
         errorUrl: String,
         billingAddress: Object,
     };
@@ -44,6 +42,7 @@ export default class extends Controller {
                 });
             }
 
+            this.session = session;
             this.element.removeAttribute('hidden');
             this.formTarget.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -80,13 +79,13 @@ export default class extends Controller {
             const { data, state } = await this.cardSession.submit(orderId, this.submitOptions());
 
             if (state === 'succeeded' || (state === 'failed' && data?.liabilityShift)) {
-                await this.complete(orderId);
+                this.complete();
 
                 return;
             }
 
             if (state === 'canceled') {
-                await this.cancel(orderId);
+                this.cancel();
 
                 return;
             }
@@ -97,33 +96,23 @@ export default class extends Controller {
         }
     }
 
-    async complete(payPalOrderId) {
-        const response = await fetch(this.completeOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId }),
-        });
-        const details = await response.json();
+    complete() {
+        window.location.href = this.session.currentApproveUrl();
+    }
 
-        if (details.return_url) {
-            window.location.href = details.return_url;
+    cancel() {
+        this.session.release();
+        this.setSubmitting(false);
+    }
+
+    async reportError(message, payPalOrderId = null) {
+        if (this.session.currentApproveUrl()) {
+            console.error('PayPal card payment failed:', message);
+            window.location.href = this.session.currentApproveUrl();
 
             return;
         }
 
-        window.location.reload();
-    }
-
-    async cancel(payPalOrderId) {
-        await fetch(this.cancelOrderUrlValue, {
-            method: 'post',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ payPalOrderId }),
-        });
-        window.location.reload();
-    }
-
-    async reportError(message, payPalOrderId = null) {
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },

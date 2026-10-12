@@ -78,6 +78,7 @@ final class PaymentPayPalContext implements Context
             'description' => $description,
             'gatewayName' => $gatewayFactory,
             'gatewayFactory' => $gatewayFactory,
+            'usePayum' => false,
             'enabled' => true,
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
@@ -88,6 +89,7 @@ final class PaymentPayPalContext implements Context
             'client_secret' => 'SECRET',
             'partner_attribution_id' => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',
+            'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
             'reports_sftp_username' => 'USERNAME',
             'reports_sftp_password' => 'PASSWORD',
         ]);

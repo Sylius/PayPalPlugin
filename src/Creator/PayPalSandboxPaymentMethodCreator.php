@@ -14,8 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
@@ -51,12 +52,15 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
             PayPalGatewayConfig::CLIENT_ID => $clientId,
             PayPalGatewayConfig::CLIENT_SECRET => $clientSecret,
             PayPalGatewayConfig::MERCHANT_ID => $merchantId,
-            PayPalGatewayConfig::USE_AUTHORIZE => 1,
             PayPalGatewayConfig::SYLIUS_MERCHANT_ID => self::SYLIUS_SANDBOX_MERCHANT_ID,
             PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
             PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
         ]);
+
+        if ($gatewayConfig instanceof PayumGatewayConfigInterface) {
+            $gatewayConfig->setUsePayum(false);
+        }
 
         return $gatewayConfig;
     }

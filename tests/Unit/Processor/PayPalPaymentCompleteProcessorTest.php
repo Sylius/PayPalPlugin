@@ -13,71 +13,66 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor;
 
-use Payum\Core\GatewayInterface;
-use Payum\Core\Payum;
-use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
+use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor;
 
 final class PayPalPaymentCompleteProcessorTest extends TestCase
 {
-    private PayPalPaymentCompleteProcessor $paypalPaymentCompleteProcessor;
+    private PaymentCaptureProcessorInterface&MockObject $paymentCaptureProcessor;
 
-    private Payum&MockObject $payum;
+    private LoggerInterface&MockObject $logger;
+
+    private PayPalPaymentCompleteProcessor $paypalPaymentCompleteProcessor;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->payum = $this->createMock(Payum::class);
+        $this->paymentCaptureProcessor = $this->createMock(PaymentCaptureProcessorInterface::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->paypalPaymentCompleteProcessor = new PayPalPaymentCompleteProcessor($this->payum);
+        $this->paypalPaymentCompleteProcessor = new PayPalPaymentCompleteProcessor($this->paymentCaptureProcessor, $this->logger);
     }
 
-    #[Test]
-    public function it_implements_payment_complete_processor_interface(): void
+    public function test_it_implements_payment_complete_processor_interface(): void
     {
         self::assertInstanceOf(PaymentCompleteProcessorInterface::class, $this->paypalPaymentCompleteProcessor);
     }
 
-    #[Test]
-    public function it_completes_payment_in_paypal(): void
+    public function test_it_captures_the_paypal_order_of_the_payment(): void
     {
-        $payment = $this->createMock(PaymentInterface::class);
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gateway = $this->createMock(GatewayInterface::class);
+        $payment = $this->paymentWith(['paypal_order_id' => '123123', 'payment_source' => 'card']);
 
-        $payment->method('getDetails')->willReturn(['paypal_order_id' => '123123']);
-        $payment->method('getMethod')->willReturn($paymentMethod);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $gatewayConfig->method('getGatewayName')->willReturn('paypal');
-
-        $this->payum->method('getGateway')->with('paypal')->willReturn($gateway);
-
-        $gateway->expects(self::once())
-            ->method('execute')
-            ->with($this->callback(function (CompleteOrder $request): bool {
-                return $request->getOrderId() === '123123';
-            }));
+        $this->paymentCaptureProcessor->expects(self::once())->method('capture')->with($payment);
 
         $this->paypalPaymentCompleteProcessor->completePayment($payment);
     }
 
-    #[Test]
-    public function it_does_nothing_if_payment_has_no_paypal_order_id_set(): void
+    public function test_it_does_nothing_if_payment_has_no_paypal_order_id_set(): void
+    {
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+
+        $this->paypalPaymentCompleteProcessor->completePayment($this->paymentWith([]));
+    }
+
+    public function test_it_never_captures_an_order_paypal_completes_on_payment_approval(): void
+    {
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+        $this->logger->expects(self::once())->method('warning');
+
+        $this->paypalPaymentCompleteProcessor->completePayment($this->paymentWith(['paypal_order_id' => '123123', 'payment_source' => 'trustly']));
+    }
+
+    /** @param array<string, mixed> $details */
+    private function paymentWith(array $details): PaymentInterface&MockObject
     {
         $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn($details);
 
-        $payment->method('getDetails')->willReturn([]);
-
-        $this->payum->expects($this->never())->method('getGateway');
-
-        $this->paypalPaymentCompleteProcessor->completePayment($payment);
+        return $payment;
     }
 }

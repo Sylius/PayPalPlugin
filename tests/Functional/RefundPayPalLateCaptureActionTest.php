@@ -18,11 +18,12 @@ use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Tests\Sylius\PayPalPlugin\Service\DummyOrderDetailsApi;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
 
 final class RefundPayPalLateCaptureActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     private OrderInterface $order;
 
     private PaymentInterface $payment;
@@ -30,9 +31,6 @@ final class RefundPayPalLateCaptureActionTest extends JsonApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        DummyOrderDetailsApi::$captureStatus = 'COMPLETED';
-        DummyOrderDetailsApi::$failWith = null;
-        DummyOrderDetailsApi::$response = null;
         DummyRefundPaymentApi::$refundedPaymentIds = [];
 
         $fixtures = $this->loadFixturesFromFiles([
@@ -63,6 +61,7 @@ final class RefundPayPalLateCaptureActionTest extends JsonApiTestCase
         self::assertCount(1, $crawler->filter(sprintf('[data-test-paypal-late-capture="%d"]', $this->payment->getId())));
 
         $form = $crawler->filter(sprintf('[data-test-refund-paypal-late-capture="%d"]', $this->payment->getId()))->form();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
         $this->client->submit($form);
 
         self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/admin/orders/%d', $this->order->getId())));

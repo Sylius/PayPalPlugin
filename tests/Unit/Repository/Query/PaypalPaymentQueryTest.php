@@ -432,6 +432,7 @@ final class PaypalPaymentQueryTest extends TestCase
             ->willReturnCallback(function (string $name, mixed $value) use ($queryBuilder): QueryBuilder {
                 if ('states' === $name) {
                     self::assertSame([
+                        PaymentInterface::STATE_NEW,
                         PaymentInterface::STATE_PROCESSING,
                         PaymentInterface::STATE_COMPLETED,
                         PaymentInterface::STATE_CANCELLED,
