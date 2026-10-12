@@ -136,6 +136,29 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
     }
 
+    public function test_it_keeps_a_redirect_attempt_processing_while_the_payer_is_still_at_the_bank(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'trustly']);
+        $paymentRequest->method('getResponseData')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']);
+
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['awaiting_payer' => true, 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([], $this->appliedTransitions);
+    }
+
+    public function test_it_cancels_a_wallet_attempt_that_still_needs_the_payer(): void
+    {
+        $this->paymentRequestWith();
+        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
+    }
+
     public function test_it_sends_the_payer_back_to_retry_a_card_authentication_that_did_not_finish(): void
     {
         $paymentRequest = $this->paymentRequestWith();

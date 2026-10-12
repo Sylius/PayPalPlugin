@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
@@ -37,7 +38,11 @@ final class CapturePayPalOrderPaymentRequestHandler
 
     public const THREE_D_SECURE_DECLINED = 'declined';
 
-    private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', 'PAYER_ACTION_REQUIRED', 'VOIDED'];
+    public const RESPONSE_AWAITING_PAYER = 'awaiting_payer';
+
+    private const PAYER_ACTION_REQUIRED_ORDER_STATUS = 'PAYER_ACTION_REQUIRED';
+
+    private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', self::PAYER_ACTION_REQUIRED_ORDER_STATUS, 'VOIDED'];
 
     private const REFUSED_CAPTURE_STATUSES = [PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED];
 
@@ -91,7 +96,9 @@ final class CapturePayPalOrderPaymentRequestHandler
         }
 
         if (null === $capture) {
-            $this->cancelUnapproved($paymentRequest);
+            $this->isPayerAtTheBank($payment, $payPalOrder)
+                ? $this->awaitPayer($paymentRequest)
+                : $this->cancelUnapproved($paymentRequest);
 
             return;
         }
@@ -131,6 +138,20 @@ final class CapturePayPalOrderPaymentRequestHandler
         return in_array($capture->status(), self::REFUSED_CAPTURE_STATUSES, true)
             ? sprintf('PayPal reported the capture as %s.', $capture->status())
             : null;
+    }
+
+    /** @param array<string, mixed> $payPalOrder */
+    private function isPayerAtTheBank(PaymentInterface $payment, array $payPalOrder): bool
+    {
+        return
+            null !== RedirectPaymentSource::tryFrom(PayPalPaymentDetails::fromPayment($payment)->paymentSource()) &&
+            self::PAYER_ACTION_REQUIRED_ORDER_STATUS === ($payPalOrder['status'] ?? null)
+        ;
+    }
+
+    private function awaitPayer(PaymentRequestInterface $paymentRequest): void
+    {
+        $paymentRequest->setResponseData([self::RESPONSE_AWAITING_PAYER => true] + $paymentRequest->getResponseData());
     }
 
     private function cancelUnapproved(PaymentRequestInterface $paymentRequest): void

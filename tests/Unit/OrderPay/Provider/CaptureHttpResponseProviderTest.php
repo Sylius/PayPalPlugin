@@ -157,6 +157,32 @@ final class CaptureHttpResponseProviderTest extends TestCase
         self::assertSame(['sylius_paypal.something_went_wrong'], $this->session->getFlashBag()->peek('error'));
     }
 
+    public function test_it_renders_the_payment_page_again_while_the_payer_is_still_at_the_bank(): void
+    {
+        $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING, ['awaiting_payer' => true]);
+        $this->router->method('generate')->willReturn('/en_US/paypal/payment-requests/PAYMENT_REQUEST_HASH/order');
+        $this->contextProvider->method('provide')->willReturn([]);
+        $this->twig->expects(self::once())->method('render')->willReturn('PAGE');
+
+        self::assertTrue($this->provider->supports($this->requestConfiguration, $paymentRequest));
+        self::assertSame('PAGE', $this->provider->getResponse($this->requestConfiguration, $paymentRequest)->getContent());
+        self::assertSame(['sylius_paypal.payment_awaiting_payer'], $this->session->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_renders_the_payment_page_for_the_payer_who_cancelled_at_the_bank(): void
+    {
+        $this->router->method('generate')->willReturn('/en_US/paypal/payment-requests/PAYMENT_REQUEST_HASH/order');
+        $this->contextProvider->method('provide')->willReturn([]);
+        $this->twig->expects(self::once())->method('render')->willReturn('PAGE');
+        $this->requestConfiguration->getRequest()->query->set('payer_cancelled', '1');
+        $this->requestConfiguration->getRequest()->query->set('errorcode', 'payment_error');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING, ['awaiting_payer' => true]));
+
+        self::assertSame('PAGE', $response->getContent());
+        self::assertSame(['sylius_paypal.payment_cancelled'], $this->session->getFlashBag()->peek('info'));
+    }
+
     public function test_it_thanks_the_payer_of_a_payment_the_bank_has_not_settled_yet(): void
     {
         $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_COMPLETED, paymentState: 'processing');
