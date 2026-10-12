@@ -46,7 +46,6 @@ final class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->booleanNode('sandbox')->defaultTrue()->end()
                 ->scalarNode('test_buyer_country')->defaultNull()->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()

@@ -22,15 +22,15 @@ use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
+use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class OnboardingCompletionProcessor implements OnboardingCompletionProcessorInterface
 {
     public function __construct(
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private ProductionSellerOnboardedCheckerInterface $productionSellerOnboardedChecker,
         private SellerNonceManagerInterface $sellerNonceManager,
         private SellerOnboardingResolverInterface $sellerOnboardingResolver,
         private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
@@ -41,7 +41,7 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
 
     public function process(string $authCode, string $sharedId): OnboardingCompletionResult
     {
-        if ($this->payPalPaymentMethodProvider->exists()) {
+        if ($this->productionSellerOnboardedChecker->isOnboarded()) {
             throw new PayPalPaymentMethodAlreadyExistsException();
         }
 

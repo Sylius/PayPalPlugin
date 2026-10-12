@@ -184,7 +184,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_payment_page_context'),
             service('router'),
             service('sylius_paypal.checker.payer_action'),
-            '%sylius_paypal.web_url%',
+            service('sylius_paypal.provider.host'),
         ]);
 
     $services->set('sylius_paypal.controller.process_paypal_order', ProcessPayPalOrderAction::class)

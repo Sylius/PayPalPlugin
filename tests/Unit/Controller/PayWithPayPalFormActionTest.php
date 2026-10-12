@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -127,7 +128,7 @@ final class PayWithPayPalFormActionTest extends TestCase
         self::assertStringContainsString('no-store', (string) $response->headers->get('cache-control'));
     }
 
-    public function test_it_delegates_web_authn_permissions_to_both_pay_pal_origins_without_a_configured_web_url(): void
+    public function test_it_delegates_web_authn_permissions_to_both_pay_pal_origins_without_a_host_provider(): void
     {
         $this->payment(PaymentInterface::STATE_NEW);
         $this->twig->method('render')->willReturn(self::RENDERED);
@@ -139,14 +140,17 @@ final class PayWithPayPalFormActionTest extends TestCase
         self::assertStringContainsString('publickey-credentials-create=(self "https://www.paypal.com" "https://www.sandbox.paypal.com")', $permissionsPolicy);
     }
 
-    public function test_it_delegates_web_authn_permissions_to_only_the_configured_web_url(): void
+    public function test_it_delegates_web_authn_permissions_to_only_the_web_url_of_the_active_mode(): void
     {
+        $hostProvider = $this->createStub(HostProviderInterface::class);
+        $hostProvider->method('getWebUrl')->willReturn('https://www.sandbox.paypal.com');
+
         $action = new PayWithPayPalFormAction(
             twig: $this->twig,
             paymentRepository: $this->paymentRepository,
             contextProvider: $this->contextProvider,
             router: $this->createStub(UrlGeneratorInterface::class),
-            webUrl: 'https://www.sandbox.paypal.com',
+            hostProvider: $hostProvider,
         );
         $this->payment(PaymentInterface::STATE_NEW);
         $this->twig->method('render')->willReturn(self::RENDERED);

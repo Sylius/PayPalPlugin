@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -51,7 +52,7 @@ final readonly class PayWithPayPalFormAction
         private ?PayPalPaymentPageContextProviderInterface $contextProvider = null,
         private ?UrlGeneratorInterface $router = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
-        private ?string $webUrl = null,
+        private ?HostProviderInterface $hostProvider = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
 
@@ -63,15 +64,7 @@ final readonly class PayWithPayPalFormAction
 
         $this->deprecateMissingArgument($this->contextProvider, PayPalPaymentPageContextProviderInterface::class);
         $this->deprecateMissingArgument($this->router, UrlGeneratorInterface::class);
-
-        if (null === $this->webUrl) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing the "sylius_paypal.web_url" parameter to "%s" constructor is deprecated and will be required in 3.0.',
-                self::class,
-            );
-        }
+        $this->deprecateMissingArgument($this->hostProvider, HostProviderInterface::class);
     }
 
     public function __invoke(Request $request): Response
@@ -161,8 +154,8 @@ final readonly class PayWithPayPalFormAction
 
     private function webAuthnPermissionsPolicy(): string
     {
-        $origins = null !== $this->webUrl
-            ? sprintf('"%s"', $this->webUrl)
+        $origins = null !== $this->hostProvider
+            ? sprintf('"%s"', $this->hostProvider->getWebUrl())
             : self::WEBAUTHN_PERMISSIONS_POLICY_FALLBACK_ORIGINS;
 
         return sprintf('publickey-credentials-get=(self %1$s), publickey-credentials-create=(self %1$s)', $origins);

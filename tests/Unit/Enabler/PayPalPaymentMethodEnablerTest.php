@@ -105,6 +105,37 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
     }
 
     #[Test]
+    public function it_enables_payment_method_in_sandbox_mode_without_checking_the_onboarding_status(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig
+            ->method('getConfig')
+            ->willReturn(['sandbox' => true, 'merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
+
+        $this->authorizeClientApi
+            ->expects(self::once())
+            ->method('authorize')
+            ->with('CLIENT-ID', 'SECRET')
+            ->willReturn('SELLER-TOKEN');
+
+        $this->partnerCredentialsProvider->expects(self::never())->method('provide');
+        $this->merchantOnboardingStatusApi->expects(self::never())->method('get');
+
+        $this->sellerWebhookRegistrar
+            ->expects(self::once())
+            ->method('register')
+            ->with($paymentMethod);
+
+        $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $this->paymentMethodManager->expects(self::once())->method('flush');
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    #[Test]
     public function it_throws_exception_when_onboarding_is_not_complete(): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
