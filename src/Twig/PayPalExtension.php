@@ -39,6 +39,7 @@ final class PayPalExtension extends AbstractExtension
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+        private readonly string $partnerJsUrl = '',
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
 
@@ -86,6 +87,7 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
             new TwigFunction('sylius_paypal_is_awaiting_payer_action', [$this, 'isAwaitingPayerAction']),
             new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
+            new TwigFunction('sylius_paypal_partner_js_url', [$this, 'getPartnerJsUrl']),
         ];
     }
 
@@ -149,6 +151,11 @@ final class PayPalExtension extends AbstractExtension
     public function isRefundedToPayPalWallet(PaymentInterface $payment): bool
     {
         return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
+    }
+
+    public function getPartnerJsUrl(): string
+    {
+        return $this->partnerJsUrl;
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool
