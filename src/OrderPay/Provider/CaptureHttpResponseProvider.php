@@ -30,7 +30,9 @@ use Twig\Environment;
 
 final readonly class CaptureHttpResponseProvider implements HttpResponseProviderInterface
 {
-    private const BUYER_CANCELLATION_ERROR_CODE = 'payment_error';
+    private const ERROR_CODE_QUERY_PARAMETER = 'errorcode';
+
+    private const PAYER_CANCELLED_ERROR_CODE = 'payment_error';
 
     public function __construct(
         private Environment $twig,
@@ -149,16 +151,16 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
 
     private function addPayerCancelledFlash(Request $request): void
     {
-        $this->isRefusedByTheBank($request)
+        $this->hasPayPalReportedAnError($request)
             ? $this->addFlash($request, 'error', 'sylius_paypal.something_went_wrong')
             : $this->addFlash($request, 'info', 'sylius_paypal.payment_cancelled');
     }
 
-    private function isRefusedByTheBank(Request $request): bool
+    private function hasPayPalReportedAnError(Request $request): bool
     {
-        $errorCode = $request->query->getString('errorcode');
+        $errorCode = $request->query->getString(self::ERROR_CODE_QUERY_PARAMETER);
 
-        return '' !== $errorCode && self::BUYER_CANCELLATION_ERROR_CODE !== $errorCode;
+        return '' !== $errorCode && self::PAYER_CANCELLED_ERROR_CODE !== $errorCode;
     }
 
     private function addFlash(Request $request, string $type, string $message): void

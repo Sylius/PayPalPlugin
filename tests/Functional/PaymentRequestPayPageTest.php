@@ -170,7 +170,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertStringContainsString('PayPal payment has been cancelled', (string) $this->client->getResponse()->getContent());
     }
 
-    public function test_it_tells_the_payer_the_bank_refused_that_something_went_wrong(): void
+    public function test_it_tells_the_payer_something_went_wrong_when_paypal_reports_an_error(): void
     {
         $hash = $this->redirectPaymentRequestHash();
 

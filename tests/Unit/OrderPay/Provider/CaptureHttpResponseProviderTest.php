@@ -146,7 +146,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
         self::assertSame(['sylius_paypal.payment_cancelled'], $this->session->getFlashBag()->peek('info'));
     }
 
-    public function test_it_tells_the_payer_the_bank_refused_that_something_went_wrong(): void
+    public function test_it_tells_the_payer_something_went_wrong_when_paypal_reports_an_error(): void
     {
         $this->router->method('generate')->willReturn('/en_US/order/TOKEN/pay');
         $this->requestConfiguration->getRequest()->query->set('payer_cancelled', '1');
