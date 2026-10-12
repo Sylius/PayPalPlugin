@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
@@ -58,7 +57,7 @@ final readonly class PayPalOnboardingRequestExecutor implements PayPalOnboarding
     }
 
     /**
-     * @throws JsonException
+     * @throws \JsonException
      */
     private function sanitizeBody(string $body): string
     {
