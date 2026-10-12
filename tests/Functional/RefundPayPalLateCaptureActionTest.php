@@ -60,7 +60,10 @@ final class RefundPayPalLateCaptureActionTest extends JsonApiTestCase
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
         self::assertCount(1, $crawler->filter(sprintf('[data-test-paypal-late-capture="%d"]', $this->payment->getId())));
 
-        $form = $crawler->filter(sprintf('[data-test-refund-paypal-late-capture="%d"]', $this->payment->getId()))->form();
+        $button = $crawler->filter(sprintf('[data-test-refund-paypal-late-capture="%d"]', $this->payment->getId()));
+        self::assertStringContainsString('Refund the extra', $button->text());
+
+        $form = $button->form();
         $this->payPalApi()->mockOrderDetailsWithCapture();
         $this->client->submit($form);
 
