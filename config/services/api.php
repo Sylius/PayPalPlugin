@@ -72,23 +72,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(AuthorizeClientApiInterface::class, 'sylius_paypal.api.authorize_client');
 
-    $services->set('sylius_paypal.client.paypal.onboarding', PayPalClient::class)
-        ->args([
-            service('sylius.http_client'),
-            service('monolog.logger.paypal'),
-            service('sylius_paypal.provider.uuid'),
-            service('sylius_paypal.provider.paypal_configuration'),
-            service('sylius.context.channel'),
-            service('sylius_paypal.provider.host.onboarding'),
-            param('sylius_paypal.request_trials_limit'),
-            service(RequestFactoryInterface::class),
-            service(StreamFactoryInterface::class),
-            param('sylius_paypal.logging.increased'),
-        ]);
-
-    $services->set('sylius_paypal.api.authorize_client.onboarding', AuthorizeClientApi::class)
-        ->args([service('sylius_paypal.client.paypal.onboarding')]);
-
     $services->set('sylius_paypal.repository.paypal_credentials', EntityRepository::class)
         ->args([PayPalCredentials::class])
         ->factory([service('doctrine.orm.entity_manager'), 'getRepository']);
@@ -158,14 +141,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(WebhookApiInterface::class, 'sylius_paypal.api.webhook');
-
-    $services->set('sylius_paypal.api.webhook.onboarding', WebhookApi::class)
-        ->args([
-            service('sylius.http_client'),
-            service('sylius_paypal.provider.host.onboarding'),
-            service(RequestFactoryInterface::class),
-            service(StreamFactoryInterface::class),
-        ]);
 
     $services->set('sylius_paypal.api.update_webhook', UpdateWebhookApi::class)
         ->args([

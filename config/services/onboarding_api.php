@@ -50,7 +50,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.onboarding_token', OnboardingTokenApi::class)
         ->args([
             service('sylius_paypal.api.onboarding_request_executor'),
-            service('sylius_paypal.provider.host.onboarding'),
+            service('sylius_paypal.provider.host'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
         ]);
@@ -60,7 +60,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.seller_credentials', SellerCredentialsApi::class)
         ->args([
             service('sylius_paypal.api.onboarding_request_executor'),
-            service('sylius_paypal.provider.host.onboarding'),
+            service('sylius_paypal.provider.host'),
             service(RequestFactoryInterface::class),
         ]);
 
@@ -75,20 +75,13 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(MerchantOnboardingStatusApiInterface::class, 'sylius_paypal.api.merchant_onboarding_status');
 
-    $services->set('sylius_paypal.api.merchant_onboarding_status.onboarding', MerchantOnboardingStatusApi::class)
-        ->args([
-            service('sylius_paypal.api.onboarding_request_executor'),
-            service(RequestFactoryInterface::class),
-            service('sylius_paypal.provider.host.onboarding'),
-        ]);
-
     $services->set('sylius_paypal.onboarding.resolver.seller', SellerOnboardingResolver::class)
         ->args([
             service('sylius_paypal.api.onboarding_token'),
             service('sylius_paypal.api.seller_credentials'),
-            service('sylius_paypal.api.authorize_client.onboarding'),
-            service('sylius_paypal.api.merchant_onboarding_status.onboarding'),
-            service('sylius_paypal.provider.partner_credentials.onboarding'),
+            service('sylius_paypal.api.authorize_client'),
+            service('sylius_paypal.api.merchant_onboarding_status'),
+            service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(SellerOnboardingResolverInterface::class, 'sylius_paypal.onboarding.resolver.seller');

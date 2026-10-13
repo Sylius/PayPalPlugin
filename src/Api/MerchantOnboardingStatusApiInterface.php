@@ -25,5 +25,5 @@ interface MerchantOnboardingStatusApiInterface
      * @throws JsonException
      * @throws PayPalPluginException
      */
-    public function get(string $sellerToken, string $partnerId, string $merchantId): OnboardingStatus;
+    public function get(string $sellerToken, string $partnerId, string $merchantId, bool $sandbox): OnboardingStatus;
 }

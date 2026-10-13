@@ -28,11 +28,11 @@ final readonly class SellerCredentialsApi implements SellerCredentialsApiInterfa
     ) {
     }
 
-    public function get(string $onboardingToken, string $partnerId): SellerCredentials
+    public function get(string $onboardingToken, string $partnerId, bool $sandbox): SellerCredentials
     {
         $request = $this->requestFactory->createRequest(
             Request::METHOD_GET,
-            sprintf('%sv1/customer/partners/%s/merchant-integrations/credentials', $this->hostProvider->getApiBaseUrl(), $partnerId),
+            sprintf('%sv1/customer/partners/%s/merchant-integrations/credentials', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId),
         )
             ->withHeader('Authorization', 'Bearer ' . $onboardingToken)
             ->withHeader('Content-Type', 'application/json')

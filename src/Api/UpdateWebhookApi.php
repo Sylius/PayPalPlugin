@@ -28,10 +28,10 @@ final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
     ) {
     }
 
-    public function updateEventTypes(string $token, string $webhookId, array $eventTypes): array
+    public function updateEventTypes(string $token, string $webhookId, array $eventTypes, bool $sandbox): array
     {
         $request = $this->requestFactory
-            ->createRequest('PATCH', sprintf('%sv1/notifications/webhooks/%s', $this->hostProvider->getApiBaseUrl(), $webhookId))
+            ->createRequest('PATCH', sprintf('%sv1/notifications/webhooks/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $webhookId))
             ->withHeader('Authorization', 'Bearer ' . $token)
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json')

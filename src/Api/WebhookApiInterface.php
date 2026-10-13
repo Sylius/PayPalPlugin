@@ -21,5 +21,5 @@ interface WebhookApiInterface
      * @throws ClientExceptionInterface
      * @throws \JsonException
      */
-    public function register(string $token, string $webhookUrl): array;
+    public function register(string $token, string $webhookUrl, bool $sandbox): array;
 }

@@ -17,45 +17,35 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 final readonly class SellerNonceManager implements SellerNonceManagerInterface
 {
-    private const SESSION_KEY = 'sylius_paypal.onboarding.seller_nonce';
-
-    private const SANDBOX_SESSION_KEY = 'sylius_paypal.onboarding.sandbox';
+    private const SESSION_KEY_PREFIX = 'sylius_paypal.onboarding.seller_nonce.';
 
     public function __construct(private RequestStack $requestStack)
     {
     }
 
-    public function generate(bool $sandbox = false): string
+    public function generate(bool $sandbox): string
     {
         $nonce = bin2hex(random_bytes(32));
 
-        $session = $this->requestStack->getSession();
-        $session->set(self::SESSION_KEY, $nonce);
-        $session->set(self::SANDBOX_SESSION_KEY, $sandbox);
+        $this->requestStack->getSession()->set($this->key($sandbox), $nonce);
 
         return $nonce;
     }
 
-    public function get(): ?string
+    public function get(bool $sandbox): ?string
     {
-        $session = $this->requestStack->getSession();
+        $nonce = $this->requestStack->getSession()->get($this->key($sandbox));
 
-        if (!$session->has(self::SESSION_KEY)) {
-            return null;
-        }
-
-        return (string) $session->get(self::SESSION_KEY);
+        return null === $nonce ? null : (string) $nonce;
     }
 
-    public function isSandbox(): bool
+    public function remove(bool $sandbox): void
     {
-        return true === $this->requestStack->getSession()->get(self::SANDBOX_SESSION_KEY, false);
+        $this->requestStack->getSession()->remove($this->key($sandbox));
     }
 
-    public function remove(): void
+    private function key(bool $sandbox): string
     {
-        $session = $this->requestStack->getSession();
-        $session->remove(self::SESSION_KEY);
-        $session->remove(self::SANDBOX_SESSION_KEY);
+        return self::SESSION_KEY_PREFIX . ($sandbox ? 'sandbox' : 'production');
     }
 }

@@ -39,7 +39,7 @@ final class SellerCredentialsApiTest extends TestCase
 
         $this->sellerCredentialsApi = new SellerCredentialsApi(
             $this->requestExecutor,
-            $this->createConfiguredStub(HostProviderInterface::class, ['getApiBaseUrl' => 'http://base-url.com/']),
+            $this->hostProvider(),
             $this->requestFactory,
         );
     }
@@ -52,7 +52,7 @@ final class SellerCredentialsApiTest extends TestCase
         $this->requestFactory
             ->expects(self::once())
             ->method('createRequest')
-            ->with('GET', 'http://base-url.com/v1/customer/partners/PARTNER-ID/merchant-integrations/credentials')
+            ->with('GET', 'http://sandbox-base-url.com/v1/customer/partners/PARTNER-ID/merchant-integrations/credentials')
             ->willReturn($request);
 
         $request->method('withHeader')->willReturn($request);
@@ -67,7 +67,7 @@ final class SellerCredentialsApiTest extends TestCase
                 'payer_id' => 'MERCHANT-ID',
             ]);
 
-        $credentials = $this->sellerCredentialsApi->get('ONBOARDING-TOKEN', 'PARTNER-ID');
+        $credentials = $this->sellerCredentialsApi->get('ONBOARDING-TOKEN', 'PARTNER-ID', true);
 
         self::assertSame('CLIENT-ID', $credentials->getClientId());
         self::assertSame('CLIENT-SECRET', $credentials->getClientSecret());
@@ -85,6 +85,17 @@ final class SellerCredentialsApiTest extends TestCase
 
         $this->expectException(PayPalPluginException::class);
 
-        $this->sellerCredentialsApi->get('ONBOARDING-TOKEN', 'PARTNER-ID');
+        $this->sellerCredentialsApi->get('ONBOARDING-TOKEN', 'PARTNER-ID', false);
+    }
+
+    private function hostProvider(): HostProviderInterface
+    {
+        $hostProvider = $this->createStub(HostProviderInterface::class);
+        $hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, 'http://sandbox-base-url.com/'],
+            [false, 'http://base-url.com/'],
+        ]);
+
+        return $hostProvider;
     }
 }

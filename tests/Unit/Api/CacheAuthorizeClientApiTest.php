@@ -113,7 +113,7 @@ final class CacheAuthorizeClientApiTest extends TestCase
         $this->authorizeClientApi
             ->expects(self::once())
             ->method('authorize')
-            ->with('CLIENT_ID', '$ECRET')
+            ->with('CLIENT_ID', '$ECRET', false)
             ->willReturn('TOKEN');
 
         $this->uuidProvider
@@ -186,7 +186,7 @@ final class CacheAuthorizeClientApiTest extends TestCase
         $this->authorizeClientApi
             ->expects(self::once())
             ->method('authorize')
-            ->with('CLIENT_ID', '$ECRET')
+            ->with('CLIENT_ID', '$ECRET', false)
             ->willReturn('TOKEN');
 
         $this->payPalCredentialsManager

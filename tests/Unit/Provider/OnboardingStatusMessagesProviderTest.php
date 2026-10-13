@@ -33,7 +33,10 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     {
         self::assertSame(
             [
-                'sylius_paypal.seller_onboarding_payments_not_receivable',
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
+                    'parameters' => ['%paypal_url%' => 'https://www.paypal.com'],
+                ],
                 [
                     'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                     'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
@@ -47,7 +50,10 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     public function it_provides_only_the_payments_not_receivable_message(): void
     {
         self::assertSame(
-            ['sylius_paypal.seller_onboarding_payments_not_receivable'],
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
+                'parameters' => ['%paypal_url%' => 'https://www.paypal.com'],
+            ]],
             (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, true)),
         );
     }

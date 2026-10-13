@@ -25,5 +25,5 @@ interface OnboardingCompletionProcessorInterface
      * @throws OnboardingSessionExpiredException
      * @throws OnboardingFailedException
      */
-    public function process(string $authCode, string $sharedId): OnboardingCompletionResult;
+    public function process(string $authCode, string $sharedId, bool $sandbox): OnboardingCompletionResult;
 }

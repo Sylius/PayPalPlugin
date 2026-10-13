@@ -25,7 +25,6 @@ use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final readonly class OnboardingCompletionProcessor implements OnboardingCompletionProcessorInterface
@@ -37,25 +36,22 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
         private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
         private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         private EntityManagerInterface $entityManager,
-        private ActiveModeProviderInterface $onboardingModeProvider,
     ) {
     }
 
-    public function process(string $authCode, string $sharedId): OnboardingCompletionResult
+    public function process(string $authCode, string $sharedId, bool $sandbox): OnboardingCompletionResult
     {
-        $sellerNonce = $this->sellerNonceManager->get();
+        $sellerNonce = $this->sellerNonceManager->get($sandbox);
         if (null === $sellerNonce) {
             throw new OnboardingSessionExpiredException();
         }
-
-        $sandbox = $this->onboardingModeProvider->isSandbox();
 
         if ($this->sellerOnboardedChecker->isOnboarded($sandbox)) {
             throw new PayPalPaymentMethodAlreadyExistsException();
         }
 
         try {
-            $sellerOnboardingResult = $this->sellerOnboardingResolver->resolve($authCode, $sharedId, $sellerNonce);
+            $sellerOnboardingResult = $this->sellerOnboardingResolver->resolve($authCode, $sharedId, $sellerNonce, $sandbox);
             $paymentMethod = $this->onboardingPaymentMethodCreator->create($sellerOnboardingResult, $sandbox);
             $webhookUrlValid = $this->registerWebhook($paymentMethod);
 
@@ -64,7 +60,7 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
             throw new OnboardingFailedException($exception);
         }
 
-        $this->sellerNonceManager->remove();
+        $this->sellerNonceManager->remove($sandbox);
 
         return new OnboardingCompletionResult($paymentMethod, $sellerOnboardingResult->getStatus(), $webhookUrlValid, $sandbox);
     }

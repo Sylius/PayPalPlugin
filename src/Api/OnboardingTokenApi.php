@@ -29,9 +29,9 @@ final readonly class OnboardingTokenApi implements OnboardingTokenApiInterface
     ) {
     }
 
-    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce): string
+    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce, bool $sandbox): string
     {
-        $request = $this->requestFactory->createRequest(Request::METHOD_POST, $this->hostProvider->getApiBaseUrl() . 'v1/oauth2/token')
+        $request = $this->requestFactory->createRequest(Request::METHOD_POST, $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/oauth2/token')
             ->withHeader('Authorization', 'Basic ' . base64_encode($sharedId . ':'))
             ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
             ->withHeader('Accept', 'application/json')

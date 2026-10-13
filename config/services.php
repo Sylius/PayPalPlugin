@@ -317,9 +317,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(HostProviderInterface::class, 'sylius_paypal.provider.host');
 
-    $services->set('sylius_paypal.provider.host.onboarding', HostProvider::class)
-        ->args([service('sylius_paypal.onboarding.provider.mode')]);
-
     $services->set('sylius_paypal.manager.credentials', CredentialsManager::class);
 
     $services->alias(CredentialsManagerInterface::class, 'sylius_paypal.manager.credentials');
@@ -597,14 +594,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(SellerWebhookRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook');
-
-    $services->set('sylius_paypal.registrar.seller_webhook.onboarding', SellerWebhookRegistrar::class)
-        ->args([
-            service('sylius_paypal.api.authorize_client.onboarding'),
-            service('router'),
-            service('sylius_paypal.api.webhook.onboarding'),
-            service('sylius_paypal.provider.webhook_url'),
-        ]);
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
         ->args([

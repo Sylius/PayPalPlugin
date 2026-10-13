@@ -43,7 +43,7 @@ final class UpdateWebhookApiTest extends TestCase
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
 
         $hostProvider = $this->createMock(HostProviderInterface::class);
-        $hostProvider->method('getApiBaseUrl')->willReturn('https://api-m.sandbox.paypal.com/');
+        $hostProvider->method('getApiBaseUrlForMode')->with(true)->willReturn('https://api-m.sandbox.paypal.com/');
 
         $this->api = new UpdateWebhookApi(
             $this->client,
@@ -89,7 +89,7 @@ final class UpdateWebhookApiTest extends TestCase
 
         $this->client->method('sendRequest')->willReturn($response);
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B']));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B'], true));
         self::assertSame([
             [
                 'op' => 'replace',

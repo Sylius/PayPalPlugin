@@ -19,7 +19,6 @@ use Sylius\PayPalPlugin\Model\PartnerCredentials;
 final readonly class PartnerCredentialsProvider implements PartnerCredentialsProviderInterface
 {
     public function __construct(
-        private ActiveModeProviderInterface $modeProvider,
         private string $partnerId,
         private string $partnerClientId,
         private string $sandboxPartnerId,
@@ -28,9 +27,8 @@ final readonly class PartnerCredentialsProvider implements PartnerCredentialsPro
     ) {
     }
 
-    public function provide(): PartnerCredentials
+    public function provide(bool $sandbox): PartnerCredentials
     {
-        $sandbox = $this->modeProvider->isSandbox();
         $partnerId = $sandbox ? $this->sandboxPartnerId : $this->partnerId;
         $partnerClientId = $sandbox ? $this->sandboxPartnerClientId : $this->partnerClientId;
 

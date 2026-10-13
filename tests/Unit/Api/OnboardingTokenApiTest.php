@@ -44,7 +44,7 @@ final class OnboardingTokenApiTest extends TestCase
 
         $this->onboardingTokenApi = new OnboardingTokenApi(
             $this->requestExecutor,
-            $this->createConfiguredStub(HostProviderInterface::class, ['getApiBaseUrl' => 'http://base-url.com/']),
+            $this->hostProvider(),
             $this->requestFactory,
             $this->streamFactory,
         );
@@ -59,7 +59,7 @@ final class OnboardingTokenApiTest extends TestCase
         $this->requestFactory
             ->expects(self::once())
             ->method('createRequest')
-            ->with('POST', 'http://base-url.com/v1/oauth2/token')
+            ->with('POST', 'http://sandbox-base-url.com/v1/oauth2/token')
             ->willReturn($request);
 
         $request->method('withHeader')->willReturn($request);
@@ -74,7 +74,7 @@ final class OnboardingTokenApiTest extends TestCase
 
         self::assertSame(
             'ONBOARDING-TOKEN',
-            $this->onboardingTokenApi->getFromAuthorizationCode('SHARED-ID', 'AUTH-CODE', 'SELLER-NONCE'),
+            $this->onboardingTokenApi->getFromAuthorizationCode('SHARED-ID', 'AUTH-CODE', 'SELLER-NONCE', true),
         );
     }
 
@@ -92,6 +92,17 @@ final class OnboardingTokenApiTest extends TestCase
 
         $this->expectException(PayPalPluginException::class);
 
-        $this->onboardingTokenApi->getFromAuthorizationCode('SHARED-ID', 'AUTH-CODE', 'SELLER-NONCE');
+        $this->onboardingTokenApi->getFromAuthorizationCode('SHARED-ID', 'AUTH-CODE', 'SELLER-NONCE', false);
+    }
+
+    private function hostProvider(): HostProviderInterface
+    {
+        $hostProvider = $this->createStub(HostProviderInterface::class);
+        $hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, 'http://sandbox-base-url.com/'],
+            [false, 'http://base-url.com/'],
+        ]);
+
+        return $hostProvider;
     }
 }

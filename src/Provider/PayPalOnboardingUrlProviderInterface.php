@@ -20,5 +20,5 @@ interface PayPalOnboardingUrlProviderInterface
     /**
      * @throws PayPalPluginException
      */
-    public function generate(string $sellerNonce): string;
+    public function generate(string $sellerNonce, bool $sandbox): string;
 }

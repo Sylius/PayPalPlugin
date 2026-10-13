@@ -67,6 +67,10 @@ final class PayPalClientTest extends TestCase
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
         $this->hostProvider = $this->createMock(HostProviderInterface::class);
         $this->hostProvider->method('getApiBaseUrl')->willReturn('https://test-api.paypal.com/');
+        $this->hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, 'https://test-api.paypal.com/'],
+            [false, 'https://api.paypal.com/'],
+        ]);
 
         $channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($channel);
@@ -128,7 +132,7 @@ final class PayPalClientTest extends TestCase
             ->method('getContents')
             ->willReturn('{"access_token": "TOKEN"}');
 
-        $result = $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET');
+        $result = $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
 
         self::assertEquals(['access_token' => 'TOKEN'], $result);
     }
@@ -161,7 +165,7 @@ final class PayPalClientTest extends TestCase
 
         $this->expectException(PayPalAuthorizationException::class);
 
-        $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET');
+        $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
     }
 
     #[Test]

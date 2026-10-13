@@ -74,6 +74,7 @@ final class PayPalOnboardingModalComponent
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(
                 $this->sellerNonceManager->generate($this->sandbox),
+                $this->sandbox,
             );
         } catch (\Throwable $exception) {
             $this->logger->error(

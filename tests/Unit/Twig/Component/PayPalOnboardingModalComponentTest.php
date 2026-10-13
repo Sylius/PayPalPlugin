@@ -68,7 +68,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         $this->onboardingUrlProvider
             ->expects(self::once())
             ->method('generate')
-            ->with('NONCE')
+            ->with('NONCE', false)
             ->willReturn('https://www.sandbox.paypal.com/bizsignup/partner/entry?sellerNonce=NONCE');
 
         $this->payPalOnboardingModalComponent->loadOnboardingUrl();
@@ -104,7 +104,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         $this->onboardingUrlProvider
             ->expects(self::once())
             ->method('generate')
-            ->with('NONCE')
+            ->with('NONCE', true)
             ->willReturn('https://www.sandbox.paypal.com/bizsignup/partner/entry?sellerNonce=NONCE');
 
         $this->payPalOnboardingModalComponent->loadOnboardingUrl();
@@ -151,7 +151,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     {
         $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('generate')->willReturn('SELLER-NONCE');
-        $this->onboardingUrlProvider->method('generate')->with('SELLER-NONCE')->willReturn('https://www.paypal.com/onboarding');
+        $this->onboardingUrlProvider->method('generate')->with('SELLER-NONCE', false)->willReturn('https://www.paypal.com/onboarding');
 
         $this->payPalOnboardingModalComponent->loadOnboardingUrl();
 

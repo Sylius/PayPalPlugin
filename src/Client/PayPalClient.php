@@ -45,11 +45,11 @@ final class PayPalClient implements PayPalClientInterface
     ) {
     }
 
-    public function authorize(string $clientId, string $clientSecret): array
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): array
     {
         $response = $this->doRequest(
             'POST',
-            $this->hostProvider->getApiBaseUrl() . 'v1/oauth2/token',
+            $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/oauth2/token',
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
