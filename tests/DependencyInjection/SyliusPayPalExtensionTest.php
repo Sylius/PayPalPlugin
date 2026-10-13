@@ -23,6 +23,7 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->setParameter('kernel.bundles_metadata', []);
         $this->saveEnvVars();
         $this->clearEnvVars();
     }
@@ -45,36 +46,6 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         $this->load();
     }
 
-    /**
-     * @dataProvider onboardingParametersProvider
-     */
-    public function test_it_sets_the_onboarding_parameters(
-        string $parameterName,
-        string $expectedValue,
-    ): void {
-        $this->load();
-
-        $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
-    }
-
-    public static function onboardingParametersProvider(): iterable
-    {
-        yield 'api base url' => [
-            'sylius_paypal.onboarding.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'web url' => [
-            'sylius_paypal.onboarding.web_url',
-            'https://www.paypal.com',
-        ];
-
-        yield 'partner js url' => [
-            'sylius_paypal.onboarding.partner_js_url',
-            'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js',
-        ];
-    }
-
     public function test_it_increases_logging_via_env(): void
     {
         $this->setEnvVar('SYLIUS_PAYPAL_LOGGING_INCREASED', 'true');
@@ -82,6 +53,18 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         $this->load();
 
         $this->assertContainerBuilderHasParameter('sylius_paypal.logging.increased', true);
+    }
+
+    public function test_it_sets_the_production_and_sandbox_partner_credentials(): void
+    {
+        $this->load();
+
+        $this->assertContainerBuilderHasParameter('sylius_paypal.partner_credentials.partner_id', 'PTV9W69CVKNEL');
+        $this->assertContainerBuilderHasParameter('sylius_paypal.partner_credentials.sandbox.partner_id', 'JQVY284FYA5PC');
+        $this->assertContainerBuilderHasParameter(
+            'sylius_paypal.partner_credentials.sandbox.partner_client_id',
+            'ARDYqDJaDpNYQZUlGxdR-AyNxVV-Xr24nrkcWLiJME9NSsl6w7l6GfVuKe5iVmCbysOtsjyGtVeXYM2a',
+        );
     }
 
     private function saveEnvVars(): void

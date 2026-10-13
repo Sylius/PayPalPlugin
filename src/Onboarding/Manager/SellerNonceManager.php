@@ -19,15 +19,19 @@ final readonly class SellerNonceManager implements SellerNonceManagerInterface
 {
     private const SESSION_KEY = 'sylius_paypal.onboarding.seller_nonce';
 
+    private const SANDBOX_SESSION_KEY = 'sylius_paypal.onboarding.sandbox';
+
     public function __construct(private RequestStack $requestStack)
     {
     }
 
-    public function generate(): string
+    public function generate(bool $sandbox = false): string
     {
         $nonce = bin2hex(random_bytes(32));
 
-        $this->requestStack->getSession()->set(self::SESSION_KEY, $nonce);
+        $session = $this->requestStack->getSession();
+        $session->set(self::SESSION_KEY, $nonce);
+        $session->set(self::SANDBOX_SESSION_KEY, $sandbox);
 
         return $nonce;
     }
@@ -43,8 +47,15 @@ final readonly class SellerNonceManager implements SellerNonceManagerInterface
         return (string) $session->get(self::SESSION_KEY);
     }
 
+    public function isSandbox(): bool
+    {
+        return true === $this->requestStack->getSession()->get(self::SANDBOX_SESSION_KEY, false);
+    }
+
     public function remove(): void
     {
-        $this->requestStack->getSession()->remove(self::SESSION_KEY);
+        $session = $this->requestStack->getSession();
+        $session->remove(self::SESSION_KEY);
+        $session->remove(self::SANDBOX_SESSION_KEY);
     }
 }

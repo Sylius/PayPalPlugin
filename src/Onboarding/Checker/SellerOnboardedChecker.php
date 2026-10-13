@@ -17,7 +17,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 
-final readonly class ProductionSellerOnboardedChecker implements ProductionSellerOnboardedCheckerInterface
+final readonly class SellerOnboardedChecker implements SellerOnboardedCheckerInterface
 {
     public function __construct(
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
@@ -25,7 +25,7 @@ final readonly class ProductionSellerOnboardedChecker implements ProductionSelle
     ) {
     }
 
-    public function isOnboarded(): bool
+    public function isOnboarded(bool $sandbox): bool
     {
         if (!$this->payPalPaymentMethodProvider->exists()) {
             return false;
@@ -34,6 +34,6 @@ final readonly class ProductionSellerOnboardedChecker implements ProductionSelle
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $this->payPalPaymentMethodProvider->provide()->getGatewayConfig();
 
-        return $this->credentialsManager->hasCredentials($gatewayConfig->getConfig(), false);
+        return $this->credentialsManager->hasCredentials($gatewayConfig->getConfig(), $sandbox);
     }
 }

@@ -20,6 +20,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApi;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class MerchantOnboardingStatusApiTest extends TestCase
 {
@@ -38,7 +39,7 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         $this->merchantOnboardingStatusApi = new MerchantOnboardingStatusApi(
             $this->requestExecutor,
             $this->requestFactory,
-            'http://base-url.com/',
+            $this->createConfiguredStub(HostProviderInterface::class, ['getApiBaseUrl' => 'http://base-url.com/']),
         );
     }
 

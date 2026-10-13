@@ -27,15 +27,16 @@ use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
-use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedCheckerInterface;
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
+use Sylius\PayPalPlugin\Onboarding\Provider\OnboardingModeProvider;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class OnboardingCompletionProcessorTest extends TestCase
 {
-    private ProductionSellerOnboardedCheckerInterface&MockObject $productionSellerOnboardedChecker;
+    private SellerOnboardedCheckerInterface&MockObject $sellerOnboardedChecker;
 
     private SellerNonceManagerInterface&MockObject $sellerNonceManager;
 
@@ -52,7 +53,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->productionSellerOnboardedChecker = $this->createMock(ProductionSellerOnboardedCheckerInterface::class);
+        $this->sellerOnboardedChecker = $this->createMock(SellerOnboardedCheckerInterface::class);
         $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
         $this->sellerOnboardingResolver = $this->createMock(SellerOnboardingResolverInterface::class);
         $this->onboardingPaymentMethodCreator = $this->createMock(PayPalOnboardingPaymentMethodCreatorInterface::class);
@@ -60,12 +61,13 @@ final class OnboardingCompletionProcessorTest extends TestCase
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
 
         $this->processor = new OnboardingCompletionProcessor(
-            $this->productionSellerOnboardedChecker,
+            $this->sellerOnboardedChecker,
             $this->sellerNonceManager,
             $this->sellerOnboardingResolver,
             $this->onboardingPaymentMethodCreator,
             $this->sellerWebhookRegistrar,
             $this->entityManager,
+            new OnboardingModeProvider($this->sellerNonceManager),
         );
     }
 
@@ -76,14 +78,14 @@ final class OnboardingCompletionProcessorTest extends TestCase
         $status = new OnboardingStatus(true, true);
         $sellerOnboardingResult = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', $status);
 
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(false);
+        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
         $this->sellerOnboardingResolver
             ->expects(self::once())
             ->method('resolve')
             ->with('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE')
             ->willReturn($sellerOnboardingResult);
-        $this->onboardingPaymentMethodCreator->method('create')->with($sellerOnboardingResult)->willReturn($paymentMethod);
+        $this->onboardingPaymentMethodCreator->method('create')->with($sellerOnboardingResult, false)->willReturn($paymentMethod);
         $this->sellerWebhookRegistrar->expects(self::once())->method('register')->with($paymentMethod);
         $paymentMethod->expects(self::never())->method('setEnabled');
         $this->entityManager->expects(self::once())->method('flush');
@@ -94,6 +96,49 @@ final class OnboardingCompletionProcessorTest extends TestCase
         self::assertSame($paymentMethod, $result->getPaymentMethod());
         self::assertSame($status, $result->getStatus());
         self::assertTrue($result->isWebhookUrlValid());
+        self::assertFalse($result->isSandbox());
+    }
+
+    #[Test]
+    public function it_completes_the_sandbox_onboarding_into_the_sandbox_vault(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $status = new OnboardingStatus(true, true);
+        $sellerOnboardingResult = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', $status);
+
+        $this->sellerOnboardedChecker->method('isOnboarded')->with(true)->willReturn(false);
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceManager->method('isSandbox')->willReturn(true);
+        $this->sellerOnboardingResolver
+            ->expects(self::once())
+            ->method('resolve')
+            ->with('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE')
+            ->willReturn($sellerOnboardingResult);
+        $this->onboardingPaymentMethodCreator
+            ->expects(self::once())
+            ->method('create')
+            ->with($sellerOnboardingResult, true)
+            ->willReturn($paymentMethod);
+        $this->sellerWebhookRegistrar->expects(self::once())->method('register')->with($paymentMethod);
+
+        $result = $this->processor->process('AUTH-CODE', 'SHARED-ID');
+
+        self::assertSame($paymentMethod, $result->getPaymentMethod());
+        self::assertTrue($result->isSandbox());
+    }
+
+    #[Test]
+    public function it_throws_an_exception_when_a_sandbox_seller_is_already_onboarded(): void
+    {
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerNonceManager->method('isSandbox')->willReturn(true);
+        $this->sellerOnboardedChecker->method('isOnboarded')->with(true)->willReturn(true);
+
+        $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
+
+        $this->expectException(PayPalPaymentMethodAlreadyExistsException::class);
+
+        $this->processor->process('AUTH-CODE', 'SHARED-ID');
     }
 
     #[Test]
@@ -128,7 +173,8 @@ final class OnboardingCompletionProcessorTest extends TestCase
     #[Test]
     public function it_throws_an_exception_when_a_production_seller_is_already_onboarded(): void
     {
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(true);
+        $this->sellerOnboardedChecker->method('isOnboarded')->with(false)->willReturn(true);
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
 
         $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
 
@@ -138,9 +184,33 @@ final class OnboardingCompletionProcessorTest extends TestCase
     }
 
     #[Test]
+    public function it_throws_an_exception_when_the_session_expired_even_if_a_production_seller_is_onboarded(): void
+    {
+        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(true);
+        $this->sellerNonceManager->method('get')->willReturn(null);
+
+        $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
+
+        $this->expectException(OnboardingSessionExpiredException::class);
+
+        $this->processor->process('AUTH-CODE', 'SHARED-ID');
+    }
+
+    #[Test]
+    public function it_onboards_production_into_an_existing_sandbox_only_payment_method(): void
+    {
+        $this->sellerOnboardedChecker->method('isOnboarded')->with(false)->willReturn(false);
+        $this->sellerNonceManager->method('get')->willReturn(null);
+
+        $this->expectException(OnboardingSessionExpiredException::class);
+
+        $this->processor->process('AUTH-CODE', 'SHARED-ID');
+    }
+
+    #[Test]
     public function it_throws_an_exception_when_the_seller_nonce_is_missing(): void
     {
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(false);
+        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('get')->willReturn(null);
 
         $this->sellerOnboardingResolver->expects(self::never())->method('resolve');
@@ -153,7 +223,7 @@ final class OnboardingCompletionProcessorTest extends TestCase
     #[Test]
     public function it_wraps_failures_and_keeps_the_seller_nonce(): void
     {
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(false);
+        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
         $this->sellerOnboardingResolver->method('resolve')->willThrowException(new PayPalPluginException('boom'));
 
@@ -165,9 +235,25 @@ final class OnboardingCompletionProcessorTest extends TestCase
         $this->processor->process('AUTH-CODE', 'SHARED-ID');
     }
 
+    #[Test]
+    public function it_does_not_flush_the_payment_method_when_the_webhook_registration_fails(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $this->mockSuccessfulResolution($paymentMethod);
+        $this->sellerWebhookRegistrar->method('register')->willThrowException(new PayPalPluginException('boom'));
+
+        $this->entityManager->expects(self::never())->method('flush');
+        $this->sellerNonceManager->expects(self::never())->method('remove');
+
+        $this->expectException(OnboardingFailedException::class);
+
+        $this->processor->process('AUTH-CODE', 'SHARED-ID');
+    }
+
     private function mockSuccessfulResolution(PaymentMethodInterface $paymentMethod): void
     {
-        $this->productionSellerOnboardedChecker->method('isOnboarded')->willReturn(false);
+        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
         $this->sellerOnboardingResolver->method('resolve')->willReturn(
             new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true)),

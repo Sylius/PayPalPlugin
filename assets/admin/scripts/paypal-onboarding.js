@@ -12,7 +12,12 @@ function loadPartnerJs(partnerJsUrl) {
         return;
     }
 
-    if (document.querySelector('script[data-paypal-partner-js]') !== null) {
+    const loadedScript = document.querySelector('script[data-paypal-partner-js]');
+
+    if (loadedScript !== null && loadedScript.getAttribute('src') !== partnerJsUrl) {
+        loadedScript.remove();
+        delete window.PAYPAL;
+    } else if (loadedScript !== null) {
         const signup = window.PAYPAL && window.PAYPAL.apps && window.PAYPAL.apps.Signup;
 
         if (signup && typeof signup.setup === 'function') {
@@ -34,8 +39,14 @@ function loadPartnerJs(partnerJsUrl) {
     document.body.appendChild(script);
 }
 
+let activeOnboardingModal = null;
+
+function findOnboardingModals() {
+    return document.querySelectorAll('[data-paypal-onboarding-complete-url]');
+}
+
 function findOnboardingModal() {
-    return document.querySelector('[data-paypal-onboarding-complete-url]');
+    return activeOnboardingModal ?? document.querySelector('[data-paypal-onboarding-complete-url]');
 }
 
 window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, sharedId) {
@@ -72,17 +83,15 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         });
 };
 
-function loadPartnerJsOnceButtonExists(onboardingModal) {
-    if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
+function loadPartnerJsIfButtonExists(onboardingModal) {
+    if (activeOnboardingModal === onboardingModal && onboardingModal.querySelector('[data-paypal-button]') !== null) {
         loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
-
-        return;
     }
+}
 
+function loadPartnerJsOnceButtonExists(onboardingModal) {
     const observer = new MutationObserver(() => {
-        if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
-            loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
-        }
+        loadPartnerJsIfButtonExists(onboardingModal);
     });
     observer.observe(onboardingModal, { childList: true, subtree: true });
 }
@@ -90,17 +99,17 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
 function bindOnboardingUrlLoader(onboardingModal) {
     document.querySelectorAll(`[data-bs-target="#${onboardingModal.id}"]`).forEach((trigger) => {
         trigger.addEventListener('click', () => {
+            activeOnboardingModal = onboardingModal;
             onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
         });
     });
 }
 
 function initOnboardingModal() {
-    const onboardingModal = findOnboardingModal();
-    if (onboardingModal !== null) {
+    findOnboardingModals().forEach((onboardingModal) => {
         bindOnboardingUrlLoader(onboardingModal);
         loadPartnerJsOnceButtonExists(onboardingModal);
-    }
+    });
 }
 
 if (document.readyState === 'loading') {

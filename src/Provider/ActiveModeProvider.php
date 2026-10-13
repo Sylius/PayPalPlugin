@@ -15,7 +15,7 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 final readonly class ActiveModeProvider implements ActiveModeProviderInterface
 {
@@ -34,6 +34,6 @@ final readonly class ActiveModeProvider implements ActiveModeProviderInterface
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        return (bool) ($gatewayConfig->getConfig()[CredentialsManagerInterface::MODE_KEY] ?? false);
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
     }
 }

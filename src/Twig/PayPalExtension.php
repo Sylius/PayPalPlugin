@@ -25,6 +25,8 @@ use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Model\ModeSwitchView;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -33,7 +35,11 @@ use Twig\TwigFunction;
 
 final class PayPalExtension extends AbstractExtension
 {
+    private const PARTNER_JS_PATH = '/webapps/merchantboarding/js/lib/lightbox/partner.js';
+
     private readonly PayerActionCheckerInterface $payerActionChecker;
+
+    private readonly HostProviderInterface $hostProvider;
 
     public function __construct(
         private readonly ActiveModeProviderInterface $activeModeProvider,
@@ -43,9 +49,10 @@ final class PayPalExtension extends AbstractExtension
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
-        private readonly string $partnerJsUrl = '',
+        ?HostProviderInterface $hostProvider = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
+        $this->hostProvider = $hostProvider ?? new HostProvider($this->activeModeProvider);
 
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -166,9 +173,9 @@ final class PayPalExtension extends AbstractExtension
         return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
     }
 
-    public function getPartnerJsUrl(): string
+    public function getPartnerJsUrl(bool $sandbox = false): string
     {
-        return $this->partnerJsUrl;
+        return $this->hostProvider->getWebUrlForMode($sandbox) . self::PARTNER_JS_PATH;
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool

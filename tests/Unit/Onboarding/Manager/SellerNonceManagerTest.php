@@ -78,6 +78,20 @@ final class SellerNonceManagerTest extends TestCase
     }
 
     #[Test]
+    public function it_remembers_the_sandbox_mode_of_the_generated_nonce(): void
+    {
+        self::assertFalse($this->sellerNonceManager->isSandbox());
+
+        $this->sellerNonceManager->generate(true);
+
+        self::assertTrue($this->sellerNonceManager->isSandbox());
+
+        $this->sellerNonceManager->remove();
+
+        self::assertFalse($this->sellerNonceManager->isSandbox());
+    }
+
+    #[Test]
     public function it_returns_null_when_nothing_was_generated(): void
     {
         self::assertNull($this->sellerNonceManager->get());

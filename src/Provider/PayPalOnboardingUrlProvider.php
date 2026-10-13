@@ -17,13 +17,10 @@ use Sylius\PayPalPlugin\UrlUtils;
 
 final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlProviderInterface
 {
-    private string $onboardingUrl;
-
     public function __construct(
-        string $webUrl,
+        private HostProviderInterface $hostProvider,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
     ) {
-        $this->onboardingUrl = $webUrl . '/bizsignup/partner/entry';
     }
 
     public function generate(string $sellerNonce): string
@@ -31,7 +28,7 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
         $partnerCredentials = $this->partnerCredentialsProvider->provide();
 
         return UrlUtils::appendQueryString(
-            $this->onboardingUrl,
+            $this->hostProvider->getWebUrl() . '/bizsignup/partner/entry',
             http_build_query([
                 'partnerId' => $partnerCredentials->getPartnerId(),
                 'product' => 'ppcp',

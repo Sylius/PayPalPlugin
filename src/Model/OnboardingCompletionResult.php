@@ -21,6 +21,7 @@ final readonly class OnboardingCompletionResult
         private PaymentMethodInterface $paymentMethod,
         private OnboardingStatus $status,
         private bool $webhookUrlValid,
+        private bool $sandbox = false,
     ) {
     }
 
@@ -37,5 +38,10 @@ final readonly class OnboardingCompletionResult
     public function isWebhookUrlValid(): bool
     {
         return $this->webhookUrlValid;
+    }
+
+    public function isSandbox(): bool
+    {
+        return $this->sandbox;
     }
 }

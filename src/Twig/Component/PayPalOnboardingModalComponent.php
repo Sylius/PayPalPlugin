@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig\Component;
 
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Onboarding\Checker\ProductionSellerOnboardedCheckerInterface;
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -48,10 +48,13 @@ final class PayPalOnboardingModalComponent
     #[LiveProp]
     public bool $opened = false;
 
+    #[LiveProp]
+    public bool $sandbox = false;
+
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceManagerInterface $sellerNonceManager,
-        private readonly ProductionSellerOnboardedCheckerInterface $productionSellerOnboardedChecker,
+        private readonly SellerOnboardedCheckerInterface $sellerOnboardedChecker,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -61,7 +64,7 @@ final class PayPalOnboardingModalComponent
     {
         $this->opened = true;
 
-        if ($this->productionSellerOnboardedChecker->isOnboarded()) {
+        if ($this->sellerOnboardedChecker->isOnboarded($this->sandbox)) {
             $this->sellerAlreadyOnboarded = true;
             $this->loading = false;
 
@@ -70,7 +73,7 @@ final class PayPalOnboardingModalComponent
 
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(
-                $this->sellerNonceManager->generate(),
+                $this->sellerNonceManager->generate($this->sandbox),
             );
         } catch (\Throwable $exception) {
             $this->logger->error(

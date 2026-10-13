@@ -97,7 +97,7 @@ final class PayPalConfigurationType extends AbstractType
         $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
             $data = $event->getData();
             if (is_array($data)) {
-                $event->getForm()->get(self::SANDBOX_MODE_FIELD)->setData((bool) ($data[CredentialsManagerInterface::MODE_KEY] ?? false));
+                $event->getForm()->get(self::SANDBOX_MODE_FIELD)->setData(PayPalGatewayConfig::fromArray($data)->isSandbox());
             }
         });
 
@@ -133,7 +133,7 @@ final class PayPalConfigurationType extends AbstractType
      */
     private function applyModeSwitch(FormEvent $event, array $config): array
     {
-        $currentSandbox = (bool) ($config[CredentialsManagerInterface::MODE_KEY] ?? false);
+        $currentSandbox = PayPalGatewayConfig::fromArray($config)->isSandbox();
         $requestedSandbox = (bool) $event->getForm()->get(self::SANDBOX_MODE_FIELD)->getData();
         $config = $this->credentialsManager->store($config, $currentSandbox, $config);
 

@@ -17,7 +17,11 @@ use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 final readonly class OnboardingStatusMessagesProvider implements OnboardingStatusMessagesProviderInterface
 {
-    public function provide(OnboardingStatus $status): array
+    public function __construct(private HostProviderInterface $hostProvider)
+    {
+    }
+
+    public function provide(OnboardingStatus $status, bool $sandbox = false): array
     {
         $messages = [];
 
@@ -26,7 +30,12 @@ final readonly class OnboardingStatusMessagesProvider implements OnboardingStatu
         }
 
         if (!$status->isPrimaryEmailConfirmed()) {
-            $messages[] = 'sylius_paypal.seller_onboarding_primary_email_not_confirmed';
+            $messages[] = [
+                'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                'parameters' => [
+                    '%business_profile_url%' => $this->hostProvider->getWebUrlForMode($sandbox) . '/businessprofile/settings',
+                ],
+            ];
         }
 
         return $messages;

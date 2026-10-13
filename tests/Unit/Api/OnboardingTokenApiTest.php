@@ -23,6 +23,7 @@ use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\OnboardingTokenApi;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class OnboardingTokenApiTest extends TestCase
 {
@@ -43,7 +44,7 @@ final class OnboardingTokenApiTest extends TestCase
 
         $this->onboardingTokenApi = new OnboardingTokenApi(
             $this->requestExecutor,
-            'http://base-url.com/',
+            $this->createConfiguredStub(HostProviderInterface::class, ['getApiBaseUrl' => 'http://base-url.com/']),
             $this->requestFactory,
             $this->streamFactory,
         );

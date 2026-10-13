@@ -26,6 +26,8 @@ use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -60,7 +62,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->action = new CompleteOnboardingAction(
             $this->onboardingCompletionProcessor,
-            new OnboardingStatusMessagesProvider(),
+            new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))),
             $this->urlGenerator,
             $this->logger,
         );
@@ -99,7 +101,10 @@ final class CompleteOnboardingActionTest extends TestCase
         self::assertSame(
             ['warning' => [
                 'sylius_paypal.seller_onboarding_payments_not_receivable',
-                'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                    'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
+                ],
                 'sylius_paypal.webhook_url_not_valid',
             ]],
             $this->flashBag($request)->all(),

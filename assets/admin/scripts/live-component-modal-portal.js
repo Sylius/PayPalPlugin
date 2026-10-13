@@ -8,7 +8,6 @@
  */
 
 const MODAL_COMPONENT_NAMES = [
-    'sylius_paypal:sandbox_onboarding_modal',
     'sylius_paypal:live_onboarding_modal',
 ];
 

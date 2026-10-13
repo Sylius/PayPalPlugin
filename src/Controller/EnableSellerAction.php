@@ -18,6 +18,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,7 +44,7 @@ final readonly class EnableSellerAction
         try {
             $this->paymentMethodEnabler->enable($paymentMethod);
         } catch (PaymentMethodCouldNotBeEnabledException $exception) {
-            foreach ($this->provideNotEnabledMessages($exception) as $message) {
+            foreach ($this->provideNotEnabledMessages($exception, $paymentMethod) as $message) {
                 $flashBag->add('error', $message);
             }
 
@@ -59,15 +60,18 @@ final readonly class EnableSellerAction
         return new RedirectResponse((string) $request->headers->get('referer'));
     }
 
-    /** @return list<string> */
-    private function provideNotEnabledMessages(PaymentMethodCouldNotBeEnabledException $exception): array
+    /** @return array<string|array{message: string, parameters: array<string, string>}> */
+    private function provideNotEnabledMessages(PaymentMethodCouldNotBeEnabledException $exception, PaymentMethodInterface $paymentMethod): array
     {
         $onboardingStatus = $exception->getOnboardingStatus();
         if (null === $onboardingStatus) {
             return ['sylius_paypal.payment_not_enabled'];
         }
 
-        $messages = $this->onboardingStatusMessagesProvider->provide($onboardingStatus);
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $sandbox = null !== $gatewayConfig && PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
+
+        $messages = $this->onboardingStatusMessagesProvider->provide($onboardingStatus, $sandbox);
 
         return [] === $messages ? ['sylius_paypal.payment_not_enabled'] : $messages;
     }

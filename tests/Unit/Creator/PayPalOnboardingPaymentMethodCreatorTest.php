@@ -160,11 +160,37 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->gatewayFactory->expects(self::never())->method('createNew');
         $this->paymentMethodFactory->expects(self::never())->method('createNew');
         $this->entityManager->expects(self::never())->method('persist');
-        $this->entityManager->expects(self::once())->method('flush');
+        $this->entityManager->expects(self::never())->method('flush');
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
         self::assertSame($paymentMethod, $this->creator->create($result));
+    }
+
+    #[Test]
+    public function it_stores_sandbox_credentials_in_the_existing_payment_method(): void
+    {
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+        $existingConfig = ['sandbox' => false, 'client_id' => 'PROD-CLIENT-ID'];
+        $gatewayConfig->method('getConfig')->willReturn($existingConfig);
+
+        $this->payPalPaymentMethodProvider->method('exists')->willReturn(true);
+        $this->payPalPaymentMethodProvider->method('provide')->willReturn($paymentMethod);
+
+        $this->credentialsManager
+            ->expects(self::once())
+            ->method('store')
+            ->with($existingConfig, true, self::CREDENTIALS)
+            ->willReturn(self::STORED_CONFIG);
+
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
+
+        $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
+
+        self::assertSame($paymentMethod, $this->creator->create($result, true));
     }
 
     /** @return array{0: GatewayConfigInterface&MockObject, 1: PaymentMethodInterface&MockObject} */

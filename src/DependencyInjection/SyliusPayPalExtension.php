@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
-use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -30,6 +29,10 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     private const PAYPAL_PARTNER_ID = 'PTV9W69CVKNEL';
 
     private const PAYPAL_PARTNER_CLIENT_ID = 'ARYYW7lvQsrqKS5TRaaOsH4x1MhT56KhIhY6zEzQPDtMWNLmnNbbapVQMke50UQp6JuWogzrxS_k66Fr';
+
+    private const PAYPAL_SANDBOX_PARTNER_ID = 'JQVY284FYA5PC';
+
+    private const PAYPAL_SANDBOX_PARTNER_CLIENT_ID = 'ARDYqDJaDpNYQZUlGxdR-AyNxVV-Xr24nrkcWLiJME9NSsl6w7l6GfVuKe5iVmCbysOtsjyGtVeXYM2a';
 
     private const PAYPAL_LOGO_URL = 'https://sylius.com/wp-content/uploads/2021/03/sylius-logo_sylius-logo-light-300x124.jpg';
 
@@ -133,12 +136,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
         $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
         $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
         $container->setParameter('sylius_paypal.partner_attribution_id', self::PARTNER_ATTRIBUTION_ID);
-        $container->setParameter('sylius_paypal.onboarding.api_base_url', HostProviderInterface::PRODUCTION_API_BASE_URL);
-        $container->setParameter('sylius_paypal.onboarding.web_url', HostProviderInterface::PRODUCTION_WEB_URL);
-        $container->setParameter('sylius_paypal.onboarding.partner_js_url', 'https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js');
         $container->setParameter('sylius_paypal.partner_credentials.partner_id', self::PAYPAL_PARTNER_ID);
         $container->setParameter('sylius_paypal.partner_credentials.partner_client_id', self::PAYPAL_PARTNER_CLIENT_ID);
         $container->setParameter('sylius_paypal.partner_credentials.logo_url', self::PAYPAL_LOGO_URL);
+        $container->setParameter('sylius_paypal.partner_credentials.sandbox.partner_id', self::PAYPAL_SANDBOX_PARTNER_ID);
+        $container->setParameter('sylius_paypal.partner_credentials.sandbox.partner_client_id', self::PAYPAL_SANDBOX_PARTNER_CLIENT_ID);
     }
 
     private function processEnvConfig(array $configs): array
