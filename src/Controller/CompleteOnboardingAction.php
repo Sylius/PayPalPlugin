@@ -51,14 +51,16 @@ final readonly class CompleteOnboardingAction
 
             Assert::keyExists($data, 'authCode');
             Assert::keyExists($data, 'sharedId');
+            Assert::keyExists($data, 'sandbox');
             Assert::stringNotEmpty($data['authCode']);
             Assert::stringNotEmpty($data['sharedId']);
+            Assert::boolean($data['sandbox']);
         } catch (\JsonException | \InvalidArgumentException) {
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId']);
+            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId'], $data['sandbox']);
         } catch (PayPalPaymentMethodAlreadyExistsException) {
             $flashBag->add('error', 'sylius_paypal.more_than_one_seller_not_allowed');
 

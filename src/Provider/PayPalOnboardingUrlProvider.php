@@ -23,12 +23,12 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
     ) {
     }
 
-    public function generate(string $sellerNonce): string
+    public function generate(string $sellerNonce, bool $sandbox): string
     {
-        $partnerCredentials = $this->partnerCredentialsProvider->provide();
+        $partnerCredentials = $this->partnerCredentialsProvider->provide($sandbox);
 
         return UrlUtils::appendQueryString(
-            $this->hostProvider->getWebUrl() . '/bizsignup/partner/entry',
+            $this->hostProvider->getWebUrlForMode($sandbox) . '/bizsignup/partner/entry',
             http_build_query([
                 'partnerId' => $partnerCredentials->getPartnerId(),
                 'product' => 'ppcp',

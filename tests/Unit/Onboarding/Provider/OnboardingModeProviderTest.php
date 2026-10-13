@@ -15,20 +15,25 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Onboarding\Provider;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Provider\OnboardingModeProvider;
 
 final class OnboardingModeProviderTest extends TestCase
 {
     #[Test]
-    public function it_takes_the_mode_from_the_onboarding_session(): void
+    public function it_is_not_sandbox_by_default(): void
     {
-        $sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
-        $sellerNonceManager->method('isSandbox')->willReturn(true, false);
+        self::assertFalse((new OnboardingModeProvider())->isSandbox());
+    }
 
-        $provider = new OnboardingModeProvider($sellerNonceManager);
+    #[Test]
+    public function it_returns_the_activated_mode(): void
+    {
+        $provider = new OnboardingModeProvider();
 
+        $provider->activate(true);
         self::assertTrue($provider->isSandbox());
+
+        $provider->activate(false);
         self::assertFalse($provider->isSandbox());
     }
 }

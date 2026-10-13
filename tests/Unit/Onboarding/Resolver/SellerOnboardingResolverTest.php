@@ -91,7 +91,7 @@ final class SellerOnboardingResolverTest extends TestCase
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID')
             ->willReturn($status);
 
-        $result = $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE');
+        $result = $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE', false);
 
         self::assertSame('CLIENT-ID', $result->getClientId());
         self::assertSame('CLIENT-SECRET', $result->getClientSecret());
@@ -109,7 +109,7 @@ final class SellerOnboardingResolverTest extends TestCase
         $this->sellerCredentialsApi->expects(self::never())->method('get');
 
         try {
-            $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE');
+            $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE', false);
             self::fail('SellerOnboardingResolutionException was not thrown');
         } catch (SellerOnboardingResolutionException $exception) {
             self::assertSame($previous, $exception->getPrevious());

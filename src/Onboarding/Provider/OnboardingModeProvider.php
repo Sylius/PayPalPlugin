@@ -13,17 +13,17 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Provider;
 
-use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
-
-final readonly class OnboardingModeProvider implements ActiveModeProviderInterface
+final class OnboardingModeProvider implements OnboardingModeProviderInterface
 {
-    public function __construct(private SellerNonceManagerInterface $sellerNonceManager)
+    private bool $sandbox = false;
+
+    public function activate(bool $sandbox): void
     {
+        $this->sandbox = $sandbox;
     }
 
     public function isSandbox(): bool
     {
-        return $this->sellerNonceManager->isSandbox();
+        return $this->sandbox;
     }
 }

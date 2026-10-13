@@ -37,7 +37,7 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
             ->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID', 'https://shop.example.com/logo.png'));
 
         $this->payPalOnboardingUrlProvider = new PayPalOnboardingUrlProvider(
-            $this->createConfiguredStub(HostProviderInterface::class, ['getWebUrl' => 'https://www.sandbox.paypal.com']),
+            $this->createConfiguredStub(HostProviderInterface::class, ['getWebUrlForMode' => 'https://www.sandbox.paypal.com']),
             $this->partnerCredentialsProvider,
         );
     }
@@ -51,7 +51,7 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
     #[Test]
     public function it_generates_the_bizsignup_partner_entry_url_with_a_slash_between_web_url_and_path(): void
     {
-        $result = $this->payPalOnboardingUrlProvider->generate('SELLER-NONCE');
+        $result = $this->payPalOnboardingUrlProvider->generate('SELLER-NONCE', true);
 
         self::assertStringStartsWith('https://www.sandbox.paypal.com/bizsignup/partner/entry?', $result);
         self::assertStringContainsString('partnerId=PARTNER-ID', $result);

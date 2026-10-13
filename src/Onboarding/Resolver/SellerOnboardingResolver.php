@@ -35,10 +35,10 @@ final readonly class SellerOnboardingResolver implements SellerOnboardingResolve
     ) {
     }
 
-    public function resolve(string $authCode, string $sharedId, string $sellerNonce): SellerOnboardingResult
+    public function resolve(string $authCode, string $sharedId, string $sellerNonce, bool $sandbox): SellerOnboardingResult
     {
         try {
-            $partnerId = $this->partnerCredentialsProvider->provide()->getPartnerId();
+            $partnerId = $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId();
 
             $onboardingToken = $this->onboardingTokenApi->getFromAuthorizationCode($sharedId, $authCode, $sellerNonce);
 

@@ -19,5 +19,5 @@ use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 interface SellerOnboardingResolverInterface
 {
     /** @throws SellerOnboardingResolutionException */
-    public function resolve(string $authCode, string $sharedId, string $sellerNonce): SellerOnboardingResult;
+    public function resolve(string $authCode, string $sharedId, string $sellerNonce, bool $sandbox): SellerOnboardingResult;
 }

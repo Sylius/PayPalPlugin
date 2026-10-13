@@ -26,14 +26,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(SellerNonceManagerInterface::class, 'sylius_paypal.manager.seller_nonce');
 
-    $services->set('sylius_paypal.onboarding.provider.mode', OnboardingModeProvider::class)
-        ->args([
-            service('sylius_paypal.manager.seller_nonce'),
-        ]);
+    $services->set('sylius_paypal.onboarding.provider.mode', OnboardingModeProvider::class);
 
     $services->set('sylius_paypal.provider.partner_credentials', PartnerCredentialsProvider::class)
         ->args([
-            service('sylius_paypal.provider.active_mode'),
             param('sylius_paypal.partner_credentials.partner_id'),
             param('sylius_paypal.partner_credentials.partner_client_id'),
             param('sylius_paypal.partner_credentials.sandbox.partner_id'),
@@ -43,20 +39,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PartnerCredentialsProviderInterface::class, 'sylius_paypal.provider.partner_credentials');
 
-    $services->set('sylius_paypal.provider.partner_credentials.onboarding', PartnerCredentialsProvider::class)
-        ->args([
-            service('sylius_paypal.onboarding.provider.mode'),
-            param('sylius_paypal.partner_credentials.partner_id'),
-            param('sylius_paypal.partner_credentials.partner_client_id'),
-            param('sylius_paypal.partner_credentials.sandbox.partner_id'),
-            param('sylius_paypal.partner_credentials.sandbox.partner_client_id'),
-            param('sylius_paypal.partner_credentials.logo_url'),
-        ]);
-
     $services->set('sylius_paypal.provider.onboarding_url', PayPalOnboardingUrlProvider::class)
         ->args([
-            service('sylius_paypal.provider.host.onboarding'),
-            service('sylius_paypal.provider.partner_credentials.onboarding'),
+            service('sylius_paypal.provider.host'),
+            service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(PayPalOnboardingUrlProviderInterface::class, 'sylius_paypal.provider.onboarding_url');

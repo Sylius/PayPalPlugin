@@ -49,7 +49,7 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
             $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret());
             $status = $config->isSandbox() ? null : $this->merchantOnboardingStatusApi->get(
                 $token,
-                $this->partnerCredentialsProvider->provide()->getPartnerId(),
+                $this->partnerCredentialsProvider->provide($config->isSandbox())->getPartnerId(),
                 $config->merchantId(),
             );
         } catch (PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
