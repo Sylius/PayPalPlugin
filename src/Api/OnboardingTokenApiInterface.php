@@ -23,5 +23,5 @@ interface OnboardingTokenApiInterface
      * @throws PayPalPluginException
      * @throws \JsonException
      */
-    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce): string;
+    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce, bool $sandbox): string;
 }

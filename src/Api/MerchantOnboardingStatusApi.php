@@ -27,11 +27,11 @@ final readonly class MerchantOnboardingStatusApi implements MerchantOnboardingSt
     ) {
     }
 
-    public function get(string $sellerToken, string $partnerId, string $merchantId): OnboardingStatus
+    public function get(string $sellerToken, string $partnerId, string $merchantId, bool $sandbox): OnboardingStatus
     {
         $request = $this->requestFactory->createRequest(
             Request::METHOD_GET,
-            sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrl(), $partnerId, $merchantId),
+            sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $merchantId),
         )
             ->withHeader('Authorization', 'Bearer ' . $sellerToken)
             ->withHeader('Content-Type', 'application/json')

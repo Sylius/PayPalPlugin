@@ -8,7 +8,6 @@ use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManager;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
-use Sylius\PayPalPlugin\Onboarding\Provider\OnboardingModeProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
@@ -25,8 +24,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(SellerNonceManagerInterface::class, 'sylius_paypal.manager.seller_nonce');
-
-    $services->set('sylius_paypal.onboarding.provider.mode', OnboardingModeProvider::class);
 
     $services->set('sylius_paypal.provider.partner_credentials', PartnerCredentialsProvider::class)
         ->args([
@@ -66,9 +63,8 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.manager.seller_nonce'),
             service('sylius_paypal.onboarding.resolver.seller'),
             service('sylius_paypal.creator.onboarding_payment_method'),
-            service('sylius_paypal.registrar.seller_webhook.onboarding'),
+            service('sylius_paypal.registrar.seller_webhook'),
             service('doctrine.orm.entity_manager'),
-            service('sylius_paypal.onboarding.provider.mode'),
         ]);
 
     $services->alias(OnboardingCompletionProcessorInterface::class, 'sylius_paypal.onboarding.processor.completion');

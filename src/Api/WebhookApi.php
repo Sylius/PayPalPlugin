@@ -37,9 +37,9 @@ final readonly class WebhookApi implements WebhookApiInterface
     ) {
     }
 
-    public function register(string $token, string $webhookUrl): array
+    public function register(string $token, string $webhookUrl, bool $sandbox): array
     {
-        $request = $this->requestFactory->createRequest('POST', $this->hostProvider->getApiBaseUrl() . 'v1/notifications/webhooks')
+        $request = $this->requestFactory->createRequest('POST', $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/notifications/webhooks')
             ->withHeader('Authorization', 'Bearer ' . $token)
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json');

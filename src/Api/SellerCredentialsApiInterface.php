@@ -25,5 +25,5 @@ interface SellerCredentialsApiInterface
      * @throws PayPalPluginException
      * @throws ClientExceptionInterface
      */
-    public function get(string $onboardingToken, string $partnerId): SellerCredentials;
+    public function get(string $onboardingToken, string $partnerId, bool $sandbox): SellerCredentials;
 }

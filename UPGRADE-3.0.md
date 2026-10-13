@@ -142,8 +142,8 @@
    | Removed | Replacement |
    |---|---|
    | `sylius_paypal.sandbox` parameter | `Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface` (`sylius_paypal.provider.active_mode`) |
-   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.provider.host.onboarding` for the onboarding |
-   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`), `sylius_paypal.provider.host.onboarding` for the onboarding |
+   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (used by the `sylius_paypal_partner_js_url()` Twig function) |
    | `sylius_paypal.client.sftp` service | `Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface` (`sylius_paypal.factory.sftp_client`) |
@@ -220,4 +220,24 @@
    -    private ?string $webUrl = null,
    +    private ?HostProviderInterface $hostProvider = null,
     ) {
+   ```
+
+   The following methods take the mode explicitly instead of reading it from the active payment method:
+
+   ```diff
+    // Sylius\PayPalPlugin\Client\PayPalClientInterface
+   -public function authorize(string $clientId, string $clientSecret): array;
+   +public function authorize(string $clientId, string $clientSecret, bool $sandbox): array;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface
+   -public function authorize(string $clientId, string $clientSecret): string;
+   +public function authorize(string $clientId, string $clientSecret, bool $sandbox): string;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\WebhookApiInterface
+   -public function register(string $token, string $webhookUrl): array;
+   +public function register(string $token, string $webhookUrl, bool $sandbox): array;
    ```

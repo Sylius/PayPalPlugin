@@ -62,9 +62,9 @@ final class SellerWebhookRegistrarTest extends TestCase
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
+        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'sandbox' => true]);
 
-        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
+        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn('TOKEN');
         $this->urlGenerator
             ->method('generate')
             ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
@@ -73,7 +73,7 @@ final class SellerWebhookRegistrarTest extends TestCase
         $this->webhookApi
             ->expects(self::once())
             ->method('register')
-            ->with('TOKEN', 'https://webhook-url.com')
+            ->with('TOKEN', 'https://webhook-url.com', true)
             ->willReturn(['name' => 'WEBHOOK_REGISTERED']);
 
         // Test that register method executes without throwing an exception
@@ -90,15 +90,15 @@ final class SellerWebhookRegistrarTest extends TestCase
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
+        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'sandbox' => true]);
 
-        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET')->willReturn('TOKEN');
+        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn('TOKEN');
         $this->urlGenerator
             ->method('generate')
             ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
-        $this->webhookApi->method('register')->with('TOKEN', 'https://webhook-url.com')->willReturn(['name' => 'VALIDATION_ERROR']);
+        $this->webhookApi->method('register')->with('TOKEN', 'https://webhook-url.com', true)->willReturn(['name' => 'VALIDATION_ERROR']);
 
         $this->expectException(PayPalWebhookUrlNotValidException::class);
 

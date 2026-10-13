@@ -24,7 +24,6 @@ use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
-use Sylius\PayPalPlugin\Onboarding\Provider\OnboardingModeProviderInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
@@ -37,7 +36,6 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
         private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
         private SellerWebhookRegistrarInterface $sellerWebhookRegistrar,
         private EntityManagerInterface $entityManager,
-        private OnboardingModeProviderInterface $onboardingModeProvider,
     ) {
     }
 
@@ -47,8 +45,6 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
         if (null === $sellerNonce) {
             throw new OnboardingSessionExpiredException();
         }
-
-        $this->onboardingModeProvider->activate($sandbox);
 
         if ($this->sellerOnboardedChecker->isOnboarded($sandbox)) {
             throw new PayPalPaymentMethodAlreadyExistsException();

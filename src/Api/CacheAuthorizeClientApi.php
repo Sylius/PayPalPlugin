@@ -50,6 +50,7 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
         $token = $this->authorizeClientApi->authorize(
             $config->clientId(),
             $config->clientSecret(),
+            $config->isSandbox(),
         );
         $payPalCredentials = new PayPalCredentials(
             $this->uuidProvider->provide(),

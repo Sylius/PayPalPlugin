@@ -30,7 +30,6 @@ use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
-use Sylius\PayPalPlugin\Onboarding\Provider\OnboardingModeProvider;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
@@ -67,7 +66,6 @@ final class OnboardingCompletionProcessorTest extends TestCase
             $this->onboardingPaymentMethodCreator,
             $this->sellerWebhookRegistrar,
             $this->entityManager,
-            new OnboardingModeProvider(),
         );
     }
 
