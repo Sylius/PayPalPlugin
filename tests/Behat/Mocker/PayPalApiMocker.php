@@ -97,7 +97,7 @@ final readonly class PayPalApiMocker
         $this->client->addExpectation('GET', 'v2/checkout/orders/' . $payPalOrderId, ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'], 404);
     }
 
-    public function mockOrderDetailsUnreachable(string $payPalOrderId = 'PAYPAL_ORDER_ID', int $attempts = 5): void
+    public function mockOrderDetailsUnreachable(string $payPalOrderId = 'PAYPAL_ORDER_ID', int $attempts = 3): void
     {
         for ($attempt = 0; $attempt < $attempts; ++$attempt) {
             $this->client->addConnectionFailure('GET', 'v2/checkout/orders/' . $payPalOrderId);

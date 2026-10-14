@@ -70,7 +70,7 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
 
     public function test_it_fails_to_connect_as_many_times_as_it_is_told(): void
     {
-        $this->mocker->mockOrderDetailsUnreachable('PAYPAL_ORDER_ID', attempts: 5);
+        $this->mocker->mockOrderDetailsUnreachable('PAYPAL_ORDER_ID', attempts: 3);
 
         $this->expectException(PayPalApiTimeoutException::class);
 

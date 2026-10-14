@@ -46,12 +46,14 @@ use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
     $parameters = $container->parameters();
-    $parameters->set('sylius_paypal.request_trials_limit', 5);
+    $parameters->set('sylius_paypal.api.max_attempts', 3);
     $parameters->set('sylius_paypal.webhook_base_url', '');
     $parameters->set('sylius_paypal.webhook_id_refresh_cooldown', 300);
     $parameters->set('sylius_paypal.callback_certificate_lifetime', 86400);
 
     $services->alias('sylius_paypal.http_client', 'sylius.http_client');
+
+    $services->alias('sylius_paypal.clock', 'clock');
 
     $services->set('sylius_paypal.client.paypal', PayPalClient::class)
         ->args([
@@ -61,9 +63,10 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_configuration'),
             service('sylius.context.channel'),
             service('sylius_paypal.provider.host'),
-            param('sylius_paypal.request_trials_limit'),
+            param('sylius_paypal.api.max_attempts'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
+            service('sylius_paypal.clock'),
             param('sylius_paypal.logging.increased'),
         ]);
 

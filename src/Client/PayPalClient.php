@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
@@ -27,21 +27,35 @@ use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Response;
 
-final class PayPalClient implements PayPalClientInterface
+final readonly class PayPalClient implements PayPalClientInterface
 {
+    private const RETRYABLE_STATUS_CODES = [
+        Response::HTTP_TOO_MANY_REQUESTS,
+        Response::HTTP_INTERNAL_SERVER_ERROR,
+        Response::HTTP_BAD_GATEWAY,
+        Response::HTTP_SERVICE_UNAVAILABLE,
+        Response::HTTP_GATEWAY_TIMEOUT,
+    ];
+
+    private const INITIAL_RETRY_DELAY_IN_MILLISECONDS = 250;
+
+    private const MAX_RETRY_DELAY_IN_MILLISECONDS = 2000;
+
     public function __construct(
-        private readonly ClientInterface $client,
-        private readonly LoggerInterface $logger,
-        private readonly UuidProviderInterface $uuidProvider,
-        private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private readonly ChannelContextInterface $channelContext,
-        private readonly HostProviderInterface $hostProvider,
-        private int $requestTrialsLimit,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory,
-        private readonly bool $loggingLevelIncreased = false,
+        private ClientInterface $client,
+        private LoggerInterface $logger,
+        private UuidProviderInterface $uuidProvider,
+        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private ChannelContextInterface $channelContext,
+        private HostProviderInterface $hostProvider,
+        private int $maxAttempts,
+        private RequestFactoryInterface $requestFactory,
+        private StreamFactoryInterface $streamFactory,
+        private ClockInterface $clock,
+        private bool $loggingLevelIncreased = false,
     ) {
     }
 
@@ -101,14 +115,9 @@ final class PayPalClient implements PayPalClientInterface
 
         $fullUrl = $this->hostProvider->getApiBaseUrl() . $url;
 
-        try {
-            $response = $this->doRequest($method, $fullUrl, $options);
-            if ($this->loggingLevelIncreased) {
-                $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
-            }
-        } catch (RequestException $exception) {
-            /** @var ResponseInterface $response */
-            $response = $exception->getResponse();
+        $response = $this->doRequest($method, $fullUrl, $options);
+        if ($this->loggingLevelIncreased) {
+            $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
         }
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
@@ -145,58 +154,115 @@ final class PayPalClient implements PayPalClientInterface
 
     private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
     {
-        try {
-            $request = $this->requestFactory->createRequest($method, $fullUrl);
+        $request = $this->requestFactory->createRequest($method, $fullUrl);
 
-            if (isset($options['auth'])) {
-                $request = $request->withHeader(
-                    'Authorization',
-                    sprintf(
-                        'Basic %s',
-                        base64_encode(sprintf('%s:%s', $options['auth'][0], $options['auth'][1])),
-                    ),
-                );
-            }
-
-            if (isset($options['form_params'])) {
-                $request = $request->withHeader('Content-Type', 'application/x-www-form-urlencoded');
-                $request = $request->withBody(
-                    $this->streamFactory->createStream(
-                        http_build_query(
-                            $options['form_params'],
-                            '',
-                            '&',
-                            \PHP_QUERY_RFC1738,
-                        ),
-                    ),
-                );
-            }
-
-            if (isset($options['json'])) {
-                $request = $request->withBody(
-                    $this->streamFactory->createStream(json_encode($options['json'])),
-                );
-            }
-
-            if (isset($options['headers'])) {
-                foreach ($options['headers'] as $header => $headerValue) {
-                    $request = $request->withHeader($header, $headerValue);
-                }
-            }
-
-            $response = $this->client->sendRequest($request);
-        } catch (ConnectException $exception) {
-            --$this->requestTrialsLimit;
-            if ($this->requestTrialsLimit === 0) {
-                throw new PayPalApiTimeoutException();
-            }
-
-            return $this->doRequest($method, $fullUrl, $options);
-        } catch (RequestException $exception) {
-            /** @var ResponseInterface $response */
-            $response = $exception->getResponse();
+        if (isset($options['auth'])) {
+            $request = $request->withHeader(
+                'Authorization',
+                sprintf(
+                    'Basic %s',
+                    base64_encode(sprintf('%s:%s', $options['auth'][0], $options['auth'][1])),
+                ),
+            );
         }
 
-        return $response;
+        if (isset($options['form_params'])) {
+            $request = $request->withHeader('Content-Type', 'application/x-www-form-urlencoded');
+            $request = $request->withBody(
+                $this->streamFactory->createStream(
+                    http_build_query(
+                        $options['form_params'],
+                        '',
+                        '&',
+                        \PHP_QUERY_RFC1738,
+                    ),
+                ),
+            );
+        }
+
+        if (isset($options['json'])) {
+            $request = $request->withBody(
+                $this->streamFactory->createStream(json_encode($options['json'])),
+            );
+        }
+
+        if (isset($options['headers'])) {
+            foreach ($options['headers'] as $header => $headerValue) {
+                $request = $request->withHeader($header, $headerValue);
+            }
+        }
+
+        return $this->send($request);
+    }
+
+    private function send(RequestInterface $request): ResponseInterface
+    {
+        for ($attempt = 1; ; ++$attempt) {
+            $this->rewindBody($request);
+
+            try {
+                $response = $this->client->sendRequest($request);
+            } catch (NetworkExceptionInterface $exception) {
+                if ($attempt >= $this->maxAttempts) {
+                    throw new PayPalApiTimeoutException();
+                }
+
+                $this->retryAfter($request, $attempt, $exception->getMessage(), $this->backoffDelay($attempt));
+
+                continue;
+            }
+
+            if ($attempt >= $this->maxAttempts || !in_array($response->getStatusCode(), self::RETRYABLE_STATUS_CODES, true)) {
+                return $response;
+            }
+
+            $delay = $this->retryDelay($response, $attempt);
+            if (null === $delay) {
+                return $response;
+            }
+
+            $this->retryAfter($request, $attempt, sprintf('HTTP %d', $response->getStatusCode()), $delay);
+        }
+    }
+
+    private function retryDelay(ResponseInterface $response, int $attempt): ?float
+    {
+        $retryAfter = $response->getHeaderLine('Retry-After');
+        if (!ctype_digit($retryAfter)) {
+            return $this->backoffDelay($attempt);
+        }
+
+        $delay = (int) $retryAfter * 1000;
+
+        return $delay > self::MAX_RETRY_DELAY_IN_MILLISECONDS ? null : $delay / 1000;
+    }
+
+    private function backoffDelay(int $attempt): float
+    {
+        $maxDelay = min(self::MAX_RETRY_DELAY_IN_MILLISECONDS, self::INITIAL_RETRY_DELAY_IN_MILLISECONDS * 2 ** ($attempt - 1));
+
+        return random_int(0, $maxDelay) / 1000;
+    }
+
+    private function retryAfter(RequestInterface $request, int $attempt, string $failure, float $delay): void
+    {
+        $this->logger->warning(sprintf(
+            '%s request to "%s" failed with %s, retrying (attempt %d of %d)',
+            $request->getMethod(),
+            (string) $request->getUri(),
+            $failure,
+            $attempt + 1,
+            $this->maxAttempts,
+        ));
+
+        $this->clock->sleep($delay);
+    }
+
+    private function rewindBody(RequestInterface $request): void
+    {
+        $body = $request->getBody();
+        if ($body->isSeekable()) {
+            $body->rewind();
+        }
     }
 }
