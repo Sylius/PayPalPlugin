@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
@@ -73,7 +74,7 @@ final class SellerWebhookRegistrarTest extends TestCase
         $this->webhookApi
             ->expects(self::once())
             ->method('register')
-            ->with('TOKEN', 'https://webhook-url.com', true)
+            ->with('TOKEN', 'https://webhook-url.com')
             ->willReturn(['name' => 'WEBHOOK_REGISTERED']);
 
         // Test that register method executes without throwing an exception
@@ -98,9 +99,26 @@ final class SellerWebhookRegistrarTest extends TestCase
             ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
-        $this->webhookApi->method('register')->with('TOKEN', 'https://webhook-url.com', true)->willReturn(['name' => 'VALIDATION_ERROR']);
+        $this->webhookApi->method('register')->with('TOKEN', 'https://webhook-url.com')->willReturn(['name' => 'VALIDATION_ERROR']);
 
         $this->expectException(PayPalWebhookUrlNotValidException::class);
+
+        $this->sellerWebhookRegistrar->register($paymentMethod);
+    }
+
+    public function test_it_throws_an_exception_if_the_webhook_is_already_registered(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
+
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->urlGenerator->method('generate')->willReturn('https://webhook-url.com');
+        $this->webhookApi->method('register')->willReturn(['name' => 'WEBHOOK_URL_ALREADY_EXISTS']);
+
+        $this->expectException(PayPalWebhookAlreadyRegisteredException::class);
 
         $this->sellerWebhookRegistrar->register($paymentMethod);
     }

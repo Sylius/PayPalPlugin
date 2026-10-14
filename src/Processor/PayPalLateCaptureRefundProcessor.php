@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Exception\ClientException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
@@ -82,7 +83,7 @@ final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundPr
                 AmountUtils::toPayPalValue($lateCapture['amount'], $lateCapture['currency_code']),
                 $lateCapture['currency_code'],
             );
-        } catch (ClientException|PayPalAuthorizationException) {
+        } catch (ClientExceptionInterface|PayPalApiTimeoutException|PayPalAuthorizationException) {
             throw new PayPalOrderRefundException();
         }
 

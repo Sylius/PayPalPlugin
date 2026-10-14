@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Registrar;
 
-use GuzzleHttp\Exception\ClientException;
-use Psr\Http\Message\ResponseInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
@@ -46,17 +44,10 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
         $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $config->isSandbox());
         $webhookUrl = $this->webhookUrlProvider->provide();
 
-        try {
-            $response = $this->webhookApi->register($token, $webhookUrl, $config->isSandbox());
-        } catch (ClientException $exception) {
-            /** @var ResponseInterface $exceptionResponse */
-            $exceptionResponse = $exception->getResponse();
-            /** @var array $exceptionMessage */
-            $exceptionMessage = json_decode($exceptionResponse->getBody()->getContents(), true);
+        $response = $this->webhookApi->register($token, $webhookUrl);
 
-            if ($exceptionMessage['name'] === 'WEBHOOK_URL_ALREADY_EXISTS') {
-                throw new PayPalWebhookAlreadyRegisteredException();
-            }
+        if (isset($response['name']) && $response['name'] === 'WEBHOOK_URL_ALREADY_EXISTS') {
+            throw new PayPalWebhookAlreadyRegisteredException();
         }
 
         if (isset($response['name']) && $response['name'] === 'VALIDATION_ERROR') {

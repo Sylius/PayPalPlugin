@@ -138,28 +138,18 @@ return static function (ContainerConfigurator $container) {
     $services->alias(OrderDetailsApiInterface::class, 'sylius_paypal.api.order_details');
 
     $services->set('sylius_paypal.api.webhook', WebhookApi::class)
-        ->args([
-            service('sylius.http_client'),
-            service('sylius_paypal.provider.host'),
-            service(RequestFactoryInterface::class),
-            service(StreamFactoryInterface::class),
-        ]);
+        ->args([service('sylius_paypal.client.paypal')]);
 
     $services->alias(WebhookApiInterface::class, 'sylius_paypal.api.webhook');
 
     $services->set('sylius_paypal.api.update_webhook', UpdateWebhookApi::class)
-        ->args([
-            service('sylius.http_client'),
-            service('sylius_paypal.provider.host'),
-            service(RequestFactoryInterface::class),
-            service(StreamFactoryInterface::class),
-        ]);
+        ->args([service('sylius_paypal.client.paypal')]);
 
     $services->alias(UpdateWebhookApiInterface::class, 'sylius_paypal.api.update_webhook');
 
     $services->set('sylius_paypal.api.webhook_signature_verifier', WebhookSignatureVerifier::class)
         ->args([
-            service('sylius.http_client'),
+            service('sylius_paypal.http_client'),
             service('sylius_paypal.provider.host'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),

@@ -17,9 +17,6 @@ use Psr\Http\Client\ClientExceptionInterface;
 
 interface WebhookApiInterface
 {
-    /**
-     * @throws ClientExceptionInterface
-     * @throws \JsonException
-     */
-    public function register(string $token, string $webhookUrl, bool $sandbox): array;
+    /** @throws ClientExceptionInterface */
+    public function register(string $token, string $webhookUrl): array;
 }

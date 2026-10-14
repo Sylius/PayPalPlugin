@@ -15,87 +15,44 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
-use Sylius\PayPalPlugin\Provider\HostProviderInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final class UpdateWebhookApiTest extends TestCase
 {
-    private ClientInterface&MockObject $client;
-
-    private RequestFactoryInterface&MockObject $requestFactory;
-
-    private StreamFactoryInterface&MockObject $streamFactory;
+    private PayPalClientInterface&MockObject $client;
 
     private UpdateWebhookApi $api;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->client = $this->createMock(ClientInterface::class);
-        $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
-        $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
+        $this->client = $this->createMock(PayPalClientInterface::class);
 
-        $hostProvider = $this->createMock(HostProviderInterface::class);
-        $hostProvider->method('getApiBaseUrlForMode')->with(true)->willReturn('https://api-m.sandbox.paypal.com/');
-
-        $this->api = new UpdateWebhookApi(
-            $this->client,
-            $hostProvider,
-            $this->requestFactory,
-            $this->streamFactory,
-        );
+        $this->api = new UpdateWebhookApi($this->client);
     }
 
-    public function test_it_implements_update_webhook_api_interface(): void
+    public function test_it_implements_the_update_webhook_api_interface(): void
     {
         self::assertInstanceOf(UpdateWebhookApiInterface::class, $this->api);
     }
 
-    public function test_it_replaces_the_event_types_of_an_existing_webhook(): void
+    public function test_it_replaces_the_event_types_of_the_webhook(): void
     {
-        $request = $this->createMock(RequestInterface::class);
-        $request->method('withHeader')->willReturn($request);
-        $request->method('withBody')->willReturn($request);
-
-        $body = $this->createMock(StreamInterface::class);
-        $body->method('getContents')->willReturn('{"id": "WEBHOOK_ID"}');
-
-        $response = $this->createMock(ResponseInterface::class);
-        $response->method('getBody')->willReturn($body);
-
-        $this->requestFactory
+        $this->client
             ->expects(self::once())
-            ->method('createRequest')
-            ->with('PATCH', 'https://api-m.sandbox.paypal.com/v1/notifications/webhooks/WEBHOOK_ID')
-            ->willReturn($request)
+            ->method('patch')
+            ->with('v1/notifications/webhooks/WEBHOOK_ID', 'TOKEN', [
+                [
+                    'op' => 'replace',
+                    'path' => '/event_types',
+                    'value' => [['name' => 'A'], ['name' => 'B']],
+                ],
+            ])
+            ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        $payload = null;
-        $this->streamFactory
-            ->method('createStream')
-            ->willReturnCallback(function (string $content) use (&$payload, $body): StreamInterface {
-                $payload = json_decode($content, true);
-
-                return $body;
-            })
-        ;
-
-        $this->client->method('sendRequest')->willReturn($response);
-
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B'], true));
-        self::assertSame([
-            [
-                'op' => 'replace',
-                'path' => '/event_types',
-                'value' => [['name' => 'A'], ['name' => 'B']],
-            ],
-        ], $payload);
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B']));
     }
 }

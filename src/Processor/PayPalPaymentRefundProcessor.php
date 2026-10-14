@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use GuzzleHttp\Exception\ClientException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -79,7 +80,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
                 (string) (((int) $payment->getAmount()) / 100),
                 (string) $order->getCurrencyCode(),
             );
-        } catch (ClientException | \InvalidArgumentException $exception) {
+        } catch (ClientExceptionInterface|PayPalApiTimeoutException|\InvalidArgumentException) {
             throw new PayPalOrderRefundException();
         }
     }

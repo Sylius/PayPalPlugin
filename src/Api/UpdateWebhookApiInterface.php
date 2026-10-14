@@ -20,5 +20,5 @@ interface UpdateWebhookApiInterface
      *
      * @return array<string, mixed>
      */
-    public function updateEventTypes(string $token, string $webhookId, array $eventTypes, bool $sandbox): array;
+    public function updateEventTypes(string $token, string $webhookId, array $eventTypes): array;
 }
