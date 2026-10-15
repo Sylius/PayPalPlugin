@@ -11,6 +11,7 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
+use Sylius\PayPalPlugin\Console\Command\PruneWebhookEventsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
@@ -20,6 +21,7 @@ use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
+use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
 use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
@@ -119,6 +121,8 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
+use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
+use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
@@ -586,6 +590,19 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment_method'),
             service('sylius_paypal.registrar.seller_webhook_event_types'),
+        ])
+        ->tag('console.command');
+
+    $services->set('sylius_paypal.repository.webhook_event', PayPalWebhookEventRepository::class)
+        ->args([PayPalWebhookEvent::class])
+        ->factory([service('doctrine.orm.entity_manager'), 'getRepository']);
+
+    $services->alias(PayPalWebhookEventRepositoryInterface::class, 'sylius_paypal.repository.webhook_event');
+
+    $services->set('sylius_paypal.console.command.prune_webhook_events', PruneWebhookEventsCommand::class)
+        ->args([
+            service('sylius_paypal.repository.webhook_event'),
+            '%sylius_paypal.webhook_event_retention_days%',
         ])
         ->tag('console.command');
 
