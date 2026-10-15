@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Sylius\PayPalPlugin\Api\AuthorizeClientApi;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -50,7 +52,14 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         $this->mocker->mockAccessToken('ACCESS_TOKEN');
         $this->mocker->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'COMPLETED']);
 
-        self::assertSame('ACCESS_TOKEN', $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET', true)['access_token']);
+        $authorizeClientApi = new AuthorizeClientApi(
+            self::getContainer()->get('sylius_paypal.http_client.retrying'),
+            new Psr17Factory(),
+            new Psr17Factory(),
+            self::getContainer()->get('sylius_paypal.provider.host'),
+        );
+
+        self::assertSame('ACCESS_TOKEN', $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', true)->value());
         self::assertSame(
             ['id' => 'PAYPAL_ORDER_ID', 'status' => 'COMPLETED'],
             $this->payPalClient->get('v2/checkout/orders/PAYPAL_ORDER_ID', 'ACCESS_TOKEN'),
