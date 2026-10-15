@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApi;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -24,12 +25,15 @@ final class RefundPaymentApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private RefundPaymentApi $refundPaymentApi;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->refundPaymentApi = new RefundPaymentApi($this->client);
     }
 
@@ -46,14 +50,14 @@ final class RefundPaymentApiTest extends TestCase
             ->expects(self::once())
             ->method('post')
             ->with(
+                $this->paymentMethod,
                 'v2/payments/captures/123123/refund',
-                'TOKEN',
                 ['amount' => ['value' => '10.99', 'currency_code' => 'USD'], 'invoice_id' => '123-11-11-2010'],
                 ['PayPal-Auth-Assertion' => 'PAY-PAL-AUTH-ASSERTION'],
             )
             ->willReturn(['status' => 'COMPLETED', 'id' => '123123']);
 
-        $result = $this->refundPaymentApi->refund('TOKEN', '123123', 'PAY-PAL-AUTH-ASSERTION', '123-11-11-2010', '10.99', 'USD');
+        $result = $this->refundPaymentApi->refund($this->paymentMethod, '123123', 'PAY-PAL-AUTH-ASSERTION', '123-11-11-2010', '10.99', 'USD');
 
         self::assertEquals(['status' => 'COMPLETED', 'id' => '123123'], $result);
     }

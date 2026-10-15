@@ -18,6 +18,7 @@ use Doctrine\Persistence\ObjectRepository;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Entity\PayPalCredentialsInterface;
+use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -38,6 +39,10 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
 
     public function authorize(PaymentMethodInterface $paymentMethod): string
     {
+        if (null === $paymentMethod->getId()) {
+            return $this->fetch($paymentMethod)->value();
+        }
+
         $now = \DateTime::createFromImmutable($this->clock->now());
 
         $payPalCredentials = $this->payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod]);
@@ -45,8 +50,7 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
             return $payPalCredentials->accessToken();
         }
 
-        $config = PayPalGatewayConfig::fromGatewayConfig($paymentMethod->getGatewayConfig());
-        $accessToken = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $config->isSandbox());
+        $accessToken = $this->fetch($paymentMethod);
         $expiresIn = max(0, $accessToken->expiresIn() - self::EXPIRY_MARGIN_IN_SECONDS);
 
         if ($payPalCredentials === null) {
@@ -63,6 +67,10 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
 
     public function invalidate(PaymentMethodInterface $paymentMethod): void
     {
+        if (null === $paymentMethod->getId()) {
+            return;
+        }
+
         $payPalCredentials = $this->payPalCredentialsRepository->findOneBy(['paymentMethod' => $paymentMethod]);
         if ($payPalCredentials === null) {
             return;
@@ -70,5 +78,12 @@ final readonly class CacheAuthorizeClientApi implements CacheAuthorizeClientApiI
 
         $payPalCredentials->expire();
         $this->payPalCredentialsManager->flush();
+    }
+
+    private function fetch(PaymentMethodInterface $paymentMethod): AccessToken
+    {
+        $config = PayPalGatewayConfig::fromGatewayConfig($paymentMethod->getGatewayConfig());
+
+        return $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $config->isSandbox());
     }
 }

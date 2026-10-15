@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,13 +24,14 @@ final readonly class GenericApi implements GenericApiInterface
     public function __construct(
         private ClientInterface $client,
         private RequestFactoryInterface $requestFactory,
+        private CacheAuthorizeClientApiInterface $authorizeClientApi,
     ) {
     }
 
-    public function get(string $token, string $url): array
+    public function get(PaymentMethodInterface $paymentMethod, string $url): array
     {
         $request = $this->requestFactory->createRequest('GET', $url)
-            ->withHeader('Authorization', 'Bearer ' . $token)
+            ->withHeader('Authorization', 'Bearer ' . $this->authorizeClientApi->authorize($paymentMethod))
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json');
 

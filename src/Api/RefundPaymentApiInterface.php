@@ -13,10 +13,12 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface RefundPaymentApiInterface
 {
     public function refund(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $paymentId,
         string $payPalAuthAssertion,
         string $invoiceNumber,

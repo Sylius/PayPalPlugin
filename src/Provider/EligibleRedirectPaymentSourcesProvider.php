@@ -18,14 +18,12 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 final readonly class EligibleRedirectPaymentSourcesProvider implements EligibleRedirectPaymentSourcesProviderInterface
 {
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private FindEligibleMethodsApiInterface $findEligibleMethodsApi,
         private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private LoggerInterface $logger,
@@ -59,7 +57,7 @@ final readonly class EligibleRedirectPaymentSourcesProvider implements EligibleR
 
         try {
             $response = $this->findEligibleMethodsApi->find(
-                $this->authorizeClientApi->authorize($paymentMethod),
+                $paymentMethod,
                 $payment,
                 array_map(static fn (RedirectPaymentSource $case): string => $case->eligibilityCode(), $enabled),
             );

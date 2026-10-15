@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
+use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApi;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
@@ -29,6 +32,8 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
 
     private PayPalClientInterface $payPalClient;
 
+    private PaymentMethodInterface $paymentMethod;
+
     protected function setUp(): void
     {
         self::bootKernel();
@@ -36,6 +41,11 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         $this->httpClient = self::getContainer()->get(PayPalHttpClientWithExpectations::class);
         $this->mocker = self::getContainer()->get(PayPalApiMocker::class);
         $this->payPalClient = self::getContainer()->get('sylius_paypal.client.paypal');
+
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
+        $this->paymentMethod = new PaymentMethod();
+        $this->paymentMethod->setGatewayConfig($gatewayConfig);
 
         $this->httpClient->resetExpectations();
     }
@@ -62,7 +72,7 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         self::assertSame('ACCESS_TOKEN', $authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', true)->value());
         self::assertSame(
             ['id' => 'PAYPAL_ORDER_ID', 'status' => 'COMPLETED'],
-            $this->payPalClient->get('v2/checkout/orders/PAYPAL_ORDER_ID', 'ACCESS_TOKEN'),
+            $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/PAYPAL_ORDER_ID'),
         );
         self::assertFalse($this->httpClient->hasExpectations());
     }
@@ -73,7 +83,7 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
 
         self::assertSame(
             ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'],
-            $this->payPalClient->get('v2/checkout/orders/MISSING', 'ACCESS_TOKEN'),
+            $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/MISSING'),
         );
     }
 
@@ -84,7 +94,7 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         $this->expectException(PayPalApiTimeoutException::class);
 
         try {
-            $this->payPalClient->get('v2/checkout/orders/PAYPAL_ORDER_ID', 'ACCESS_TOKEN');
+            $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/PAYPAL_ORDER_ID');
         } finally {
             self::assertFalse($this->httpClient->hasExpectations());
         }
@@ -95,7 +105,7 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('No expectations found for the PayPal test request "GET /v2/checkout/orders/PAYPAL_ORDER_ID".');
 
-        $this->payPalClient->get('v2/checkout/orders/PAYPAL_ORDER_ID', 'ACCESS_TOKEN');
+        $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/PAYPAL_ORDER_ID');
     }
 
     public function test_it_rejects_a_request_other_than_the_declared_one(): void
@@ -105,6 +115,6 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Expected the PayPal request "GET /v2/checkout/orders/PAYPAL_ORDER_ID" but got "GET /v2/checkout/orders/OTHER_ORDER_ID".');
 
-        $this->payPalClient->get('v2/checkout/orders/OTHER_ORDER_ID', 'ACCESS_TOKEN');
+        $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/OTHER_ORDER_ID');
     }
 }

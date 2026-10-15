@@ -19,7 +19,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\AmountUtils;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -35,7 +34,6 @@ final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundPr
     private const FAILED_REFUND_STATUSES = ['FAILED', 'CANCELLED'];
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private RefundPaymentApiInterface $refundPaymentApi,
         private PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
@@ -66,9 +64,7 @@ final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundPr
         $paymentMethod = $payment->getMethod();
 
         try {
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
-
-            $capture = PayPalCapture::fromPayPalOrder($this->orderDetailsApi->get($token, $payPalOrderId));
+            $capture = PayPalCapture::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
             if (PayPalCapture::STATUS_REFUNDED === $capture?->status()) {
                 $this->markRefunded($payment, $details, $lateCapture, null);
 
@@ -76,7 +72,7 @@ final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundPr
             }
 
             $response = $this->refundPaymentApi->refund(
-                $token,
+                $paymentMethod,
                 $lateCapture['id'],
                 $this->payPalAuthAssertionGenerator->generate($paymentMethod),
                 $this->refundReferenceNumberProvider->provide($payment),

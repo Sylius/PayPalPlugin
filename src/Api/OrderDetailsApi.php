@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class OrderDetailsApi implements OrderDetailsApiInterface
@@ -21,8 +22,8 @@ final readonly class OrderDetailsApi implements OrderDetailsApiInterface
     {
     }
 
-    public function get(string $token, string $orderId): array
+    public function get(PaymentMethodInterface $paymentMethod, string $orderId): array
     {
-        return $this->client->get(sprintf('v2/checkout/orders/%s', $orderId), $token);
+        return $this->client->get($paymentMethod, sprintf('v2/checkout/orders/%s', $orderId));
     }
 }

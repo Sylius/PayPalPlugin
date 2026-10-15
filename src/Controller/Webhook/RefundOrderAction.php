@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Controller\Webhook;
 use Doctrine\Persistence\ObjectManager;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
@@ -40,7 +39,6 @@ final readonly class RefundOrderAction
         private ObjectManager $paymentManager,
         private PayPalRefundDataProviderInterface $payPalRefundDataProvider,
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private WebhookSignatureVerifierInterface $webhookSignatureVerifier,
         private WebhookIdProviderInterface $webhookIdProvider,
         private ?PaypalPaymentQueryInterface $paypalPaymentQuery = null,
@@ -100,7 +98,6 @@ final readonly class RefundOrderAction
         return $this->requestVerifier ?? new WebhookRequestVerifier(
             $this->payPalPaymentMethodProvider,
             $this->webhookIdProvider,
-            $this->authorizeClientApi,
             $this->webhookSignatureVerifier,
         );
     }

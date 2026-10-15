@@ -68,7 +68,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.repository.shipment_tracking'),
             service('sylius_paypal.provider.order_paypal_payment'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_paypal.api.add_tracking'),
             service('sylius_paypal.provider.shipment_tracking_items'),

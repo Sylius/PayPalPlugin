@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use Doctrine\DBAL\Connection;
+use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi;
@@ -104,5 +105,17 @@ final class CacheAuthorizeClientApiTest extends JsonApiTestCase
         $this->cacheAuthorizeClientApi->invalidate($this->paymentMethod);
 
         self::assertSame('NEW_TOKEN', $this->cacheAuthorizeClientApi->authorize($this->paymentMethod));
+    }
+
+    public function test_it_fetches_a_token_without_storing_it_for_a_payment_method_not_saved_yet(): void
+    {
+        $this->accessTokens = [new AccessToken('FIRST_TOKEN', 32400), new AccessToken('SECOND_TOKEN', 32400)];
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($this->paymentMethod->getGatewayConfig());
+
+        self::assertSame('FIRST_TOKEN', $this->cacheAuthorizeClientApi->authorize($paymentMethod));
+        $this->cacheAuthorizeClientApi->invalidate($paymentMethod);
+        self::assertSame('SECOND_TOKEN', $this->cacheAuthorizeClientApi->authorize($paymentMethod));
+        self::assertSame([], $this->connection->fetchFirstColumn('SELECT access_token FROM ' . self::TABLE));
     }
 }

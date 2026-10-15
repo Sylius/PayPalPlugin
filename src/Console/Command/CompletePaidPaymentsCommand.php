@@ -120,7 +120,6 @@ final class CompletePaidPaymentsCommand extends Command
         }
 
         return new PayPalPaymentSettlementProcessor(
-            $this->authorizeClientApi,
             $this->orderDetailsApi,
             $this->stateMachine,
             $this->paymentManager,

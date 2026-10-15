@@ -21,6 +21,8 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\GenericApi;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
@@ -32,6 +34,10 @@ final class GenericApiTest extends TestCase
 
     private RequestFactoryInterface&MockObject $requestFactory;
 
+    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
+
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private GenericApi $genericApi;
 
     protected function setUp(): void
@@ -39,7 +45,9 @@ final class GenericApiTest extends TestCase
         parent::setUp();
         $this->client = $this->createMock(ClientInterface::class);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
-        $this->genericApi = new GenericApi($this->client, $this->requestFactory);
+        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $this->genericApi = new GenericApi($this->client, $this->requestFactory, $this->authorizeClientApi);
     }
 
     #[Test]
@@ -54,6 +62,8 @@ final class GenericApiTest extends TestCase
         $request = $this->createMock(RequestInterface::class);
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
+
+        $this->authorizeClientApi->expects(self::once())->method('authorize')->with($this->paymentMethod)->willReturn('TOKEN');
 
         $this->requestFactory
             ->expects(self::once())
@@ -92,7 +102,7 @@ final class GenericApiTest extends TestCase
             ->method('getContents')
             ->willReturn('{ "parameter": "VALUE" }');
 
-        $result = $this->genericApi->get('TOKEN', 'http://url.com/');
+        $result = $this->genericApi->get($this->paymentMethod, 'http://url.com/');
 
         self::assertEquals(['parameter' => 'VALUE'], $result);
     }
@@ -111,6 +121,6 @@ final class GenericApiTest extends TestCase
 
         $this->expectException(PayPalPluginException::class);
 
-        $this->genericApi->get('TOKEN', 'http://url.com/');
+        $this->genericApi->get($this->paymentMethod, 'http://url.com/');
     }
 }

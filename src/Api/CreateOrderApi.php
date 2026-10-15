@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
@@ -44,7 +45,7 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
     }
 
     public function create(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         PaymentInterface $payment,
         string $referenceId,
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
@@ -63,8 +64,8 @@ final readonly class CreateOrderApi implements CreateOrderApiInterface
         );
 
         return $this->client->post(
+            $paymentMethod,
             'v2/checkout/orders',
-            $token,
             $payPalOrder->toArray(),
             null === $requestId ? [] : ['PayPal-Request-Id' => $requestId],
         );

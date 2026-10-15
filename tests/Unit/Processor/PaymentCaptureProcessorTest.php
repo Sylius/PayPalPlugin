@@ -21,7 +21,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\StateResolver\StateResolverInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
@@ -62,7 +61,6 @@ final class PaymentCaptureProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->updateOrderApi = $this->createMock(UpdateOrderApiInterface::class);
         $this->updateOrderAddressApi = $this->createMock(UpdateOrderAddressApiInterface::class);
         $this->completeOrderApi = $this->createMock(CompleteOrderApiInterface::class);
@@ -73,12 +71,10 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->order = $this->createMock(OrderInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
-        $authorizeClientApi->method('authorize')->with($this->paymentMethod)->willReturn('TOKEN');
         $this->payment->method('getMethod')->willReturn($this->paymentMethod);
         $this->payment->method('getOrder')->willReturn($this->order);
 
         $this->processor = new PaymentCaptureProcessor(
-            $authorizeClientApi,
             $this->updateOrderApi,
             $this->updateOrderAddressApi,
             $this->completeOrderApi,
@@ -98,8 +94,8 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
 
         $this->updateOrderApi->expects(self::never())->method('update');
-        $this->completeOrderApi->expects(self::once())->method('complete')->with('TOKEN', '123123');
-        $this->orderDetailsApi->method('get')->with('TOKEN', '123123')->willReturn(self::ORDER_DETAILS);
+        $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123');
+        $this->orderDetailsApi->method('get')->with($this->paymentMethod, '123123')->willReturn(self::ORDER_DETAILS);
         $this->payment->expects(self::once())->method('setDetails')->with([
             'status' => PayPalPaymentStatus::Completed->value,
             'paypal_order_id' => '123123',
@@ -141,7 +137,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->updateOrderApi->expects(self::never())->method('update');
         $this->updateOrderAddressApi->expects(self::never())->method('update');
         $this->completeOrderApi->expects(self::never())->method('complete');
-        $this->orderDetailsApi->method('get')->with('TOKEN', '123123')->willReturn(self::ORDER_DETAILS);
+        $this->orderDetailsApi->method('get')->with($this->paymentMethod, '123123')->willReturn(self::ORDER_DETAILS);
         $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
             fn (array $details): bool => 'trustly' === $details['payment_source'] && 'TRANSACTION_ID' === $details['transaction_id'],
         ));
@@ -193,7 +189,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $gatewayConfig->method('getConfig')->willReturn(['merchant_id' => 'MERCHANT_ID', 'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID']);
         $this->paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        $this->updateOrderApi->expects(self::once())->method('update')->with('TOKEN', '123123', $this->payment, 'REFERENCE_ID', 'MERCHANT_ID');
+        $this->updateOrderApi->expects(self::once())->method('update')->with($this->paymentMethod, '123123', $this->payment, 'REFERENCE_ID', 'MERCHANT_ID');
         $this->paymentUpdater->expects(self::once())->method('updateAmount')->with($this->payment, 1200);
         $this->orderPaymentStateResolver->expects(self::once())->method('resolve')->with($this->order);
         $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
@@ -207,7 +203,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $shippingAddress = $this->createMock(AddressInterface::class);
         $this->order->method('getShippingAddress')->willReturn($shippingAddress);
 
-        $this->updateOrderAddressApi->expects(self::once())->method('update')->with('TOKEN', '123123', 'REFERENCE_ID', $shippingAddress);
+        $this->updateOrderAddressApi->expects(self::once())->method('update')->with($this->paymentMethod, '123123', 'REFERENCE_ID', $shippingAddress);
         $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
 
         $this->processor->capture($this->payment);
@@ -219,7 +215,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->order->method('getShippingAddress')->willReturn(null);
 
         $this->updateOrderAddressApi->expects(self::never())->method('update');
-        $this->completeOrderApi->expects(self::once())->method('complete')->with('TOKEN', '123123');
+        $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123');
         $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
 
         $this->processor->capture($this->payment);

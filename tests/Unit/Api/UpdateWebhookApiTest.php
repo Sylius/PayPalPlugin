@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -23,12 +24,15 @@ final class UpdateWebhookApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private UpdateWebhookApi $api;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->api = new UpdateWebhookApi($this->client);
     }
@@ -43,7 +47,7 @@ final class UpdateWebhookApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('patch')
-            ->with('v1/notifications/webhooks/WEBHOOK_ID', 'TOKEN', [
+            ->with($this->paymentMethod, 'v1/notifications/webhooks/WEBHOOK_ID', [
                 [
                     'op' => 'replace',
                     'path' => '/event_types',
@@ -53,6 +57,6 @@ final class UpdateWebhookApiTest extends TestCase
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B']));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes($this->paymentMethod, 'WEBHOOK_ID', ['A', 'B']));
     }
 }

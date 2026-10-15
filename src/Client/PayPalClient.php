@@ -21,7 +21,11 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
@@ -35,6 +39,7 @@ final readonly class PayPalClient implements PayPalClientInterface
         private UuidProviderInterface $uuidProvider,
         private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         private ChannelContextInterface $channelContext,
+        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private HostProviderInterface $hostProvider,
         private RequestFactoryInterface $requestFactory,
         private StreamFactoryInterface $streamFactory,
@@ -42,27 +47,26 @@ final readonly class PayPalClient implements PayPalClientInterface
     ) {
     }
 
-    public function get(string $url, string $token): array
+    public function get(PaymentMethodInterface $paymentMethod, string $url): array
     {
-        return $this->request('GET', $url, $token);
+        return $this->request($paymentMethod, 'GET', $url);
     }
 
-    public function post(string $url, string $token, ?array $data = null, array $extraHeaders = []): array
+    public function post(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null, array $extraHeaders = []): array
     {
         $headers = array_merge(['PayPal-Request-Id' => $this->uuidProvider->provide()], $extraHeaders);
 
-        return $this->request('POST', $url, $token, $data, $headers);
+        return $this->request($paymentMethod, 'POST', $url, $data, $headers);
     }
 
-    public function patch(string $url, string $token, ?array $data = null): array
+    public function patch(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null): array
     {
-        return $this->request('PATCH', $url, $token, $data);
+        return $this->request($paymentMethod, 'PATCH', $url, $data);
     }
 
-    private function request(string $method, string $url, string $token, ?array $data = null, array $extraHeaders = []): array
+    private function request(PaymentMethodInterface $paymentMethod, string $method, string $url, ?array $data = null, array $extraHeaders = []): array
     {
         $headers = [
-            'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ];
@@ -78,9 +82,14 @@ final readonly class PayPalClient implements PayPalClientInterface
             $options['json'] = $data;
         }
 
-        $fullUrl = $this->hostProvider->getApiBaseUrl() . $url;
+        $fullUrl = $this->apiBaseUrl($paymentMethod) . $url;
 
-        $response = $this->doRequest($method, $fullUrl, $options);
+        $response = $this->doRequest($method, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+        if (Response::HTTP_UNAUTHORIZED === $response->getStatusCode()) {
+            $this->authorizeClientApi->invalidate($paymentMethod);
+            $response = $this->doRequest($method, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+        }
+
         if ($this->loggingLevelIncreased) {
             $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
         }
@@ -100,6 +109,14 @@ final readonly class PayPalClient implements PayPalClientInterface
         return $content;
     }
 
+    private function apiBaseUrl(PaymentMethodInterface $paymentMethod): string
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return $this->hostProvider->getApiBaseUrlForMode(PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox());
+    }
+
     private function partnerAttributionId(): ?string
     {
         try {
@@ -117,9 +134,9 @@ final readonly class PayPalClient implements PayPalClientInterface
         }
     }
 
-    private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
+    private function doRequest(string $method, string $fullUrl, array $options, string $token): ResponseInterface
     {
-        $request = $this->requestFactory->createRequest($method, $fullUrl);
+        $request = $this->requestFactory->createRequest($method, $fullUrl)->withHeader('Authorization', 'Bearer ' . $token);
 
         if (isset($options['json'])) {
             $request = $request->withBody(

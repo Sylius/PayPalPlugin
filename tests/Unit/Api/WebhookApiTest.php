@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
@@ -22,12 +23,15 @@ final class WebhookApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private WebhookApi $webhookApi;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->webhookApi = new WebhookApi($this->client);
     }
@@ -37,7 +41,7 @@ final class WebhookApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with('v1/notifications/webhooks', 'TOKEN', [
+            ->with($this->paymentMethod, 'v1/notifications/webhooks', [
                 'url' => 'https://shop.example.com/paypal-webhook/api/',
                 'event_types' => [
                     ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
@@ -50,7 +54,7 @@ final class WebhookApiTest extends TestCase
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->webhookApi->register('TOKEN', 'https://shop.example.com/paypal-webhook/api/'));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->webhookApi->register($this->paymentMethod, 'https://shop.example.com/paypal-webhook/api/'));
     }
 
     public function test_it_registers_the_webhook_over_https(): void
@@ -58,10 +62,10 @@ final class WebhookApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with('v1/notifications/webhooks', 'TOKEN', self::callback(static fn (array $data): bool => 'https://shop.example.com/paypal-webhook/api/' === $data['url']))
+            ->with($this->paymentMethod, 'v1/notifications/webhooks', self::callback(static fn (array $data): bool => 'https://shop.example.com/paypal-webhook/api/' === $data['url']))
             ->willReturn([])
         ;
 
-        $this->webhookApi->register('TOKEN', 'http://shop.example.com/paypal-webhook/api/');
+        $this->webhookApi->register($this->paymentMethod, 'http://shop.example.com/paypal-webhook/api/');
     }
 }

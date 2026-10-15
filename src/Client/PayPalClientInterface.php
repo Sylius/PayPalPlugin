@@ -13,11 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface PayPalClientInterface
 {
-    public function get(string $url, string $token): array;
+    public function get(PaymentMethodInterface $paymentMethod, string $url): array;
 
-    public function post(string $url, string $token, ?array $data = null, array $extraHeaders = []): array;
+    public function post(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null, array $extraHeaders = []): array;
 
-    public function patch(string $url, string $token, ?array $data = null): array;
+    public function patch(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null): array;
 }

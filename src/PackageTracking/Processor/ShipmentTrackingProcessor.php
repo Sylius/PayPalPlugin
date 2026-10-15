@@ -20,7 +20,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Model\ShipmentInterface as BaseShipmentInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -39,7 +38,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
     public function __construct(
         private ShipmentTrackingRepositoryInterface $shipmentTrackingRepository,
         private OrderPayPalPaymentProviderInterface $orderPayPalPaymentProvider,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private AddTrackingApiInterface $addTrackingApi,
         private ShipmentTrackingItemsProviderInterface $itemsProvider,
@@ -121,9 +119,7 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
-
-        $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
+        $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
         if (!isset($orderDetails['status'])) {
             throw new PayPalApiErrorException(sprintf('GET v2/checkout/orders/%s', $payPalOrderId), $orderDetails);
@@ -161,7 +157,7 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
             $body['carrier_name_other'] = (string) $tracking->getCarrierNameOther();
         }
 
-        $response = $this->addTrackingApi->add($token, $payPalOrderId, $body);
+        $response = $this->addTrackingApi->add($paymentMethod, $payPalOrderId, $body);
 
         if (!isset($response['id'])) {
             throw new PayPalApiErrorException(sprintf('POST v2/checkout/orders/%s/track', $payPalOrderId), $response);

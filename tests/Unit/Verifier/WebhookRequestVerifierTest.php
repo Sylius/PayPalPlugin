@@ -16,7 +16,6 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Verifier;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
@@ -30,7 +29,7 @@ final class WebhookRequestVerifierTest extends TestCase
 
     private WebhookIdProviderInterface&MockObject $webhookIdProvider;
 
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
+    private PaymentMethodInterface&MockObject $paymentMethod;
 
     private WebhookSignatureVerifierInterface&MockObject $webhookSignatureVerifier;
 
@@ -43,18 +42,16 @@ final class WebhookRequestVerifierTest extends TestCase
         parent::setUp();
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
         $this->webhookIdProvider = $this->createMock(WebhookIdProviderInterface::class);
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->webhookSignatureVerifier = $this->createMock(WebhookSignatureVerifierInterface::class);
 
-        $this->payPalPaymentMethodProvider->method('provide')->willReturn($this->createMock(PaymentMethodInterface::class));
-        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->payPalPaymentMethodProvider->method('provide')->willReturn($this->paymentMethod);
 
         $this->request = new Request();
 
         $this->verifier = new WebhookRequestVerifier(
             $this->payPalPaymentMethodProvider,
             $this->webhookIdProvider,
-            $this->authorizeClientApi,
             $this->webhookSignatureVerifier,
         );
     }
@@ -67,7 +64,7 @@ final class WebhookRequestVerifierTest extends TestCase
     public function test_it_verifies_a_request_against_the_registered_webhook(): void
     {
         $this->webhookIdProvider->method('provide')->willReturn('WEBHOOK_ID');
-        $this->webhookSignatureVerifier->method('verify')->with($this->request, 'WEBHOOK_ID', 'TOKEN')->willReturn(true);
+        $this->webhookSignatureVerifier->method('verify')->with($this->request, 'WEBHOOK_ID', $this->paymentMethod)->willReturn(true);
 
         self::assertTrue($this->verifier->verify($this->request));
     }

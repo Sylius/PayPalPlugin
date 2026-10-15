@@ -71,6 +71,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.provider.paypal_configuration'),
             service('sylius.context.channel'),
+            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.provider.host'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
@@ -126,6 +127,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.http_client'),
             service(RequestFactoryInterface::class),
+            service('sylius_paypal.api.cache_authorize_client'),
         ]);
 
     $services->alias(GenericApiInterface::class, 'sylius_paypal.api.generic');
@@ -163,6 +165,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.webhook_signature_verifier', WebhookSignatureVerifier::class)
         ->args([
             service('sylius_paypal.http_client.retrying'),
+            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.provider.host'),
             service(RequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
@@ -183,7 +186,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.webhook_id', WebhookIdProvider::class)
         ->args([
             service('sylius_paypal.api.generic'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('router'),
             service('sylius_paypal.provider.host'),
             param('sylius_paypal.webhook_base_url'),

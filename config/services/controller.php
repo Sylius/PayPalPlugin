@@ -47,7 +47,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.manager.payment'),
             service('sylius_paypal.provider.paypal_refund_data'),
             service('sylius_paypal.provider.paypal_payment_method'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.webhook_signature_verifier'),
             service('sylius_paypal.provider.webhook_id'),
             service('sylius_paypal.repository.query.paypal_payment'),
@@ -150,7 +149,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.manager.order'),
             service('sylius_abstraction.state_machine'),
             service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_paypal.provider.order'),
             service('sylius_paypal.verifier.payment_amount'),
@@ -166,7 +164,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.controller.update_paypal_order', UpdatePayPalOrderAction::class)
         ->args([
             service('sylius_paypal.provider.payment'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.update_order'),
             service('sylius.factory.address'),
             service('sylius.order_processing.order_processor'),

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class WebhookApi implements WebhookApiInterface
@@ -30,9 +31,9 @@ final readonly class WebhookApi implements WebhookApiInterface
     {
     }
 
-    public function register(string $token, string $webhookUrl): array
+    public function register(PaymentMethodInterface $paymentMethod, string $webhookUrl): array
     {
-        return $this->client->post('v1/notifications/webhooks', $token, [
+        return $this->client->post($paymentMethod, 'v1/notifications/webhooks', [
             'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
             'event_types' => array_map(
                 static fn (string $eventType): array => ['name' => $eventType],

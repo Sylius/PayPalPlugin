@@ -333,7 +333,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.paypal_refund_data', PayPalRefundDataProvider::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.generic'),
             service('sylius_paypal.provider.paypal_payment_method'),
         ]);
@@ -383,7 +382,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.update_order'),
             service('sylius_paypal.api.update_order_address'),
             service('sylius_paypal.api.complete_order'),
@@ -410,7 +408,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.processor.payment_refund', PayPalPaymentRefundProcessor::class)
         ->public()
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_paypal.api.refund_payment'),
             service('sylius_paypal.generator.paypal_auth_assertion'),
@@ -421,7 +418,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.processor.late_capture_refund', PayPalLateCaptureRefundProcessor::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_paypal.api.refund_payment'),
             service('sylius_paypal.generator.paypal_auth_assertion'),
@@ -518,7 +514,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.eligible_redirect_payment_sources', EligibleRedirectPaymentSourcesProvider::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.find_eligible_methods'),
             service('sylius_paypal.provider.paypal_configuration'),
             service('monolog.logger.paypal'),
@@ -546,7 +541,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.provider.paypal_payment_method'),
             service('sylius_paypal.provider.webhook_id'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.webhook_signature_verifier'),
         ]);
 
@@ -562,7 +556,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_abstraction.state_machine'),
             service('sylius.manager.payment'),
@@ -582,7 +575,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.registrar.seller_webhook_event_types', SellerWebhookEventTypesRegistrar::class)
         ->args([
             service('sylius_paypal.provider.webhook_id'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),
@@ -614,7 +606,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.registrar.seller_webhook', SellerWebhookRegistrar::class)
         ->args([
-            service('sylius_paypal.api.authorize_client'),
             service('router'),
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),
@@ -624,7 +615,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.creator.paypal_order', PayPalOrderCreator::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.create_order'),
             service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.provider.paypal_order_created_statuses'),
@@ -684,7 +674,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.verifier.payment_three_d_secure', PaymentThreeDSecureVerifier::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_paypal.verifier.three_d_secure'),
         ]);

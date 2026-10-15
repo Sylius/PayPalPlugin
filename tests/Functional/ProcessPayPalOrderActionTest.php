@@ -17,6 +17,7 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
@@ -633,7 +634,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
             {
             }
 
-            public function update(string $token, string $orderId, PaymentInterface $payment, string $referenceId, string $merchantId): array
+            public function update(PaymentMethodInterface $paymentMethod, string $orderId, PaymentInterface $payment, string $referenceId, string $merchantId): array
             {
                 $this->updates[] = ['orderId' => $orderId, 'amount' => $payment->getAmount()];
 

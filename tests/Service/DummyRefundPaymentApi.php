@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Service;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 
 final class DummyRefundPaymentApi implements RefundPaymentApiInterface
@@ -21,7 +22,7 @@ final class DummyRefundPaymentApi implements RefundPaymentApiInterface
     public static array $refundedPaymentIds = [];
 
     public function refund(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $paymentId,
         string $payPalAuthAssertion,
         string $invoiceNumber,

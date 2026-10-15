@@ -18,7 +18,6 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -33,7 +32,6 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
     private const CAPTURE_STATUS_REFUNDED = 'REFUNDED';
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private RefundPaymentApiInterface $refundOrderApi,
         private PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
@@ -61,8 +59,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
         $order = $payment->getOrder();
 
         try {
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
-            $details = $this->orderDetailsApi->get($token, $payPalOrderId);
+            $details = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
             $capture = $details['purchase_units'][0]['payments']['captures'][0];
             if (self::CAPTURE_STATUS_REFUNDED === ($capture['status'] ?? null)) {
                 return;
@@ -73,7 +70,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
             $payPalPaymentId = (string) $capture['id'];
 
             $this->refundOrderApi->refund(
-                $token,
+                $paymentMethod,
                 $payPalPaymentId,
                 $authAssertion,
                 $referenceNumber,
