@@ -125,9 +125,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.api.generic', GenericApi::class)
         ->args([
-            service('sylius.http_client'),
-            service(RequestFactoryInterface::class),
-            service('sylius_paypal.api.cache_authorize_client'),
+            service('sylius_paypal.client.paypal'),
+            service('sylius_paypal.provider.host'),
         ]);
 
     $services->alias(GenericApiInterface::class, 'sylius_paypal.api.generic');

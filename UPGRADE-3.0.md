@@ -282,9 +282,8 @@
    ```
 
    `WebhookApi` and `UpdateWebhookApi` send through `PayPalClientInterface`, their only constructor argument now.
-   `WebhookSignatureVerifier` and `GenericApi` take the token from `CacheAuthorizeClientApiInterface`, and the
-   signature verifier recovers from a `401` the same way the client does. The signature verifier asks the API of the
-   payment method's mode.
+   `WebhookSignatureVerifier` takes the token from `CacheAuthorizeClientApiInterface`, recovers from a `401` the same
+   way the client does and asks the API of the payment method's mode.
 
    ```diff
     // Sylius\PayPalPlugin\Api\WebhookApi, Sylius\PayPalPlugin\Api\UpdateWebhookApi
@@ -310,12 +309,23 @@
     ) {
    ```
 
+1. #### `GenericApi` only sends the PayPal credentials to the PayPal API.
+
+   `GenericApiInterface::get()` reads the absolute URLs PayPal links to, such as the `links` of a webhook event. It
+   now sends the request through `PayPalClientInterface` only when the URL is an `https` URL of the API of the
+   payment method's mode (`api.` or `api-m.`), without a port or credentials. Any other URL, including the API of the
+   other mode, throws `Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException` before a request is sent. The
+   exception implements `PermanentWebhookFailureInterface`, so a webhook event carrying such a link is not replayed.
+
+   An error answered by PayPal still throws `PayPalPluginException`.
+
    ```diff
     // Sylius\PayPalPlugin\Api\GenericApi
     public function __construct(
-        private ClientInterface $client,
-        private RequestFactoryInterface $requestFactory,
-   +    private CacheAuthorizeClientApiInterface $authorizeClientApi,
+   -    private ClientInterface $client,
+   -    private RequestFactoryInterface $requestFactory,
+   +    private PayPalClientInterface $client,
+   +    private HostProviderInterface $hostProvider,
     ) {
    ```
 

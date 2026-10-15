@@ -14,8 +14,14 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
 
 interface GenericApiInterface
 {
+    /**
+     * @throws UntrustedPayPalUrlException
+     * @throws PayPalPluginException
+     */
     public function get(PaymentMethodInterface $paymentMethod, string $url): array;
 }
