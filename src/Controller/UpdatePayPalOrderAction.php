@@ -19,7 +19,6 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -34,7 +33,6 @@ final readonly class UpdatePayPalOrderAction
     /** @param AddressFactoryInterface<AddressInterface> $addressFactory */
     public function __construct(
         private ?PaymentProviderInterface $paymentProvider,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UpdateOrderApiInterface $updateOrderApi,
         private AddressFactoryInterface $addressFactory,
         private OrderProcessorInterface $orderProcessor,
@@ -86,7 +84,6 @@ final readonly class UpdatePayPalOrderAction
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
 
         $shippingAddress = $payload->all('shipping_address');
 
@@ -107,7 +104,7 @@ final readonly class UpdatePayPalOrderAction
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
         $response = $this->updateOrderApi->update(
-            $token,
+            $paymentMethod,
             $orderId,
             $payment,
             (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),

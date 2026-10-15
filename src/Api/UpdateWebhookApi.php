@@ -13,31 +13,18 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Sylius\PayPalPlugin\Provider\HostProviderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
 {
-    public function __construct(
-        private ClientInterface $client,
-        private HostProviderInterface $hostProvider,
-        private RequestFactoryInterface $requestFactory,
-        private StreamFactoryInterface $streamFactory,
-    ) {
+    public function __construct(private PayPalClientInterface $client)
+    {
     }
 
-    public function updateEventTypes(string $token, string $webhookId, array $eventTypes, bool $sandbox): array
+    public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array
     {
-        $request = $this->requestFactory
-            ->createRequest('PATCH', sprintf('%sv1/notifications/webhooks/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $webhookId))
-            ->withHeader('Authorization', 'Bearer ' . $token)
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Accept', 'application/json')
-        ;
-
-        $request = $request->withBody($this->streamFactory->createStream((string) json_encode([
+        return $this->client->patch($paymentMethod, sprintf('v1/notifications/webhooks/%s', $webhookId), [
             [
                 'op' => 'replace',
                 'path' => '/event_types',
@@ -46,10 +33,6 @@ final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
                     $eventTypes,
                 ),
             ],
-        ])));
-
-        $response = $this->client->sendRequest($request);
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        ]);
     }
 }

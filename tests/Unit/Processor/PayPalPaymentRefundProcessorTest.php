@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor;
 
-use GuzzleHttp\Exception\ClientException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -21,9 +20,9 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
@@ -33,8 +32,6 @@ use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 final class PayPalPaymentRefundProcessorTest extends TestCase
 {
     private PayPalPaymentRefundProcessor $paypalPaymentRefundProcessor;
-
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
 
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
 
@@ -47,14 +44,12 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
         $this->refundOrderApi = $this->createMock(RefundPaymentApiInterface::class);
         $this->payPalAuthAssertionGenerator = $this->createMock(PayPalAuthAssertionGeneratorInterface::class);
         $this->refundReferenceNumberProvider = $this->createMock(RefundReferenceNumberProviderInterface::class);
 
         $this->paypalPaymentRefundProcessor = new PayPalPaymentRefundProcessor(
-            $this->authorizeClientApi,
             $this->orderDetailsApi,
             $this->refundOrderApi,
             $this->payPalAuthAssertionGenerator,
@@ -81,10 +76,9 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
         $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
         $payment->method('getDetails')->willReturn(['paypal_order_id' => '123123']);
 
-        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
         $this->orderDetailsApi
             ->method('get')
-            ->with('TOKEN', '123123')
+            ->with($paymentMethod, '123123')
             ->willReturn(['purchase_units' => [['payments' => ['captures' => [['id' => '555', 'status' => 'COMPLETED']]]]]]);
         $this->payPalAuthAssertionGenerator->method('generate')->with($paymentMethod)->willReturn('AUTH-ASSERTION');
 
@@ -97,7 +91,7 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
         $this->refundOrderApi
             ->expects(self::once())
             ->method('refund')
-            ->with('TOKEN', '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10', 'USD')
+            ->with($paymentMethod, '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10', 'USD')
             ->willReturn(['status' => 'COMPLETED', 'id' => '123123']);
 
         // Test that refund method executes without throwing an exception
@@ -119,10 +113,9 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
         $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
         $payment->method('getDetails')->willReturn(['paypal_order_id' => '123123']);
 
-        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
         $this->orderDetailsApi
             ->method('get')
-            ->with('TOKEN', '123123')
+            ->with($paymentMethod, '123123')
             ->willReturn(['purchase_units' => [['payments' => ['captures' => [['id' => '555', 'status' => 'REFUNDED']]]]]]);
 
         $this->refundOrderApi->expects(self::never())->method('refund');
@@ -178,10 +171,9 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
         $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
         $payment->method('getDetails')->willReturn(['paypal_order_id' => '123123']);
 
-        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
         $this->orderDetailsApi
             ->method('get')
-            ->with('TOKEN', '123123')
+            ->with($paymentMethod, '123123')
             ->willReturn(['purchase_units' => [['payments' => ['captures' => [['id' => '555', 'status' => 'COMPLETED']]]]]]);
         $this->payPalAuthAssertionGenerator->method('generate')->with($paymentMethod)->willReturn('AUTH-ASSERTION');
 
@@ -193,8 +185,8 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
 
         $this->refundOrderApi
             ->method('refund')
-            ->with('TOKEN', '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10', 'USD')
-            ->willThrowException($this->createMock(ClientException::class));
+            ->with($paymentMethod, '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10', 'USD')
+            ->willThrowException(new PayPalApiTimeoutException());
 
         $this->expectException(PayPalOrderRefundException::class);
 

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Verifier;
 
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
@@ -24,7 +23,6 @@ final readonly class WebhookRequestVerifier implements WebhookRequestVerifierInt
     public function __construct(
         private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         private WebhookIdProviderInterface $webhookIdProvider,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private WebhookSignatureVerifierInterface $webhookSignatureVerifier,
     ) {
     }
@@ -34,14 +32,13 @@ final readonly class WebhookRequestVerifier implements WebhookRequestVerifierInt
         try {
             $paymentMethod = $this->payPalPaymentMethodProvider->provide();
             $webhookId = $this->webhookIdProvider->provide($paymentMethod);
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-            $verified = null !== $webhookId && $this->webhookSignatureVerifier->verify($request, $webhookId, $token);
+            $verified = null !== $webhookId && $this->webhookSignatureVerifier->verify($request, $webhookId, $paymentMethod);
 
             if (!$verified) {
                 $freshWebhookId = $this->webhookIdProvider->refresh($paymentMethod);
                 if (null !== $freshWebhookId && $freshWebhookId !== $webhookId) {
-                    $verified = $this->webhookSignatureVerifier->verify($request, $freshWebhookId, $token);
+                    $verified = $this->webhookSignatureVerifier->verify($request, $freshWebhookId, $paymentMethod);
                 }
             }
 

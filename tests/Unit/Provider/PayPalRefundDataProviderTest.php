@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
@@ -25,8 +24,6 @@ use Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider;
 
 final class PayPalRefundDataProviderTest extends TestCase
 {
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
-
     private GenericApiInterface&MockObject $genericApi;
 
     private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
@@ -36,12 +33,10 @@ final class PayPalRefundDataProviderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->genericApi = $this->createMock(GenericApiInterface::class);
         $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
 
         $this->provider = new PayPalRefundDataProvider(
-            $this->authorizeClientApi,
             $this->genericApi,
             $this->payPalPaymentMethodProvider,
         );
@@ -53,12 +48,11 @@ final class PayPalRefundDataProviderTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->payPalPaymentMethodProvider->method('provide')->willReturn($paymentMethod);
-        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
 
         $this->genericApi->expects($this->exactly(2))
             ->method('get')
-            ->willReturnCallback(function ($token, $url) {
-                $this->assertEquals('TOKEN', $token);
+            ->willReturnCallback(function ($method, $url) use ($paymentMethod) {
+                $this->assertSame($paymentMethod, $method);
 
                 if ($url === 'https://get-refund-data.com') {
                     return [
@@ -84,9 +78,8 @@ final class PayPalRefundDataProviderTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->payPalPaymentMethodProvider->method('provide')->willReturn($paymentMethod);
-        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
         $this->genericApi->method('get')
-            ->with('TOKEN', 'https://get-refund-data.com')
+            ->with($paymentMethod, 'https://get-refund-data.com')
             ->willReturn([
                 'links' => [
                     ['rel' => 'self', 'href' => 'https://self.url.com'],
@@ -100,7 +93,7 @@ final class PayPalRefundDataProviderTest extends TestCase
 
     public function test_it_reports_a_paypal_response_that_carries_no_links_at_all(): void
     {
-        $this->authorizeTokenFor('https://get-refund-data.com', ['id' => 'REFUND_ID']);
+        $this->mockRefundDataFor('https://get-refund-data.com', ['id' => 'REFUND_ID']);
 
         $this->expectException(PayPalWrongDataException::class);
 
@@ -109,7 +102,7 @@ final class PayPalRefundDataProviderTest extends TestCase
 
     public function test_it_reports_a_refund_whose_up_link_carries_no_address(): void
     {
-        $this->authorizeTokenFor('https://get-refund-data.com', [
+        $this->mockRefundDataFor('https://get-refund-data.com', [
             'links' => [['rel' => 'up']],
         ]);
 
@@ -119,12 +112,11 @@ final class PayPalRefundDataProviderTest extends TestCase
     }
 
     /** @param array<string, mixed> $response */
-    private function authorizeTokenFor(string $url, array $response): void
+    private function mockRefundDataFor(string $url, array $response): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->payPalPaymentMethodProvider->method('provide')->willReturn($paymentMethod);
-        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
-        $this->genericApi->method('get')->with('TOKEN', $url)->willReturn($response);
+        $this->genericApi->method('get')->with($paymentMethod, $url)->willReturn($response);
     }
 }

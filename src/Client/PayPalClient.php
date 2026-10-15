@@ -13,77 +13,60 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
-use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Symfony\Component\HttpFoundation\Response;
 
-final class PayPalClient implements PayPalClientInterface
+final readonly class PayPalClient implements PayPalClientInterface
 {
     public function __construct(
-        private readonly ClientInterface $client,
-        private readonly LoggerInterface $logger,
-        private readonly UuidProviderInterface $uuidProvider,
-        private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private readonly ChannelContextInterface $channelContext,
-        private readonly HostProviderInterface $hostProvider,
-        private int $requestTrialsLimit,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory,
-        private readonly bool $loggingLevelIncreased = false,
+        private ClientInterface $client,
+        private LoggerInterface $logger,
+        private UuidProviderInterface $uuidProvider,
+        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private ChannelContextInterface $channelContext,
+        private CacheAuthorizeClientApiInterface $authorizeClientApi,
+        private HostProviderInterface $hostProvider,
+        private RequestFactoryInterface $requestFactory,
+        private StreamFactoryInterface $streamFactory,
+        private bool $loggingLevelIncreased = false,
     ) {
     }
 
-    public function authorize(string $clientId, string $clientSecret, bool $sandbox): array
+    public function get(PaymentMethodInterface $paymentMethod, string $url): array
     {
-        $response = $this->doRequest(
-            'POST',
-            $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/oauth2/token',
-            [
-                'auth' => [$clientId, $clientSecret],
-                'form_params' => ['grant_type' => 'client_credentials'],
-            ],
-        );
-
-        if (Response::HTTP_OK !== $response->getStatusCode()) {
-            throw new PayPalAuthorizationException();
-        }
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        return $this->request($paymentMethod, 'GET', $url);
     }
 
-    public function get(string $url, string $token): array
-    {
-        return $this->request('GET', $url, $token);
-    }
-
-    public function post(string $url, string $token, ?array $data = null, array $extraHeaders = []): array
+    public function post(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null, array $extraHeaders = []): array
     {
         $headers = array_merge(['PayPal-Request-Id' => $this->uuidProvider->provide()], $extraHeaders);
 
-        return $this->request('POST', $url, $token, $data, $headers);
+        return $this->request($paymentMethod, 'POST', $url, $data, $headers);
     }
 
-    public function patch(string $url, string $token, ?array $data = null): array
+    public function patch(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null): array
     {
-        return $this->request('PATCH', $url, $token, $data);
+        return $this->request($paymentMethod, 'PATCH', $url, $data);
     }
 
-    private function request(string $method, string $url, string $token, ?array $data = null, array $extraHeaders = []): array
+    private function request(PaymentMethodInterface $paymentMethod, string $method, string $url, ?array $data = null, array $extraHeaders = []): array
     {
         $headers = [
-            'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ];
@@ -99,16 +82,16 @@ final class PayPalClient implements PayPalClientInterface
             $options['json'] = $data;
         }
 
-        $fullUrl = $this->hostProvider->getApiBaseUrl() . $url;
+        $fullUrl = $this->apiBaseUrl($paymentMethod) . $url;
 
-        try {
-            $response = $this->doRequest($method, $fullUrl, $options);
-            if ($this->loggingLevelIncreased) {
-                $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
-            }
-        } catch (RequestException $exception) {
-            /** @var ResponseInterface $response */
-            $response = $exception->getResponse();
+        $response = $this->doRequest($method, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+        if (Response::HTTP_UNAUTHORIZED === $response->getStatusCode()) {
+            $this->authorizeClientApi->invalidate($paymentMethod);
+            $response = $this->doRequest($method, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+        }
+
+        if ($this->loggingLevelIncreased) {
+            $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
         }
 
         $content = (array) json_decode($response->getBody()->getContents(), true);
@@ -124,6 +107,14 @@ final class PayPalClient implements PayPalClientInterface
         }
 
         return $content;
+    }
+
+    private function apiBaseUrl(PaymentMethodInterface $paymentMethod): string
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return $this->hostProvider->getApiBaseUrlForMode(PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox());
     }
 
     private function partnerAttributionId(): ?string
@@ -143,60 +134,26 @@ final class PayPalClient implements PayPalClientInterface
         }
     }
 
-    private function doRequest(string $method, string $fullUrl, array $options): ResponseInterface
+    private function doRequest(string $method, string $fullUrl, array $options, string $token): ResponseInterface
     {
-        try {
-            $request = $this->requestFactory->createRequest($method, $fullUrl);
+        $request = $this->requestFactory->createRequest($method, $fullUrl)->withHeader('Authorization', 'Bearer ' . $token);
 
-            if (isset($options['auth'])) {
-                $request = $request->withHeader(
-                    'Authorization',
-                    sprintf(
-                        'Basic %s',
-                        base64_encode(sprintf('%s:%s', $options['auth'][0], $options['auth'][1])),
-                    ),
-                );
-            }
-
-            if (isset($options['form_params'])) {
-                $request = $request->withHeader('Content-Type', 'application/x-www-form-urlencoded');
-                $request = $request->withBody(
-                    $this->streamFactory->createStream(
-                        http_build_query(
-                            $options['form_params'],
-                            '',
-                            '&',
-                            \PHP_QUERY_RFC1738,
-                        ),
-                    ),
-                );
-            }
-
-            if (isset($options['json'])) {
-                $request = $request->withBody(
-                    $this->streamFactory->createStream(json_encode($options['json'])),
-                );
-            }
-
-            if (isset($options['headers'])) {
-                foreach ($options['headers'] as $header => $headerValue) {
-                    $request = $request->withHeader($header, $headerValue);
-                }
-            }
-
-            $response = $this->client->sendRequest($request);
-        } catch (ConnectException $exception) {
-            --$this->requestTrialsLimit;
-            if ($this->requestTrialsLimit === 0) {
-                throw new PayPalApiTimeoutException();
-            }
-
-            return $this->doRequest($method, $fullUrl, $options);
-        } catch (RequestException $exception) {
-            /** @var ResponseInterface $response */
-            $response = $exception->getResponse();
+        if (isset($options['json'])) {
+            $request = $request->withBody(
+                $this->streamFactory->createStream(json_encode($options['json'])),
+            );
         }
 
-        return $response;
+        if (isset($options['headers'])) {
+            foreach ($options['headers'] as $header => $headerValue) {
+                $request = $request->withHeader($header, $headerValue);
+            }
+        }
+
+        try {
+            return $this->client->sendRequest($request);
+        } catch (NetworkExceptionInterface) {
+            throw new PayPalApiTimeoutException();
+        }
     }
 }

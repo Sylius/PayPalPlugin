@@ -18,5 +18,5 @@ use Sylius\Component\Core\Model\PaymentInterface;
 interface PaymentCaptureProcessorInterface
 {
     /** @return array<string, mixed> the PayPal order after the capture */
-    public function capture(PaymentInterface $payment): array;
+    public function capture(PaymentInterface $payment, ?string $requestId = null): array;
 }

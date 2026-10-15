@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Exception\TransferException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -27,6 +26,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
@@ -183,7 +183,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
     public function test_it_answers_with_a_bad_request_when_paypal_is_unreachable(): void
     {
         $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
-        $this->capturePaymentResolver->method('resolve')->willThrowException(new TransferException());
+        $this->capturePaymentResolver->method('resolve')->willThrowException(new PayPalApiTimeoutException());
 
         $this->paymentStateManager->expects(self::never())->method('create');
         $request = $this->request();

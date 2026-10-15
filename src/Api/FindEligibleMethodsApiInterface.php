@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 interface FindEligibleMethodsApiInterface
 {
@@ -22,5 +23,5 @@ interface FindEligibleMethodsApiInterface
      *
      * @return array<string, mixed>
      */
-    public function find(string $token, PaymentInterface $payment, array $paymentSources): array;
+    public function find(PaymentMethodInterface $paymentMethod, PaymentInterface $payment, array $paymentSources): array;
 }

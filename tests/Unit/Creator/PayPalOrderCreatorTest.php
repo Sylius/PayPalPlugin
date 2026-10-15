@@ -17,7 +17,6 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
@@ -28,8 +27,6 @@ use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class PayPalOrderCreatorTest extends TestCase
 {
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
-
     private CreateOrderApiInterface&MockObject $createOrderApi;
 
     private PaymentMethodInterface&MockObject $paymentMethod;
@@ -41,20 +38,17 @@ final class PayPalOrderCreatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->createOrderApi = $this->createMock(CreateOrderApiInterface::class);
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
         $this->payment->method('getMethod')->willReturn($this->paymentMethod);
         $this->payment->method('getAmount')->willReturn(1000);
-        $this->authorizeClientApi->method('authorize')->with($this->paymentMethod)->willReturn('ACCESS_TOKEN');
 
         $uuidProvider = $this->createMock(UuidProviderInterface::class);
         $uuidProvider->method('provide')->willReturn('UUID');
 
         $this->creator = new PayPalOrderCreator(
-            $this->authorizeClientApi,
             $this->createOrderApi,
             $uuidProvider,
             new PayPalOrderCreatedStatusesProvider(),
@@ -68,7 +62,7 @@ final class PayPalOrderCreatorTest extends TestCase
 
     public function test_it_creates_the_order_for_the_payment_source_and_records_it_on_the_payment(): void
     {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'google_pay', null, null, null, null)->willReturn(['status' => 'CREATED', 'id' => '123123']);
+        $this->createOrderApi->expects(self::once())->method('create')->with($this->paymentMethod, $this->payment, 'UUID', 'google_pay', null, null, null, null)->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $this->payment->expects(self::once())->method('setDetails')->with([
             'status' => PayPalPaymentStatus::Captured->value,
@@ -112,7 +106,7 @@ final class PayPalOrderCreatorTest extends TestCase
 
     public function test_it_names_the_order_and_its_request_as_it_is_told(): void
     {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'paypal', 'CUSTOM_ID', 'REQUEST_ID')->willReturn(['status' => 'CREATED', 'id' => '123123']);
+        $this->createOrderApi->expects(self::once())->method('create')->with($this->paymentMethod, $this->payment, 'UUID', 'paypal', 'CUSTOM_ID', 'REQUEST_ID')->willReturn(['status' => 'CREATED', 'id' => '123123']);
 
         $this->creator->create($this->payment, 'paypal', 'CUSTOM_ID', 'REQUEST_ID');
     }
@@ -132,7 +126,6 @@ final class PayPalOrderCreatorTest extends TestCase
         $orderCreatedStatusesProvider->method('provide')->willReturn(['SOME_OTHER_STATUS']);
 
         $creator = new PayPalOrderCreator(
-            $this->authorizeClientApi,
             $this->createOrderApi,
             $this->createMock(UuidProviderInterface::class),
             $orderCreatedStatusesProvider,
@@ -180,7 +173,7 @@ final class PayPalOrderCreatorTest extends TestCase
 
     public function test_it_sends_the_payer_back_to_the_return_url_it_is_given(): void
     {
-        $this->createOrderApi->expects(self::once())->method('create')->with('ACCESS_TOKEN', $this->payment, 'UUID', 'trustly', 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH')->willReturn([
+        $this->createOrderApi->expects(self::once())->method('create')->with($this->paymentMethod, $this->payment, 'UUID', 'trustly', 'HASH', 'HASH', 'https://shop.example.com/en_US/payment-request/pay/HASH')->willReturn([
             'status' => 'PAYER_ACTION_REQUIRED',
             'id' => '123123',
             'links' => [['href' => 'https://www.sandbox.paypal.com/payment/trustly?token=123123', 'rel' => 'payer-action', 'method' => 'GET']],

@@ -18,7 +18,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\StateResolver\StateResolverInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
@@ -33,7 +32,6 @@ use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UpdateOrderApiInterface $updateOrderApi,
         private UpdateOrderAddressApiInterface $updateOrderAddressApi,
         private CompleteOrderApiInterface $completeOrderApi,
@@ -43,7 +41,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
     ) {
     }
 
-    public function capture(PaymentInterface $payment): array
+    public function capture(PaymentInterface $payment, ?string $requestId = null): array
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -53,13 +51,11 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $details = PayPalPaymentDetails::fromPayment($payment);
         $payPalOrderId = (string) $details->payPalOrderId();
 
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
-
         if (null === RedirectPaymentSource::tryFrom($details->paymentSource())) {
-            $this->captureApprovedOrder($token, $payment, $order, $paymentMethod, $details);
+            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
         }
 
-        $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
+        $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
         if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
             return $orderDetails;
@@ -84,11 +80,11 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
     }
 
     private function captureApprovedOrder(
-        string $token,
         PaymentInterface $payment,
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         PayPalPaymentDetails $details,
+        ?string $requestId,
     ): void {
         $payPalOrderId = (string) $details->payPalOrderId();
 
@@ -97,7 +93,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             $gatewayConfig = $paymentMethod->getGatewayConfig();
 
             $this->updateOrderApi->update(
-                $token,
+                $paymentMethod,
                 $payPalOrderId,
                 $payment,
                 (string) $details->referenceId(),
@@ -111,13 +107,13 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $shippingAddress = $order->getShippingAddress();
         if ($order->isShippingRequired() && null !== $shippingAddress) {
             $this->updateOrderAddressApi->update(
-                $token,
+                $paymentMethod,
                 $payPalOrderId,
                 (string) $details->referenceId(),
                 $shippingAddress,
             );
         }
 
-        $this->completeOrderApi->complete($token, $payPalOrderId);
+        $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
     }
 }

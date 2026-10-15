@@ -22,15 +22,12 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 
 final class PayPalPaymentSettlementProcessorTest extends TestCase
 {
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
-
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
 
     private StateMachineInterface&MockObject $stateMachine;
@@ -39,6 +36,8 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
 
     private LoggerInterface&MockObject $logger;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private PaymentInterface&MockObject $payment;
 
     private PayPalPaymentSettlementProcessor $processor;
@@ -46,17 +45,17 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->paymentManager = $this->createMock(ObjectManager::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->payment = $this->createMock(PaymentInterface::class);
         $this->payment->method('getId')->willReturn(7);
         $this->payment->method('getAmount')->willReturn(1539);
         $this->payment->method('getCurrencyCode')->willReturn('EUR');
-        $this->payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
+        $this->payment->method('getMethod')->willReturn($this->paymentMethod);
         $this->payment->method('getDetails')->willReturn([
             'status' => 'CAPTURED',
             'paypal_order_id' => '5O190127TN364715T',
@@ -64,7 +63,6 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         ]);
 
         $this->processor = new PayPalPaymentSettlementProcessor(
-            $this->authorizeClientApi,
             $this->orderDetailsApi,
             $this->stateMachine,
             $this->paymentManager,
@@ -336,11 +334,10 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
     public function test_it_reads_the_order_from_paypal_when_it_is_given_none(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
-        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
         $this->orderDetailsApi
             ->expects(self::once())
             ->method('get')
-            ->with('TOKEN', '5O190127TN364715T')
+            ->with($this->paymentMethod, '5O190127TN364715T')
             ->willReturn($this->orderDetails('PENDING'))
         ;
 

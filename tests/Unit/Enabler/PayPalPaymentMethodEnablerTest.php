@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
@@ -85,7 +86,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('authorize')
             ->with('CLIENT-ID', 'SECRET', false)
-            ->willReturn('SELLER-TOKEN');
+            ->willReturn(new AccessToken('SELLER-TOKEN', 32400));
 
         $this->merchantOnboardingStatusApi
             ->expects(self::once())
@@ -119,7 +120,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('authorize')
             ->with('CLIENT-ID', 'SECRET', true)
-            ->willReturn('SELLER-TOKEN');
+            ->willReturn(new AccessToken('SELLER-TOKEN', 32400));
 
         $this->partnerCredentialsProvider->expects(self::never())->method('provide');
         $this->merchantOnboardingStatusApi->expects(self::never())->method('get');
@@ -146,7 +147,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->method('getConfig')
             ->willReturn(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
-        $this->authorizeClientApi->method('authorize')->willReturn('SELLER-TOKEN');
+        $this->authorizeClientApi->method('authorize')->willReturn(new AccessToken('SELLER-TOKEN', 32400));
         $status = new OnboardingStatus(false, true);
         $this->merchantOnboardingStatusApi->method('get')->willReturn($status);
 

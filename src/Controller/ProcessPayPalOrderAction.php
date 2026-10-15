@@ -31,7 +31,6 @@ use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 use Sylius\PayPalPlugin\AmountUtils;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
@@ -67,7 +66,6 @@ final readonly class ProcessPayPalOrderAction
         private ObjectManager $orderManager,
         private StateMachineInterface $stateMachineFactory,
         private PaymentStateManagerInterface $paymentStateManager,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private OrderProviderInterface $orderProvider,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
@@ -337,7 +335,7 @@ final readonly class ProcessPayPalOrderAction
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
         return [] === $updateOrderApi->update(
-            $this->authorizeClientApi->authorize($paymentMethod),
+            $paymentMethod,
             $payPalOrderId,
             $payment,
             (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
@@ -392,9 +390,8 @@ final readonly class ProcessPayPalOrderAction
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
 
-        return $this->orderDetailsApi->get($token, $id);
+        return $this->orderDetailsApi->get($paymentMethod, $id);
     }
 
     private function verify(PaymentInterface $payment, array $paypalOrderDetails): void

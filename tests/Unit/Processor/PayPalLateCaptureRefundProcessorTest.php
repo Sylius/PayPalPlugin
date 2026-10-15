@@ -20,7 +20,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
@@ -43,8 +42,6 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $authorizeClientApi = $this->createStub(CacheAuthorizeClientApiInterface::class);
-        $authorizeClientApi->method('authorize')->willReturn('TOKEN');
         $authAssertionGenerator = $this->createStub(PayPalAuthAssertionGeneratorInterface::class);
         $authAssertionGenerator->method('generate')->willReturn('AUTH_ASSERTION');
         $referenceNumberProvider = $this->createStub(RefundReferenceNumberProviderInterface::class);
@@ -56,7 +53,6 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
         $this->paymentManager = $this->createMock(ObjectManager::class);
 
         $this->processor = new PayPalLateCaptureRefundProcessor(
-            $authorizeClientApi,
             $this->orderDetailsApi,
             $this->refundPaymentApi,
             $authAssertionGenerator,
@@ -77,7 +73,7 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
         $this->refundPaymentApi
             ->expects(self::once())
             ->method('refund')
-            ->with('TOKEN', 'CAPTURE_ID', 'AUTH_ASSERTION', 'REFERENCE_NUMBER', '15.39', 'EUR')
+            ->with($payment->getMethod(), 'CAPTURE_ID', 'AUTH_ASSERTION', 'REFERENCE_NUMBER', '15.39', 'EUR')
             ->willReturn(['id' => 'REFUND_ID', 'status' => 'COMPLETED'])
         ;
         $payment->expects(self::once())->method('setDetails')->with([
@@ -97,11 +93,12 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
 
     public function test_it_checks_the_paypal_order_the_late_capture_belongs_to(): void
     {
+        $payment = $this->payment(['id' => 'CAPTURE_ID', 'order_id' => 'SUPERSEDED_ORDER_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
         $orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
-        $orderDetailsApi->expects(self::once())->method('get')->with('TOKEN', 'SUPERSEDED_ORDER_ID')->willReturn($this->orderDetails('COMPLETED'));
+        $orderDetailsApi->expects(self::once())->method('get')->with($payment->getMethod(), 'SUPERSEDED_ORDER_ID')->willReturn($this->orderDetails('COMPLETED'));
         $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'COMPLETED']);
 
-        $this->processorWith($orderDetailsApi)->refund($this->payment(['id' => 'CAPTURE_ID', 'order_id' => 'SUPERSEDED_ORDER_ID', 'amount' => 1539, 'currency_code' => 'EUR']));
+        $this->processorWith($orderDetailsApi)->refund($payment);
     }
 
     public function test_it_refunds_the_amount_in_the_decimals_of_the_captured_currency(): void
@@ -111,7 +108,7 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
         $this->refundPaymentApi
             ->expects(self::once())
             ->method('refund')
-            ->with('TOKEN', 'CAPTURE_ID', 'AUTH_ASSERTION', 'REFERENCE_NUMBER', '1500', 'JPY')
+            ->with($payment->getMethod(), 'CAPTURE_ID', 'AUTH_ASSERTION', 'REFERENCE_NUMBER', '1500', 'JPY')
             ->willReturn(['id' => 'REFUND_ID', 'status' => 'COMPLETED'])
         ;
 
@@ -206,11 +203,7 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
 
     private function processorWith(OrderDetailsApiInterface $orderDetailsApi): PayPalLateCaptureRefundProcessor
     {
-        $authorizeClientApi = $this->createStub(CacheAuthorizeClientApiInterface::class);
-        $authorizeClientApi->method('authorize')->willReturn('TOKEN');
-
         return new PayPalLateCaptureRefundProcessor(
-            $authorizeClientApi,
             $orderDetailsApi,
             $this->refundPaymentApi,
             $this->createStub(PayPalAuthAssertionGeneratorInterface::class),

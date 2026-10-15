@@ -14,11 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 interface UpdateOrderAddressApiInterface
 {
     public function update(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $orderId,
         string $referenceId,
         AddressInterface $shippingAddress,

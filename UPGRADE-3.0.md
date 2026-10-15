@@ -151,32 +151,10 @@
    The following constructor signatures have changed:
 
    ```diff
-    // Sylius\PayPalPlugin\Client\PayPalClient
-    public function __construct(
-        // ...
-   -    private readonly string $baseUrl,
-   +    private readonly HostProviderInterface $hostProvider,
-        // ...
-    ) {
-   ```
-
-   ```diff
-    // Sylius\PayPalPlugin\Api\WebhookApi
-    // Sylius\PayPalPlugin\Api\WebhookSignatureVerifier
-    public function __construct(
-        private ClientInterface $client,
-   -    private string $baseUrl,
-   +    private HostProviderInterface $hostProvider,
-        private RequestFactoryInterface $requestFactory,
-        private StreamFactoryInterface $streamFactory,
-    ) {
-   ```
-
-   ```diff
     // Sylius\PayPalPlugin\Provider\WebhookIdProvider
     public function __construct(
         private GenericApiInterface $genericApi,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
+   -    private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
    -    private string $baseUrl,
    +    private HostProviderInterface $hostProvider,
@@ -213,22 +191,248 @@
     ) {
    ```
 
-   The following methods take the mode explicitly instead of reading it from the active payment method:
+   The PayPal client, `AuthorizeClientApi`, `WebhookApi` and `WebhookSignatureVerifier` take the mode from the
+   payment method they are called for, as described below.
+
+1. #### PayPal API requests are retried by a PSR-18 decorator.
+
+   `Sylius\PayPalPlugin\Client\RetryingHttpClient` (service `sylius_paypal.http_client.retrying`) wraps
+   `sylius_paypal.http_client` and resends the very same request on network errors, `429`, `500`, `502`, `503` and
+   `504`, with a jittered exponential backoff (250 ms doubled per attempt, capped at 2 s). A `Retry-After` of up to
+   2 seconds is honoured; a longer one ends the retries. A request keeps its `PayPal-Request-Id` and body on every
+   attempt. `PayPalClient`, `AuthorizeClientApi` and `WebhookSignatureVerifier` send through it.
+
+   The `sylius_paypal.request_trials_limit` parameter (default `5`) has been replaced by
+   `sylius_paypal.api.max_attempts` (default `3`), the total number of attempts. The waits go through
+   `Symfony\Component\Clock\ClockInterface` (the `sylius_paypal.clock` alias of `clock`), so `symfony/clock` is now
+   required.
+
+   Network errors of any PSR-18 client now end in `PayPalApiTimeoutException`; before, only Guzzle's
+   `ConnectException` did. `sylius_paypal.http_client` is still an alias of `sylius.http_client`; point it to a
+   scoped HTTP client to set timeouts for the PayPal API.
+
+1. #### `PayPalClient` takes the payment method and resolves the access token itself.
 
    ```diff
-    // Sylius\PayPalPlugin\Client\PayPalClientInterface
-   -public function authorize(string $clientId, string $clientSecret): array;
-   +public function authorize(string $clientId, string $clientSecret, bool $sandbox): array;
+    interface PayPalClientInterface
+    {
+   -    public function authorize(string $clientId, string $clientSecret): array;
+   -
+   -    public function get(string $url, string $token): array;
+   +    public function get(PaymentMethodInterface $paymentMethod, string $url): array;
+
+   -    public function post(string $url, string $token, ?array $data = null, array $extraHeaders = []): array;
+   +    public function post(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null, array $extraHeaders = []): array;
+
+   -    public function patch(string $url, string $token, ?array $data = null): array;
+   +    public function patch(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null): array;
+    }
+   ```
+
+   The client takes the token from `CacheAuthorizeClientApiInterface`. When PayPal answers `401`, it invalidates the
+   cached token, fetches a fresh one and resends the request once. The request goes to the API of the payment
+   method's mode (`HostProviderInterface::getApiBaseUrlForMode()`), the same one its token was issued by. The token
+   request moved to `AuthorizeClientApi`.
+
+   ```diff
+    // Sylius\PayPalPlugin\Client\PayPalClient
+    public function __construct(
+   -    private ClientInterface $client,
+   +    private ClientInterface $client, // sylius_paypal.http_client.retrying
+        private LoggerInterface $logger,
+        private UuidProviderInterface $uuidProvider,
+        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+        private ChannelContextInterface $channelContext,
+   +    private CacheAuthorizeClientApiInterface $authorizeClientApi,
+   -    private string $baseUrl,
+   +    private HostProviderInterface $hostProvider,
+   -    private int $requestTrialsLimit,
+        private RequestFactoryInterface $requestFactory,
+        private StreamFactoryInterface $streamFactory,
+        private bool $loggingLevelIncreased = false,
+    ) {
+   ```
+
+1. #### The API classes take the payment method instead of an access token.
+
+   The first argument of the following methods changed from `string $token` to
+   `Sylius\Component\Core\Model\PaymentMethodInterface $paymentMethod`:
+
+   | Interface | Method |
+   |---|---|
+   | `Sylius\PayPalPlugin\Api\CompleteOrderApiInterface` | `complete()` |
+   | `Sylius\PayPalPlugin\Api\CreateOrderApiInterface` | `create()` |
+   | `Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface` | `find()` |
+   | `Sylius\PayPalPlugin\Api\GenericApiInterface` | `get()` |
+   | `Sylius\PayPalPlugin\Api\IdentityApiInterface` | `generateToken()` |
+   | `Sylius\PayPalPlugin\Api\OrderDetailsApiInterface` | `get()` |
+   | `Sylius\PayPalPlugin\Api\RefundPaymentApiInterface` | `refund()` |
+   | `Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface` | `update()` |
+   | `Sylius\PayPalPlugin\Api\UpdateOrderApiInterface` | `update()` |
+   | `Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface` | `updateEventTypes()` |
+   | `Sylius\PayPalPlugin\Api\WebhookApiInterface` | `register()` |
+   | `Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface` | `add()` |
+
+   `WebhookSignatureVerifierInterface::verify()` takes the payment method as its third argument instead of the
+   token:
+
+   ```diff
+   -public function verify(Request $request, string $webhookId, string $token): bool;
+   +public function verify(Request $request, string $webhookId, PaymentMethodInterface $paymentMethod): bool;
+   ```
+
+   `WebhookApi` and `UpdateWebhookApi` send through `PayPalClientInterface`, their only constructor argument now.
+   `WebhookSignatureVerifier` takes the token from `CacheAuthorizeClientApiInterface`, recovers from a `401` the same
+   way the client does and asks the API of the payment method's mode.
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\WebhookApi, Sylius\PayPalPlugin\Api\UpdateWebhookApi
+    public function __construct(
+   -    private ClientInterface $client,
+   -    private string $baseUrl,
+   -    private RequestFactoryInterface $requestFactory,
+   -    private StreamFactoryInterface $streamFactory,
+   +    private PayPalClientInterface $client,
+    ) {
    ```
 
    ```diff
-    // Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface
-   -public function authorize(string $clientId, string $clientSecret): string;
-   +public function authorize(string $clientId, string $clientSecret, bool $sandbox): string;
+    // Sylius\PayPalPlugin\Api\WebhookSignatureVerifier
+    public function __construct(
+   -    private ClientInterface $client,
+   +    private ClientInterface $client, // sylius_paypal.http_client.retrying
+   +    private CacheAuthorizeClientApiInterface $authorizeClientApi,
+   -    private string $baseUrl,
+   +    private HostProviderInterface $hostProvider,
+        private RequestFactoryInterface $requestFactory,
+        private StreamFactoryInterface $streamFactory,
+    ) {
+   ```
+
+1. #### `GenericApi` only sends the PayPal credentials to the PayPal API.
+
+   `GenericApiInterface::get()` reads the absolute URLs PayPal links to, such as the `links` of a webhook event. It
+   now sends the request through `PayPalClientInterface` only when the URL is an `https` URL of the API of the
+   payment method's mode (`api.` or `api-m.`), without a port or credentials. Any other URL, including the API of the
+   other mode, throws `Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException` before a request is sent. The
+   exception implements `PermanentWebhookFailureInterface`, so a webhook event carrying such a link is not replayed.
+
+   An error answered by PayPal still throws `PayPalPluginException`.
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\GenericApi
+    public function __construct(
+   -    private ClientInterface $client,
+   -    private RequestFactoryInterface $requestFactory,
+   +    private PayPalClientInterface $client,
+   +    private HostProviderInterface $hostProvider,
+    ) {
+   ```
+
+1. #### Services that used to fetch the access token no longer depend on the token cache.
+
+   The `CacheAuthorizeClientApiInterface $authorizeClientApi` argument has been removed from the constructors of:
+
+   - `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`
+   - `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction`
+   - `Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction`
+   - `Sylius\PayPalPlugin\Creator\PayPalOrderCreator`
+   - `Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessor`
+   - `Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor`
+   - `Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor`
+   - `Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor`
+   - `Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor`
+   - `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider`
+   - `Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider`
+   - `Sylius\PayPalPlugin\Provider\WebhookIdProvider`
+   - `Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar`
+   - `Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifier`
+   - `Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier`
+
+   `Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar` has lost its first argument,
+   `AuthorizeClientApiInterface $authorizeClientApi`.
+
+1. #### `AuthorizeClientApi` takes the mode, returns an `AccessToken` and requests it itself.
+
+   ```diff
+    interface AuthorizeClientApiInterface
+    {
+   -    public function authorize(string $clientId, string $clientSecret): string;
+   +    /** @throws PayPalAuthorizationException */
+   +    public function authorize(string $clientId, string $clientSecret, bool $sandbox): AccessToken;
+    }
+   ```
+
+   The token is requested from the API of the given mode. `Sylius\PayPalPlugin\Model\AccessToken` carries the token
+   (`value()`) and the lifetime PayPal gives it (`expiresIn()`). A response without the token or its lifetime throws
+   `PayPalAuthorizationException` instead of returning an empty string.
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\AuthorizeClientApi
+    public function __construct(
+   -    private PayPalClientInterface $payPalClient,
+   +    private ClientInterface $client, // sylius_paypal.http_client.retrying
+   +    private RequestFactoryInterface $requestFactory,
+   +    private StreamFactoryInterface $streamFactory,
+   +    private HostProviderInterface $hostProvider,
+    ) {
+   ```
+
+1. #### The access token is cached for the lifetime PayPal gives it, in one row per payment method.
+
+   `CacheAuthorizeClientApi` keeps the token until five minutes before the `expires_in` PayPal returns, instead of a
+   fixed hour, and refreshes the payment method's row in place instead of deleting and inserting it. For a payment
+   method that is not saved yet, as during the onboarding, the token is fetched without being stored.
+
+   `CacheAuthorizeClientApiInterface` has gained `invalidate(PaymentMethodInterface $paymentMethod): void`, which
+   expires the cached token, and the constructor takes the clock:
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi
+    public function __construct(
+        private ObjectManager $payPalCredentialsManager,
+        private ObjectRepository $payPalCredentialsRepository,
+        private AuthorizeClientApiInterface $authorizeClientApi,
+        private UuidProviderInterface $uuidProvider,
+   +    private ClockInterface $clock,
+    ) {
    ```
 
    ```diff
-    // Sylius\PayPalPlugin\Api\WebhookApiInterface
-   -public function register(string $token, string $webhookUrl): array;
-   +public function register(string $token, string $webhookUrl, bool $sandbox): array;
+    interface PayPalCredentialsInterface
+    {
+        // ...
+   -    public function isExpired(): bool;
+   +    public function refresh(string $accessToken, \DateTime $creationTime, int $expiresIn): void;
+   +
+   +    public function expire(): void;
+   +
+   +    public function isExpired(\DateTimeInterface $now): bool;
+    }
    ```
+
+   The `sylius_paypal_plugin_pay_pal_credentials.payment_method_id` column is now unique. The
+   `Version20261014120000` (MySQL) and `Version20261014120001` (PostgreSQL) migrations delete the cached tokens
+   before adding the unique index; the tokens are fetched again on the next request.
+
+1. #### A Payment Request captures its PayPal order under a request id derived from the request.
+
+   ```diff
+    interface PaymentCaptureProcessorInterface
+    {
+   -    public function capture(PaymentInterface $payment): array;
+   +    public function capture(PaymentInterface $payment, ?string $requestId = null): array;
+    }
+   ```
+
+   ```diff
+    interface CompleteOrderApiInterface
+    {
+   -    public function complete(string $token, string $orderId): array;
+   +    public function complete(PaymentMethodInterface $paymentMethod, string $orderId, ?string $requestId = null): array;
+    }
+   ```
+
+   `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
+   reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
+   capturing again. Without a request id, a random one is used, as before.

@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Creator;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -28,7 +27,6 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
     public const PAYER_ACTION_LINK_REL = 'payer-action';
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private CreateOrderApiInterface $createOrderApi,
         private UuidProviderInterface $uuidProvider,
         private PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider,
@@ -46,11 +44,9 @@ final readonly class PayPalOrderCreator implements PayPalOrderCreatorInterface
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
-
         $referenceId = $this->uuidProvider->provide();
         $content = $this->createOrderApi->create(
-            $token,
+            $paymentMethod,
             $payment,
             $referenceId,
             $paymentSource,

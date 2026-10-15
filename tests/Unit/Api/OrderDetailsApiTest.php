@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApi;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -24,12 +25,15 @@ final class OrderDetailsApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private OrderDetailsApi $orderDetailsApi;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->orderDetailsApi = new OrderDetailsApi($this->client);
     }
 
@@ -45,10 +49,10 @@ final class OrderDetailsApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('get')
-            ->with('v2/checkout/orders/123123', 'TOKEN')
+            ->with($this->paymentMethod, 'v2/checkout/orders/123123')
             ->willReturn(['total' => 1111]);
 
-        $result = $this->orderDetailsApi->get('TOKEN', '123123');
+        $result = $this->orderDetailsApi->get($this->paymentMethod, '123123');
 
         self::assertEquals(['total' => 1111], $result);
     }

@@ -103,16 +103,13 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
         $this->paymentRepository->method('findBy')->willReturn([$payment]);
 
-        $authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
-        $authorizeClientApi->method('authorize')->willReturn('TOKEN');
-
         $orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
-        $orderDetailsApi->expects(self::once())->method('get')->with('TOKEN', 'PAYPAL_ORDER_ID')->willReturn([]);
+        $orderDetailsApi->expects(self::once())->method('get')->with($payment->getMethod(), 'PAYPAL_ORDER_ID')->willReturn([]);
 
         $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
             $this->paymentRepository,
             $this->createMock(ObjectManager::class),
-            $authorizeClientApi,
+            $this->createMock(CacheAuthorizeClientApiInterface::class),
             $orderDetailsApi,
             $this->createMock(StateMachineInterface::class),
         ));

@@ -34,6 +34,8 @@ final class CreateOrderApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private PaymentReferenceNumberProviderInterface&MockObject $paymentReferenceNumberProvider;
 
     private PayPalItemDataProviderInterface&MockObject $payPalItemDataProvider;
@@ -46,6 +48,7 @@ final class CreateOrderApiTest extends TestCase
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->paymentReferenceNumberProvider = $this->createMock(PaymentReferenceNumberProviderInterface::class);
         $this->payPalItemDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
         $this->payPalOrderFactory = $this->createMock(PayPalOrderFactoryInterface::class);
@@ -86,13 +89,13 @@ final class CreateOrderApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with('v2/checkout/orders', 'TOKEN', $payPalOrder->toArray())
+            ->with($this->paymentMethod, 'v2/checkout/orders', $payPalOrder->toArray())
             ->willReturn(['status' => 'CREATED', 'id' => 123])
         ;
 
         self::assertSame(
             ['status' => 'CREATED', 'id' => 123],
-            $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID'),
+            $this->createOrderApi->create($this->paymentMethod, $payment, 'REFERENCE_ID'),
         );
     }
 
@@ -110,7 +113,7 @@ final class CreateOrderApiTest extends TestCase
 
         $this->client->method('post')->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID', 'google_pay');
+        $this->createOrderApi->create($this->paymentMethod, $payment, 'REFERENCE_ID', 'google_pay');
     }
 
     public function test_it_names_the_order_with_the_given_custom_id(): void
@@ -120,23 +123,23 @@ final class CreateOrderApiTest extends TestCase
         $this->payPalOrderFactory->expects(self::once())->method('create')->with($payment, 'REFERENCE_ID', 'paypal', 'PAYMENT_REQUEST_HASH')->willReturn(new PayPalOrder($this->createMock(OrderInterface::class), $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []));
         $this->client->method('post')->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH');
+        $this->createOrderApi->create($this->paymentMethod, $payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH');
     }
 
     public function test_it_identifies_the_order_request_with_the_given_request_id(): void
     {
         $this->payPalOrderFactory->method('create')->willReturn($payPalOrder = new PayPalOrder($this->createMock(OrderInterface::class), $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []));
-        $this->client->expects(self::once())->method('post')->with('v2/checkout/orders', 'TOKEN', $payPalOrder->toArray(), ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH'])->willReturn(['status' => 'CREATED', 'id' => 123]);
+        $this->client->expects(self::once())->method('post')->with($this->paymentMethod, 'v2/checkout/orders', $payPalOrder->toArray(), ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH'])->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->createOrderApi->create('TOKEN', $this->createMock(PaymentInterface::class), 'REFERENCE_ID', requestId: 'PAYMENT_REQUEST_HASH');
+        $this->createOrderApi->create($this->paymentMethod, $this->createMock(PaymentInterface::class), 'REFERENCE_ID', requestId: 'PAYMENT_REQUEST_HASH');
     }
 
     public function test_it_leaves_the_request_id_to_the_client_when_it_is_given_none(): void
     {
         $this->payPalOrderFactory->method('create')->willReturn($payPalOrder = new PayPalOrder($this->createMock(OrderInterface::class), $this->purchaseUnit(), PayPalOrder::INTENT_CAPTURE, []));
-        $this->client->expects(self::once())->method('post')->with('v2/checkout/orders', 'TOKEN', $payPalOrder->toArray(), [])->willReturn(['status' => 'CREATED', 'id' => 123]);
+        $this->client->expects(self::once())->method('post')->with($this->paymentMethod, 'v2/checkout/orders', $payPalOrder->toArray(), [])->willReturn(['status' => 'CREATED', 'id' => 123]);
 
-        $this->createOrderApi->create('TOKEN', $this->createMock(PaymentInterface::class), 'REFERENCE_ID');
+        $this->createOrderApi->create($this->paymentMethod, $this->createMock(PaymentInterface::class), 'REFERENCE_ID');
     }
 
     #[Test]
@@ -183,8 +186,8 @@ final class CreateOrderApiTest extends TestCase
             ->expects(self::once())
             ->method('post')
             ->with(
+                $this->paymentMethod,
                 'v2/checkout/orders',
-                'TOKEN',
                 $this->callback(function (array $data): bool {
                     return
                         'CAPTURE' === $data['intent'] &&
@@ -202,7 +205,7 @@ final class CreateOrderApiTest extends TestCase
             ->willReturn(['status' => 'PAYER_ACTION_REQUIRED', 'id' => 123])
         ;
 
-        $createOrderApi->create('TOKEN', $payment, 'REFERENCE_ID');
+        $createOrderApi->create($this->paymentMethod, $payment, 'REFERENCE_ID');
     }
 
     private function purchaseUnit(): PayPalPurchaseUnit

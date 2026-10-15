@@ -19,7 +19,6 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -30,7 +29,6 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
     public const LATE_CAPTURE = 'paypal_late_capture';
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private StateMachineInterface $stateMachine,
         private ObjectManager $paymentManager,
@@ -165,7 +163,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
-        return $this->orderDetailsApi->get($this->authorizeClientApi->authorize($paymentMethod), $payPalOrderId);
+        return $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
     }
 
     private function withMismatchedCapture(

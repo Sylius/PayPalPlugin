@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -28,7 +27,6 @@ final readonly class PaymentThreeDSecureVerifier implements PaymentThreeDSecureV
     ];
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private ThreeDSecureVerifierInterface $threeDSecureVerifier,
     ) {
@@ -45,7 +43,7 @@ final readonly class PaymentThreeDSecureVerifier implements PaymentThreeDSecureV
         $paymentMethod = $payment->getMethod();
 
         $this->threeDSecureVerifier->verify($this->orderDetailsApi->get(
-            $this->authorizeClientApi->authorize($paymentMethod),
+            $paymentMethod,
             (string) $details->payPalOrderId(),
         ));
     }

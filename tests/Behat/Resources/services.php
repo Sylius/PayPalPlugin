@@ -15,6 +15,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Symfony\Component\Clock\MockClock;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingOrdersContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingPaymentMethodsContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Hook\PayPalHttpClientContext;
@@ -39,6 +40,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->defaults()
         ->public();
+
+    $services->set('sylius_paypal.clock', MockClock::class);
 
     $services->set(PayPalHttpClientWithExpectations::class)
         ->decorate('sylius_paypal.http_client')

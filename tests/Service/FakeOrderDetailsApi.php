@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Service;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 
 final class FakeOrderDetailsApi implements OrderDetailsApiInterface
@@ -21,7 +22,7 @@ final class FakeOrderDetailsApi implements OrderDetailsApiInterface
     {
     }
 
-    public function get(string $token, string $orderId): array
+    public function get(PaymentMethodInterface $paymentMethod, string $orderId): array
     {
         return $this->orderDetails;
     }

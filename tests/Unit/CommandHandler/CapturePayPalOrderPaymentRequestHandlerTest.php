@@ -73,7 +73,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $this->paymentRequestWith();
         $capturedOrder = $this->capturedOrder('COMPLETED');
-        $this->paymentCaptureProcessor->expects(self::once())->method('capture')->with($this->payment)->willReturn($capturedOrder);
+        $this->paymentCaptureProcessor->expects(self::once())->method('capture')->with($this->payment, 'PAYMENT_REQUEST_HASH-capture')->willReturn($capturedOrder);
         $this->stateMachine->method('can')->willReturn(false);
 
         $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, $capturedOrder);
@@ -232,6 +232,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getState')->willReturn($state);
         $paymentRequest->method('getPayment')->willReturn($this->payment);
+        $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
 
         $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
 

@@ -21,7 +21,6 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider;
@@ -30,8 +29,6 @@ use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterf
 
 final class EligibleRedirectPaymentSourcesProviderTest extends TestCase
 {
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
-
     private FindEligibleMethodsApiInterface&MockObject $findEligibleMethodsApi;
 
     private PayPalFundingSourcesConfigurationProviderInterface&MockObject $fundingSourcesConfigurationProvider;
@@ -45,7 +42,6 @@ final class EligibleRedirectPaymentSourcesProviderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->findEligibleMethodsApi = $this->createMock(FindEligibleMethodsApiInterface::class);
         $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
@@ -53,7 +49,6 @@ final class EligibleRedirectPaymentSourcesProviderTest extends TestCase
         $this->payment = $this->payment('NL');
 
         $this->provider = new EligibleRedirectPaymentSourcesProvider(
-            $this->authorizeClientApi,
             $this->findEligibleMethodsApi,
             $this->fundingSourcesConfigurationProvider,
             $this->logger,
@@ -69,7 +64,6 @@ final class EligibleRedirectPaymentSourcesProviderTest extends TestCase
     {
         $this->fundingSourcesConfigurationProvider->method('isTrustlyEnabled')->willReturn(false);
 
-        $this->authorizeClientApi->expects(self::never())->method('authorize');
         $this->findEligibleMethodsApi->expects(self::never())->method('find');
 
         self::assertSame([], $this->provider->provide($this->payment));
@@ -87,12 +81,11 @@ final class EligibleRedirectPaymentSourcesProviderTest extends TestCase
     public function test_it_asks_paypal_only_about_the_methods_the_merchant_opted_into(): void
     {
         $this->fundingSourcesConfigurationProvider->method('isTrustlyEnabled')->willReturn(true);
-        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
 
         $this->findEligibleMethodsApi
             ->expects(self::once())
             ->method('find')
-            ->with('TOKEN', $this->payment, ['TRUSTLY'])
+            ->with($this->payment->getMethod(), $this->payment, ['TRUSTLY'])
             ->willReturn(['eligible_methods' => ['trustly' => []]])
         ;
 

@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface OrderDetailsApiInterface
 {
-    public function get(string $token, string $orderId): array;
+    public function get(PaymentMethodInterface $paymentMethod, string $orderId): array;
 }

@@ -13,15 +13,15 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use GuzzleHttp\Exception\ClientException;
+use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -32,7 +32,6 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
     private const CAPTURE_STATUS_REFUNDED = 'REFUNDED';
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private RefundPaymentApiInterface $refundOrderApi,
         private PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
@@ -60,8 +59,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
         $order = $payment->getOrder();
 
         try {
-            $token = $this->authorizeClientApi->authorize($paymentMethod);
-            $details = $this->orderDetailsApi->get($token, $payPalOrderId);
+            $details = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
             $capture = $details['purchase_units'][0]['payments']['captures'][0];
             if (self::CAPTURE_STATUS_REFUNDED === ($capture['status'] ?? null)) {
                 return;
@@ -72,14 +70,14 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
             $payPalPaymentId = (string) $capture['id'];
 
             $this->refundOrderApi->refund(
-                $token,
+                $paymentMethod,
                 $payPalPaymentId,
                 $authAssertion,
                 $referenceNumber,
                 (string) (((int) $payment->getAmount()) / 100),
                 (string) $order->getCurrencyCode(),
             );
-        } catch (ClientException | \InvalidArgumentException $exception) {
+        } catch (ClientExceptionInterface|PayPalApiTimeoutException|\InvalidArgumentException) {
             throw new PayPalOrderRefundException();
         }
     }

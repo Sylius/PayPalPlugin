@@ -88,7 +88,7 @@ final class CapturePayPalOrderPaymentRequestHandler
             return;
         }
 
-        $payPalOrder = $this->paymentCaptureProcessor->capture($payment);
+        $payPalOrder = $this->paymentCaptureProcessor->capture($payment, sprintf('%s-capture', (string) $paymentRequest->getId()));
         $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
 
         if (null !== $capture) {
