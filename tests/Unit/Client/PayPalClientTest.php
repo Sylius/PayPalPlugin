@@ -424,10 +424,8 @@ final class PayPalClientTest extends TestCase
         self::assertCount(1, $this->sentRequests);
     }
 
-    public function test_it_throws_and_logs_the_error_paypal_answers_with(): void
+    public function test_it_throws_the_error_paypal_answers_with(): void
     {
-        $this->logger->expects(self::once())->method('error')->with(self::stringContains('(debug id: DEBUG_ID)'));
-
         try {
             $this->sendWithResponses(
                 [[422, '{"name": "UNPROCESSABLE_ENTITY", "details": [{"issue": "INSTRUMENT_DECLINED"}], "debug_id": "DEBUG_ID"}']],

@@ -92,10 +92,7 @@ final readonly class PayPalClient implements PayPalClientInterface
 
         $statusCode = $response->getStatusCode();
         if ($statusCode < Response::HTTP_OK || $statusCode >= Response::HTTP_MULTIPLE_CHOICES) {
-            $exception = PayPalApiException::fromResponse($method, $url, $response);
-            $this->logger->error($exception->getMessage());
-
-            throw $exception;
+            throw PayPalApiException::fromResponse($method, $url, $response);
         }
 
         if ($this->loggingLevelIncreased) {
@@ -149,10 +146,7 @@ final readonly class PayPalClient implements PayPalClientInterface
         try {
             return $this->client->sendRequest($request);
         } catch (ClientExceptionInterface $exception) {
-            $failure = PayPalApiException::fromClientFailure($method, $url, $exception);
-            $this->logger->error($failure->getMessage());
-
-            throw $failure;
+            throw PayPalApiException::fromClientFailure($method, $url, $exception);
         }
     }
 }
