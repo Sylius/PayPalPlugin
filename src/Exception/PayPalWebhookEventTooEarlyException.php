@@ -19,16 +19,16 @@ final class PayPalWebhookEventTooEarlyException extends RecoverableMessageHandli
 {
     public function __construct(string $eventType, private readonly int $retryAfter)
     {
-        parent::__construct(
-            sprintf('PayPal webhook event %s is processed in %d seconds at the earliest.', $eventType, $retryAfter),
-            0,
-            null,
-            $retryAfter * 1000,
-        );
+        parent::__construct(sprintf('PayPal webhook event %s is processed in %d seconds at the earliest.', $eventType, $retryAfter));
     }
 
     public function getRetryAfter(): int
     {
         return $this->retryAfter;
+    }
+
+    public function getRetryDelay(): int
+    {
+        return $this->retryAfter * 1000;
     }
 }
