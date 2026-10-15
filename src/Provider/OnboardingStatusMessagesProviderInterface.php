@@ -17,6 +17,6 @@ use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 interface OnboardingStatusMessagesProviderInterface
 {
-    /** @return array<string> */
-    public function provide(OnboardingStatus $status): array;
+    /** @return array<string|array{message: string, parameters: array<string, string>}> */
+    public function provide(OnboardingStatus $status, bool $sandbox = false): array;
 }

@@ -21,5 +21,5 @@ interface PartnerCredentialsProviderInterface
     /**
      * @throws PayPalPluginException
      */
-    public function provide(): PartnerCredentials;
+    public function provide(bool $sandbox): PartnerCredentials;
 }

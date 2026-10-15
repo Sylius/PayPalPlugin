@@ -17,34 +17,35 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 final readonly class SellerNonceManager implements SellerNonceManagerInterface
 {
-    private const SESSION_KEY = 'sylius_paypal.onboarding.seller_nonce';
+    private const SESSION_KEY_PREFIX = 'sylius_paypal.onboarding.seller_nonce.';
 
     public function __construct(private RequestStack $requestStack)
     {
     }
 
-    public function generate(): string
+    public function generate(bool $sandbox): string
     {
         $nonce = bin2hex(random_bytes(32));
 
-        $this->requestStack->getSession()->set(self::SESSION_KEY, $nonce);
+        $this->requestStack->getSession()->set($this->key($sandbox), $nonce);
 
         return $nonce;
     }
 
-    public function get(): ?string
+    public function get(bool $sandbox): ?string
     {
-        $session = $this->requestStack->getSession();
+        $nonce = $this->requestStack->getSession()->get($this->key($sandbox));
 
-        if (!$session->has(self::SESSION_KEY)) {
-            return null;
-        }
-
-        return (string) $session->get(self::SESSION_KEY);
+        return null === $nonce ? null : (string) $nonce;
     }
 
-    public function remove(): void
+    public function remove(bool $sandbox): void
     {
-        $this->requestStack->getSession()->remove(self::SESSION_KEY);
+        $this->requestStack->getSession()->remove($this->key($sandbox));
+    }
+
+    private function key(bool $sandbox): string
+    {
+        return self::SESSION_KEY_PREFIX . ($sandbox ? 'sandbox' : 'production');
     }
 }

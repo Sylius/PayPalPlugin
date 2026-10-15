@@ -16,21 +16,22 @@ namespace Sylius\PayPalPlugin\Api;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 final readonly class OnboardingTokenApi implements OnboardingTokenApiInterface
 {
     public function __construct(
         private PayPalOnboardingRequestExecutorInterface $requestExecutor,
-        private string $baseUrl,
+        private HostProviderInterface $hostProvider,
         private RequestFactoryInterface $requestFactory,
         private StreamFactoryInterface $streamFactory,
     ) {
     }
 
-    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce): string
+    public function getFromAuthorizationCode(string $sharedId, string $authCode, string $sellerNonce, bool $sandbox): string
     {
-        $request = $this->requestFactory->createRequest(Request::METHOD_POST, $this->baseUrl . 'v1/oauth2/token')
+        $request = $this->requestFactory->createRequest(Request::METHOD_POST, $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/oauth2/token')
             ->withHeader('Authorization', 'Basic ' . base64_encode($sharedId . ':'))
             ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
             ->withHeader('Accept', 'application/json')

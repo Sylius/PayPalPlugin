@@ -50,7 +50,7 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         $this->mocker->mockAccessToken('ACCESS_TOKEN');
         $this->mocker->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'COMPLETED']);
 
-        self::assertSame('ACCESS_TOKEN', $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET')['access_token']);
+        self::assertSame('ACCESS_TOKEN', $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET', true)['access_token']);
         self::assertSame(
             ['id' => 'PAYPAL_ORDER_ID', 'status' => 'COMPLETED'],
             $this->payPalClient->get('v2/checkout/orders/PAYPAL_ORDER_ID', 'ACCESS_TOKEN'),

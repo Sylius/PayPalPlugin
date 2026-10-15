@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 final readonly class MerchantOnboardingStatusApi implements MerchantOnboardingStatusApiInterface
@@ -22,15 +23,15 @@ final readonly class MerchantOnboardingStatusApi implements MerchantOnboardingSt
     public function __construct(
         private PayPalOnboardingRequestExecutorInterface $requestExecutor,
         private RequestFactoryInterface $requestFactory,
-        private string $baseUrl,
+        private HostProviderInterface $hostProvider,
     ) {
     }
 
-    public function get(string $sellerToken, string $partnerId, string $merchantId): OnboardingStatus
+    public function get(string $sellerToken, string $partnerId, string $merchantId, bool $sandbox): OnboardingStatus
     {
         $request = $this->requestFactory->createRequest(
             Request::METHOD_GET,
-            sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->baseUrl, $partnerId, $merchantId),
+            sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $merchantId),
         )
             ->withHeader('Authorization', 'Bearer ' . $sellerToken)
             ->withHeader('Content-Type', 'application/json')

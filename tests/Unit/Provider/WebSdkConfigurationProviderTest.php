@@ -17,6 +17,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider;
 
@@ -31,12 +33,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
         parent::setUp();
         $this->payPalConfigurationProvider = $this->createMock(PayPalConfigurationProviderInterface::class);
 
-        $this->provider = new WebSdkConfigurationProvider(
-            $this->payPalConfigurationProvider,
-            'https://www.sandbox.paypal.com',
-            true,
-            null,
-        );
+        $this->provider = $this->createProvider(true, null);
     }
 
     #[Test]
@@ -109,12 +106,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
     {
         $channel = $this->createMock(ChannelInterface::class);
 
-        $provider = new WebSdkConfigurationProvider(
-            $this->payPalConfigurationProvider,
-            'https://www.sandbox.paypal.com',
-            true,
-            'US',
-        );
+        $provider = $this->createProvider(true, 'US');
 
         $config = $provider->getInstanceConfig($channel, 'cart');
 
@@ -126,12 +118,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
     {
         $channel = $this->createMock(ChannelInterface::class);
 
-        $provider = new WebSdkConfigurationProvider(
-            $this->payPalConfigurationProvider,
-            'https://www.sandbox.paypal.com',
-            true,
-            null,
-        );
+        $provider = $this->createProvider(true, null);
 
         $config = $provider->getInstanceConfig($channel, 'cart');
 
@@ -143,15 +130,23 @@ final class WebSdkConfigurationProviderTest extends TestCase
     {
         $channel = $this->createMock(ChannelInterface::class);
 
-        $provider = new WebSdkConfigurationProvider(
-            $this->payPalConfigurationProvider,
-            'https://www.paypal.com',
-            false,
-            'US',
-        );
+        $provider = $this->createProvider(false, 'US');
 
         $config = $provider->getInstanceConfig($channel, 'cart');
 
         self::assertArrayNotHasKey('testBuyerCountry', $config);
+    }
+
+    private function createProvider(bool $sandbox, ?string $testBuyerCountry): WebSdkConfigurationProvider
+    {
+        $activeModeProvider = $this->createMock(ActiveModeProviderInterface::class);
+        $activeModeProvider->method('isSandbox')->willReturn($sandbox);
+
+        return new WebSdkConfigurationProvider(
+            $this->payPalConfigurationProvider,
+            new HostProvider($activeModeProvider),
+            $activeModeProvider,
+            $testBuyerCountry,
+        );
     }
 }

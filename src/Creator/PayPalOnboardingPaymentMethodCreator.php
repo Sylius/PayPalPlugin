@@ -19,8 +19,11 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
+use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboardingPaymentMethodCreatorInterface
 {
@@ -29,39 +32,66 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
         private string $partnerAttributionId,
+        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private CredentialsManagerInterface $credentialsManager,
+        private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
     ) {
     }
 
-    public function create(SellerOnboardingResult $result): PaymentMethodInterface
+    public function create(SellerOnboardingResult $result, bool $sandbox = false): PaymentMethodInterface
     {
-        $gatewayConfig = $this->createGatewayConfig($result);
-        $paymentMethod = $this->createPaymentMethod($gatewayConfig);
+        $credentials = [
+            PayPalGatewayConfig::CLIENT_ID => $result->getClientId(),
+            PayPalGatewayConfig::CLIENT_SECRET => $result->getClientSecret(),
+            PayPalGatewayConfig::MERCHANT_ID => $result->getMerchantId(),
+            PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $result->getMerchantId(),
+            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
+        ];
 
-        if (!$result->getStatus()->isComplete()) {
-            $paymentMethod->setEnabled(false);
+        $paymentMethod = $this->upsertPaymentMethod($credentials, $sandbox);
+        $paymentMethod->setEnabled($result->getStatus()->isComplete());
+
+        return $paymentMethod;
+    }
+
+    /**
+     * @param array<string, mixed> $credentials
+     */
+    private function upsertPaymentMethod(array $credentials, bool $sandbox): PaymentMethodInterface
+    {
+        if ($this->payPalPaymentMethodProvider->exists()) {
+            $paymentMethod = $this->payPalPaymentMethodProvider->provide();
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
+            $gatewayConfig->setConfig(
+                $this->credentialsManager->store($gatewayConfig->getConfig(), $sandbox, $credentials),
+            );
+            $this->cachedAccessTokenRemover->remove($paymentMethod);
+
+            return $paymentMethod;
         }
+
+        $paymentMethod = $this->createPaymentMethod($this->createGatewayConfig($credentials, $sandbox));
 
         $this->entityManager->persist($paymentMethod);
 
         return $paymentMethod;
     }
 
-    private function createGatewayConfig(SellerOnboardingResult $result): GatewayConfigInterface
+    /**
+     * @param array<string, mixed> $credentials
+     */
+    private function createGatewayConfig(array $credentials, bool $sandbox): GatewayConfigInterface
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $this->gatewayFactory->createNew();
         $gatewayConfig->setFactoryName(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
         $gatewayConfig->setGatewayName(self::GATEWAY_NAME);
 
-        $gatewayConfig->setConfig([
-            PayPalGatewayConfig::CLIENT_ID => $result->getClientId(),
-            PayPalGatewayConfig::CLIENT_SECRET => $result->getClientSecret(),
-            PayPalGatewayConfig::MERCHANT_ID => $result->getMerchantId(),
-            PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $result->getMerchantId(),
+        $gatewayConfig->setConfig($this->credentialsManager->store([
             PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
             PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
-            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
-        ]);
+        ], $sandbox, $credentials));
 
         if ($gatewayConfig instanceof PayumGatewayConfigInterface) {
             $gatewayConfig->setUsePayum(false);

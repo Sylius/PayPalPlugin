@@ -21,8 +21,13 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
+use Sylius\PayPalPlugin\Model\ModeSwitchView;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -31,18 +36,24 @@ use Twig\TwigFunction;
 
 final class PayPalExtension extends AbstractExtension
 {
+    private const PARTNER_JS_PATH = '/webapps/merchantboarding/js/lib/lightbox/partner.js';
+
     private readonly PayerActionCheckerInterface $payerActionChecker;
 
+    private readonly HostProviderInterface $hostProvider;
+
     public function __construct(
-        private readonly bool $sandbox,
+        private readonly ActiveModeProviderInterface $activeModeProvider,
+        private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         private readonly ?ChannelContextInterface $channelContext = null,
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
-        private readonly string $partnerJsUrl = '',
+        ?HostProviderInterface $hostProvider = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
+        $this->hostProvider = $hostProvider ?? new HostProvider($this->activeModeProvider);
 
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -90,12 +101,21 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_paypal_payer_action_url', [$this, 'getPayerActionUrl']),
             new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
             new TwigFunction('sylius_paypal_partner_js_url', [$this, 'getPartnerJsUrl']),
+            new TwigFunction('sylius_paypal_mode_switch_view', [$this, 'getModeSwitchView']),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    public function getModeSwitchView(array $config): ModeSwitchView
+    {
+        return $this->modeSwitchViewFactory->createFromConfig($config);
     }
 
     public function isSandbox(): bool
     {
-        return $this->sandbox;
+        return $this->activeModeProvider->isSandbox();
     }
 
     public function isMessagingEnabled(): bool
@@ -160,9 +180,9 @@ final class PayPalExtension extends AbstractExtension
         return PayPalPaymentSourceProviderInterface::PAYPAL === PayPalPaymentDetails::fromPayment($payment)->paymentSource();
     }
 
-    public function getPartnerJsUrl(): string
+    public function getPartnerJsUrl(bool $sandbox = false): string
     {
-        return $this->partnerJsUrl;
+        return $this->hostProvider->getWebUrlForMode($sandbox) . self::PARTNER_JS_PATH;
     }
 
     public function isPayPalEnabled(iterable $paymentMethods): bool

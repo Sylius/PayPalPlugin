@@ -17,16 +17,30 @@ use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 final readonly class OnboardingStatusMessagesProvider implements OnboardingStatusMessagesProviderInterface
 {
-    public function provide(OnboardingStatus $status): array
+    public function __construct(private HostProviderInterface $hostProvider)
+    {
+    }
+
+    public function provide(OnboardingStatus $status, bool $sandbox = false): array
     {
         $messages = [];
 
         if (!$status->arePaymentsReceivable()) {
-            $messages[] = 'sylius_paypal.seller_onboarding_payments_not_receivable';
+            $messages[] = [
+                'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
+                'parameters' => [
+                    '%paypal_url%' => $this->hostProvider->getWebUrlForMode($sandbox),
+                ],
+            ];
         }
 
         if (!$status->isPrimaryEmailConfirmed()) {
-            $messages[] = 'sylius_paypal.seller_onboarding_primary_email_not_confirmed';
+            $messages[] = [
+                'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                'parameters' => [
+                    '%business_profile_url%' => $this->hostProvider->getWebUrlForMode($sandbox) . '/businessprofile/settings',
+                ],
+            ];
         }
 
         return $messages;

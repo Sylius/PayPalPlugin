@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig\Component;
 
 use Psr\Log\LoggerInterface;
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -26,6 +26,12 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 final class PayPalOnboardingModalComponent
 {
     use DefaultActionTrait;
+
+    #[LiveProp]
+    public ?string $modalId = null;
+
+    #[LiveProp]
+    public ?string $type = null;
 
     #[LiveProp]
     public string $onboardingUrl = '';
@@ -39,10 +45,16 @@ final class PayPalOnboardingModalComponent
     #[LiveProp]
     public bool $sellerAlreadyOnboarded = false;
 
+    #[LiveProp]
+    public bool $opened = false;
+
+    #[LiveProp]
+    public bool $sandbox = false;
+
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceManagerInterface $sellerNonceManager,
-        private readonly PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private readonly SellerOnboardedCheckerInterface $sellerOnboardedChecker,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -50,7 +62,9 @@ final class PayPalOnboardingModalComponent
     #[LiveAction]
     public function loadOnboardingUrl(): void
     {
-        if ($this->payPalPaymentMethodProvider->exists()) {
+        $this->opened = true;
+
+        if ($this->sellerOnboardedChecker->isOnboarded($this->sandbox)) {
             $this->sellerAlreadyOnboarded = true;
             $this->loading = false;
 
@@ -59,7 +73,8 @@ final class PayPalOnboardingModalComponent
 
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(
-                $this->sellerNonceManager->generate(),
+                $this->sellerNonceManager->generate($this->sandbox),
+                $this->sandbox,
             );
         } catch (\Throwable $exception) {
             $this->logger->error(

@@ -16,22 +16,23 @@ namespace Sylius\PayPalPlugin\Api;
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\SellerCredentials;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 final readonly class SellerCredentialsApi implements SellerCredentialsApiInterface
 {
     public function __construct(
         private PayPalOnboardingRequestExecutorInterface $requestExecutor,
-        private string $baseUrl,
+        private HostProviderInterface $hostProvider,
         private RequestFactoryInterface $requestFactory,
     ) {
     }
 
-    public function get(string $onboardingToken, string $partnerId): SellerCredentials
+    public function get(string $onboardingToken, string $partnerId, bool $sandbox): SellerCredentials
     {
         $request = $this->requestFactory->createRequest(
             Request::METHOD_GET,
-            sprintf('%sv1/customer/partners/%s/merchant-integrations/credentials', $this->baseUrl, $partnerId),
+            sprintf('%sv1/customer/partners/%s/merchant-integrations/credentials', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId),
         )
             ->withHeader('Authorization', 'Bearer ' . $onboardingToken)
             ->withHeader('Content-Type', 'application/json')

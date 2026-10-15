@@ -26,6 +26,8 @@ use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -60,7 +62,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->action = new CompleteOnboardingAction(
             $this->onboardingCompletionProcessor,
-            new OnboardingStatusMessagesProvider(),
+            new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))),
             $this->urlGenerator,
             $this->logger,
         );
@@ -69,12 +71,12 @@ final class CompleteOnboardingActionTest extends TestCase
     #[Test]
     public function it_returns_the_edit_url_on_success(): void
     {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
 
         $this->onboardingCompletionProcessor
             ->expects(self::once())
             ->method('process')
-            ->with('AUTH-CODE', 'SHARED-ID')
+            ->with('AUTH-CODE', 'SHARED-ID', false)
             ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
 
         $response = ($this->action)($request);
@@ -87,7 +89,7 @@ final class CompleteOnboardingActionTest extends TestCase
     #[Test]
     public function it_adds_a_warning_for_each_unmet_onboarding_requirement(): void
     {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
 
         $this->onboardingCompletionProcessor
             ->method('process')
@@ -98,8 +100,14 @@ final class CompleteOnboardingActionTest extends TestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame(
             ['warning' => [
-                'sylius_paypal.seller_onboarding_payments_not_receivable',
-                'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
+                    'parameters' => ['%paypal_url%' => 'https://www.paypal.com'],
+                ],
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
+                    'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
+                ],
                 'sylius_paypal.webhook_url_not_valid',
             ]],
             $this->flashBag($request)->all(),
@@ -109,7 +117,7 @@ final class CompleteOnboardingActionTest extends TestCase
     #[Test]
     public function it_returns_bad_request_when_a_paypal_payment_method_already_exists(): void
     {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
 
         $this->onboardingCompletionProcessor->method('process')->willThrowException(new PayPalPaymentMethodAlreadyExistsException());
 
@@ -122,7 +130,7 @@ final class CompleteOnboardingActionTest extends TestCase
     #[Test]
     public function it_returns_bad_request_when_the_onboarding_session_has_expired(): void
     {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
 
         $this->onboardingCompletionProcessor->method('process')->willThrowException(new OnboardingSessionExpiredException());
 
@@ -135,7 +143,7 @@ final class CompleteOnboardingActionTest extends TestCase
     #[Test]
     public function it_returns_bad_request_and_logs_when_the_onboarding_fails(): void
     {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']);
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
 
         $exception = new OnboardingFailedException(new PayPalPluginException('boom'));
         $this->onboardingCompletionProcessor->method('process')->willThrowException($exception);
@@ -167,9 +175,43 @@ final class CompleteOnboardingActionTest extends TestCase
     {
         $this->onboardingCompletionProcessor->expects(self::never())->method('process');
 
-        $response = ($this->action)($this->requestWithBody(['authCode' => ['AUTH-CODE'], 'sharedId' => 'SHARED-ID']));
+        $response = ($this->action)($this->requestWithBody(['authCode' => ['AUTH-CODE'], 'sharedId' => 'SHARED-ID', 'sandbox' => false]));
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function it_returns_bad_request_when_the_sandbox_flag_is_missing(): void
+    {
+        $this->onboardingCompletionProcessor->expects(self::never())->method('process');
+
+        $response = ($this->action)($this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID']));
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function it_returns_bad_request_when_the_sandbox_flag_is_not_a_boolean(): void
+    {
+        $this->onboardingCompletionProcessor->expects(self::never())->method('process');
+
+        $response = ($this->action)($this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => 'true']));
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function it_passes_the_sandbox_flag_to_the_processor(): void
+    {
+        $this->onboardingCompletionProcessor
+            ->expects(self::once())
+            ->method('process')
+            ->with('AUTH-CODE', 'SHARED-ID', true)
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
+
+        $response = ($this->action)($this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => true]));
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
     }
 
     #[Test]

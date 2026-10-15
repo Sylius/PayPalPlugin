@@ -2,6 +2,8 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedChecker;
+use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManager;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
@@ -27,6 +29,8 @@ return static function (ContainerConfigurator $container) {
         ->args([
             param('sylius_paypal.partner_credentials.partner_id'),
             param('sylius_paypal.partner_credentials.partner_client_id'),
+            param('sylius_paypal.partner_credentials.sandbox.partner_id'),
+            param('sylius_paypal.partner_credentials.sandbox.partner_client_id'),
             param('sylius_paypal.partner_credentials.logo_url'),
         ]);
 
@@ -34,19 +38,28 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.onboarding_url', PayPalOnboardingUrlProvider::class)
         ->args([
-            param('sylius_paypal.web_url'),
+            service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(PayPalOnboardingUrlProviderInterface::class, 'sylius_paypal.provider.onboarding_url');
 
-    $services->set('sylius_paypal.provider.onboarding_status_messages', OnboardingStatusMessagesProvider::class);
+    $services->set('sylius_paypal.provider.onboarding_status_messages', OnboardingStatusMessagesProvider::class)
+        ->args([service('sylius_paypal.provider.host')]);
 
     $services->alias(OnboardingStatusMessagesProviderInterface::class, 'sylius_paypal.provider.onboarding_status_messages');
 
-    $services->set('sylius_paypal.onboarding.processor.completion', OnboardingCompletionProcessor::class)
+    $services->set('sylius_paypal.onboarding.checker.seller_onboarded', SellerOnboardedChecker::class)
         ->args([
             service('sylius_paypal.provider.paypal_payment_method'),
+            service('sylius_paypal.manager.credentials'),
+        ]);
+
+    $services->alias(SellerOnboardedCheckerInterface::class, 'sylius_paypal.onboarding.checker.seller_onboarded');
+
+    $services->set('sylius_paypal.onboarding.processor.completion', OnboardingCompletionProcessor::class)
+        ->args([
+            service('sylius_paypal.onboarding.checker.seller_onboarded'),
             service('sylius_paypal.manager.seller_nonce'),
             service('sylius_paypal.onboarding.resolver.seller'),
             service('sylius_paypal.creator.onboarding_payment_method'),

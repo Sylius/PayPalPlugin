@@ -47,39 +47,53 @@ final class SellerNonceManagerTest extends TestCase
     #[Test]
     public function it_generates_a_nonce_of_at_least_forty_characters(): void
     {
-        $nonce = $this->sellerNonceManager->generate();
-
-        self::assertGreaterThanOrEqual(40, strlen($nonce));
+        self::assertGreaterThanOrEqual(40, strlen($this->sellerNonceManager->generate(false)));
     }
 
     #[Test]
     public function it_generates_a_different_nonce_on_every_call(): void
     {
-        self::assertNotSame($this->sellerNonceManager->generate(), $this->sellerNonceManager->generate());
+        self::assertNotSame($this->sellerNonceManager->generate(false), $this->sellerNonceManager->generate(false));
     }
 
     #[Test]
     public function it_returns_the_generated_nonce_without_removing_it(): void
     {
-        $nonce = $this->sellerNonceManager->generate();
+        $nonce = $this->sellerNonceManager->generate(false);
 
-        self::assertSame($nonce, $this->sellerNonceManager->get());
-        self::assertSame($nonce, $this->sellerNonceManager->get());
+        self::assertSame($nonce, $this->sellerNonceManager->get(false));
+        self::assertSame($nonce, $this->sellerNonceManager->get(false));
     }
 
     #[Test]
     public function it_removes_the_stored_nonce(): void
     {
-        $this->sellerNonceManager->generate();
+        $this->sellerNonceManager->generate(false);
 
-        $this->sellerNonceManager->remove();
+        $this->sellerNonceManager->remove(false);
 
-        self::assertNull($this->sellerNonceManager->get());
+        self::assertNull($this->sellerNonceManager->get(false));
+    }
+
+    #[Test]
+    public function it_keeps_nonces_of_both_modes_independently(): void
+    {
+        $productionNonce = $this->sellerNonceManager->generate(false);
+        $sandboxNonce = $this->sellerNonceManager->generate(true);
+
+        self::assertSame($productionNonce, $this->sellerNonceManager->get(false));
+        self::assertSame($sandboxNonce, $this->sellerNonceManager->get(true));
+
+        $this->sellerNonceManager->remove(true);
+
+        self::assertSame($productionNonce, $this->sellerNonceManager->get(false));
+        self::assertNull($this->sellerNonceManager->get(true));
     }
 
     #[Test]
     public function it_returns_null_when_nothing_was_generated(): void
     {
-        self::assertNull($this->sellerNonceManager->get());
+        self::assertNull($this->sellerNonceManager->get(false));
+        self::assertNull($this->sellerNonceManager->get(true));
     }
 }

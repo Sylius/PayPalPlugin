@@ -17,9 +17,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -42,12 +44,19 @@ final class WebhookIdProviderTest extends TestCase
 
     private UrlGeneratorInterface&MockObject $urlGenerator;
 
+    private HostProviderInterface&MockObject $hostProvider;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->genericApi = $this->createMock(GenericApiInterface::class);
         $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $this->hostProvider = $this->createMock(HostProviderInterface::class);
+        $this->hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, self::API_BASE_URL],
+            [false, 'https://api.paypal.com/'],
+        ]);
     }
 
     #[Test]
@@ -87,6 +96,21 @@ final class WebhookIdProviderTest extends TestCase
             ->willReturn(['webhooks' => [['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL]]]);
 
         self::assertSame('WH-REFUND', $this->createProvider()->provide($paymentMethod));
+    }
+
+    #[Test]
+    public function it_queries_the_webhooks_endpoint_of_the_payment_method_mode(): void
+    {
+        $this->mockGeneratedUrls();
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+
+        $this->genericApi
+            ->expects(self::once())
+            ->method('get')
+            ->with('TOKEN', 'https://api.paypal.com/v1/notifications/webhooks')
+            ->willReturn(['webhooks' => [['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL]]]);
+
+        self::assertSame('WH-REFUND', $this->createProvider()->provide($this->paymentMethod(false)));
     }
 
     #[Test]
@@ -254,14 +278,19 @@ final class WebhookIdProviderTest extends TestCase
             $this->genericApi,
             $this->authorizeClientApi,
             $this->urlGenerator,
-            self::API_BASE_URL,
+            $this->hostProvider,
             $webhookBaseUrl,
         );
     }
 
-    private function paymentMethod(): PaymentMethodInterface&MockObject
+    private function paymentMethod(bool $sandbox = true): PaymentMethodInterface&MockObject
     {
-        return $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn(
+            $this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['sandbox' => $sandbox]]),
+        );
+
+        return $paymentMethod;
     }
 
     private function mockGeneratedUrls(): void

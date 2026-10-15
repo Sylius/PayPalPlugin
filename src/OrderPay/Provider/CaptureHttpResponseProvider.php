@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,7 +39,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         private Environment $twig,
         private PayPalPaymentPageContextProviderInterface $paymentPageContextProvider,
         private UrlGeneratorInterface $router,
-        private string $webUrl,
+        private HostProviderInterface $hostProvider,
     ) {
     }
 
@@ -128,7 +129,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         $response->headers->set('Cache-Control', 'no-store, private');
         $response->headers->set('Permissions-Policy', sprintf(
             'publickey-credentials-get=(self "%1$s"), publickey-credentials-create=(self "%1$s")',
-            $this->webUrl,
+            $this->hostProvider->getWebUrl(),
         ));
 
         return $response;

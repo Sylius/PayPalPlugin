@@ -7,12 +7,38 @@
  * file that was distributed with this source code.
  */
 
+let partnerJsReady = false;
+
+function syncOnboardingButtonsState() {
+    document.querySelectorAll('[data-paypal-button]').forEach((button) => {
+        button.classList.toggle('disabled', !partnerJsReady);
+        button.setAttribute('aria-disabled', partnerJsReady ? 'false' : 'true');
+    });
+}
+
+function showOnboardingError() {
+    const errorBox = findOnboardingModal()?.querySelector('[data-paypal-onboarding-error]');
+
+    if (errorBox !== null && errorBox !== undefined) {
+        errorBox.classList.remove('d-none');
+    }
+}
+
 function loadPartnerJs(partnerJsUrl) {
     if (!partnerJsUrl) {
         return;
     }
 
-    if (document.querySelector('script[data-paypal-partner-js]') !== null) {
+    const loadedScript = document.querySelector('script[data-paypal-partner-js]');
+
+    if (loadedScript !== null && loadedScript.getAttribute('src') !== partnerJsUrl) {
+        loadedScript.remove();
+        delete window.PAYPAL;
+    } else if (loadedScript !== null) {
+        if (!partnerJsReady) {
+            return;
+        }
+
         const signup = window.PAYPAL && window.PAYPAL.apps && window.PAYPAL.apps.Signup;
 
         if (signup && typeof signup.setup === 'function') {
@@ -27,15 +53,38 @@ function loadPartnerJs(partnerJsUrl) {
         return;
     }
 
+    partnerJsReady = false;
+    syncOnboardingButtonsState();
+
     const script = document.createElement('script');
     script.id = 'paypal-js';
     script.src = partnerJsUrl;
     script.dataset.paypalPartnerJs = 'true';
+    script.addEventListener('load', () => {
+        partnerJsReady = true;
+        syncOnboardingButtonsState();
+    });
+    script.addEventListener('error', showOnboardingError);
     document.body.appendChild(script);
 }
 
+function guardOnboardingButtonClick(event) {
+    if (partnerJsReady || !(event.target instanceof Element) || event.target.closest('[data-paypal-button]') === null) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+}
+
+let activeOnboardingModal = null;
+
+function findOnboardingModals() {
+    return document.querySelectorAll('[data-paypal-onboarding-complete-url]');
+}
+
 function findOnboardingModal() {
-    return document.querySelector('[data-paypal-onboarding-complete-url]');
+    return activeOnboardingModal ?? document.querySelector('[data-paypal-onboarding-complete-url]');
 }
 
 window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, sharedId) {
@@ -46,12 +95,13 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
     }
 
     const completeUrl = modal.getAttribute('data-paypal-onboarding-complete-url');
+    const sandbox = modal.getAttribute('data-paypal-onboarding-sandbox') === 'true';
     const errorBox = modal.querySelector('[data-paypal-onboarding-error]');
 
     fetch(completeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ authCode, sharedId }),
+        body: JSON.stringify({ authCode, sharedId, sandbox }),
     })
         .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
         .then(({ data }) => {
@@ -72,17 +122,16 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         });
 };
 
-function loadPartnerJsOnceButtonExists(onboardingModal) {
-    if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
+function loadPartnerJsIfButtonExists(onboardingModal) {
+    if (activeOnboardingModal === onboardingModal && onboardingModal.querySelector('[data-paypal-button]') !== null) {
         loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
-
-        return;
+        syncOnboardingButtonsState();
     }
+}
 
+function loadPartnerJsOnceButtonExists(onboardingModal) {
     const observer = new MutationObserver(() => {
-        if (onboardingModal.querySelector('[data-paypal-button]') !== null) {
-            loadPartnerJs(onboardingModal.getAttribute('data-paypal-onboarding-partner-js-url'));
-        }
+        loadPartnerJsIfButtonExists(onboardingModal);
     });
     observer.observe(onboardingModal, { childList: true, subtree: true });
 }
@@ -90,17 +139,19 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
 function bindOnboardingUrlLoader(onboardingModal) {
     document.querySelectorAll(`[data-bs-target="#${onboardingModal.id}"]`).forEach((trigger) => {
         trigger.addEventListener('click', () => {
+            activeOnboardingModal = onboardingModal;
             onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
         });
     });
 }
 
 function initOnboardingModal() {
-    const onboardingModal = findOnboardingModal();
-    if (onboardingModal !== null) {
+    document.addEventListener('click', guardOnboardingButtonClick, true);
+
+    findOnboardingModals().forEach((onboardingModal) => {
         bindOnboardingUrlLoader(onboardingModal);
         loadPartnerJsOnceButtonExists(onboardingModal);
-    }
+    });
 }
 
 if (document.readyState === 'loading') {

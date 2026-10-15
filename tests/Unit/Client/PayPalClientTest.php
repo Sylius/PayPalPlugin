@@ -31,6 +31,7 @@ use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
@@ -50,6 +51,8 @@ final class PayPalClientTest extends TestCase
 
     private StreamFactoryInterface&MockObject $streamFactory;
 
+    private HostProviderInterface&MockObject $hostProvider;
+
     private PayPalClient $payPalClient;
 
     protected function setUp(): void
@@ -62,6 +65,12 @@ final class PayPalClientTest extends TestCase
         $this->channelContext = $this->createMock(ChannelContextInterface::class);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
+        $this->hostProvider = $this->createMock(HostProviderInterface::class);
+        $this->hostProvider->method('getApiBaseUrl')->willReturn('https://test-api.paypal.com/');
+        $this->hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, 'https://test-api.paypal.com/'],
+            [false, 'https://api.paypal.com/'],
+        ]);
 
         $channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($channel);
@@ -72,7 +81,7 @@ final class PayPalClientTest extends TestCase
             $this->uuidProvider,
             $this->payPalConfigurationProvider,
             $this->channelContext,
-            'https://test-api.paypal.com/',
+            $this->hostProvider,
             5,
             $this->requestFactory,
             $this->streamFactory,
@@ -123,7 +132,7 @@ final class PayPalClientTest extends TestCase
             ->method('getContents')
             ->willReturn('{"access_token": "TOKEN"}');
 
-        $result = $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET');
+        $result = $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
 
         self::assertEquals(['access_token' => 'TOKEN'], $result);
     }
@@ -156,7 +165,7 @@ final class PayPalClientTest extends TestCase
 
         $this->expectException(PayPalAuthorizationException::class);
 
-        $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET');
+        $this->payPalClient->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
     }
 
     #[Test]

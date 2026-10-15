@@ -20,6 +20,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApi;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class MerchantOnboardingStatusApiTest extends TestCase
 {
@@ -38,7 +39,7 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         $this->merchantOnboardingStatusApi = new MerchantOnboardingStatusApi(
             $this->requestExecutor,
             $this->requestFactory,
-            'http://base-url.com/',
+            $this->hostProvider(),
         );
     }
 
@@ -50,7 +51,7 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         $this->requestFactory
             ->expects(self::once())
             ->method('createRequest')
-            ->with('GET', 'http://base-url.com/v1/customer/partners/PARTNER-ID/merchant-integrations/MERCHANT-ID')
+            ->with('GET', 'http://sandbox-base-url.com/v1/customer/partners/PARTNER-ID/merchant-integrations/MERCHANT-ID')
             ->willReturn($request);
 
         $request->method('withHeader')->willReturn($request);
@@ -61,7 +62,7 @@ final class MerchantOnboardingStatusApiTest extends TestCase
             ->with($request, 'Onboarding status')
             ->willReturn(['payments_receivable' => true, 'primary_email_confirmed' => true]);
 
-        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID');
+        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true);
 
         self::assertTrue($status->arePaymentsReceivable());
         self::assertTrue($status->isPrimaryEmailConfirmed());
@@ -77,10 +78,21 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         $request->method('withHeader')->willReturn($request);
         $this->requestExecutor->method('execute')->willReturn(['payments_receivable' => true]);
 
-        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID');
+        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', false);
 
         self::assertTrue($status->arePaymentsReceivable());
         self::assertFalse($status->isPrimaryEmailConfirmed());
         self::assertFalse($status->isComplete());
+    }
+
+    private function hostProvider(): HostProviderInterface
+    {
+        $hostProvider = $this->createStub(HostProviderInterface::class);
+        $hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, 'http://sandbox-base-url.com/'],
+            [false, 'http://base-url.com/'],
+        ]);
+
+        return $hostProvider;
     }
 }

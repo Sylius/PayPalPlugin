@@ -22,7 +22,9 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
+use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -51,7 +53,8 @@ final class PayPalExtensionTest extends TestCase
         $this->localeContext = $this->createMock(LocaleContextInterface::class);
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
         $this->extension = new PayPalExtension(
-            true,
+            $this->createMock(ActiveModeProviderInterface::class),
+            $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
@@ -84,7 +87,10 @@ final class PayPalExtensionTest extends TestCase
     #[Test]
     public function it_returns_false_when_constructed_without_the_new_dependencies(): void
     {
-        $extension = new PayPalExtension(true);
+        $extension = new PayPalExtension(
+            $this->createMock(ActiveModeProviderInterface::class),
+            $this->createMock(ModeSwitchViewFactoryInterface::class),
+        );
 
         self::assertFalse($extension->isMessagingEnabled());
     }
@@ -100,7 +106,10 @@ final class PayPalExtensionTest extends TestCase
     #[Test]
     public function it_returns_an_empty_script_url_when_constructed_without_the_new_dependency(): void
     {
-        $extension = new PayPalExtension(true);
+        $extension = new PayPalExtension(
+            $this->createMock(ActiveModeProviderInterface::class),
+            $this->createMock(ModeSwitchViewFactoryInterface::class),
+        );
 
         self::assertSame('', $extension->getWebSdkScriptUrl());
     }
@@ -198,7 +207,10 @@ final class PayPalExtensionTest extends TestCase
     #[Test]
     public function it_returns_an_empty_instance_config_when_constructed_without_the_new_dependencies(): void
     {
-        $extension = new PayPalExtension(true);
+        $extension = new PayPalExtension(
+            $this->createMock(ActiveModeProviderInterface::class),
+            $this->createMock(ModeSwitchViewFactoryInterface::class),
+        );
 
         self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));
     }
@@ -248,6 +260,13 @@ final class PayPalExtensionTest extends TestCase
         $payment->method('getDetails')->willReturn($details);
 
         self::assertSame($toWallet, $this->extension->isRefundedToPayPalWallet($payment));
+    }
+
+    #[Test]
+    public function it_returns_the_partner_js_url_of_the_given_mode(): void
+    {
+        self::assertSame('https://www.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js', $this->extension->getPartnerJsUrl());
+        self::assertSame('https://www.sandbox.paypal.com/webapps/merchantboarding/js/lib/lightbox/partner.js', $this->extension->getPartnerJsUrl(true));
     }
 
     /** @return iterable<array{array<string, string>, bool}> */

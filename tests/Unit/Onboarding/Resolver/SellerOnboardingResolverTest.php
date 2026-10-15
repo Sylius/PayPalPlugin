@@ -69,29 +69,29 @@ final class SellerOnboardingResolverTest extends TestCase
         $this->onboardingTokenApi
             ->expects(self::once())
             ->method('getFromAuthorizationCode')
-            ->with('SHARED-ID', 'AUTH-CODE', 'SELLER-NONCE')
+            ->with('SHARED-ID', 'AUTH-CODE', 'SELLER-NONCE', true)
             ->willReturn('ONBOARDING-TOKEN');
 
         $this->sellerCredentialsApi
             ->expects(self::once())
             ->method('get')
-            ->with('ONBOARDING-TOKEN', 'PARTNER-ID')
+            ->with('ONBOARDING-TOKEN', 'PARTNER-ID', true)
             ->willReturn(new SellerCredentials('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID'));
 
         $this->authorizeClientApi
             ->expects(self::once())
             ->method('authorize')
-            ->with('CLIENT-ID', 'CLIENT-SECRET')
+            ->with('CLIENT-ID', 'CLIENT-SECRET', true)
             ->willReturn('SELLER-TOKEN');
 
         $status = new OnboardingStatus(true, true);
         $this->merchantOnboardingStatusApi
             ->expects(self::once())
             ->method('get')
-            ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID')
+            ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)
             ->willReturn($status);
 
-        $result = $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE');
+        $result = $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE', true);
 
         self::assertSame('CLIENT-ID', $result->getClientId());
         self::assertSame('CLIENT-SECRET', $result->getClientSecret());
@@ -109,7 +109,7 @@ final class SellerOnboardingResolverTest extends TestCase
         $this->sellerCredentialsApi->expects(self::never())->method('get');
 
         try {
-            $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE');
+            $this->resolver->resolve('AUTH-CODE', 'SHARED-ID', 'SELLER-NONCE', false);
             self::fail('SellerOnboardingResolutionException was not thrown');
         } catch (SellerOnboardingResolutionException $exception) {
             self::assertSame($previous, $exception->getPrevious());

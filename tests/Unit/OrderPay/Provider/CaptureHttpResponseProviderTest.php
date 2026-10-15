@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,7 +57,10 @@ final class CaptureHttpResponseProviderTest extends TestCase
         $request->setSession($this->session);
         $this->requestConfiguration->method('getRequest')->willReturn($request);
 
-        $this->provider = new CaptureHttpResponseProvider($this->twig, $this->contextProvider, $this->router, 'https://www.sandbox.paypal.com');
+        $hostProvider = $this->createStub(HostProviderInterface::class);
+        $hostProvider->method('getWebUrl')->willReturn('https://www.sandbox.paypal.com');
+
+        $this->provider = new CaptureHttpResponseProvider($this->twig, $this->contextProvider, $this->router, $hostProvider);
     }
 
     /** @return iterable<string, array{string, bool}> */

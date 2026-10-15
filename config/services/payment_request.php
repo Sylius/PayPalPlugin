@@ -35,7 +35,7 @@ return function (ContainerConfigurator $container): void {
             service('twig'),
             service('sylius_paypal.provider.paypal_payment_page_context'),
             service('router'),
-            '%sylius_paypal.web_url%',
+            service('sylius_paypal.provider.host'),
         ])
         ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
 

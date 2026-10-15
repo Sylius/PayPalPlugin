@@ -51,14 +51,16 @@ final readonly class CompleteOnboardingAction
 
             Assert::keyExists($data, 'authCode');
             Assert::keyExists($data, 'sharedId');
+            Assert::keyExists($data, 'sandbox');
             Assert::stringNotEmpty($data['authCode']);
             Assert::stringNotEmpty($data['sharedId']);
+            Assert::boolean($data['sandbox']);
         } catch (\JsonException | \InvalidArgumentException) {
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId']);
+            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId'], $data['sandbox']);
         } catch (PayPalPaymentMethodAlreadyExistsException) {
             $flashBag->add('error', 'sylius_paypal.more_than_one_seller_not_allowed');
 
@@ -74,7 +76,11 @@ final readonly class CompleteOnboardingAction
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        foreach ($this->onboardingStatusMessagesProvider->provide($result->getStatus()) as $message) {
+        if ($result->getPaymentMethod()->isEnabled()) {
+            $flashBag->add('success', $result->isSandbox() ? 'sylius_paypal.sandbox_connected_successfully' : 'sylius_paypal.production_connected_successfully');
+        }
+
+        foreach ($this->onboardingStatusMessagesProvider->provide($result->getStatus(), $result->isSandbox()) as $message) {
             $flashBag->add('warning', $message);
         }
 
