@@ -22,7 +22,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManager;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 final class PaymentStateManagerTest extends TestCase
@@ -85,7 +85,7 @@ final class PaymentStateManagerTest extends TestCase
         $payment
             ->expects(self::once())
             ->method('getDetails')
-            ->willReturn(['status' => StatusAction::STATUS_COMPLETED]);
+            ->willReturn(['status' => PayPalPaymentStatus::Completed->value]);
 
         $this->stateMachine
             ->expects(self::once())
@@ -112,7 +112,7 @@ final class PaymentStateManagerTest extends TestCase
         $payment
             ->expects(self::once())
             ->method('getDetails')
-            ->willReturn(['status' => StatusAction::STATUS_PROCESSING]);
+            ->willReturn(['status' => PayPalPaymentStatus::Processing->value]);
 
         $payment
             ->expects(self::once())
@@ -144,7 +144,7 @@ final class PaymentStateManagerTest extends TestCase
         $payment
             ->expects(self::once())
             ->method('getDetails')
-            ->willReturn(['status' => StatusAction::STATUS_PROCESSING]);
+            ->willReturn(['status' => PayPalPaymentStatus::Processing->value]);
 
         $payment
             ->expects(self::once())

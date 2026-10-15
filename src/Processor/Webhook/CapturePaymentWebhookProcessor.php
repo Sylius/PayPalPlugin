@@ -54,7 +54,7 @@ final readonly class CapturePaymentWebhookProcessor implements WebhookProcessorI
             return;
         }
 
-        $this->paymentSettlementProcessor->settle($payment);
+        $this->paymentSettlementProcessor->settle($payment, payPalOrderId: $payPalOrderId);
     }
 
     /** @param array<string, mixed> $payload */

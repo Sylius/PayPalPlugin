@@ -13,16 +13,17 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Twig;
 
-use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Model\ModeSwitchView;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
@@ -97,6 +98,7 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
             new TwigFunction('sylius_paypal_is_awaiting_payer_action', [$this, 'isAwaitingPayerAction']),
+            new TwigFunction('sylius_paypal_payer_action_url', [$this, 'getPayerActionUrl']),
             new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
             new TwigFunction('sylius_paypal_partner_js_url', [$this, 'getPartnerJsUrl']),
             new TwigFunction('sylius_paypal_mode_switch_view', [$this, 'getModeSwitchView']),
@@ -168,9 +170,14 @@ final class PayPalExtension extends AbstractExtension
         return $this->payerActionChecker->isAwaitingPayerAction($payment);
     }
 
+    public function getPayerActionUrl(PaymentInterface $payment): ?string
+    {
+        return PayPalPaymentDetails::fromPayment($payment)->payerActionUrl();
+    }
+
     public function isRefundedToPayPalWallet(PaymentInterface $payment): bool
     {
-        return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
+        return PayPalPaymentSourceProviderInterface::PAYPAL === PayPalPaymentDetails::fromPayment($payment)->paymentSource();
     }
 
     public function getPartnerJsUrl(bool $sandbox = false): string

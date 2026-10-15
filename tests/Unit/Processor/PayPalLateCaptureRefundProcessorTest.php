@@ -17,9 +17,9 @@ use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
@@ -93,6 +93,15 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
         $this->paymentManager->expects(self::once())->method('flush');
 
         $this->processor->refund($payment);
+    }
+
+    public function test_it_checks_the_paypal_order_the_late_capture_belongs_to(): void
+    {
+        $orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
+        $orderDetailsApi->expects(self::once())->method('get')->with('TOKEN', 'SUPERSEDED_ORDER_ID')->willReturn($this->orderDetails('COMPLETED'));
+        $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'COMPLETED']);
+
+        $this->processorWith($orderDetailsApi)->refund($this->payment(['id' => 'CAPTURE_ID', 'order_id' => 'SUPERSEDED_ORDER_ID', 'amount' => 1539, 'currency_code' => 'EUR']));
     }
 
     public function test_it_refunds_the_amount_in_the_decimals_of_the_captured_currency(): void

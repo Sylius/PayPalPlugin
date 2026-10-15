@@ -103,15 +103,9 @@ final class PayPalPaymentTest extends TestCase
             ->willReturn(['PL', 'US']);
 
         $this->router
-            ->expects($this->exactly(4))
+            ->expects($this->exactly(2))
             ->method('generate')
             ->willReturnCallback(function ($route, $parameters = [], $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH) {
-                if ($route === 'sylius_paypal_shop_complete_paypal_order' && $parameters === ['token' => 'TOKEN'] && $referenceType === UrlGeneratorInterface::ABSOLUTE_URL) {
-                    return 'https://path-to-complete/TOKEN';
-                }
-                if ($route === 'sylius_paypal_shop_create_paypal_order' && $parameters === ['token' => 'TOKEN'] && $referenceType === UrlGeneratorInterface::ABSOLUTE_URL) {
-                    return 'https://path-to-create/TOKEN';
-                }
                 if ($route === 'sylius_paypal_shop_cancel_payment' && $parameters === [] && $referenceType === UrlGeneratorInterface::ABSOLUTE_URL) {
                     return 'https://path-to-cancel';
                 }
@@ -126,8 +120,6 @@ final class PayPalPaymentTest extends TestCase
 
         $expected = [
             'clientId' => 'CLIENT-ID',
-            'completePayPalOrderFromPaymentPageUrl' => 'https://path-to-complete/TOKEN',
-            'createPayPalOrderFromPaymentPageUrl' => 'https://path-to-create/TOKEN',
             'cancelPayPalPaymentUrl' => 'https://path-to-cancel',
             'partnerAttributionId' => 'PARTNER-ATTRIBUTION-ID',
             'locale' => 'en_US',

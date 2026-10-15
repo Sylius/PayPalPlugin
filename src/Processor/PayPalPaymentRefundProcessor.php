@@ -14,16 +14,17 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor;
 
 use GuzzleHttp\Exception\ClientException;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
 final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
@@ -50,8 +51,8 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
             return;
         }
 
-        $details = $payment->getDetails();
-        if (!isset($details['paypal_order_id'])) {
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
+        if (null === $payPalOrderId) {
             return;
         }
 
@@ -60,7 +61,7 @@ final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProces
 
         try {
             $token = $this->authorizeClientApi->authorize($paymentMethod);
-            $details = $this->orderDetailsApi->get($token, (string) $details['paypal_order_id']);
+            $details = $this->orderDetailsApi->get($token, $payPalOrderId);
             $capture = $details['purchase_units'][0]['payments']['captures'][0];
             if (self::CAPTURE_STATUS_REFUNDED === ($capture['status'] ?? null)) {
                 return;

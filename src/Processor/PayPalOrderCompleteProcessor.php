@@ -13,13 +13,14 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 
 final readonly class PayPalOrderCompleteProcessor
@@ -80,8 +81,6 @@ final readonly class PayPalOrderCompleteProcessor
 
     private function getTotalPaymentAmountFromPaypal(PaymentInterface $payment): int
     {
-        $details = $payment->getDetails();
-
-        return $details['payment_amount'] ?? 0;
+        return PayPalPaymentDetails::fromPayment($payment)->amount();
     }
 }

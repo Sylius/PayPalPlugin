@@ -58,16 +58,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),
             'applePayEnabled' => $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
             'billingAddress' => $order->getBillingAddress(),
-            'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_checkout_payment'),
-            'completePayPalOrderUrl' => $this->router->generate(
-                'sylius_paypal_shop_complete_paypal_order',
-                ['token' => $order->getTokenValue()],
-            ),
             'countryCode' => $channel->getShopBillingData()?->getCountryCode(),
-            'createPayPalOrderUrl' => $this->router->generate(
-                'sylius_paypal_shop_create_paypal_order',
-                ['token' => $order->getTokenValue()],
-            ),
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
             'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),

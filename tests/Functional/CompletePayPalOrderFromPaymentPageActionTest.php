@@ -18,7 +18,8 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\Component\Order\Model\OrderItemInterface;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -174,7 +175,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         self::getContainer()->set('sylius_paypal.processor.payment_complete', new class() implements PaymentCompleteProcessorInterface {
             public function completePayment(PaymentInterface $payment): void
             {
-                $payment->setDetails(array_merge($payment->getDetails(), ['status' => StatusAction::STATUS_COMPLETED]));
+                $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withStatus(PayPalPaymentStatus::Completed)->toArray());
             }
         });
     }

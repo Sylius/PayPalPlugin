@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
 {
@@ -27,10 +28,25 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PaymentRepositoryInterface&EntityRepository $paymentRepository,
-        private readonly array $updatableStates = ['cart', 'new', 'processing'],
-        private readonly array $cancellableStates = ['cart', 'new', 'processing', 'completed'],
-        private readonly array $refundableStates = ['completed'],
-        private readonly array $settleableStates = ['processing', 'completed', 'cancelled', 'failed'],
+        private readonly array $updatableStates = [
+            PaymentInterface::STATE_CART,
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+        ],
+        private readonly array $cancellableStates = [
+            PaymentInterface::STATE_CART,
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+            PaymentInterface::STATE_COMPLETED,
+        ],
+        private readonly array $refundableStates = [PaymentInterface::STATE_COMPLETED],
+        private readonly array $settleableStates = [
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+            PaymentInterface::STATE_COMPLETED,
+            PaymentInterface::STATE_CANCELLED,
+            PaymentInterface::STATE_FAILED,
+        ],
     ) {
     }
 
@@ -75,34 +91,25 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
             ->addOrderBy('o.updatedAt', 'DESC')
         ;
 
-        return $this->doGetPayment($queryBuilder, $paypalOrderId);
+        return $this->doGetPayment($queryBuilder, $paypalOrderId, includingSuperseded: true);
     }
 
-    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): PaymentInterface
+    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface
     {
         if ($this->isCastAvailable()) {
-            $payment = $queryBuilder
+            $queryBuilder
                 ->andWhere('CAST(o.details AS text) LIKE :orderId')
                 ->setParameter('orderId', '%"' . $paypalOrderId . '"%')
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult()
             ;
-            if (null !== $payment) {
-                return $payment;
-            }
-
-            throw new PaymentNotFoundException();
         }
 
-        $payments = $queryBuilder
-            ->getQuery()
-            ->toIterable()
-        ;
-
-        foreach ($payments as $payment) {
-            $details = $payment->getDetails();
-            if (isset($details['paypal_order_id']) && $details['paypal_order_id'] === $paypalOrderId) {
+        /** @var PaymentInterface $payment */
+        foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
+            $details = PayPalPaymentDetails::fromPayment($payment);
+            if (
+                $paypalOrderId === $details->payPalOrderId() ||
+                ($includingSuperseded && $details->isSupersededPayPalOrder($paypalOrderId))
+            ) {
                 return $payment;
             }
         }

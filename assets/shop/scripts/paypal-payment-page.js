@@ -1,10 +1,16 @@
 import { loadWebSdkOnce } from './paypal-web-sdk';
 
-export class PaymentSourceNotAvailableError extends Error {}
+const REFUSED_ATTEMPTS = {
+    409: 'attempt_closed',
+    422: 'payment_source_not_available',
+};
+
+export class AttemptRefusedError extends Error {}
 
 let session = null;
 let busy = false;
 let attemptOrderId = null;
+let attemptApproveUrl = null;
 
 export function isBusy() {
     return busy;
@@ -18,9 +24,14 @@ export function currentOrderId() {
     return attemptOrderId;
 }
 
+export function currentApproveUrl() {
+    return attemptApproveUrl;
+}
+
 export async function startAttempt(createOrderUrl, paymentSource = null) {
     busy = true;
     attemptOrderId = null;
+    attemptApproveUrl = null;
 
     const response = await fetch(createOrderUrl, {
         method: 'post',
@@ -29,10 +40,10 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
             body: JSON.stringify({ paymentSource }),
         }),
     });
-    if (response.status === 422) {
+    if (await isAttemptRefused(response)) {
         busy = false;
 
-        throw new PaymentSourceNotAvailableError('The selected payment source is not available.');
+        throw new AttemptRefusedError(`The shop refused to start a payment attempt (${response.status}).`);
     }
 
     if (!response.ok) {
@@ -42,9 +53,25 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
     }
 
     const data = await response.json();
-    attemptOrderId = data.orderId;
+    attemptOrderId = data.paypal_order_id ?? null;
+    attemptApproveUrl = data.approve_url ?? null;
 
-    return data;
+    return {
+        orderId: attemptOrderId,
+        approveUrl: attemptApproveUrl,
+        payerActionUrl: data.payer_action_url ?? null,
+    };
+}
+
+async function isAttemptRefused(response) {
+    const error = REFUSED_ATTEMPTS[response.status];
+    if (!error) {
+        return false;
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    return data.error === error;
 }
 
 export function paymentPageSession(config) {
@@ -73,6 +100,8 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, 
         isBusy,
 
         currentOrderId,
+
+        currentApproveUrl,
 
         release,
 

@@ -23,6 +23,7 @@ use Sylius\Component\Shipping\Model\ShipmentInterface as BaseShipmentInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Sylius\PayPalPlugin\PackageTracking\Exception\ShipmentTrackingNotReadyException;
@@ -110,9 +111,9 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
             return;
         }
 
-        $details = $payment->getDetails();
-        $payPalOrderId = (string) ($details['paypal_order_id'] ?? '');
-        if ('' === $payPalOrderId) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $payPalOrderId = (string) $details->payPalOrderId();
+        if (!$details->hasPayPalOrderId()) {
             $tracking->markAsFailed('Payment details do not carry a PayPal order id.');
 
             return;
@@ -169,14 +170,12 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $tracking->markAsSynced($this->extractTrackerId($response, $trackingNumber));
     }
 
-    /**
-     * @param array<string, mixed> $paymentDetails
-     * @param array<string, mixed> $orderDetails
-     */
-    private function resolveCaptureId(array $paymentDetails, array $orderDetails): ?string
+    /** @param array<string, mixed> $orderDetails */
+    private function resolveCaptureId(PayPalPaymentDetails $paymentDetails, array $orderDetails): ?string
     {
-        if (isset($paymentDetails['transaction_id']) && '' !== $paymentDetails['transaction_id']) {
-            return (string) $paymentDetails['transaction_id'];
+        $transactionId = $paymentDetails->transactionId();
+        if (null !== $transactionId && '' !== $transactionId) {
+            return $transactionId;
         }
 
         $captureId = $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'] ?? null;

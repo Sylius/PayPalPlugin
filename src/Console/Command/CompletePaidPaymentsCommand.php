@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Console\Command;
 
 use Doctrine\Persistence\ObjectManager;
-use Payum\Core\Model\GatewayConfigInterface;
 use Psr\Log\NullLogger;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;

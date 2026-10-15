@@ -21,8 +21,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Payum\Action\AuthorizeAction;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final class AuthorizeActionTest extends TestCase
 {
@@ -47,7 +47,7 @@ final class AuthorizeActionTest extends TestCase
         $payment = $this->createMock(PaymentInterface::class);
 
         $request->method('getModel')->willReturn($payment);
-        $payment->expects(self::once())->method('setDetails')->with(['status' => StatusAction::STATUS_CREATED]);
+        $payment->expects(self::once())->method('setDetails')->with(['status' => PayPalPaymentStatus::Created->value]);
 
         $this->authorizeAction->execute($request);
     }

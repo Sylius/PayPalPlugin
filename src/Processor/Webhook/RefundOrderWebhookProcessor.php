@@ -18,8 +18,10 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
 
 final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInterface
 {
@@ -30,6 +32,7 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
         private PaypalPaymentQueryInterface $paypalPaymentQuery,
         private StateMachineInterface $stateMachine,
         private ObjectManager $paymentManager,
+        private SettleablePaypalPaymentQueryInterface $settleablePaymentQuery,
     ) {
     }
 
@@ -40,7 +43,12 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
 
     public function process(array $payload): void
     {
-        $refundData = $this->payPalRefundDataProvider->provide($this->payPalOrderUrl($payload));
+        $captureUrl = $this->payPalOrderUrl($payload);
+        $refundData = $this->payPalRefundDataProvider->provide($captureUrl);
+
+        if ($this->markLateCaptureRefunded((string) $refundData['id'], $this->captureId($captureUrl), $payload)) {
+            return;
+        }
 
         try {
             $payment = $this->paypalPaymentQuery->getForRefundingByOrderId((string) $refundData['id']);
@@ -56,6 +64,39 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
         }
 
         $this->paymentManager->flush();
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function markLateCaptureRefunded(string $payPalOrderId, string $captureId, array $payload): bool
+    {
+        try {
+            $payment = $this->settleablePaymentQuery->getForSettlementByOrderId($payPalOrderId);
+        } catch (PaymentNotFoundException) {
+            return false;
+        }
+
+        $details = $payment->getDetails();
+        $lateCapture = $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] ?? null;
+        if (!is_array($lateCapture) || $captureId !== ($lateCapture['id'] ?? null)) {
+            return false;
+        }
+
+        if (true !== ($lateCapture['refunded'] ?? false)) {
+            $refundId = $payload['resource']['id'] ?? null;
+            $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] = array_merge($lateCapture, [
+                'refunded' => true,
+                'refund_id' => is_string($refundId) ? $refundId : null,
+            ]);
+            $payment->setDetails($details);
+            $this->paymentManager->flush();
+        }
+
+        return true;
+    }
+
+    private function captureId(string $captureUrl): string
+    {
+        return basename((string) parse_url($captureUrl, \PHP_URL_PATH));
     }
 
     /** @param array<string, mixed> $payload */

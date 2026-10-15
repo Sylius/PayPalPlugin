@@ -213,15 +213,6 @@
     ) {
    ```
 
-   ```diff
-    // Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction
-    public function __construct(
-        // ...
-   -    private ?string $webUrl = null,
-   +    private ?HostProviderInterface $hostProvider = null,
-    ) {
-   ```
-
    The following methods take the mode explicitly instead of reading it from the active payment method:
 
    ```diff
