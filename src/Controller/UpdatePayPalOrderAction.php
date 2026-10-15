@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
@@ -103,13 +104,17 @@ final readonly class UpdatePayPalOrderAction
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $response = $this->updateOrderApi->update(
-            $paymentMethod,
-            $orderId,
-            $payment,
-            (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
-            PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
-        );
+        try {
+            $response = $this->updateOrderApi->update(
+                $paymentMethod,
+                $orderId,
+                $payment,
+                (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
+                PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
+            );
+        } catch (PayPalApiException) {
+            return new JsonResponse(['error' => 'PayPal did not update the order.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         return new JsonResponse($response);
     }

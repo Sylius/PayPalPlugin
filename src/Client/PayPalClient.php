@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Client;
 
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -24,7 +24,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
@@ -84,29 +84,25 @@ final readonly class PayPalClient implements PayPalClientInterface
 
         $fullUrl = $this->apiBaseUrl($paymentMethod) . $url;
 
-        $response = $this->doRequest($method, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+        $response = $this->doRequest($method, $url, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
         if (Response::HTTP_UNAUTHORIZED === $response->getStatusCode()) {
             $this->authorizeClientApi->invalidate($paymentMethod);
-            $response = $this->doRequest($method, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+            $response = $this->doRequest($method, $url, $fullUrl, $options, $this->authorizeClientApi->authorize($paymentMethod));
+        }
+
+        $statusCode = $response->getStatusCode();
+        if ($statusCode < Response::HTTP_OK || $statusCode >= Response::HTTP_MULTIPLE_CHOICES) {
+            $exception = PayPalApiException::fromResponse($method, $url, $response);
+            $this->logger->error($exception->getMessage());
+
+            throw $exception;
         }
 
         if ($this->loggingLevelIncreased) {
             $this->logger->debug(sprintf('%s request to "%s" called successfully', $method, $fullUrl));
         }
 
-        $content = (array) json_decode($response->getBody()->getContents(), true);
-
-        if (
-            (!in_array($response->getStatusCode(), [Response::HTTP_OK, Response::HTTP_NO_CONTENT], true)) &&
-            isset($content['debug_id'])
-        ) {
-            $this
-                ->logger
-                ->error(sprintf('%s request to "%s" failed with debug ID %s', $method, $fullUrl, (string) $content['debug_id']))
-            ;
-        }
-
-        return $content;
+        return (array) json_decode((string) $response->getBody(), true);
     }
 
     private function apiBaseUrl(PaymentMethodInterface $paymentMethod): string
@@ -134,7 +130,7 @@ final readonly class PayPalClient implements PayPalClientInterface
         }
     }
 
-    private function doRequest(string $method, string $fullUrl, array $options, string $token): ResponseInterface
+    private function doRequest(string $method, string $url, string $fullUrl, array $options, string $token): ResponseInterface
     {
         $request = $this->requestFactory->createRequest($method, $fullUrl)->withHeader('Authorization', 'Bearer ' . $token);
 
@@ -152,8 +148,11 @@ final readonly class PayPalClient implements PayPalClientInterface
 
         try {
             return $this->client->sendRequest($request);
-        } catch (NetworkExceptionInterface) {
-            throw new PayPalApiTimeoutException();
+        } catch (ClientExceptionInterface $exception) {
+            $failure = PayPalApiException::fromClientFailure($method, $url, $exception);
+            $this->logger->error($failure->getMessage());
+
+            throw $failure;
         }
     }
 }

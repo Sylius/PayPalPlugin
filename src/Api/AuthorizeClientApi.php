@@ -13,18 +13,20 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
-use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class AuthorizeClientApi implements AuthorizeClientApiInterface
 {
+    private const PATH = 'v1/oauth2/token';
+
     public function __construct(
         private ClientInterface $client,
         private RequestFactoryInterface $requestFactory,
@@ -35,25 +37,25 @@ final readonly class AuthorizeClientApi implements AuthorizeClientApiInterface
 
     public function authorize(string $clientId, string $clientSecret, bool $sandbox): AccessToken
     {
-        $request = $this->requestFactory->createRequest('POST', $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/oauth2/token')
+        $request = $this->requestFactory->createRequest('POST', $this->hostProvider->getApiBaseUrlForMode($sandbox) . self::PATH)
             ->withHeader('Authorization', 'Basic ' . base64_encode($clientId . ':' . $clientSecret))
             ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
             ->withBody($this->streamFactory->createStream(http_build_query(['grant_type' => 'client_credentials'])));
 
         try {
             $response = $this->client->sendRequest($request);
-        } catch (NetworkExceptionInterface) {
-            throw new PayPalApiTimeoutException();
+        } catch (ClientExceptionInterface $exception) {
+            throw PayPalApiException::fromClientFailure('POST', self::PATH, $exception);
         }
 
         if (Response::HTTP_OK !== $response->getStatusCode()) {
-            throw new PayPalAuthorizationException();
+            throw PayPalApiException::fromResponse('POST', self::PATH, $response);
         }
 
-        $content = (array) json_decode($response->getBody()->getContents(), true);
+        $content = (array) json_decode((string) $response->getBody(), true);
 
         if (!is_string($content['access_token'] ?? null) || !is_numeric($content['expires_in'] ?? null)) {
-            throw new PayPalAuthorizationException();
+            throw new PayPalApiAuthenticationException('POST', self::PATH, Response::HTTP_OK, errorMessage: 'PayPal answered without an access token or its lifetime.');
         }
 
         return new AccessToken($content['access_token'], (int) $content['expires_in']);

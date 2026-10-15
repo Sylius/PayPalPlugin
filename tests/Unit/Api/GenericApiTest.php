@@ -21,7 +21,6 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\GenericApi;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
@@ -91,24 +90,6 @@ final class GenericApiTest extends TestCase
         yield 'a port' => [true, 'https://api.sandbox.paypal.com:8443/v2/payments/captures/CAPTURE_ID'];
         yield 'a relative URL' => [true, 'v2/payments/captures/CAPTURE_ID'];
         yield 'a malformed URL' => [true, 'https:///v2/payments/captures/CAPTURE_ID'];
-    }
-
-    public function test_it_refuses_to_read_an_error_paypal_answered_with(): void
-    {
-        $this->client->method('get')->willReturn(['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID']);
-
-        $this->expectException(PayPalPluginException::class);
-
-        $this->genericApi->get($this->paymentMethodInMode(sandbox: true), 'https://api.sandbox.paypal.com/v2/payments/captures/CAPTURE_ID');
-    }
-
-    public function test_it_refuses_to_read_a_response_without_a_paypal_resource(): void
-    {
-        $this->client->method('get')->willReturn([]);
-
-        $this->expectException(PayPalPluginException::class);
-
-        $this->genericApi->get($this->paymentMethodInMode(sandbox: true), 'https://api.sandbox.paypal.com/v2/payments/captures/CAPTURE_ID');
     }
 
     private function paymentMethodInMode(bool $sandbox): PaymentMethodInterface&MockObject

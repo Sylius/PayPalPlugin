@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor;
 
 use Doctrine\Persistence\ObjectManager;
-use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -22,8 +21,7 @@ use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
-use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
@@ -32,6 +30,8 @@ use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundProcessorInterface
 {
     private const FAILED_REFUND_STATUSES = ['FAILED', 'CANCELLED'];
+
+    private const CAPTURE_FULLY_REFUNDED = 'CAPTURE_FULLY_REFUNDED';
 
     public function __construct(
         private OrderDetailsApiInterface $orderDetailsApi,
@@ -79,7 +79,13 @@ final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundPr
                 AmountUtils::toPayPalValue($lateCapture['amount'], $lateCapture['currency_code']),
                 $lateCapture['currency_code'],
             );
-        } catch (ClientExceptionInterface|PayPalApiTimeoutException|PayPalAuthorizationException) {
+        } catch (PayPalApiException $exception) {
+            if ($exception->hasIssue(self::CAPTURE_FULLY_REFUNDED)) {
+                $this->markRefunded($payment, $details, $lateCapture, null);
+
+                return;
+            }
+
             throw new PayPalOrderRefundException();
         }
 

@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
@@ -134,12 +135,24 @@ final class PayPalLateCaptureRefundProcessorTest extends TestCase
     public function test_it_fails_when_paypal_refuses_the_refund(): void
     {
         $payment = $this->payment(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
-        $this->refundPaymentApi->method('refund')->willReturn(['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID']);
+        $this->refundPaymentApi->method('refund')->willThrowException(new PayPalApiRequestException('POST', 'v2/payments/captures/CAPTURE_ID/refund', 422, 'UNPROCESSABLE_ENTITY', debugId: 'DEBUG_ID'));
 
         $payment->expects(self::never())->method('setDetails');
         $this->paymentManager->expects(self::never())->method('flush');
 
         $this->expectException(PayPalOrderRefundException::class);
+
+        $this->processor->refund($payment);
+    }
+
+    public function test_it_records_a_capture_paypal_refunded_meanwhile_when_it_refuses_the_refund(): void
+    {
+        $payment = $this->payment(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
+        $this->refundPaymentApi->method('refund')->willThrowException(new PayPalApiRequestException('POST', 'v2/payments/captures/CAPTURE_ID/refund', 422, 'UNPROCESSABLE_ENTITY', issues: ['CAPTURE_FULLY_REFUNDED']));
+
+        $payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => true === $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE]['refunded'],
+        ));
 
         $this->processor->refund($payment);
     }

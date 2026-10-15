@@ -22,7 +22,8 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
@@ -186,10 +187,50 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
         $this->refundOrderApi
             ->method('refund')
             ->with($paymentMethod, '555', 'AUTH-ASSERTION', 'REFERENCE-NUMBER', '10', 'USD')
-            ->willThrowException(new PayPalApiTimeoutException());
+            ->willThrowException(new PayPalApiConnectionException('POST', 'v2/payments/captures/555/refund'));
 
         $this->expectException(PayPalOrderRefundException::class);
 
         $this->paypalPaymentRefundProcessor->refund($payment);
+    }
+
+    public function test_it_fails_the_refund_paypal_refuses_instead_of_treating_it_as_done(): void
+    {
+        $payment = $this->refundablePayment();
+        $this->refundOrderApi->method('refund')->willThrowException(new PayPalApiRequestException('POST', 'v2/payments/captures/555/refund', 422, 'UNPROCESSABLE_ENTITY', issues: ['REFUND_AMOUNT_EXCEEDED']));
+
+        $this->expectException(PayPalOrderRefundException::class);
+
+        $this->paypalPaymentRefundProcessor->refund($payment);
+    }
+
+    public function test_it_treats_a_capture_paypal_has_fully_refunded_meanwhile_as_refunded(): void
+    {
+        $payment = $this->refundablePayment();
+        $this->refundOrderApi->expects(self::once())->method('refund')->willThrowException(new PayPalApiRequestException('POST', 'v2/payments/captures/555/refund', 422, 'UNPROCESSABLE_ENTITY', issues: ['CAPTURE_FULLY_REFUNDED']));
+
+        $this->paypalPaymentRefundProcessor->refund($payment);
+    }
+
+    private function refundablePayment(): PaymentInterface
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => '123123']);
+        $payment->method('getAmount')->willReturn(1000);
+        $payment->method('getOrder')->willReturn($order);
+        $order->method('getCurrencyCode')->willReturn('USD');
+
+        $this->orderDetailsApi->method('get')->willReturn(['purchase_units' => [['payments' => ['captures' => [['id' => '555', 'status' => 'COMPLETED']]]]]]);
+        $this->payPalAuthAssertionGenerator->method('generate')->willReturn('AUTH-ASSERTION');
+        $this->refundReferenceNumberProvider->method('provide')->willReturn('REFERENCE-NUMBER');
+
+        return $payment;
     }
 }

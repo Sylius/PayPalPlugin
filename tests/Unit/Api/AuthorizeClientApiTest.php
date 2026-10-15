@@ -22,8 +22,9 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
-use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalNetworkFailure;
 
@@ -83,9 +84,22 @@ final class AuthorizeClientApiTest extends TestCase
 
     public function test_it_throws_an_exception_if_paypal_rejects_the_credentials(): void
     {
-        $this->client->method('sendRequest')->willReturn($this->response(401, '{"error": "invalid_client"}'));
+        $this->client->method('sendRequest')->willReturn($this->response(401, '{"error": "invalid_client", "error_description": "Client Authentication failed"}'));
 
-        $this->expectException(PayPalAuthorizationException::class);
+        try {
+            $this->authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', false);
+            self::fail('PayPalApiAuthenticationException was not thrown');
+        } catch (PayPalApiAuthenticationException $exception) {
+            self::assertSame('v1/oauth2/token', $exception->getPath());
+            self::assertSame('invalid_client', $exception->getErrorName());
+        }
+    }
+
+    public function test_it_tells_a_paypal_failure_apart_from_rejected_credentials(): void
+    {
+        $this->client->method('sendRequest')->willReturn($this->response(503, ''));
+
+        $this->expectException(PayPalApiServerException::class);
 
         $this->authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', false);
     }
@@ -94,7 +108,7 @@ final class AuthorizeClientApiTest extends TestCase
     {
         $this->client->method('sendRequest')->willReturn($this->response(200, '{}'));
 
-        $this->expectException(PayPalAuthorizationException::class);
+        $this->expectException(PayPalApiAuthenticationException::class);
 
         $this->authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
     }
@@ -103,7 +117,7 @@ final class AuthorizeClientApiTest extends TestCase
     {
         $this->client->method('sendRequest')->willReturnCallback(static fn (RequestInterface $request) => throw new PayPalNetworkFailure('Connection timeout', $request));
 
-        $this->expectException(PayPalApiTimeoutException::class);
+        $this->expectException(PayPalApiConnectionException::class);
 
         $this->authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
     }

@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
@@ -42,14 +43,15 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         }
 
         $webhookUrl = $this->webhookUrlProvider->provide();
-        $response = $this->webhookApi->register($paymentMethod, $webhookUrl);
+
+        try {
+            $response = $this->webhookApi->register($paymentMethod, $webhookUrl);
+        } catch (PayPalApiException $exception) {
+            throw new PayPalWebhookNotRegisteredException((string) $paymentMethod->getCode(), $webhookUrl, $exception->getDescription());
+        }
 
         if (!isset($response['id'])) {
-            throw new PayPalWebhookNotRegisteredException(
-                (string) $paymentMethod->getCode(),
-                $webhookUrl,
-                (string) ($response['message'] ?? $response['name'] ?? 'PayPal refused the registration.'),
-            );
+            throw new PayPalWebhookNotRegisteredException((string) $paymentMethod->getCode(), $webhookUrl, 'PayPal answered without a webhook id');
         }
     }
 }

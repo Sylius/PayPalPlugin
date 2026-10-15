@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
 use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
@@ -161,5 +162,22 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
         } catch (PaymentMethodCouldNotBeEnabledException $exception) {
             self::assertSame($status, $exception->getOnboardingStatus());
         }
+    }
+
+    public function test_it_does_not_enable_the_payment_method_when_paypal_rejects_its_credentials(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(GatewayConfigInterface::class, [
+            'getConfig' => ['sandbox' => true, 'merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET'],
+        ]));
+
+        $this->authorizeClientApi->method('authorize')->willThrowException(new PayPalApiAuthenticationException('POST', 'v1/oauth2/token', 401, 'invalid_client'));
+
+        $this->sellerWebhookRegistrar->expects(self::never())->method('register');
+        $paymentMethod->expects(self::never())->method('setEnabled');
+
+        $this->expectException(PaymentMethodCouldNotBeEnabledException::class);
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
     }
 }

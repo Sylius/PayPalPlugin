@@ -123,10 +123,9 @@ abstract class PayPalApiException extends \RuntimeException
 
     public function getDescription(): string
     {
-        $parts = [$this->errorName ?? 'unknown error'];
-
-        if (null !== $this->errorMessage) {
-            $parts[] = $this->errorMessage;
+        $parts = array_values(array_filter([$this->errorName, $this->errorMessage], static fn (?string $part): bool => null !== $part));
+        if ([] === $parts) {
+            $parts[] = 'unknown error';
         }
 
         if ([] !== $this->issues) {

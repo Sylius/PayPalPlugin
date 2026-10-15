@@ -18,7 +18,9 @@ use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Command\StatusPaymentRequest;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
@@ -50,8 +52,12 @@ final class StatusPaymentRequestHandler
         if (PaymentInterface::STATE_PROCESSING === $payment->getState()) {
             try {
                 $this->paymentSettlementProcessor->settle($payment);
-            } catch (PayPalApiTimeoutException) {
+            } catch (PayPalApiConnectionException|PayPalApiServerException) {
                 $this->failWithReason($paymentRequest, 'PayPal could not be reached to read the order.');
+
+                return;
+            } catch (PayPalApiException) {
+                $this->failWithReason($paymentRequest, 'PayPal could not return the order.');
 
                 return;
             }

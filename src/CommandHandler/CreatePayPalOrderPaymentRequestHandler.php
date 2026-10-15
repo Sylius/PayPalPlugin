@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -91,6 +92,10 @@ final class CreatePayPalOrderPaymentRequestHandler
             );
         } catch (InvalidPayerDataException $exception) {
             $this->failWithReason($paymentRequest, $exception->getMessage());
+
+            return;
+        } catch (PayPalApiException) {
+            $this->failWithReason($paymentRequest, 'PayPal did not create the order.');
 
             return;
         }

@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Registrar;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
@@ -37,14 +38,14 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
     {
         $webhookUrl = $this->webhookUrlProvider->provide();
 
-        $response = $this->webhookApi->register($paymentMethod, $webhookUrl);
-
-        if (isset($response['name']) && $response['name'] === 'WEBHOOK_URL_ALREADY_EXISTS') {
-            throw new PayPalWebhookAlreadyRegisteredException();
-        }
-
-        if (isset($response['name']) && $response['name'] === 'VALIDATION_ERROR') {
-            throw new PayPalWebhookUrlNotValidException();
+        try {
+            $this->webhookApi->register($paymentMethod, $webhookUrl);
+        } catch (PayPalApiException $exception) {
+            match ($exception->getErrorName()) {
+                'WEBHOOK_URL_ALREADY_EXISTS' => throw new PayPalWebhookAlreadyRegisteredException(),
+                'VALIDATION_ERROR' => throw new PayPalWebhookUrlNotValidException(),
+                default => null,
+            };
         }
     }
 }

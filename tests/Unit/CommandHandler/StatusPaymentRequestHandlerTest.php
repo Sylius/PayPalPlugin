@@ -22,7 +22,8 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Command\StatusPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
 final class StatusPaymentRequestHandlerTest extends TestCase
@@ -69,8 +70,19 @@ final class StatusPaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestFor(['paypal_order_id' => 'PAYPAL_ORDER_ID'], PaymentInterface::STATE_PROCESSING);
 
-        $this->paymentSettlementProcessor->method('settle')->willThrowException(new PayPalApiTimeoutException());
+        $this->paymentSettlementProcessor->method('settle')->willThrowException(new PayPalApiConnectionException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal could not be reached to read the order.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
+
+        ($this->handler)(new StatusPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_fails_the_payment_request_when_paypal_cannot_return_the_order(): void
+    {
+        $paymentRequest = $this->paymentRequestFor(['paypal_order_id' => 'PAYPAL_ORDER_ID'], PaymentInterface::STATE_PROCESSING);
+
+        $this->paymentSettlementProcessor->method('settle')->willThrowException(new PayPalApiNotFoundException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID', 404, 'RESOURCE_NOT_FOUND'));
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal could not return the order.']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
 
         ($this->handler)(new StatusPaymentRequest('PAYMENT_REQUEST_HASH'));

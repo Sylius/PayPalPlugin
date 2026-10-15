@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
@@ -25,6 +26,8 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
@@ -237,6 +240,50 @@ final class PaymentCaptureProcessorTest extends TestCase
 
         $this->updateOrderAddressApi->expects(self::never())->method('update');
         $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
+
+        $this->processor->capture($this->payment);
+    }
+
+    public function test_it_reads_the_order_paypal_could_not_answer_the_capture_of(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
+
+        $this->completeOrderApi->method('complete')->willThrowException(new PayPalApiServerException('POST', 'v2/checkout/orders/123123/capture', 503));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn(self::ORDER_DETAILS);
+        $this->payment->expects(self::once())->method('setDetails');
+
+        self::assertSame(self::ORDER_DETAILS, $this->processor->capture($this->payment));
+    }
+
+    #[DataProvider('issuesLeavingTheOrderToRead')]
+    public function test_it_reads_the_order_paypal_refused_to_capture_for_its_state(string $issue): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
+        $notCaptured = ['status' => 'CREATED', 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
+
+        $this->completeOrderApi->method('complete')->willThrowException(new PayPalApiRequestException('POST', 'v2/checkout/orders/123123/capture', 422, 'UNPROCESSABLE_ENTITY', issues: [$issue]));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn($notCaptured);
+
+        self::assertSame($notCaptured, $this->processor->capture($this->payment));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function issuesLeavingTheOrderToRead(): iterable
+    {
+        yield 'already captured' => ['ORDER_ALREADY_CAPTURED'];
+        yield 'not approved' => ['ORDER_NOT_APPROVED'];
+        yield 'payer action required' => ['PAYER_ACTION_REQUIRED'];
+    }
+
+    public function test_it_lets_a_capture_paypal_refused_for_the_payer_through(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
+        $declined = new PayPalApiRequestException('POST', 'v2/checkout/orders/123123/capture', 422, 'UNPROCESSABLE_ENTITY', issues: ['INSTRUMENT_DECLINED']);
+
+        $this->completeOrderApi->method('complete')->willThrowException($declined);
+        $this->orderDetailsApi->expects(self::never())->method('get');
+
+        $this->expectExceptionObject($declined);
 
         $this->processor->capture($this->payment);
     }
