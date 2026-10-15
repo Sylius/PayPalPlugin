@@ -41,7 +41,7 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
-        $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $config->isSandbox());
+        $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $config->isSandbox())->value();
         $webhookUrl = $this->webhookUrlProvider->provide();
 
         $response = $this->webhookApi->register($token, $webhookUrl);

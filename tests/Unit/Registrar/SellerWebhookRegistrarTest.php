@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
+use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -65,7 +66,7 @@ final class SellerWebhookRegistrarTest extends TestCase
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
         $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'sandbox' => true]);
 
-        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn('TOKEN');
+        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn(new AccessToken('TOKEN', 32400));
         $this->urlGenerator
             ->method('generate')
             ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
@@ -93,7 +94,7 @@ final class SellerWebhookRegistrarTest extends TestCase
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
         $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'sandbox' => true]);
 
-        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn('TOKEN');
+        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn(new AccessToken('TOKEN', 32400));
         $this->urlGenerator
             ->method('generate')
             ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
@@ -114,7 +115,7 @@ final class SellerWebhookRegistrarTest extends TestCase
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
         $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET']);
 
-        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->authorizeClientApi->method('authorize')->willReturn(new AccessToken('TOKEN', 32400));
         $this->urlGenerator->method('generate')->willReturn('https://webhook-url.com');
         $this->webhookApi->method('register')->willReturn(['name' => 'WEBHOOK_URL_ALREADY_EXISTS']);
 

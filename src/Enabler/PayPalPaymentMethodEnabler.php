@@ -47,7 +47,7 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         $sandbox = $config->isSandbox();
 
         try {
-            $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox);
+            $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox)->value();
             $status = $sandbox ? null : $this->merchantOnboardingStatusApi->get(
                 $token,
                 $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId(),

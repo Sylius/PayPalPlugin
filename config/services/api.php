@@ -87,6 +87,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.repository.paypal_credentials'),
             service('sylius_paypal.api.authorize_client'),
             service('sylius_paypal.provider.uuid'),
+            service('sylius_paypal.clock'),
         ]);
 
     $services->alias(CacheAuthorizeClientApiInterface::class, 'sylius_paypal.api.cache_authorize_client');

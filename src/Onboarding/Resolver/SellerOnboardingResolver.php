@@ -44,7 +44,7 @@ final readonly class SellerOnboardingResolver implements SellerOnboardingResolve
 
             $credentials = $this->sellerCredentialsApi->get($onboardingToken, $partnerId, $sandbox);
 
-            $sellerToken = $this->authorizeClientApi->authorize($credentials->getClientId(), $credentials->getClientSecret(), $sandbox);
+            $sellerToken = $this->authorizeClientApi->authorize($credentials->getClientId(), $credentials->getClientSecret(), $sandbox)->value();
 
             $status = $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $credentials->getPayerId(), $sandbox);
         } catch (PayPalPluginException|PayPalAuthorizationException|ClientExceptionInterface|\JsonException $exception) {
