@@ -35,6 +35,7 @@ use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Client\PayPalClient;
+use Sylius\PayPalPlugin\Client\LoggingHttpClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Client\RetryingHttpClient;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
@@ -56,9 +57,15 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias('sylius_paypal.clock', 'clock');
 
-    $services->set('sylius_paypal.http_client.retrying', RetryingHttpClient::class)
+    $services->set('sylius_paypal.http_client.logging', LoggingHttpClient::class)
         ->args([
             service('sylius_paypal.http_client'),
+            service('monolog.logger.paypal'),
+        ]);
+
+    $services->set('sylius_paypal.http_client.retrying', RetryingHttpClient::class)
+        ->args([
+            service('sylius_paypal.http_client.logging'),
             service('monolog.logger.paypal'),
             service('sylius_paypal.clock'),
             param('sylius_paypal.api.max_attempts'),

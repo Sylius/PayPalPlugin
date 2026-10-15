@@ -32,7 +32,9 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
@@ -151,7 +153,7 @@ final class PayPalClientTest extends TestCase
 
         $body
             ->expects(self::once())
-            ->method('getContents')
+            ->method('__toString')
             ->willReturn('{"status": "OK", "id": "123123"}');
 
         $result = $this->payPalClient->get($this->paymentMethod, 'v2/get-request/');
@@ -213,7 +215,7 @@ final class PayPalClientTest extends TestCase
 
         $body
             ->expects(self::once())
-            ->method('getContents')
+            ->method('__toString')
             ->willReturn('{"status": "OK", "id": "123123"}');
 
         $result = $this->payPalClient->post($this->paymentMethod, 'v2/post-request/', ['parameter' => 'value', 'another_parameter' => 'another_value']);
@@ -270,7 +272,7 @@ final class PayPalClientTest extends TestCase
 
         $body
             ->expects(self::once())
-            ->method('getContents')
+            ->method('__toString')
             ->willReturn('{"status": "OK", "id": "123123"}');
 
         $result = $this->payPalClient->patch($this->paymentMethod, 'v2/patch-request/123123', ['parameter' => 'value', 'another_parameter' => 'another_value']);
@@ -306,7 +308,7 @@ final class PayPalClientTest extends TestCase
             ->with($request)
             ->willThrowException(new PayPalNetworkFailure('Connection timeout', $request));
 
-        $this->expectException(PayPalApiTimeoutException::class);
+        $this->expectException(PayPalApiConnectionException::class);
 
         $this->payPalClient->get($this->paymentMethod, 'v2/get-request/');
     }
@@ -389,9 +391,13 @@ final class PayPalClientTest extends TestCase
     {
         $this->authorizeClientApi->expects(self::once())->method('invalidate');
 
-        $result = $this->sendWithResponses([[401, '{"error": "invalid_token"}'], [401, '{"error": "invalid_token"}']], fn () => $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/123123'));
+        try {
+            $this->sendWithResponses([[401, '{"error": "invalid_token"}'], [401, '{"error": "invalid_token"}']], fn () => $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/123123'));
+            self::fail('PayPalApiAuthenticationException was not thrown');
+        } catch (PayPalApiAuthenticationException $exception) {
+            self::assertSame('invalid_token', $exception->getErrorName());
+        }
 
-        self::assertSame(['error' => 'invalid_token'], $result);
         self::assertCount(2, $this->sentRequests);
     }
 
@@ -409,9 +415,33 @@ final class PayPalClientTest extends TestCase
     {
         $this->authorizeClientApi->expects(self::never())->method('invalidate');
 
-        $this->sendWithResponses([[403, '{"name": "NOT_AUTHORIZED"}']], fn () => $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/123123'));
+        try {
+            $this->sendWithResponses([[403, '{"name": "NOT_AUTHORIZED"}']], fn () => $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/123123'));
+            self::fail('PayPalApiRequestException was not thrown');
+        } catch (PayPalApiRequestException) {
+        }
 
         self::assertCount(1, $this->sentRequests);
+    }
+
+    public function test_it_throws_the_error_paypal_answers_with(): void
+    {
+        try {
+            $this->sendWithResponses(
+                [[422, '{"name": "UNPROCESSABLE_ENTITY", "details": [{"issue": "INSTRUMENT_DECLINED"}], "debug_id": "DEBUG_ID"}']],
+                fn () => $this->payPalClient->post($this->paymentMethod, 'v2/checkout/orders/123123/capture'),
+            );
+            self::fail('PayPalApiRequestException was not thrown');
+        } catch (PayPalApiRequestException $exception) {
+            self::assertSame('POST', $exception->getMethod());
+            self::assertSame('v2/checkout/orders/123123/capture', $exception->getPath());
+            self::assertTrue($exception->hasIssue('INSTRUMENT_DECLINED'));
+        }
+    }
+
+    public function test_it_answers_a_request_paypal_accepted_without_content_with_nothing(): void
+    {
+        self::assertSame([], $this->sendWithResponses([[204, '']], fn () => $this->payPalClient->patch($this->paymentMethod, 'v2/checkout/orders/123123', [])));
     }
 
     /** @param list<array{int, string}> $responses */
@@ -459,7 +489,7 @@ final class PayPalClientTest extends TestCase
         $request->method('withBody')->willReturn($request);
 
         $body = $this->createMock(StreamInterface::class);
-        $body->method('getContents')->willReturn('{}');
+        $body->method('__toString')->willReturn('{}');
 
         $response = $this->createMock(ResponseInterface::class);
         $response->method('getStatusCode')->willReturn(200);

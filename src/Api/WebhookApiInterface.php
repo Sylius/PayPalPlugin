@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Psr\Http\Client\ClientExceptionInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 
 interface WebhookApiInterface
 {
-    /** @throws ClientExceptionInterface */
+    /** @throws PayPalApiException */
     public function register(PaymentMethodInterface $paymentMethod, string $webhookUrl): array;
 }

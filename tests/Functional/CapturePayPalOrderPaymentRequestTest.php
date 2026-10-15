@@ -59,6 +59,15 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_FAILED, $paymentRequest->getPayment()->getState());
     }
 
+    public function test_it_asks_for_another_payment_method_when_paypal_declines_the_instrument(): void
+    {
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest(instrumentDeclined: true);
+
+        self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
+        self::assertSame(['reason' => 'PayPal declined the payment method. Choose another one.'], $paymentRequest->getResponseData());
+        self::assertSame(PaymentInterface::STATE_NEW, $paymentRequest->getPayment()->getState());
+    }
+
     public function test_it_completes_a_payment_captured_for_another_amount_and_records_what_paypal_took(): void
     {
         $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('COMPLETED', capturedValue: '0.01');
@@ -84,6 +93,7 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         ?string $capturedValue = null,
         bool $approved = true,
         bool $paypalFailsFirst = false,
+        bool $instrumentDeclined = false,
     ): PaymentRequestInterface {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
@@ -116,7 +126,9 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         $entityManager->flush();
 
         $this->payPalApi()->mockUpdateOrderAddress();
-        if ($approved) {
+        if ($instrumentDeclined) {
+            $this->payPalApi()->mockCaptureOfDeclinedInstrument(requestId: sprintf('%s-capture', (string) $paymentRequest->getId()));
+        } elseif ($approved) {
             $requestId = sprintf('%s-capture', (string) $paymentRequest->getId());
             if ($paypalFailsFirst) {
                 $this->payPalApi()->mockCaptureServerError(requestId: $requestId);

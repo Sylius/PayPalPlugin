@@ -21,7 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Model\ShipmentInterface as BaseShipmentInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
@@ -88,7 +88,7 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
     }
 
     /**
-     * @throws PayPalApiErrorException
+     * @throws PayPalApiException
      */
     private function sendTracking(
         ShipmentInterface $shipment,
@@ -121,11 +121,7 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $paymentMethod = $payment->getMethod();
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
-        if (!isset($orderDetails['status'])) {
-            throw new PayPalApiErrorException(sprintf('GET v2/checkout/orders/%s', $payPalOrderId), $orderDetails);
-        }
-
-        $status = (string) $orderDetails['status'];
+        $status = (string) ($orderDetails['status'] ?? '');
         if (!in_array($status, self::ELIGIBLE_ORDER_STATUSES, true)) {
             $tracking->markAsFailed(sprintf('PayPal order status "%s" is not eligible for tracking.', $status));
 
@@ -160,7 +156,9 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $response = $this->addTrackingApi->add($paymentMethod, $payPalOrderId, $body);
 
         if (!isset($response['id'])) {
-            throw new PayPalApiErrorException(sprintf('POST v2/checkout/orders/%s/track', $payPalOrderId), $response);
+            $tracking->markAsFailed('PayPal answered the tracking request without an id.');
+
+            return;
         }
 
         $tracking->markAsSynced($this->extractTrackerId($response, $trackingNumber));
@@ -206,6 +204,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
     private function formatError(\Throwable $exception): string
     {
-        return $exception instanceof PayPalApiErrorException ? $exception->getDescription() : $exception->getMessage();
+        return $exception instanceof PayPalApiException ? $exception->getDescription() : $exception->getMessage();
     }
 }

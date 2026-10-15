@@ -207,9 +207,9 @@
    `Symfony\Component\Clock\ClockInterface` (the `sylius_paypal.clock` alias of `clock`), so `symfony/clock` is now
    required.
 
-   Network errors of any PSR-18 client now end in `PayPalApiTimeoutException`; before, only Guzzle's
-   `ConnectException` did. `sylius_paypal.http_client` is still an alias of `sylius.http_client`; point it to a
-   scoped HTTP client to set timeouts for the PayPal API.
+   Network errors of any PSR-18 client are now retried; before, only Guzzle's `ConnectException` was.
+   `sylius_paypal.http_client` is still an alias of `sylius.http_client`; point it to a scoped HTTP client to set
+   timeouts for the PayPal API.
 
 1. #### `PayPalClient` takes the payment method and resolves the access token itself.
 
@@ -317,7 +317,7 @@
    other mode, throws `Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException` before a request is sent. The
    exception implements `PermanentWebhookFailureInterface`, so a webhook event carrying such a link is not replayed.
 
-   An error answered by PayPal still throws `PayPalPluginException`.
+   An error answered by PayPal throws a `PayPalApiException`, as for any other PayPal API call.
 
    ```diff
     // Sylius\PayPalPlugin\Api\GenericApi
@@ -358,14 +358,14 @@
     interface AuthorizeClientApiInterface
     {
    -    public function authorize(string $clientId, string $clientSecret): string;
-   +    /** @throws PayPalAuthorizationException */
+   +    /** @throws PayPalApiException */
    +    public function authorize(string $clientId, string $clientSecret, bool $sandbox): AccessToken;
     }
    ```
 
    The token is requested from the API of the given mode. `Sylius\PayPalPlugin\Model\AccessToken` carries the token
    (`value()`) and the lifetime PayPal gives it (`expiresIn()`). A response without the token or its lifetime throws
-   `PayPalAuthorizationException` instead of returning an empty string.
+   `PayPalApiAuthenticationException` instead of returning an empty string.
 
    ```diff
     // Sylius\PayPalPlugin\Api\AuthorizeClientApi
@@ -436,3 +436,65 @@
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
    capturing again. Without a request id, a random one is used, as before.
+
+1. #### Failed PayPal API calls throw typed exceptions instead of returning the error body.
+
+   `PayPalClientInterface`, `AuthorizeClientApiInterface` and every API class built on them throw a
+   `Sylius\PayPalPlugin\Exception\PayPalApiException` when PayPal answers outside `2xx`, after the retries and the
+   access token refresh, or cannot be reached. They no longer return PayPal's error body as a result.
+
+   | Exception | Thrown when |
+   |---|---|
+   | `PayPalApiConnectionException` | PayPal could not be reached |
+   | `PayPalApiAuthenticationException` | PayPal answered `401`, or the token endpoint answered without a token |
+   | `PayPalApiNotFoundException` | PayPal answered `404` |
+   | `PayPalApiServerException` | PayPal answered `429` or `5xx` |
+   | `PayPalApiRequestException` | PayPal answered any other status, such as `400`, `403` or `422` |
+
+   The exception carries the request method and path, the status, PayPal's error name and message, the issues of
+   its `details` (`getIssues()`, `hasIssue()`) and the `PayPal-Debug-Id` (`getDebugId()`).
+
+   The following exceptions have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException` | `PayPalApiConnectionException` |
+   | `Sylius\PayPalPlugin\Exception\PayPalAuthorizationException` | `PayPalApiAuthenticationException` |
+   | `Sylius\PayPalPlugin\Exception\PayPalOrderUpdateException` | none, it was never thrown |
+
+   The plugin's own callers handle the new exceptions as follows:
+
+   - A refund PayPal refuses throws `PayPalOrderRefundException`, shown to the admin, instead of passing as a
+     success. A capture PayPal reports as fully refunded (`CAPTURE_FULLY_REFUNDED`) counts as refunded.
+   - A capture lost to a `5xx` or a network error, or refused as already captured, unapproved or awaiting the payer,
+     still reads the PayPal order, which decides the outcome as before. Any other refusal fails the Payment Request;
+     when PayPal declines the instrument (`INSTRUMENT_DECLINED`), the reason asks for another payment method.
+   - A capture whose amount or shipping address PayPal refuses to update, or whose order cannot be read for the
+     3D Secure check, fails the Payment Request instead of capturing anyway.
+   - A status Payment Request whose PayPal order cannot be read fails instead of completing.
+   - A PayPal order PayPal refuses to create fails its Payment Request.
+   - `UpdatePayPalOrderAction` answers `422` when PayPal refuses the update.
+   - A tracking PayPal accepts without returning its id is marked as failed without being retried.
+
+1. #### Every PayPal API call is logged with its request, response and debug id.
+
+   `Sylius\PayPalPlugin\Client\LoggingHttpClient` (services `sylius_paypal.http_client.logging` and
+   `sylius_paypal.psr18_client.onboarding.logging`) logs every attempt of a PayPal API call, the onboarding ones
+   included, on the `paypal` channel: the method, URL, status and `PayPal-Debug-Id` in the message, the request and
+   response headers and bodies in the context. A successful call is logged as `info`, a call PayPal rejected or that
+   never reached it as `error`. Credentials (authorization headers, tokens, client credentials) and the payer's
+   personal data (name, contact details, address, card data) are masked.
+
+   PayPal asks to keep the logs of failed calls for at least two weeks, as it purges its own after that. Route the
+   `paypal` channel accordingly, for example:
+
+   ```yaml
+   monolog:
+       handlers:
+           paypal_failures:
+               type: rotating_file
+               path: '%kernel.logs_dir%/paypal_failures.log'
+               level: error
+               max_files: 14
+               channels: [paypal]
+   ```

@@ -13,10 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Exception;
 
-final class PayPalOrderUpdateException extends \Exception
+final class PayPalApiServerException extends PayPalApiException
 {
-    public function __construct()
-    {
-        parent::__construct('Could not update PayPal order');
-    }
 }

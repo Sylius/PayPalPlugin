@@ -19,7 +19,8 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApi;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalHttpClientWithExpectations;
@@ -77,21 +78,24 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
         self::assertFalse($this->httpClient->hasExpectations());
     }
 
-    public function test_it_returns_the_declared_error_response(): void
+    public function test_it_answers_with_the_declared_error_response(): void
     {
         $this->httpClient->addExpectation('GET', 'v2/checkout/orders/MISSING', ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'], 404);
 
-        self::assertSame(
-            ['name' => 'RESOURCE_NOT_FOUND', 'debug_id' => 'DEBUG_ID'],
-            $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/MISSING'),
-        );
+        try {
+            $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/MISSING');
+            self::fail('PayPalApiNotFoundException was not thrown');
+        } catch (PayPalApiNotFoundException $exception) {
+            self::assertSame('RESOURCE_NOT_FOUND', $exception->getErrorName());
+            self::assertSame('DEBUG_ID', $exception->getDebugId());
+        }
     }
 
     public function test_it_fails_to_connect_as_many_times_as_it_is_told(): void
     {
         $this->mocker->mockOrderDetailsUnreachable('PAYPAL_ORDER_ID', attempts: 3);
 
-        $this->expectException(PayPalApiTimeoutException::class);
+        $this->expectException(PayPalApiConnectionException::class);
 
         try {
             $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/PAYPAL_ORDER_ID');

@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -152,6 +153,17 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal']);
 
         $this->payPalOrderCreator->method('create')->willReturn(null);
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not create the order.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
+
+        ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_fails_the_payment_request_when_paypal_refuses_to_create_the_order(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal']);
+
+        $this->payPalOrderCreator->method('create')->willThrowException(new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not create the order.']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
 

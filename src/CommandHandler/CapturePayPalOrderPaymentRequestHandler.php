@@ -20,6 +20,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -41,6 +42,8 @@ final class CapturePayPalOrderPaymentRequestHandler
     public const RESPONSE_AWAITING_PAYER = 'awaiting_payer';
 
     private const PAYER_ACTION_REQUIRED_ORDER_STATUS = 'PAYER_ACTION_REQUIRED';
+
+    private const INSTRUMENT_DECLINED = 'INSTRUMENT_DECLINED';
 
     private const UNAPPROVED_ORDER_STATUSES = ['CREATED', 'SAVED', self::PAYER_ACTION_REQUIRED_ORDER_STATUS, 'VOIDED'];
 
@@ -82,13 +85,18 @@ final class CapturePayPalOrderPaymentRequestHandler
 
         try {
             $this->paymentThreeDSecureVerifier->verify($payment);
+            $payPalOrder = $this->paymentCaptureProcessor->capture($payment, sprintf('%s-capture', (string) $paymentRequest->getId()));
         } catch (ThreeDSecureAuthenticationFailedException $exception) {
             $this->endWithFailedAuthentication($paymentRequest, $payment, $exception->isRetryable());
 
             return;
-        }
+        } catch (PayPalApiException $exception) {
+            $this->failWithReason($paymentRequest, $exception->hasIssue(self::INSTRUMENT_DECLINED)
+                ? 'PayPal declined the payment method. Choose another one.'
+                : 'PayPal did not capture the order.');
 
-        $payPalOrder = $this->paymentCaptureProcessor->capture($payment, sprintf('%s-capture', (string) $paymentRequest->getId()));
+            return;
+        }
         $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
 
         if (null !== $capture) {

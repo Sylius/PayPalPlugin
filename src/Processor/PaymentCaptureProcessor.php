@@ -22,6 +22,9 @@ use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -31,6 +34,8 @@ use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
+    private const ISSUES_LEAVING_THE_ORDER_TO_READ = ['ORDER_ALREADY_CAPTURED', 'ORDER_NOT_APPROVED', 'PAYER_ACTION_REQUIRED'];
+
     public function __construct(
         private UpdateOrderApiInterface $updateOrderApi,
         private UpdateOrderAddressApiInterface $updateOrderAddressApi,
@@ -114,6 +119,13 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             );
         }
 
-        $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
+        try {
+            $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
+        } catch (PayPalApiConnectionException|PayPalApiServerException) {
+        } catch (PayPalApiRequestException $exception) {
+            if ([] === array_intersect($exception->getIssues(), self::ISSUES_LEAVING_THE_ORDER_TO_READ)) {
+                throw $exception;
+            }
+        }
     }
 }

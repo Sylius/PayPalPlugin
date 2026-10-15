@@ -26,7 +26,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
@@ -183,7 +183,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
     public function test_it_answers_with_a_bad_request_when_paypal_is_unreachable(): void
     {
         $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
-        $this->capturePaymentResolver->method('resolve')->willThrowException(new PayPalApiTimeoutException());
+        $this->capturePaymentResolver->method('resolve')->willThrowException(new PayPalApiConnectionException('POST', 'v2/checkout/orders'));
 
         $this->paymentStateManager->expects(self::never())->method('create');
         $request = $this->request();

@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
@@ -94,10 +95,21 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
     public function test_it_reports_a_registration_paypal_refused(): void
     {
         $this->webhookIdProvider->method('refresh')->willReturn(null);
-        $this->webhookApi->method('register')->willReturn(['name' => 'VALIDATION_ERROR']);
+        $this->webhookApi->method('register')->willThrowException(new PayPalApiRequestException('POST', 'v1/notifications/webhooks', 400, 'VALIDATION_ERROR', debugId: 'DEBUG_ID'));
 
         $this->expectException(PayPalWebhookNotRegisteredException::class);
-        $this->expectExceptionMessage('https://shop.example.com/paypal-webhook/api/');
+        $this->expectExceptionMessage('"https://shop.example.com/paypal-webhook/api/": VALIDATION_ERROR (debug id: DEBUG_ID).');
+
+        $this->registrar->register($this->paymentMethod);
+    }
+
+    public function test_it_reports_a_registration_paypal_answered_without_a_webhook_id(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn(null);
+        $this->webhookApi->method('register')->willReturn([]);
+
+        $this->expectException(PayPalWebhookNotRegisteredException::class);
+        $this->expectExceptionMessage('PayPal answered without a webhook id');
 
         $this->registrar->register($this->paymentMethod);
     }

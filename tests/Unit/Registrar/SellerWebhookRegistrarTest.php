@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
@@ -83,7 +84,7 @@ final class SellerWebhookRegistrarTest extends TestCase
             ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
-        $this->webhookApi->method('register')->with($paymentMethod, 'https://webhook-url.com')->willReturn(['name' => 'VALIDATION_ERROR']);
+        $this->webhookApi->method('register')->with($paymentMethod, 'https://webhook-url.com')->willThrowException($this->rejection('VALIDATION_ERROR'));
 
         $this->expectException(PayPalWebhookUrlNotValidException::class);
 
@@ -95,10 +96,25 @@ final class SellerWebhookRegistrarTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->urlGenerator->method('generate')->willReturn('https://webhook-url.com');
-        $this->webhookApi->method('register')->willReturn(['name' => 'WEBHOOK_URL_ALREADY_EXISTS']);
+        $this->webhookApi->method('register')->willThrowException($this->rejection('WEBHOOK_URL_ALREADY_EXISTS'));
 
         $this->expectException(PayPalWebhookAlreadyRegisteredException::class);
 
         $this->sellerWebhookRegistrar->register($paymentMethod);
+    }
+
+    public function test_it_leaves_the_webhook_unregistered_when_paypal_fails_for_another_reason(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $this->urlGenerator->method('generate')->willReturn('https://webhook-url.com');
+        $this->webhookApi->expects(self::once())->method('register')->willThrowException($this->rejection('WEBHOOK_NUMBER_LIMIT_EXCEEDED'));
+
+        $this->sellerWebhookRegistrar->register($paymentMethod);
+    }
+
+    private function rejection(string $name): PayPalApiRequestException
+    {
+        return new PayPalApiRequestException('POST', 'v1/notifications/webhooks', 400, $name);
     }
 }

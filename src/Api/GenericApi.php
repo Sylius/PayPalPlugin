@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Api;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
@@ -31,13 +30,7 @@ final readonly class GenericApi implements GenericApiInterface
 
     public function get(PaymentMethodInterface $paymentMethod, string $url): array
     {
-        $content = $this->client->get($paymentMethod, $this->pathOf($url, $paymentMethod));
-
-        if ([] === $content || isset($content['name']) || isset($content['error'])) {
-            throw new PayPalPluginException();
-        }
-
-        return $content;
+        return $this->client->get($paymentMethod, $this->pathOf($url, $paymentMethod));
     }
 
     private function pathOf(string $url, PaymentMethodInterface $paymentMethod): string

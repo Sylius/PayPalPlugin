@@ -22,6 +22,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
@@ -54,7 +55,7 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
                 $config->merchantId(),
                 $sandbox,
             );
-        } catch (PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
+        } catch (PayPalApiException|PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
 

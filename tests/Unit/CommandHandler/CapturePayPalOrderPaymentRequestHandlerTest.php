@@ -23,6 +23,8 @@ use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
@@ -113,7 +115,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     public function test_it_fails_the_payment_request_when_paypal_captured_nothing(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentCaptureProcessor->method('capture')->willReturn(['name' => 'UNPROCESSABLE_ENTITY']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']);
 
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not capture the order.']);
@@ -222,7 +224,33 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         self::assertSame([], $this->appliedTransitions);
     }
 
-    /** @param array<string, mixed> $details */
+    public function test_it_asks_for_another_payment_method_when_paypal_declines_the_instrument(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->paymentCaptureProcessor->method('capture')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders/PAYPAL_ORDER_ID/capture', 422, 'UNPROCESSABLE_ENTITY', issues: ['INSTRUMENT_DECLINED']),
+        );
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal declined the payment method. Choose another one.']);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
+    }
+
+    public function test_it_fails_the_payment_request_when_paypal_cannot_answer(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->paymentCaptureProcessor->method('capture')->willThrowException(new PayPalApiConnectionException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID'));
+
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not capture the order.']);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
+    }
+
     private function paymentRequestWith(
         array $details = ['paypal_order_id' => 'PAYPAL_ORDER_ID'],
         string $state = PaymentRequestInterface::STATE_PROCESSING,

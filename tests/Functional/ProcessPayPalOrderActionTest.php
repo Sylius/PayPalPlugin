@@ -21,6 +21,8 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
@@ -197,7 +199,7 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $orderDetails = $this->orderDetails();
         $orderDetails['purchase_units'][0]['amount']['value'] = '999.00';
         $this->mockOrderDetailsApi($orderDetails);
-        $updateOrderApi = $this->mockUpdateOrderApi(['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID']);
+        $updateOrderApi = $this->mockUpdateOrderApi(new PayPalApiRequestException('PATCH', 'v2/checkout/orders/PAYPAL_ORDER_ID', 422, 'UNPROCESSABLE_ENTITY', debugId: 'DEBUG_ID'));
 
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
@@ -622,15 +624,13 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         self::getContainer()->set('sylius_paypal.api.order_details', new FakeOrderDetailsApi($orderDetails));
     }
 
-    /** @param array<string, mixed> $response */
-    private function mockUpdateOrderApi(array $response = []): object
+    private function mockUpdateOrderApi(?PayPalApiException $failure = null): object
     {
-        $updateOrderApi = new class($response) implements UpdateOrderApiInterface {
+        $updateOrderApi = new class($failure) implements UpdateOrderApiInterface {
             /** @var list<array{orderId: string, amount: int|null}> */
             public array $updates = [];
 
-            /** @param array<string, mixed> $response */
-            public function __construct(private readonly array $response)
+            public function __construct(private readonly ?PayPalApiException $failure)
             {
             }
 
@@ -638,7 +638,11 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
             {
                 $this->updates[] = ['orderId' => $orderId, 'amount' => $payment->getAmount()];
 
-                return $this->response;
+                if (null !== $this->failure) {
+                    throw $this->failure;
+                }
+
+                return [];
             }
         };
         self::getContainer()->set('sylius_paypal.api.update_order', $updateOrderApi);

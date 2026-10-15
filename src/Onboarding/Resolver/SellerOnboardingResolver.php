@@ -18,7 +18,7 @@ use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Api\OnboardingTokenApiInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\SellerOnboardingResolutionException;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
@@ -47,7 +47,7 @@ final readonly class SellerOnboardingResolver implements SellerOnboardingResolve
             $sellerToken = $this->authorizeClientApi->authorize($credentials->getClientId(), $credentials->getClientSecret(), $sandbox)->value();
 
             $status = $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $credentials->getPayerId(), $sandbox);
-        } catch (PayPalPluginException|PayPalAuthorizationException|ClientExceptionInterface|\JsonException $exception) {
+        } catch (PayPalApiException|PayPalPluginException|ClientExceptionInterface|\JsonException $exception) {
             throw new SellerOnboardingResolutionException($exception);
         }
 

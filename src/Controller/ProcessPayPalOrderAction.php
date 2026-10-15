@@ -35,6 +35,7 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
@@ -334,13 +335,19 @@ final readonly class ProcessPayPalOrderAction
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        return [] === $updateOrderApi->update(
-            $paymentMethod,
-            $payPalOrderId,
-            $payment,
-            (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
-            PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
-        );
+        try {
+            $updateOrderApi->update(
+                $paymentMethod,
+                $payPalOrderId,
+                $payment,
+                (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
+                PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
+            );
+        } catch (PayPalApiException) {
+            return false;
+        }
+
+        return true;
     }
 
     private function abandonPayment(OrderInterface $order, PaymentInterface $payment): void
