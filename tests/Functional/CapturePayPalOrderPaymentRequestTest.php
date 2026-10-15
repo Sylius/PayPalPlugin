@@ -34,6 +34,14 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         self::assertSame('CAPTURE_ID', $paymentRequest->getPayment()->getDetails()['transaction_id']);
     }
 
+    public function test_it_captures_the_order_once_when_paypal_fails_the_first_attempt(): void
+    {
+        $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('COMPLETED', paypalFailsFirst: true);
+
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $paymentRequest->getPayment()->getState());
+    }
+
     public function test_it_leaves_a_pending_capture_processing(): void
     {
         $paymentRequest = $this->dispatchCapturePayPalOrderPaymentRequest('PENDING');
@@ -75,6 +83,7 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         string $captureStatus = 'COMPLETED',
         ?string $capturedValue = null,
         bool $approved = true,
+        bool $paypalFailsFirst = false,
     ): PaymentRequestInterface {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
@@ -108,7 +117,11 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
 
         $this->payPalApi()->mockUpdateOrderAddress();
         if ($approved) {
-            $this->payPalApi()->mockCapture();
+            $requestId = sprintf('%s-capture', (string) $paymentRequest->getId());
+            if ($paypalFailsFirst) {
+                $this->payPalApi()->mockCaptureServerError(requestId: $requestId);
+            }
+            $this->payPalApi()->mockCapture(requestId: $requestId);
             $this->payPalApi()->mockOrderDetailsWithCapture(
                 captureStatus: $captureStatus,
                 value: $capturedValue ?? number_format($order->getTotal() / 100, 2, '.', ''),

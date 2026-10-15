@@ -117,4 +117,13 @@ final class PayPalHttpClientWithExpectationsTest extends KernelTestCase
 
         $this->payPalClient->get($this->paymentMethod, 'v2/checkout/orders/OTHER_ORDER_ID');
     }
+
+    public function test_it_refuses_a_request_without_the_declared_header(): void
+    {
+        $this->httpClient->addExpectation('POST', 'v2/checkout/orders/PAYPAL_ORDER_ID/capture', [], 201, ['PayPal-Request-Id' => 'EXPECTED_REQUEST_ID']);
+
+        $this->expectExceptionMessage('with the PayPal-Request-Id header "EXPECTED_REQUEST_ID" but got "OTHER_REQUEST_ID"');
+
+        $this->payPalClient->post($this->paymentMethod, 'v2/checkout/orders/PAYPAL_ORDER_ID/capture', null, ['PayPal-Request-Id' => 'OTHER_REQUEST_ID']);
+    }
 }

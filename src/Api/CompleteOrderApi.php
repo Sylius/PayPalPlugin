@@ -22,8 +22,13 @@ final readonly class CompleteOrderApi implements CompleteOrderApiInterface
     {
     }
 
-    public function complete(PaymentMethodInterface $paymentMethod, string $orderId): array
+    public function complete(PaymentMethodInterface $paymentMethod, string $orderId, ?string $requestId = null): array
     {
-        return $this->client->post($paymentMethod, sprintf('v2/checkout/orders/%s/capture', $orderId));
+        return $this->client->post(
+            $paymentMethod,
+            sprintf('v2/checkout/orders/%s/capture', $orderId),
+            null,
+            null === $requestId ? [] : ['PayPal-Request-Id' => $requestId],
+        );
     }
 }

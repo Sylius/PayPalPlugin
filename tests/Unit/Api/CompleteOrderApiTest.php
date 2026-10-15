@@ -49,11 +49,22 @@ final class CompleteOrderApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with($this->paymentMethod, 'v2/checkout/orders/123123/capture')
+            ->with($this->paymentMethod, 'v2/checkout/orders/123123/capture', null, [])
             ->willReturn(['status' => 'COMPLETED', 'id' => 123]);
 
         $result = $this->completeOrderApi->complete($this->paymentMethod, '123123');
 
         self::assertEquals(['status' => 'COMPLETED', 'id' => 123], $result);
+    }
+
+    public function test_it_completes_the_paypal_order_under_the_request_id_given_by_the_caller(): void
+    {
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with($this->paymentMethod, 'v2/checkout/orders/123123/capture', null, ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH-capture'])
+            ->willReturn(['status' => 'COMPLETED']);
+
+        $this->completeOrderApi->complete($this->paymentMethod, '123123', 'PAYMENT_REQUEST_HASH-capture');
     }
 }

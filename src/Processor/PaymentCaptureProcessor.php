@@ -41,7 +41,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
     ) {
     }
 
-    public function capture(PaymentInterface $payment): array
+    public function capture(PaymentInterface $payment, ?string $requestId = null): array
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -52,7 +52,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $payPalOrderId = (string) $details->payPalOrderId();
 
         if (null === RedirectPaymentSource::tryFrom($details->paymentSource())) {
-            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details);
+            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
         }
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
@@ -84,6 +84,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         PayPalPaymentDetails $details,
+        ?string $requestId,
     ): void {
         $payPalOrderId = (string) $details->payPalOrderId();
 
@@ -113,6 +114,6 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             );
         }
 
-        $this->completeOrderApi->complete($paymentMethod, $payPalOrderId);
+        $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
     }
 }

@@ -107,6 +107,16 @@ final class PaymentCaptureProcessorTest extends TestCase
         self::assertSame(self::ORDER_DETAILS, $this->processor->capture($this->payment));
     }
 
+    public function test_it_captures_the_paypal_order_under_the_request_id_given_by_the_caller(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
+        $this->orderDetailsApi->method('get')->willReturn(self::ORDER_DETAILS);
+
+        $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123', 'PAYMENT_REQUEST_HASH-capture');
+
+        $this->processor->capture($this->payment, 'PAYMENT_REQUEST_HASH-capture');
+    }
+
     public function test_it_records_a_capture_paypal_has_not_completed_yet_as_processing(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);

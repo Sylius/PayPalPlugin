@@ -37,12 +37,20 @@ final readonly class PayPalApiMocker
         ], $order));
     }
 
-    public function mockCapture(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    public function mockCapture(string $payPalOrderId = 'PAYPAL_ORDER_ID', ?string $requestId = null): void
     {
         $this->client->addExpectation('POST', sprintf('v2/checkout/orders/%s/capture', $payPalOrderId), [
             'id' => $payPalOrderId,
             'status' => 'COMPLETED',
-        ], 201);
+        ], 201, $this->requestIdHeader($requestId));
+    }
+
+    public function mockCaptureServerError(string $payPalOrderId = 'PAYPAL_ORDER_ID', ?string $requestId = null): void
+    {
+        $this->client->addExpectation('POST', sprintf('v2/checkout/orders/%s/capture', $payPalOrderId), [
+            'name' => 'INTERNAL_SERVER_ERROR',
+            'debug_id' => 'DEBUG_ID',
+        ], 503, $this->requestIdHeader($requestId));
     }
 
     public function mockCaptureOfUnapprovedOrder(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
@@ -111,5 +119,11 @@ final readonly class PayPalApiMocker
             'id' => $payPalOrderId,
             'status' => 'APPROVED',
         ], $order));
+    }
+
+    /** @return array<string, string> */
+    private function requestIdHeader(?string $requestId): array
+    {
+        return null === $requestId ? [] : ['PayPal-Request-Id' => $requestId];
     }
 }
