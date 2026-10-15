@@ -580,7 +580,15 @@
    `NotifyPaymentRequestHandler` changes nothing for an event it has already received, reads the event's
    resource again from PayPal and hands it to the `Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface`
    tagged `sylius_paypal.webhook_event_processor` with that `event_type`; an event without one is recorded as
-   `ignored`.
+   `ignored`. The merchant events PayPal sends to this endpoint:
+
+   | Event | Effect |
+   |---|---|
+   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture |
+   | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded |
+   | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it, once `sylius_paypal.webhook_approved_order_capture_delay` seconds (default `600`) have passed since the approval; earlier, or when the capture fails, it is answered `503` so PayPal delivers it again. With an asynchronous `payment_request` transport the capture is only queued, so a failed one is not retried |
+   | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
+   | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
 
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface

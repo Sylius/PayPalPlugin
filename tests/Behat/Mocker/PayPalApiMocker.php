@@ -121,6 +121,27 @@ final readonly class PayPalApiMocker
         }
     }
 
+    public function mockCaptureDetails(string $captureId = 'CAPTURE_ID', string $status = 'COMPLETED', string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('GET', 'v2/payments/captures/' . $captureId, [
+            'id' => $captureId,
+            'status' => $status,
+            'supplementary_data' => ['related_ids' => ['order_id' => $payPalOrderId]],
+        ]);
+    }
+
+    public function mockRefundDetails(string $refundId = 'REFUND_ID', string $captureId = 'CAPTURE_ID'): void
+    {
+        $this->client->addExpectation('GET', 'v2/payments/refunds/' . $refundId, [
+            'id' => $refundId,
+            'status' => 'COMPLETED',
+            'links' => [
+                ['rel' => 'self', 'href' => 'https://api.sandbox.paypal.com/v2/payments/refunds/' . $refundId],
+                ['rel' => 'up', 'href' => 'https://api.sandbox.paypal.com/v2/payments/captures/' . $captureId],
+            ],
+        ]);
+    }
+
     /** @param array<string, mixed> $order */
     public function mockOrderDetails(string $payPalOrderId, array $order = []): void
     {
