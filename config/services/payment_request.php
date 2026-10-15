@@ -36,6 +36,9 @@ use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatch
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 use Sylius\PayPalPlugin\OrderPay\Provider\CapturePaymentRequestPayResponseProvider;
+use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\RefundPaymentWebhookEventProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\SettlePaymentWebhookEventProcessor;
 use Sylius\PayPalPlugin\Provider\PayPalNotifyPaymentProvider;
 
 return function (ContainerConfigurator $container): void {
@@ -193,4 +196,28 @@ return function (ContainerConfigurator $container): void {
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $settlePayment = $services->set('sylius_paypal.processor.webhook_event.settle_payment', SettlePaymentWebhookEventProcessor::class)
+        ->args([service('sylius_paypal.processor.payment_settlement')]);
+    foreach ([...SettlePaymentWebhookEventProcessor::CAPTURE_EVENT_TYPES, SettlePaymentWebhookEventProcessor::ORDER_EVENT_TYPE] as $eventType) {
+        $settlePayment->tag('sylius_paypal.webhook_event_processor', ['event_type' => $eventType]);
+    }
+
+    $services->set('sylius_paypal.processor.webhook_event.refund_payment', RefundPaymentWebhookEventProcessor::class)
+        ->args([
+            service('sylius_paypal.processor.payment_refund_confirmation'),
+            service('sylius.manager.payment'),
+            service('monolog.logger.paypal'),
+        ])
+        ->tag('sylius_paypal.webhook_event_processor', ['event_type' => RefundPaymentWebhookEventProcessor::REFUNDED_EVENT_TYPE])
+        ->tag('sylius_paypal.webhook_event_processor', ['event_type' => RefundPaymentWebhookEventProcessor::REVERSED_EVENT_TYPE]);
+
+    $services->set('sylius_paypal.processor.webhook_event.capture_approved_order', CaptureApprovedOrderWebhookEventProcessor::class)
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius.command_provider.payment_request.default'),
+            service('sylius.payment_request.command_bus'),
+            '%sylius_paypal.webhook_approved_order_capture_delay%',
+        ])
+        ->tag('sylius_paypal.webhook_event_processor', ['event_type' => CaptureApprovedOrderWebhookEventProcessor::EVENT_TYPE]);
 };
