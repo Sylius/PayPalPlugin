@@ -15,7 +15,15 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\DriverException;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
+use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
+use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 
 final class PayPalWebhookEventRepositoryTest extends JsonApiTestCase
@@ -67,6 +75,43 @@ final class PayPalWebhookEventRepositoryTest extends JsonApiTestCase
         $this->connection()->commit();
 
         self::assertNotNull($this->event('WH-2', 'PAYPAL'));
+    }
+
+    public function test_a_parallel_claim_of_the_same_event_waits_for_the_first_one_and_is_then_refused(): void
+    {
+        $this->purgeDatabase();
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $parallelConnection = DriverManager::getConnection($this->connection()->getParams(), $this->connection()->getConfiguration());
+        $parallelRepository = new PayPalWebhookEventRepository(
+            new EntityManager($parallelConnection, $entityManager->getConfiguration()),
+            $entityManager->getClassMetadata(PayPalWebhookEvent::class),
+        );
+        $parallelConnection->executeStatement(
+            $parallelConnection->getDatabasePlatform() instanceof PostgreSQLPlatform
+                ? "SET lock_timeout = '1s'"
+                : 'SET SESSION innodb_lock_wait_timeout = 1',
+        );
+
+        $this->connection()->beginTransaction();
+        self::assertTrue($this->repository()->claim('WH-1', 'PAYPAL', 'PAYMENT.CAPTURE.COMPLETED'));
+
+        $parallelConnection->beginTransaction();
+
+        try {
+            $parallelRepository->claim('WH-1', 'PAYPAL', 'PAYMENT.CAPTURE.COMPLETED');
+            self::fail('A parallel claim of an event another transaction is processing must wait for it.');
+        } catch (DriverException $exception) {
+            self::assertTrue($exception instanceof LockWaitTimeoutException || '55P03' === $exception->getSQLState());
+        }
+        $parallelConnection->rollBack();
+
+        $this->connection()->commit();
+
+        self::assertFalse($parallelConnection->transactional(
+            static fn (): bool => $parallelRepository->claim('WH-1', 'PAYPAL', 'PAYMENT.CAPTURE.COMPLETED'),
+        ));
+        $parallelConnection->close();
     }
 
     public function test_it_marks_an_event_with_its_outcome(): void

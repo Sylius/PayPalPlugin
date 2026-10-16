@@ -653,3 +653,22 @@
         // ...
     ) {
    ```
+
+1. #### PayPal webhooks are accepted on `/payment-methods/{code}`.
+
+   Sylius' `sylius_payment_method_notify` route accepts PayPal webhooks for the payment method in the URL.
+   `sylius_paypal.provider.notify_payment` verifies the signature with that method's webhook and finds the
+   payment by the Payment Request hash PayPal was given as `custom_id`, then by the PayPal order or capture id.
+   A signature it cannot verify is answered `404`, an event about no payment of that method `204`.
+   `NotifyPaymentRequestHandler` changes nothing for an event it has already received, reads the event's
+   resource again from PayPal and hands it to the `Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface`
+   tagged `sylius_paypal.webhook_event_processor` with that `event_type`; an event without one is recorded as
+   `ignored`.
+
+   ```diff
+    // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
+   -public function verify(Request $request): bool;
+   +public function verify(Request $request, ?PaymentMethodInterface $paymentMethod = null): bool;
+   ```
+
+   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.
