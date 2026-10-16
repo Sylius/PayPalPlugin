@@ -547,3 +547,10 @@
    | `createPayPalOrderFromPaymentPageUrl` | `createPayPalOrderFromCartUrl` |
    | `completePayPalOrderFromPaymentPageUrl` | `completeExpressCheckoutUrl` |
    | `cancelPayPalPaymentUrl` | `path('sylius_paypal_shop_cancel_order')` in the template |
+
+   The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.create_paypal_order_from_payment_page`), route `sylius_paypal_shop_create_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/create`) | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction`, route `sylius_paypal_shop_create_paypal_order_from_cart` |
+   | `Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.complete_paypal_order_from_payment_page`), route `sylius_paypal_shop_complete_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/complete`) | `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`, route `sylius_paypal_shop_complete_express_checkout` |
