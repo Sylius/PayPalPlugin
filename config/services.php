@@ -61,7 +61,6 @@ use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor;
@@ -374,13 +373,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('.inner'),
             service('sylius_abstraction.state_machine'),
-        ]);
-
-    $services->set('sylius_paypal.processor.paypal_order_complete', PayPalOrderCompleteProcessor::class)
-        ->public()
-        ->args([
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.verifier.payment_amount'),
         ]);
 
     $services->set('sylius_paypal.processor.payment_complete', PayPalPaymentCompleteProcessor::class)

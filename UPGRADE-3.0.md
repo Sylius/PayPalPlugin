@@ -554,3 +554,14 @@
    |---|---|
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.create_paypal_order_from_payment_page`), route `sylius_paypal_shop_create_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/create`) | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction`, route `sylius_paypal_shop_create_paypal_order_from_cart` |
    | `Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.complete_paypal_order_from_payment_page`), route `sylius_paypal_shop_complete_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/complete`) | `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`, route `sylius_paypal_shop_complete_express_checkout` |
+
+1. #### Completing the checkout no longer captures a PayPal payment.
+
+   Every PayPal order is now captured through a `capture` Payment Request after the order is placed, so nothing
+   leaves a PayPal payment `processing` for checkout completion to capture. The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\EventListener\Workflow\CompletePayPalOrderListener` (`sylius_paypal.listener.workflow.complete_paypal_order`, on `workflow.sylius_order_checkout.completed.complete`) | none |
+   | the `complete_paypal_order` callback of the `sylius_order_checkout` winzou state machine | none |
+   | `Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor` (`sylius_paypal.processor.paypal_order_complete`) | `Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler` |
