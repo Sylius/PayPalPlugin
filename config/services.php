@@ -60,7 +60,6 @@ use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
@@ -386,15 +385,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(CurrentPayPalLocaleProviderInterface::class, 'sylius_paypal.provider.current_paypal_locale');
-
-    $services->set('sylius_paypal.processor.late_capture_refund', PayPalLateCaptureRefundProcessor::class)
-        ->args([
-            service('sylius_paypal.api.order_details'),
-            service('sylius_paypal.api.refund_payment'),
-            service('sylius_paypal.generator.paypal_auth_assertion'),
-            service('sylius_paypal.provider.refund_reference_number'),
-            service('sylius.manager.payment'),
-        ]);
 
     $services->set('sylius_paypal.resolver.payment_method.paypal', PayPalDefaultPaymentMethodResolver::class)
         ->decorate('sylius.resolver.payment_method.default')

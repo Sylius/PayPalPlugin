@@ -11,15 +11,12 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Processor;
+namespace Sylius\PayPalPlugin\Dispatcher;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
-interface PaymentRefundProcessorInterface
+interface RefundPayPalLateCapturePaymentRequestDispatcherInterface
 {
-    /**
-     * @throws PayPalOrderRefundException
-     */
-    public function refund(PaymentInterface $payment): void;
+    public function dispatch(PaymentInterface $payment): PaymentRequestInterface;
 }

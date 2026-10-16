@@ -8,8 +8,10 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalCapturePaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\StatusPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -17,6 +19,8 @@ use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 
 return function (ContainerConfigurator $container): void {
@@ -34,6 +38,9 @@ return function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.command_provider.refund', RefundPaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_REFUND]);
+
+    $services->set('sylius_paypal.command_provider.refund_late_capture', RefundLateCapturePaymentRequestCommandProvider::class)
+        ->tag('sylius_paypal.command_provider', ['action' => RefundLateCapturePaymentRequestCommandProvider::ACTION]);
 
     $services->set('sylius_paypal.provider.http_response', ActionsHttpResponseProvider::class)
         ->args([tagged_locator('sylius_paypal.provider.http_response', 'action')])
@@ -99,6 +106,17 @@ return function (ContainerConfigurator $container): void {
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
 
+    $services->set('sylius_paypal.command_handler.refund_paypal_late_capture', RefundPayPalLateCapturePaymentRequestHandler::class)
+        ->args([
+            service('sylius.provider.payment_request'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.refund_payment'),
+            service('sylius_paypal.generator.paypal_auth_assertion'),
+            service('sylius_paypal.provider.refund_reference_number'),
+            service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
     $services->set('sylius_paypal.dispatcher.capture_paypal_order_payment_request', CapturePayPalOrderPaymentRequestDispatcher::class)
         ->args([
             service('sylius.factory.payment_request'),
@@ -118,4 +136,14 @@ return function (ContainerConfigurator $container): void {
         ]);
 
     $services->alias(RefundPayPalCapturePaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.refund_paypal_capture_payment_request');
+
+    $services->set('sylius_paypal.dispatcher.refund_paypal_late_capture_payment_request', RefundPayPalLateCapturePaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(RefundPayPalLateCapturePaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.refund_paypal_late_capture_payment_request');
 };

@@ -337,7 +337,6 @@
    - `Sylius\PayPalPlugin\Creator\PayPalOrderCreator`
    - `Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessor`
    - `Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor`
-   - `Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor`
    - `Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor`
    - `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider`
    - `Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider`
@@ -478,9 +477,9 @@
 
    The plugin's own callers handle the new exceptions as follows:
 
-   - A refund PayPal refuses fails the refund Payment Request with PayPal's reason, shown to the admin, instead of
-     passing as a success. A late capture refund PayPal refuses throws `PayPalOrderRefundException`. A capture PayPal
-     reports as fully refunded (`CAPTURE_FULLY_REFUNDED`) counts as refunded.
+   - A refund PayPal refuses, of a payment or of its late capture, fails the refund Payment Request with PayPal's
+     reason, shown to the admin, instead of passing as a success. A capture PayPal reports as fully refunded
+     (`CAPTURE_FULLY_REFUNDED`) counts as refunded.
    - A capture lost to a `5xx` or a network error, or refused as already captured, unapproved or awaiting the payer,
      still reads the PayPal order, which decides the outcome as before. Any other refusal fails the Payment Request;
      when PayPal declines the instrument (`INSTRUMENT_DECLINED`), the reason asks for another payment method.
@@ -599,6 +598,21 @@
    refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook confirms it, and a
    refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`.
 
+   The late capture is refunded the same way, through a `refund_late_capture` Payment Request dispatched with
+   `RefundPayPalLateCapturePaymentRequestDispatcherInterface`, which records the refund in the `paypal_late_capture`
+   payment details and leaves the payment state alone:
+
+   ```diff
+    // Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction
+    public function __construct(
+        private PaymentRepositoryInterface $paymentRepository,
+   -    private PaymentRefundProcessorInterface $lateCaptureRefundProcessor,
+   +    private RefundPayPalLateCapturePaymentRequestDispatcherInterface $lateCaptureRefundPaymentRequestDispatcher,
+        private CsrfTokenManagerInterface $csrfTokenManager,
+        private UrlGeneratorInterface $router,
+    ) {
+   ```
+
    The `refund` transition of a PayPal payment that PayPal has not confirmed as refunded is blocked by
    `PaymentRefundGuardListener` (on `workflow.sylius_payment.guard.refund`) or the `paypal_refund_confirmed` guard
    of the `sylius_payment` winzou state machine, so the core "Refund" button is hidden for such a payment and
@@ -612,6 +626,9 @@
    | the `refund_paypal_order` callback of the `sylius_payment` winzou state machine | the `paypal_refund_confirmed` guard |
    | `Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor` (`sylius_paypal.processor.payment_refund`) | `Sylius\PayPalPlugin\CommandHandler\RefundPayPalCapturePaymentRequestHandler` |
    | `Sylius\PayPalPlugin\Processor\UiPayPalPaymentRefundProcessor` (`sylius_paypal.processor.ui_paypal_payment_refund`) | `Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction` |
+   | `Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor` (`sylius_paypal.processor.late_capture_refund`) | `Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface` | none |
+   | `Sylius\PayPalPlugin\Exception\PayPalOrderRefundException` | the reason of the failed refund Payment Request |
 
    The webhook refund confirms the refund through `PayPalPaymentRefundConfirmationProcessorInterface` instead of
    applying the transition itself:

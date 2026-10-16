@@ -17,6 +17,7 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
 
@@ -31,7 +32,7 @@ final class RefundPayPalLateCaptureActionTest extends JsonApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        DummyRefundPaymentApi::$refundedPaymentIds = [];
+        DummyRefundPaymentApi::reset();
 
         $fixtures = $this->loadFixturesFromFiles([
             'resources/shop.yaml',
@@ -77,6 +78,15 @@ final class RefundPayPalLateCaptureActionTest extends JsonApiTestCase
         $lateCapture = $this->reloadPayment()->getDetails()['paypal_late_capture'];
         self::assertTrue($lateCapture['refunded']);
         self::assertSame(PaymentInterface::STATE_CANCELLED, $this->reloadPayment()->getState());
+
+        /** @var list<PaymentRequestInterface> $paymentRequests */
+        $paymentRequests = self::getContainer()->get('sylius.repository.payment_request')->findBy([
+            'payment' => $this->payment->getId(),
+            'action' => 'refund_late_capture',
+        ]);
+        self::assertCount(1, $paymentRequests);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequests[0]->getState());
+        self::assertSame([$paymentRequests[0]->getId()], DummyRefundPaymentApi::$requestIds);
 
         $this->client->submit($form);
 

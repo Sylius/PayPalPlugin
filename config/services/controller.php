@@ -182,7 +182,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.controller.refund_late_capture', RefundPayPalLateCaptureAction::class)
         ->args([
             service('sylius.repository.payment'),
-            service('sylius_paypal.processor.late_capture_refund'),
+            service('sylius_paypal.dispatcher.refund_paypal_late_capture_payment_request'),
             service('security.csrf.token_manager'),
             service('router'),
         ]);
