@@ -34,6 +34,8 @@ use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
+    private const APPROVED_ORDER_STATUS = 'APPROVED';
+
     private const ISSUES_LEAVING_THE_ORDER_TO_READ = ['ORDER_ALREADY_CAPTURED', 'ORDER_NOT_APPROVED', 'PAYER_ACTION_REQUIRED'];
 
     public function __construct(
@@ -56,11 +58,15 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $details = PayPalPaymentDetails::fromPayment($payment);
         $payPalOrderId = (string) $details->payPalOrderId();
 
-        if (null === RedirectPaymentSource::tryFrom($details->paymentSource())) {
-            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
-        }
-
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
+
+        if (
+            self::APPROVED_ORDER_STATUS === ($orderDetails['status'] ?? null) &&
+            null === RedirectPaymentSource::tryFrom($details->paymentSource())
+        ) {
+            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
+            $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
+        }
 
         if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
             return $orderDetails;

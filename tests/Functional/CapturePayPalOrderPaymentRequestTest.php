@@ -125,7 +125,10 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         $entityManager->persist($paymentRequest);
         $entityManager->flush();
 
-        $this->payPalApi()->mockUpdateOrderAddress();
+        if ($approved || $instrumentDeclined) {
+            $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
+            $this->payPalApi()->mockUpdateOrderAddress();
+        }
         if ($instrumentDeclined) {
             $this->payPalApi()->mockCaptureOfDeclinedInstrument(requestId: sprintf('%s-capture', (string) $paymentRequest->getId()));
         } elseif ($approved) {
@@ -139,7 +142,7 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
                 value: $capturedValue ?? number_format($order->getTotal() / 100, 2, '.', ''),
             );
         } else {
-            $this->payPalApi()->mockCaptureOfUnapprovedOrder();
+            $this->payPalApi()->mockUnapprovedOrderDetails();
         }
 
         self::getContainer()->get('sylius.announcer.payment_request')->dispatchPaymentRequestCommand($paymentRequest);

@@ -68,8 +68,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'reference_id' => 'REFERENCE_ID']);
         $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING);
 
-        $this->payPalApi()->mockUpdateOrderAddress();
-        $this->payPalApi()->mockCaptureOfUnapprovedOrder();
+        $this->payPalApi()->mockUnapprovedOrderDetails();
         $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
 
         self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
@@ -133,6 +132,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $hash = $this->cardPaymentRequestHash();
 
         $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockCapture();
         $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
@@ -237,6 +237,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         if ('google_pay' === $paymentSource) {
             $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'APPROVED']);
         }
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockCapture();
         $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($order->getTotal() / 100, 2, '.', ''));
