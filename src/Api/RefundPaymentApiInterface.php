@@ -24,5 +24,6 @@ interface RefundPaymentApiInterface
         string $invoiceNumber,
         string $amount,
         string $currencyCode,
+        ?string $requestId = null,
     ): array;
 }

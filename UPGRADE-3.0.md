@@ -413,7 +413,7 @@
    `Version20261014120000` (MySQL) and `Version20261014120001` (PostgreSQL) migrations delete the cached tokens
    before adding the unique index; the tokens are fetched again on the next request.
 
-1. #### A Payment Request captures its PayPal order under a request id derived from the request.
+1. #### A Payment Request captures its PayPal order and refunds its capture under a request id derived from the request.
 
    ```diff
     interface PaymentCaptureProcessorInterface
@@ -431,9 +431,26 @@
     }
    ```
 
+   ```diff
+    interface RefundPaymentApiInterface
+    {
+        public function refund(
+            PaymentMethodInterface $paymentMethod,
+            string $paymentId,
+            string $payPalAuthAssertion,
+            string $invoiceNumber,
+            string $amount,
+            string $currencyCode,
+   +        ?string $requestId = null,
+        ): array;
+    }
+   ```
+
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
-   capturing again. Without a request id, a random one is used, as before.
+   capturing again. `RefundPayPalCapturePaymentRequestHandler` passes the payment request id, so reprocessing a
+   refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
+   is used, as before.
 
 1. #### Failed PayPal API calls throw typed exceptions instead of returning the error body.
 

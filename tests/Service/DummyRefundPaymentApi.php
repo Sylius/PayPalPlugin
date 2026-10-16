@@ -28,6 +28,7 @@ final class DummyRefundPaymentApi implements RefundPaymentApiInterface
         string $invoiceNumber,
         string $amount,
         string $currencyCode,
+        ?string $requestId = null,
     ): array {
         self::$refundedPaymentIds[] = $paymentId;
 
