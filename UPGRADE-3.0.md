@@ -570,3 +570,30 @@
 
    The `sylius_paypal.repository.query.pay_pal_payment.updatable_states` parameter is now `[cart]`: only the payment of
    an order that is not placed yet has its PayPal order updated.
+
+1. #### PayPal webhooks are accepted on `/payment-methods/{code}`.
+
+   Sylius' `sylius_payment_method_notify` route accepts PayPal webhooks for the payment method in the URL.
+   `sylius_paypal.provider.notify_payment` verifies the signature with that method's webhook and finds the
+   payment by the Payment Request hash PayPal was given as `custom_id`, then by the PayPal order or capture id.
+   A signature it cannot verify is answered `404`, an event about no payment of that method `204`.
+   `NotifyPaymentRequestHandler` changes nothing for an event it has already received, reads the event's
+   resource again from PayPal and hands it to the `Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface`
+   tagged `sylius_paypal.webhook_event_processor` with that `event_type`; an event without one is recorded as
+   `ignored`. The merchant events PayPal sends to this endpoint:
+
+   | Event | Effect |
+   |---|---|
+   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture |
+   | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded |
+   | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it, once `sylius_paypal.webhook_approved_order_capture_delay` seconds (default `600`) have passed since the approval; earlier, or when the capture fails, it is answered `503` so PayPal delivers it again. With an asynchronous `payment_request` transport the capture is only queued, so a failed one is not retried |
+   | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
+   | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
+
+   ```diff
+    // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
+   -public function verify(Request $request): bool;
+   +public function verify(Request $request, ?PaymentMethodInterface $paymentMethod = null): bool;
+   ```
+
+   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.

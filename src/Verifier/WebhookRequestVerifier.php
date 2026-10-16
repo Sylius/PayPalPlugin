@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Verifier;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
@@ -27,10 +28,10 @@ final readonly class WebhookRequestVerifier implements WebhookRequestVerifierInt
     ) {
     }
 
-    public function verify(Request $request): bool
+    public function verify(Request $request, ?PaymentMethodInterface $paymentMethod = null): bool
     {
         try {
-            $paymentMethod = $this->payPalPaymentMethodProvider->provide();
+            $paymentMethod ??= $this->payPalPaymentMethodProvider->provide();
             $webhookId = $this->webhookIdProvider->provide($paymentMethod);
 
             $verified = null !== $webhookId && $this->webhookSignatureVerifier->verify($request, $webhookId, $paymentMethod);
