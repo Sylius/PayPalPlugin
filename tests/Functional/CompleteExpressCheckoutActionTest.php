@@ -320,6 +320,33 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
         self::assertSame('US-TX', $shippingAddress?->getProvinceCode());
     }
 
+    public function test_it_places_and_captures_an_order_the_buyer_pays_for_on_the_select_payment_step(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml', 'resources/addressed_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['addressed_cart'];
+        $this->seedCurrentCart($order);
+        $orderId = $order->getId();
+
+        $this->payPalApi()->mockCreateOrder('SELECT_PAYMENT_ORDER_ID');
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
+        self::assertSame('SELECT_PAYMENT_ORDER_ID', json_decode((string) $this->client->getResponse()->getContent(), true)['orderId']);
+        self::assertSame([], $this->paymentRequests());
+
+        $this->payPalApi()->mockOrderDetails('SELECT_PAYMENT_ORDER_ID', $this->orderDetails($order));
+        $this->mockCapture($this->total($order), 'SELECT_PAYMENT_ORDER_ID');
+
+        $content = $this->completeExpressCheckout($orderId, 'SELECT_PAYMENT_ORDER_ID');
+        $order = $this->refreshOrder($orderId);
+
+        $paymentRequest = $this->capturePaymentRequest($order);
+        self::assertSame($this->payUrl($paymentRequest), $content['return_url']);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getState());
+        self::assertSame('completed', $order->getCheckoutState());
+        self::assertSame(OrderPaymentStates::STATE_PAID, $order->getPaymentState());
+        self::assertSame('1 Main St', $order->getShippingAddress()?->getStreet());
+    }
+
     private function cart(): OrderInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml', 'resources/new_cart.yaml']);
@@ -340,11 +367,11 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
         return $quantity * self::MUG_PRICE + $shippingCost;
     }
 
-    private function mockCapture(int $capturedTotal): void
+    private function mockCapture(int $capturedTotal, string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
     {
-        $this->payPalApi()->mockUpdateOrderAddress();
-        $this->payPalApi()->mockCapture();
-        $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($capturedTotal / 100, 2, '.', ''));
+        $this->payPalApi()->mockUpdateOrderAddress($payPalOrderId);
+        $this->payPalApi()->mockCapture($payPalOrderId);
+        $this->payPalApi()->mockOrderDetailsWithCapture($payPalOrderId, value: number_format($capturedTotal / 100, 2, '.', ''));
     }
 
     /**

@@ -333,7 +333,6 @@
 
    The `CacheAuthorizeClientApiInterface $authorizeClientApi` argument has been removed from the constructors of:
 
-   - `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction`
    - `Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction`
    - `Sylius\PayPalPlugin\Creator\PayPalOrderCreator`
    - `Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessor`
@@ -472,7 +471,6 @@
      3D Secure check, fails the Payment Request instead of capturing anyway.
    - A status Payment Request whose PayPal order cannot be read fails instead of completing.
    - A PayPal order PayPal refuses to create fails its Payment Request.
-   - `UpdatePayPalOrderAction` answers `422` when PayPal refuses the update.
    - A tracking PayPal accepts without returning its id is marked as failed without being retried.
 
 1. #### Every PayPal API call is logged with its request, response and debug id.
@@ -531,3 +529,44 @@
    | route `sylius_paypal_shop_process_paypal_order` (`/process-pay-pal-order/`) | route `sylius_paypal_shop_complete_express_checkout` |
    | `Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter` and its interface (`sylius_paypal.completer.express_order`) | `Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter` and its interface (`sylius_paypal.completer.express_checkout`) |
    | `processPayPalOrderUrl` in the context of `@SyliusPayPalPlugin/pay_from_cart_page.html.twig` and `@SyliusPayPalPlugin/pay_from_product_page.html.twig` | `completeExpressCheckoutUrl` |
+
+1. #### The PayPal buttons on the select payment step complete the checkout like the cart buttons.
+
+   The buttons rendered by `@SyliusPayPalPlugin/pay_from_payment_page.html.twig` create the PayPal order with
+   `sylius_paypal_shop_create_paypal_order_from_cart` and complete the checkout with
+   `sylius_paypal_shop_complete_express_checkout`, so the order is placed when the buyer approves and its PayPal order
+   is captured through a `capture` Payment Request. Creating the PayPal order no longer selects the payment or moves
+   the payment to `processing`, and closing the wallet only shows a flash message (`sylius_paypal_shop_cancel_order`).
+
+   The context of `@SyliusPayPalPlugin/pay_from_payment_page.html.twig` has changed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `createPayPalOrderFromPaymentPageUrl` | `createPayPalOrderFromCartUrl` |
+   | `completePayPalOrderFromPaymentPageUrl` | `completeExpressCheckoutUrl` |
+   | `cancelPayPalPaymentUrl` | `path('sylius_paypal_shop_cancel_order')` in the template |
+
+   The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.create_paypal_order_from_payment_page`), route `sylius_paypal_shop_create_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/create`) | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction`, route `sylius_paypal_shop_create_paypal_order_from_cart` |
+   | `Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.complete_paypal_order_from_payment_page`), route `sylius_paypal_shop_complete_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/complete`) | `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`, route `sylius_paypal_shop_complete_express_checkout` |
+
+1. #### Completing the checkout no longer captures a PayPal payment.
+
+   Every PayPal order is now captured through a `capture` Payment Request after the order is placed, so nothing
+   leaves a PayPal payment `processing` for checkout completion to capture. The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\EventListener\Workflow\CompletePayPalOrderListener` (`sylius_paypal.listener.workflow.complete_paypal_order`, on `workflow.sylius_order_checkout.completed.complete`) | none |
+   | the `complete_paypal_order` callback of the `sylius_order_checkout` winzou state machine | none |
+   | `Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor` (`sylius_paypal.processor.paypal_order_complete`) | `Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Manager\PaymentStateManager` and its interface (`sylius_paypal.manager.payment_state`) | `Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor` and `Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface` (`sylius_paypal.processor.payment_complete`) | `Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor` |
+   | `Sylius\PayPalPlugin\Processor\OrderPaymentProcessor` (`sylius_paypal.order_processing.order_payment_processor.checkout`, decorating `sylius.order_processing.order_payment_processor.checkout`) | none, a cart no longer holds a `processing` PayPal payment |
+   | `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction` (`sylius_paypal.controller.update_paypal_order`), route `sylius_paypal_shop_update_paypal_order` (`/update-pay-pal-order`) | none, the shipping callback (`sylius_paypal_order_shipping_callback`) updates the PayPal order while the buyer is in the wallet |
+
+   The `sylius_paypal.repository.query.pay_pal_payment.updatable_states` parameter is now `[cart]`: only the payment of
+   an order that is not placed yet has its PayPal order updated.

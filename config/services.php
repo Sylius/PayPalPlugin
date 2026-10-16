@@ -49,20 +49,14 @@ use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
 use Sylius\PayPalPlugin\Manager\CredentialsManager;
 use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
-use Sylius\PayPalPlugin\Manager\PaymentStateManager;
-use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
-use Sylius\PayPalPlugin\Processor\OrderPaymentProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
-use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
@@ -160,7 +154,7 @@ return static function (ContainerConfigurator $container) {
     $container->import('services/**/*.php');
 
     $parameters->set('sylius_paypal.prioritize_paypal_as_default_method', true);
-    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW]);
+    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.cancellable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.refundable_states', [PaymentInterface::STATE_COMPLETED]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
@@ -202,16 +196,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.listener.remove_cached_access_token', RemoveCachedAccessTokenListener::class)
         ->args([service('sylius_paypal.remover.cached_access_token')])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.pre_update']);
-
-    $services->set('sylius_paypal.manager.payment_state', PaymentStateManager::class)
-        ->args([
-            service('sylius_abstraction.state_machine'),
-            service('sylius.manager.payment'),
-            service('sylius_paypal.processor.payment_complete'),
-            service('sylius_paypal.checker.payer_action'),
-        ]);
-
-    $services->alias(PaymentStateManagerInterface::class, 'sylius_paypal.manager.payment_state');
 
     $services->set('sylius_paypal.completer.express_checkout', ExpressCheckoutCompleter::class)
         ->args([
@@ -368,28 +352,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.order_processing.order_payment_processor.after_checkout', AfterCheckoutOrderPaymentProcessor::class)
         ->decorate('sylius.order_processing.order_payment_processor.after_checkout')
         ->args([service('.inner')]);
-
-    $services->set('sylius_paypal.order_processing.order_payment_processor.checkout', OrderPaymentProcessor::class)
-        ->decorate('sylius.order_processing.order_payment_processor.checkout')
-        ->args([
-            service('.inner'),
-            service('sylius_abstraction.state_machine'),
-        ]);
-
-    $services->set('sylius_paypal.processor.paypal_order_complete', PayPalOrderCompleteProcessor::class)
-        ->public()
-        ->args([
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.verifier.payment_amount'),
-        ]);
-
-    $services->set('sylius_paypal.processor.payment_complete', PayPalPaymentCompleteProcessor::class)
-        ->args([
-            service('sylius_paypal.processor.payment_capture'),
-            service('monolog.logger.paypal'),
-        ]);
-
-    $services->alias(PaymentCompleteProcessorInterface::class, 'sylius_paypal.processor.payment_complete');
 
     $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
         ->args([

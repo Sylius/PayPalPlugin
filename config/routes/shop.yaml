@@ -18,24 +18,6 @@ sylius_paypal_shop_complete_express_checkout:
     defaults:
         _controller: sylius_paypal.controller.complete_express_checkout
 
-sylius_paypal_shop_update_paypal_order:
-    path: /update-pay-pal-order
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.update_paypal_order
-
-sylius_paypal_shop_create_paypal_order_from_payment_page:
-    path: /pay-pal-order-payment-page/{id}/create
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.create_paypal_order_from_payment_page
-
-sylius_paypal_shop_complete_paypal_order_from_payment_page:
-    path: /pay-pal-order-payment-page/{id}/complete
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.complete_paypal_order_from_payment_page
-
 sylius_paypal_shop_cancel_order:
     path: /cancel-pay-pal-order
     methods: [POST]
