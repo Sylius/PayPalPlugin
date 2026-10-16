@@ -8,6 +8,8 @@ use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
+use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
+use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
@@ -221,6 +223,22 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalExpressOrderCompleterInterface::class, 'sylius_paypal.completer.express_order');
+
+    $services->set('sylius_paypal.completer.express_checkout', ExpressCheckoutCompleter::class)
+        ->args([
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.update_order'),
+            service('sylius.repository.customer'),
+            service('sylius.factory.customer'),
+            service('sylius_paypal.factory.express_order_address'),
+            service('sylius.repository.shipping_method'),
+            service('sylius_paypal.verifier.payment_amount'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.order_processing.order_processor'),
+            service('sylius.manager.order'),
+        ]);
+
+    $services->alias(ExpressCheckoutCompleterInterface::class, 'sylius_paypal.completer.express_checkout');
 
     $services->set('sylius_paypal.factory.paypal_shipping_address', PayPalShippingAddressFactory::class)
         ->args([
