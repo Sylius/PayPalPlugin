@@ -17,7 +17,6 @@ use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
-use Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
 use Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
@@ -136,15 +135,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.payment_request_return_url'),
             service('router'),
             service('monolog.logger.paypal'),
-        ]);
-
-    $services->set('sylius_paypal.controller.update_paypal_order', UpdatePayPalOrderAction::class)
-        ->args([
-            service('sylius_paypal.provider.payment'),
-            service('sylius_paypal.api.update_order'),
-            service('sylius.factory.address'),
-            service('sylius.order_processing.order_processor'),
-            service('sylius_paypal.repository.query.paypal_payment'),
         ]);
 
     $services->set('sylius_paypal.controller.shipping_callback', ShippingCallbackAction::class)
