@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
@@ -14,6 +25,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
+use Sylius\PayPalPlugin\OrderPay\Provider\CapturePaymentRequestPayResponseProvider;
 
 return function (ContainerConfigurator $container): void {
     $services = $container->services();
@@ -40,6 +52,17 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.provider.host'),
         ])
         ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
+
+    $services->set('sylius_paypal.provider.order_pay.pay_response.capture_payment_request', CapturePaymentRequestPayResponseProvider::class)
+        ->args([
+            service('sylius_shop.resolver.order_pay.payment_to_pay'),
+            service('sylius.repository.payment_request'),
+            service('sylius.factory.payment_request'),
+            service('sylius.provider.payment_request.default_action'),
+            service('sylius.provider.payment_request.default_payload'),
+            service('sylius_shop.provider.order_pay.payment_request_pay_url'),
+        ])
+        ->tag('sylius_shop.provider.order_pay.pay_response', ['priority' => -250]);
 
     $services->set('sylius_paypal.provider.payment_request_return_url')
         ->parent('sylius.provider.order_pay.payment_request_pay_url')

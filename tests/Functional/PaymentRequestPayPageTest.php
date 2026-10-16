@@ -75,6 +75,35 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
     }
 
+    public function test_it_starts_a_new_attempt_when_the_payment_has_several_abandoned_ones(): void
+    {
+        $payment = $this->payPalOrder();
+        $abandonedHashes = [
+            $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_CANCELLED),
+            $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_CANCELLED),
+        ];
+
+        $this->client->request('GET', '/en_US/order/TOKEN/pay');
+        $payUrl = (string) $this->client->getResponse()->headers->get('Location');
+
+        self::assertMatchesRegularExpression('#/en_US/payment-request/pay/[0-9a-f-]{36}$#', $payUrl);
+        self::assertNotContains(basename($payUrl), $abandonedHashes);
+        self::assertSame(PaymentRequestInterface::STATE_NEW, $this->reloadedPaymentRequest(basename($payUrl))->getState());
+    }
+
+    public function test_it_resumes_the_open_attempt_next_to_abandoned_ones(): void
+    {
+        $payment = $this->payPalOrder();
+        $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_CANCELLED);
+        $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_CANCELLED);
+        $openHash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_NEW);
+
+        $this->client->request('GET', '/en_US/order/TOKEN/pay');
+
+        self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/en_US/payment-request/pay/%s', $openHash)));
+        self::assertCount(3, self::getContainer()->get('sylius.repository.payment_request')->findAll());
+    }
+
     public function test_it_asks_the_payer_to_authenticate_the_card_again_when_3d_secure_did_not_finish(): void
     {
         $hash = $this->cardPaymentRequestHash();
