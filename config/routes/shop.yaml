@@ -12,6 +12,12 @@ sylius_paypal_shop_create_paypal_order_from_cart:
     defaults:
         _controller: sylius_paypal.controller.create_paypal_order_from_cart
 
+sylius_paypal_shop_complete_express_checkout:
+    path: /paypal/express-checkout/complete
+    methods: [POST]
+    defaults:
+        _controller: sylius_paypal.controller.complete_express_checkout
+
 sylius_paypal_shop_process_paypal_order:
     path: /process-pay-pal-order/
     methods: [POST]
