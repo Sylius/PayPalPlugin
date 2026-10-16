@@ -475,6 +475,40 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->query->getForCancellationByOrderId('SUPERSEDED');
     }
 
+    public function test_it_finds_a_payment_for_settlement_by_its_capture_id(): void
+    {
+        $other = $this->createMock(PaymentInterface::class);
+        $other->method('getDetails')->willReturn(['paypal_order_id' => 'OTHER', 'transaction_id' => 'CAPTURE-OTHER']);
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'ORDER', 'transaction_id' => 'CAPTURE']);
+
+        $this->paymentsMatchingWithCast([$other, $payment]);
+
+        self::assertSame($payment, $this->query->getForSettlementByCaptureId('CAPTURE'));
+    }
+
+    public function test_it_finds_a_payment_for_settlement_by_the_id_of_its_late_capture(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'ORDER', 'paypal_late_capture' => ['id' => 'LATE-CAPTURE']]);
+
+        $this->paymentsMatchingWithCast([$payment]);
+
+        self::assertSame($payment, $this->query->getForSettlementByCaptureId('LATE-CAPTURE'));
+    }
+
+    public function test_it_does_not_find_a_payment_for_settlement_by_a_capture_id_it_does_not_carry(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'CAPTURE', 'transaction_id' => 'OTHER']);
+
+        $this->paymentsMatchingWithCast([$payment]);
+
+        $this->expectException(PaymentNotFoundException::class);
+
+        $this->query->getForSettlementByCaptureId('CAPTURE');
+    }
+
     /** @param list<PaymentInterface> $payments */
     private function paymentsMatchingWithCast(array $payments): void
     {

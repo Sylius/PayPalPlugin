@@ -32,6 +32,8 @@ use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Api\WebhookResourceApi;
+use Sylius\PayPalPlugin\Api\WebhookResourceApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Client\PayPalClient;
@@ -168,6 +170,11 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.client.paypal')]);
 
     $services->alias(UpdateWebhookApiInterface::class, 'sylius_paypal.api.update_webhook');
+
+    $services->set('sylius_paypal.api.webhook_resource', WebhookResourceApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(WebhookResourceApiInterface::class, 'sylius_paypal.api.webhook_resource');
 
     $services->set('sylius_paypal.api.webhook_signature_verifier', WebhookSignatureVerifier::class)
         ->args([

@@ -61,6 +61,17 @@ final class WebhookRequestVerifierTest extends TestCase
         self::assertInstanceOf(WebhookRequestVerifierInterface::class, $this->verifier);
     }
 
+    public function test_it_verifies_a_request_against_the_webhook_of_the_given_payment_method(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $this->payPalPaymentMethodProvider->expects(self::never())->method('provide');
+        $this->webhookIdProvider->expects(self::once())->method('provide')->with($paymentMethod)->willReturn('WEBHOOK_ID');
+        $this->webhookSignatureVerifier->method('verify')->with($this->request, 'WEBHOOK_ID', $paymentMethod)->willReturn(true);
+
+        self::assertTrue($this->verifier->verify($this->request, $paymentMethod));
+    }
+
     public function test_it_verifies_a_request_against_the_registered_webhook(): void
     {
         $this->webhookIdProvider->method('provide')->willReturn('WEBHOOK_ID');

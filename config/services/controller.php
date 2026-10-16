@@ -17,6 +17,7 @@ use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
+use Sylius\PayPalPlugin\Controller\Webhook\PaymentMethodNotifyAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
 use Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
@@ -34,6 +35,14 @@ return static function (ContainerConfigurator $container) {
                 service('sylius_paypal.processor.webhook.refund_order'),
                 service('sylius_paypal.processor.webhook.capture_payment'),
             ],
+            service('monolog.logger.paypal'),
+        ]);
+
+    $services->set('sylius_paypal.controller.webhook.payment_method_notify', PaymentMethodNotifyAction::class)
+        ->public()
+        ->decorate('sylius.controller.payment_method_notify')
+        ->args([
+            service('.inner'),
             service('monolog.logger.paypal'),
         ]);
 
