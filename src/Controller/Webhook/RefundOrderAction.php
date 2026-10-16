@@ -14,11 +14,10 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller\Webhook;
 
 use Doctrine\Persistence\ObjectManager;
-use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
@@ -34,7 +33,7 @@ use Webmozart\Assert\Assert;
 final readonly class RefundOrderAction
 {
     public function __construct(
-        private StateMachineInterface $stateMachineFactory,
+        private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
         private ?PaymentProviderInterface $paymentProvider,
         private ObjectManager $paymentManager,
         private PayPalRefundDataProviderInterface $payPalRefundDataProvider,
@@ -84,9 +83,7 @@ final readonly class RefundOrderAction
             return new JsonResponse(['error' => $exception->getMessage()], Response::HTTP_NOT_FOUND);
         }
 
-        if ($this->stateMachineFactory->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND)) {
-            $this->stateMachineFactory->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND);
-        }
+        $this->refundConfirmationProcessor->confirm($payment, $this->getRefundId($request));
 
         $this->paymentManager->flush();
 
@@ -100,6 +97,14 @@ final readonly class RefundOrderAction
             $this->webhookIdProvider,
             $this->webhookSignatureVerifier,
         );
+    }
+
+    private function getRefundId(Request $request): ?string
+    {
+        $content = (array) json_decode((string) $request->getContent(), true);
+        $refundId = $content['resource']['id'] ?? null;
+
+        return is_string($refundId) ? $refundId : null;
     }
 
     private function getPayPalPaymentUrl(Request $request): string

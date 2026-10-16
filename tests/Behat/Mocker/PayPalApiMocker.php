@@ -83,13 +83,14 @@ final readonly class PayPalApiMocker
         string $captureStatus = 'COMPLETED',
         string $value = '0.20',
         string $currencyCode = 'USD',
+        string $captureId = 'CAPTURE_ID',
     ): void {
         $this->mockOrderDetails($payPalOrderId, [
             'status' => 'COMPLETED',
             'purchase_units' => [[
                 'reference_id' => 'REFERENCE_ID',
                 'payments' => ['captures' => [[
-                    'id' => 'CAPTURE_ID',
+                    'id' => $captureId,
                     'status' => $captureStatus,
                     'amount' => ['currency_code' => $currencyCode, 'value' => $value],
                 ]]],

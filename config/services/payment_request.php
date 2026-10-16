@@ -15,6 +15,8 @@ use Sylius\PayPalPlugin\CommandProvider\StatusPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 
 return function (ContainerConfigurator $container): void {
@@ -106,4 +108,14 @@ return function (ContainerConfigurator $container): void {
         ]);
 
     $services->alias(CapturePayPalOrderPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.capture_paypal_order_payment_request');
+
+    $services->set('sylius_paypal.dispatcher.refund_paypal_capture_payment_request', RefundPayPalCapturePaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(RefundPayPalCapturePaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.refund_paypal_capture_payment_request');
 };

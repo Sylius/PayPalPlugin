@@ -1,10 +1,10 @@
 winzou_state_machine:
     sylius_payment:
         callbacks:
-            before:
-                refund_paypal_order:
+            guard:
+                paypal_refund_confirmed:
                     on: [ 'refund' ]
-                    do: [ '@sylius_paypal.processor.payment_refund', 'refund' ]
+                    do: [ '@sylius_paypal.checker.payment_refund', 'canBeRefunded' ]
                     args: [ 'object' ]
         transitions:
             cancel:

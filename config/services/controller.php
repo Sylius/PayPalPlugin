@@ -16,6 +16,7 @@ use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
+use Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
 use Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction;
@@ -39,7 +40,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.controller.webhook.refund_order', RefundOrderAction::class)
         ->args([
-            service('sylius_abstraction.state_machine'),
+            service('sylius_paypal.processor.payment_refund_confirmation'),
             service('sylius_paypal.provider.payment'),
             service('sylius.manager.payment'),
             service('sylius_paypal.provider.paypal_refund_data'),
@@ -182,6 +183,14 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment'),
             service('sylius_paypal.processor.late_capture_refund'),
+            service('security.csrf.token_manager'),
+            service('router'),
+        ]);
+
+    $services->set('sylius_paypal.controller.refund_payment', RefundPayPalPaymentAction::class)
+        ->args([
+            service('sylius.repository.payment'),
+            service('sylius_paypal.dispatcher.refund_paypal_capture_payment_request'),
             service('security.csrf.token_manager'),
             service('router'),
         ]);

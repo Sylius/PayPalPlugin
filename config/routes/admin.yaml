@@ -22,3 +22,9 @@ sylius_paypal_admin_order_payment_refund_late_capture:
     methods: [PUT]
     defaults:
         _controller: sylius_paypal.controller.refund_late_capture
+
+sylius_paypal_admin_order_payment_refund:
+    path: /orders/{orderId}/payments/{id}/refund-paypal-payment
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.refund_payment
