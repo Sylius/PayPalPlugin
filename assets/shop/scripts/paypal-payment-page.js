@@ -11,6 +11,7 @@ let session = null;
 let busy = false;
 let attemptOrderId = null;
 let attemptApproveUrl = null;
+let attemptCancelUrl = null;
 
 export function isBusy() {
     return busy;
@@ -28,10 +29,15 @@ export function currentApproveUrl() {
     return attemptApproveUrl;
 }
 
+export function currentCancelUrl() {
+    return attemptCancelUrl;
+}
+
 export async function startAttempt(createOrderUrl, paymentSource = null) {
     busy = true;
     attemptOrderId = null;
     attemptApproveUrl = null;
+    attemptCancelUrl = null;
 
     const response = await fetch(createOrderUrl, {
         method: 'post',
@@ -55,6 +61,7 @@ export async function startAttempt(createOrderUrl, paymentSource = null) {
     const data = await response.json();
     attemptOrderId = data.paypal_order_id ?? null;
     attemptApproveUrl = data.approve_url ?? null;
+    attemptCancelUrl = data.cancel_url ?? null;
 
     return {
         orderId: attemptOrderId,
@@ -102,6 +109,8 @@ async function createSession({ scriptUrl, instanceConfig, currencyCode, amount, 
         currentOrderId,
 
         currentApproveUrl,
+
+        currentCancelUrl,
 
         release,
 

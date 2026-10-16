@@ -103,6 +103,24 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertCount(3, self::getContainer()->get('sylius.repository.payment_request')->findAll());
     }
 
+    public function test_it_tells_the_payer_who_closed_the_paypal_window_that_the_payment_was_cancelled(): void
+    {
+        $payment = $this->payPalOrder();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $payment->setAmount($order->getTotal());
+        $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'reference_id' => 'REFERENCE_ID', 'payment_source' => 'paypal']);
+        $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING);
+
+        $this->payPalApi()->mockUnapprovedOrderDetails();
+        $this->client->followRedirects();
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?payer_cancelled=1', $hash));
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('PayPal payment has been cancelled', (string) $this->client->getResponse()->getContent());
+    }
+
     public function test_it_asks_the_payer_to_authenticate_the_card_again_when_3d_secure_did_not_finish(): void
     {
         $hash = $this->cardPaymentRequestHash();

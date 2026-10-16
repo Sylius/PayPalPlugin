@@ -89,6 +89,13 @@ export default class extends Controller {
     }
 
     onCancel() {
+        const cancelUrl = this.session.currentCancelUrl();
+        if (cancelUrl) {
+            window.location.href = cancelUrl;
+
+            return;
+        }
+
         this.session.release();
     }
 
