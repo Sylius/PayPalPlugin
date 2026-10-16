@@ -498,3 +498,15 @@
                max_files: 14
                channels: [paypal]
    ```
+
+1. #### PayPal webhook events are stored, so a duplicate delivery has one effect.
+
+   Run the migrations to add the `sylius_paypal_plugin_webhook_event` table:
+
+   ```bash
+   bin/console doctrine:migrations:migrate
+   ```
+
+   It keeps the id of each received webhook event per payment method for
+   `sylius_paypal.webhook_event_retention_days` days (`30` by default). Schedule
+   `bin/console sylius-paypal:prune-webhook-events [--days=30]` to remove older ones.
