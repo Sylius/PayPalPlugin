@@ -18,6 +18,7 @@ use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\CoreBundle\OrderPay\Resolver\PaymentToPayResolverInterface;
 use Sylius\Bundle\PaymentBundle\Provider\DefaultActionProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\DefaultPayloadProviderInterface;
+use Sylius\Bundle\ResourceBundle\Controller\RequestConfiguration;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -50,7 +51,7 @@ final readonly class CapturePaymentRequestPayResponseProvider implements PayResp
     ) {
     }
 
-    public function supports(Request $request, OrderInterface $order): bool
+    public function supports(RequestConfiguration|Request $request, OrderInterface $order): bool
     {
         /** @var GatewayConfigInterface|null $gatewayConfig */
         $gatewayConfig = $this->paymentToPayResolver->getPayment($order)?->getMethod()?->getGatewayConfig();
@@ -58,7 +59,7 @@ final readonly class CapturePaymentRequestPayResponseProvider implements PayResp
         return SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $gatewayConfig?->getFactoryName();
     }
 
-    public function getResponse(Request $request, OrderInterface $order): Response
+    public function getResponse(RequestConfiguration|Request $request, OrderInterface $order): Response
     {
         $payment = $this->paymentToPayResolver->getPayment($order);
         Assert::notNull($payment);
