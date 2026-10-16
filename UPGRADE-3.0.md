@@ -333,7 +333,6 @@
 
    The `CacheAuthorizeClientApiInterface $authorizeClientApi` argument has been removed from the constructors of:
 
-   - `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction`
    - `Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction`
    - `Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction`
    - `Sylius\PayPalPlugin\Creator\PayPalOrderCreator`
@@ -510,3 +509,25 @@
    It keeps the id of each received webhook event per payment method for
    `sylius_paypal.webhook_event_retention_days` days (`30` by default). Schedule
    `bin/console sylius-paypal:prune-webhook-events [--days=30]` to remove older ones.
+
+1. #### Express checkout from the cart and the product page captures through a Payment Request.
+
+   When the buyer approves in the wallet, `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`
+   (`sylius_paypal_shop_complete_express_checkout`, `POST /{_locale}/paypal/express-checkout/complete`) places the
+   order with `Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter` and only then captures the PayPal order through
+   a `capture` Payment Request, dispatched by `Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher`.
+   The capture, its settlement and a declined or pending capture are handled as on the payment page. The response's
+   `return_url` leads to the Payment Request (`/payment-request/pay/{hash}`), which ends on the thank-you page, or on
+   the order to pay again when PayPal did not capture. A total that grew since the approval still returns the buyer
+   to the unplaced checkout.
+
+   The request body (`orderId`, `payPalOrderId`) is unchanged; the response carries only `return_url`.
+
+   The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction` (`sylius_paypal.controller.process_paypal_order`) | `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction` (`sylius_paypal.controller.complete_express_checkout`) |
+   | route `sylius_paypal_shop_process_paypal_order` (`/process-pay-pal-order/`) | route `sylius_paypal_shop_complete_express_checkout` |
+   | `Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter` and its interface (`sylius_paypal.completer.express_order`) | `Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter` and its interface (`sylius_paypal.completer.express_checkout`) |
+   | `processPayPalOrderUrl` in the context of `@SyliusPayPalPlugin/pay_from_cart_page.html.twig` and `@SyliusPayPalPlugin/pay_from_product_page.html.twig` | `completeExpressCheckoutUrl` |

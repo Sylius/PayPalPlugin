@@ -98,7 +98,7 @@ final readonly class PayPalButtonsController
                 'createPayPalOrderFromProductUrl' => $this->router->generate('sylius_paypal_shop_add_to_cart', ['productId' => $request->attributes->getInt('productId')]),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $locale,
-                'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
+                'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,
@@ -136,7 +136,7 @@ final readonly class PayPalButtonsController
                 'locale' => $locale,
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
-                'processPayPalOrderUrl' => $this->router->generate('sylius_paypal_shop_process_paypal_order'),
+                'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
                 'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
                     $channel,

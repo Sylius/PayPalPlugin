@@ -7,6 +7,7 @@ use Sylius\Component\Resource\Metadata\MetadataInterface;
 use Sylius\PayPalPlugin\Controller\AddToCartAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
+use Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderForPaymentRequestAction;
@@ -16,7 +17,6 @@ use Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction;
 use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
-use Sylius\PayPalPlugin\Controller\ProcessPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
 use Sylius\PayPalPlugin\Controller\UpdatePayPalOrderAction;
@@ -141,24 +141,15 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.current_paypal_locale'),
         ]);
 
-    $services->set('sylius_paypal.controller.process_paypal_order', ProcessPayPalOrderAction::class)
+    $services->set('sylius_paypal.controller.complete_express_checkout', CompleteExpressCheckoutAction::class)
         ->args([
-            service('sylius.repository.customer'),
-            service('sylius.factory.customer'),
-            service('sylius.factory.address'),
-            service('sylius.manager.order'),
-            service('sylius_abstraction.state_machine'),
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.api.order_details'),
             service('sylius_paypal.provider.order'),
-            service('sylius_paypal.verifier.payment_amount'),
-            service('router'),
-            service('sylius_paypal.completer.express_order'),
-            service('sylius.order_processing.order_processor'),
-            service('sylius.repository.shipping_method'),
-            service('sylius_paypal.factory.express_order_address'),
             service('sylius_paypal.verifier.order_ownership'),
-            service('sylius_paypal.api.update_order'),
+            service('sylius_paypal.completer.express_checkout'),
+            service('sylius_paypal.dispatcher.capture_paypal_order_payment_request'),
+            service('sylius_paypal.provider.payment_request_return_url'),
+            service('router'),
+            service('monolog.logger.paypal'),
         ]);
 
     $services->set('sylius_paypal.controller.update_paypal_order', UpdatePayPalOrderAction::class)

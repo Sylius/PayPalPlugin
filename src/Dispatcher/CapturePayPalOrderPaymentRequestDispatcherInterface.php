@@ -11,12 +11,12 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Completer;
+namespace Sylius\PayPalPlugin\Dispatcher;
 
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
-interface PayPalExpressOrderCompleterInterface
+interface CapturePayPalOrderPaymentRequestDispatcherInterface
 {
-    public function complete(OrderInterface $order, PaymentInterface $payment): void;
+    public function dispatch(PaymentInterface $payment): PaymentRequestInterface;
 }

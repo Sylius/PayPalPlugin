@@ -5,7 +5,7 @@
         currencyCode: currency,
         amount: amount,
         createOrderUrl: createPayPalOrderFromCartUrl,
-        captureOrderUrl: processPayPalOrderUrl,
+        captureOrderUrl: completeExpressCheckoutUrl,
         cancelOrderUrl: path('sylius_paypal_shop_cancel_order'),
         errorUrl: errorPayPalPaymentUrl,
         loadingSelector: '[data-live-name-value="sylius_shop:cart:form"] [data-loading]',
