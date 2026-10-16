@@ -175,6 +175,35 @@ final class PayPalPaymentDetailsTest extends TestCase
         ], $details->toArray());
     }
 
+    public function test_it_knows_the_refund_paypal_has_confirmed(): void
+    {
+        $details = PayPalPaymentDetails::fromArray(['paypal_order_id' => 'PAYPAL_ORDER_ID'])->withRefund('REFUND_ID');
+
+        self::assertTrue($details->isRefunded());
+        self::assertSame('REFUND_ID', $details->refundId());
+        self::assertSame([
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'refunded' => true,
+            'refund_id' => 'REFUND_ID',
+        ], $details->toArray());
+    }
+
+    public function test_it_knows_a_refund_confirmed_without_its_id(): void
+    {
+        $details = PayPalPaymentDetails::create()->withRefund(null);
+
+        self::assertTrue($details->isRefunded());
+        self::assertNull($details->refundId());
+    }
+
+    public function test_it_knows_no_refund_by_default(): void
+    {
+        $details = PayPalPaymentDetails::fromArray(['refunded' => 'yes']);
+
+        self::assertFalse($details->isRefunded());
+        self::assertNull($details->refundId());
+    }
+
     public function test_it_leaves_the_original_untouched_when_writing(): void
     {
         $details = PayPalPaymentDetails::create();

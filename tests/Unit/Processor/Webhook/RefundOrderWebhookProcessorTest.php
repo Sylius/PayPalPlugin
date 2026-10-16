@@ -16,11 +16,10 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Processor\Webhook;
 use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
@@ -33,7 +32,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
 
     private PaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
-    private StateMachineInterface&MockObject $stateMachine;
+    private PayPalPaymentRefundConfirmationProcessorInterface&MockObject $refundConfirmationProcessor;
 
     private ObjectManager&MockObject $paymentManager;
 
@@ -46,14 +45,14 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         parent::setUp();
         $this->payPalRefundDataProvider = $this->createMock(PayPalRefundDataProviderInterface::class);
         $this->paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
-        $this->stateMachine = $this->createMock(StateMachineInterface::class);
+        $this->refundConfirmationProcessor = $this->createMock(PayPalPaymentRefundConfirmationProcessorInterface::class);
         $this->paymentManager = $this->createMock(ObjectManager::class);
         $this->settleablePaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
 
         $this->processor = new RefundOrderWebhookProcessor(
             $this->payPalRefundDataProvider,
             $this->paypalPaymentQuery,
-            $this->stateMachine,
+            $this->refundConfirmationProcessor,
             $this->paymentManager,
             $this->settleablePaymentQuery,
         );
@@ -81,25 +80,9 @@ final class RefundOrderWebhookProcessorTest extends TestCase
             ->willReturn(['id' => 'PAYPAL_ORDER_ID'])
         ;
         $this->paypalPaymentQuery->method('getForRefundingByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
-        $this->stateMachine->method('can')->willReturn(true);
 
-        $this->stateMachine
-            ->expects(self::once())
-            ->method('apply')
-            ->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND)
-        ;
+        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
         $this->paymentManager->expects(self::once())->method('flush');
-
-        $this->processor->process($this->payload());
-    }
-
-    public function test_it_leaves_a_payment_that_cannot_be_refunded_alone(): void
-    {
-        $this->paypalPaymentQuery->method('getForRefundingByOrderId')->willReturn($this->createMock(PaymentInterface::class));
-        $this->payPalRefundDataProvider->method('provide')->willReturn(['id' => 'PAYPAL_ORDER_ID']);
-        $this->stateMachine->method('can')->willReturn(false);
-
-        $this->stateMachine->expects(self::never())->method('apply');
 
         $this->processor->process($this->payload());
     }
@@ -112,7 +95,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
             ->willThrowException(new PaymentNotFoundException())
         ;
 
-        $this->stateMachine->expects(self::never())->method('apply');
+        $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
         $this->processor->process($this->payload());
     }
@@ -133,7 +116,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         ]);
         $this->paymentManager->expects(self::once())->method('flush');
         $this->paypalPaymentQuery->expects(self::never())->method('getForRefundingByOrderId');
-        $this->stateMachine->expects(self::never())->method('apply');
+        $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
         $this->processor->process($this->payload('https://api-m.paypal.com/v2/payments/captures/LATE_CAPTURE_ID'));
     }
@@ -146,10 +129,9 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         $this->payPalRefundDataProvider->method('provide')->willReturn(['id' => 'PAYPAL_ORDER_ID']);
         $this->settleablePaymentQuery->method('getForSettlementByOrderId')->willReturn($latePayment);
         $this->paypalPaymentQuery->method('getForRefundingByOrderId')->willReturn($payment);
-        $this->stateMachine->method('can')->willReturn(true);
 
         $latePayment->expects(self::never())->method('setDetails');
-        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND);
+        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
 
         $this->processor->process($this->payload('https://api-m.paypal.com/v2/payments/captures/CAPTURE_ID'));
     }

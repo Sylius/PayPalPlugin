@@ -14,10 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor\Webhook;
 
 use Doctrine\Persistence\ObjectManager;
-use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
@@ -30,7 +29,7 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
     public function __construct(
         private PayPalRefundDataProviderInterface $payPalRefundDataProvider,
         private PaypalPaymentQueryInterface $paypalPaymentQuery,
-        private StateMachineInterface $stateMachine,
+        private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
         private ObjectManager $paymentManager,
         private SettleablePaypalPaymentQueryInterface $settleablePaymentQuery,
     ) {
@@ -56,12 +55,8 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
             return;
         }
 
-        if (
-            null !== $payment &&
-            $this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND)
-        ) {
-            $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_REFUND);
-        }
+        $refundId = $payload['resource']['id'] ?? null;
+        $this->refundConfirmationProcessor->confirm($payment, is_string($refundId) ? $refundId : null);
 
         $this->paymentManager->flush();
     }

@@ -61,4 +61,21 @@ final class RefundPaymentApiTest extends TestCase
 
         self::assertEquals(['status' => 'COMPLETED', 'id' => '123123'], $result);
     }
+
+    #[Test]
+    public function it_refunds_paypal_payment_under_given_request_id(): void
+    {
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with(
+                $this->paymentMethod,
+                'v2/payments/captures/123123/refund',
+                ['amount' => ['value' => '10.99', 'currency_code' => 'USD'], 'invoice_id' => '123-11-11-2010'],
+                ['PayPal-Auth-Assertion' => 'PAY-PAL-AUTH-ASSERTION', 'PayPal-Request-Id' => 'REQUEST-ID'],
+            )
+            ->willReturn(['status' => 'COMPLETED', 'id' => '123123']);
+
+        $this->refundPaymentApi->refund($this->paymentMethod, '123123', 'PAY-PAL-AUTH-ASSERTION', '123-11-11-2010', '10.99', 'USD', 'REQUEST-ID');
+    }
 }
