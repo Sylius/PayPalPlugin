@@ -10,8 +10,6 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
-use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
-use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Console\Command\PruneWebhookEventsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
@@ -214,15 +212,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PaymentStateManagerInterface::class, 'sylius_paypal.manager.payment_state');
-
-    $services->set('sylius_paypal.completer.express_order', PayPalExpressOrderCompleter::class)
-        ->args([
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_abstraction.state_machine'),
-            service('sylius.manager.order'),
-        ]);
-
-    $services->alias(PayPalExpressOrderCompleterInterface::class, 'sylius_paypal.completer.express_order');
 
     $services->set('sylius_paypal.completer.express_checkout', ExpressCheckoutCompleter::class)
         ->args([
