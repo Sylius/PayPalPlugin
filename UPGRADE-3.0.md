@@ -531,3 +531,19 @@
    | route `sylius_paypal_shop_process_paypal_order` (`/process-pay-pal-order/`) | route `sylius_paypal_shop_complete_express_checkout` |
    | `Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter` and its interface (`sylius_paypal.completer.express_order`) | `Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter` and its interface (`sylius_paypal.completer.express_checkout`) |
    | `processPayPalOrderUrl` in the context of `@SyliusPayPalPlugin/pay_from_cart_page.html.twig` and `@SyliusPayPalPlugin/pay_from_product_page.html.twig` | `completeExpressCheckoutUrl` |
+
+1. #### The PayPal buttons on the select payment step complete the checkout like the cart buttons.
+
+   The buttons rendered by `@SyliusPayPalPlugin/pay_from_payment_page.html.twig` create the PayPal order with
+   `sylius_paypal_shop_create_paypal_order_from_cart` and complete the checkout with
+   `sylius_paypal_shop_complete_express_checkout`, so the order is placed when the buyer approves and its PayPal order
+   is captured through a `capture` Payment Request. Creating the PayPal order no longer selects the payment or moves
+   the payment to `processing`, and closing the wallet only shows a flash message (`sylius_paypal_shop_cancel_order`).
+
+   The context of `@SyliusPayPalPlugin/pay_from_payment_page.html.twig` has changed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `createPayPalOrderFromPaymentPageUrl` | `createPayPalOrderFromCartUrl` |
+   | `completePayPalOrderFromPaymentPageUrl` | `completeExpressCheckoutUrl` |
+   | `cancelPayPalPaymentUrl` | `path('sylius_paypal_shop_cancel_order')` in the template |
