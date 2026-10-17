@@ -30,11 +30,19 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
     private const APPROVED_ORDER_STATUS = 'APPROVED';
+
+    private const CREATED_ORDER_STATUS = 'CREATED';
+
+    private const SOURCES_APPROVED_IN_THE_PAYPAL_WINDOW = [
+        PayPalPaymentSourceProviderInterface::PAYPAL,
+        PayPalPaymentSourceProviderInterface::VENMO,
+    ];
 
     private const ISSUES_LEAVING_THE_ORDER_TO_READ = ['ORDER_ALREADY_CAPTURED', 'ORDER_NOT_APPROVED', 'PAYER_ACTION_REQUIRED'];
 
@@ -60,10 +68,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
-        if (
-            self::APPROVED_ORDER_STATUS === ($orderDetails['status'] ?? null) &&
-            null === RedirectPaymentSource::tryFrom($details->paymentSource())
-        ) {
+        if ($this->isCapturable($orderDetails, $details)) {
             $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
@@ -88,6 +93,20 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $payment->setDetails($capturedDetails->toArray());
 
         return $orderDetails;
+    }
+
+    /** @param array<string, mixed> $orderDetails */
+    private function isCapturable(array $orderDetails, PayPalPaymentDetails $details): bool
+    {
+        if (null !== RedirectPaymentSource::tryFrom($details->paymentSource())) {
+            return false;
+        }
+
+        return match ($orderDetails['status'] ?? null) {
+            self::APPROVED_ORDER_STATUS => true,
+            self::CREATED_ORDER_STATUS => !in_array($details->paymentSource(), self::SOURCES_APPROVED_IN_THE_PAYPAL_WINDOW, true),
+            default => false,
+        };
     }
 
     private function captureApprovedOrder(

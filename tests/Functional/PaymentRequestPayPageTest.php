@@ -159,6 +159,20 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment(PaymentInterface::STATE_COMPLETED)?->getState());
     }
 
+    public function test_it_captures_a_card_payment_paypal_left_created_after_3d_secure(): void
+    {
+        $hash = $this->cardPaymentRequestHash();
+
+        $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'CREATED']);
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockCapture();
+        $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_COMPLETED));
+    }
+
     public function test_it_completes_a_trustly_payment_paypal_captured_once_the_payer_comes_back_from_the_bank(): void
     {
         $hash = $this->redirectPaymentRequestHash();

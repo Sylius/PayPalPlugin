@@ -145,9 +145,9 @@ final class PaymentCaptureProcessorTest extends TestCase
     }
 
     #[DataProvider('ordersThePayerHasNotApproved')]
-    public function test_it_does_not_capture_a_paypal_order_the_payer_has_not_approved(string $status): void
+    public function test_it_does_not_capture_a_paypal_order_the_payer_has_not_approved(string $paymentSource, string $status): void
     {
-        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1200, shippingRequired: true);
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID', 'payment_source' => $paymentSource], amount: 1000, total: 1200, shippingRequired: true);
         $notApproved = ['status' => $status, 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
 
         $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn($notApproved);
@@ -159,12 +159,23 @@ final class PaymentCaptureProcessorTest extends TestCase
         self::assertSame($notApproved, $this->processor->capture($this->payment));
     }
 
-    /** @return iterable<string, array{string}> */
+    /** @return iterable<string, array{string, string}> */
     public static function ordersThePayerHasNotApproved(): iterable
     {
-        yield 'created' => ['CREATED'];
-        yield 'payer action required' => ['PAYER_ACTION_REQUIRED'];
-        yield 'voided' => ['VOIDED'];
+        yield 'created, left in the PayPal window' => ['paypal', 'CREATED'];
+        yield 'created, left in the Venmo window' => ['venmo', 'CREATED'];
+        yield 'payer action required' => ['card', 'PAYER_ACTION_REQUIRED'];
+        yield 'voided' => ['card', 'VOIDED'];
+    }
+
+    public function test_it_captures_a_card_order_paypal_leaves_created_after_3d_secure(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID', 'payment_source' => 'card'], amount: 1000, total: 1000);
+
+        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->willReturnOnConsecutiveCalls(['status' => 'CREATED'] + self::APPROVED_ORDER, self::ORDER_DETAILS);
+        $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123');
+
+        self::assertSame(self::ORDER_DETAILS, $this->processor->capture($this->payment));
     }
 
     public function test_it_records_an_order_paypal_has_already_captured_without_capturing_it_again(): void
