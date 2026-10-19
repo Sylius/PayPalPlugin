@@ -21,8 +21,16 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class PaymentSourceEnabledChecker implements PaymentSourceEnabledCheckerInterface
 {
+    public function __construct(private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker)
+    {
+    }
+
     public function isEnabled(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
     {
+        if (!$this->paymentAuthorizationChecker->isAllowed($paymentSource, $paymentMethod)) {
+            return false;
+        }
+
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);

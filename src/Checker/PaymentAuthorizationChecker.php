@@ -41,9 +41,16 @@ final readonly class PaymentAuthorizationChecker implements PaymentAuthorization
 
     public function isAuthorizable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
     {
-        return
-            in_array($paymentSource, $this->authorizablePaymentSources, true) &&
-            $this->isAuthorizeEnabled($paymentMethod)
-        ;
+        return $this->isAuthorizeEnabled($paymentMethod) && $this->isAuthorizablePaymentSource($paymentSource);
+    }
+
+    public function isAllowed(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
+    {
+        return !$this->isAuthorizeEnabled($paymentMethod) || $this->isAuthorizablePaymentSource($paymentSource);
+    }
+
+    private function isAuthorizablePaymentSource(string $paymentSource): bool
+    {
+        return in_array($paymentSource, $this->authorizablePaymentSources, true);
     }
 }

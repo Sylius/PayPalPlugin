@@ -71,6 +71,24 @@ final class PaymentAuthorizationCheckerTest extends TestCase
         self::assertFalse($this->checker()->isAuthorizable('paypal', $this->paymentMethodConfiguredWith([])));
     }
 
+    public function test_it_allows_every_payment_source_when_the_payment_method_captures(): void
+    {
+        $checker = $this->checker();
+        $paymentMethod = $this->paymentMethodConfiguredWith([]);
+
+        self::assertTrue($checker->isAllowed('paypal', $paymentMethod));
+        self::assertTrue($checker->isAllowed('trustly', $paymentMethod));
+    }
+
+    public function test_it_allows_only_the_authorizable_payment_sources_when_the_payment_method_authorizes(): void
+    {
+        $checker = $this->checker();
+        $paymentMethod = $this->paymentMethodConfiguredWith(['use_authorize' => true]);
+
+        self::assertTrue($checker->isAllowed('paypal', $paymentMethod));
+        self::assertFalse($checker->isAllowed('trustly', $paymentMethod));
+    }
+
     private function checker(): PaymentAuthorizationChecker
     {
         return new PaymentAuthorizationChecker(['paypal', 'card']);

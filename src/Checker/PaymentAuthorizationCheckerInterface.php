@@ -20,4 +20,6 @@ interface PaymentAuthorizationCheckerInterface
     public function isAuthorizeEnabled(PaymentMethodInterface $paymentMethod): bool;
 
     public function isAuthorizable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool;
+
+    public function isAllowed(string $paymentSource, PaymentMethodInterface $paymentMethod): bool;
 }

@@ -770,3 +770,33 @@
    -    private StateResolverInterface $orderPaymentStateResolver,
     ) {
    ```
+
+1. #### A payment method that authorizes offers only the payment sources PayPal can authorize.
+
+   `Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface` (`sylius_paypal.checker.payment_authorization`)
+   tells whether a payment source is allowed by the payment method's capture strategy. The payment page hides the
+   others, and the `cardEnabled` variable tells the card fields template whether to render.
+
+   ```diff
+    // Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker
+   +public function __construct(private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker)
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider
+    public function __construct(
+        private FindEligibleMethodsApiInterface $findEligibleMethodsApi,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
+        private LoggerInterface $logger,
+   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+    ) {
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider
+    public function __construct(
+        // ...
+        private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
+   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+    ) {
+   ```

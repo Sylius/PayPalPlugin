@@ -428,6 +428,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.processor.locale'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(PayPalPaymentPageContextProviderInterface::class, 'sylius_paypal.provider.paypal_payment_page_context');
@@ -477,6 +478,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.find_eligible_methods'),
             service('sylius_paypal.provider.paypal_configuration'),
             service('monolog.logger.paypal'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(EligibleRedirectPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.eligible_redirect_payment_sources');
@@ -493,7 +495,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
 
-    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class);
+    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class)
+        ->args([service('sylius_paypal.checker.payment_authorization')]);
 
     $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
 
