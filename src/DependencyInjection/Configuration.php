@@ -39,6 +39,8 @@ final class Configuration implements ConfigurationInterface
         'INDIA_POST',
     ];
 
+    private const DEFAULT_AUTHORIZABLE_PAYMENT_SOURCES = ['paypal', 'venmo', 'card', 'apple_pay', 'google_pay'];
+
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('sylius_paypal');
@@ -59,6 +61,16 @@ final class Configuration implements ConfigurationInterface
                     ->scalarPrototype()->end()
                     ->defaultValue(self::ALL_PAYPAL_SUPPORTED_LOCALES)
                     ->performNoDeepMerging()
+                ->end()
+                ->arrayNode('authorize')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('payment_sources')
+                            ->scalarPrototype()->end()
+                            ->defaultValue(self::DEFAULT_AUTHORIZABLE_PAYMENT_SOURCES)
+                            ->performNoDeepMerging()
+                        ->end()
+                    ->end()
                 ->end()
                 ->arrayNode('tracking')
                     ->addDefaultsIfNotSet()

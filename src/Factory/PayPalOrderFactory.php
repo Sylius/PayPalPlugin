@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
@@ -33,19 +32,16 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
     private PayPalPaymentSourceProviderInterface $paymentSourceProvider;
 
-    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker;
-
     public function __construct(
         private PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
         private ?UrlGeneratorInterface $router = null,
         private ?ShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
         ?ExperienceContextProviderInterface $experienceContextProvider = null,
         ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
-        ?PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker = null,
+        private ?PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker = null,
     ) {
         $this->experienceContextProvider = $experienceContextProvider ?? new ExperienceContextProvider();
         $this->paymentSourceProvider = $paymentSourceProvider ?? new PayPalPaymentSourceProvider();
-        $this->paymentAuthorizationChecker = $paymentAuthorizationChecker ?? new PaymentAuthorizationChecker();
     }
 
     public function create(
@@ -87,8 +83,11 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
     private function intent(PaymentInterface $payment, string $paymentSource): string
     {
         $paymentMethod = $payment->getMethod();
+        if (null === $paymentMethod || null === $this->paymentAuthorizationChecker) {
+            return PayPalOrder::INTENT_CAPTURE;
+        }
 
-        return null !== $paymentMethod && $this->paymentAuthorizationChecker->isAuthorizable($paymentSource, $paymentMethod)
+        return $this->paymentAuthorizationChecker->isAuthorizable($paymentSource, $paymentMethod)
             ? PayPalOrder::INTENT_AUTHORIZE
             : PayPalOrder::INTENT_CAPTURE
         ;

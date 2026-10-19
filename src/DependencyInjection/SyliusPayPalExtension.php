@@ -50,6 +50,7 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
         $container->setParameter('sylius_paypal.supported_locales', $config['supported_locales']);
         $container->setParameter('sylius_paypal.tracking.carriers', $config['tracking']['carriers']);
+        $container->setParameter('sylius_paypal.authorize.payment_sources', $config['authorize']['payment_sources']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
 

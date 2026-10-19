@@ -17,17 +17,13 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfig
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class PaymentAuthorizationChecker implements PaymentAuthorizationCheckerInterface
 {
-    public const AUTHORIZABLE_PAYMENT_SOURCES = [
-        PayPalPaymentSourceProviderInterface::PAYPAL,
-        PayPalPaymentSourceProviderInterface::VENMO,
-        PayPalPaymentSourceProviderInterface::CARD,
-        PayPalPaymentSourceProviderInterface::APPLE_PAY,
-        PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
-    ];
+    /** @param list<string> $authorizablePaymentSources */
+    public function __construct(private array $authorizablePaymentSources)
+    {
+    }
 
     public function isAuthorizeEnabled(PaymentMethodInterface $paymentMethod): bool
     {
@@ -46,7 +42,7 @@ final readonly class PaymentAuthorizationChecker implements PaymentAuthorization
     public function isAuthorizable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
     {
         return
-            in_array($paymentSource, self::AUTHORIZABLE_PAYMENT_SOURCES, true) &&
+            in_array($paymentSource, $this->authorizablePaymentSources, true) &&
             $this->isAuthorizeEnabled($paymentMethod)
         ;
     }

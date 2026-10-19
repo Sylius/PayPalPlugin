@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Checker;
 
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -23,24 +22,14 @@ use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 
 final class PaymentAuthorizationCheckerTest extends TestCase
 {
-    /** @return iterable<string, array{string}> */
-    public static function authorizablePaymentSources(): iterable
-    {
-        yield 'PayPal and Pay Later' => ['paypal'];
-        yield 'Venmo' => ['venmo'];
-        yield 'cards' => ['card'];
-        yield 'Apple Pay' => ['apple_pay'];
-        yield 'Google Pay' => ['google_pay'];
-    }
-
     public function test_it_implements_payment_authorization_checker_interface(): void
     {
-        self::assertInstanceOf(PaymentAuthorizationCheckerInterface::class, new PaymentAuthorizationChecker());
+        self::assertInstanceOf(PaymentAuthorizationCheckerInterface::class, $this->checker());
     }
 
     public function test_it_authorizes_the_payments_of_a_payment_method_set_to_authorize(): void
     {
-        $checker = new PaymentAuthorizationChecker();
+        $checker = $this->checker();
 
         self::assertTrue($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith(['use_authorize' => true])));
         self::assertFalse($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith(['use_authorize' => false])));
@@ -56,7 +45,7 @@ final class PaymentAuthorizationCheckerTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        self::assertFalse((new PaymentAuthorizationChecker())->isAuthorizeEnabled($paymentMethod));
+        self::assertFalse($this->checker()->isAuthorizeEnabled($paymentMethod));
     }
 
     public function test_it_does_not_authorize_without_a_gateway_config(): void
@@ -64,24 +53,27 @@ final class PaymentAuthorizationCheckerTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn(null);
 
-        self::assertFalse((new PaymentAuthorizationChecker())->isAuthorizeEnabled($paymentMethod));
+        self::assertFalse($this->checker()->isAuthorizeEnabled($paymentMethod));
     }
 
-    #[DataProvider('authorizablePaymentSources')]
-    public function test_it_authorizes_the_payment_sources_paypal_can_authorize(string $paymentSource): void
+    public function test_it_authorizes_only_the_payment_sources_it_is_configured_with(): void
     {
-        $checker = new PaymentAuthorizationChecker();
+        $checker = $this->checker();
+        $paymentMethod = $this->paymentMethodConfiguredWith(['use_authorize' => true]);
 
-        self::assertTrue($checker->isAuthorizable($paymentSource, $this->paymentMethodConfiguredWith(['use_authorize' => true])));
-        self::assertFalse($checker->isAuthorizable($paymentSource, $this->paymentMethodConfiguredWith([])));
+        self::assertTrue($checker->isAuthorizable('paypal', $paymentMethod));
+        self::assertTrue($checker->isAuthorizable('card', $paymentMethod));
+        self::assertFalse($checker->isAuthorizable('trustly', $paymentMethod));
     }
 
-    public function test_it_does_not_authorize_a_redirect_payment_source(): void
+    public function test_it_does_not_authorize_a_configured_payment_source_when_the_payment_method_captures(): void
     {
-        self::assertFalse((new PaymentAuthorizationChecker())->isAuthorizable(
-            'trustly',
-            $this->paymentMethodConfiguredWith(['use_authorize' => true]),
-        ));
+        self::assertFalse($this->checker()->isAuthorizable('paypal', $this->paymentMethodConfiguredWith([])));
+    }
+
+    private function checker(): PaymentAuthorizationChecker
+    {
+        return new PaymentAuthorizationChecker(['paypal', 'card']);
     }
 
     /** @param array<string, mixed> $config */
