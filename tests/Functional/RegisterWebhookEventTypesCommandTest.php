@@ -30,7 +30,7 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $this->mockRegisteredWebhooks();
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
-        self::assertSame(Command::SUCCESS, $this->runCommand());
+        self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
     }
 
     public function test_it_asks_paypal_for_the_webhook_to_move_while_the_webhook_id_refresh_cools_down(): void
@@ -47,7 +47,7 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $this->mockRegisteredWebhooks();
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
-        self::assertSame(Command::SUCCESS, $this->runCommand());
+        self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
     }
 
     private function loadShop(): PaymentMethodInterface
@@ -68,7 +68,7 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         ]]);
     }
 
-    private function runCommand(): int
+    private function registerWebhookEventTypes(): int
     {
         /** @var Command $command */
         $command = self::getContainer()->get('sylius_paypal.console.command.register_webhook_event_types');
