@@ -43,6 +43,24 @@ final readonly class MerchantOnboardingStatusApi implements MerchantOnboardingSt
         return new OnboardingStatus(
             (bool) ($content['payments_receivable'] ?? false),
             (bool) ($content['primary_email_confirmed'] ?? false),
+            $this->resolveVaultingCapabilityStatus($content),
         );
+    }
+
+    /** @param array<array-key, mixed> $content */
+    private function resolveVaultingCapabilityStatus(array $content): ?string
+    {
+        $capabilities = $content['capabilities'] ?? [];
+        if (!is_array($capabilities)) {
+            return null;
+        }
+
+        foreach ($capabilities as $capability) {
+            if (is_array($capability) && OnboardingStatus::VAULTING_CAPABILITY === ($capability['name'] ?? null)) {
+                return isset($capability['status']) ? (string) $capability['status'] : null;
+            }
+        }
+
+        return null;
     }
 }

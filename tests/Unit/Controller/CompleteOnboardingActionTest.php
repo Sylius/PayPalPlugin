@@ -76,7 +76,7 @@ final class CompleteOnboardingActionTest extends TestCase
             ->expects(self::once())
             ->method('process')
             ->with('AUTH-CODE', 'SHARED-ID', false, null)
-            ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true, 'ACTIVE'), true));
 
         $response = ($this->action)($request);
 
@@ -94,7 +94,7 @@ final class CompleteOnboardingActionTest extends TestCase
             ->expects(self::once())
             ->method('process')
             ->with('AUTH-CODE', 'SHARED-ID', true, 'PAYPAL_2')
-            ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true, 'ACTIVE'), true));
 
         $response = ($this->action)($request);
 
@@ -118,7 +118,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->onboardingCompletionProcessor
             ->method('process')
-            ->willReturn($this->completionResult(new OnboardingStatus(false, false), false));
+            ->willReturn($this->completionResult(new OnboardingStatus(false, false, 'ACTIVE'), false));
 
         $response = ($this->action)($request);
 
@@ -234,7 +234,7 @@ final class CompleteOnboardingActionTest extends TestCase
             ->expects(self::once())
             ->method('process')
             ->with('AUTH-CODE', 'SHARED-ID', true)
-            ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true, 'ACTIVE'), true));
 
         $response = ($this->action)($this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => true]));
 
