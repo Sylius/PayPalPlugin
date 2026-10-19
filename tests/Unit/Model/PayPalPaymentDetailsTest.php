@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 
@@ -202,6 +203,45 @@ final class PayPalPaymentDetailsTest extends TestCase
 
         self::assertFalse($details->isRefunded());
         self::assertNull($details->refundId());
+    }
+
+    public function test_it_knows_the_authorization_paypal_holds_for_the_payment(): void
+    {
+        $details = PayPalPaymentDetails::fromArray(['paypal_order_id' => 'PAYPAL_ORDER_ID'])
+            ->withAuthorization(new PayPalAuthorization('CREATED', 'AUTHORIZATION_ID'))
+        ;
+
+        self::assertSame('AUTHORIZATION_ID', $details->authorizationId());
+        self::assertSame('CREATED', $details->authorizationStatus());
+        self::assertSame([
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'authorization_id' => 'AUTHORIZATION_ID',
+            'authorization_status' => 'CREATED',
+        ], $details->toArray());
+    }
+
+    public function test_it_keeps_the_authorization_id_when_an_update_carries_only_a_status(): void
+    {
+        $details = PayPalPaymentDetails::create()
+            ->withAuthorization(new PayPalAuthorization('CREATED', 'AUTHORIZATION_ID'))
+            ->withAuthorization(new PayPalAuthorization('VOIDED'))
+        ;
+
+        self::assertSame('AUTHORIZATION_ID', $details->authorizationId());
+        self::assertSame('VOIDED', $details->authorizationStatus());
+    }
+
+    public function test_it_knows_no_authorization_by_default(): void
+    {
+        $details = PayPalPaymentDetails::create();
+
+        self::assertNull($details->authorizationId());
+        self::assertNull($details->authorizationStatus());
+    }
+
+    public function test_it_reads_the_status_of_an_authorized_payment(): void
+    {
+        self::assertSame(PayPalPaymentStatus::Authorized, PayPalPaymentDetails::fromArray(['status' => 'AUTHORIZED'])->status());
     }
 
     public function test_it_leaves_the_original_untouched_when_writing(): void

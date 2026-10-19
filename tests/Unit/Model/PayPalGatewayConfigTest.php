@@ -126,6 +126,13 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertTrue($config->isCardThreeDSecureAlways());
     }
 
+    public function test_it_captures_payments_until_told_to_authorize_them(): void
+    {
+        self::assertFalse(PayPalGatewayConfig::fromArray([])->authorizesPayments());
+        self::assertFalse(PayPalGatewayConfig::fromArray(['use_authorize' => false])->authorizesPayments());
+        self::assertTrue(PayPalGatewayConfig::fromArray(['use_authorize' => true])->authorizesPayments());
+    }
+
     public function test_it_takes_the_redirect_payment_source_key_from_the_enum(): void
     {
         $config = PayPalGatewayConfig::fromArray([

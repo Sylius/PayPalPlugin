@@ -46,6 +46,10 @@ final readonly class PayPalPaymentDetails
 
     public const REFUND_ID = 'refund_id';
 
+    public const AUTHORIZATION_ID = 'authorization_id';
+
+    public const AUTHORIZATION_STATUS = 'authorization_status';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -126,6 +130,16 @@ final readonly class PayPalPaymentDetails
     public function refundId(): ?string
     {
         return $this->optional(self::REFUND_ID);
+    }
+
+    public function authorizationId(): ?string
+    {
+        return $this->optional(self::AUTHORIZATION_ID);
+    }
+
+    public function authorizationStatus(): ?string
+    {
+        return $this->optional(self::AUTHORIZATION_STATUS);
     }
 
     /** @return array<string, string> */
@@ -215,6 +229,14 @@ final readonly class PayPalPaymentDetails
         return $this->with([
             self::REFUNDED => true,
             self::REFUND_ID => $refundId,
+        ]);
+    }
+
+    public function withAuthorization(PayPalAuthorization $authorization): self
+    {
+        return $this->with([
+            self::AUTHORIZATION_ID => $authorization->id() ?? $this->authorizationId(),
+            self::AUTHORIZATION_STATUS => $authorization->status(),
         ]);
     }
 
