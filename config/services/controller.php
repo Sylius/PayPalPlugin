@@ -37,7 +37,8 @@ return static function (ContainerConfigurator $container) {
                 service('sylius_paypal.processor.webhook.capture_payment'),
             ],
             service('monolog.logger.paypal'),
-        ]);
+        ])
+        ->deprecate('sylius/paypal-plugin', '3.0', 'The "%service_id%" service is deprecated, PayPal webhooks are received on the "sylius_payment_method_notify" route of their payment method; run "sylius-paypal:register-webhook-event-types" to move them there.');
 
     $services->set('sylius_paypal.controller.webhook.payment_method_notify', PaymentMethodNotifyAction::class)
         ->public()

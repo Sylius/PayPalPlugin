@@ -42,12 +42,17 @@ final class UpdateWebhookApiTest extends TestCase
         self::assertInstanceOf(UpdateWebhookApiInterface::class, $this->api);
     }
 
-    public function test_it_replaces_the_event_types_of_the_webhook(): void
+    public function test_it_replaces_the_url_and_the_event_types_of_the_webhook(): void
     {
         $this->client
             ->expects(self::once())
             ->method('patch')
             ->with($this->paymentMethod, 'v1/notifications/webhooks/WEBHOOK_ID', [
+                [
+                    'op' => 'replace',
+                    'path' => '/url',
+                    'value' => 'https://shop.example.com/payment-methods/PAYPAL',
+                ],
                 [
                     'op' => 'replace',
                     'path' => '/event_types',
@@ -57,6 +62,6 @@ final class UpdateWebhookApiTest extends TestCase
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes($this->paymentMethod, 'WEBHOOK_ID', ['A', 'B']));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->update($this->paymentMethod, 'WEBHOOK_ID', 'http://shop.example.com/payment-methods/PAYPAL', ['A', 'B']));
     }
 }

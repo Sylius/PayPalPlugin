@@ -217,6 +217,15 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(WebhookIdProviderInterface::class, 'sylius_paypal.provider.webhook_id');
 
+    $services->set('sylius_paypal.provider.webhook_id.lookup', WebhookIdProvider::class)
+        ->args([
+            service('sylius_paypal.api.generic'),
+            service('router'),
+            service('sylius_paypal.provider.host'),
+            param('sylius_paypal.webhook_base_url'),
+            service('sylius_paypal.provider.webhook_url'),
+        ]);
+
     $services->set('sylius_paypal.api.update_order', UpdateOrderApi::class)
         ->args([
             service('sylius_paypal.client.paypal'),
