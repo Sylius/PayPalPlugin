@@ -13,6 +13,8 @@ sylius_paypal:
     payment_enabled: 'PayPal payment has just been enabled.'
     payment_pending: 'Your payment is on its way. We will confirm your order as soon as your bank has sent the money.'
     payment_not_enabled: 'PayPal payment could not be enabled. Try again later.'
+    payment_not_refunded: 'The payment has not been refunded. %reason%'
+    payment_refund_pending: 'PayPal is processing the refund. The payment will be marked as refunded once PayPal confirms it.'
     payment_source_not_available: 'The selected payment method is not available. Please choose another one.'
     production_connected_successfully: 'PayPal Production has been connected successfully.'
     sandbox_connected_successfully: 'PayPal Sandbox has been connected successfully.'

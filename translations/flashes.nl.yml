@@ -10,6 +10,8 @@ sylius_paypal:
     payment_cancelled: 'PayPal betaling is geannuleerd'
     payment_enabled: 'PayPal betaling is zojuist ingeschakeld.'
     payment_not_enabled: 'PayPal betaling kon niet worden ingeschakeld. Probeer het later nog eens.'
+    payment_not_refunded: 'De betaling is niet terugbetaald. %reason%'
+    payment_refund_pending: 'PayPal verwerkt de terugbetaling. De betaling wordt als terugbetaald gemarkeerd zodra PayPal deze bevestigt.'
     payment_source_not_available: 'De gekozen betaalmethode is niet beschikbaar. Kies een andere.'
     production_connected_successfully: 'PayPal Productie is succesvol verbonden.'
     sandbox_connected_successfully: 'PayPal Sandbox is succesvol verbonden.'

@@ -68,6 +68,7 @@ return static function (ContainerConfigurator $container) {
             service('test.client'),
             service('sylius.behat.page.admin.order.show'),
             service(PayPalApiMocker::class),
+            service('sylius.behat.notification_checker.admin'),
         ]);
 
     $services->set(ManagingPaymentMethodsContext::class)

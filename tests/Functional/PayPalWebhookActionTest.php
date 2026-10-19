@@ -16,6 +16,9 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
 
@@ -26,7 +29,7 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        DummyRefundPaymentApi::$refundedPaymentIds = [];
+        DummyRefundPaymentApi::reset();
     }
 
     public function test_it_completes_the_payment_once_paypal_says_the_capture_completed(): void
@@ -146,45 +149,46 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
     }
 
-    public function test_it_still_refunds_a_completed_payment(): void
+    public function test_it_stores_the_refund_paypal_confirmed_and_refunds_the_payment_without_calling_paypal(): void
     {
-        $this->payPalApi()->mockOrderDetailsWithCapture();
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
         /** @var OrderInterface $order */
         $order = $fixtures['completed_order'];
 
-        $this->client->request('POST', '/paypal-webhook/api/', [], [], [], json_encode([
-            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
-            'resource' => [
-                'links' => [
-                    ['rel' => 'up', 'href' => 'PAYPAL_ORDER_ID'],
-                ],
-            ],
-        ]));
+        $this->sendRefundWebhook();
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
-        self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_REFUNDED, $payment->getState());
+        self::assertTrue(PayPalPaymentDetails::fromPayment($payment)->isRefunded());
+        self::assertSame('REFUND_ID', PayPalPaymentDetails::fromPayment($payment)->refundId());
+        self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
     }
 
-    public function test_it_marks_a_payment_refunded_in_paypal_without_refunding_it_again(): void
+    public function test_it_completes_the_refund_request_waiting_for_paypal(): void
     {
-        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'REFUNDED');
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
         /** @var OrderInterface $order */
         $order = $fixtures['completed_order'];
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var PaymentRequestInterface $paymentRequest */
+        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
+        $paymentRequest->setAction(PaymentRequestInterface::ACTION_REFUND);
+        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $this->getEntityManager()->persist($paymentRequest);
+        $this->getEntityManager()->flush();
+        $hash = $paymentRequest->getId();
 
-        $this->client->request('POST', '/paypal-webhook/api/', [], [], [], json_encode([
-            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
-            'resource' => [
-                'links' => [
-                    ['rel' => 'up', 'href' => 'PAYPAL_ORDER_ID'],
-                ],
-            ],
-        ]));
+        $this->sendRefundWebhook();
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
-        self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
+        /** @var PaymentRequestInterface $reloadedPaymentRequest */
+        $reloadedPaymentRequest = self::getContainer()->get('sylius.repository.payment_request')->find($hash);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $reloadedPaymentRequest->getState());
     }
 
     public function test_it_asks_paypal_to_deliver_the_event_again_when_settlement_fails(): void
@@ -250,6 +254,20 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
             'resource' => [
                 'id' => 'CAPTURE_ID',
                 'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+            ],
+        ]));
+    }
+
+    private function sendRefundWebhook(): void
+    {
+        $this->client->request('POST', '/paypal-webhook/api/', [], [], [], json_encode([
+            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
+            'resource' => [
+                'id' => 'REFUND_ID',
+                'status' => 'COMPLETED',
+                'links' => [
+                    ['rel' => 'up', 'href' => 'PAYPAL_ORDER_ID'],
+                ],
             ],
         ]));
     }

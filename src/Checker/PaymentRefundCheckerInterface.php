@@ -11,15 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Processor;
+namespace Sylius\PayPalPlugin\Checker;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 
-interface PaymentRefundProcessorInterface
+interface PaymentRefundCheckerInterface
 {
-    /**
-     * @throws PayPalOrderRefundException
-     */
-    public function refund(PaymentInterface $payment): void;
+    public function canBeRefunded(PaymentInterface $payment): bool;
 }

@@ -42,6 +42,10 @@ final readonly class PayPalPaymentDetails
 
     public const SUPERSEDED_PAYPAL_ORDERS = 'superseded_paypal_orders';
 
+    public const REFUNDED = 'refunded';
+
+    public const REFUND_ID = 'refund_id';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -112,6 +116,16 @@ final readonly class PayPalPaymentDetails
     public function payerActionUrl(): ?string
     {
         return $this->optional(self::PAYER_ACTION_URL);
+    }
+
+    public function isRefunded(): bool
+    {
+        return true === ($this->details[self::REFUNDED] ?? false);
+    }
+
+    public function refundId(): ?string
+    {
+        return $this->optional(self::REFUND_ID);
     }
 
     /** @return array<string, string> */
@@ -193,6 +207,14 @@ final readonly class PayPalPaymentDetails
         return $this->with([
             self::CAPTURED_AMOUNT => $amount,
             self::CAPTURED_CURRENCY_CODE => $currencyCode,
+        ]);
+    }
+
+    public function withRefund(?string $refundId): self
+    {
+        return $this->with([
+            self::REFUNDED => true,
+            self::REFUND_ID => $refundId,
         ]);
     }
 

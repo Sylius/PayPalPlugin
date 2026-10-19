@@ -11,12 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Exception;
+namespace Sylius\PayPalPlugin\Processor;
 
-final class PayPalOrderRefundException extends \Exception
+use Sylius\Component\Core\Model\PaymentInterface;
+
+interface PayPalPaymentRefundConfirmationProcessorInterface
 {
-    public function __construct()
-    {
-        parent::__construct('Could not refund PayPal order');
-    }
+    public function confirm(PaymentInterface $payment, ?string $refundId): void;
 }

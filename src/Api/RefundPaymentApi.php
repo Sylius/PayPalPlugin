@@ -29,12 +29,13 @@ final readonly class RefundPaymentApi implements RefundPaymentApiInterface
         string $invoiceNumber,
         string $amount,
         string $currencyCode,
+        ?string $requestId = null,
     ): array {
         return $this->client->post(
             $paymentMethod,
             sprintf('v2/payments/captures/%s/refund', $paymentId),
             ['amount' => ['value' => $amount, 'currency_code' => $currencyCode], 'invoice_id' => $invoiceNumber],
-            ['PayPal-Auth-Assertion' => $payPalAuthAssertion],
+            ['PayPal-Auth-Assertion' => $payPalAuthAssertion] + (null === $requestId ? [] : ['PayPal-Request-Id' => $requestId]),
         );
     }
 }
