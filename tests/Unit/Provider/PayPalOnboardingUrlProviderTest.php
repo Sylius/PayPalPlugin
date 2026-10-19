@@ -21,9 +21,12 @@ use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalOnboardingUrlProviderTest extends TestCase
 {
+    private UrlGeneratorInterface&MockObject $urlGenerator;
+
     private PartnerCredentialsProviderInterface&MockObject $partnerCredentialsProvider;
 
     private PayPalOnboardingUrlProvider $payPalOnboardingUrlProvider;
@@ -31,6 +34,7 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $this->partnerCredentialsProvider = $this->createMock(PartnerCredentialsProviderInterface::class);
         $this->partnerCredentialsProvider
             ->method('provide')
@@ -39,6 +43,7 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
         $this->payPalOnboardingUrlProvider = new PayPalOnboardingUrlProvider(
             $this->createConfiguredStub(HostProviderInterface::class, ['getWebUrlForMode' => 'https://www.sandbox.paypal.com']),
             $this->partnerCredentialsProvider,
+            $this->urlGenerator,
         );
     }
 
@@ -51,6 +56,12 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
     #[Test]
     public function it_generates_the_bizsignup_partner_entry_url_with_a_slash_between_web_url_and_path(): void
     {
+        $this->urlGenerator
+            ->expects(self::once())
+            ->method('generate')
+            ->with('sylius_admin_payment_method_index', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://shop.example.com/admin/payment-methods/');
+
         $result = $this->payPalOnboardingUrlProvider->generate('SELLER-NONCE', true);
 
         self::assertStringStartsWith('https://www.sandbox.paypal.com/bizsignup/partner/entry?', $result);
@@ -63,6 +74,6 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
         self::assertStringContainsString('displayMode=minibrowser', $result);
         self::assertStringContainsString('sellerNonce=SELLER-NONCE', $result);
         self::assertStringContainsString('partnerLogoUrl=' . rawurlencode('https://shop.example.com/logo.png'), $result);
-        self::assertStringNotContainsString('returnToPartnerUrl', $result);
+        self::assertStringContainsString('returnToPartnerUrl=' . rawurlencode('https://shop.example.com/admin/payment-methods/'), $result);
     }
 }

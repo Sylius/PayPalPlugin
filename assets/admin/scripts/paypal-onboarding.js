@@ -66,7 +66,13 @@ function loadPartnerJs(partnerJsUrl) {
 }
 
 function guardOnboardingButtonClick(event) {
-    if (partnerJsReady || !(event.target instanceof Element) || event.target.closest('[data-paypal-button]') === null) {
+    if (!(event.target instanceof Element) || event.target.closest('[data-paypal-button]') === null) {
+        return;
+    }
+
+    if (partnerJsReady) {
+        wrapMiniBrowserParentWindowUpdate();
+
         return;
     }
 
@@ -86,9 +92,34 @@ function findOnboardingModal() {
 
 const MINI_BROWSER_SELECTOR = '.isu-minibrowser-component';
 
+let onboardingRedirectUrl = null;
+let miniBrowserUpdatedParentWindow = false;
+
+function wrapMiniBrowserParentWindowUpdate() {
+    const miniBrowser = window.PAYPAL && window.PAYPAL.apps && window.PAYPAL.apps.Signup && window.PAYPAL.apps.Signup.MiniBrowser;
+
+    if (!miniBrowser || typeof miniBrowser.updateParentWindow !== 'function' || true === miniBrowser.updateParentWindow.syliusWrapped) {
+        return;
+    }
+
+    const updateParentWindow = miniBrowser.updateParentWindow;
+    const wrappedUpdateParentWindow = function (url, ...args) {
+        miniBrowserUpdatedParentWindow = true;
+
+        return updateParentWindow.call(this, onboardingRedirectUrl ?? url, ...args);
+    };
+    wrappedUpdateParentWindow.syliusWrapped = true;
+
+    miniBrowser.updateParentWindow = wrappedUpdateParentWindow;
+}
+
 function redirectOnceMiniBrowserIsClosed(redirectUrl) {
+    onboardingRedirectUrl = redirectUrl;
+
     const redirect = () => {
-        window.location.href = redirectUrl;
+        if (!miniBrowserUpdatedParentWindow) {
+            window.location.href = redirectUrl;
+        }
     };
 
     if (null === document.querySelector(MINI_BROWSER_SELECTOR)) {
@@ -121,6 +152,7 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ authCode, sharedId, sandbox }),
+        keepalive: true,
     })
         .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
         .then(({ data }) => {
