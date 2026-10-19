@@ -16,12 +16,14 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
 use Sylius\Bundle\PaymentBundle\Provider\ActionsHttpResponseProvider;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\NotifyPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandProvider\AuthorizePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\NotifyPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
@@ -50,6 +52,9 @@ return function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.command_provider.capture', CapturePaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
+
+    $services->set('sylius_paypal.command_provider.authorize', AuthorizePaymentRequestCommandProvider::class)
+        ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_AUTHORIZE]);
 
     $services->set('sylius_paypal.command_provider.status', StatusPaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_STATUS]);
@@ -81,7 +86,8 @@ return function (ContainerConfigurator $container): void {
             service('router'),
             service('sylius_paypal.provider.host'),
         ])
-        ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
+        ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_CAPTURE])
+        ->tag('sylius_paypal.provider.http_response', ['action' => PaymentRequestInterface::ACTION_AUTHORIZE]);
 
     $services->set('sylius_paypal.provider.order_pay.pay_response.capture_payment_request', CapturePaymentRequestPayResponseProvider::class)
         ->args([
@@ -122,6 +128,15 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.processor.payment_capture'),
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius.manager.payment_request'),
+            service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.command_handler.authorize_paypal_order', AuthorizePayPalOrderPaymentRequestHandler::class)
+        ->args([
+            service('sylius.provider.payment_request'),
+            service('sylius_paypal.verifier.payment_three_d_secure'),
+            service('sylius_paypal.processor.payment_authorization'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);

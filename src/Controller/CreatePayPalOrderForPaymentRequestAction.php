@@ -40,6 +40,8 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
 
     public const ATTEMPT_CLOSED = 'attempt_closed';
 
+    private const PAYPAL_ORDER_ACTIONS = [PaymentRequestInterface::ACTION_CAPTURE, PaymentRequestInterface::ACTION_AUTHORIZE];
+
     /**
      * @param PaymentRequestRepositoryInterface<PaymentRequestInterface> $paymentRequestRepository
      * @param PaymentRequestFactoryInterface<PaymentRequestInterface> $paymentRequestFactory
@@ -57,7 +59,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
     public function __invoke(Request $request, string $hash): Response
     {
         $paymentRequest = $this->paymentRequestRepository->find($hash);
-        if (null === $paymentRequest || !$this->isPayPalCapture($paymentRequest)) {
+        if (null === $paymentRequest || !$this->isPayPalOrderPayment($paymentRequest)) {
             return new JsonResponse([], Response::HTTP_NOT_FOUND);
         }
 
@@ -100,13 +102,13 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         return $this->respond($paymentRequest);
     }
 
-    private function isPayPalCapture(PaymentRequestInterface $paymentRequest): bool
+    private function isPayPalOrderPayment(PaymentRequestInterface $paymentRequest): bool
     {
         /** @var GatewayConfigInterface|null $gatewayConfig */
         $gatewayConfig = $paymentRequest->getMethod()->getGatewayConfig();
 
         return
-            PaymentRequestInterface::ACTION_CAPTURE === $paymentRequest->getAction() &&
+            in_array($paymentRequest->getAction(), self::PAYPAL_ORDER_ACTIONS, true) &&
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $gatewayConfig?->getFactoryName()
         ;
     }
@@ -149,7 +151,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         }
 
         $anotherAttempt = $this->paymentRequestFactory->createFromPaymentRequest($paymentRequest);
-        $anotherAttempt->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $anotherAttempt->setAction($paymentRequest->getAction());
 
         return $anotherAttempt;
     }
