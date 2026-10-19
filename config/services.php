@@ -8,6 +8,8 @@ use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
 use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
@@ -251,6 +253,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.shipping_callback_url'),
             service('sylius_paypal.provider.experience_context'),
             service('sylius_paypal.provider.paypal_payment_source'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(PayPalOrderFactoryInterface::class, 'sylius_paypal.factory.paypal_order');
@@ -484,6 +487,10 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class);
 
     $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
+
+    $services->set('sylius_paypal.checker.payment_authorization', PaymentAuthorizationChecker::class);
+
+    $services->alias(PaymentAuthorizationCheckerInterface::class, 'sylius_paypal.checker.payment_authorization');
 
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([

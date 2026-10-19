@@ -15,6 +15,8 @@ namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
@@ -31,15 +33,19 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 
     private PayPalPaymentSourceProviderInterface $paymentSourceProvider;
 
+    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker;
+
     public function __construct(
         private PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
         private ?UrlGeneratorInterface $router = null,
         private ?ShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
         ?ExperienceContextProviderInterface $experienceContextProvider = null,
         ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
+        ?PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker = null,
     ) {
         $this->experienceContextProvider = $experienceContextProvider ?? new ExperienceContextProvider();
         $this->paymentSourceProvider = $paymentSourceProvider ?? new PayPalPaymentSourceProvider();
+        $this->paymentAuthorizationChecker = $paymentAuthorizationChecker ?? new PaymentAuthorizationChecker();
     }
 
     public function create(
@@ -70,12 +76,22 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
                 withItemTaxes: !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
                 customId: $customId,
             ),
-            intent: PayPalOrder::INTENT_CAPTURE,
+            intent: $this->intent($payment, $paymentSource),
             paymentSource: $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext),
             processingInstruction: null === $redirectPaymentSource
                 ? null
                 : PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,
         );
+    }
+
+    private function intent(PaymentInterface $payment, string $paymentSource): string
+    {
+        $paymentMethod = $payment->getMethod();
+
+        return null !== $paymentMethod && $this->paymentAuthorizationChecker->authorizes($paymentMethod, $paymentSource)
+            ? PayPalOrder::INTENT_AUTHORIZE
+            : PayPalOrder::INTENT_CAPTURE
+        ;
     }
 
     private function checkoutCompleteUrl(OrderInterface $order, ?RedirectPaymentSource $redirectPaymentSource): ?string
