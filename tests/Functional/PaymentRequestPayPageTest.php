@@ -68,8 +68,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'reference_id' => 'REFERENCE_ID']);
         $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING);
 
-        $this->payPalApi()->mockUpdateOrderAddress();
-        $this->payPalApi()->mockCaptureOfUnapprovedOrder();
+        $this->payPalApi()->mockUnapprovedOrderDetails();
         $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
 
         self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/TOKEN/pay'));
@@ -104,6 +103,24 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertCount(3, self::getContainer()->get('sylius.repository.payment_request')->findAll());
     }
 
+    public function test_it_tells_the_payer_who_closed_the_paypal_window_that_the_payment_was_cancelled(): void
+    {
+        $payment = $this->payPalOrder();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $payment->setAmount($order->getTotal());
+        $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'reference_id' => 'REFERENCE_ID', 'payment_source' => 'paypal']);
+        $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING);
+
+        $this->payPalApi()->mockUnapprovedOrderDetails();
+        $this->client->followRedirects();
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s?payer_cancelled=1', $hash));
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('PayPal payment has been cancelled', (string) $this->client->getResponse()->getContent());
+    }
+
     public function test_it_asks_the_payer_to_authenticate_the_card_again_when_3d_secure_did_not_finish(): void
     {
         $hash = $this->cardPaymentRequestHash();
@@ -133,12 +150,27 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $hash = $this->cardPaymentRequestHash();
 
         $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockCapture();
         $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
         $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
 
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment(PaymentInterface::STATE_COMPLETED)?->getState());
+    }
+
+    public function test_it_captures_a_card_payment_paypal_left_created_after_3d_secure(): void
+    {
+        $hash = $this->cardPaymentRequestHash();
+
+        $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'CREATED']);
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockCapture();
+        $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($this->reloadedPayment()->getAmount() / 100, 2, '.', ''));
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_COMPLETED));
     }
 
     public function test_it_completes_a_trustly_payment_paypal_captured_once_the_payer_comes_back_from_the_bank(): void
@@ -237,6 +269,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         if ('google_pay' === $paymentSource) {
             $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'APPROVED']);
         }
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockCapture();
         $this->payPalApi()->mockOrderDetailsWithCapture(value: number_format($order->getTotal() / 100, 2, '.', ''));

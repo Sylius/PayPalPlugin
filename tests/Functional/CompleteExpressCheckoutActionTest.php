@@ -62,6 +62,7 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
         $order = $this->cart();
 
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->orderDetails($order));
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockCaptureOfDeclinedInstrument();
 
@@ -369,6 +370,7 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
 
     private function mockCapture(int $capturedTotal, string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
     {
+        $this->payPalApi()->mockOrderDetails($payPalOrderId);
         $this->payPalApi()->mockUpdateOrderAddress($payPalOrderId);
         $this->payPalApi()->mockCapture($payPalOrderId);
         $this->payPalApi()->mockOrderDetailsWithCapture($payPalOrderId, value: number_format($capturedTotal / 100, 2, '.', ''));

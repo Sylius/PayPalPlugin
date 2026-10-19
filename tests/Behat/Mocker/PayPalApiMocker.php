@@ -62,13 +62,8 @@ final readonly class PayPalApiMocker
         ], 422, $this->requestIdHeader($requestId));
     }
 
-    public function mockCaptureOfUnapprovedOrder(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    public function mockUnapprovedOrderDetails(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
     {
-        $this->client->addExpectation('POST', sprintf('v2/checkout/orders/%s/capture', $payPalOrderId), [
-            'name' => 'UNPROCESSABLE_ENTITY',
-            'details' => [['issue' => 'ORDER_NOT_APPROVED']],
-            'debug_id' => 'DEBUG_ID',
-        ], 422);
         $this->mockOrderDetails($payPalOrderId, ['status' => 'CREATED']);
     }
 

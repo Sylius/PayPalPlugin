@@ -161,10 +161,13 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
 
     private function respond(PaymentRequestInterface $paymentRequest): JsonResponse
     {
+        $payUrl = $this->paymentRequestPayUrlProvider->getUrl($paymentRequest);
+
         return new JsonResponse(
             [
                 'hash' => $paymentRequest->getId(),
-                'approve_url' => $this->paymentRequestPayUrlProvider->getUrl($paymentRequest),
+                'approve_url' => $payUrl,
+                'cancel_url' => sprintf('%s?%s=1', $payUrl, CreatePayPalOrderPaymentRequestHandler::PAYER_CANCELLED_QUERY_PARAMETER),
             ] + $paymentRequest->getResponseData(),
             PaymentRequestInterface::STATE_FAILED === $paymentRequest->getState() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK,
         );

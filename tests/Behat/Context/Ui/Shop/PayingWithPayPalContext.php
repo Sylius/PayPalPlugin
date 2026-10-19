@@ -94,6 +94,7 @@ final readonly class PayingWithPayPalContext implements Context
 
         $this->payPalApiMocker->mockCardOrderDetails(authenticationStatus: $authenticationStatus);
         if ('Y' === $authenticationStatus) {
+            $this->payPalApiMocker->mockOrderDetails('PAYPAL_ORDER_ID');
             $this->payPalApiMocker->mockUpdateOrderAddress();
             $this->payPalApiMocker->mockCapture();
             $this->payPalApiMocker->mockOrderDetailsWithCapture(
