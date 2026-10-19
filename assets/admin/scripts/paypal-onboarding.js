@@ -31,10 +31,7 @@ function loadPartnerJs(partnerJsUrl) {
 
     const loadedScript = document.querySelector('script[data-paypal-partner-js]');
 
-    if (loadedScript !== null && loadedScript.getAttribute('src') !== partnerJsUrl) {
-        loadedScript.remove();
-        delete window.PAYPAL;
-    } else if (loadedScript !== null) {
+    if (loadedScript !== null) {
         if (!partnerJsReady) {
             return;
         }
@@ -87,6 +84,28 @@ function findOnboardingModal() {
     return activeOnboardingModal ?? document.querySelector('[data-paypal-onboarding-complete-url]');
 }
 
+const MINI_BROWSER_SELECTOR = '.isu-minibrowser-component';
+
+function redirectOnceMiniBrowserIsClosed(redirectUrl) {
+    const redirect = () => {
+        window.location.href = redirectUrl;
+    };
+
+    if (null === document.querySelector(MINI_BROWSER_SELECTOR)) {
+        redirect();
+
+        return;
+    }
+
+    const observer = new MutationObserver(() => {
+        if (null === document.querySelector(MINI_BROWSER_SELECTOR)) {
+            observer.disconnect();
+            redirect();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
 window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, sharedId) {
     const modal = findOnboardingModal();
 
@@ -106,7 +125,7 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
         .then(({ data }) => {
             if (data && data.redirectUrl) {
-                window.location.href = data.redirectUrl;
+                redirectOnceMiniBrowserIsClosed(data.redirectUrl);
 
                 return;
             }
