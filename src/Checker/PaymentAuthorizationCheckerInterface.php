@@ -17,7 +17,7 @@ use Sylius\Component\Payment\Model\PaymentMethodInterface;
 
 interface PaymentAuthorizationCheckerInterface
 {
-    public function authorizesPayments(PaymentMethodInterface $paymentMethod): bool;
+    public function isAuthorizeEnabled(PaymentMethodInterface $paymentMethod): bool;
 
-    public function authorizes(PaymentMethodInterface $paymentMethod, string $paymentSource): bool;
+    public function isAuthorizable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool;
 }

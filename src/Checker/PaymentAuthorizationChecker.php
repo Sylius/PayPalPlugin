@@ -29,7 +29,7 @@ final readonly class PaymentAuthorizationChecker implements PaymentAuthorization
         PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
     ];
 
-    public function authorizesPayments(PaymentMethodInterface $paymentMethod): bool
+    public function isAuthorizeEnabled(PaymentMethodInterface $paymentMethod): bool
     {
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         if (!$gatewayConfig instanceof GatewayConfigInterface) {
@@ -40,14 +40,14 @@ final readonly class PaymentAuthorizationChecker implements PaymentAuthorization
             return false;
         }
 
-        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->authorizesPayments();
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isAuthorizeEnabled();
     }
 
-    public function authorizes(PaymentMethodInterface $paymentMethod, string $paymentSource): bool
+    public function isAuthorizable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
     {
         return
             in_array($paymentSource, self::AUTHORIZABLE_PAYMENT_SOURCES, true) &&
-            $this->authorizesPayments($paymentMethod)
+            $this->isAuthorizeEnabled($paymentMethod)
         ;
     }
 }

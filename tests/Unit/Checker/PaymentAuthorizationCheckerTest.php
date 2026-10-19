@@ -42,9 +42,9 @@ final class PaymentAuthorizationCheckerTest extends TestCase
     {
         $checker = new PaymentAuthorizationChecker();
 
-        self::assertTrue($checker->authorizesPayments($this->paymentMethodConfiguredWith(['use_authorize' => true])));
-        self::assertFalse($checker->authorizesPayments($this->paymentMethodConfiguredWith(['use_authorize' => false])));
-        self::assertFalse($checker->authorizesPayments($this->paymentMethodConfiguredWith([])));
+        self::assertTrue($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith(['use_authorize' => true])));
+        self::assertFalse($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith(['use_authorize' => false])));
+        self::assertFalse($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith([])));
     }
 
     public function test_it_does_not_authorize_on_a_payum_gateway_that_uses_the_flag_to_postpone_the_order(): void
@@ -56,7 +56,7 @@ final class PaymentAuthorizationCheckerTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        self::assertFalse((new PaymentAuthorizationChecker())->authorizesPayments($paymentMethod));
+        self::assertFalse((new PaymentAuthorizationChecker())->isAuthorizeEnabled($paymentMethod));
     }
 
     public function test_it_does_not_authorize_without_a_gateway_config(): void
@@ -64,7 +64,7 @@ final class PaymentAuthorizationCheckerTest extends TestCase
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn(null);
 
-        self::assertFalse((new PaymentAuthorizationChecker())->authorizesPayments($paymentMethod));
+        self::assertFalse((new PaymentAuthorizationChecker())->isAuthorizeEnabled($paymentMethod));
     }
 
     #[DataProvider('authorizablePaymentSources')]
@@ -72,15 +72,15 @@ final class PaymentAuthorizationCheckerTest extends TestCase
     {
         $checker = new PaymentAuthorizationChecker();
 
-        self::assertTrue($checker->authorizes($this->paymentMethodConfiguredWith(['use_authorize' => true]), $paymentSource));
-        self::assertFalse($checker->authorizes($this->paymentMethodConfiguredWith([]), $paymentSource));
+        self::assertTrue($checker->isAuthorizable($paymentSource, $this->paymentMethodConfiguredWith(['use_authorize' => true])));
+        self::assertFalse($checker->isAuthorizable($paymentSource, $this->paymentMethodConfiguredWith([])));
     }
 
     public function test_it_does_not_authorize_a_redirect_payment_source(): void
     {
-        self::assertFalse((new PaymentAuthorizationChecker())->authorizes(
-            $this->paymentMethodConfiguredWith(['use_authorize' => true]),
+        self::assertFalse((new PaymentAuthorizationChecker())->isAuthorizable(
             'trustly',
+            $this->paymentMethodConfiguredWith(['use_authorize' => true]),
         ));
     }
 

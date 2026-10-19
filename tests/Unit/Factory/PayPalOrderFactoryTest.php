@@ -426,7 +426,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $this->payment->method('getMethod')->willReturn($paymentMethod);
 
         $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
-        $paymentAuthorizationChecker->expects(self::once())->method('authorizes')->with($paymentMethod, 'card')->willReturn(true);
+        $paymentAuthorizationChecker->expects(self::once())->method('isAuthorizable')->with('card', $paymentMethod)->willReturn(true);
 
         $payPalOrder = $this->factoryCheckingAuthorizationWith($paymentAuthorizationChecker)
             ->create($this->payment, 'REFERENCE_ID', 'card')
@@ -441,7 +441,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $this->payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
 
         $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
-        $paymentAuthorizationChecker->method('authorizes')->willReturn(false);
+        $paymentAuthorizationChecker->method('isAuthorizable')->willReturn(false);
 
         $payPalOrder = $this->factoryCheckingAuthorizationWith($paymentAuthorizationChecker)
             ->create($this->payment, 'REFERENCE_ID')
@@ -456,7 +456,7 @@ final class PayPalOrderFactoryTest extends TestCase
         $this->payment->method('getMethod')->willReturn(null);
 
         $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
-        $paymentAuthorizationChecker->expects(self::never())->method('authorizes');
+        $paymentAuthorizationChecker->expects(self::never())->method('isAuthorizable');
 
         $payPalOrder = $this->factoryCheckingAuthorizationWith($paymentAuthorizationChecker)
             ->create($this->payment, 'REFERENCE_ID')

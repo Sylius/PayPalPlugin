@@ -147,7 +147,7 @@ final readonly class PayPalGatewayConfig
         return $this->flag(self::APPLE_PAY_ENABLED, false);
     }
 
-    public function authorizesPayments(): bool
+    public function isAuthorizeEnabled(): bool
     {
         return $this->flag(self::USE_AUTHORIZE, false);
     }

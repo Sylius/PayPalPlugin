@@ -88,7 +88,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
     {
         $paymentMethod = $payment->getMethod();
 
-        return null !== $paymentMethod && $this->paymentAuthorizationChecker->authorizes($paymentMethod, $paymentSource)
+        return null !== $paymentMethod && $this->paymentAuthorizationChecker->isAuthorizable($paymentSource, $paymentMethod)
             ? PayPalOrder::INTENT_AUTHORIZE
             : PayPalOrder::INTENT_CAPTURE
         ;
