@@ -31,7 +31,7 @@ function loadPartnerJs(partnerJsUrl) {
 
     const loadedScript = document.querySelector('script[data-paypal-partner-js]');
 
-    if (loadedScript !== null) {
+    if (null !== loadedScript) {
         if (!partnerJsReady) {
             return;
         }
