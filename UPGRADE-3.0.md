@@ -752,3 +752,21 @@
    ```
 
    `WebhookRequestVerifier` no longer depends on `PayPalPaymentMethodProviderInterface`.
+
+1. #### `PaymentCaptureProcessor` brings the approved PayPal order up to date through `ApprovedPayPalOrderUpdater`.
+
+   Updating the amount and the shipping address of an approved PayPal order before it is completed moved to
+   `Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface` (`sylius_paypal.updater.approved_paypal_order`).
+
+   ```diff
+    // Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor
+    public function __construct(
+   -    private UpdateOrderApiInterface $updateOrderApi,
+   -    private UpdateOrderAddressApiInterface $updateOrderAddressApi,
+   +    private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
+        private CompleteOrderApiInterface $completeOrderApi,
+        private OrderDetailsApiInterface $orderDetailsApi,
+   -    private PaymentUpdaterInterface $paymentUpdater,
+   -    private StateResolverInterface $orderPaymentStateResolver,
+    ) {
+   ```

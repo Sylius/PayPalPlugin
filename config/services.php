@@ -139,6 +139,8 @@ use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdater;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PayPalPaymentUpdater;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifier;
@@ -355,14 +357,21 @@ return static function (ContainerConfigurator $container) {
         ->decorate('sylius.order_processing.order_payment_processor.after_checkout')
         ->args([service('.inner')]);
 
-    $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
+    $services->set('sylius_paypal.updater.approved_paypal_order', ApprovedPayPalOrderUpdater::class)
         ->args([
             service('sylius_paypal.api.update_order'),
             service('sylius_paypal.api.update_order_address'),
-            service('sylius_paypal.api.complete_order'),
-            service('sylius_paypal.api.order_details'),
             service('sylius_paypal.updater.payment'),
             service('sylius.state_resolver.order_payment'),
+        ]);
+
+    $services->alias(ApprovedPayPalOrderUpdaterInterface::class, 'sylius_paypal.updater.approved_paypal_order');
+
+    $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
+        ->args([
+            service('sylius_paypal.updater.approved_paypal_order'),
+            service('sylius_paypal.api.complete_order'),
+            service('sylius_paypal.api.order_details'),
         ]);
 
     $services->alias(PaymentCaptureProcessorInterface::class, 'sylius_paypal.processor.payment_capture');

@@ -13,25 +13,19 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor;
 
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Order\StateResolver\StateResolverInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
-use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
-use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
@@ -47,12 +41,9 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
     private const ISSUES_LEAVING_THE_ORDER_TO_READ = ['ORDER_ALREADY_CAPTURED', 'ORDER_NOT_APPROVED', 'PAYER_ACTION_REQUIRED'];
 
     public function __construct(
-        private UpdateOrderApiInterface $updateOrderApi,
-        private UpdateOrderAddressApiInterface $updateOrderAddressApi,
+        private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
         private CompleteOrderApiInterface $completeOrderApi,
         private OrderDetailsApiInterface $orderDetailsApi,
-        private PaymentUpdaterInterface $paymentUpdater,
-        private StateResolverInterface $orderPaymentStateResolver,
     ) {
     }
 
@@ -60,8 +51,6 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var OrderInterface $order */
-        $order = $payment->getOrder();
 
         $details = PayPalPaymentDetails::fromPayment($payment);
         $payPalOrderId = (string) $details->payPalOrderId();
@@ -69,7 +58,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
         if ($this->isCapturable($orderDetails, $details)) {
-            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
+            $this->captureApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
 
@@ -111,38 +100,11 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
     private function captureApprovedOrder(
         PaymentInterface $payment,
-        OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
-        PayPalPaymentDetails $details,
+        string $payPalOrderId,
         ?string $requestId,
     ): void {
-        $payPalOrderId = (string) $details->payPalOrderId();
-
-        if ($payment->getAmount() !== $order->getTotal()) {
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-            $this->updateOrderApi->update(
-                $paymentMethod,
-                $payPalOrderId,
-                $payment,
-                (string) $details->referenceId(),
-                PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId(),
-            );
-
-            $this->paymentUpdater->updateAmount($payment, $order->getTotal());
-            $this->orderPaymentStateResolver->resolve($order);
-        }
-
-        $shippingAddress = $order->getShippingAddress();
-        if ($order->isShippingRequired() && null !== $shippingAddress) {
-            $this->updateOrderAddressApi->update(
-                $paymentMethod,
-                $payPalOrderId,
-                (string) $details->referenceId(),
-                $shippingAddress,
-            );
-        }
+        $this->approvedPayPalOrderUpdater->update($payment);
 
         try {
             $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);

@@ -16,22 +16,17 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Processor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Order\StateResolver\StateResolverInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
-use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
-use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
-use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 
 final class PaymentCaptureProcessorTest extends TestCase
 {
@@ -43,17 +38,11 @@ final class PaymentCaptureProcessorTest extends TestCase
 
     private const APPROVED_ORDER = ['status' => 'APPROVED', 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
 
-    private UpdateOrderApiInterface&MockObject $updateOrderApi;
-
-    private UpdateOrderAddressApiInterface&MockObject $updateOrderAddressApi;
+    private ApprovedPayPalOrderUpdaterInterface&MockObject $approvedPayPalOrderUpdater;
 
     private CompleteOrderApiInterface&MockObject $completeOrderApi;
 
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
-
-    private PaymentUpdaterInterface&MockObject $paymentUpdater;
-
-    private StateResolverInterface&MockObject $orderPaymentStateResolver;
 
     private PaymentMethodInterface&MockObject $paymentMethod;
 
@@ -66,12 +55,9 @@ final class PaymentCaptureProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->updateOrderApi = $this->createMock(UpdateOrderApiInterface::class);
-        $this->updateOrderAddressApi = $this->createMock(UpdateOrderAddressApiInterface::class);
+        $this->approvedPayPalOrderUpdater = $this->createMock(ApprovedPayPalOrderUpdaterInterface::class);
         $this->completeOrderApi = $this->createMock(CompleteOrderApiInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
-        $this->paymentUpdater = $this->createMock(PaymentUpdaterInterface::class);
-        $this->orderPaymentStateResolver = $this->createMock(StateResolverInterface::class);
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->order = $this->createMock(OrderInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
@@ -80,12 +66,9 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->payment->method('getOrder')->willReturn($this->order);
 
         $this->processor = new PaymentCaptureProcessor(
-            $this->updateOrderApi,
-            $this->updateOrderAddressApi,
+            $this->approvedPayPalOrderUpdater,
             $this->completeOrderApi,
             $this->orderDetailsApi,
-            $this->paymentUpdater,
-            $this->orderPaymentStateResolver,
         );
     }
 
@@ -98,7 +81,6 @@ final class PaymentCaptureProcessorTest extends TestCase
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
 
-        $this->updateOrderApi->expects(self::never())->method('update');
         $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123');
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
         $this->payment->expects(self::once())->method('setDetails')->with([
@@ -147,12 +129,11 @@ final class PaymentCaptureProcessorTest extends TestCase
     #[DataProvider('ordersThePayerHasNotApproved')]
     public function test_it_does_not_capture_a_paypal_order_the_payer_has_not_approved(string $paymentSource, string $status): void
     {
-        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID', 'payment_source' => $paymentSource], amount: 1000, total: 1200, shippingRequired: true);
+        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID', 'payment_source' => $paymentSource], amount: 1000, total: 1200);
         $notApproved = ['status' => $status, 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
 
         $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn($notApproved);
-        $this->updateOrderApi->expects(self::never())->method('update');
-        $this->updateOrderAddressApi->expects(self::never())->method('update');
+        $this->approvedPayPalOrderUpdater->expects(self::never())->method('update');
         $this->completeOrderApi->expects(self::never())->method('complete');
         $this->payment->expects(self::never())->method('setDetails');
 
@@ -193,10 +174,9 @@ final class PaymentCaptureProcessorTest extends TestCase
 
     public function test_it_only_reads_an_order_paypal_captures_on_payment_approval(): void
     {
-        $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'trustly'], amount: 1000, total: 1200, shippingRequired: true);
+        $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'trustly'], amount: 1000, total: 1200);
 
-        $this->updateOrderApi->expects(self::never())->method('update');
-        $this->updateOrderAddressApi->expects(self::never())->method('update');
+        $this->approvedPayPalOrderUpdater->expects(self::never())->method('update');
         $this->completeOrderApi->expects(self::never())->method('complete');
         $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn(self::ORDER_DETAILS);
         $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
@@ -234,51 +214,12 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
-    public function test_it_brings_the_paypal_order_up_to_the_order_total_before_capturing(): void
+    public function test_it_brings_the_approved_paypal_order_up_to_date_before_capturing_it(): void
     {
-        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1200);
+        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1200);
 
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gatewayConfig->method('getConfig')->willReturn(['merchant_id' => 'MERCHANT_ID', 'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID']);
-        $this->paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-
-        $this->updateOrderApi->expects(self::once())->method('update')->with($this->paymentMethod, '123123', $this->payment, 'REFERENCE_ID', 'MERCHANT_ID');
-        $this->paymentUpdater->expects(self::once())->method('updateAmount')->with($this->payment, 1200);
-        $this->orderPaymentStateResolver->expects(self::once())->method('resolve')->with($this->order);
-        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
-
-        $this->processor->capture($this->payment);
-    }
-
-    public function test_it_sends_paypal_the_shipping_address_of_an_order_that_needs_shipping(): void
-    {
-        $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000, shippingRequired: true);
-        $shippingAddress = $this->createMock(AddressInterface::class);
-        $this->order->method('getShippingAddress')->willReturn($shippingAddress);
-
-        $this->updateOrderAddressApi->expects(self::once())->method('update')->with($this->paymentMethod, '123123', 'REFERENCE_ID', $shippingAddress);
-        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
-
-        $this->processor->capture($this->payment);
-    }
-
-    public function test_it_captures_an_order_that_needs_shipping_but_has_no_shipping_address(): void
-    {
-        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000, shippingRequired: true);
-        $this->order->method('getShippingAddress')->willReturn(null);
-
-        $this->updateOrderAddressApi->expects(self::never())->method('update');
-        $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123');
-        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
-
-        $this->processor->capture($this->payment);
-    }
-
-    public function test_it_sends_paypal_no_shipping_address_for_an_order_that_needs_no_shipping(): void
-    {
-        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);
-
-        $this->updateOrderAddressApi->expects(self::never())->method('update');
+        $this->approvedPayPalOrderUpdater->expects(self::once())->method('update')->with($this->payment);
+        $this->completeOrderApi->expects(self::once())->method('complete');
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
 
         $this->processor->capture($this->payment);
@@ -335,11 +276,10 @@ final class PaymentCaptureProcessorTest extends TestCase
     }
 
     /** @param array<string, mixed> $details */
-    private function paymentOf(array $details, int $amount, int $total, bool $shippingRequired = false): void
+    private function paymentOf(array $details, int $amount, int $total): void
     {
         $this->payment->method('getDetails')->willReturn($details);
         $this->payment->method('getAmount')->willReturn($amount);
         $this->order->method('getTotal')->willReturn($total);
-        $this->order->method('isShippingRequired')->willReturn($shippingRequired);
     }
 }
