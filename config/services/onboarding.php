@@ -40,6 +40,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.partner_credentials'),
+            service('router'),
         ]);
 
     $services->alias(PayPalOnboardingUrlProviderInterface::class, 'sylius_paypal.provider.onboarding_url');
