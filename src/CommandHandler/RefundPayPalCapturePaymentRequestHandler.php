@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
@@ -61,12 +62,20 @@ final class RefundPayPalCapturePaymentRequestHandler
     {
         $paymentRequest = $this->paymentRequestProvider->provide($refundPayPalCapturePaymentRequest);
 
-        if (PaymentRequestInterface::STATE_NEW === $paymentRequest->getState()) {
-            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+        if (!in_array($paymentRequest->getState(), [PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_PROCESSING], true)) {
+            return;
         }
 
-        if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $paymentRequest->getMethod();
+        if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()) {
+            $this->failWithReason($paymentRequest, 'The payment was not paid with PayPal.');
+
             return;
+        }
+
+        if (PaymentRequestInterface::STATE_NEW === $paymentRequest->getState()) {
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
         }
 
         /** @var PaymentInterface $payment */
@@ -85,9 +94,6 @@ final class RefundPayPalCapturePaymentRequestHandler
 
             return;
         }
-
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $paymentRequest->getMethod();
 
         try {
             $capture = PayPalCapture::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));

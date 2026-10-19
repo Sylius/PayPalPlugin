@@ -55,11 +55,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
     {
         $paymentRequest = $this->paymentRequestProvider->provide($refundPayPalLateCapturePaymentRequest);
 
-        if (PaymentRequestInterface::STATE_NEW === $paymentRequest->getState()) {
-            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
-        }
-
-        if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
+        if (!in_array($paymentRequest->getState(), [PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_PROCESSING], true)) {
             return;
         }
 
@@ -69,6 +65,10 @@ final class RefundPayPalLateCapturePaymentRequestHandler
             $this->failWithReason($paymentRequest, 'The payment was not paid with PayPal.');
 
             return;
+        }
+
+        if (PaymentRequestInterface::STATE_NEW === $paymentRequest->getState()) {
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
         }
 
         /** @var PaymentInterface $payment */
