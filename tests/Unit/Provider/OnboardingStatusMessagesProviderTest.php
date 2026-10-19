@@ -25,7 +25,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     #[Test]
     public function it_provides_no_messages_when_onboarding_is_complete(): void
     {
-        self::assertSame([], (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, true)));
+        self::assertSame([], (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, true, 'ACTIVE')));
     }
 
     #[Test]
@@ -42,7 +42,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                     'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
                 ],
             ],
-            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, false)),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, false, 'ACTIVE')),
         );
     }
 
@@ -54,7 +54,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                 'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
                 'parameters' => ['%paypal_url%' => 'https://www.paypal.com'],
             ]],
-            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, true)),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(false, true, 'ACTIVE')),
         );
     }
 
@@ -66,7 +66,7 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                 'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                 'parameters' => ['%business_profile_url%' => 'https://www.paypal.com/businessprofile/settings'],
             ]],
-            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, false)),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, false, 'ACTIVE')),
         );
     }
 
@@ -78,7 +78,31 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
                 'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                 'parameters' => ['%business_profile_url%' => 'https://www.sandbox.paypal.com/businessprofile/settings'],
             ]],
-            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, false), true),
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, false, 'ACTIVE'), true),
+        );
+    }
+
+    #[Test]
+    public function it_provides_the_vaulting_not_active_message_with_the_capability_status(): void
+    {
+        self::assertSame(
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => ['%status%' => 'NEED_DATA'],
+            ]],
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, true, 'NEED_DATA')),
+        );
+    }
+
+    #[Test]
+    public function it_provides_the_vaulting_not_active_message_when_the_capability_was_not_requested(): void
+    {
+        self::assertSame(
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => ['%status%' => 'NOT_REQUESTED'],
+            ]],
+            (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, true)),
         );
     }
 }

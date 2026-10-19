@@ -15,9 +15,14 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class OnboardingStatus
 {
+    public const VAULTING_CAPABILITY = 'PAYPAL_WALLET_VAULTING_ADVANCED';
+
+    public const ACTIVE_CAPABILITY_STATUS = 'ACTIVE';
+
     public function __construct(
         private bool $paymentsReceivable,
         private bool $primaryEmailConfirmed,
+        private ?string $vaultingCapabilityStatus = null,
     ) {
     }
 
@@ -34,5 +39,15 @@ final readonly class OnboardingStatus
     public function isComplete(): bool
     {
         return $this->paymentsReceivable && $this->primaryEmailConfirmed;
+    }
+
+    public function getVaultingCapabilityStatus(): ?string
+    {
+        return $this->vaultingCapabilityStatus;
+    }
+
+    public function isVaultingEnabled(): bool
+    {
+        return self::ACTIVE_CAPABILITY_STATUS === $this->vaultingCapabilityStatus;
     }
 }

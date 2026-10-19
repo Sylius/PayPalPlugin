@@ -46,6 +46,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::MERCHANT_ID => $result->getMerchantId(),
             PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $result->getMerchantId(),
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
+            PayPalGatewayConfig::VAULTING_ENABLED => $result->getStatus()->isVaultingEnabled(),
         ];
 
         $paymentMethod = $this->upsertPaymentMethod($credentials, $sandbox);

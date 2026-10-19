@@ -43,6 +43,15 @@ final readonly class OnboardingStatusMessagesProvider implements OnboardingStatu
             ];
         }
 
+        if (!$status->isVaultingEnabled()) {
+            $messages[] = [
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => [
+                    '%status%' => $status->getVaultingCapabilityStatus() ?? 'NOT_REQUESTED',
+                ],
+            ];
+        }
+
         return $messages;
     }
 }

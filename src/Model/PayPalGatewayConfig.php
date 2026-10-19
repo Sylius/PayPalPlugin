@@ -51,6 +51,8 @@ final readonly class PayPalGatewayConfig
 
     public const CARD_THREE_D_SECURE_ALWAYS = 'card_three_d_secure_always';
 
+    public const VAULTING_ENABLED = 'vaulting_enabled';
+
     /** @param array<string, mixed> $config */
     private function __construct(private array $config)
     {
@@ -155,6 +157,11 @@ final readonly class PayPalGatewayConfig
     public function isCardThreeDSecureAlways(): bool
     {
         return $this->flag(self::CARD_THREE_D_SECURE_ALWAYS, false);
+    }
+
+    public function isVaultingEnabled(): bool
+    {
+        return $this->flag(self::VAULTING_ENABLED, false);
     }
 
     public function isRedirectPaymentSourceEnabled(RedirectPaymentSource $paymentSource): bool
