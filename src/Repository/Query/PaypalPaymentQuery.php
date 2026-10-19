@@ -21,6 +21,7 @@ use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 
 final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
 {
@@ -94,14 +95,33 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId, includingSuperseded: true);
     }
 
+    public function getForSettlementByCaptureId(string $captureId): PaymentInterface
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $this->settleableStates)
+            ->addOrderBy('o.updatedAt', 'DESC')
+        ;
+
+        $this->filterByDetailsValue($queryBuilder, $captureId);
+
+        /** @var PaymentInterface $payment */
+        foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
+            $lateCapture = $payment->getDetails()[PayPalPaymentSettlementProcessor::LATE_CAPTURE] ?? null;
+            if (
+                $captureId === PayPalPaymentDetails::fromPayment($payment)->transactionId() ||
+                (is_array($lateCapture) && $captureId === ($lateCapture['id'] ?? null))
+            ) {
+                return $payment;
+            }
+        }
+
+        throw new PaymentNotFoundException();
+    }
+
     private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface
     {
-        if ($this->isCastAvailable()) {
-            $queryBuilder
-                ->andWhere('CAST(o.details AS text) LIKE :orderId')
-                ->setParameter('orderId', '%"' . $paypalOrderId . '"%')
-            ;
-        }
+        $this->filterByDetailsValue($queryBuilder, $paypalOrderId);
 
         /** @var PaymentInterface $payment */
         foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
@@ -115,6 +135,16 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         }
 
         throw new PaymentNotFoundException();
+    }
+
+    private function filterByDetailsValue(QueryBuilder $queryBuilder, string $value): void
+    {
+        if ($this->isCastAvailable()) {
+            $queryBuilder
+                ->andWhere('CAST(o.details AS text) LIKE :detailsValue')
+                ->setParameter('detailsValue', '%"' . $value . '"%')
+            ;
+        }
     }
 
     private function getPaypalPaymentQueryBuilder(): QueryBuilder

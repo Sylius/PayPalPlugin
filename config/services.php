@@ -134,6 +134,8 @@ use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolver;
 use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
+use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
+use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -564,6 +566,14 @@ return static function (ContainerConfigurator $container) {
         ->factory([service('doctrine.orm.entity_manager'), 'getRepository']);
 
     $services->alias(PayPalWebhookEventRepositoryInterface::class, 'sylius_paypal.repository.webhook_event');
+
+    $services->set('sylius_paypal.resolver.webhook_event_payment', WebhookEventPaymentResolver::class)
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius_paypal.repository.query.paypal_payment'),
+        ]);
+
+    $services->alias(WebhookEventPaymentResolverInterface::class, 'sylius_paypal.resolver.webhook_event_payment');
 
     $services->set('sylius_paypal.console.command.prune_webhook_events', PruneWebhookEventsCommand::class)
         ->args([
