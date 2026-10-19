@@ -20,11 +20,14 @@ final readonly class WebhookApi implements WebhookApiInterface
 {
     /** @var list<string> */
     public const EVENT_TYPES = [
-        'PAYMENT.CAPTURE.REFUNDED',
+        'CHECKOUT.ORDER.APPROVED',
+        'CHECKOUT.ORDER.COMPLETED',
         'PAYMENT.CAPTURE.COMPLETED',
         'PAYMENT.CAPTURE.DENIED',
         'PAYMENT.CAPTURE.DECLINED',
         'PAYMENT.CAPTURE.PENDING',
+        'PAYMENT.CAPTURE.REFUNDED',
+        'PAYMENT.CAPTURE.REVERSED',
     ];
 
     public function __construct(private PayPalClientInterface $client)

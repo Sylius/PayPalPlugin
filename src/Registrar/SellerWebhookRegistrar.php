@@ -36,7 +36,7 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
 
     public function register(PaymentMethodInterface $paymentMethod): void
     {
-        $webhookUrl = $this->webhookUrlProvider->provide();
+        $webhookUrl = $this->webhookUrlProvider->provide($paymentMethod);
 
         try {
             $this->webhookApi->register($paymentMethod, $webhookUrl);

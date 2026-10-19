@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
@@ -23,13 +24,24 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
     ) {
     }
 
-    public function provide(): string
+    public function provide(PaymentMethodInterface $paymentMethod): string
+    {
+        return $this->url(self::ROUTE, ['code' => (string) $paymentMethod->getCode()]);
+    }
+
+    public function provideLegacy(): string
+    {
+        return $this->url(self::LEGACY_ROUTE, []);
+    }
+
+    /** @param array<string, string> $parameters */
+    private function url(string $route, array $parameters): string
     {
         if ('' === $this->webhookBaseUrl) {
-            return $this->urlGenerator->generate(self::ROUTE, [], UrlGeneratorInterface::ABSOLUTE_URL);
+            return $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
         return rtrim($this->webhookBaseUrl, '/') .
-            $this->urlGenerator->generate(self::ROUTE, [], UrlGeneratorInterface::ABSOLUTE_PATH);
+            $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_PATH);
     }
 }

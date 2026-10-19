@@ -34,15 +34,14 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
 
     public function register(PaymentMethodInterface $paymentMethod): void
     {
+        $webhookUrl = $this->webhookUrlProvider->provide($paymentMethod);
         $webhookId = $this->webhookIdProvider->refresh($paymentMethod);
 
         if (null !== $webhookId) {
-            $this->updateWebhookApi->updateEventTypes($paymentMethod, $webhookId, WebhookApi::EVENT_TYPES);
+            $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
 
             return;
         }
-
-        $webhookUrl = $this->webhookUrlProvider->provide();
 
         try {
             $response = $this->webhookApi->register($paymentMethod, $webhookUrl);

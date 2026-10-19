@@ -546,7 +546,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.registrar.seller_webhook_event_types', SellerWebhookEventTypesRegistrar::class)
         ->args([
-            service('sylius_paypal.provider.webhook_id'),
+            service('sylius_paypal.provider.webhook_id.lookup'),
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),

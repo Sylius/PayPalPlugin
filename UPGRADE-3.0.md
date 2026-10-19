@@ -269,7 +269,7 @@
    | `Sylius\PayPalPlugin\Api\RefundPaymentApiInterface` | `refund()` |
    | `Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface` | `update()` |
    | `Sylius\PayPalPlugin\Api\UpdateOrderApiInterface` | `update()` |
-   | `Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface` | `updateEventTypes()` |
+   | `Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface` | `update()` |
    | `Sylius\PayPalPlugin\Api\WebhookApiInterface` | `register()` |
    | `Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface` | `add()` |
 
@@ -672,3 +672,35 @@
    ```
 
    `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.
+
+1. #### PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method.
+
+   The onboarding, the payment method enabler and `sylius-paypal:register-webhook-event-types` register the webhook
+   of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
+   to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
+   `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED` and `PAYMENT.CAPTURE.REVERSED`.
+   Run the command once after the upgrade: it points a webhook registered on `/paypal-webhook/api/` at the URL of its
+   payment method and keeps its id, so PayPal stops sending to the old endpoint.
+
+   `WebhookIdProvider` looks the webhook up by the URL of the payment method, then by `/paypal-webhook/api/`.
+   `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal
+   every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook.
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface
+   -public const ROUTE = 'sylius_paypal_webhook_refund_order';
+   +public const ROUTE = 'sylius_payment_method_notify';
+   +public const LEGACY_ROUTE = 'sylius_paypal_webhook_refund_order';
+
+   -public function provide(): string;
+   +public function provide(PaymentMethodInterface $paymentMethod): string;
+   +public function provideLegacy(): string;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface
+   -public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array;
+   +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array;
+   ```
+
+   The `sylius_paypal.controller.webhook.paypal_webhook` service behind `/paypal-webhook/api/` is deprecated.

@@ -22,9 +22,14 @@ final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
     {
     }
 
-    public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array
     {
         return $this->client->patch($paymentMethod, sprintf('v1/notifications/webhooks/%s', $webhookId), [
+            [
+                'op' => 'replace',
+                'path' => '/url',
+                'value' => preg_replace('/^http:/i', 'https:', $webhookUrl),
+            ],
             [
                 'op' => 'replace',
                 'path' => '/event_types',

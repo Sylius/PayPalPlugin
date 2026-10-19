@@ -55,10 +55,11 @@ final class SellerWebhookRegistrarTest extends TestCase
     public function it_registers_sellers_webhook(): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getCode')->willReturn('PAYPAL');
 
         $this->urlGenerator
             ->method('generate')
-            ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->with('sylius_payment_method_notify', ['code' => 'PAYPAL'], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
         $this->webhookApi
@@ -78,10 +79,11 @@ final class SellerWebhookRegistrarTest extends TestCase
     public function it_throws_exception_if_webhook_could_not_be_registered(): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getCode')->willReturn('PAYPAL');
 
         $this->urlGenerator
             ->method('generate')
-            ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->with('sylius_payment_method_notify', ['code' => 'PAYPAL'], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
         $this->webhookApi->method('register')->with($paymentMethod, 'https://webhook-url.com')->willThrowException($this->rejection('VALIDATION_ERROR'));

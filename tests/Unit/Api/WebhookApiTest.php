@@ -44,11 +44,14 @@ final class WebhookApiTest extends TestCase
             ->with($this->paymentMethod, 'v1/notifications/webhooks', [
                 'url' => 'https://shop.example.com/paypal-webhook/api/',
                 'event_types' => [
-                    ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ['name' => 'CHECKOUT.ORDER.APPROVED'],
+                    ['name' => 'CHECKOUT.ORDER.COMPLETED'],
                     ['name' => 'PAYMENT.CAPTURE.COMPLETED'],
                     ['name' => 'PAYMENT.CAPTURE.DENIED'],
                     ['name' => 'PAYMENT.CAPTURE.DECLINED'],
                     ['name' => 'PAYMENT.CAPTURE.PENDING'],
+                    ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ['name' => 'PAYMENT.CAPTURE.REVERSED'],
                 ],
             ])
             ->willReturn(['id' => 'WEBHOOK_ID'])
