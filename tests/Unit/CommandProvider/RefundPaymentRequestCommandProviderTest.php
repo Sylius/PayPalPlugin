@@ -15,7 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\CommandProvider;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\RefundPaymentRequestCommandProvider;
 
 final class RefundPaymentRequestCommandProviderTest extends TestCase
@@ -43,7 +43,7 @@ final class RefundPaymentRequestCommandProviderTest extends TestCase
 
         $command = (new RefundPaymentRequestCommandProvider())->provide($paymentRequest);
 
-        self::assertInstanceOf(RefundPayPalCapturePaymentRequest::class, $command);
+        self::assertInstanceOf(RefundPayPalPaymentRequest::class, $command);
         self::assertSame('PAYMENT_REQUEST_HASH', $command->getHash());
     }
 }

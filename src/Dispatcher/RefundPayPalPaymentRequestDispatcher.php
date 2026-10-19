@@ -20,10 +20,10 @@ use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
-use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final readonly class RefundPayPalCapturePaymentRequestDispatcher implements RefundPayPalCapturePaymentRequestDispatcherInterface
+final readonly class RefundPayPalPaymentRequestDispatcher implements RefundPayPalPaymentRequestDispatcherInterface
 {
     /**
      * @param PaymentRequestFactoryInterface<PaymentRequestInterface> $paymentRequestFactory
@@ -41,7 +41,7 @@ final readonly class RefundPayPalCapturePaymentRequestDispatcher implements Refu
     {
         $paymentRequest = $this->openPaymentRequest($payment) ?? $this->createPaymentRequest($payment);
 
-        $this->commandBus->dispatch(new RefundPayPalCapturePaymentRequest($paymentRequest->getId()));
+        $this->commandBus->dispatch(new RefundPayPalPaymentRequest($paymentRequest->getId()));
 
         return $paymentRequest;
     }

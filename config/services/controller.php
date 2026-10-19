@@ -199,7 +199,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.controller.refund_payment', RefundPayPalPaymentAction::class)
         ->args([
             service('sylius.repository.payment'),
-            service('sylius_paypal.dispatcher.refund_paypal_capture_payment_request'),
+            service('sylius_paypal.dispatcher.refund_paypal_payment_request'),
             service('security.csrf.token_manager'),
             service('router'),
         ]);

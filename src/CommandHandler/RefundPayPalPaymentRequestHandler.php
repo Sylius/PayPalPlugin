@@ -23,7 +23,7 @@ use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
-use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
@@ -32,7 +32,7 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
-final class RefundPayPalCapturePaymentRequestHandler
+final class RefundPayPalPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
@@ -58,9 +58,9 @@ final class RefundPayPalCapturePaymentRequestHandler
         $this->stateMachine = $stateMachine;
     }
 
-    public function __invoke(RefundPayPalCapturePaymentRequest $refundPayPalCapturePaymentRequest): void
+    public function __invoke(RefundPayPalPaymentRequest $refundPayPalPaymentRequest): void
     {
-        $paymentRequest = $this->paymentRequestProvider->provide($refundPayPalCapturePaymentRequest);
+        $paymentRequest = $this->paymentRequestProvider->provide($refundPayPalPaymentRequest);
 
         if (!in_array($paymentRequest->getState(), [PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_PROCESSING], true)) {
             return;

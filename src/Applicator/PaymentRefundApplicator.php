@@ -17,11 +17,11 @@ use Sylius\Bundle\ApiBundle\Exception\StateMachineTransitionFailedException;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface;
 
 final readonly class PaymentRefundApplicator implements PaymentRefundApplicatorInterface
 {
-    public function __construct(private RefundPayPalCapturePaymentRequestDispatcherInterface $refundPaymentRequestDispatcher)
+    public function __construct(private RefundPayPalPaymentRequestDispatcherInterface $refundPaymentRequestDispatcher)
     {
     }
 
