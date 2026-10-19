@@ -599,8 +599,9 @@
    refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`.
 
    The late capture is refunded the same way, through a `refund_late_capture` Payment Request dispatched with
-   `RefundPayPalLateCapturePaymentRequestDispatcherInterface`, which records the refund in the `paypal_late_capture`
-   payment details and leaves the payment state alone:
+   `RefundPayPalLateCapturePaymentRequestDispatcherInterface`. `PayPalLateCaptureRefundConfirmationProcessorInterface`
+   records the confirmed refund in the `paypal_late_capture` payment details and leaves the payment state alone, a
+   pending refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook confirms it:
 
    ```diff
     // Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction
@@ -630,8 +631,9 @@
    | `Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface` | none |
    | `Sylius\PayPalPlugin\Exception\PayPalOrderRefundException` | the reason of the failed refund Payment Request |
 
-   The webhook refund confirms the refund through `PayPalPaymentRefundConfirmationProcessorInterface` instead of
-   applying the transition itself:
+   The webhook refund confirms the refund through `PayPalPaymentRefundConfirmationProcessorInterface`, or
+   `PayPalLateCaptureRefundConfirmationProcessorInterface` for the late capture, instead of applying the transition
+   itself:
 
    ```diff
     // Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor
@@ -642,6 +644,7 @@
    +    private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
         private ObjectManager $paymentManager,
         private SettleablePaypalPaymentQueryInterface $settleablePaymentQuery,
+   +    private PayPalLateCaptureRefundConfirmationProcessorInterface $lateCaptureRefundConfirmationProcessor,
     ) {
    ```
 

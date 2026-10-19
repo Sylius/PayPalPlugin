@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
@@ -36,7 +37,11 @@ final class RefundPayPalLateCapturePaymentRequestHandler
 
     public const RESPONSE_REFUND_ID = 'refund_id';
 
-    private const FAILED_REFUND_STATUSES = ['FAILED', 'CANCELLED'];
+    public const RESPONSE_REFUND_STATUS = 'refund_status';
+
+    public const REFUND_STATUS_COMPLETED = 'COMPLETED';
+
+    public const REFUND_STATUS_PENDING = 'PENDING';
 
     private const CAPTURE_FULLY_REFUNDED = 'CAPTURE_FULLY_REFUNDED';
 
@@ -46,6 +51,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
         private readonly RefundPaymentApiInterface $refundPaymentApi,
         private readonly PayPalAuthAssertionGeneratorInterface $payPalAuthAssertionGenerator,
         private readonly RefundReferenceNumberProviderInterface $refundReferenceNumberProvider,
+        private readonly PayPalLateCaptureRefundConfirmationProcessorInterface $lateCaptureRefundConfirmationProcessor,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -90,7 +96,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
         }
 
         if (true === ($lateCapture['refunded'] ?? false)) {
-            $this->complete($paymentRequest, $payment, $details, $lateCapture, is_string($lateCapture['refund_id'] ?? null) ? $lateCapture['refund_id'] : null);
+            $this->confirm($paymentRequest, $payment, null);
 
             return;
         }
@@ -98,7 +104,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
         try {
             $capture = PayPalCapture::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
             if (PayPalCapture::STATUS_REFUNDED === $capture?->status()) {
-                $this->complete($paymentRequest, $payment, $details, $lateCapture, null);
+                $this->confirm($paymentRequest, $payment, null);
 
                 return;
             }
@@ -114,7 +120,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
             );
         } catch (PayPalApiException $exception) {
             if ($exception->hasIssue(self::CAPTURE_FULLY_REFUNDED)) {
-                $this->complete($paymentRequest, $payment, $details, $lateCapture, null);
+                $this->confirm($paymentRequest, $payment, null);
 
                 return;
             }
@@ -126,33 +132,31 @@ final class RefundPayPalLateCapturePaymentRequestHandler
             return;
         }
 
-        if (!is_string($refund['id'] ?? null) || in_array($refund['status'] ?? null, self::FAILED_REFUND_STATUSES, true)) {
-            $this->failWithReason($paymentRequest, sprintf('PayPal reported the refund as %s.', is_string($refund['status'] ?? null) ? $refund['status'] : 'unknown'));
+        $refundId = is_string($refund['id'] ?? null) ? $refund['id'] : null;
+        $refundStatus = is_string($refund['status'] ?? null) ? $refund['status'] : null;
+
+        if (null === $refundId || !in_array($refundStatus, [self::REFUND_STATUS_COMPLETED, self::REFUND_STATUS_PENDING], true)) {
+            $this->failWithReason($paymentRequest, sprintf('PayPal reported the refund as %s.', $refundStatus ?? 'unknown'));
 
             return;
         }
 
-        $this->complete($paymentRequest, $payment, $details, $lateCapture, $refund['id']);
+        $paymentRequest->setResponseData([
+            self::RESPONSE_REFUND_ID => $refundId,
+            self::RESPONSE_REFUND_STATUS => $refundStatus,
+        ]);
+
+        if (self::REFUND_STATUS_COMPLETED === $refundStatus) {
+            $this->confirm($paymentRequest, $payment, $refundId);
+        }
     }
 
-    /**
-     * @param array<string, mixed> $details
-     * @param array<string, mixed> $lateCapture
-     */
-    private function complete(
-        PaymentRequestInterface $paymentRequest,
-        PaymentInterface $payment,
-        array $details,
-        array $lateCapture,
-        ?string $refundId,
-    ): void {
-        $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] = array_merge($lateCapture, [
-            'refunded' => true,
-            'refund_id' => $refundId,
-        ]);
-        $payment->setDetails($details);
+    private function confirm(PaymentRequestInterface $paymentRequest, PaymentInterface $payment, ?string $refundId): void
+    {
+        $this->lateCaptureRefundConfirmationProcessor->confirm($payment, $refundId);
 
-        $paymentRequest->setResponseData([self::RESPONSE_REFUND_ID => $refundId]);
-        $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+        if (PaymentRequestInterface::STATE_PROCESSING === $paymentRequest->getState()) {
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+        }
     }
 }

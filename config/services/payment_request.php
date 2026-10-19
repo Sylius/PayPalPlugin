@@ -136,6 +136,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.api.refund_payment'),
             service('sylius_paypal.generator.paypal_auth_assertion'),
             service('sylius_paypal.provider.refund_reference_number'),
+            service('sylius_paypal.processor.late_capture_refund_confirmation'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
