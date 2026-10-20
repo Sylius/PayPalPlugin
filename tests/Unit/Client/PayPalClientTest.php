@@ -460,6 +460,14 @@ final class PayPalClientTest extends TestCase
         self::assertSame([], $this->sendWithResponses([[204, '']], fn () => $this->payPalClient->patch($this->paymentMethod, 'v2/checkout/orders/123123', [])));
     }
 
+    public function test_it_sends_a_delete_request_and_answers_paypal_accepting_it_without_content_with_nothing(): void
+    {
+        $this->requestFactory->expects(self::once())->method('createRequest')->with('DELETE', 'https://test-api.paypal.com/v3/vault/payment-tokens/VAULT_ID')->willReturnCallback((new Psr17Factory())->createRequest(...));
+        $this->client->method('sendRequest')->willReturn((new Psr17Factory())->createResponse(204));
+
+        self::assertSame([], $this->payPalClient->delete($this->paymentMethod, 'v3/vault/payment-tokens/VAULT_ID'));
+    }
+
     /** @param list<array{int, string}> $responses */
     private function sendWithResponses(array $responses, callable $send): mixed
     {

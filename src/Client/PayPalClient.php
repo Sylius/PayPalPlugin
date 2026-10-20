@@ -64,6 +64,11 @@ final readonly class PayPalClient implements PayPalClientInterface
         return $this->request($paymentMethod, 'PATCH', $url, $data);
     }
 
+    public function delete(PaymentMethodInterface $paymentMethod, string $url): array
+    {
+        return $this->request($paymentMethod, 'DELETE', $url);
+    }
+
     private function request(PaymentMethodInterface $paymentMethod, string $method, string $url, ?array $data = null, array $extraHeaders = []): array
     {
         $headers = [
