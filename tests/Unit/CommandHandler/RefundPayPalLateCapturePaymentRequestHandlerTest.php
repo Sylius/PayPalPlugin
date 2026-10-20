@@ -191,13 +191,15 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
     }
 
-    public function test_it_fails_the_request_of_a_payment_of_another_gateway(): void
+    public function test_it_fails_the_request_of_a_payment_of_another_gateway_without_processing_it(): void
     {
         $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR'], 'offline');
+        $this->orderDetailsApi->expects(self::never())->method('get');
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
+        self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(['reason' => 'The payment was not paid with PayPal.'], $paymentRequest->getResponseData());
     }
 

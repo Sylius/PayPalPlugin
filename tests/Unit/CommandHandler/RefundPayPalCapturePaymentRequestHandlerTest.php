@@ -20,6 +20,7 @@ use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\Component\Payment\Model\PaymentRequest;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -80,7 +81,10 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
 
         $order = new Order();
         $order->setCurrencyCode('USD');
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setFactoryName('sylius_paypal');
         $this->paymentMethod = new PaymentMethod();
+        $this->paymentMethod->setGatewayConfig($gatewayConfig);
         $this->payment = new Payment();
         $this->payment->setOrder($order);
         $this->payment->setAmount(1050);
@@ -260,6 +264,19 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([], $this->appliedTransitions);
+    }
+
+    public function test_it_fails_the_request_of_a_payment_of_another_gateway_without_processing_it(): void
+    {
+        $this->paymentMethod->getGatewayConfig()->setFactoryName('offline');
+        $paymentRequest = $this->paymentRequest(PaymentRequestInterface::STATE_NEW);
+        $this->orderDetailsApi->expects(self::never())->method('get');
+        $this->refundPaymentApi->expects(self::never())->method('refund');
+
+        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
+        self::assertSame(['reason' => 'The payment was not paid with PayPal.'], $paymentRequest->getResponseData());
     }
 
     private function paymentRequest(string $state): PaymentRequestInterface
