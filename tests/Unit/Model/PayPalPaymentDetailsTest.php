@@ -230,4 +230,15 @@ final class PayPalPaymentDetailsTest extends TestCase
         self::assertSame(['vault_status' => 'APPROVED', 'vault_customer_id' => '163456532'], $details->toArray());
         self::assertNull($details->vaultId());
     }
+
+    public function test_it_forgets_the_vaulted_wallet_paypal_deleted(): void
+    {
+        $details = PayPalPaymentDetails::create()
+            ->withVault(new PayPalVault('VAULTED', 'j7hzkgdn', '163456532'))
+            ->withVaultDeleted()
+        ;
+
+        self::assertNull($details->vaultId());
+        self::assertSame(['vault_status' => 'DELETED', 'vault_customer_id' => '163456532'], $details->toArray());
+    }
 }

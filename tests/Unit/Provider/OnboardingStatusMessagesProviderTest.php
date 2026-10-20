@@ -95,13 +95,10 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_provides_the_vaulting_not_active_message_when_the_capability_was_not_requested(): void
+    public function it_provides_no_vaulting_message_to_a_merchant_that_never_requested_the_capability(): void
     {
         self::assertSame(
-            [[
-                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
-                'parameters' => ['%status%' => 'NOT_REQUESTED'],
-            ]],
+            [],
             (new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))))->provide(new OnboardingStatus(true, true)),
         );
     }

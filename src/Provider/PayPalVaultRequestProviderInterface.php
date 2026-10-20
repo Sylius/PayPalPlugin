@@ -20,4 +20,6 @@ use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 interface PayPalVaultRequestProviderInterface
 {
     public function provide(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): ?PayPalVaultRequest;
+
+    public function provideForCart(OrderInterface $order): ?PayPalVaultRequest;
 }

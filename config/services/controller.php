@@ -147,7 +147,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.web_sdk_configuration'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.current_paypal_locale'),
-            service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.provider.vault_request'),
         ]);
 

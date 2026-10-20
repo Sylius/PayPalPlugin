@@ -186,7 +186,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource &&
             $this->isVenmoEnabled($order) &&
-            !$this->isVaultRequired($order)
+            null === $this->vaultRequestProvider?->provideForCart($order)
         ) {
             return $paymentSource;
         }
@@ -207,16 +207,5 @@ final readonly class CreatePayPalOrderFromCartAction
         } catch (\InvalidArgumentException) {
             return false;
         }
-    }
-
-    private function isVaultRequired(OrderInterface $order): bool
-    {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-        if (null === $channel || null === $this->vaultRequestProvider || null === $this->payPalMethodsResolver) {
-            return false;
-        }
-
-        return null !== $this->vaultRequestProvider->provide($order, $this->payPalMethodsResolver->getInChannel($channel)[0] ?? null);
     }
 }

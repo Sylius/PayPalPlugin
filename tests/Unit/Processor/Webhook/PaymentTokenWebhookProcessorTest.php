@@ -22,11 +22,12 @@ use Sylius\PayPalPlugin\Event\PayPalPaymentTokenDeleted;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Processor\Webhook\PaymentTokenWebhookProcessor;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\VaultedPaypalPaymentQueryInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class PaymentTokenWebhookProcessorTest extends TestCase
 {
-    private SettleablePaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
+    private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
     private ObjectManager&MockObject $paymentManager;
 
@@ -36,7 +37,7 @@ final class PaymentTokenWebhookProcessorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->paypalPaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
+        $this->paypalPaymentQuery = $this->createMockForIntersectionOfInterfaces([SettleablePaypalPaymentQueryInterface::class, VaultedPaypalPaymentQueryInterface::class]);
         $this->paymentManager = $this->createMock(ObjectManager::class);
         $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
 
@@ -104,15 +105,35 @@ final class PaymentTokenWebhookProcessorTest extends TestCase
         $this->processor->process($this->created(['id' => 'VAULT_ID']));
     }
 
-    public function test_it_announces_a_deleted_token(): void
+    public function test_it_forgets_a_deleted_token_on_the_payments_and_announces_it(): void
     {
+        $payment = new Payment();
+        $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'VAULT_ID', 'vault_status' => 'VAULTED', 'vault_customer_id' => 'CUSTOMER_ID']);
+
         $this->paypalPaymentQuery->expects(self::never())->method('getForSettlementByOrderId');
+        $this->paypalPaymentQuery->method('findByVaultId')->with('VAULT_ID')->willReturn([$payment]);
+        $this->paymentManager->expects(self::once())->method('flush');
         $this->eventDispatcher
             ->expects(self::once())
             ->method('dispatch')
             ->with(self::callback(static fn (PayPalPaymentTokenDeleted $event): bool => 'VAULT_ID' === $event->vaultId))
             ->willReturnArgument(0)
         ;
+
+        $this->processor->process(['event_type' => 'VAULT.PAYMENT-TOKEN.DELETED', 'resource' => ['id' => 'VAULT_ID']]);
+
+        self::assertSame([
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'vault_status' => 'DELETED',
+            'vault_customer_id' => 'CUSTOMER_ID',
+        ], $payment->getDetails());
+    }
+
+    public function test_it_announces_a_deleted_token_no_payment_knows(): void
+    {
+        $this->paypalPaymentQuery->method('findByVaultId')->willReturn([]);
+        $this->paymentManager->expects(self::never())->method('flush');
+        $this->eventDispatcher->expects(self::once())->method('dispatch')->willReturnArgument(0);
 
         $this->processor->process(['event_type' => 'VAULT.PAYMENT-TOKEN.DELETED', 'resource' => ['id' => 'VAULT_ID']]);
     }

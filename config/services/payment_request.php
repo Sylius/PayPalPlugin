@@ -200,7 +200,6 @@ return function (ContainerConfigurator $container): void {
         ->args([
             service('sylius.provider.payment_request'),
             service('sylius_paypal.api.charge_vaulted_order'),
-            service('sylius_paypal.provider.uuid'),
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius_abstraction.state_machine'),
         ])

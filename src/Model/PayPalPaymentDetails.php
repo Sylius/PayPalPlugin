@@ -54,6 +54,8 @@ final readonly class PayPalPaymentDetails
 
     public const PAYER_EMAIL = 'payer_email';
 
+    public const VAULT_STATUS_DELETED = 'DELETED';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -254,6 +256,15 @@ final readonly class PayPalPaymentDetails
             self::VAULT_CUSTOMER_ID => $vault->customerId(),
             self::PAYER_EMAIL => $vault->payerEmail(),
         ], static fn (?string $value): bool => null !== $value));
+    }
+
+    public function withVaultDeleted(): self
+    {
+        $details = $this->details;
+        unset($details[self::VAULT_ID]);
+        $details[self::VAULT_STATUS] = self::VAULT_STATUS_DELETED;
+
+        return new self($details);
     }
 
     /** @param array<string, string> $supersededPayPalOrders */

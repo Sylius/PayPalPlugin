@@ -56,7 +56,10 @@ final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInter
             $paymentMethod,
             'v2/checkout/orders',
             $payPalOrder->toArray(),
-            ['PayPal-Request-Id' => $requestId],
+            [
+                'PayPal-Request-Id' => $requestId,
+                'Prefer' => 'return=representation',
+            ],
         );
     }
 }
