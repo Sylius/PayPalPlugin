@@ -36,7 +36,7 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
         $order = $payment->getOrder();
 
         return match ($paymentSource) {
-            self::PAYPAL => [self::PAYPAL => $this->paypal($payment, $experienceContext)],
+            self::PAYPAL => [self::PAYPAL => $this->paypal($order, $payment, $experienceContext)],
             self::GOOGLE_PAY => [self::GOOGLE_PAY => [
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
             ]],
@@ -74,11 +74,11 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
      *
      * @return array<string, mixed>
      */
-    private function paypal(PaymentInterface $payment, array $experienceContext): array
+    private function paypal(OrderInterface $order, PaymentInterface $payment, array $experienceContext): array
     {
         $paypal = ['experience_context' => $experienceContext];
 
-        $vaultRequest = $this->vaultRequestProvider?->provide($payment);
+        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod());
         if (null !== $vaultRequest) {
             $paypal['attributes'] = ['vault' => $vaultRequest->toArray()];
         }

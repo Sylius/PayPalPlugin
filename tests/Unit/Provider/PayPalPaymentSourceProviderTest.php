@@ -63,7 +63,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_asks_paypal_to_vault_the_wallet_when_the_payment_needs_it(): void
     {
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->expects(self::once())->method('provide')->with($this->payment)->willReturn(
+        $vaultRequestProvider->expects(self::once())->method('provide')->with($this->order, null)->willReturn(
             new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription'),
         );
 

@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
@@ -27,10 +27,9 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
     {
     }
 
-    public function provide(PaymentInterface $payment): ?PayPalVaultRequest
+    public function provide(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): ?PayPalVaultRequest
     {
-        $paymentMethod = $payment->getMethod();
-        $gatewayConfig = $paymentMethod instanceof PaymentMethodInterface ? $paymentMethod->getGatewayConfig() : null;
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
 
         if (
             !$gatewayConfig instanceof GatewayConfigInterface ||
@@ -40,6 +39,6 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
             return null;
         }
 
-        return $this->vaultRequestResolver->resolve($payment);
+        return $this->vaultRequestResolver->resolve($order);
     }
 }
