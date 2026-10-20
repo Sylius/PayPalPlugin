@@ -28,7 +28,7 @@ final class PaymentMethodNotifyActionTest extends JsonApiTestCase
     {
         $order = $this->processingOrder();
 
-        $this->notify('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+        $this->notify('CHECKOUT.ORDER.PROCESSED', 'WH-1');
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PayPalWebhookEventStatus::Ignored->value, $this->webhookEventStatus('WH-1'));
@@ -43,8 +43,8 @@ final class PaymentMethodNotifyActionTest extends JsonApiTestCase
     {
         $order = $this->processingOrder();
 
-        $this->notify('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
-        $this->notify('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+        $this->notify('CHECKOUT.ORDER.PROCESSED', 'WH-1');
+        $this->notify('CHECKOUT.ORDER.PROCESSED', 'WH-1');
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertEqualsCanonicalizing(
@@ -58,9 +58,9 @@ final class PaymentMethodNotifyActionTest extends JsonApiTestCase
         $order = $this->processingOrder();
         $paymentRequest = $this->capturePaymentRequest($order);
 
-        $this->notify('PAYMENT.CAPTURE.COMPLETED', 'WH-1', resource: [
-            'id' => 'UNKNOWN_CAPTURE_ID',
-            'custom_id' => (string) $paymentRequest->getId(),
+        $this->notify('CHECKOUT.ORDER.PROCESSED', 'WH-1', resource: [
+            'id' => 'UNKNOWN_PAYPAL_ORDER_ID',
+            'purchase_units' => [['custom_id' => (string) $paymentRequest->getId()]],
         ]);
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
@@ -74,10 +74,7 @@ final class PaymentMethodNotifyActionTest extends JsonApiTestCase
     {
         $order = $this->processingOrder();
 
-        $this->notify('PAYMENT.CAPTURE.COMPLETED', 'WH-1', resource: [
-            'id' => 'UNKNOWN_CAPTURE_ID',
-            'supplementary_data' => ['related_ids' => ['order_id' => 'UNKNOWN_PAYPAL_ORDER_ID']],
-        ]);
+        $this->notify('CHECKOUT.ORDER.PROCESSED', 'WH-1', resource: ['id' => 'UNKNOWN_PAYPAL_ORDER_ID']);
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertNull($this->webhookEventStatus('WH-1'));
@@ -109,11 +106,8 @@ final class PaymentMethodNotifyActionTest extends JsonApiTestCase
         $this->client->request('POST', '/payment-methods/PAYPAL', [], [], [], (string) json_encode([
             'id' => $eventId,
             'event_type' => $eventType,
-            'resource_type' => 'capture',
-            'resource' => $resource ?? [
-                'id' => 'CAPTURE_ID',
-                'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
-            ],
+            'resource_type' => 'checkout-order',
+            'resource' => $resource ?? ['id' => 'PAYPAL_ORDER_ID'],
         ]));
     }
 

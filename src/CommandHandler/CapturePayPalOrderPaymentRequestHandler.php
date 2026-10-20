@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\CommandHandler;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -54,6 +56,7 @@ final class CapturePayPalOrderPaymentRequestHandler
         private readonly PaymentThreeDSecureVerifierInterface $paymentThreeDSecureVerifier,
         private readonly PaymentCaptureProcessorInterface $paymentCaptureProcessor,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
+        private readonly EntityManagerInterface $paymentRequestManager,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -62,6 +65,7 @@ final class CapturePayPalOrderPaymentRequestHandler
     public function __invoke(CapturePayPalOrderPaymentRequest $capturePayPalOrderPaymentRequest): void
     {
         $paymentRequest = $this->paymentRequestProvider->provide($capturePayPalOrderPaymentRequest);
+        $this->paymentRequestManager->refresh($paymentRequest, LockMode::PESSIMISTIC_WRITE);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
             return;

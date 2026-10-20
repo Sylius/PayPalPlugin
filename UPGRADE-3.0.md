@@ -446,7 +446,9 @@
 
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
-   capturing again. `RefundPayPalPaymentRequestHandler` passes the payment request id, so reprocessing a
+   capturing again. It locks the Payment Request (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's
+   return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it one after the other.
+   `RefundPayPalPaymentRequestHandler` passes the payment request id, so reprocessing a
    refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
    is used, as before.
 
@@ -666,7 +668,15 @@
    `NotifyPaymentRequestHandler` changes nothing for an event it has already received, reads the event's
    resource again from PayPal and hands it to the `Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface`
    tagged `sylius_paypal.webhook_event_processor` with that `event_type`; an event without one is recorded as
-   `ignored`.
+   `ignored`. The merchant events PayPal sends to this endpoint:
+
+   | Event | Effect |
+   |---|---|
+   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture |
+   | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded |
+   | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it; a capture PayPal refuses stays on the failed payment request with its reason |
+   | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
+   | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
 
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
