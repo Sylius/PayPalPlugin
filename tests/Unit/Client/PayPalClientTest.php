@@ -333,6 +333,22 @@ final class PayPalClientTest extends TestCase
         self::assertSame('BN_CODE', $this->headersOfNextGetRequest()['PayPal-Partner-Attribution-Id'] ?? null);
     }
 
+    public function test_it_attributes_the_request_to_the_partner_of_the_payment_method_without_a_channel_in_context(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(
+            GatewayConfigInterface::class,
+            ['getConfig' => ['sandbox' => true, 'partner_attribution_id' => 'METHOD_BN_CODE']],
+        ));
+
+        $this->channelContext->expects(self::never())->method('getChannel');
+        $this->logger->expects(self::never())->method('warning');
+
+        $headers = $this->headersOfNextRequest(fn () => $this->payPalClient->get($paymentMethod, 'v2/checkout/orders/123123'));
+
+        self::assertSame('METHOD_BN_CODE', $headers['PayPal-Partner-Attribution-Id'] ?? null);
+    }
+
     public function test_it_keeps_talking_to_paypal_when_no_channel_is_in_context(): void
     {
         $this->channelContext->method('getChannel')->willThrowException(new ChannelNotFoundException());

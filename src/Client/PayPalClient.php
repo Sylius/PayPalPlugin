@@ -71,7 +71,7 @@ final readonly class PayPalClient implements PayPalClientInterface
             'Accept' => 'application/json',
         ];
 
-        $partnerAttributionId = $this->partnerAttributionId();
+        $partnerAttributionId = $this->partnerAttributionId($paymentMethod);
         if (null !== $partnerAttributionId) {
             $headers['PayPal-Partner-Attribution-Id'] = $partnerAttributionId;
         }
@@ -110,8 +110,16 @@ final readonly class PayPalClient implements PayPalClientInterface
         return $this->hostProvider->getApiBaseUrlForMode(PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox());
     }
 
-    private function partnerAttributionId(): ?string
+    private function partnerAttributionId(PaymentMethodInterface $paymentMethod): ?string
     {
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        if ($gatewayConfig instanceof GatewayConfigInterface) {
+            $payPalGatewayConfig = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+            if ($payPalGatewayConfig->hasPartnerAttributionId()) {
+                return $payPalGatewayConfig->partnerAttributionId();
+            }
+        }
+
         try {
             /** @var ChannelInterface $channel */
             $channel = $this->channelContext->getChannel();
