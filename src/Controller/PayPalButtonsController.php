@@ -25,7 +25,9 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -50,6 +52,8 @@ final readonly class PayPalButtonsController
         private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+        private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -75,6 +79,24 @@ final readonly class PayPalButtonsController
                 '2.2',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 CurrentPayPalLocaleProviderInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->payPalMethodsResolver) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalPaymentMethodsResolverInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalVaultRequestProviderInterface::class,
                 self::class,
             );
         }
@@ -124,7 +146,8 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $vaultRequired = $this->isVaultRequired($order, $channel);
+            $venmoEnabled = !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -144,7 +167,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -224,5 +247,14 @@ final readonly class PayPalButtonsController
         }
 
         return $this->fundingSourcesConfigurationProvider;
+    }
+
+    private function isVaultRequired(OrderInterface $order, ChannelInterface $channel): bool
+    {
+        if (null === $this->vaultRequestProvider || null === $this->payPalMethodsResolver) {
+            return false;
+        }
+
+        return null !== $this->vaultRequestProvider->provide($order, $this->payPalMethodsResolver->getInChannel($channel)[0] ?? null);
     }
 }

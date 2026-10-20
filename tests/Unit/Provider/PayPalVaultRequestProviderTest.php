@@ -15,7 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
@@ -26,13 +26,13 @@ final class PayPalVaultRequestProviderTest extends TestCase
 {
     public function test_it_provides_the_vault_request_the_resolver_gives_for_a_merchant_that_can_vault(): void
     {
-        $payment = $this->paymentWithGateway('sylius_paypal', ['vaulting_enabled' => true]);
+        $order = $this->createStub(OrderInterface::class);
         $vaultRequest = new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID);
 
         $resolver = $this->createMock(VaultRequestResolverInterface::class);
-        $resolver->expects(self::once())->method('resolve')->with($payment)->willReturn($vaultRequest);
+        $resolver->expects(self::once())->method('resolve')->with($order)->willReturn($vaultRequest);
 
-        self::assertSame($vaultRequest, (new PayPalVaultRequestProvider($resolver))->provide($payment));
+        self::assertSame($vaultRequest, (new PayPalVaultRequestProvider($resolver))->provide($order, $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true])));
     }
 
     /** @return iterable<string, array{string, array<string, mixed>}> */
@@ -50,22 +50,19 @@ final class PayPalVaultRequestProviderTest extends TestCase
         $resolver = $this->createMock(VaultRequestResolverInterface::class);
         $resolver->expects(self::never())->method('resolve');
 
-        self::assertNull((new PayPalVaultRequestProvider($resolver))->provide($this->paymentWithGateway($factoryName, $config)));
+        self::assertNull((new PayPalVaultRequestProvider($resolver))->provide($this->createStub(OrderInterface::class), $this->paymentMethod($factoryName, $config)));
     }
 
-    public function test_it_provides_no_vault_request_for_a_payment_without_a_method(): void
+    public function test_it_provides_no_vault_request_without_a_payment_method(): void
     {
         $resolver = $this->createMock(VaultRequestResolverInterface::class);
         $resolver->expects(self::never())->method('resolve');
 
-        $payment = $this->createStub(PaymentInterface::class);
-        $payment->method('getMethod')->willReturn(null);
-
-        self::assertNull((new PayPalVaultRequestProvider($resolver))->provide($payment));
+        self::assertNull((new PayPalVaultRequestProvider($resolver))->provide($this->createStub(OrderInterface::class), null));
     }
 
     /** @param array<string, mixed> $config */
-    private function paymentWithGateway(string $factoryName, array $config): PaymentInterface
+    private function paymentMethod(string $factoryName, array $config): PaymentMethodInterface
     {
         $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
         $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
@@ -74,9 +71,6 @@ final class PayPalVaultRequestProviderTest extends TestCase
         $paymentMethod = $this->createStub(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        $payment = $this->createStub(PaymentInterface::class);
-        $payment->method('getMethod')->willReturn($paymentMethod);
-
-        return $payment;
+        return $paymentMethod;
     }
 }
