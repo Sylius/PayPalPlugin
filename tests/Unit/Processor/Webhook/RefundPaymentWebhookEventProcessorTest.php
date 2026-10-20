@@ -19,12 +19,15 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundPaymentWebhookEventProcessor;
 
 final class RefundPaymentWebhookEventProcessorTest extends TestCase
 {
     private PayPalPaymentRefundConfirmationProcessorInterface&MockObject $refundConfirmationProcessor;
+
+    private PayPalLateCaptureRefundConfirmationProcessorInterface&MockObject $lateCaptureRefundConfirmationProcessor;
 
     private ObjectManager&MockObject $paymentManager;
 
@@ -36,10 +39,16 @@ final class RefundPaymentWebhookEventProcessorTest extends TestCase
     {
         parent::setUp();
         $this->refundConfirmationProcessor = $this->createMock(PayPalPaymentRefundConfirmationProcessorInterface::class);
+        $this->lateCaptureRefundConfirmationProcessor = $this->createMock(PayPalLateCaptureRefundConfirmationProcessorInterface::class);
         $this->paymentManager = $this->createMock(ObjectManager::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->processor = new RefundPaymentWebhookEventProcessor($this->refundConfirmationProcessor, $this->paymentManager, $this->logger);
+        $this->processor = new RefundPaymentWebhookEventProcessor(
+            $this->refundConfirmationProcessor,
+            $this->lateCaptureRefundConfirmationProcessor,
+            $this->paymentManager,
+            $this->logger,
+        );
     }
 
     public function test_it_confirms_the_refund_of_a_payment_paypal_refunded(): void
@@ -74,13 +83,11 @@ final class RefundPaymentWebhookEventProcessorTest extends TestCase
         $this->processor->process('PAYMENT.CAPTURE.REVERSED', $this->refund(), $payment);
     }
 
-    public function test_it_marks_the_late_capture_it_refunded_instead_of_refunding_the_payment(): void
+    public function test_it_confirms_the_refund_of_the_late_capture_instead_of_refunding_the_payment(): void
     {
         $payment = $this->payment(['paypal_late_capture' => ['id' => 'CAPTURE_ID', 'amount' => 20]]);
 
-        $payment->expects(self::once())->method('setDetails')->with([
-            'paypal_late_capture' => ['id' => 'CAPTURE_ID', 'amount' => 20, 'refunded' => true, 'refund_id' => 'REFUND_ID'],
-        ]);
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
         $this->paymentManager->expects(self::once())->method('flush');
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 

@@ -17,6 +17,7 @@ use Doctrine\Persistence\ObjectManager;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 
@@ -28,6 +29,7 @@ final readonly class RefundPaymentWebhookEventProcessor implements WebhookEventP
 
     public function __construct(
         private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
+        private PayPalLateCaptureRefundConfirmationProcessorInterface $lateCaptureRefundConfirmationProcessor,
         private ObjectManager $paymentManager,
         private LoggerInterface $logger,
     ) {
@@ -39,7 +41,10 @@ final readonly class RefundPaymentWebhookEventProcessor implements WebhookEventP
 
         $refundId = (string) $resource['id'];
 
-        if ($this->markLateCaptureRefunded($payment, $captureId, $refundId)) {
+        if ($this->isLateCapture($payment, $captureId)) {
+            $this->lateCaptureRefundConfirmationProcessor->confirm($payment, $refundId);
+            $this->paymentManager->flush();
+
             return;
         }
 
@@ -55,24 +60,11 @@ final readonly class RefundPaymentWebhookEventProcessor implements WebhookEventP
         $this->paymentManager->flush();
     }
 
-    private function markLateCaptureRefunded(PaymentInterface $payment, string $captureId, string $refundId): bool
+    private function isLateCapture(PaymentInterface $payment, string $captureId): bool
     {
-        $details = $payment->getDetails();
-        $lateCapture = $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] ?? null;
-        if (!is_array($lateCapture) || $captureId !== ($lateCapture['id'] ?? null)) {
-            return false;
-        }
+        $lateCapture = $payment->getDetails()[PayPalPaymentSettlementProcessor::LATE_CAPTURE] ?? null;
 
-        if (true !== ($lateCapture['refunded'] ?? false)) {
-            $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] = array_merge($lateCapture, [
-                'refunded' => true,
-                'refund_id' => $refundId,
-            ]);
-            $payment->setDetails($details);
-            $this->paymentManager->flush();
-        }
-
-        return true;
+        return is_array($lateCapture) && $captureId === ($lateCapture['id'] ?? null);
     }
 
     /** @param array<string, mixed> $resource */

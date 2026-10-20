@@ -115,6 +115,34 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
     }
 
+    public function test_it_completes_the_pending_refund_of_a_late_capture_once_paypal_says_it_was_refunded(): void
+    {
+        $order = $this->completedOrder();
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        $payment->setState(PaymentInterface::STATE_CANCELLED);
+        $payment->setDetails([
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'paypal_late_capture' => ['id' => 'CAPTURE_ID', 'amount' => 20, 'currency_code' => 'USD'],
+        ]);
+        /** @var PaymentRequestInterface $paymentRequest */
+        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $payment->getMethod());
+        $paymentRequest->setAction('refund_late_capture');
+        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $this->getEntityManager()->persist($paymentRequest);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockRefundDetails();
+
+        $this->notifyAboutRefund('PAYMENT.CAPTURE.REFUNDED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
+        self::assertTrue($payment->getDetails()['paypal_late_capture']['refunded']);
+        self::assertSame('REFUND_ID', $payment->getDetails()['paypal_late_capture']['refund_id']);
+    }
+
     public function test_replaying_a_batch_of_events_changes_nothing_again(): void
     {
         $order = $this->processingOrder();

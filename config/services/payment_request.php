@@ -206,6 +206,7 @@ return function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.processor.webhook_event.refund_payment', RefundPaymentWebhookEventProcessor::class)
         ->args([
             service('sylius_paypal.processor.payment_refund_confirmation'),
+            service('sylius_paypal.processor.late_capture_refund_confirmation'),
             service('sylius.manager.payment'),
             service('monolog.logger.paypal'),
         ])
