@@ -26,6 +26,8 @@ use Sylius\PayPalPlugin\Api\CallbackSignatureVerifier;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Api\CaptureAuthorizationApi;
 use Sylius\PayPalPlugin\Api\CaptureAuthorizationApiInterface;
+use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApi;
+use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApi;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApi;
@@ -182,6 +184,14 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(CreateOrderApiInterface::class, 'sylius_paypal.api.create_order');
+
+    $services->set('sylius_paypal.api.charge_vaulted_order', ChargeVaultedOrderApi::class)
+        ->args([
+            service('sylius_paypal.client.paypal'),
+            service('sylius_paypal.factory.purchase_unit'),
+        ]);
+
+    $services->alias(ChargeVaultedOrderApiInterface::class, 'sylius_paypal.api.charge_vaulted_order');
 
     $services->set('sylius_paypal.api.identity', IdentityApi::class)
         ->args([service('sylius_paypal.client.paypal')]);
