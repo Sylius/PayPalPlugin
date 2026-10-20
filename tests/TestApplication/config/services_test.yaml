@@ -11,9 +11,6 @@ services:
     sylius_paypal.api.refund_payment:
         class: Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi
 
-    sylius_paypal.provider.paypal_refund_data:
-        class: Tests\Sylius\PayPalPlugin\Service\DummyPayPalRefundDataProvider
-
     sylius_paypal.api.find_eligible_methods:
         class: Tests\Sylius\PayPalPlugin\Service\FakeFindEligibleMethodsApi
 

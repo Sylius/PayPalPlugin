@@ -25,14 +25,13 @@ use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
 
 final class WebhookIdProviderTest extends TestCase
 {
     private const API_BASE_URL = 'https://api.sandbox.paypal.com/';
 
     private const WEBHOOKS_URL = 'https://api.sandbox.paypal.com/v1/notifications/webhooks';
-
-    private const WEBHOOK_PATH = '/paypal-webhook/api/';
 
     private const GENERATED_ABSOLUTE_URL = 'https://shop.example.com/paypal-webhook/api/';
 
@@ -305,14 +304,12 @@ final class WebhookIdProviderTest extends TestCase
     {
         $this->urlGenerator->method('generate')->willReturnCallback(
             static function (string $route, array $parameters, int $referenceType): string {
-                $path = match ($route) {
-                    'sylius_payment_method_notify' => '/payment-methods/' . $parameters['code'],
-                    'sylius_paypal_webhook_refund_order' => self::WEBHOOK_PATH,
-                };
+                $path = '/payment-methods/' . $parameters['code'];
 
                 return UrlGeneratorInterface::ABSOLUTE_URL === $referenceType ? 'https://shop.example.com' . $path : $path;
             },
         );
+        $this->urlGenerator->method('getContext')->willReturn(new RequestContext(host: 'shop.example.com', scheme: 'https'));
     }
 
     /** @param list<array<string, string>> $webhooks */

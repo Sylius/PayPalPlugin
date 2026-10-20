@@ -65,8 +65,6 @@ use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorIn
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
-use Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor;
-use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
 use Sylius\PayPalPlugin\Provider\ActiveModeProvider;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProvider;
@@ -101,8 +99,6 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider;
-use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackAmountProvider;
@@ -162,7 +158,6 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.prioritize_paypal_as_default_method', true);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.cancellable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]);
-    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.refundable_states', [PaymentInterface::STATE_COMPLETED]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
 
     $services->set('sylius_paypal.form.extension.payment_method', PaymentMethodTypeExtension::class)
@@ -338,14 +333,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(CredentialsManagerInterface::class, 'sylius_paypal.manager.credentials');
 
-    $services->set('sylius_paypal.provider.paypal_refund_data', PayPalRefundDataProvider::class)
-        ->args([
-            service('sylius_paypal.api.generic'),
-            service('sylius_paypal.provider.paypal_payment_method'),
-        ]);
-
-    $services->alias(PayPalRefundDataProviderInterface::class, 'sylius_paypal.provider.paypal_refund_data');
-
     $services->set('sylius_paypal.provider.available_countries', AvailableCountriesProvider::class)
         ->args([
             service('sylius.repository.country'),
@@ -482,26 +469,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(EligibleRedirectPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.eligible_redirect_payment_sources');
 
-    $services->set('sylius_paypal.processor.webhook.refund_order', RefundOrderWebhookProcessor::class)
-        ->args([
-            service('sylius_paypal.provider.paypal_refund_data'),
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius_paypal.processor.payment_refund_confirmation'),
-            service('sylius.manager.payment'),
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius_paypal.processor.late_capture_refund_confirmation'),
-        ]);
-
-    $services->set('sylius_paypal.processor.webhook.capture_payment', CapturePaymentWebhookProcessor::class)
-        ->args([
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius_paypal.processor.payment_settlement'),
-            service('monolog.logger.paypal'),
-        ]);
-
     $services->set('sylius_paypal.verifier.webhook_request', WebhookRequestVerifier::class)
         ->args([
-            service('sylius_paypal.provider.paypal_payment_method'),
             service('sylius_paypal.provider.webhook_id'),
             service('sylius_paypal.api.webhook_signature_verifier'),
         ]);
@@ -704,7 +673,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.repository.payment'),
             param('sylius_paypal.repository.query.pay_pal_payment.updatable_states'),
             param('sylius_paypal.repository.query.pay_pal_payment.cancellable_states'),
-            param('sylius_paypal.repository.query.pay_pal_payment.refundable_states'),
             param('sylius_paypal.repository.query.pay_pal_payment.settleable_states'),
         ]);
 

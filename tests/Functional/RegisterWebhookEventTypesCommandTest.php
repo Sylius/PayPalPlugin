@@ -16,9 +16,9 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
 {
@@ -26,8 +26,8 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
 
     public function test_it_points_the_webhook_registered_on_the_legacy_url_at_the_notify_url_of_the_payment_method(): void
     {
-        $this->loadShop();
-        $this->mockRegisteredWebhooks();
+        $paymentMethod = $this->loadShop();
+        $this->mockRegisteredWebhooks($paymentMethod);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
@@ -44,7 +44,7 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $cache = self::getContainer()->get('sylius_paypal.cache');
         $cache->save($cache->getItem('sylius_paypal_webhook_id_refresh_' . hash('sha256', 'PAYPAL'))->set(true));
 
-        $this->mockRegisteredWebhooks();
+        $this->mockRegisteredWebhooks($paymentMethod);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
@@ -95,13 +95,13 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         return $fixtures['paypal'];
     }
 
-    private function mockRegisteredWebhooks(): void
+    private function mockRegisteredWebhooks(PaymentMethodInterface $paymentMethod): void
     {
-        /** @var UrlGeneratorInterface $router */
-        $router = self::getContainer()->get('router');
+        /** @var WebhookUrlProviderInterface $webhookUrlProvider */
+        $webhookUrlProvider = self::getContainer()->get('sylius_paypal.provider.webhook_url');
 
         $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
-            ['id' => 'WH-LEGACY', 'url' => $router->generate('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)],
+            ['id' => 'WH-LEGACY', 'url' => $webhookUrlProvider->provideLegacy($paymentMethod)],
         ]]);
     }
 
