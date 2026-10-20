@@ -282,7 +282,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(ExperienceContextProviderInterface::class, 'sylius_paypal.provider.experience_context');
 
     $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class)
-        ->args([service('sylius_paypal.resolver.vault_request')]);
+        ->args([service('sylius_paypal.provider.vault_request')]);
 
     $services->alias(PayPalPaymentSourceProviderInterface::class, 'sylius_paypal.provider.paypal_payment_source');
 
@@ -461,6 +461,7 @@ return static function (ContainerConfigurator $container) {
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
             service('sylius_paypal.checker.payment_authorization'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->alias(PayPalPaymentPageContextProviderInterface::class, 'sylius_paypal.provider.paypal_payment_page_context');
