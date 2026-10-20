@@ -25,10 +25,12 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\ShopBillingDataInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -382,5 +384,69 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         self::assertFalse($context['venmoEnabled']);
         self::assertTrue($context['googlePayEnabled']);
         self::assertFalse($context['applePayEnabled']);
+    }
+
+    public function test_it_offers_only_the_paypal_wallet_for_a_payment_that_needs_vaulting(): void
+    {
+        $this->paymentMethodConfig['pay_later_enabled'] = true;
+        $this->paymentMethodConfig['messaging_enabled'] = true;
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+
+        $eligibleRedirectPaymentSourcesProvider = $this->createMock(EligibleRedirectPaymentSourcesProviderInterface::class);
+        $eligibleRedirectPaymentSourcesProvider->expects(self::never())->method('provide');
+
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('provide')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $context = $this->providerWith($eligibleRedirectPaymentSourcesProvider, $vaultRequestProvider)->provide($this->paymentRequest(), 'en_US');
+
+        self::assertTrue($context['vaultRequired']);
+        self::assertFalse($context['cardEnabled']);
+        self::assertFalse($context['paylaterEnabled']);
+        self::assertFalse($context['messagingEnabled']);
+        self::assertFalse($context['googlePayEnabled']);
+        self::assertFalse($context['applePayEnabled']);
+        self::assertFalse($context['venmoEnabled']);
+        self::assertSame([], $context['redirectPaymentSources']);
+    }
+
+    public function test_it_offers_the_card_for_a_payment_that_needs_no_vaulting(): void
+    {
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('provide')->willReturn(null);
+
+        $context = $this->providerWith($this->eligibleRedirectPaymentSourcesProvider, $vaultRequestProvider)->provide($this->paymentRequest(), 'en_US');
+
+        self::assertFalse($context['vaultRequired']);
+        self::assertTrue($context['cardEnabled']);
+    }
+
+    private function providerWith(
+        EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
+        PayPalVaultRequestProviderInterface $vaultRequestProvider,
+    ): PayPalPaymentPageContextProvider {
+        $router = $this->createStub(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturnArgument(0);
+
+        $localeProcessor = $this->createStub(LocaleProcessorInterface::class);
+        $localeProcessor->method('process')->willReturnArgument(0);
+
+        return new PayPalPaymentPageContextProvider(
+            $this->webSdkConfigurationProvider,
+            $router,
+            $localeProcessor,
+            $eligibleRedirectPaymentSourcesProvider,
+            $this->paymentAuthorizationChecker,
+            $vaultRequestProvider,
+        );
     }
 }
