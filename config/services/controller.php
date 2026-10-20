@@ -19,8 +19,6 @@ use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PaymentMethodNotifyAction;
-use Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction;
-use Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -29,17 +27,6 @@ return static function (ContainerConfigurator $container) {
     $services->defaults()
         ->public();
 
-    $services->set('sylius_paypal.controller.webhook.paypal_webhook', PayPalWebhookAction::class)
-        ->args([
-            service('sylius_paypal.verifier.webhook_request'),
-            [
-                service('sylius_paypal.processor.webhook.refund_order'),
-                service('sylius_paypal.processor.webhook.capture_payment'),
-            ],
-            service('monolog.logger.paypal'),
-        ])
-        ->deprecate('sylius/paypal-plugin', '3.0', 'The "%service_id%" service is deprecated, PayPal webhooks are received on the "sylius_payment_method_notify" route of their payment method; run "sylius-paypal:register-webhook-event-types" to move them there.');
-
     $services->set('sylius_paypal.controller.webhook.payment_method_notify', PaymentMethodNotifyAction::class)
         ->public()
         ->decorate('sylius.controller.payment_method_notify')
@@ -47,20 +34,6 @@ return static function (ContainerConfigurator $container) {
             service('.inner'),
             service('monolog.logger.paypal'),
         ]);
-
-    $services->set('sylius_paypal.controller.webhook.refund_order', RefundOrderAction::class)
-        ->args([
-            service('sylius_paypal.processor.payment_refund_confirmation'),
-            service('sylius_paypal.provider.payment'),
-            service('sylius.manager.payment'),
-            service('sylius_paypal.provider.paypal_refund_data'),
-            service('sylius_paypal.provider.paypal_payment_method'),
-            service('sylius_paypal.api.webhook_signature_verifier'),
-            service('sylius_paypal.provider.webhook_id'),
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius_paypal.verifier.webhook_request'),
-        ])
-        ->deprecate('sylius/paypal-plugin', '2.2', 'The "%service_id%" service is deprecated, use "sylius_paypal.controller.webhook.paypal_webhook" instead.');
 
     $services->set('sylius_paypal.controller.cancel_paypal_order', CancelPayPalOrderAction::class)
         ->args([

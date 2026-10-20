@@ -34,7 +34,7 @@ use Webmozart\Assert\Assert;
 
 final class ManagingOrdersContext implements Context
 {
-    private ?int $refundAmount = null;
+    private ?PaymentInterface $paidPayment = null;
 
     public function __construct(
         private readonly StateMachineInterface $stateMachine,
@@ -74,20 +74,29 @@ final class ManagingOrdersContext implements Context
     #[When('request from PayPal about :payPalOrderId order refund has been received')]
     public function requestFromPayPalAboutOrderRefundHasBeenReceived(string $payPalOrderId): void
     {
+        Assert::notNull($this->paidPayment);
+        $refundId = sprintf('REFUND-%s', $payPalOrderId);
+        $this->payPalApiMocker->mockRefundDetails($refundId);
+
         $data = json_encode([
+            'id' => sprintf('WH-%s', $refundId),
             'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
             'resource_type' => 'refund',
             'resource' => [
-                'id' => $payPalOrderId,
-                'amount' => ['currency_code' => 'USD', 'amount' => (string) ($this->refundAmount / 100)],
+                'id' => $refundId,
                 'status' => 'COMPLETED',
-                'links' => [
-                    ['rel' => 'up', 'href' => $payPalOrderId],
-                ],
+                'supplementary_data' => ['related_ids' => ['order_id' => $payPalOrderId]],
             ],
         ]);
 
-        $this->client->request('POST', '/paypal-webhook/api/', [], [], ['Content-Type' => 'application/json'], $data);
+        $this->client->request(
+            'POST',
+            sprintf('/payment-methods/%s', (string) $this->paidPayment->getMethod()?->getCode()),
+            [],
+            [],
+            ['Content-Type' => 'application/json'],
+            (string) $data,
+        );
 
         Assert::same($this->client->getResponse()->getStatusCode(), Response::HTTP_NO_CONTENT);
     }
@@ -105,7 +114,7 @@ final class ManagingOrdersContext implements Context
     public function iSeeTheRefundedOrder(OrderInterface $order): void
     {
         // During calling `open` method it's verified and FOR SOME REASON it constantly tries to compare it
-        // with the previously visited URL "/paypal-webhook/api/"
+        // with the previously visited webhook URL
         // This override is temporary until we find out what is the problem
         $this->showPage->tryToOpen(['id' => $order->getId()]);
     }
@@ -123,7 +132,7 @@ final class ManagingOrdersContext implements Context
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE);
 
-        $this->refundAmount = $order->getTotal();
+        $this->paidPayment = $payment;
 
         $this->objectManager->flush();
     }

@@ -104,6 +104,16 @@ final class RefundPaymentWebhookEventProcessorTest extends TestCase
         $this->processor->process('PAYMENT.CAPTURE.REVERSED', $this->refund(), $payment);
     }
 
+    public function test_it_confirms_the_refund_of_the_payment_when_paypal_refunded_another_capture_than_the_late_one(): void
+    {
+        $payment = $this->payment(['paypal_late_capture' => ['id' => 'LATE_CAPTURE_ID', 'amount' => 20]]);
+
+        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::never())->method('confirm');
+
+        $this->processor->process('PAYMENT.CAPTURE.REFUNDED', $this->refund(), $payment);
+    }
+
     public function test_it_gives_up_on_a_refund_that_does_not_point_at_its_capture(): void
     {
         $this->expectException(PayPalWrongDataException::class);
