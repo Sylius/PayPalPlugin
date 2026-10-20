@@ -284,7 +284,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(ExperienceContextProviderInterface::class, 'sylius_paypal.provider.experience_context');
 
-    $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class);
+    $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class)
+        ->args([service('sylius_paypal.resolver.vault_request')]);
 
     $services->alias(PayPalPaymentSourceProviderInterface::class, 'sylius_paypal.provider.paypal_payment_source');
 
