@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
@@ -23,8 +24,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
 
 final class PayPalPaymentSourceProviderTest extends TestCase
 {
@@ -55,6 +58,67 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertSame(
             ['paypal' => ['experience_context' => $experienceContext]],
             $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, $experienceContext),
+        );
+    }
+
+    public function test_it_asks_paypal_to_vault_the_wallet_when_the_payment_needs_it(): void
+    {
+        $this->payWith('sylius_paypal', ['vaulting_enabled' => true]);
+
+        $vaultResolver = $this->createMock(VaultRequestResolverInterface::class);
+        $vaultResolver->expects(self::once())->method('resolve')->with($this->payment)->willReturn(
+            new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription'),
+        );
+
+        self::assertSame(
+            ['paypal' => [
+                'experience_context' => ['locale' => 'en-US'],
+                'attributes' => ['vault' => [
+                    'store_in_vault' => 'ON_SUCCESS',
+                    'usage_type' => 'MERCHANT',
+                    'customer_type' => 'CONSUMER',
+                    'usage_pattern' => 'SUBSCRIPTION_PREPAID',
+                    'permit_multiple_payment_tokens' => false,
+                    'description' => 'Monthly subscription',
+                ]],
+            ]],
+            (new PayPalPaymentSourceProvider($vaultResolver))->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, ['locale' => 'en-US']),
+        );
+    }
+
+    public function test_it_does_not_vault_the_wallet_when_the_payment_does_not_need_it(): void
+    {
+        $this->payWith('sylius_paypal', ['vaulting_enabled' => true]);
+
+        $vaultResolver = $this->createStub(VaultRequestResolverInterface::class);
+        $vaultResolver->method('resolve')->willReturn(null);
+
+        self::assertSame(
+            ['paypal' => ['experience_context' => ['locale' => 'en-US']]],
+            (new PayPalPaymentSourceProvider($vaultResolver))->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, ['locale' => 'en-US']),
+        );
+    }
+
+    /** @return iterable<string, array{string, array<string, mixed>}> */
+    public static function gatewaysThatCannotVault(): iterable
+    {
+        yield 'merchant without the vaulting capability' => ['sylius_paypal', ['vaulting_enabled' => false]];
+        yield 'merchant onboarded before vaulting' => ['sylius_paypal', []];
+        yield 'gateway that is not paypal' => ['offline', ['vaulting_enabled' => true]];
+    }
+
+    /** @param array<string, mixed> $config */
+    #[DataProvider('gatewaysThatCannotVault')]
+    public function test_it_does_not_ask_to_vault_the_wallet_through_a_gateway_that_cannot_vault(string $factoryName, array $config): void
+    {
+        $this->payWith($factoryName, $config);
+
+        $vaultResolver = $this->createMock(VaultRequestResolverInterface::class);
+        $vaultResolver->expects(self::never())->method('resolve');
+
+        self::assertSame(
+            ['paypal' => ['experience_context' => ['locale' => 'en-US']]],
+            (new PayPalPaymentSourceProvider($vaultResolver))->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, ['locale' => 'en-US']),
         );
     }
 
