@@ -17,9 +17,11 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Core\Storage\CartStorageInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -55,6 +57,31 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
         self::assertSame(OrderPaymentStates::STATE_PAID, $order->getPaymentState());
         self::assertSame(PaymentInterface::STATE_COMPLETED, $order->getLastPayment()?->getState());
         self::assertSame($orderId, $this->client->getRequest()->getSession()->get('sylius_order_id'));
+    }
+
+    public function test_it_places_the_order_and_authorizes_it_through_a_payment_request_when_the_payment_method_authorizes(): void
+    {
+        $order = $this->cart();
+        $this->authorizeWith($order);
+
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->orderDetails($order));
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockAuthorize();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+
+        $orderId = $order->getId();
+        $content = $this->completeExpressCheckout($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $paymentRequests = $this->paymentRequests();
+        self::assertCount(1, $paymentRequests);
+        self::assertSame(PaymentRequestInterface::ACTION_AUTHORIZE, $paymentRequests[0]->getAction());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequests[0]->getState());
+        self::assertSame($this->payUrl($paymentRequests[0]), $content['return_url']);
+        self::assertSame('completed', $order->getCheckoutState());
+        self::assertSame(OrderPaymentStates::STATE_AUTHORIZED, $order->getPaymentState());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $order->getLastPayment()?->getState());
+        self::assertSame('AUTHORIZATION_ID', $order->getLastPayment()?->getDetails()['authorization_id'] ?? null);
     }
 
     public function test_it_sends_the_buyer_to_the_payment_request_when_paypal_declines_the_capture(): void
@@ -356,6 +383,17 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
         $this->seedCurrentCart($order);
 
         return $order;
+    }
+
+    private function authorizeWith(OrderInterface $order): void
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $order->getLastPayment()?->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['use_authorize' => true]));
+
+        $this->getEntityManager()->flush();
     }
 
     private function total(OrderInterface $order, int $shippingCost = self::STANDARD_SHIPPING_COST): int

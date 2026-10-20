@@ -179,6 +179,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius.repository.payment_request'),
             service('sylius_abstraction.state_machine'),
             service('sylius.payment_request.command_bus'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(CapturePayPalOrderPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.capture_paypal_order_payment_request');

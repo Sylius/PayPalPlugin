@@ -534,7 +534,8 @@
    The capture, its settlement and a declined or pending capture are handled as on the payment page. The response's
    `return_url` leads to the Payment Request (`/payment-request/pay/{hash}`), which ends on the thank-you page, or on
    the order to pay again when PayPal did not capture. A total that grew since the approval still returns the buyer
-   to the unplaced checkout.
+   to the unplaced checkout. A payment method that authorizes (`use_authorize`) gets an `authorize` Payment Request
+   instead, which leaves the payment `authorized`.
 
    The request body (`orderId`, `payPalOrderId`) is unchanged; the response carries only `return_url`.
 

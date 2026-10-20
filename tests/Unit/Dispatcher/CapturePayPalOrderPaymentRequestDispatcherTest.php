@@ -22,6 +22,8 @@ use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -58,7 +60,45 @@ final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
             ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
         ;
 
-        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher($paymentRequestFactory, $paymentRequestRepository, $stateMachine, $commandBus);
+        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
+        $paymentAuthorizationChecker->method('isAuthorizeEnabled')->with($paymentMethod)->willReturn(false);
+
+        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher($paymentRequestFactory, $paymentRequestRepository, $stateMachine, $commandBus, $paymentAuthorizationChecker);
+
+        self::assertSame($paymentRequest, $dispatcher->dispatch($payment));
+    }
+
+    public function test_it_dispatches_the_authorization_of_the_approved_paypal_order_when_the_payment_method_authorizes(): void
+    {
+        $paymentMethod = new PaymentMethod();
+        $payment = new Payment();
+        $payment->setMethod($paymentMethod);
+        $payment->setDetails(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL-ORDER')->toArray());
+        $paymentRequest = $this->createMock(PaymentRequestInterface::class);
+        $paymentRequest->method('getId')->willReturn('0199e8a4-6c1f-7a52-9a8e-5c6c2f0e3b11');
+
+        /** @var PaymentRequestFactoryInterface<PaymentRequestInterface>&MockObject $paymentRequestFactory */
+        $paymentRequestFactory = $this->createMock(PaymentRequestFactoryInterface::class);
+        $paymentRequestFactory->method('create')->willReturn($paymentRequest);
+        $commandBus = $this->createMock(MessageBusInterface::class);
+        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
+        $paymentAuthorizationChecker->method('isAuthorizeEnabled')->with($paymentMethod)->willReturn(true);
+
+        $paymentRequest->expects(self::once())->method('setAction')->with(PaymentRequestInterface::ACTION_AUTHORIZE);
+        $commandBus
+            ->expects(self::once())
+            ->method('dispatch')
+            ->with(self::callback(static fn (AuthorizePayPalOrderPaymentRequest $command): bool => '0199e8a4-6c1f-7a52-9a8e-5c6c2f0e3b11' === $command->getHash()))
+            ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
+        ;
+
+        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher(
+            $paymentRequestFactory,
+            $this->createMock(PaymentRequestRepositoryInterface::class),
+            $this->createMock(StateMachineInterface::class),
+            $commandBus,
+            $paymentAuthorizationChecker,
+        );
 
         self::assertSame($paymentRequest, $dispatcher->dispatch($payment));
     }
