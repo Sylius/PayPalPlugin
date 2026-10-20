@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Form\Extension;
 
 use Sylius\Bundle\PaymentBundle\Form\Type\GatewayConfigType;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Symfony\Component\Form\AbstractTypeExtension;
@@ -41,20 +40,14 @@ final class GatewayConfigTypeExtension extends AbstractTypeExtension
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $gatewayConfig = $event->getData();
             if (
-                !$gatewayConfig instanceof GatewayConfigInterface ||
-                SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $gatewayConfig->getFactoryName()
+                !$gatewayConfig instanceof PayumGatewayConfigInterface ||
+                SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $gatewayConfig->getFactoryName() ||
+                !$gatewayConfig->getUsePayum()
             ) {
                 return;
             }
 
-            $config = $gatewayConfig->getConfig();
-            unset($config[PayPalGatewayConfig::USE_AUTHORIZE]);
-
-            if ($gatewayConfig instanceof PayumGatewayConfigInterface && $gatewayConfig->getUsePayum()) {
-                $config[PayPalGatewayConfig::USE_AUTHORIZE] = true;
-            }
-
-            $gatewayConfig->setConfig($config);
+            $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [PayPalGatewayConfig::USE_AUTHORIZE => true]));
         });
     }
 

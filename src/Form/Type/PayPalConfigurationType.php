@@ -38,6 +38,10 @@ final class PayPalConfigurationType extends AbstractType
 
     private const SANDBOX_MODE_FIELD = 'sandbox_mode';
 
+    private const CAPTURE = 'capture';
+
+    private const AUTHORIZE = 'authorize';
+
     public function __construct(
         private readonly CredentialsManagerInterface $credentialsManager,
         private readonly TranslatorInterface $translator,
@@ -59,6 +63,17 @@ final class PayPalConfigurationType extends AbstractType
                     'sylius_paypal.mode_sandbox' => true,
                 ],
                 'choice_value' => static fn (?bool $mode): string => (true === $mode ? Mode::Sandbox : Mode::Production)->value,
+            ])
+            ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
+                'label' => 'sylius_paypal.capture_strategy',
+                'help' => 'sylius_paypal.capture_strategy_help',
+                'expanded' => true,
+                'multiple' => false,
+                'choices' => [
+                    'sylius_paypal.capture_strategy_capture' => false,
+                    'sylius_paypal.capture_strategy_authorize' => true,
+                ],
+                'choice_value' => static fn (?bool $authorize): string => true === $authorize ? self::AUTHORIZE : self::CAPTURE,
             ])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
@@ -87,6 +102,7 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
+                $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
                 $event->setData($data);
             }
         });
@@ -118,6 +134,8 @@ final class PayPalConfigurationType extends AbstractType
             if (!is_array($config)) {
                 return;
             }
+
+            $config[PayPalGatewayConfig::USE_AUTHORIZE] = true === ($config[PayPalGatewayConfig::USE_AUTHORIZE] ?? false);
 
             $event->setData($this->applyModeSwitch($event, $config));
         });

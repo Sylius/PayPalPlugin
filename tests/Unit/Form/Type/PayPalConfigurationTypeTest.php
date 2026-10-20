@@ -39,6 +39,49 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->get('messaging_enabled')->getData());
     }
 
+    public function test_the_capture_strategy_defaults_to_capturing_at_approval(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_diff_key($this->baseConfig(), ['use_authorize' => true]));
+
+        self::assertFalse($form->get('use_authorize')->getData());
+    }
+
+    public function test_the_capture_strategy_reads_an_authorizing_payment_method(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['use_authorize' => true]));
+
+        self::assertTrue($form->get('use_authorize')->getData());
+    }
+
+    public function test_the_capture_strategy_stores_authorizing_at_approval(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit(array_merge($this->submittedFields(), ['use_authorize' => 'authorize']));
+
+        self::assertTrue($form->isValid());
+        self::assertTrue($form->getData()['use_authorize']);
+    }
+
+    public function test_the_capture_strategy_stores_capturing_at_approval(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['use_authorize' => true]));
+
+        $form->submit(array_merge($this->submittedFields(), ['use_authorize' => 'capture']));
+
+        self::assertTrue($form->isValid());
+        self::assertFalse($form->getData()['use_authorize']);
+    }
+
+    public function test_the_capture_strategy_stays_capturing_when_none_is_submitted(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit($this->submittedFields());
+
+        self::assertFalse($form->getData()['use_authorize']);
+    }
+
     public function test_the_google_pay_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
@@ -280,7 +323,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         return array_merge([
             'client_id' => 'PROD', 'client_secret' => 'PRODS', 'merchant_id' => 'PRODM',
-            'sylius_merchant_id' => 'PRODM', 'partner_attribution_id' => 'bn', 'use_authorize' => '1',
+            'sylius_merchant_id' => 'PRODM', 'partner_attribution_id' => 'bn',
             'reports_sftp_username' => '', 'reports_sftp_password' => '',
         ], $overrides);
     }

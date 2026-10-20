@@ -91,6 +91,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         $gatewayConfig->setConfig($this->credentialsManager->store([
             PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
             PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
+            PayPalGatewayConfig::USE_AUTHORIZE => false,
         ], $sandbox, $credentials));
 
         if ($gatewayConfig instanceof PayumGatewayConfigInterface) {
