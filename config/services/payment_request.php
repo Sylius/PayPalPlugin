@@ -19,6 +19,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CaptureAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\ChargeVaultedPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\NotifyPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
@@ -28,6 +29,7 @@ use Sylius\PayPalPlugin\CommandHandler\VoidAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\AuthorizePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\ChargeVaultedPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\NotifyPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundPaymentRequestCommandProvider;
@@ -40,6 +42,8 @@ use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\ChargeVaultedPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\ChargeVaultedPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcher;
@@ -86,6 +90,9 @@ return function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.command_provider.void_authorization', VoidAuthorizationPaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => VoidAuthorizationPaymentRequestCommandProvider::ACTION]);
+
+    $services->set('sylius_paypal.command_provider.charge_vaulted', ChargeVaultedPaymentRequestCommandProvider::class)
+        ->tag('sylius_paypal.command_provider', ['action' => ChargeVaultedPaymentRequestCommandProvider::ACTION]);
 
     $services->set('sylius_paypal.command_provider.notify', NotifyPaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_NOTIFY]);
@@ -293,6 +300,26 @@ return function (ContainerConfigurator $container): void {
         ]);
 
     $services->alias(RefundPayPalLateCapturePaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.refund_paypal_late_capture_payment_request');
+
+    $services->set('sylius_paypal.command_handler.charge_vaulted', ChargeVaultedPaymentRequestHandler::class)
+        ->args([
+            service('sylius.provider.payment_request'),
+            service('sylius_paypal.api.charge_vaulted_order'),
+            service('sylius_paypal.provider.uuid'),
+            service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.dispatcher.charge_vaulted_payment_request', ChargeVaultedPaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(ChargeVaultedPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.charge_vaulted_payment_request');
 
     $services->set('sylius_paypal.command_handler.notify', NotifyPaymentRequestHandler::class)
         ->args([
