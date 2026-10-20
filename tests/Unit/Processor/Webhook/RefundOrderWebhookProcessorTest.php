@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface;
@@ -38,6 +39,8 @@ final class RefundOrderWebhookProcessorTest extends TestCase
 
     private SettleablePaypalPaymentQueryInterface&MockObject $settleablePaymentQuery;
 
+    private PayPalLateCaptureRefundConfirmationProcessorInterface&MockObject $lateCaptureRefundConfirmationProcessor;
+
     private RefundOrderWebhookProcessor $processor;
 
     protected function setUp(): void
@@ -48,6 +51,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         $this->refundConfirmationProcessor = $this->createMock(PayPalPaymentRefundConfirmationProcessorInterface::class);
         $this->paymentManager = $this->createMock(ObjectManager::class);
         $this->settleablePaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
+        $this->lateCaptureRefundConfirmationProcessor = $this->createMock(PayPalLateCaptureRefundConfirmationProcessorInterface::class);
 
         $this->processor = new RefundOrderWebhookProcessor(
             $this->payPalRefundDataProvider,
@@ -55,6 +59,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
             $this->refundConfirmationProcessor,
             $this->paymentManager,
             $this->settleablePaymentQuery,
+            $this->lateCaptureRefundConfirmationProcessor,
         );
     }
 
@@ -100,7 +105,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         $this->processor->process($this->payload());
     }
 
-    public function test_it_records_the_refund_of_a_late_capture_without_refunding_the_payment(): void
+    public function test_it_confirms_the_refund_of_a_late_capture_without_refunding_the_payment(): void
     {
         $payment = $this->createMock(PaymentInterface::class);
         $payment->method('getDetails')->willReturn([
@@ -110,10 +115,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         $this->payPalRefundDataProvider->method('provide')->with('https://api-m.paypal.com/v2/payments/captures/LATE_CAPTURE_ID')->willReturn(['id' => 'SUPERSEDED_ORDER_ID']);
         $this->settleablePaymentQuery->method('getForSettlementByOrderId')->with('SUPERSEDED_ORDER_ID')->willReturn($payment);
 
-        $payment->expects(self::once())->method('setDetails')->with([
-            'paypal_order_id' => 'PAYPAL_ORDER_ID',
-            'paypal_late_capture' => ['id' => 'LATE_CAPTURE_ID', 'order_id' => 'SUPERSEDED_ORDER_ID', 'amount' => 1539, 'currency_code' => 'EUR', 'refunded' => true, 'refund_id' => 'REFUND_ID'],
-        ]);
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
         $this->paymentManager->expects(self::once())->method('flush');
         $this->paypalPaymentQuery->expects(self::never())->method('getForRefundingByOrderId');
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
@@ -130,7 +132,7 @@ final class RefundOrderWebhookProcessorTest extends TestCase
         $this->settleablePaymentQuery->method('getForSettlementByOrderId')->willReturn($latePayment);
         $this->paypalPaymentQuery->method('getForRefundingByOrderId')->willReturn($payment);
 
-        $latePayment->expects(self::never())->method('setDetails');
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::never())->method('confirm');
         $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
 
         $this->processor->process($this->payload('https://api-m.paypal.com/v2/payments/captures/CAPTURE_ID'));

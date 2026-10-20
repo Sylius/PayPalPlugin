@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Command\RefundPayPalLateCapturePaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
 final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
@@ -38,6 +39,8 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
 
     private RefundPaymentApiInterface&MockObject $refundPaymentApi;
+
+    private PayPalLateCaptureRefundConfirmationProcessorInterface&MockObject $lateCaptureRefundConfirmationProcessor;
 
     private StateMachineInterface&MockObject $stateMachine;
 
@@ -51,6 +54,7 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         $this->paymentRequestProvider = $this->createMock(PaymentRequestProviderInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
         $this->refundPaymentApi = $this->createMock(RefundPaymentApiInterface::class);
+        $this->lateCaptureRefundConfirmationProcessor = $this->createMock(PayPalLateCaptureRefundConfirmationProcessorInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->stateMachine->method('apply')->willReturnCallback(function (object $subject, string $graph, string $transition): void {
             $this->appliedTransitions[] = $transition;
@@ -74,6 +78,7 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
             $this->refundPaymentApi,
             $authAssertionGenerator,
             $referenceNumberProvider,
+            $this->lateCaptureRefundConfirmationProcessor,
             $this->stateMachine,
         );
     }
@@ -88,15 +93,26 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
             ->with($paymentRequest->getMethod(), 'CAPTURE_ID', 'AUTH_ASSERTION', 'REFERENCE_NUMBER', '15.39', 'EUR', 'PAYMENT_REQUEST_HASH')
             ->willReturn(['id' => 'REFUND_ID', 'status' => 'COMPLETED'])
         ;
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($paymentRequest->getPayment(), 'REFUND_ID');
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
-        self::assertSame(['refund_id' => 'REFUND_ID'], $paymentRequest->getResponseData());
-        self::assertSame([
-            'paypal_order_id' => 'PAYPAL_ORDER_ID',
-            'paypal_late_capture' => ['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR', 'refunded' => true, 'refund_id' => 'REFUND_ID'],
-        ], $paymentRequest->getPayment()->getDetails());
+        self::assertSame(['refund_id' => 'REFUND_ID', 'refund_status' => 'COMPLETED'], $paymentRequest->getResponseData());
+    }
+
+    public function test_it_keeps_the_request_processing_while_paypal_has_the_refund_pending(): void
+    {
+        $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
+        $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('COMPLETED'));
+        $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'PENDING']);
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::never())->method('confirm');
+
+        ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS], $this->appliedTransitions);
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $paymentRequest->getState());
+        self::assertSame(['refund_id' => 'REFUND_ID', 'refund_status' => 'PENDING'], $paymentRequest->getResponseData());
     }
 
     public function test_it_checks_the_paypal_order_the_late_capture_belongs_to(): void
@@ -127,11 +143,11 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
         $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('REFUNDED'));
         $this->refundPaymentApi->expects(self::never())->method('refund');
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($paymentRequest->getPayment(), null);
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
-        self::assertTrue($paymentRequest->getPayment()->getDetails()['paypal_late_capture']['refunded']);
     }
 
     public function test_it_fails_the_request_with_the_reason_paypal_gave_for_refusing_the_refund(): void
@@ -139,12 +155,12 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
         $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('COMPLETED'));
         $this->refundPaymentApi->method('refund')->willThrowException(new PayPalApiRequestException('POST', 'v2/payments/captures/CAPTURE_ID/refund', 422, 'UNPROCESSABLE_ENTITY', debugId: 'DEBUG_ID'));
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::never())->method('confirm');
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(['reason' => 'PayPal rejected the refund: UNPROCESSABLE_ENTITY (debug id: DEBUG_ID)'], $paymentRequest->getResponseData());
-        self::assertArrayNotHasKey('refunded', $paymentRequest->getPayment()->getDetails()['paypal_late_capture']);
     }
 
     public function test_it_records_a_capture_paypal_refunded_meanwhile_when_it_refuses_the_refund(): void
@@ -152,11 +168,11 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
         $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('COMPLETED'));
         $this->refundPaymentApi->method('refund')->willThrowException(new PayPalApiRequestException('POST', 'v2/payments/captures/CAPTURE_ID/refund', 422, 'UNPROCESSABLE_ENTITY', issues: ['CAPTURE_FULLY_REFUNDED']));
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($paymentRequest->getPayment(), null);
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
-        self::assertTrue($paymentRequest->getPayment()->getDetails()['paypal_late_capture']['refunded']);
     }
 
     public function test_it_fails_the_request_when_paypal_reports_the_refund_failed(): void
@@ -164,9 +180,11 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
         $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('COMPLETED'));
         $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'FAILED']);
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::never())->method('confirm');
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
+        self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(['reason' => 'PayPal reported the refund as FAILED.'], $paymentRequest->getResponseData());
     }
 
@@ -182,8 +200,9 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
 
     public function test_it_completes_the_request_of_a_late_capture_already_refunded_without_calling_paypal(): void
     {
-        $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR', 'refunded' => true, 'refund_id' => 'REFUND_ID']);
+        $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR', 'refunded' => true, 'refund_id' => 'REFUND_ID']);
         $this->orderDetailsApi->expects(self::never())->method('get');
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($paymentRequest->getPayment(), null);
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));

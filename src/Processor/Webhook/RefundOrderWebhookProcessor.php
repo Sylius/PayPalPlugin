@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Processor\Webhook;
 use Doctrine\Persistence\ObjectManager;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
@@ -32,6 +33,7 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
         private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
         private ObjectManager $paymentManager,
         private SettleablePaypalPaymentQueryInterface $settleablePaymentQuery,
+        private PayPalLateCaptureRefundConfirmationProcessorInterface $lateCaptureRefundConfirmationProcessor,
     ) {
     }
 
@@ -76,15 +78,10 @@ final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInte
             return false;
         }
 
-        if (true !== ($lateCapture['refunded'] ?? false)) {
-            $refundId = $payload['resource']['id'] ?? null;
-            $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] = array_merge($lateCapture, [
-                'refunded' => true,
-                'refund_id' => is_string($refundId) ? $refundId : null,
-            ]);
-            $payment->setDetails($details);
-            $this->paymentManager->flush();
-        }
+        $refundId = $payload['resource']['id'] ?? null;
+        $this->lateCaptureRefundConfirmationProcessor->confirm($payment, is_string($refundId) ? $refundId : null);
+
+        $this->paymentManager->flush();
 
         return true;
     }

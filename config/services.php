@@ -60,6 +60,8 @@ use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessor;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
@@ -487,6 +489,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.processor.payment_refund_confirmation'),
             service('sylius.manager.payment'),
             service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius_paypal.processor.late_capture_refund_confirmation'),
         ]);
 
     $services->set('sylius_paypal.processor.webhook.capture_payment', CapturePaymentWebhookProcessor::class)
@@ -530,6 +533,14 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalPaymentRefundConfirmationProcessorInterface::class, 'sylius_paypal.processor.payment_refund_confirmation');
+
+    $services->set('sylius_paypal.processor.late_capture_refund_confirmation', PayPalLateCaptureRefundConfirmationProcessor::class)
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+        ]);
+
+    $services->alias(PayPalLateCaptureRefundConfirmationProcessorInterface::class, 'sylius_paypal.processor.late_capture_refund_confirmation');
 
     $services->set('sylius_paypal.checker.payment_refund', PaymentRefundChecker::class)
         ->public();
