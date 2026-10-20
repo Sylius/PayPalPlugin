@@ -29,7 +29,6 @@ use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
-use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 {
@@ -61,9 +60,6 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $paymentRequestProvider = $this->createStub(PaymentRequestProviderInterface::class);
         $paymentRequestProvider->method('provide')->willReturn($this->paymentRequest);
 
-        $uuidProvider = $this->createStub(UuidProviderInterface::class);
-        $uuidProvider->method('provide')->willReturn('REFERENCE_ID');
-
         $this->chargeVaultedOrderApi = $this->createMock(ChargeVaultedOrderApiInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
 
@@ -76,7 +72,6 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->handler = new ChargeVaultedPaymentRequestHandler(
             $paymentRequestProvider,
             $this->chargeVaultedOrderApi,
-            $uuidProvider,
             $this->paymentSettlementProcessor,
             $this->stateMachine,
         );
@@ -101,7 +96,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->chargeVaultedOrderApi
             ->expects(self::once())
             ->method('charge')
-            ->with($this->payment, 'VAULT_ID', 'REFERENCE_ID', 'PAYMENT_REQUEST_HASH')
+            ->with($this->payment, 'VAULT_ID', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
             ->willReturn($payPalOrder)
         ;
         $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, $payPalOrder);
@@ -113,7 +108,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             'vault_customer_id' => 'CUSTOMER_ID',
             'status' => 'PROCESSING',
             'paypal_order_id' => 'PAYPAL_ORDER_ID',
-            'reference_id' => 'REFERENCE_ID',
+            'reference_id' => 'PAYMENT_REQUEST_HASH',
             'payment_amount' => 1500,
             'payment_source' => 'paypal',
         ], $this->payment->getDetails());
@@ -181,6 +176,23 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         self::assertSame([
             [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
             [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
+        ], $this->appliedTransitions);
+    }
+
+    public function test_it_settles_from_the_order_details_when_paypal_completed_the_order_without_returning_the_capture(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'COMPLETED']);
+
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment);
+        $this->paymentRequest->expects(self::never())->method('setResponseData');
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame('PAYPAL_ORDER_ID', $this->payment->getDetails()['paypal_order_id']);
+        self::assertSame([
+            [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS],
+            [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE],
         ], $this->appliedTransitions);
     }
 

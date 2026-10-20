@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalVault;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\VaultedPaypalPaymentQueryInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final readonly class PaymentTokenWebhookProcessor implements WebhookProcessorInterface
@@ -31,7 +32,7 @@ final readonly class PaymentTokenWebhookProcessor implements WebhookProcessorInt
     private const STATUS_VAULTED = 'VAULTED';
 
     public function __construct(
-        private SettleablePaypalPaymentQueryInterface $paypalPaymentQuery,
+        private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface $paypalPaymentQuery,
         private ObjectManager $paymentManager,
         private EventDispatcherInterface $eventDispatcher,
     ) {
@@ -51,12 +52,26 @@ final readonly class PaymentTokenWebhookProcessor implements WebhookProcessorInt
         }
 
         if (self::EVENT_TYPE_DELETED === ($payload['event_type'] ?? null)) {
-            $this->eventDispatcher->dispatch(new PayPalPaymentTokenDeleted($vaultId));
+            $this->forgetDeletedToken($vaultId);
 
             return;
         }
 
         $this->recordCreatedToken($resource, $vaultId);
+    }
+
+    private function forgetDeletedToken(string $vaultId): void
+    {
+        $payments = $this->paypalPaymentQuery->findByVaultId($vaultId);
+        foreach ($payments as $payment) {
+            $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withVaultDeleted()->toArray());
+        }
+
+        if ([] !== $payments) {
+            $this->paymentManager->flush();
+        }
+
+        $this->eventDispatcher->dispatch(new PayPalPaymentTokenDeleted($vaultId));
     }
 
     /** @param array<array-key, mixed> $resource */

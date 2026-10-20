@@ -29,7 +29,6 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
 final class ChargeVaultedPaymentRequestHandler
 {
@@ -37,10 +36,11 @@ final class ChargeVaultedPaymentRequestHandler
 
     public const RESPONSE_ISSUES = 'issues';
 
+    private const ORDER_STATUS_COMPLETED = 'COMPLETED';
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly ChargeVaultedOrderApiInterface $chargeVaultedOrderApi,
-        private readonly UuidProviderInterface $uuidProvider,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         StateMachineInterface $stateMachine,
     ) {
@@ -70,10 +70,10 @@ final class ChargeVaultedPaymentRequestHandler
             return;
         }
 
-        $referenceId = $this->uuidProvider->provide();
+        $referenceId = (string) $paymentRequest->getId();
 
         try {
-            $payPalOrder = $this->chargeVaultedOrderApi->charge($payment, $vaultId, $referenceId, (string) $paymentRequest->getId());
+            $payPalOrder = $this->chargeVaultedOrderApi->charge($payment, $vaultId, $referenceId, $referenceId);
         } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
             throw $exception;
         } catch (PayPalApiException $exception) {
@@ -92,6 +92,13 @@ final class ChargeVaultedPaymentRequestHandler
             ->toArray());
 
         $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
+        if (null === $capture && self::ORDER_STATUS_COMPLETED === ($payPalOrder['status'] ?? null)) {
+            $this->paymentSettlementProcessor->settle($payment);
+            $this->awaitCapture($paymentRequest, $payment);
+
+            return;
+        }
+
         if (null === $capture) {
             $this->failPayment($payment);
             $this->failWithReason($paymentRequest, 'PayPal did not capture the order.');
