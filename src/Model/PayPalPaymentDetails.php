@@ -56,6 +56,8 @@ final readonly class PayPalPaymentDetails
 
     public const PAYER_EMAIL = 'payer_email';
 
+    public const VAULT_STATUS_DELETED = 'DELETED';
+
     public const AUTHORIZATION_ID = 'authorization_id';
 
     public const AUTHORIZATION_STATUS = 'authorization_status';
@@ -280,6 +282,15 @@ final readonly class PayPalPaymentDetails
             self::VAULT_CUSTOMER_ID => $vault->customerId(),
             self::PAYER_EMAIL => $vault->payerEmail(),
         ], static fn (?string $value): bool => null !== $value));
+    }
+
+    public function withVaultDeleted(): self
+    {
+        $details = $this->details;
+        unset($details[self::VAULT_ID]);
+        $details[self::VAULT_STATUS] = self::VAULT_STATUS_DELETED;
+
+        return new self($details);
     }
 
     public function withAuthorization(PayPalAuthorization $authorization): self

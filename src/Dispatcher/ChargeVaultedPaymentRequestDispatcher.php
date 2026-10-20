@@ -55,9 +55,15 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
         );
 
         foreach ($paymentRequests as $paymentRequest) {
-            if (ChargeVaultedPaymentRequestCommandProvider::ACTION === $paymentRequest->getAction()) {
-                return $paymentRequest;
+            if (ChargeVaultedPaymentRequestCommandProvider::ACTION !== $paymentRequest->getAction()) {
+                continue;
             }
+
+            if (PaymentRequestInterface::STATE_NEW === $paymentRequest->getState()) {
+                $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+            }
+
+            return $paymentRequest;
         }
 
         return null;

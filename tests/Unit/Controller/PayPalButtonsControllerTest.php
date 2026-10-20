@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
@@ -31,7 +30,6 @@ use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -116,7 +114,6 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
-            $this->createStub(PayPalPaymentMethodsResolverInterface::class),
             $this->createStub(PayPalVaultRequestProviderInterface::class),
         );
     }
@@ -178,15 +175,11 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
         $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
 
-        $payPalPaymentMethod = $this->createStub(PaymentMethodInterface::class);
-        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalMethodsResolver->method('getInChannel')->with($this->channel)->willReturn([$payPalPaymentMethod]);
-
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider
             ->expects(self::once())
-            ->method('provide')
-            ->with($order, $payPalPaymentMethod)
+            ->method('provideForCart')
+            ->with($order)
             ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
         ;
 
@@ -209,7 +202,6 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
-            $payPalMethodsResolver,
             $vaultRequestProvider,
         );
 

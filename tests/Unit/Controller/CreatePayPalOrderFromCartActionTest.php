@@ -17,7 +17,6 @@ use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
@@ -47,15 +46,11 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
         $fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
 
-        $payPalPaymentMethod = $this->createStub(PaymentMethodInterface::class);
-        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalMethodsResolver->method('getInChannel')->with($channel)->willReturn([$payPalPaymentMethod]);
-
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider
             ->expects(self::once())
-            ->method('provide')
-            ->with($order, $payPalPaymentMethod)
+            ->method('provideForCart')
+            ->with($order)
             ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
         ;
 
@@ -68,7 +63,7 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
             $capturePaymentResolver,
             $this->createStub(OrderPaymentsRemoverInterface::class),
             $this->createStub(OrderProcessorInterface::class),
-            $payPalMethodsResolver,
+            $this->createStub(PayPalPaymentMethodsResolverInterface::class),
             $this->createStub(OrderOwnershipVerifierInterface::class),
             $fundingSourcesConfigurationProvider,
             $vaultRequestProvider,

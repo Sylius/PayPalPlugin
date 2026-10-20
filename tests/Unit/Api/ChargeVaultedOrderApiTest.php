@@ -61,7 +61,7 @@ final class ChargeVaultedOrderApiTest extends TestCase
                         ],
                     ]],
                 ],
-                ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH'],
+                ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH', 'Prefer' => 'return=representation'],
             )
             ->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'COMPLETED'])
         ;
