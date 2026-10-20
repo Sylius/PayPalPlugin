@@ -49,6 +49,7 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         private LocaleProcessorInterface $localeProcessor,
         private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
         private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
     }
 
@@ -64,8 +65,9 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        $messagingEnabled = $config->isPayLaterEnabled() && $config->isMessagingEnabled();
-        $enabledPaymentSources = $this->enabledPaymentSources($paymentMethod);
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($payment);
+        $messagingEnabled = !$vaultRequired && $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+        $enabledPaymentSources = $this->enabledPaymentSources($paymentMethod, $vaultRequired);
 
         try {
             $processedLocale = $this->localeProcessor->process($locale);
@@ -86,9 +88,10 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
             'messagingInstanceConfig' => $messagingEnabled
                 ? $this->webSdkConfigurationProvider->getInstanceConfig($paymentMethod, self::PAGE_TYPE, [self::MESSAGES_COMPONENT], $processedLocale)
                 : [],
-            'paylaterEnabled' => $config->isPayLaterEnabled(),
-            'redirectPaymentSources' => $this->redirectPaymentSources($payment),
+            'paylaterEnabled' => !$vaultRequired && $config->isPayLaterEnabled(),
+            'redirectPaymentSources' => $vaultRequired ? [] : $this->redirectPaymentSources($payment),
             'sandbox' => $config->isSandbox(),
+            'vaultRequired' => $vaultRequired,
             'venmoEnabled' => $enabledPaymentSources[PayPalPaymentSourceProviderInterface::VENMO],
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $paymentMethod,
@@ -118,11 +121,11 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
     }
 
     /** @return array<string, bool> */
-    private function enabledPaymentSources(PaymentMethodInterface $paymentMethod): array
+    private function enabledPaymentSources(PaymentMethodInterface $paymentMethod, bool $vaultRequired): array
     {
         $enabledPaymentSources = [];
         foreach (array_keys(self::COMPONENTS) as $paymentSource) {
-            $enabledPaymentSources[$paymentSource] = $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
+            $enabledPaymentSources[$paymentSource] = !$vaultRequired && $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
         }
 
         return $enabledPaymentSources;

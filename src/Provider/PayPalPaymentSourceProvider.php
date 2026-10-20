@@ -23,11 +23,10 @@ use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
 
 final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
 {
-    public function __construct(private ?VaultRequestResolverInterface $vaultRequestResolver = null)
+    public function __construct(private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null)
     {
     }
 
@@ -79,11 +78,7 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
     {
         $paypal = ['experience_context' => $experienceContext];
 
-        if (true !== $this->payPalGatewayConfig($payment)?->isVaultingEnabled()) {
-            return $paypal;
-        }
-
-        $vaultRequest = $this->vaultRequestResolver?->resolve($payment);
+        $vaultRequest = $this->vaultRequestProvider?->provide($payment);
         if (null !== $vaultRequest) {
             $paypal['attributes'] = ['vault' => $vaultRequest->toArray()];
         }
@@ -138,25 +133,17 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
 
     private function cardVerificationMethod(PaymentInterface $payment): string
     {
-        if ($this->payPalGatewayConfig($payment)?->isCardThreeDSecureAlways()) {
-            return PayPalOrder::VERIFICATION_METHOD_SCA_ALWAYS;
-        }
-
-        return PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED;
-    }
-
-    private function payPalGatewayConfig(PaymentInterface $payment): ?PayPalGatewayConfig
-    {
         $paymentMethod = $payment->getMethod();
         $gatewayConfig = $paymentMethod instanceof PaymentMethodInterface ? $paymentMethod->getGatewayConfig() : null;
 
         if (
-            !$gatewayConfig instanceof GatewayConfigInterface ||
-            SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $gatewayConfig->getFactoryName()
+            $gatewayConfig instanceof GatewayConfigInterface &&
+            SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $gatewayConfig->getFactoryName() &&
+            PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isCardThreeDSecureAlways()
         ) {
-            return null;
+            return PayPalOrder::VERIFICATION_METHOD_SCA_ALWAYS;
         }
 
-        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+        return PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED;
     }
 }

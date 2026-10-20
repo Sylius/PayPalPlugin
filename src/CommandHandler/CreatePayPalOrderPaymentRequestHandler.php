@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 
 final class CreatePayPalOrderPaymentRequestHandler
 {
@@ -45,6 +46,7 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
         private readonly PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
         StateMachineInterface $stateMachine,
+        private readonly ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         $this->stateMachine = $stateMachine;
     }
@@ -87,6 +89,16 @@ final class CreatePayPalOrderPaymentRequestHandler
 
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
+
+        if (
+            PayPalPaymentSourceProviderInterface::PAYPAL !== $paymentSource &&
+            null !== $this->vaultRequestProvider?->provide($payment)
+        ) {
+            $this->failWithReason($paymentRequest, 'This payment can be paid only with a PayPal wallet, which PayPal saves for later charges.');
+
+            return;
+        }
+
         $hash = (string) $paymentRequest->getId();
         $payUrl = $createPayPalOrderPaymentRequest->getReturnUrl();
 
