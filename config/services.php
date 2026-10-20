@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Payment\Model\PaymentInterface;
@@ -265,7 +276,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(ExperienceContextProviderInterface::class, 'sylius_paypal.provider.experience_context');
 
-    $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class);
+    $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class)
+        ->args([service('sylius_paypal.resolver.vault_request')]);
 
     $services->alias(PayPalPaymentSourceProviderInterface::class, 'sylius_paypal.provider.paypal_payment_source');
 

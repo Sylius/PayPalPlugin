@@ -222,6 +222,53 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
+    public function test_it_records_the_vault_paypal_returned_in_the_capture_response(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);
+
+        $this->completeOrderApi->method('complete')->willReturn(self::ORDER_DETAILS + [
+            'payment_source' => ['paypal' => [
+                'email_address' => 'buyer@example.com',
+                'attributes' => ['vault' => ['id' => 'j7hzkgdn', 'status' => 'VAULTED', 'customer' => ['id' => '163456532']]],
+            ]],
+        ]);
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => PayPalPaymentStatus::Completed->value,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
+            'transaction_id' => 'TRANSACTION_ID',
+            'vault_id' => 'j7hzkgdn',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => '163456532',
+            'payer_email' => 'buyer@example.com',
+        ]);
+
+        $this->processor->capture($this->payment);
+    }
+
+    public function test_it_reads_the_vault_from_the_order_when_the_capture_response_did_not_carry_it(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);
+
+        $this->completeOrderApi->method('complete')->willThrowException(new PayPalApiServerException('POST', 'v2/checkout/orders/123123/capture', 503));
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS + [
+            'payment_source' => ['paypal' => ['attributes' => ['vault' => ['status' => 'APPROVED', 'customer' => ['id' => '163456532']]]]],
+        ]);
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => PayPalPaymentStatus::Completed->value,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
+            'transaction_id' => 'TRANSACTION_ID',
+            'vault_status' => 'APPROVED',
+            'vault_customer_id' => '163456532',
+        ]);
+
+        $this->processor->capture($this->payment);
+    }
+
     public function test_it_keeps_the_paypal_orders_earlier_attempts_superseded_through_the_capture(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'google_pay', 'superseded_paypal_orders' => ['TRUSTLY_ORDER_ID' => 'trustly']], amount: 1000, total: 1000);

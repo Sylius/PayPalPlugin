@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
@@ -68,8 +69,9 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
+        $captureResponse = [];
         if ($this->isCapturable($orderDetails, $details)) {
-            $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
+            $captureResponse = $this->captureApprovedOrder($payment, $order, $paymentMethod, $details, $requestId);
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
 
@@ -88,6 +90,11 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             $capturedDetails = $capturedDetails->withTransactionId(
                 (string) $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
             );
+        }
+
+        $vault = PayPalVault::fromPayPalOrder($captureResponse) ?? PayPalVault::fromPayPalOrder($orderDetails);
+        if (null !== $vault) {
+            $capturedDetails = $capturedDetails->withVault($vault);
         }
 
         $payment->setDetails($capturedDetails->toArray());
@@ -109,13 +116,14 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         };
     }
 
+    /** @return array<string, mixed> */
     private function captureApprovedOrder(
         PaymentInterface $payment,
         OrderInterface $order,
         PaymentMethodInterface $paymentMethod,
         PayPalPaymentDetails $details,
         ?string $requestId,
-    ): void {
+    ): array {
         $payPalOrderId = (string) $details->payPalOrderId();
 
         if ($payment->getAmount() !== $order->getTotal()) {
@@ -145,12 +153,14 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         }
 
         try {
-            $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
+            return $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
         } catch (PayPalApiConnectionException|PayPalApiServerException) {
         } catch (PayPalApiRequestException $exception) {
             if ([] === array_intersect($exception->getIssues(), self::ISSUES_LEAVING_THE_ORDER_TO_READ)) {
                 throw $exception;
             }
         }
+
+        return [];
     }
 }
