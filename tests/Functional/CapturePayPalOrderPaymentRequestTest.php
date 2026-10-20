@@ -14,12 +14,21 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\DriverException;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
+use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Symfony\Bridge\Doctrine\Types\UuidType;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 
 final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
 {
@@ -88,6 +97,53 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         self::assertSame('CAPTURED', $paymentRequest->getPayment()->getDetails()['status']);
     }
 
+    public function test_a_capture_waits_while_another_process_holds_the_payment_request(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest();
+        $parallelConnection = $this->parallelConnection();
+        $parallelConnection->beginTransaction();
+        $parallelConnection->executeQuery(
+            'SELECT state FROM sylius_payment_request WHERE hash = ? FOR UPDATE',
+            [$paymentRequest->getHash()],
+            [UuidType::NAME],
+        );
+        $this->paymentRequestManager()->getConnection()->executeStatement($this->lockTimeoutStatement());
+
+        try {
+            self::getContainer()->get('sylius.announcer.payment_request')->dispatchPaymentRequestCommand($paymentRequest);
+            self::fail('A capture of a payment request another process holds must wait for it.');
+        } catch (HandlerFailedException $exception) {
+            $driverException = $exception->getPrevious();
+            self::assertInstanceOf(DriverException::class, $driverException);
+            self::assertTrue($driverException instanceof LockWaitTimeoutException || '55P03' === $driverException->getSQLState());
+        } finally {
+            $parallelConnection->rollBack();
+            $parallelConnection->close();
+        }
+    }
+
+    public function test_a_capture_leaves_a_payment_request_another_process_completed_meanwhile_alone(): void
+    {
+        $hash = $this->processingCapturePaymentRequest()->getId();
+        /** @var PaymentRequestInterface $paymentRequest */
+        $paymentRequest = self::getContainer()->get('sylius.repository.payment_request')->find($hash);
+        $parallelConnection = $this->parallelConnection();
+        $parallelConnection->executeStatement(
+            'UPDATE sylius_payment_request SET state = ? WHERE hash = ?',
+            [PaymentRequestInterface::STATE_COMPLETED, $paymentRequest->getHash()],
+            [ParameterType::STRING, UuidType::NAME],
+        );
+        $parallelConnection->close();
+
+        self::getContainer()->get('sylius.announcer.payment_request')->dispatchPaymentRequestCommand($paymentRequest);
+
+        $this->paymentRequestManager()->clear();
+        /** @var PaymentRequestInterface $reloaded */
+        $reloaded = self::getContainer()->get('sylius.repository.payment_request')->find($hash);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $reloaded->getState());
+        self::assertNotSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
+    }
+
     private function dispatchCapturePayPalOrderPaymentRequest(
         string $captureStatus = 'COMPLETED',
         ?string $capturedValue = null,
@@ -95,35 +151,10 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         bool $paypalFailsFirst = false,
         bool $instrumentDeclined = false,
     ): PaymentRequestInterface {
-        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
-
-        /** @var PaymentInterface $payment */
-        $payment = $fixtures['paypal_payment'];
+        $paymentRequest = $this->processingCapturePaymentRequest();
         /** @var OrderInterface $order */
-        $order = $payment->getOrder();
-        $order->setShippingAddress($this->shippingAddress());
-        $payment->setAmount($order->getTotal());
-        $payment->setDetails([
-            'status' => 'CAPTURED',
-            'paypal_order_id' => 'PAYPAL_ORDER_ID',
-            'reference_id' => 'REFERENCE_ID',
-            'payment_amount' => $order->getTotal(),
-            'payment_source' => 'paypal',
-        ]);
-
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setUsePayum(false);
-
-        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
-        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
-        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
-
+        $order = $paymentRequest->getPayment()->getOrder();
         $entityManager = $this->getEntityManager();
-        $entityManager->persist($paymentRequest);
-        $entityManager->flush();
 
         if ($approved || $instrumentDeclined) {
             $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
@@ -154,6 +185,65 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
         $reloaded = self::getContainer()->get('sylius.repository.payment_request')->find($hash);
 
         return $reloaded;
+    }
+
+    private function processingCapturePaymentRequest(): PaymentRequestInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
+
+        /** @var PaymentInterface $payment */
+        $payment = $fixtures['paypal_payment'];
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $payment->setAmount($order->getTotal());
+        $payment->setDetails([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_amount' => $order->getTotal(),
+            'payment_source' => 'paypal',
+        ]);
+
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig->setUsePayum(false);
+
+        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
+        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+
+        $entityManager = $this->getEntityManager();
+        $entityManager->persist($paymentRequest);
+        $entityManager->flush();
+
+        return $paymentRequest;
+    }
+
+    private function parallelConnection(): Connection
+    {
+        $connection = $this->getEntityManager()->getConnection();
+        $parallelConnection = DriverManager::getConnection($connection->getParams(), $connection->getConfiguration());
+        $parallelConnection->executeStatement($this->lockTimeoutStatement());
+
+        return $parallelConnection;
+    }
+
+    private function paymentRequestManager(): EntityManagerInterface
+    {
+        /** @var EntityManagerInterface $paymentRequestManager */
+        $paymentRequestManager = self::getContainer()->get('sylius.manager.payment_request');
+
+        return $paymentRequestManager;
+    }
+
+    private function lockTimeoutStatement(): string
+    {
+        return $this->getEntityManager()->getConnection()->getDatabasePlatform() instanceof PostgreSQLPlatform
+            ? "SET lock_timeout = '1s'"
+            : 'SET SESSION innodb_lock_wait_timeout = 1';
     }
 
     private function shippingAddress(): AddressInterface

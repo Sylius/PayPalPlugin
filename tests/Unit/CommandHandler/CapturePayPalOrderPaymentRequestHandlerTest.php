@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\CommandHandler;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
@@ -40,6 +42,8 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
+    private EntityManagerInterface&MockObject $paymentRequestManager;
+
     private StateMachineInterface&MockObject $stateMachine;
 
     private PaymentInterface&MockObject $payment;
@@ -55,6 +59,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentThreeDSecureVerifier = $this->createMock(PaymentThreeDSecureVerifierInterface::class);
         $this->paymentCaptureProcessor = $this->createMock(PaymentCaptureProcessorInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
@@ -67,8 +72,39 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentThreeDSecureVerifier,
             $this->paymentCaptureProcessor,
             $this->paymentSettlementProcessor,
+            $this->paymentRequestManager,
             $this->stateMachine,
         );
+    }
+
+    public function test_it_locks_the_request_and_reads_its_state_again_before_capturing(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $this->paymentRequestManager->expects(self::once())->method('refresh')->with($paymentRequest, LockMode::PESSIMISTIC_WRITE);
+        $this->paymentCaptureProcessor->method('capture')->willReturn($this->capturedOrder('COMPLETED'));
+        $this->stateMachine->method('can')->willReturn(false);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_leaves_a_request_completed_while_it_waited_for_the_lock(): void
+    {
+        $this->payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $state = PaymentRequestInterface::STATE_PROCESSING;
+        $paymentRequest = $this->createMock(PaymentRequestInterface::class);
+        $paymentRequest->method('getState')->willReturnCallback(static function () use (&$state): string {
+            return $state;
+        });
+        $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
+        $this->paymentRequestManager->method('refresh')->willReturnCallback(static function () use (&$state): void {
+            $state = PaymentRequestInterface::STATE_COMPLETED;
+        });
+
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([], $this->appliedTransitions);
     }
 
     public function test_it_settles_the_payment_with_the_order_paypal_captured_and_completes_the_request(): void
