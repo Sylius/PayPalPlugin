@@ -69,7 +69,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             $processedLocale = null;
         }
 
-        $vaultRequired = null !== $this->vaultRequestProvider?->provide($payment);
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $paymentMethod);
         $messagingEnabled = !$vaultRequired && $config->isPayLaterEnabled() && $config->isMessagingEnabled();
 
         return [

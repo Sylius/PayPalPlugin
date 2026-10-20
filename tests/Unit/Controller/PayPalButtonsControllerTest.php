@@ -24,9 +24,11 @@ use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -176,6 +178,36 @@ final class PayPalButtonsControllerTest extends TestCase
         self::assertSame('30.50', $capturedContext['amount']);
         self::assertTrue($capturedContext['venmoEnabled']);
         self::assertSame($paymentMethod, $this->capturedInstanceConfigArgs[0]);
+    }
+
+    #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_cart_page_when_the_cart_needs_vaulting(): void
+    {
+        $order = $this->order(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $paymentMethod = $this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'pay_later_enabled' => true, 'venmo_enabled' => true]);
+        $this->channelPaymentMethods = [$paymentMethod];
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($order, $paymentMethod)
+            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+        ;
+
+        $capturedContext = null;
+        $this->twig->method('render')->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+            $capturedContext = $context;
+
+            return '';
+        });
+
+        $this->controller($vaultRequestProvider)->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
     }
 
     #[Test]
@@ -381,7 +413,7 @@ final class PayPalButtonsControllerTest extends TestCase
         self::assertSame('1234', $capturedContext['amount']);
     }
 
-    private function controller(): PayPalButtonsController
+    private function controller(?PayPalVaultRequestProviderInterface $vaultRequestProvider = null): PayPalButtonsController
     {
         return new PayPalButtonsController(
             $this->twig,
@@ -394,6 +426,7 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $vaultRequestProvider ?? $this->createStub(PayPalVaultRequestProviderInterface::class),
         );
     }
 
