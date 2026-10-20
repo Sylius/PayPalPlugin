@@ -24,7 +24,7 @@ use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\Component\Payment\Model\PaymentRequest;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction;
-use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -40,7 +40,7 @@ final class RefundPayPalPaymentActionTest extends TestCase
     /** @var PaymentRepositoryInterface<PaymentInterface>&Stub */
     private PaymentRepositoryInterface&Stub $paymentRepository;
 
-    private RefundPayPalCapturePaymentRequestDispatcherInterface&MockObject $dispatcher;
+    private RefundPayPalPaymentRequestDispatcherInterface&MockObject $dispatcher;
 
     private CsrfTokenManagerInterface&Stub $csrfTokenManager;
 
@@ -51,7 +51,7 @@ final class RefundPayPalPaymentActionTest extends TestCase
     protected function setUp(): void
     {
         $this->paymentRepository = $this->createStub(PaymentRepositoryInterface::class);
-        $this->dispatcher = $this->createMock(RefundPayPalCapturePaymentRequestDispatcherInterface::class);
+        $this->dispatcher = $this->createMock(RefundPayPalPaymentRequestDispatcherInterface::class);
         $this->csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $router = $this->createStub(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(

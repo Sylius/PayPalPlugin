@@ -446,7 +446,7 @@
 
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
-   capturing again. `RefundPayPalCapturePaymentRequestHandler` passes the payment request id, so reprocessing a
+   capturing again. `RefundPayPalPaymentRequestHandler` passes the payment request id, so reprocessing a
    refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
    is used, as before.
 
@@ -592,8 +592,8 @@
    The admin refunds a PayPal payment with the PayPal "Refund" button on the order page
    (`sylius_paypal_admin_order_payment_refund`, `PUT /admin/orders/{orderId}/payments/{id}/refund-paypal-payment`) or
    through the admin API (`PATCH /api/v2/admin/payments/{id}/paypal-refund`). Both create a `refund` Payment Request,
-   or reuse the open one, and dispatch it with `RefundPayPalCapturePaymentRequestDispatcherInterface`. The payment
-   becomes `refunded` only once PayPal confirms the refund: `RefundPayPalCapturePaymentRequestHandler` stores the
+   or reuse the open one, and dispatch it with `RefundPayPalPaymentRequestDispatcherInterface`. The payment
+   becomes `refunded` only once PayPal confirms the refund: `RefundPayPalPaymentRequestHandler` stores the
    confirmation in the payment details (`refunded`, `refund_id`) and applies the `refund` transition, a pending
    refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook confirms it, and a
    refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`.
@@ -625,7 +625,7 @@
    |---|---|
    | `Sylius\PayPalPlugin\EventListener\Workflow\RefundPaymentListener` (`sylius_paypal.listener.workflow.refund_payment`, on `workflow.sylius_payment.transition.refund`) | `Sylius\PayPalPlugin\EventListener\Workflow\PaymentRefundGuardListener` (`sylius_paypal.listener.workflow.payment_refund_guard`) |
    | the `refund_paypal_order` callback of the `sylius_payment` winzou state machine | the `paypal_refund_confirmed` guard |
-   | `Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor` (`sylius_paypal.processor.payment_refund`) | `Sylius\PayPalPlugin\CommandHandler\RefundPayPalCapturePaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor` (`sylius_paypal.processor.payment_refund`) | `Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler` |
    | `Sylius\PayPalPlugin\Processor\UiPayPalPaymentRefundProcessor` (`sylius_paypal.processor.ui_paypal_payment_refund`) | `Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction` |
    | `Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor` (`sylius_paypal.processor.late_capture_refund`) | `Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler` |
    | `Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface` | none |

@@ -185,7 +185,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.applicator.payment_refund', PaymentRefundApplicator::class)
         ->public()
-        ->args([service('sylius_paypal.dispatcher.refund_paypal_capture_payment_request')]);
+        ->args([service('sylius_paypal.dispatcher.refund_paypal_payment_request')]);
 
     $services->alias(PaymentRefundApplicatorInterface::class, 'sylius_paypal.applicator.payment_refund');
 

@@ -15,7 +15,7 @@ namespace Sylius\PayPalPlugin\CommandProvider;
 
 use Sylius\Bundle\PaymentBundle\CommandProvider\PaymentRequestCommandProviderInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
+use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
 
 final class RefundPaymentRequestCommandProvider implements PaymentRequestCommandProviderInterface
 {
@@ -26,6 +26,6 @@ final class RefundPaymentRequestCommandProvider implements PaymentRequestCommand
 
     public function provide(PaymentRequestInterface $paymentRequest): object
     {
-        return new RefundPayPalCapturePaymentRequest($paymentRequest->getId());
+        return new RefundPayPalPaymentRequest($paymentRequest->getId());
     }
 }

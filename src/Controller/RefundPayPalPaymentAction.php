@@ -16,9 +16,9 @@ namespace Sylius\PayPalPlugin\Controller;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\CommandHandler\RefundPayPalCapturePaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,7 +34,7 @@ final readonly class RefundPayPalPaymentAction
     /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
     public function __construct(
         private PaymentRepositoryInterface $paymentRepository,
-        private RefundPayPalCapturePaymentRequestDispatcherInterface $refundPaymentRequestDispatcher,
+        private RefundPayPalPaymentRequestDispatcherInterface $refundPaymentRequestDispatcher,
         private CsrfTokenManagerInterface $csrfTokenManager,
         private UrlGeneratorInterface $router,
     ) {
@@ -67,7 +67,7 @@ final readonly class RefundPayPalPaymentAction
             PaymentRequestInterface::STATE_COMPLETED => $flashBag->add('success', 'sylius.payment.refunded'),
             PaymentRequestInterface::STATE_FAILED => $flashBag->add('error', [
                 'message' => 'sylius_paypal.payment_not_refunded',
-                'parameters' => ['%reason%' => (string) ($paymentRequest->getResponseData()[RefundPayPalCapturePaymentRequestHandler::RESPONSE_REASON] ?? '')],
+                'parameters' => ['%reason%' => (string) ($paymentRequest->getResponseData()[RefundPayPalPaymentRequestHandler::RESPONSE_REASON] ?? '')],
             ]),
             default => $flashBag->add('info', 'sylius_paypal.payment_refund_pending'),
         };

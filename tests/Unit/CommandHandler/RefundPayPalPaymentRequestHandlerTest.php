@@ -26,15 +26,15 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
-use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
-use Sylius\PayPalPlugin\CommandHandler\RefundPayPalCapturePaymentRequestHandler;
+use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
+use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
-final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
+final class RefundPayPalPaymentRequestHandlerTest extends TestCase
 {
     private PaymentRequestProviderInterface&MockObject $paymentRequestProvider;
 
@@ -53,7 +53,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
     /** @var list<string> */
     private array $appliedTransitions = [];
 
-    private RefundPayPalCapturePaymentRequestHandler $handler;
+    private RefundPayPalPaymentRequestHandler $handler;
 
     protected function setUp(): void
     {
@@ -90,7 +90,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->payment->setAmount(1050);
         $this->payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
 
-        $this->handler = new RefundPayPalCapturePaymentRequestHandler(
+        $this->handler = new RefundPayPalPaymentRequestHandler(
             $this->paymentRequestProvider,
             $this->orderDetailsApi,
             $this->refundPaymentApi,
@@ -113,7 +113,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         ;
         $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($this->payment, 'REFUND_ID');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
         self::assertSame(['refund_id' => 'REFUND_ID', 'refund_status' => 'COMPLETED'], $paymentRequest->getResponseData());
@@ -125,7 +125,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->orderDetailsApi->method('get')->willReturn($this->orderWithCapture('COMPLETED'));
         $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'COMPLETED']);
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
     }
@@ -137,7 +137,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'PENDING']);
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([], $this->appliedTransitions);
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $paymentRequest->getState());
@@ -151,7 +151,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->refundPaymentApi->method('refund')->willReturn(['id' => 'REFUND_ID', 'status' => 'FAILED']);
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(['reason' => 'PayPal reported the refund as FAILED.'], $paymentRequest->getResponseData());
@@ -172,7 +172,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         ));
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(
@@ -187,7 +187,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->orderDetailsApi->method('get')->willThrowException(new PayPalApiConnectionException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID'));
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(['reason' => 'PayPal could not be reached to refund the payment.'], $paymentRequest->getResponseData());
@@ -200,7 +200,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->refundPaymentApi->expects(self::never())->method('refund');
         $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($this->payment, null);
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
     }
@@ -217,7 +217,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         ));
         $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($this->payment, null);
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
     }
@@ -229,7 +229,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->orderDetailsApi->expects(self::never())->method('get');
         $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($this->payment, 'REFUND_ID');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
     }
@@ -240,7 +240,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->orderDetailsApi->method('get')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']);
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame(['reason' => 'The PayPal order has no capture to refund.'], $paymentRequest->getResponseData());
     }
@@ -251,7 +251,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $paymentRequest = $this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING);
         $this->orderDetailsApi->expects(self::never())->method('get');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame(['reason' => 'The payment carries no PayPal order id.'], $paymentRequest->getResponseData());
     }
@@ -261,7 +261,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->paymentRequest(PaymentRequestInterface::STATE_FAILED);
         $this->orderDetailsApi->expects(self::never())->method('get');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([], $this->appliedTransitions);
     }
@@ -273,7 +273,7 @@ final class RefundPayPalCapturePaymentRequestHandlerTest extends TestCase
         $this->orderDetailsApi->expects(self::never())->method('get');
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
-        ($this->handler)(new RefundPayPalCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(['reason' => 'The payment was not paid with PayPal.'], $paymentRequest->getResponseData());

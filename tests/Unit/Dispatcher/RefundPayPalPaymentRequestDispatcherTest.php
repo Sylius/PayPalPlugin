@@ -22,12 +22,12 @@ use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
-use Sylius\PayPalPlugin\Command\RefundPayPalCapturePaymentRequest;
-use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcher;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final class RefundPayPalCapturePaymentRequestDispatcherTest extends TestCase
+final class RefundPayPalPaymentRequestDispatcherTest extends TestCase
 {
     /** @var PaymentRequestFactoryInterface<PaymentRequestInterface>&MockObject */
     private PaymentRequestFactoryInterface&MockObject $paymentRequestFactory;
@@ -43,7 +43,7 @@ final class RefundPayPalCapturePaymentRequestDispatcherTest extends TestCase
 
     private Payment $payment;
 
-    private RefundPayPalCapturePaymentRequestDispatcher $dispatcher;
+    private RefundPayPalPaymentRequestDispatcher $dispatcher;
 
     protected function setUp(): void
     {
@@ -55,7 +55,7 @@ final class RefundPayPalCapturePaymentRequestDispatcherTest extends TestCase
         $this->payment = new Payment();
         $this->payment->setMethod($this->paymentMethod);
 
-        $this->dispatcher = new RefundPayPalCapturePaymentRequestDispatcher(
+        $this->dispatcher = new RefundPayPalPaymentRequestDispatcher(
             $this->paymentRequestFactory,
             $this->paymentRequestRepository,
             $this->stateMachine,
@@ -108,7 +108,7 @@ final class RefundPayPalCapturePaymentRequestDispatcherTest extends TestCase
         $this->commandBus
             ->expects(self::once())
             ->method('dispatch')
-            ->with(self::callback(static fn (RefundPayPalCapturePaymentRequest $command): bool => $hash === $command->getHash()))
+            ->with(self::callback(static fn (RefundPayPalPaymentRequest $command): bool => $hash === $command->getHash()))
             ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
         ;
     }

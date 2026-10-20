@@ -20,14 +20,14 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
-use Sylius\PayPalPlugin\Dispatcher\RefundPayPalCapturePaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface;
 
 final class PaymentRefundApplicatorTest extends TestCase
 {
     public function test_it_dispatches_the_refund_of_a_completed_paypal_payment(): void
     {
         $payment = $this->payment('sylius_paypal', PaymentInterface::STATE_COMPLETED);
-        $dispatcher = $this->createMock(RefundPayPalCapturePaymentRequestDispatcherInterface::class);
+        $dispatcher = $this->createMock(RefundPayPalPaymentRequestDispatcherInterface::class);
         $dispatcher->expects(self::once())->method('dispatch')->with($payment);
 
         self::assertSame($payment, (new PaymentRefundApplicator($dispatcher))->refund($payment));
@@ -35,7 +35,7 @@ final class PaymentRefundApplicatorTest extends TestCase
 
     public function test_it_refuses_a_payment_that_is_not_completed(): void
     {
-        $dispatcher = $this->createMock(RefundPayPalCapturePaymentRequestDispatcherInterface::class);
+        $dispatcher = $this->createMock(RefundPayPalPaymentRequestDispatcherInterface::class);
         $dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(StateMachineTransitionFailedException::class);
@@ -45,7 +45,7 @@ final class PaymentRefundApplicatorTest extends TestCase
 
     public function test_it_refuses_a_payment_of_another_gateway(): void
     {
-        $dispatcher = $this->createMock(RefundPayPalCapturePaymentRequestDispatcherInterface::class);
+        $dispatcher = $this->createMock(RefundPayPalPaymentRequestDispatcherInterface::class);
         $dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(StateMachineTransitionFailedException::class);
