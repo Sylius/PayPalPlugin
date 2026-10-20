@@ -119,6 +119,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.checker.payment_source_enabled'),
             service('sylius_paypal.provider.payment_request_return_url'),
             service('sylius_abstraction.state_machine'),
+            service('sylius_paypal.provider.vault_request'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
 
