@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
@@ -43,6 +44,7 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -77,6 +79,15 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -101,7 +112,7 @@ final readonly class CreatePayPalOrderFromCartAction
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
-        $paymentSource = $this->resolvePaymentSource($request, $paymentMethod);
+        $paymentSource = $this->resolvePaymentSource($request, $order, $paymentMethod);
         if (null === $paymentSource || !$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
@@ -186,7 +197,7 @@ final readonly class CreatePayPalOrderFromCartAction
         throw new \InvalidArgumentException(sprintf('There is no PayPal payment method "%s" in the channel of the order.', $code));
     }
 
-    private function resolvePaymentSource(Request $request, ?PaymentMethodInterface $paymentMethod): ?string
+    private function resolvePaymentSource(Request $request, OrderInterface $order, ?PaymentMethodInterface $paymentMethod): ?string
     {
         $paymentSource = $request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL);
 
@@ -194,7 +205,10 @@ final readonly class CreatePayPalOrderFromCartAction
             return $paymentSource;
         }
 
-        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($paymentMethod)) {
+        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource &&
+            $this->isVenmoEnabled($paymentMethod) &&
+            !$this->isVaultRequired($order, $paymentMethod)
+        ) {
             return $paymentSource;
         }
 
@@ -223,5 +237,14 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isExpressCheckoutEnabled();
+    }
+
+    private function isVaultRequired(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool
+    {
+        if (null === $this->vaultRequestProvider) {
+            return false;
+        }
+
+        return null !== $this->vaultRequestProvider->provide($order, $paymentMethod);
     }
 }

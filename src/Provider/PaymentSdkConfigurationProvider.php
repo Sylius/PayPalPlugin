@@ -65,7 +65,7 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        $vaultRequired = null !== $this->vaultRequestProvider?->provide($payment);
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $paymentMethod);
         $messagingEnabled = !$vaultRequired && $config->isPayLaterEnabled() && $config->isMessagingEnabled();
         $enabledPaymentSources = $this->enabledPaymentSources($paymentMethod, $vaultRequired);
 

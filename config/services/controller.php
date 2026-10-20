@@ -86,6 +86,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.order_processing.order_processor'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.verifier.order_ownership'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->set('sylius_paypal.controller.paypal_buttons', PayPalButtonsController::class)
@@ -100,6 +101,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.provider.web_sdk_configuration'),
             service('sylius_paypal.provider.current_paypal_locale'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->set('sylius_paypal.controller.complete_express_checkout', CompleteExpressCheckoutAction::class)
