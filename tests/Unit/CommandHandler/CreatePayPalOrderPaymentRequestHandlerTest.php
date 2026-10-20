@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -198,6 +199,8 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private function handlerVaulting(): CreatePayPalOrderPaymentRequestHandler
     {
+        $this->payment->method('getOrder')->willReturn($this->createStub(OrderInterface::class));
+
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider->method('provide')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
 

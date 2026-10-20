@@ -55,7 +55,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             $processedLocale = null;
         }
 
-        $vaultRequired = null !== $this->vaultRequestProvider?->provide($payment);
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod());
 
         return [
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),

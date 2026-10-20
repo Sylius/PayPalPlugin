@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\CommandHandler;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -80,10 +81,12 @@ final class CreatePayPalOrderPaymentRequestHandler
 
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
 
         if (
             PayPalPaymentSourceProviderInterface::PAYPAL !== $paymentSource &&
-            null !== $this->vaultRequestProvider?->provide($payment)
+            null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod())
         ) {
             $this->failWithReason($paymentRequest, 'This payment can be paid only with a PayPal wallet, which PayPal saves for later charges.');
 
