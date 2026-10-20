@@ -49,6 +49,8 @@ final class WebhookApiTest extends TestCase
                     ['name' => 'PAYMENT.CAPTURE.DENIED'],
                     ['name' => 'PAYMENT.CAPTURE.DECLINED'],
                     ['name' => 'PAYMENT.CAPTURE.PENDING'],
+                    ['name' => 'VAULT.PAYMENT-TOKEN.CREATED'],
+                    ['name' => 'VAULT.PAYMENT-TOKEN.DELETED'],
                 ],
             ])
             ->willReturn(['id' => 'WEBHOOK_ID'])

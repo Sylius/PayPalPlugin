@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Core\Storage\CartStorageInterface;
@@ -35,6 +46,7 @@ return static function (ContainerConfigurator $container) {
             [
                 service('sylius_paypal.processor.webhook.refund_order'),
                 service('sylius_paypal.processor.webhook.capture_payment'),
+                service('sylius_paypal.processor.webhook.payment_token'),
             ],
             service('monolog.logger.paypal'),
         ]);
