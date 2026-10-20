@@ -17,30 +17,21 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
-use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
-    private const APPROVED_ORDER_STATUS = 'APPROVED';
-
-    private const CREATED_ORDER_STATUS = 'CREATED';
-
-    private const SOURCES_APPROVED_IN_THE_PAYPAL_WINDOW = [
-        PayPalPaymentSourceProviderInterface::PAYPAL,
-        PayPalPaymentSourceProviderInterface::VENMO,
-    ];
-
     private const ISSUES_LEAVING_THE_ORDER_TO_READ = ['ORDER_ALREADY_CAPTURED', 'ORDER_NOT_APPROVED', 'PAYER_ACTION_REQUIRED'];
 
     public function __construct(
+        private ApprovedPayPalOrderCheckerInterface $approvedPayPalOrderChecker,
         private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
         private CompleteOrderApiInterface $completeOrderApi,
         private OrderDetailsApiInterface $orderDetailsApi,
@@ -57,7 +48,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
-        if ($this->isCapturable($orderDetails, $details)) {
+        if ($this->approvedPayPalOrderChecker->isApproved($orderDetails, $details->paymentSource())) {
             $this->captureApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
@@ -82,20 +73,6 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         $payment->setDetails($capturedDetails->toArray());
 
         return $orderDetails;
-    }
-
-    /** @param array<string, mixed> $orderDetails */
-    private function isCapturable(array $orderDetails, PayPalPaymentDetails $details): bool
-    {
-        if (null !== RedirectPaymentSource::tryFrom($details->paymentSource())) {
-            return false;
-        }
-
-        return match ($orderDetails['status'] ?? null) {
-            self::APPROVED_ORDER_STATUS => true,
-            self::CREATED_ORDER_STATUS => !in_array($details->paymentSource(), self::SOURCES_APPROVED_IN_THE_PAYPAL_WINDOW, true),
-            default => false,
-        };
     }
 
     private function captureApprovedOrder(

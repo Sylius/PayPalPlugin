@@ -757,13 +757,16 @@
 1. #### `PaymentCaptureProcessor` brings the approved PayPal order up to date through `ApprovedPayPalOrderUpdater`.
 
    Updating the amount and the shipping address of an approved PayPal order before it is completed moved to
-   `Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface` (`sylius_paypal.updater.approved_paypal_order`).
+   `Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface` (`sylius_paypal.updater.approved_paypal_order`),
+   and telling whether the payer has approved it to `Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface`
+   (`sylius_paypal.checker.approved_paypal_order`).
 
    ```diff
     // Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor
     public function __construct(
    -    private UpdateOrderApiInterface $updateOrderApi,
    -    private UpdateOrderAddressApiInterface $updateOrderAddressApi,
+   +    private ApprovedPayPalOrderCheckerInterface $approvedPayPalOrderChecker,
    +    private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
         private CompleteOrderApiInterface $completeOrderApi,
         private OrderDetailsApiInterface $orderDetailsApi,

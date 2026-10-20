@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
@@ -30,6 +31,7 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
     private const ISSUES_LEAVING_THE_ORDER_TO_READ = ['ORDER_ALREADY_AUTHORIZED', 'ORDER_NOT_APPROVED', 'PAYER_ACTION_REQUIRED'];
 
     public function __construct(
+        private ApprovedPayPalOrderCheckerInterface $approvedPayPalOrderChecker,
         private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
         private AuthorizeOrderApiInterface $authorizeOrderApi,
         private OrderDetailsApiInterface $orderDetailsApi,
@@ -41,20 +43,15 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
-        $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
-
-        $this->approvedPayPalOrderUpdater->update($payment);
-
-        try {
-            $this->authorizeOrderApi->authorize($paymentMethod, $payPalOrderId, $requestId);
-        } catch (PayPalApiConnectionException|PayPalApiServerException) {
-        } catch (PayPalApiRequestException $exception) {
-            if ([] === array_intersect($exception->getIssues(), self::ISSUES_LEAVING_THE_ORDER_TO_READ)) {
-                throw $exception;
-            }
-        }
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $payPalOrderId = (string) $details->payPalOrderId();
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
+
+        if ($this->approvedPayPalOrderChecker->isApproved($orderDetails, $details->paymentSource())) {
+            $this->authorizeApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
+            $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
+        }
 
         $authorization = PayPalAuthorization::fromPayPalOrder($orderDetails);
         if (null === $authorization) {
@@ -69,5 +66,23 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
         );
 
         return $orderDetails;
+    }
+
+    private function authorizeApprovedOrder(
+        PaymentInterface $payment,
+        PaymentMethodInterface $paymentMethod,
+        string $payPalOrderId,
+        ?string $requestId,
+    ): void {
+        $this->approvedPayPalOrderUpdater->update($payment);
+
+        try {
+            $this->authorizeOrderApi->authorize($paymentMethod, $payPalOrderId, $requestId);
+        } catch (PayPalApiConnectionException|PayPalApiServerException) {
+        } catch (PayPalApiRequestException $exception) {
+            if ([] === array_intersect($exception->getIssues(), self::ISSUES_LEAVING_THE_ORDER_TO_READ)) {
+                throw $exception;
+            }
+        }
     }
 }

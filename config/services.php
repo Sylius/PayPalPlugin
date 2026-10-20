@@ -6,6 +6,8 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
@@ -369,8 +371,13 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(ApprovedPayPalOrderUpdaterInterface::class, 'sylius_paypal.updater.approved_paypal_order');
 
+    $services->set('sylius_paypal.checker.approved_paypal_order', ApprovedPayPalOrderChecker::class);
+
+    $services->alias(ApprovedPayPalOrderCheckerInterface::class, 'sylius_paypal.checker.approved_paypal_order');
+
     $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
         ->args([
+            service('sylius_paypal.checker.approved_paypal_order'),
             service('sylius_paypal.updater.approved_paypal_order'),
             service('sylius_paypal.api.complete_order'),
             service('sylius_paypal.api.order_details'),
@@ -380,6 +387,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.processor.payment_authorization', PaymentAuthorizationProcessor::class)
         ->args([
+            service('sylius_paypal.checker.approved_paypal_order'),
             service('sylius_paypal.updater.approved_paypal_order'),
             service('sylius_paypal.api.authorize_order'),
             service('sylius_paypal.api.order_details'),

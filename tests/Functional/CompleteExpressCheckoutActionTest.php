@@ -65,6 +65,7 @@ final class CompleteExpressCheckoutActionTest extends JsonApiTestCase
         $this->authorizeWith($order);
 
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->orderDetails($order));
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockAuthorize();
         $this->payPalApi()->mockOrderDetailsWithAuthorization();

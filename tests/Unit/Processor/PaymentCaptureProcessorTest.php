@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -66,6 +67,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->payment->method('getOrder')->willReturn($this->order);
 
         $this->processor = new PaymentCaptureProcessor(
+            new ApprovedPayPalOrderChecker(),
             $this->approvedPayPalOrderUpdater,
             $this->completeOrderApi,
             $this->orderDetailsApi,

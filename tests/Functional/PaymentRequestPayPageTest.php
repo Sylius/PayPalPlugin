@@ -300,6 +300,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         if ('google_pay' === $paymentSource) {
             $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'APPROVED']);
         }
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockAuthorize(requestId: sprintf('%s-authorize', $hash));
         $this->payPalApi()->mockOrderDetailsWithAuthorization();
@@ -326,6 +327,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING, PaymentRequestInterface::ACTION_AUTHORIZE);
 
         $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'CREATED']);
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockAuthorize();
         $this->payPalApi()->mockOrderDetailsWithAuthorization();

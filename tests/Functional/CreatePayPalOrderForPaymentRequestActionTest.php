@@ -86,7 +86,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $this->createOrder($hash, 'card');
 
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        self::assertSame(['hash' => $hash, 'approve_url' => $this->approveUrl($hash), 'paypal_order_id' => 'PAYPAL_ORDER_ID'], $this->responseContent());
+        self::assertSame(['hash' => $hash, 'approve_url' => $this->approveUrl($hash), 'cancel_url' => $this->cancelUrl($hash), 'paypal_order_id' => 'PAYPAL_ORDER_ID'], $this->responseContent());
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($hash)->getState());
     }
 
