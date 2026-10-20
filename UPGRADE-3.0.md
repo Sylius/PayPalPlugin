@@ -807,7 +807,8 @@
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 
-   The new "Capture strategy" setting of the PayPal payment method stores `use_authorize` in its gateway config:
+   The new "Capture strategy" setting of the PayPal payment method (Immediate capture, or Authorize and capture)
+   stores `use_authorize` in its gateway config:
 
    | `use_authorize` | Sent to PayPal | Payment after the buyer approves |
    |---|---|---|

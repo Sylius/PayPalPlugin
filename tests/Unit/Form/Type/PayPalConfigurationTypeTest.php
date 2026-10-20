@@ -39,7 +39,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->get('messaging_enabled')->getData());
     }
 
-    public function test_the_capture_strategy_defaults_to_capturing_at_approval(): void
+    public function test_the_capture_strategy_defaults_to_immediate_capture(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, array_diff_key($this->baseConfig(), ['use_authorize' => true]));
 
@@ -53,7 +53,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->get('use_authorize')->getData());
     }
 
-    public function test_the_capture_strategy_stores_authorizing_at_approval(): void
+    public function test_the_capture_strategy_stores_authorize_and_capture(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
@@ -63,7 +63,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->getData()['use_authorize']);
     }
 
-    public function test_the_capture_strategy_stores_capturing_at_approval(): void
+    public function test_the_capture_strategy_stores_immediate_capture(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['use_authorize' => true]));
 
@@ -73,7 +73,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertFalse($form->getData()['use_authorize']);
     }
 
-    public function test_the_capture_strategy_stays_capturing_when_none_is_submitted(): void
+    public function test_the_capture_strategy_stays_immediate_capture_when_none_is_submitted(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 

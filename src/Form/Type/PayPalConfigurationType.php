@@ -66,8 +66,7 @@ final class PayPalConfigurationType extends AbstractType
             ])
             ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
                 'label' => 'sylius_paypal.capture_strategy',
-                'help' => 'sylius_paypal.capture_strategy_help',
-                'expanded' => true,
+                'expanded' => false,
                 'multiple' => false,
                 'choices' => [
                     'sylius_paypal.capture_strategy_capture' => false,
