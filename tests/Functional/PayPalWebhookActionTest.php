@@ -178,6 +178,7 @@ final class PayPalWebhookActionTest extends JsonApiTestCase
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
         $paymentRequest->setAction(PaymentRequestInterface::ACTION_REFUND);
         $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest->setResponseData(['refund_id' => 'REFUND_ID', 'refund_status' => 'PENDING']);
         $this->getEntityManager()->persist($paymentRequest);
         $this->getEntityManager()->flush();
         $hash = $paymentRequest->getId();

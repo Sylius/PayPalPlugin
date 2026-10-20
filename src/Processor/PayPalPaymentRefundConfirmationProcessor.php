@@ -19,6 +19,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final readonly class PayPalPaymentRefundConfirmationProcessor implements PayPalPaymentRefundConfirmationProcessorInterface
@@ -45,7 +46,11 @@ final readonly class PayPalPaymentRefundConfirmationProcessor implements PayPalP
         );
 
         foreach ($paymentRequests as $paymentRequest) {
-            if (PaymentRequestInterface::ACTION_REFUND === $paymentRequest->getAction()) {
+            if (
+                PaymentRequestInterface::ACTION_REFUND === $paymentRequest->getAction() &&
+                null !== $refundId &&
+                $refundId === ($paymentRequest->getResponseData()[RefundPayPalPaymentRequestHandler::RESPONSE_REFUND_ID] ?? null)
+            ) {
                 $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
             }
         }

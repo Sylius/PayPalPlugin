@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
 
 final readonly class PayPalLateCaptureRefundConfirmationProcessor implements PayPalLateCaptureRefundConfirmationProcessorInterface
@@ -49,7 +50,11 @@ final readonly class PayPalLateCaptureRefundConfirmationProcessor implements Pay
         );
 
         foreach ($paymentRequests as $paymentRequest) {
-            if (RefundLateCapturePaymentRequestCommandProvider::ACTION === $paymentRequest->getAction()) {
+            if (
+                RefundLateCapturePaymentRequestCommandProvider::ACTION === $paymentRequest->getAction() &&
+                null !== $refundId &&
+                $refundId === ($paymentRequest->getResponseData()[RefundPayPalLateCapturePaymentRequestHandler::RESPONSE_REFUND_ID] ?? null)
+            ) {
                 $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
             }
         }

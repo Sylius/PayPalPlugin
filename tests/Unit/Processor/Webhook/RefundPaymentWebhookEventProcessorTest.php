@@ -62,11 +62,11 @@ final class RefundPaymentWebhookEventProcessorTest extends TestCase
         $this->processor->process('PAYMENT.CAPTURE.REFUNDED', $this->refund(), $payment);
     }
 
-    public function test_it_confirms_the_refund_of_a_payment_paypal_reversed_and_reports_the_reversal(): void
+    public function test_it_marks_a_payment_paypal_reversed_as_refunded_without_naming_the_reversal_as_its_refund_and_reports_it(): void
     {
         $payment = $this->payment([]);
 
-        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
+        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, null);
         $this->logger->expects(self::once())->method('warning');
 
         $this->processor->process('PAYMENT.CAPTURE.REVERSED', $this->refund(), $payment);
@@ -77,7 +77,7 @@ final class RefundPaymentWebhookEventProcessorTest extends TestCase
         $payment = $this->payment([]);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_REFUNDED);
 
-        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, 'REFUND_ID');
+        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, null);
         $this->logger->expects(self::never())->method('warning');
 
         $this->processor->process('PAYMENT.CAPTURE.REVERSED', $this->refund(), $payment);
@@ -92,6 +92,16 @@ final class RefundPaymentWebhookEventProcessorTest extends TestCase
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
         $this->processor->process('PAYMENT.CAPTURE.REFUNDED', $this->refund(), $payment);
+    }
+
+    public function test_it_marks_a_late_capture_paypal_reversed_as_refunded_without_naming_the_reversal_as_its_refund(): void
+    {
+        $payment = $this->payment(['paypal_late_capture' => ['id' => 'CAPTURE_ID', 'amount' => 20]]);
+
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($payment, null);
+        $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
+
+        $this->processor->process('PAYMENT.CAPTURE.REVERSED', $this->refund(), $payment);
     }
 
     public function test_it_gives_up_on_a_refund_that_does_not_point_at_its_capture(): void

@@ -129,6 +129,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $payment->getMethod());
         $paymentRequest->setAction('refund_late_capture');
         $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest->setResponseData(['refund_id' => 'REFUND_ID', 'refund_status' => 'PENDING']);
         $this->getEntityManager()->persist($paymentRequest);
         $this->getEntityManager()->flush();
         $this->payPalApi()->mockRefundDetails();
@@ -141,6 +142,33 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
         self::assertTrue($payment->getDetails()['paypal_late_capture']['refunded']);
         self::assertSame('REFUND_ID', $payment->getDetails()['paypal_late_capture']['refund_id']);
+    }
+
+    public function test_a_reversal_refunds_the_payment_but_leaves_the_refund_the_admin_is_waiting_for_alone(): void
+    {
+        $order = $this->completedOrder();
+        $paymentRequest = $this->pendingRefundPaymentRequest($order, 'ADMIN_REFUND_ID');
+        $this->payPalApi()->mockRefundDetails();
+
+        $this->notifyAboutRefund('PAYMENT.CAPTURE.REVERSED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_REFUNDED, $payment->getState());
+        self::assertNull($payment->getDetails()['refund_id']);
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->reloadPaymentRequest($paymentRequest)->getState());
+    }
+
+    public function test_a_refund_made_outside_the_shop_leaves_the_refund_the_admin_is_waiting_for_alone(): void
+    {
+        $order = $this->completedOrder();
+        $paymentRequest = $this->pendingRefundPaymentRequest($order, 'ADMIN_REFUND_ID');
+        $this->payPalApi()->mockRefundDetails();
+
+        $this->notifyAboutRefund('PAYMENT.CAPTURE.REFUNDED', 'WH-1');
+
+        self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->reloadPaymentRequest($paymentRequest)->getState());
     }
 
     public function test_replaying_a_batch_of_events_changes_nothing_again(): void
@@ -228,6 +256,21 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         $this->getEntityManager()->flush();
 
         return $order;
+    }
+
+    private function pendingRefundPaymentRequest(OrderInterface $order, string $refundId): PaymentRequestInterface
+    {
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        /** @var PaymentRequestInterface $paymentRequest */
+        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $payment->getMethod());
+        $paymentRequest->setAction(PaymentRequestInterface::ACTION_REFUND);
+        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest->setResponseData(['refund_id' => $refundId, 'refund_status' => 'PENDING']);
+        $this->getEntityManager()->persist($paymentRequest);
+        $this->getEntityManager()->flush();
+
+        return $paymentRequest;
     }
 
     private function processingCapturePaymentRequest(): PaymentRequestInterface
