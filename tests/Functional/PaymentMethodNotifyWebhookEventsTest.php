@@ -159,54 +159,10 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
     }
 
-    public function test_it_asks_paypal_to_deliver_an_approval_again_while_the_payer_may_still_be_coming_back(): void
+    public function test_it_captures_the_order_of_an_approval_right_away(): void
     {
         $paymentRequest = $this->processingCapturePaymentRequest();
-        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest, new \DateTimeImmutable()));
-
-        $this->notifyAboutApproval('WH-1');
-
-        $response = $this->client->getResponse();
-        self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $response->getStatusCode());
-        self::assertGreaterThan(0, (int) $response->headers->get('Retry-After'));
-        self::assertNull($this->webhookEventStatus('WH-1'));
-        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->reloadPaymentRequest($paymentRequest)->getState());
-    }
-
-    public function test_it_captures_an_order_the_payer_approved_but_never_came_back_from(): void
-    {
-        $paymentRequest = $this->processingCapturePaymentRequest();
-        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest, new \DateTimeImmutable('-1 hour')));
-        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
-        $this->payPalApi()->mockUpdateOrderAddress();
-        $this->payPalApi()->mockCapture();
-        $this->payPalApi()->mockOrderDetailsWithCapture(value: '0.20');
-
-        $this->notifyAboutApproval('WH-1');
-
-        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
-        $reloaded = $this->reloadPaymentRequest($paymentRequest);
-        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $reloaded->getState());
-        self::assertSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
-    }
-
-    public function test_it_captures_an_approved_order_again_once_paypal_delivers_the_approval_again_after_a_failed_capture(): void
-    {
-        $paymentRequest = $this->processingCapturePaymentRequest();
-        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest, new \DateTimeImmutable('-1 hour')));
-        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
-        $this->payPalApi()->mockUpdateOrderAddress();
-        $this->payPalApi()->mockCaptureOfDeclinedInstrument();
-
-        $this->notifyAboutApproval('WH-1');
-
-        self::assertSame(Response::HTTP_SERVICE_UNAVAILABLE, $this->client->getResponse()->getStatusCode());
-        self::assertNull($this->webhookEventStatus('WH-1'));
-        $reloaded = $this->reloadPaymentRequest($paymentRequest);
-        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $reloaded->getState());
-        self::assertNotSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
-
-        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest, new \DateTimeImmutable('-1 hour')));
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest));
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
         $this->payPalApi()->mockUpdateOrderAddress();
         $this->payPalApi()->mockCapture();
@@ -219,6 +175,37 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         $reloaded = $this->reloadPaymentRequest($paymentRequest);
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $reloaded->getState());
         self::assertSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
+    }
+
+    public function test_it_keeps_a_capture_paypal_refused_on_the_failed_payment_request_and_accepts_the_approval(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest));
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockCaptureOfDeclinedInstrument();
+
+        $this->notifyAboutApproval('WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PayPalWebhookEventStatus::Processed->value, $this->webhookEventStatus('WH-1'));
+        $reloaded = $this->reloadPaymentRequest($paymentRequest);
+        self::assertSame(PaymentRequestInterface::STATE_FAILED, $reloaded->getState());
+        self::assertSame(['reason' => 'PayPal declined the payment method. Choose another one.'], $reloaded->getResponseData());
+        self::assertNotSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
+    }
+
+    public function test_it_leaves_an_order_the_buyer_has_already_captured_alone(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest();
+        $paymentRequest->setState(PaymentRequestInterface::STATE_COMPLETED);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest));
+
+        $this->notifyAboutApproval('WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
     }
 
     private function processingOrder(): OrderInterface
@@ -279,11 +266,10 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
     }
 
     /** @return array<string, mixed> */
-    private function approvedOrder(PaymentRequestInterface $paymentRequest, \DateTimeImmutable $approvedAt): array
+    private function approvedOrder(PaymentRequestInterface $paymentRequest): array
     {
         return [
             'status' => 'APPROVED',
-            'update_time' => $approvedAt->format(\DateTimeInterface::ATOM),
             'purchase_units' => [['custom_id' => (string) $paymentRequest->getId()]],
         ];
     }

@@ -20,8 +20,6 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookEventCaptureFailedException;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookEventTooEarlyException;
 use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -54,11 +52,10 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
             $this->paymentRequestRepository,
             $this->paymentRequestCommandProvider,
             $this->commandBus,
-            600,
         );
     }
 
-    public function test_it_captures_an_order_approved_longer_ago_than_the_payer_needs_to_come_back(): void
+    public function test_it_captures_the_order_of_the_payment_request_awaiting_it_right_away(): void
     {
         $paymentRequest = $this->capturePaymentRequest(stateAfterCapture: PaymentRequestInterface::STATE_COMPLETED);
         $command = new CapturePayPalOrderPaymentRequest(self::HASH);
@@ -71,44 +68,17 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
             ->willReturn(new Envelope($command))
         ;
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-11 minutes'), $this->payment);
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
 
-    public function test_it_leaves_a_capture_sent_to_an_asynchronous_transport_to_it(): void
+    public function test_it_leaves_a_failed_capture_to_its_failed_payment_request(): void
     {
-        $this->capturePaymentRequest(stateAfterCapture: PaymentRequestInterface::STATE_PROCESSING);
+        $this->capturePaymentRequest(stateAfterCapture: PaymentRequestInterface::STATE_FAILED);
         $this->paymentRequestCommandProvider->method('provide')->willReturn(new CapturePayPalOrderPaymentRequest(self::HASH));
 
         $this->commandBus->expects(self::once())->method('dispatch')->willReturnCallback(static fn (object $command): Envelope => new Envelope($command));
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-11 minutes'), $this->payment);
-    }
-
-    public function test_it_asks_for_the_event_again_when_the_capture_failed(): void
-    {
-        $this->capturePaymentRequest(stateAfterCapture: PaymentRequestInterface::STATE_FAILED);
-        $this->paymentRequestCommandProvider->method('provide')->willReturn(new CapturePayPalOrderPaymentRequest(self::HASH));
-        $this->commandBus->method('dispatch')->willReturnCallback(static fn (object $command): Envelope => new Envelope($command));
-
-        $this->expectException(PayPalWebhookEventCaptureFailedException::class);
-        $this->expectExceptionMessage('PayPal webhook event CHECKOUT.ORDER.APPROVED could not capture the order of Payment Request ' . self::HASH . ': PayPal did not capture the order.');
-
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-11 minutes'), $this->payment);
-    }
-
-    public function test_it_asks_for_the_event_again_while_the_payer_may_still_be_coming_back(): void
-    {
-        $this->capturePaymentRequest();
-
-        $this->commandBus->expects(self::never())->method('dispatch');
-
-        try {
-            $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-1 minute'), $this->payment);
-            self::fail('An approval the payer may still come back from must not be captured yet.');
-        } catch (PayPalWebhookEventTooEarlyException $exception) {
-            self::assertEqualsWithDelta(540, $exception->getRetryAfter(), 5);
-            self::assertEqualsWithDelta(540000, $exception->getRetryDelay(), 5000);
-        }
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
 
     public function test_it_does_nothing_once_the_payment_request_no_longer_awaits_the_capture(): void
@@ -117,7 +87,7 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
 
         $this->commandBus->expects(self::never())->method('dispatch');
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-1 hour'), $this->payment);
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
 
     public function test_it_does_nothing_for_a_payment_request_of_another_payment(): void
@@ -126,7 +96,7 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
 
         $this->commandBus->expects(self::never())->method('dispatch');
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-1 hour'), $this->payment);
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
 
     public function test_it_does_nothing_for_an_order_paypal_no_longer_reports_as_approved(): void
@@ -134,7 +104,7 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         $this->paymentRequestRepository->expects(self::never())->method('find');
         $this->commandBus->expects(self::never())->method('dispatch');
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', ['status' => 'COMPLETED'] + $this->approvedOrder('-1 hour'), $this->payment);
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', ['status' => 'COMPLETED'] + $this->approvedOrder(), $this->payment);
     }
 
     public function test_it_does_nothing_for_an_order_paid_by_another_payment_request(): void
@@ -143,7 +113,7 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
 
         $this->commandBus->expects(self::never())->method('dispatch');
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder('-1 hour'), $this->payment);
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
 
     private function capturePaymentRequest(
@@ -155,7 +125,6 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         $paymentRequest->method('getId')->willReturn(self::HASH);
         $paymentRequest->method('getAction')->willReturn(PaymentRequestInterface::ACTION_CAPTURE);
         $paymentRequest->method('getState')->willReturnOnConsecutiveCalls($state, $stateAfterCapture ?? $state);
-        $paymentRequest->method('getResponseData')->willReturn(['reason' => 'PayPal did not capture the order.']);
         $paymentRequest->method('getPayment')->willReturn($payment ?? $this->payment);
 
         $this->paymentRequestRepository->method('find')->with(self::HASH)->willReturn($paymentRequest);
@@ -164,12 +133,11 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function approvedOrder(string $approvedAgo): array
+    private function approvedOrder(): array
     {
         return [
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'APPROVED',
-            'update_time' => (new \DateTimeImmutable($approvedAgo))->format(\DateTimeInterface::ATOM),
             'purchase_units' => [['custom_id' => self::HASH]],
         ];
     }

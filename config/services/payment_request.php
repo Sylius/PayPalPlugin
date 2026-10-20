@@ -219,7 +219,6 @@ return function (ContainerConfigurator $container): void {
             service('sylius.repository.payment_request'),
             service('sylius.command_provider.payment_request.default'),
             service('sylius.payment_request.command_bus'),
-            '%sylius_paypal.webhook_approved_order_capture_delay%',
         ])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => CaptureApprovedOrderWebhookEventProcessor::EVENT_TYPE]);
 };

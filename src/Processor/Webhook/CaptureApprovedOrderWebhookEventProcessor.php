@@ -17,9 +17,6 @@ use Sylius\Bundle\PaymentBundle\CommandProvider\PaymentRequestCommandProviderInt
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
-use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookEventCaptureFailedException;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookEventTooEarlyException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -34,7 +31,6 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
         private PaymentRequestRepositoryInterface $paymentRequestRepository,
         private PaymentRequestCommandProviderInterface $paymentRequestCommandProvider,
         private MessageBusInterface $commandBus,
-        private int $captureDelay,
     ) {
     }
 
@@ -52,20 +48,7 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
             return;
         }
 
-        $retryAfter = $this->approvedAt($resource) + $this->captureDelay - (new \DateTimeImmutable())->getTimestamp();
-        if ($retryAfter > 0) {
-            throw new PayPalWebhookEventTooEarlyException($eventType, $retryAfter);
-        }
-
         $this->commandBus->dispatch($this->paymentRequestCommandProvider->provide($capturePaymentRequest));
-
-        if (PaymentRequestInterface::STATE_FAILED === $capturePaymentRequest->getState()) {
-            throw new PayPalWebhookEventCaptureFailedException(
-                $eventType,
-                (string) $capturePaymentRequest->getId(),
-                (string) ($capturePaymentRequest->getResponseData()[CapturePayPalOrderPaymentRequestHandler::RESPONSE_REASON] ?? 'unknown reason'),
-            );
-        }
     }
 
     /** @param array<string, mixed> $resource */
@@ -90,18 +73,5 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
         }
 
         return null;
-    }
-
-    /** @param array<string, mixed> $resource */
-    private function approvedAt(array $resource): int
-    {
-        foreach (['update_time', 'create_time'] as $field) {
-            $time = $resource[$field] ?? null;
-            if (is_string($time) && false !== $timestamp = strtotime($time)) {
-                return $timestamp;
-            }
-        }
-
-        return (new \DateTimeImmutable())->getTimestamp();
     }
 }

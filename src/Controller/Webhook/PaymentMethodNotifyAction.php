@@ -14,14 +14,11 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller\Webhook;
 
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookEventCaptureFailedException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookEventIgnoredException;
-use Sylius\PayPalPlugin\Exception\PayPalWebhookEventTooEarlyException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookSignatureNotVerifiedException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 
 final readonly class PaymentMethodNotifyAction
 {
@@ -48,24 +45,6 @@ final readonly class PaymentMethodNotifyAction
             $this->logger->info($exception->getMessage());
 
             return new Response('', Response::HTTP_NO_CONTENT);
-        } catch (HandlerFailedException $exception) {
-            $tooEarly = $exception->getWrappedExceptions(PayPalWebhookEventTooEarlyException::class, true);
-            if ([] !== $tooEarly) {
-                /** @var PayPalWebhookEventTooEarlyException $tooEarlyException */
-                $tooEarlyException = reset($tooEarly);
-                $this->logger->info($tooEarlyException->getMessage());
-
-                return new Response('', Response::HTTP_SERVICE_UNAVAILABLE, ['Retry-After' => (string) $tooEarlyException->getRetryAfter()]);
-            }
-
-            $captureFailed = $exception->getWrappedExceptions(PayPalWebhookEventCaptureFailedException::class, true);
-            if ([] !== $captureFailed) {
-                $this->logger->warning(reset($captureFailed)->getMessage());
-
-                return new Response('', Response::HTTP_SERVICE_UNAVAILABLE);
-            }
-
-            throw $exception;
         }
     }
 }
