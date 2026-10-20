@@ -95,11 +95,24 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment));
     }
 
-    private function paymentRequest(string $action, string $hash): PaymentRequestInterface&MockObject
+    public function test_it_moves_an_open_charge_request_that_is_still_new_to_processing_before_dispatching_it(): void
+    {
+        $paymentRequest = $this->paymentRequest(ChargeVaultedPaymentRequestCommandProvider::ACTION, 'NEW_CHARGE_REQUEST_HASH', PaymentRequestInterface::STATE_NEW);
+        $this->paymentRequestRepository->method('findByPaymentIdAndStates')->willReturn([$paymentRequest]);
+
+        $this->paymentRequestFactory->expects(self::never())->method('create');
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+        $this->expectChargeDispatchedFor('NEW_CHARGE_REQUEST_HASH');
+
+        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment));
+    }
+
+    private function paymentRequest(string $action, string $hash, string $state = PaymentRequestInterface::STATE_PROCESSING): PaymentRequestInterface&MockObject
     {
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getAction')->willReturn($action);
         $paymentRequest->method('getId')->willReturn($hash);
+        $paymentRequest->method('getState')->willReturn($state);
 
         return $paymentRequest;
     }

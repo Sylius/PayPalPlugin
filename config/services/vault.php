@@ -26,7 +26,10 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(VaultRequestResolverInterface::class, 'sylius_paypal.resolver.vault_request');
 
     $services->set('sylius_paypal.provider.vault_request', PayPalVaultRequestProvider::class)
-        ->args([service('sylius_paypal.resolver.vault_request')]);
+        ->args([
+            service('sylius_paypal.resolver.vault_request'),
+            service('sylius_paypal.resolver.paypal_payment_methods'),
+        ]);
 
     $services->alias(PayPalVaultRequestProviderInterface::class, 'sylius_paypal.provider.vault_request');
 };

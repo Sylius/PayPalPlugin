@@ -93,7 +93,12 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', false)
-            ->willReturn(new OnboardingStatus(true, true));
+            ->willReturn(new OnboardingStatus(true, true, 'ACTIVE'));
+
+        $gatewayConfig
+            ->expects(self::once())
+            ->method('setConfig')
+            ->with(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET', 'vaulting_enabled' => true]);
 
         $this->sellerWebhookRegistrar
             ->expects(self::once())
@@ -125,6 +130,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
 
         $this->partnerCredentialsProvider->expects(self::never())->method('provide');
         $this->merchantOnboardingStatusApi->expects(self::never())->method('get');
+        $gatewayConfig->expects(self::never())->method('setConfig');
 
         $this->sellerWebhookRegistrar
             ->expects(self::once())
