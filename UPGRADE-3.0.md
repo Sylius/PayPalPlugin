@@ -691,7 +691,10 @@
    It is the `sylius_paypal.provider.webhook_id.lookup` service; `sylius_paypal.provider.webhook_id` is the
    `PersistingWebhookIdProvider` wrapping it instead of decorating it.
    `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal
-   every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook.
+   every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
+   and stores the id of the webhook it updates or registers in the gateway config through
+   `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
+   `PersistingWebhookIdProvider` now takes instead of the object manager.
 
    ```diff
     // Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface

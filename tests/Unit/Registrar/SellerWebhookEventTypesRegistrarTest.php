@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
 final class SellerWebhookEventTypesRegistrarTest extends TestCase
 {
@@ -33,6 +34,8 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
     private UpdateWebhookApiInterface&MockObject $updateWebhookApi;
 
     private WebhookApiInterface&MockObject $webhookApi;
+
+    private WebhookIdUpdaterInterface&MockObject $webhookIdUpdater;
 
     private PaymentMethodInterface&MockObject $paymentMethod;
 
@@ -44,6 +47,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdProvider = $this->createMock(WebhookIdProviderInterface::class);
         $this->updateWebhookApi = $this->createMock(UpdateWebhookApiInterface::class);
         $this->webhookApi = $this->createMock(WebhookApiInterface::class);
+        $this->webhookIdUpdater = $this->createMock(WebhookIdUpdaterInterface::class);
 
         $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
         $webhookUrlProvider->method('provide')->willReturnCallback(
@@ -58,6 +62,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             $this->updateWebhookApi,
             $this->webhookApi,
             $webhookUrlProvider,
+            $this->webhookIdUpdater,
         );
     }
 
@@ -75,6 +80,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->method('update')
             ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
         ;
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         $this->registrar->register($this->paymentMethod);
     }
@@ -90,6 +96,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->with($this->paymentMethod, 'https://shop.example.com/payment-methods/PAYPAL')
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         $this->registrar->register($this->paymentMethod);
     }
@@ -109,6 +116,8 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
     {
         $this->webhookIdProvider->method('refresh')->willReturn(null);
         $this->webhookApi->method('register')->willReturn([]);
+
+        $this->webhookIdUpdater->expects(self::never())->method('update');
 
         $this->expectException(PayPalWebhookNotRegisteredException::class);
         $this->expectExceptionMessage('PayPal answered without a webhook id');

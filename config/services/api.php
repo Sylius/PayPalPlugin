@@ -44,6 +44,8 @@ use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Provider\PersistingWebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemover;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
@@ -207,12 +209,17 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.webhook_id', PersistingWebhookIdProvider::class)
         ->args([
             service('sylius_paypal.provider.webhook_id.lookup'),
-            service('doctrine.orm.entity_manager'),
+            service('sylius_paypal.updater.webhook_id'),
             service('sylius_paypal.cache'),
             param('sylius_paypal.webhook_id_refresh_cooldown'),
         ]);
 
     $services->alias(WebhookIdProviderInterface::class, 'sylius_paypal.provider.webhook_id');
+
+    $services->set('sylius_paypal.updater.webhook_id', WebhookIdUpdater::class)
+        ->args([service('sylius.manager.payment_method')]);
+
+    $services->alias(WebhookIdUpdaterInterface::class, 'sylius_paypal.updater.webhook_id');
 
     $services->set('sylius_paypal.api.update_order', UpdateOrderApi::class)
         ->args([
