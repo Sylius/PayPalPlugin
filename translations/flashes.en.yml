@@ -3,7 +3,6 @@ sylius_paypal:
     create_paypal_payment_method_via_onboarding: 'Please, use the PayPal onboarding available on the payment methods list to create the PayPal payment method.'
     late_capture_not_refunded: 'The amount PayPal captured for the closed attempt could not be refunded.'
     late_capture_refunded: 'The amount PayPal captured for the closed attempt has been refunded.'
-    more_than_one_seller_not_allowed: 'You cannot onboard more than one PayPal seller!'
     onboarding_session_expired: 'Your PayPal onboarding session has expired. Please, try again.'
     order_cancelled: 'PayPal order has been cancelled'
     order_total_changed: 'Your order total has changed since the payment was started. Please review your order and try again.'

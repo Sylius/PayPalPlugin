@@ -23,14 +23,15 @@ use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Model\ModeSwitchView;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -43,7 +44,6 @@ final class PayPalExtension extends AbstractExtension
     private readonly HostProviderInterface $hostProvider;
 
     public function __construct(
-        private readonly ActiveModeProviderInterface $activeModeProvider,
         private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         private readonly ?ChannelContextInterface $channelContext = null,
@@ -51,9 +51,10 @@ final class PayPalExtension extends AbstractExtension
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
         ?HostProviderInterface $hostProvider = null,
+        private readonly ?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
-        $this->hostProvider = $hostProvider ?? new HostProvider($this->activeModeProvider);
+        $this->hostProvider = $hostProvider ?? new HostProvider();
 
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -93,7 +94,6 @@ final class PayPalExtension extends AbstractExtension
     {
         return [
             new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
-            new TwigFunction('sylius_is_paypal_sandbox', [$this, 'isSandbox']),
             new TwigFunction('sylius_paypal_is_messaging_enabled', [$this, 'isMessagingEnabled']),
             new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
@@ -113,13 +113,15 @@ final class PayPalExtension extends AbstractExtension
         return $this->modeSwitchViewFactory->createFromConfig($config);
     }
 
-    public function isSandbox(): bool
+    public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null): bool
     {
-        return $this->activeModeProvider->isSandbox();
-    }
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null !== $gatewayConfig) {
+            $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
-    public function isMessagingEnabled(): bool
-    {
+            return $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+        }
+
         if (null === $this->fundingSourcesConfigurationProvider || null === $this->channelContext) {
             return false;
         }
@@ -134,28 +136,27 @@ final class PayPalExtension extends AbstractExtension
         }
     }
 
-    public function getWebSdkScriptUrl(): string
+    public function getWebSdkScriptUrl(?PaymentMethodInterface $paymentMethod = null): string
     {
-        if (null === $this->webSdkConfigurationProvider) {
+        $paymentMethod ??= $this->channelPaymentMethod();
+        if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
             return '';
         }
 
-        return $this->webSdkConfigurationProvider->getScriptUrl();
+        return $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod);
     }
 
     /** @return array<string, mixed> */
-    public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null): array
+    public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null, ?PaymentMethodInterface $paymentMethod = null): array
     {
-        if (null === $this->webSdkConfigurationProvider || null === $this->channelContext) {
+        $paymentMethod ??= $this->channelPaymentMethod();
+        if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
             return [];
         }
 
         try {
-            /** @var ChannelInterface $channel */
-            $channel = $this->channelContext->getChannel();
-
             return $this->webSdkConfigurationProvider->getInstanceConfig(
-                $channel,
+                $paymentMethod,
                 $pageType,
                 ['paypal-messages'],
                 $locale ?? $this->currentLocaleProvider?->provide(),
@@ -197,5 +198,17 @@ final class PayPalExtension extends AbstractExtension
         }
 
         return false;
+    }
+
+    private function channelPaymentMethod(): ?PaymentMethodInterface
+    {
+        if (null === $this->payPalPaymentMethodsResolver || null === $this->channelContext) {
+            return null;
+        }
+
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
+
+        return $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? null;
     }
 }

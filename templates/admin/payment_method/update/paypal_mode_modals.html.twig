@@ -5,13 +5,18 @@
     payment_method.gatewayConfig is not null and
     payment_method.gatewayConfig.factoryName == 'sylius_paypal'
 %}
-    {% component 'sylius_paypal:live_onboarding_modal' with {modalId: 'confirmation-modal-create-pay-pal', type: 'create-pay-pal'} %}
+    {% component 'sylius_paypal:live_onboarding_modal' with {
+        modalId: 'confirmation-modal-create-pay-pal',
+        type: 'create-pay-pal',
+        paymentMethodCode: payment_method.code
+    } %}
     {% endcomponent %}
 
     {% component 'sylius_paypal:live_onboarding_modal' with {
         modalId: 'confirmation-modal-create-paypal-sandbox',
         type: 'sylius-create-paypal-sandbox',
-        sandbox: true
+        sandbox: true,
+        paymentMethodCode: payment_method.code
     } %}
     {% endcomponent %}
 {% endif %}

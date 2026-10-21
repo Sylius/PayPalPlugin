@@ -11,12 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Exception;
+namespace Sylius\PayPalPlugin\Updater;
 
-final class PayPalPaymentMethodAlreadyExistsException extends \Exception
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
+interface WebhookIdUpdaterInterface
 {
-    public function __construct()
-    {
-        parent::__construct('PayPal payment method already exists');
-    }
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void;
 }

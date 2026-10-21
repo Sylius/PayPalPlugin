@@ -11,9 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Onboarding\Checker;
+namespace Tests\Sylius\PayPalPlugin\Behat\Element;
 
-interface SellerOnboardedCheckerInterface
+interface ConnectPayPalAccountElementInterface
 {
-    public function isOnboarded(bool $sandbox): bool;
+    public function canConnectAnotherPayPalAccount(): bool;
 }

@@ -19,15 +19,12 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
-use Sylius\Component\Channel\Context\ChannelContextInterface;
-use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,8 +34,6 @@ final readonly class PayPalClient implements PayPalClientInterface
         private ClientInterface $client,
         private LoggerInterface $logger,
         private UuidProviderInterface $uuidProvider,
-        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private ChannelContextInterface $channelContext,
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private HostProviderInterface $hostProvider,
         private RequestFactoryInterface $requestFactory,
@@ -71,7 +66,7 @@ final readonly class PayPalClient implements PayPalClientInterface
             'Accept' => 'application/json',
         ];
 
-        $partnerAttributionId = $this->partnerAttributionId();
+        $partnerAttributionId = $this->partnerAttributionId($paymentMethod);
         if (null !== $partnerAttributionId) {
             $headers['PayPal-Partner-Attribution-Id'] = $partnerAttributionId;
         }
@@ -110,13 +105,13 @@ final readonly class PayPalClient implements PayPalClientInterface
         return $this->hostProvider->getApiBaseUrlForMode(PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox());
     }
 
-    private function partnerAttributionId(): ?string
+    private function partnerAttributionId(PaymentMethodInterface $paymentMethod): ?string
     {
         try {
-            /** @var ChannelInterface $channel */
-            $channel = $this->channelContext->getChannel();
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-            return $this->payPalConfigurationProvider->getPartnerAttributionId($channel);
+            return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->partnerAttributionId();
         } catch (\Throwable $exception) {
             $this->logger->warning(sprintf(
                 'Could not resolve the PayPal partner attribution id: %s',

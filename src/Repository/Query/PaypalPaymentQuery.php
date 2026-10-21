@@ -40,7 +40,6 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
             PaymentInterface::STATE_PROCESSING,
             PaymentInterface::STATE_COMPLETED,
         ],
-        private readonly array $refundableStates = [PaymentInterface::STATE_COMPLETED],
         private readonly array $settleableStates = [
             PaymentInterface::STATE_NEW,
             PaymentInterface::STATE_PROCESSING,
@@ -68,17 +67,6 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
             ->andWhere('o.state IN (:states)')
             ->setParameter('states', $this->cancellableStates)
             ->addOrderBy('o.createdAt', 'DESC')
-        ;
-
-        return $this->doGetPayment($queryBuilder, $paypalOrderId);
-    }
-
-    public function getForRefundingByOrderId(string $paypalOrderId): PaymentInterface
-    {
-        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
-            ->andWhere('o.state IN (:states)')
-            ->setParameter('states', $this->refundableStates)
-            ->addOrderBy('o.updatedAt', 'DESC')
         ;
 
         return $this->doGetPayment($queryBuilder, $paypalOrderId);

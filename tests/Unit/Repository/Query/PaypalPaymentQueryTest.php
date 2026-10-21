@@ -44,7 +44,6 @@ final class PaypalPaymentQueryTest extends TestCase
             $this->paymentRepository,
             [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING],
             [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED],
-            [PaymentInterface::STATE_COMPLETED],
         );
     }
 
@@ -208,33 +207,6 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->assertSame($payment, $result);
     }
 
-    public function testGetForRefundingByOrderIdReturnsPaymentWithRefundableStates(): void
-    {
-        $paypalOrderId = 'PAYPAL123';
-        $payment = $this->createMock(PaymentInterface::class);
-        $payment->method('getDetails')->willReturn(['paypal_order_id' => $paypalOrderId]);
-
-        $query = $this->createMock(Query::class);
-        $query->method('toIterable')->willReturn([$payment]);
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('innerJoin')->willReturnSelf();
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-
-        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
-
-        $configuration = $this->createMock(Configuration::class);
-        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn('SomeFunction');
-        $this->entityManager->method('getConfiguration')->willReturn($configuration);
-
-        $result = $this->query->getForRefundingByOrderId($paypalOrderId);
-
-        $this->assertSame($payment, $result);
-    }
-
     public function testGetForCancellationByOrderIdThrowsExceptionWhenNoPaymentFound(): void
     {
         $paypalOrderId = 'PAYPAL123';
@@ -258,31 +230,6 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->expectException(PaymentNotFoundException::class);
 
         $this->query->getForCancellationByOrderId($paypalOrderId);
-    }
-
-    public function testGetForRefundingByOrderIdThrowsExceptionWhenNoPaymentFound(): void
-    {
-        $paypalOrderId = 'PAYPAL123';
-
-        $query = $this->createMock(Query::class);
-        $query->method('toIterable')->willReturn([]);
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('innerJoin')->willReturnSelf();
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-
-        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
-
-        $configuration = $this->createMock(Configuration::class);
-        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn(null);
-        $this->entityManager->method('getConfiguration')->willReturn($configuration);
-
-        $this->expectException(PaymentNotFoundException::class);
-
-        $this->query->getForRefundingByOrderId($paypalOrderId);
     }
 
     public function testGetForUpdateByOrderIdUsesCorrectStates(): void
@@ -361,53 +308,16 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->query->getForCancellationByOrderId($paypalOrderId);
     }
 
-    public function testGetForRefundingByOrderIdUsesCorrectStates(): void
-    {
-        $paypalOrderId = 'PAYPAL123';
-
-        $query = $this->createMock(Query::class);
-        $query->method('toIterable')->willReturn([]);
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('innerJoin')->willReturnSelf();
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->expects($this->exactly(2))
-            ->method('setParameter')
-            ->willReturnCallback(function (string $param, $value) use ($queryBuilder) {
-                if ($param === 'states') {
-                    $this->assertEquals([PaymentInterface::STATE_COMPLETED], $value);
-                } elseif ($param === 'factoryName') {
-                    $this->assertEquals(SyliusPayPalExtension::PAYPAL_FACTORY_NAME, $value);
-                }
-
-                return $queryBuilder;
-            });
-        $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-
-        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
-
-        $configuration = $this->createMock(Configuration::class);
-        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn(null);
-        $this->entityManager->method('getConfiguration')->willReturn($configuration);
-
-        $this->expectException(PaymentNotFoundException::class);
-
-        $this->query->getForRefundingByOrderId($paypalOrderId);
-    }
-
     public function testConstructorAcceptsCustomStates(): void
     {
         $customUpdatableStates = [PaymentInterface::STATE_NEW];
         $customCancellableStates = [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW];
-        $customRefundableStates = [PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_REFUNDED];
 
         $query = new PaypalPaymentQuery(
             $this->entityManager,
             $this->paymentRepository,
             $customUpdatableStates,
             $customCancellableStates,
-            $customRefundableStates,
         );
 
         $this->assertInstanceOf(PaypalPaymentQuery::class, $query);

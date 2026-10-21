@@ -14,14 +14,13 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Behat\Context\Admin;
 
 use Behat\Behat\Context\Context;
-use Behat\Mink\Exception\ElementNotFoundException;
 use Behat\Step\Then;
 use Behat\Step\When;
-use Sylius\Behat\Exception\NotificationExpectationMismatchException;
 use Sylius\Behat\NotificationType;
 use Sylius\Behat\Page\Admin\PaymentMethod\CreatePageInterface;
 use Sylius\Behat\Service\NotificationCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Tests\Sylius\PayPalPlugin\Behat\Element\ConnectPayPalAccountElementInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElementInterface;
 use Webmozart\Assert\Assert;
 
@@ -31,6 +30,7 @@ final readonly class ManagingPaymentMethodsContext implements Context
         private DownloadPayPalReportElementInterface $downloadPayPalReportElement,
         private NotificationCheckerInterface $notificationChecker,
         private CreatePageInterface $createPage,
+        private ConnectPayPalAccountElementInterface $connectPayPalAccountElement,
     ) {
     }
 
@@ -52,27 +52,18 @@ final readonly class ManagingPaymentMethodsContext implements Context
         $this->createPage->tryToOpen(['factory' => SyliusPayPalExtension::PAYPAL_FACTORY_NAME]);
     }
 
-    #[Then('I should be notified that I cannot onboard more than one PayPal seller')]
-    public function iShouldBeNotifiedThatICannotOnboardMoreThanOnePayPalSeller(): void
+    #[Then('I should be told to create the PayPal payment method through the onboarding')]
+    public function iShouldBeToldToCreateThePayPalPaymentMethodThroughTheOnboarding(): void
     {
         $this->notificationChecker->checkNotification(
-            'You cannot onboard more than one PayPal seller!',
-            NotificationType::failure(),
+            'Please, use the PayPal onboarding available on the payment methods list to create the PayPal payment method.',
+            NotificationType::info(),
         );
     }
 
-    #[Then('I should not be notified that I cannot onboard more than one PayPal seller')]
-    public function iShouldNotBeNotifiedThatICannotOnboardMoreThanOnePayPalSeller(): void
+    #[Then('I should be able to connect another PayPal account')]
+    public function iShouldBeAbleToConnectAnotherPayPalAccount(): void
     {
-        try {
-            $this->notificationChecker->checkNotification(
-                'You cannot onboard more than one PayPal seller!',
-                NotificationType::failure(),
-            );
-        } catch (NotificationExpectationMismatchException|ElementNotFoundException $exception) {
-            return;
-        }
-
-        throw new \DomainException('Step should fail');
+        Assert::true($this->connectPayPalAccountElement->canConnectAnotherPayPalAccount());
     }
 }

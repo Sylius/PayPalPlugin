@@ -19,8 +19,10 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
@@ -28,6 +30,7 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -57,6 +60,13 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private ChannelInterface&MockObject $channel;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
+    private PayPalPaymentMethodsResolverInterface&MockObject $payPalPaymentMethodsResolver;
+
+    /** @var list<PaymentMethodInterface> */
+    private array $channelPaymentMethods;
+
     private PayPalButtonsController $controller;
 
     /** @var array<int, mixed>|null */
@@ -81,6 +91,12 @@ final class PayPalButtonsControllerTest extends TestCase
 
         $this->channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($this->channel);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $this->paymentMethod->method('getCode')->willReturn('PAYPAL');
+        $this->paymentMethod->method('getGatewayConfig')->willReturn($this->gatewayConfig(['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN']));
+        $this->channelPaymentMethods = [$this->paymentMethod];
+        $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $this->payPalPaymentMethodsResolver->method('getInChannel')->with($this->channel)->willReturnCallback(fn (): array => $this->channelPaymentMethods);
         $this->localeContext->method('getLocaleCode')->willReturnCallback(fn (): string => $this->currentLocale);
         $this->localeProcessor->method('process')->willReturnCallback(static function (string $locale): string {
             if ('es_MX' === $locale) {
@@ -100,19 +116,17 @@ final class PayPalButtonsControllerTest extends TestCase
                 return ['clientId' => 'CLIENT_ID'];
             });
 
-        $this->controller = new PayPalButtonsController(
-            $this->twig,
-            $this->router,
-            $this->channelContext,
-            $this->localeContext,
-            $this->payPalConfigurationProvider,
-            $this->orderRepository,
-            $this->availableCountriesProvider,
-            $this->localeProcessor,
-            $this->webSdkConfigurationProvider,
-            $this->fundingSourcesConfigurationProvider,
-            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
-        );
+        $this->controller = $this->controller();
+    }
+
+    public function test_it_initialises_the_sdk_with_the_first_paypal_payment_method_of_the_channel(): void
+    {
+        $this->twig->method('render')->willReturn('');
+        $this->webSdkConfigurationProvider->expects(self::once())->method('getScriptUrl')->with($this->paymentMethod)->willReturn('SCRIPT_URL');
+
+        $this->controller->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertSame($this->paymentMethod, $this->capturedInstanceConfigArgs[0]);
     }
 
     #[Test]
@@ -163,29 +177,52 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_passes_paylater_enabled_to_the_payment_page_template(): void
+    public function it_passes_the_configuration_of_the_first_paypal_payment_method_to_the_payment_page_template(): void
     {
-        $order = $this->createMock(OrderInterface::class);
-        $order->method('getCurrencyCode')->willReturn('USD');
-        $order->method('getTotal')->willReturn(3000);
-        $this->orderRepository->method('find')->willReturn($order);
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+        $this->orderRepository->method('find')->willReturn($this->order(3000));
+        $this->channelPaymentMethods[] = $this->payPalMethod('PAYPAL_2', ['client_id' => 'SECOND_CLIENT_ID', 'partner_attribution_id' => 'SECOND_BN']);
 
-        $capturedContext = null;
-        $this->twig->method('render')
-            ->with('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', self::isType('array'))
-            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
-                $capturedContext = $context;
+        $capturedContext = $this->renderPaymentPageButtons(['orderId' => 1]);
 
-                return '';
-            });
-
-        $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
-
+        self::assertSame('CLIENT_ID', $capturedContext['clientId']);
+        self::assertSame('BN', $capturedContext['partnerAttributionId']);
         self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['venmoEnabled']);
         self::assertSame('30.00', $capturedContext['amount']);
+        self::assertSame($this->paymentMethod, $this->capturedInstanceConfigArgs[0]);
+    }
+
+    #[Test]
+    public function it_renders_the_payment_page_buttons_of_the_paypal_payment_method_they_are_shown_for(): void
+    {
+        $this->orderRepository->method('find')->willReturn($this->order(3000));
+        $secondPaymentMethod = $this->payPalMethod('PAYPAL_2', [
+            'client_id' => 'SECOND_CLIENT_ID',
+            'partner_attribution_id' => 'SECOND_BN',
+            'pay_later_enabled' => false,
+            'venmo_enabled' => true,
+        ]);
+        $this->channelPaymentMethods[] = $secondPaymentMethod;
+        $createOrderUrlParameters = null;
+        $this->router = $this->createMock(UrlGeneratorInterface::class);
+        $this->router->method('generate')->willReturnCallback(function (string $route, array $parameters) use (&$createOrderUrlParameters): string {
+            if ('sylius_paypal_shop_create_paypal_order_from_cart' === $route) {
+                $createOrderUrlParameters = $parameters;
+            }
+
+            return '/some-url';
+        });
+        $this->controller = $this->controller();
+
+        $capturedContext = $this->renderPaymentPageButtons(['orderId' => 1, 'paymentMethodCode' => 'PAYPAL_2']);
+
+        self::assertSame('SECOND_CLIENT_ID', $capturedContext['clientId']);
+        self::assertSame('SECOND_BN', $capturedContext['partnerAttributionId']);
+        self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertTrue($capturedContext['venmoEnabled']);
+        self::assertSame(['id' => 1, 'paymentMethod' => 'PAYPAL_2'], $createOrderUrlParameters);
+        self::assertSame($secondPaymentMethod, $this->capturedInstanceConfigArgs[0]);
+        self::assertSame(['paypal-payments', 'venmo-payments'], $this->capturedInstanceConfigArgs[2]);
     }
 
     #[Test]
@@ -201,7 +238,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->channel, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
+            ->with($this->paymentMethod, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -220,7 +257,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->channel, 'cart', ['paypal-payments'], 'pl_PL')
+            ->with($this->paymentMethod, 'cart', ['paypal-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -253,6 +290,7 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->localeProcessor,
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
+            payPalPaymentMethodsResolver: $this->payPalPaymentMethodsResolver,
         );
         $controller->renderProductPageButtonsAction(Request::create('/'));
 
@@ -345,5 +383,72 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertSame('1234', $capturedContext['amount']);
+    }
+
+    private function controller(): PayPalButtonsController
+    {
+        return new PayPalButtonsController(
+            $this->twig,
+            $this->router,
+            $this->channelContext,
+            $this->localeContext,
+            $this->payPalConfigurationProvider,
+            $this->orderRepository,
+            $this->availableCountriesProvider,
+            $this->localeProcessor,
+            $this->webSdkConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $this->payPalPaymentMethodsResolver,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     *
+     * @return array<string, mixed>
+     */
+    private function renderPaymentPageButtons(array $attributes): array
+    {
+        $capturedContext = [];
+        $this->twig->method('render')
+            ->with('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', self::isType('array'))
+            ->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+                $capturedContext = $context;
+
+                return '';
+            });
+
+        $this->controller->renderPaymentPageButtonsAction(new Request(attributes: $attributes));
+
+        return $capturedContext;
+    }
+
+    private function order(int $total): OrderInterface
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn($total);
+
+        return $order;
+    }
+
+    /** @param array<string, mixed> $config */
+    private function payPalMethod(string $code, array $config): PaymentMethodInterface
+    {
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+        $paymentMethod->method('getCode')->willReturn($code);
+        $paymentMethod->method('getGatewayConfig')->willReturn($this->gatewayConfig($config));
+
+        return $paymentMethod;
+    }
+
+    /** @param array<string, mixed> $config */
+    private function gatewayConfig(array $config): GatewayConfigInterface
+    {
+        $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+        $gatewayConfig->method('getConfig')->willReturn($config);
+
+        return $gatewayConfig;
     }
 }
