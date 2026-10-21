@@ -119,7 +119,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
 
     private function renderPaymentPage(Request $request, PaymentRequestInterface $paymentRequest, PaymentInterface $payment): Response
     {
-        $context = $this->paymentPageContextProvider->provide($payment, $request->getLocale());
+        $context = $this->paymentPageContextProvider->provide($paymentRequest, $request->getLocale());
         $context['createPayPalOrderUrl'] = $this->router->generate(
             'sylius_paypal_shop_create_paypal_order_for_payment_request',
             ['hash' => $paymentRequest->getId()],
@@ -129,7 +129,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         $response->headers->set('Cache-Control', 'no-store, private');
         $response->headers->set('Permissions-Policy', sprintf(
             'publickey-credentials-get=(self "%1$s"), publickey-credentials-create=(self "%1$s")',
-            $this->hostProvider->getWebUrl(),
+            $this->hostProvider->getWebUrlForMode(true === $context['sandbox']),
         ));
 
         return $response;

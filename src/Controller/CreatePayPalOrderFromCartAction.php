@@ -144,6 +144,11 @@ final readonly class CreatePayPalOrderFromCartAction
         $factoryName = $paymentMethod?->getGatewayConfig()?->getFactoryName();
 
         if ($factoryName === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
+            $channelPayPalMethod = $this->channelPayPalMethod($order);
+            if (null !== $channelPayPalMethod && $channelPayPalMethod !== $paymentMethod) {
+                $payment->setMethod($channelPayPalMethod);
+            }
+
             return $payment;
         }
 
@@ -155,14 +160,22 @@ final readonly class CreatePayPalOrderFromCartAction
         $this->orderProcessor->process($order);
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
-        if ($order->getChannel() !== null && $this->payPalMethodsResolver !== null) {
-            $paypalMethods = $this->payPalMethodsResolver->getInChannel($order->getChannel());
-            if ([] !== $paypalMethods) {
-                $payment->setMethod($paypalMethods[0]);
-            }
+        $channelPayPalMethod = $this->channelPayPalMethod($order);
+        if (null !== $channelPayPalMethod) {
+            $payment->setMethod($channelPayPalMethod);
         }
 
         return $payment;
+    }
+
+    private function channelPayPalMethod(OrderInterface $order): ?PaymentMethodInterface
+    {
+        $channel = $order->getChannel();
+        if (null === $channel || null === $this->payPalMethodsResolver) {
+            return null;
+        }
+
+        return $this->payPalMethodsResolver->getInChannel($channel)[0] ?? null;
     }
 
     private function resolvePaymentSource(Request $request, OrderInterface $order): ?string
