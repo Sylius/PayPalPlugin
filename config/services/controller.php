@@ -104,7 +104,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.order_processing.order_processor'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.verifier.order_ownership'),
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
         ]);
 
     $services->set('sylius_paypal.controller.paypal_buttons', PayPalButtonsController::class)

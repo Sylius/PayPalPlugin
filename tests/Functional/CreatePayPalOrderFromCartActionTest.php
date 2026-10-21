@@ -93,6 +93,45 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame('PAYPAL', $order->getLastPayment(PaymentInterface::STATE_CART)?->getMethod()?->getCode());
     }
 
+    public function test_it_creates_the_paypal_order_with_the_paypal_payment_method_the_buttons_were_shown_for(): void
+    {
+        $order = $this->cartWithTwoPayPalMethods(['venmo_enabled' => true]);
+
+        $this->payPalApi()->mockCreateOrder();
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=PAYPAL_2&paymentSource=venmo');
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->getEntityManager()->clear();
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertSame('PAYPAL_2', $payment?->getMethod()?->getCode());
+        $this->assertSame('venmo', $payment?->getDetails()['payment_source'] ?? null);
+    }
+
+    public function test_it_rejects_venmo_when_the_paypal_payment_method_the_buttons_were_shown_for_does_not_enable_it(): void
+    {
+        $order = $this->cartWithTwoPayPalMethods(['venmo_enabled' => false], firstMethodConfig: ['venmo_enabled' => true]);
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=PAYPAL_2&paymentSource=venmo');
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function test_it_creates_the_paypal_order_with_the_first_paypal_payment_method_for_a_code_of_no_paypal_payment_method_of_the_channel(): void
+    {
+        $order = $this->cartWithTwoPayPalMethods();
+
+        $this->payPalApi()->mockCreateOrder();
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=CASH_ON_DELIVERY');
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->getEntityManager()->clear();
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $this->assertSame('PAYPAL', $order->getLastPayment(PaymentInterface::STATE_CART)?->getMethod()?->getCode());
+    }
+
     /** @test */
     public function it_returns_not_found_when_the_order_does_not_belong_to_the_caller(): void
     {
@@ -171,13 +210,44 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         return $order;
     }
 
+    /**
+     * @param array<string, mixed> $secondMethodConfig
+     * @param array<string, mixed> $firstMethodConfig
+     */
+    private function cartWithTwoPayPalMethods(array $secondMethodConfig = [], array $firstMethodConfig = []): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentMethodInterface $firstPayPalMethod */
+        $firstPayPalMethod = $fixtures['paypal'];
+        $firstPayPalMethod->setPosition(0);
+        /** @var GatewayConfigInterface $firstGatewayConfig */
+        $firstGatewayConfig = $firstPayPalMethod->getGatewayConfig();
+        $firstGatewayConfig->setConfig(array_merge($firstGatewayConfig->getConfig(), $firstMethodConfig));
+        $secondPayPalMethod = $this->secondPayPalMethod($firstPayPalMethod);
+        /** @var GatewayConfigInterface $secondGatewayConfig */
+        $secondGatewayConfig = $secondPayPalMethod->getGatewayConfig();
+        $secondGatewayConfig->setConfig(array_merge($secondGatewayConfig->getConfig(), $secondMethodConfig));
+        $this->getEntityManager()->flush();
+        $this->seedCurrentCart($order);
+
+        return $order;
+    }
+
     private function secondPayPalMethod(PaymentMethodInterface $firstPayPalMethod): PaymentMethodInterface
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = self::getContainer()->get('sylius.factory.gateway_config')->createNew();
         $gatewayConfig->setGatewayName('paypal_2');
         $gatewayConfig->setFactoryName('sylius_paypal');
-        $gatewayConfig->setConfig(['client_id' => 'SECOND_CLIENT_ID', 'client_secret' => 'SECOND_SECRET', 'merchant_id' => 'SECOND_MERCHANT_ID']);
+        $gatewayConfig->setConfig([
+            'client_id' => 'SECOND_CLIENT_ID',
+            'client_secret' => 'SECOND_SECRET',
+            'merchant_id' => 'SECOND_MERCHANT_ID',
+            'sylius_merchant_id' => 'SECOND_SYLIUS_MERCHANT_ID',
+            'partner_attribution_id' => 'SECOND_BN',
+        ]);
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = self::getContainer()->get('sylius.factory.payment_method')->createNew();
