@@ -842,8 +842,11 @@
    `Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface`
    (`sylius_paypal.dispatcher.capture_authorization_payment_request`), which captures the authorization at PayPal
    (`POST /v2/payments/authorizations/{id}/capture`, the request hash as `PayPal-Request-Id`) and completes the payment
-   only once PayPal reports the capture as completed. A pending capture leaves the request processing, a rejected one
-   fails it and keeps the payment authorized.
+   only once PayPal reports the capture as completed. A pending capture leaves the request processing until the
+   payment is completed, for example by the `PAYMENT.CAPTURE.COMPLETED` webhook, when
+   `Sylius\PayPalPlugin\Completer\CaptureAuthorizationPaymentRequestCompleterInterface`
+   (`sylius_paypal.completer.capture_authorization_payment_request`) completes it. A rejected capture fails the
+   request and keeps the payment authorized.
 
    The admin API captures it with `PATCH /api/v2/admin/payments/{id}/paypal-capture`
    (`sylius_paypal_api_admin_payment_patch_paypal_capture`, handled by

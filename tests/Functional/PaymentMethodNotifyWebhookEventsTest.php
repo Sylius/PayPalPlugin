@@ -63,6 +63,25 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertArrayNotHasKey('paypal_late_capture', $payment->getDetails());
     }
 
+    public function test_it_completes_the_capture_request_the_admin_is_waiting_for_once_paypal_completes_the_capture(): void
+    {
+        $order = $this->authorizedOrder();
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $payment->getMethod());
+        $paymentRequest->setAction('capture_authorization');
+        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $this->getEntityManager()->persist($paymentRequest);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
+    }
+
     public function test_a_pending_capture_reaches_its_final_state_from_the_webhooks_alone(): void
     {
         $order = $this->processingOrder();

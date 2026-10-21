@@ -10,6 +10,12 @@ winzou_state_machine:
                     on: [ 'refund' ]
                     do: [ '@sylius_paypal.checker.payment_refund', 'canBeRefunded' ]
                     args: [ 'object' ]
+            after:
+                paypal_complete_capture_authorization_payment_requests:
+                    on: [ 'complete' ]
+                    from: [ 'authorized' ]
+                    do: [ '@sylius_paypal.completer.capture_authorization_payment_request', 'complete' ]
+                    args: [ 'object' ]
         transitions:
             cancel:
                 from: [ cart ]

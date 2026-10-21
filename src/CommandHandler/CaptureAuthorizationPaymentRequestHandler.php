@@ -79,7 +79,7 @@ final class CaptureAuthorizationPaymentRequestHandler
         $payment = $paymentRequest->getPayment();
 
         if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
-            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+            $this->complete($paymentRequest);
 
             return;
         }
@@ -135,10 +135,17 @@ final class CaptureAuthorizationPaymentRequestHandler
         ]);
 
         match ($capture->status()) {
-            PayPalCapture::STATUS_COMPLETED => $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE),
+            PayPalCapture::STATUS_COMPLETED => $this->complete($paymentRequest),
             PayPalCapture::STATUS_PENDING => null,
             default => $this->failWithReason($paymentRequest, sprintf('PayPal reported the capture as %s.', $capture->status())),
         };
+    }
+
+    private function complete(PaymentRequestInterface $paymentRequest): void
+    {
+        if ($this->stateMachine->can($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE)) {
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+        }
     }
 
     private function capture(PaymentMethodInterface $paymentMethod, string $authorizationId, string $requestId): void

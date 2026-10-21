@@ -75,6 +75,7 @@ final class CaptureAuthorizationPaymentRequestHandlerTest extends TestCase
             $this->details = $details;
         });
 
+        $this->stateMachine->method('can')->willReturn(true);
         $this->stateMachine->method('apply')->willReturnCallback(function (object $subject, string $graph, string $transition): void {
             $this->appliedTransitions[] = $transition;
         });
@@ -155,6 +156,22 @@ final class CaptureAuthorizationPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new CaptureAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+    }
+
+    public function test_it_leaves_a_request_already_completed_when_the_payment_was_completed_alone(): void
+    {
+        $stateMachine = $this->createMock(StateMachineInterface::class);
+        $stateMachine->method('can')->willReturn(false);
+        $stateMachine->expects(self::never())->method('apply');
+        $this->paymentRequestOf(PaymentInterface::STATE_COMPLETED, PaymentRequestInterface::STATE_PROCESSING);
+
+        (new CaptureAuthorizationPaymentRequestHandler(
+            $this->paymentRequestProvider,
+            $this->orderDetailsApi,
+            $this->captureAuthorizationApi,
+            $this->paymentSettlementProcessor,
+            $stateMachine,
+        ))(new CaptureAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
     public function test_it_fails_the_request_with_the_reason_paypal_rejected_the_capture(): void
