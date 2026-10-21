@@ -4,6 +4,8 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
+use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
+use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
@@ -187,6 +189,12 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.generator.paypal_auth_assertion', PayPalAuthAssertionGenerator::class);
 
     $services->alias(PayPalAuthAssertionGeneratorInterface::class, 'sylius_paypal.generator.paypal_auth_assertion');
+
+    $services->set('sylius_paypal.applicator.payment_capture', PaymentCaptureApplicator::class)
+        ->public()
+        ->args([service('sylius_paypal.dispatcher.capture_authorization_payment_request')]);
+
+    $services->alias(PaymentCaptureApplicatorInterface::class, 'sylius_paypal.applicator.payment_capture');
 
     $services->set('sylius_paypal.applicator.payment_refund', PaymentRefundApplicator::class)
         ->public()

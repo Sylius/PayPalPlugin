@@ -845,6 +845,12 @@
    only once PayPal reports the capture as completed. A pending capture leaves the request processing, a rejected one
    fails it and keeps the payment authorized.
 
+   The admin API captures it with `PATCH /api/v2/admin/payments/{id}/paypal-capture`
+   (`sylius_paypal_api_admin_payment_patch_paypal_capture`, handled by
+   `Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface`, `sylius_paypal.applicator.payment_capture`),
+   which answers `422` for a payment that is not an authorized PayPal payment. The outcome is listed under
+   `/api/v2/admin/payments/{id}/payment-requests`.
+
    The `complete` transition of an authorized PayPal payment is guarded by
    `Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface` (`sylius_paypal.checker.payment_completion`) until
    PayPal confirms the capture, so the core "Complete" button is hidden for it and

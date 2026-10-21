@@ -111,19 +111,45 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
     }
 
+    public function test_it_captures_the_authorization_through_the_admin_api(): void
+    {
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        $this->payPalApi()->mockCaptureAuthorization();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+        $this->patch(sprintf('/api/v2/admin/payments/%d/paypal-capture', $this->payment->getId()));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment()->getState());
+    }
+
+    public function test_it_refuses_to_capture_a_payment_that_is_not_authorized_through_the_admin_api(): void
+    {
+        $this->payment->setState(PaymentInterface::STATE_COMPLETED);
+        $this->getEntityManager()->flush();
+
+        $this->patch(sprintf('/api/v2/admin/payments/%d/paypal-capture', $this->payment->getId()));
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+    }
+
     public function test_it_does_not_let_the_core_complete_skip_paypal(): void
+    {
+        $this->patch(sprintf('/api/v2/admin/payments/%d/complete', $this->payment->getId()));
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
+    }
+
+    private function patch(string $uri): void
     {
         $this->admin->addRole('ROLE_API_ACCESS');
         $this->getEntityManager()->flush();
 
-        $this->client->request('PATCH', sprintf('/api/v2/admin/payments/%d/complete', $this->payment->getId()), server: [
+        $this->client->request('PATCH', $uri, server: [
             'CONTENT_TYPE' => 'application/merge-patch+json',
             'HTTP_ACCEPT' => 'application/ld+json',
             'HTTP_AUTHORIZATION' => 'Bearer ' . self::getContainer()->get('lexik_jwt_authentication.jwt_manager')->create($this->admin),
         ], content: '{}');
-
-        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
-        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
     }
 
     private function completeForm(): Form
