@@ -31,6 +31,7 @@ use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -51,6 +52,7 @@ final class PayPalExtension extends AbstractExtension
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
         ?HostProviderInterface $hostProvider = null,
+        private readonly ?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
         $this->hostProvider = $hostProvider ?? new HostProvider($this->activeModeProvider);
@@ -136,26 +138,25 @@ final class PayPalExtension extends AbstractExtension
 
     public function getWebSdkScriptUrl(): string
     {
-        if (null === $this->webSdkConfigurationProvider) {
+        $paymentMethod = $this->channelPaymentMethod();
+        if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
             return '';
         }
 
-        return $this->webSdkConfigurationProvider->getScriptUrl();
+        return $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod);
     }
 
     /** @return array<string, mixed> */
     public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null): array
     {
-        if (null === $this->webSdkConfigurationProvider || null === $this->channelContext) {
+        $paymentMethod = $this->channelPaymentMethod();
+        if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
             return [];
         }
 
         try {
-            /** @var ChannelInterface $channel */
-            $channel = $this->channelContext->getChannel();
-
             return $this->webSdkConfigurationProvider->getInstanceConfig(
-                $channel,
+                $paymentMethod,
                 $pageType,
                 ['paypal-messages'],
                 $locale ?? $this->currentLocaleProvider?->provide(),
@@ -197,5 +198,17 @@ final class PayPalExtension extends AbstractExtension
         }
 
         return false;
+    }
+
+    private function channelPaymentMethod(): ?PaymentMethodInterface
+    {
+        if (null === $this->payPalPaymentMethodsResolver || null === $this->channelContext) {
+            return null;
+        }
+
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
+
+        return $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? null;
     }
 }

@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Controller;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\AmountUtils;
@@ -26,6 +27,7 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -50,6 +52,7 @@ final readonly class PayPalButtonsController
         private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+        private ?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -99,9 +102,9 @@ final readonly class PayPalButtonsController
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $locale,
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($this->getPaymentMethod($channel)),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
-                    $channel,
+                    $this->getPaymentMethod($channel),
                     'product-details',
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
@@ -137,9 +140,9 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($this->getPaymentMethod($channel)),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
-                    $channel,
+                    $this->getPaymentMethod($channel),
                     'cart',
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
@@ -175,9 +178,9 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl(),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($this->getPaymentMethod($channel)),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
-                    $channel,
+                    $this->getPaymentMethod($channel),
                     'checkout',
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
@@ -200,6 +203,18 @@ final readonly class PayPalButtonsController
         }
 
         return $components;
+    }
+
+    private function getPaymentMethod(ChannelInterface $channel): PaymentMethodInterface
+    {
+        if (null === $this->payPalPaymentMethodsResolver) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to render the v6 Web SDK placements.',
+                PayPalPaymentMethodsResolverInterface::class,
+            ));
+        }
+
+        return $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? throw new \InvalidArgumentException('No PayPal payment method defined');
     }
 
     private function getWebSdkConfigurationProvider(): WebSdkConfigurationProviderInterface

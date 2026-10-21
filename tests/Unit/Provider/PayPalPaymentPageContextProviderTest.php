@@ -16,16 +16,17 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\ShopBillingDataInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -37,7 +38,18 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
 
-    private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
+    /** @var array<string, bool> */
+    private array $paymentMethodConfig = [
+        'pay_later_enabled' => false,
+        'messaging_enabled' => false,
+        'google_pay_enabled' => false,
+        'apple_pay_enabled' => false,
+        'venmo_enabled' => false,
+        'sandbox' => true,
+    ];
+
+    /** @var list<string> */
+    private array $disallowedPaymentSources = [];
 
     private EligibleRedirectPaymentSourcesProviderInterface&Stub $eligibleRedirectPaymentSourcesProvider;
 
@@ -83,16 +95,17 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->payment->method('getOrder')->willReturn($order);
         $this->payment->method('getAmount')->willReturn(12345);
 
-        $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
         $this->eligibleRedirectPaymentSourcesProvider = $this->createStub(EligibleRedirectPaymentSourcesProviderInterface::class);
         $this->eligibleRedirectPaymentSourcesProvider->method('provide')->willReturn([]);
         $this->paymentAuthorizationChecker = $this->createStub(PaymentAuthorizationCheckerInterface::class);
+        $this->paymentAuthorizationChecker->method('isAllowed')->willReturnCallback(
+            fn (string $paymentSource): bool => !in_array($paymentSource, $this->disallowedPaymentSources, true),
+        );
 
         $this->provider = new PayPalPaymentPageContextProvider(
             $this->webSdkConfigurationProvider,
             $router,
             $localeProcessor,
-            $this->fundingSourcesConfigurationProvider,
             $this->eligibleRedirectPaymentSourcesProvider,
             $this->paymentAuthorizationChecker,
         );
@@ -105,7 +118,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     public function test_it_provides_the_urls_the_page_calls(): void
     {
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertSame('sylius_paypal_shop_payment_error', $context['errorPayPalPaymentUrl']);
         self::assertArrayNotHasKey('createPayPalOrderUrl', $context);
@@ -113,7 +126,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     public function test_it_provides_the_order_the_buyer_is_paying_for(): void
     {
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertSame($this->payment, $context['payment']);
         self::assertSame($this->billingAddress, $context['billingAddress']);
@@ -122,18 +135,18 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     public function test_it_provides_whether_pay_later_is_enabled_for_the_channel(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->paymentMethodConfig['pay_later_enabled'] = true;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertTrue($context['paylaterEnabled']);
     }
 
     public function test_it_provides_pay_later_as_disabled_when_the_channel_does_not_allow_it(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
+        $this->paymentMethodConfig['pay_later_enabled'] = false;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertFalse($context['paylaterEnabled']);
     }
@@ -147,7 +160,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertSame(['clientId' => 'CLIENT_ID'], $context['webSdkInstanceConfig']);
         self::assertSame(self::SCRIPT_URL, $context['webSdkScriptUrl']);
@@ -155,7 +168,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     public function test_it_provides_the_amount_google_pay_shows_the_buyer(): void
     {
-        self::assertSame('123.45', $this->provider->provide($this->payment, 'en_US')['amount']);
+        self::assertSame('123.45', $this->provider->provide($this->paymentRequest(), 'en_US')['amount']);
     }
 
     public function test_it_provides_the_amount_without_decimals_for_a_zero_decimal_currency(): void
@@ -169,21 +182,21 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $payment->method('getOrder')->willReturn($order);
         $payment->method('getAmount')->willReturn(123400);
 
-        self::assertSame('1234', $this->provider->provide($payment, 'en_US')['amount']);
+        self::assertSame('1234', $this->provider->provide($this->paymentRequest($payment), 'en_US')['amount']);
     }
 
     public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
 
-        self::assertTrue($this->provider->provide($this->payment, 'en_US')['googlePayEnabled']);
+        self::assertTrue($this->provider->provide($this->paymentRequest(), 'en_US')['googlePayEnabled']);
     }
 
     public function test_it_tells_the_page_whether_the_channel_has_apple_pay_enabled(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
 
-        self::assertTrue($this->provider->provide($this->payment, 'en_US')['applePayEnabled']);
+        self::assertTrue($this->provider->provide($this->paymentRequest(), 'en_US')['applePayEnabled']);
     }
 
     public function test_it_takes_the_country_apple_pay_needs_from_the_shop_billing_data(): void
@@ -192,36 +205,36 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $shopBillingData->method('getCountryCode')->willReturn('DE');
         $this->channel->method('getShopBillingData')->willReturn($shopBillingData);
 
-        self::assertSame('DE', $this->provider->provide($this->payment, 'en_US')['countryCode']);
+        self::assertSame('DE', $this->provider->provide($this->paymentRequest(), 'en_US')['countryCode']);
     }
 
     public function test_it_never_takes_the_country_apple_pay_needs_from_the_buyer(): void
     {
         $this->billingAddress->method('getCountryCode')->willReturn('FR');
 
-        self::assertNull($this->provider->provide($this->payment, 'en_US')['countryCode']);
+        self::assertNull($this->provider->provide($this->paymentRequest(), 'en_US')['countryCode']);
     }
 
     public function test_it_provides_the_language_the_shop_is_being_browsed_in(): void
     {
-        self::assertSame('en', $this->provider->provide($this->payment, 'en_US')['languageCode']);
-        self::assertSame('pl', $this->provider->provide($this->payment, 'pl_PL')['languageCode']);
-        self::assertSame('de', $this->provider->provide($this->payment, 'de')['languageCode']);
+        self::assertSame('en', $this->provider->provide($this->paymentRequest(), 'en_US')['languageCode']);
+        self::assertSame('pl', $this->provider->provide($this->paymentRequest(), 'pl_PL')['languageCode']);
+        self::assertSame('de', $this->provider->provide($this->paymentRequest(), 'de')['languageCode']);
     }
 
     public function test_it_provides_no_locale_when_paypal_does_not_support_it(): void
     {
-        self::assertNull($this->provider->provide($this->payment, 'es_MX')['locale']);
+        self::assertNull($this->provider->provide($this->paymentRequest(), 'es_MX')['locale']);
     }
 
     public function test_it_provides_the_processed_locale(): void
     {
-        self::assertSame('en_US', $this->provider->provide($this->payment, 'en_US')['locale']);
+        self::assertSame('en_US', $this->provider->provide($this->paymentRequest(), 'en_US')['locale']);
     }
 
     public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
 
         $this->webSdkConfigurationProvider
             ->expects(self::once())
@@ -230,12 +243,12 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->willReturn([])
         ;
 
-        $this->provider->provide($this->payment, 'en_US');
+        $this->provider->provide($this->paymentRequest(), 'en_US');
     }
 
     public function test_it_asks_for_the_apple_pay_component_only_when_the_channel_has_it_enabled(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
 
         $this->webSdkConfigurationProvider
             ->expects(self::once())
@@ -244,13 +257,13 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->willReturn([])
         ;
 
-        $this->provider->provide($this->payment, 'en_US');
+        $this->provider->provide($this->paymentRequest(), 'en_US');
     }
 
     public function test_it_asks_for_both_wallet_components_when_the_channel_has_both_enabled(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
 
         $this->webSdkConfigurationProvider
             ->expects(self::once())
@@ -264,30 +277,30 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->willReturn([])
         ;
 
-        $this->provider->provide($this->payment, 'en_US');
+        $this->provider->provide($this->paymentRequest(), 'en_US');
     }
 
     public function test_it_provides_whether_venmo_is_enabled_for_the_channel(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+        $this->paymentMethodConfig['venmo_enabled'] = true;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertTrue($context['venmoEnabled']);
     }
 
     public function test_it_provides_venmo_as_disabled_when_the_channel_does_not_allow_it(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(false);
+        $this->paymentMethodConfig['venmo_enabled'] = false;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertFalse($context['venmoEnabled']);
     }
 
     public function test_it_adds_the_venmo_component_when_venmo_is_enabled_for_the_channel(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+        $this->paymentMethodConfig['venmo_enabled'] = true;
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
@@ -295,18 +308,54 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
-        $this->provider->provide($this->payment, 'en_US');
+        $this->provider->provide($this->paymentRequest(), 'en_US');
+    }
+
+    public function test_it_builds_the_pay_later_message_from_the_payment_method_when_its_messaging_is_enabled(): void
+    {
+        $this->paymentMethodConfig['pay_later_enabled'] = true;
+        $this->paymentMethodConfig['messaging_enabled'] = true;
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->willReturnCallback(static fn ($paymentMethod, string $pageType, array $components): array => ['components' => $components])
+        ;
+
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
+
+        self::assertTrue($context['messagingEnabled']);
+        self::assertSame(['components' => ['paypal-messages']], $context['messagingInstanceConfig']);
+    }
+
+    public function test_it_tells_the_page_whether_the_payment_method_is_in_sandbox(): void
+    {
+        self::assertTrue($this->provider->provide($this->paymentRequest(), 'en_US')['sandbox']);
+
+        $this->paymentMethodConfig['sandbox'] = false;
+
+        self::assertFalse($this->provider->provide($this->paymentRequest(), 'en_US')['sandbox']);
+    }
+
+    private function paymentRequest(?PaymentInterface $payment = null): PaymentRequestInterface
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig($this->paymentMethodConfig);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        $paymentRequest = $this->createStub(PaymentRequestInterface::class);
+        $paymentRequest->method('getPayment')->willReturn($payment ?? $this->payment);
+        $paymentRequest->method('getMethod')->willReturn($paymentMethod);
+
+        return $paymentRequest;
     }
 
     public function test_it_offers_the_cards_and_every_enabled_wallet_when_the_payment_method_allows_them(): void
     {
-        $this->payment->method('getMethod')->willReturn($this->createStub(PaymentMethodInterface::class));
-        $this->paymentAuthorizationChecker->method('isAllowed')->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertTrue($context['cardEnabled']);
         self::assertTrue($context['venmoEnabled']);
@@ -316,14 +365,10 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
 
     public function test_it_hides_the_payment_sources_the_payment_method_does_not_allow(): void
     {
-        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
-        $this->payment->method('getMethod')->willReturn($paymentMethod);
-        $this->paymentAuthorizationChecker->method('isAllowed')->willReturnCallback(
-            static fn (string $paymentSource): bool => 'google_pay' === $paymentSource,
-        );
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isGooglePayEnabled')->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isApplePayEnabled')->willReturn(true);
+        $this->disallowedPaymentSources = ['card', 'venmo', 'apple_pay'];
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
@@ -331,7 +376,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
             ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
-        $context = $this->provider->provide($this->payment, 'en_US');
+        $context = $this->provider->provide($this->paymentRequest(), 'en_US');
 
         self::assertFalse($context['cardEnabled']);
         self::assertFalse($context['venmoEnabled']);
