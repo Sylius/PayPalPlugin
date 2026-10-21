@@ -17,6 +17,7 @@ use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
 use Sylius\Bundle\PaymentBundle\Provider\ActionsHttpResponseProvider;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\CaptureAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\NotifyPaymentRequestHandler;
@@ -24,6 +25,7 @@ use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHand
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\AuthorizePaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\NotifyPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
@@ -32,6 +34,8 @@ use Sylius\PayPalPlugin\CommandProvider\StatusPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcher;
@@ -64,6 +68,9 @@ return function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.command_provider.refund_late_capture', RefundLateCapturePaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => RefundLateCapturePaymentRequestCommandProvider::ACTION]);
+
+    $services->set('sylius_paypal.command_provider.capture_authorization', CaptureAuthorizationPaymentRequestCommandProvider::class)
+        ->tag('sylius_paypal.command_provider', ['action' => CaptureAuthorizationPaymentRequestCommandProvider::ACTION]);
 
     $services->set('sylius_paypal.command_provider.notify', NotifyPaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_NOTIFY]);
@@ -172,6 +179,26 @@ return function (ContainerConfigurator $container): void {
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.command_handler.capture_authorization', CaptureAuthorizationPaymentRequestHandler::class)
+        ->args([
+            service('sylius.provider.payment_request'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.capture_authorization'),
+            service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.dispatcher.capture_authorization_payment_request', CaptureAuthorizationPaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(CaptureAuthorizationPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.capture_authorization_payment_request');
 
     $services->set('sylius_paypal.dispatcher.approved_paypal_order_payment_request', ApprovedPayPalOrderPaymentRequestDispatcher::class)
         ->args([
