@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class WebhookIdProviderTest extends TestCase
@@ -284,9 +285,8 @@ final class WebhookIdProviderTest extends TestCase
     {
         return new WebhookIdProvider(
             $this->genericApi,
-            $this->urlGenerator,
             $this->hostProvider,
-            $webhookBaseUrl,
+            new WebhookUrlProvider($this->urlGenerator, $webhookBaseUrl),
         );
     }
 

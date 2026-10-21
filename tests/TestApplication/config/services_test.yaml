@@ -20,6 +20,6 @@ services:
     sylius_paypal.api.webhook_signature_verifier:
         class: Tests\Sylius\PayPalPlugin\Service\DummyWebhookSignatureVerifier
 
-    sylius_paypal.provider.webhook_id.persisting:
+    sylius_paypal.provider.webhook_id:
         class: Tests\Sylius\PayPalPlugin\Service\DummyWebhookIdProvider
-        decorates: sylius_paypal.provider.webhook_id
+        arguments: []
