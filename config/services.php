@@ -67,8 +67,6 @@ use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterf
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
-use Sylius\PayPalPlugin\Provider\ActiveModeProvider;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProvider;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
@@ -193,7 +191,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('router'),
             service('sylius_paypal.provider.available_countries'),
-            service('sylius_paypal.provider.paypal_configuration'),
         ])
         ->tag('sylius.api.payment_method_handler');
 
@@ -324,13 +321,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalPaymentMethodProviderInterface::class, 'sylius_paypal.provider.paypal_payment_method');
 
-    $services->set('sylius_paypal.provider.active_mode', ActiveModeProvider::class)
-        ->args([service('sylius_paypal.provider.paypal_payment_method')]);
-
-    $services->alias(ActiveModeProviderInterface::class, 'sylius_paypal.provider.active_mode');
-
-    $services->set('sylius_paypal.provider.host', HostProvider::class)
-        ->args([service('sylius_paypal.provider.active_mode')]);
+    $services->set('sylius_paypal.provider.host', HostProvider::class);
 
     $services->alias(HostProviderInterface::class, 'sylius_paypal.provider.host');
 
@@ -406,7 +397,7 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set('sylius_paypal.provider.paypal_configuration', PayPalConfigurationProvider::class)
-        ->args([service('sylius.repository.payment_method')]);
+        ->args([service('sylius_paypal.resolver.paypal_payment_methods')]);
 
     $services->alias(PayPalConfigurationProviderInterface::class, 'sylius_paypal.provider.paypal_configuration');
 
@@ -414,9 +405,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.web_sdk_configuration', WebSdkConfigurationProvider::class)
         ->args([
-            service('sylius_paypal.provider.paypal_configuration'),
             service('sylius_paypal.provider.host'),
-            service('sylius_paypal.provider.active_mode'),
             param('sylius_paypal.test_buyer_country'),
         ]);
 
@@ -427,7 +416,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.web_sdk_configuration'),
             service('router'),
             service('sylius_paypal.processor.locale'),
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
         ]);
 
@@ -476,7 +464,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.eligible_redirect_payment_sources', EligibleRedirectPaymentSourcesProvider::class)
         ->args([
             service('sylius_paypal.api.find_eligible_methods'),
-            service('sylius_paypal.provider.paypal_configuration'),
             service('monolog.logger.paypal'),
         ]);
 
@@ -645,7 +632,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)
         ->args([
-            service('sylius_paypal.provider.active_mode'),
             service('sylius_paypal.factory.mode_switch_view'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius.context.channel'),
@@ -653,6 +639,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
             service('sylius_paypal.provider.host'),
+            service('sylius_paypal.resolver.paypal_payment_methods'),
         ])
         ->tag('twig.extension');
 

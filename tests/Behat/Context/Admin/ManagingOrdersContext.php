@@ -24,6 +24,7 @@ use Sylius\Behat\Page\Admin\Order\ShowPageInterface;
 use Sylius\Behat\Service\NotificationCheckerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -71,6 +72,30 @@ final class ManagingOrdersContext implements Context
         $this->payPalApiMocker->mockOrderDetailsWithCapture($payPalOrderId);
     }
 
+    #[Given('/^(this order) is already paid as "([^"]+)" PayPal order with "([^"]+)" PayPal capture$/')]
+    public function thisOrderIsAlreadyPaidAsPayPalOrderWithPayPalCapture(OrderInterface $order, string $payPalOrderId, string $captureId): void
+    {
+        $this->payOrderWithPayPal($order, $payPalOrderId, captureId: $captureId);
+    }
+
+    #[When('PayPal notifies the :paymentMethod payment method that the :captureId capture has been refunded')]
+    public function payPalNotifiesThePaymentMethodThatTheCaptureHasBeenRefunded(PaymentMethodInterface $paymentMethod, string $captureId): void
+    {
+        $this->payPalApiMocker->mockRefundDetails(captureId: $captureId);
+
+        $this->client->request('POST', sprintf('/payment-methods/%s', $paymentMethod->getCode()), [], [], [], json_encode([
+            'id' => 'WH-REFUNDED',
+            'event_type' => 'PAYMENT.CAPTURE.REFUNDED',
+            'resource_type' => 'refund',
+            'resource' => [
+                'id' => 'REFUND_ID',
+                'links' => [['rel' => 'up', 'href' => sprintf('https://api.sandbox.paypal.com/v2/payments/captures/%s', $captureId)]],
+            ],
+        ], \JSON_THROW_ON_ERROR));
+
+        Assert::same($this->client->getResponse()->getStatusCode(), Response::HTTP_NO_CONTENT);
+    }
+
     #[When('request from PayPal about :payPalOrderId order refund has been received')]
     public function requestFromPayPalAboutOrderRefundHasBeenReceived(string $payPalOrderId): void
     {
@@ -110,12 +135,16 @@ final class ManagingOrdersContext implements Context
         $this->showPage->tryToOpen(['id' => $order->getId()]);
     }
 
-    private function payOrderWithPayPal(OrderInterface $order, string $payPalOrderId, ?string $payPalPaymentId = null): void
+    private function payOrderWithPayPal(OrderInterface $order, string $payPalOrderId, ?string $payPalPaymentId = null, ?string $captureId = null): void
     {
         /** @var PaymentInterface $payment */
         $payment = $order->getPayments()->first();
 
-        $details = PayPalPaymentDetails::create()->withPayPalOrderId($payPalOrderId)->toArray();
+        $paymentDetails = PayPalPaymentDetails::create()->withPayPalOrderId($payPalOrderId);
+        if (null !== $captureId) {
+            $paymentDetails = $paymentDetails->withTransactionId($captureId);
+        }
+        $details = $paymentDetails->toArray();
         if ($payPalPaymentId !== null) {
             $details['paypal_payment_id'] = $payPalPaymentId;
         }

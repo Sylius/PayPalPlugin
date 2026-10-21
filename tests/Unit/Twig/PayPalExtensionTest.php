@@ -20,14 +20,16 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 
 final class PayPalExtensionTest extends TestCase
@@ -42,6 +44,10 @@ final class PayPalExtensionTest extends TestCase
 
     private LocaleProcessorInterface&MockObject $localeProcessor;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
+    private PayPalPaymentMethodsResolverInterface&MockObject $payPalPaymentMethodsResolver;
+
     private PayPalExtension $extension;
 
     protected function setUp(): void
@@ -52,13 +58,16 @@ final class PayPalExtensionTest extends TestCase
         $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
         $this->localeContext = $this->createMock(LocaleContextInterface::class);
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $this->payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod]);
         $this->extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
             currentLocaleProvider: new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            payPalPaymentMethodsResolver: $this->payPalPaymentMethodsResolver,
         );
     }
 
@@ -85,10 +94,26 @@ final class PayPalExtensionTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('messagingConfigurations')]
+    public function it_returns_whether_messaging_is_enabled_for_the_given_payment_method(array $config, bool $enabled): void
+    {
+        $this->fundingSourcesConfigurationProvider->expects(self::never())->method('isMessagingEnabled');
+
+        self::assertSame($enabled, $this->extension->isMessagingEnabled($this->payPalMethod($config)));
+    }
+
+    /** @return iterable<string, array{array<string, bool>, bool}> */
+    public static function messagingConfigurations(): iterable
+    {
+        yield 'defaults' => [[], true];
+        yield 'messaging disabled' => [['messaging_enabled' => false], false];
+        yield 'pay later disabled' => [['pay_later_enabled' => false], false];
+    }
+
+    #[Test]
     public function it_returns_false_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
         );
 
@@ -98,16 +123,31 @@ final class PayPalExtensionTest extends TestCase
     #[Test]
     public function it_returns_the_web_sdk_script_url(): void
     {
-        $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn('https://www.sandbox.paypal.com/web-sdk/v6/core');
+        $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
+        $this->webSdkConfigurationProvider->method('getScriptUrl')->with($this->paymentMethod)->willReturn('https://www.sandbox.paypal.com/web-sdk/v6/core');
 
         self::assertSame('https://www.sandbox.paypal.com/web-sdk/v6/core', $this->extension->getWebSdkScriptUrl());
+    }
+
+    #[Test]
+    public function it_returns_the_web_sdk_script_url_and_instance_config_of_the_given_payment_method(): void
+    {
+        $paymentMethod = $this->payPalMethod([]);
+        $this->payPalPaymentMethodsResolver->expects(self::never())->method('getInChannel');
+        $this->webSdkConfigurationProvider->method('getScriptUrl')->with($paymentMethod)->willReturn('SCRIPT_URL');
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->with($paymentMethod, 'checkout', ['paypal-messages'], 'en_US')
+            ->willReturn(['clientId' => 'SECOND_CLIENT_ID']);
+
+        self::assertSame('SCRIPT_URL', $this->extension->getWebSdkScriptUrl($paymentMethod));
+        self::assertSame(['clientId' => 'SECOND_CLIENT_ID'], $this->extension->getWebSdkInstanceConfig('checkout', 'en_US', $paymentMethod));
     }
 
     #[Test]
     public function it_returns_an_empty_script_url_when_constructed_without_the_new_dependency(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
         );
 
@@ -121,7 +161,7 @@ final class PayPalExtensionTest extends TestCase
         $this->channelContext->method('getChannel')->willReturn($channel);
         $this->webSdkConfigurationProvider
             ->method('getInstanceConfig')
-            ->with($channel, 'cart')
+            ->with($this->paymentMethod, 'cart')
             ->willReturn(['clientId' => 'CLIENT_ID', 'components' => ['paypal-payments']]);
 
         self::assertSame(
@@ -137,7 +177,7 @@ final class PayPalExtensionTest extends TestCase
         $this->channelContext->method('getChannel')->willReturn($channel);
         $this->webSdkConfigurationProvider
             ->method('getInstanceConfig')
-            ->with($channel, 'checkout', ['paypal-messages'], 'en_US')
+            ->with($this->paymentMethod, 'checkout', ['paypal-messages'], 'en_US')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         self::assertSame(
@@ -155,7 +195,7 @@ final class PayPalExtensionTest extends TestCase
         $this->localeProcessor->method('process')->with('pl_PL')->willReturn('pl_PL');
         $this->webSdkConfigurationProvider
             ->method('getInstanceConfig')
-            ->with($channel, 'cart', ['paypal-messages'], 'pl_PL')
+            ->with($this->paymentMethod, 'cart', ['paypal-messages'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID', 'locale' => 'pl-PL']);
 
         self::assertSame(
@@ -183,7 +223,7 @@ final class PayPalExtensionTest extends TestCase
         $this->localeContext->method('getLocaleCode')->willThrowException(new LocaleNotFoundException());
         $this->webSdkConfigurationProvider
             ->method('getInstanceConfig')
-            ->with($channel, 'cart', ['paypal-messages'], null)
+            ->with($this->paymentMethod, 'cart', ['paypal-messages'], null)
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         self::assertSame(
@@ -204,11 +244,29 @@ final class PayPalExtensionTest extends TestCase
         self::assertSame([], $this->extension->getWebSdkInstanceConfig('cart'));
     }
 
+    public function test_it_returns_an_empty_instance_config_and_script_url_for_a_channel_without_a_paypal_payment_method(): void
+    {
+        $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
+        $payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([]);
+        $extension = new PayPalExtension(
+            $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $this->fundingSourcesConfigurationProvider,
+            $this->channelContext,
+            $this->webSdkConfigurationProvider,
+            payPalPaymentMethodsResolver: $payPalPaymentMethodsResolver,
+        );
+
+        $this->webSdkConfigurationProvider->expects(self::never())->method('getInstanceConfig');
+
+        self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));
+        self::assertSame('', $extension->getWebSdkScriptUrl());
+    }
+
     #[Test]
     public function it_returns_an_empty_instance_config_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
         );
 
@@ -278,5 +336,16 @@ final class PayPalExtensionTest extends TestCase
         yield 'card' => [['payment_source' => 'card'], false];
         yield 'google pay' => [['payment_source' => 'google_pay'], false];
         yield 'venmo' => [['payment_source' => 'venmo'], false];
+    }
+
+    /** @param array<string, mixed> $config */
+    private function payPalMethod(array $config): PaymentMethodInterface
+    {
+        $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+        $gatewayConfig->method('getConfig')->willReturn($config);
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+        return $paymentMethod;
     }
 }

@@ -14,17 +14,13 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\ChannelInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 
 final readonly class PayPalConfigurationProvider implements PayPalConfigurationProviderInterface, PayPalFundingSourcesConfigurationProviderInterface
 {
-    /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
-    public function __construct(private PaymentMethodRepositoryInterface $paymentMethodRepository)
+    public function __construct(private PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver)
     {
     }
 
@@ -72,20 +68,12 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
 
     private function getPayPalPaymentMethodConfig(ChannelInterface $channel): PayPalGatewayConfig
     {
-        $methods = $this->paymentMethodRepository->findEnabledForChannel($channel);
-
-        /** @var PaymentMethodInterface $method */
-        foreach ($methods as $method) {
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $method->getGatewayConfig();
-
-            if ($gatewayConfig->getFactoryName() !== SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
-                continue;
-            }
-
-            return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+        $paymentMethod = $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? null;
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null === $gatewayConfig) {
+            throw new \InvalidArgumentException('No PayPal payment method defined');
         }
 
-        throw new \InvalidArgumentException('No PayPal payment method defined');
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
     }
 }
