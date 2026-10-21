@@ -25,7 +25,6 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -62,7 +61,6 @@ final class PayPalExtensionTest extends TestCase
         $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
         $this->payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod]);
         $this->extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
@@ -98,7 +96,6 @@ final class PayPalExtensionTest extends TestCase
     public function it_returns_false_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
         );
 
@@ -118,7 +115,6 @@ final class PayPalExtensionTest extends TestCase
     public function it_returns_an_empty_script_url_when_constructed_without_the_new_dependency(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
         );
 
@@ -221,7 +217,6 @@ final class PayPalExtensionTest extends TestCase
         $payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
         $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([]);
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
@@ -239,7 +234,6 @@ final class PayPalExtensionTest extends TestCase
     public function it_returns_an_empty_instance_config_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ActiveModeProviderInterface::class),
             $this->createMock(ModeSwitchViewFactoryInterface::class),
         );
 
