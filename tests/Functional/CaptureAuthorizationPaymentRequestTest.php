@@ -22,6 +22,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Command\CaptureAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
+use Symfony\Component\DomCrawler\Form;
 use Symfony\Component\HttpFoundation\Response;
 
 final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
@@ -80,6 +81,36 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
         self::assertStringContainsString('AUTHORIZATION_EXPIRED', (string) $paymentRequest->getResponseData()['reason']);
     }
 
+    public function test_it_captures_the_authorization_from_the_order_page(): void
+    {
+        $form = $this->completeForm();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        $this->payPalApi()->mockCaptureAuthorization();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+        $this->client->submit($form);
+
+        self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/admin/orders/%d', (int) $this->payment->getOrder()?->getId())));
+        self::assertSame(['sylius.payment.completed'], $this->client->getRequest()->getSession()->getFlashBag()->peek('success'));
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment()->getState());
+    }
+
+    public function test_it_keeps_the_payment_authorized_and_tells_why_when_paypal_rejects_the_capture_from_the_order_page(): void
+    {
+        $form = $this->completeForm();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        $this->payPalHttpClient()->addExpectation('POST', 'v2/payments/authorizations/AUTHORIZATION_ID/capture', [
+            'name' => 'UNPROCESSABLE_ENTITY',
+            'details' => [['issue' => 'AUTHORIZATION_EXPIRED']],
+            'debug_id' => 'DEBUG_ID',
+        ], 422);
+        $this->client->submit($form);
+
+        $flashes = $this->client->getRequest()->getSession()->getFlashBag()->peek('error');
+        self::assertSame('sylius_paypal.payment_not_captured', $flashes[0]['message']);
+        self::assertStringContainsString('AUTHORIZATION_EXPIRED', $flashes[0]['parameters']['%reason%']);
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
+    }
+
     public function test_it_does_not_let_the_core_complete_skip_paypal(): void
     {
         $this->admin->addRole('ROLE_API_ACCESS');
@@ -93,6 +124,19 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
 
         self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
+    }
+
+    private function completeForm(): Form
+    {
+        $this->client->loginUser($this->admin, 'admin');
+        $crawler = $this->client->request('GET', sprintf('/admin/orders/%d', (int) $this->payment->getOrder()?->getId()));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $buttons = $crawler->filter(sprintf('[data-test-complete-payment="%d"]', $this->payment->getId()));
+        self::assertCount(1, $buttons);
+        self::assertStringContainsString('capture-paypal-authorization', (string) $buttons->form()->getUri());
+
+        return $buttons->form();
     }
 
     private function captureRequestHash(): string

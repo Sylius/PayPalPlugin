@@ -832,3 +832,21 @@
    never meant a PayPal authorization. Gateways still on Payum keep it, every other PayPal gateway config is saved with
    the strategy the merchant chose. Set `use_authorize` to `false` on the PayPal gateway configs you upgrade, or they
    will start authorizing instead of capturing.
+
+1. #### An authorized PayPal payment is captured from the admin panel through a Payment Request.
+
+   The "Complete" button of an authorized PayPal payment on the order page now sends
+   `PUT /admin/orders/{orderId}/payments/{id}/capture-paypal-authorization`
+   (`sylius_paypal_admin_order_payment_capture_authorization`, `sylius_paypal.controller.capture_authorization`). It
+   dispatches a Payment Request with the `capture_authorization` action, through
+   `Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface`
+   (`sylius_paypal.dispatcher.capture_authorization_payment_request`), which captures the authorization at PayPal
+   (`POST /v2/payments/authorizations/{id}/capture`, the request hash as `PayPal-Request-Id`) and completes the payment
+   only once PayPal reports the capture as completed. A pending capture leaves the request processing, a rejected one
+   fails it and keeps the payment authorized.
+
+   The `complete` transition of an authorized PayPal payment is guarded by
+   `Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface` (`sylius_paypal.checker.payment_completion`) until
+   PayPal confirms the capture, so the core "Complete" button is hidden for it and
+   `PATCH /api/v2/admin/payments/{id}/complete` answers `422`. The action is not one of the
+   `sylius_api.shop_payment_request.allowed_actions`, so a shop customer cannot request it.
