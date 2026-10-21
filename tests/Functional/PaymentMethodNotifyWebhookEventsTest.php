@@ -48,6 +48,21 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PayPalWebhookEventStatus::Processed->value, $this->webhookEventStatus('WH-1'));
     }
 
+    public function test_it_completes_an_authorized_payment_once_paypal_says_its_authorization_was_captured(): void
+    {
+        $order = $this->authorizedOrder();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+        self::assertSame('CAPTURE_ID', $payment->getDetails()['transaction_id']);
+        self::assertArrayNotHasKey('paypal_late_capture', $payment->getDetails());
+    }
+
     public function test_a_pending_capture_reaches_its_final_state_from_the_webhooks_alone(): void
     {
         $order = $this->processingOrder();
@@ -365,6 +380,16 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
             'superseded_paypal_orders' => ['PAYPAL_ORDER_ID' => 'trustly'],
         ]);
         $this->getEntityManager()->flush();
+
+        return $order;
+    }
+
+    private function authorizedOrder(): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml', 'resources/authorized_paypal_order.yaml']);
+
+        /** @var OrderInterface $order */
+        $order = $fixtures['authorized_order'];
 
         return $order;
     }
