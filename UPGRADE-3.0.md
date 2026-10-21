@@ -717,9 +717,13 @@
 
 1. #### The storefront takes the PayPal account of the channel or of the payment being paid.
 
-   The buttons on the product, cart and select payment pages, the Pay Later messages and express checkout use the
-   first enabled PayPal payment method of the channel by position (`PayPalPaymentMethodsResolverInterface::getInChannel()`);
-   express checkout moves a cart paid with another PayPal payment method to it. The payment page takes the client id,
+   The buttons on the product and cart pages, their Pay Later messages and express checkout use the first enabled
+   PayPal payment method of the channel by position (`PayPalPaymentMethodsResolverInterface::getInChannel()`); express
+   checkout moves a cart paid with another PayPal payment method to it. The buttons and Pay Later messages on the select
+   payment page use the PayPal payment method they are shown for: `renderPaymentPageButtonsAction` takes its code as the
+   `paymentMethodCode` attribute and passes it to `sylius_paypal_shop_create_paypal_order_from_cart` as the
+   `paymentMethod` query parameter, and `sylius_paypal_is_messaging_enabled()`, `sylius_paypal_web_sdk_script_url()` and
+   `sylius_paypal_web_sdk_instance_config()` accept an optional payment method. The payment page takes the client id,
    partner attribution id, mode and the enabled payment sources from the payment method of the Payment Request being
    paid.
 
@@ -755,3 +759,4 @@
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController`, `Sylius\PayPalPlugin\Twig\PayPalExtension` | gained `PayPalPaymentMethodsResolverInterface` as the last argument |
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |

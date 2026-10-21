@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
@@ -93,6 +94,23 @@ final class PayPalExtensionTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('messagingConfigurations')]
+    public function it_returns_whether_messaging_is_enabled_for_the_given_payment_method(array $config, bool $enabled): void
+    {
+        $this->fundingSourcesConfigurationProvider->expects(self::never())->method('isMessagingEnabled');
+
+        self::assertSame($enabled, $this->extension->isMessagingEnabled($this->payPalMethod($config)));
+    }
+
+    /** @return iterable<string, array{array<string, bool>, bool}> */
+    public static function messagingConfigurations(): iterable
+    {
+        yield 'defaults' => [[], true];
+        yield 'messaging disabled' => [['messaging_enabled' => false], false];
+        yield 'pay later disabled' => [['pay_later_enabled' => false], false];
+    }
+
+    #[Test]
     public function it_returns_false_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
@@ -109,6 +127,21 @@ final class PayPalExtensionTest extends TestCase
         $this->webSdkConfigurationProvider->method('getScriptUrl')->with($this->paymentMethod)->willReturn('https://www.sandbox.paypal.com/web-sdk/v6/core');
 
         self::assertSame('https://www.sandbox.paypal.com/web-sdk/v6/core', $this->extension->getWebSdkScriptUrl());
+    }
+
+    #[Test]
+    public function it_returns_the_web_sdk_script_url_and_instance_config_of_the_given_payment_method(): void
+    {
+        $paymentMethod = $this->payPalMethod([]);
+        $this->payPalPaymentMethodsResolver->expects(self::never())->method('getInChannel');
+        $this->webSdkConfigurationProvider->method('getScriptUrl')->with($paymentMethod)->willReturn('SCRIPT_URL');
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->with($paymentMethod, 'checkout', ['paypal-messages'], 'en_US')
+            ->willReturn(['clientId' => 'SECOND_CLIENT_ID']);
+
+        self::assertSame('SCRIPT_URL', $this->extension->getWebSdkScriptUrl($paymentMethod));
+        self::assertSame(['clientId' => 'SECOND_CLIENT_ID'], $this->extension->getWebSdkInstanceConfig('checkout', 'en_US', $paymentMethod));
     }
 
     #[Test]
@@ -303,5 +336,16 @@ final class PayPalExtensionTest extends TestCase
         yield 'card' => [['payment_source' => 'card'], false];
         yield 'google pay' => [['payment_source' => 'google_pay'], false];
         yield 'venmo' => [['payment_source' => 'venmo'], false];
+    }
+
+    /** @param array<string, mixed> $config */
+    private function payPalMethod(array $config): PaymentMethodInterface
+    {
+        $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+        $gatewayConfig->method('getConfig')->willReturn($config);
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+        return $paymentMethod;
     }
 }

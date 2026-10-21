@@ -19,7 +19,9 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\AmountUtils;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
@@ -165,27 +167,34 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $paymentMethod = $this->getPaymentMethod($channel, $request->attributes->getString('paymentMethodCode'));
+            /** @var GatewayConfigInterface $gatewayConfig */
+            $gatewayConfig = $paymentMethod->getGatewayConfig();
+            $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+            $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
                 'amount' => AmountUtils::toPayPalValue($order->getTotal(), (string) $order->getCurrencyCode()),
-                'clientId' => $this->payPalConfigurationProvider->getClientId($channel),
-                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', ['id' => $orderId]),
+                'clientId' => $config->clientId(),
+                'createPayPalOrderFromCartUrl' => $this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', [
+                    'id' => $orderId,
+                    'paymentMethod' => $paymentMethod->getCode(),
+                ]),
                 'currency' => $order->getCurrencyCode(),
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $locale,
                 'orderId' => $orderId,
-                'partnerAttributionId' => $this->payPalConfigurationProvider->getPartnerAttributionId($channel),
+                'partnerAttributionId' => $config->partnerAttributionId(),
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($this->getPaymentMethod($channel)),
+                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($paymentMethod),
                 'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
-                    $this->getPaymentMethod($channel),
+                    $paymentMethod,
                     'checkout',
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => $config->isPayLaterEnabled(),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -205,7 +214,7 @@ final readonly class PayPalButtonsController
         return $components;
     }
 
-    private function getPaymentMethod(ChannelInterface $channel): PaymentMethodInterface
+    private function getPaymentMethod(ChannelInterface $channel, string $code = ''): PaymentMethodInterface
     {
         if (null === $this->payPalPaymentMethodsResolver) {
             throw new \RuntimeException(sprintf(
@@ -214,7 +223,14 @@ final readonly class PayPalButtonsController
             ));
         }
 
-        return $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? throw new \InvalidArgumentException('No PayPal payment method defined');
+        $paymentMethods = $this->payPalPaymentMethodsResolver->getInChannel($channel);
+        foreach ($paymentMethods as $paymentMethod) {
+            if ('' !== $code && $paymentMethod->getCode() === $code) {
+                return $paymentMethod;
+            }
+        }
+
+        return $paymentMethods[0] ?? throw new \InvalidArgumentException('No PayPal payment method defined');
     }
 
     private function getWebSdkConfigurationProvider(): WebSdkConfigurationProviderInterface

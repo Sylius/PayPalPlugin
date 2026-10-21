@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Model\ModeSwitchView;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
@@ -112,8 +113,15 @@ final class PayPalExtension extends AbstractExtension
         return $this->modeSwitchViewFactory->createFromConfig($config);
     }
 
-    public function isMessagingEnabled(): bool
+    public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null): bool
     {
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null !== $gatewayConfig) {
+            $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+
+            return $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+        }
+
         if (null === $this->fundingSourcesConfigurationProvider || null === $this->channelContext) {
             return false;
         }
@@ -128,9 +136,9 @@ final class PayPalExtension extends AbstractExtension
         }
     }
 
-    public function getWebSdkScriptUrl(): string
+    public function getWebSdkScriptUrl(?PaymentMethodInterface $paymentMethod = null): string
     {
-        $paymentMethod = $this->channelPaymentMethod();
+        $paymentMethod ??= $this->channelPaymentMethod();
         if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
             return '';
         }
@@ -139,9 +147,9 @@ final class PayPalExtension extends AbstractExtension
     }
 
     /** @return array<string, mixed> */
-    public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null): array
+    public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null, ?PaymentMethodInterface $paymentMethod = null): array
     {
-        $paymentMethod = $this->channelPaymentMethod();
+        $paymentMethod ??= $this->channelPaymentMethod();
         if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
             return [];
         }
