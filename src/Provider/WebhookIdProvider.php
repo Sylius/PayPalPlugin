@@ -17,20 +17,14 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 {
-    private WebhookUrlProviderInterface $webhookUrlProvider;
-
     public function __construct(
         private GenericApiInterface $genericApi,
-        private UrlGeneratorInterface $urlGenerator,
         private HostProviderInterface $hostProvider,
-        private string $webhookBaseUrl = '',
-        ?WebhookUrlProviderInterface $webhookUrlProvider = null,
+        private WebhookUrlProviderInterface $webhookUrlProvider,
     ) {
-        $this->webhookUrlProvider = $webhookUrlProvider ?? new WebhookUrlProvider($urlGenerator, $webhookBaseUrl);
     }
 
     public function provide(PaymentMethodInterface $paymentMethod): ?string

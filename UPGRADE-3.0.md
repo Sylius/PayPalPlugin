@@ -155,10 +155,11 @@
     public function __construct(
         private GenericApiInterface $genericApi,
    -    private CacheAuthorizeClientApiInterface $authorizeClientApi,
-        private UrlGeneratorInterface $urlGenerator,
+   -    private UrlGeneratorInterface $urlGenerator,
    -    private string $baseUrl,
+   -    private string $webhookBaseUrl = '',
    +    private HostProviderInterface $hostProvider,
-        // ...
+   +    private WebhookUrlProviderInterface $webhookUrlProvider,
     ) {
    ```
 
@@ -702,6 +703,8 @@
    only without either does it fall back to the request context.
 
    `WebhookIdProvider` looks the webhook up by the URL of the payment method, then by `/paypal-webhook/api/`.
+   It is the `sylius_paypal.provider.webhook_id.lookup` service; `sylius_paypal.provider.webhook_id` is the
+   `PersistingWebhookIdProvider` wrapping it instead of decorating it.
    `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook.
 
