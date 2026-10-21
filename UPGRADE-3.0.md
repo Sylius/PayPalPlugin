@@ -153,10 +153,10 @@
 
    | Removed | Replacement |
    |---|---|
-   | `sylius_paypal.sandbox` parameter | `Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface` (`sylius_paypal.provider.active_mode`) |
-   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.sandbox` parameter | the `sandbox` key of the gateway config of each PayPal payment method (`PayPalGatewayConfig::isSandbox()`) |
+   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getApiBaseUrlForMode()` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getReportsSftpHostForMode()` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (used by the `sylius_paypal_partner_js_url()` Twig function) |
    | `sylius_paypal.client.sftp` service | `Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface` (`sylius_paypal.factory.sftp_client`) |
 
@@ -196,7 +196,6 @@
     // Sylius\PayPalPlugin\Twig\PayPalExtension
     public function __construct(
    -    private readonly bool $sandbox,
-   +    private readonly ActiveModeProviderInterface $activeModeProvider,
    +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         // ...
@@ -244,8 +243,9 @@
 
    The client takes the token from `CacheAuthorizeClientApiInterface`. When PayPal answers `401`, it invalidates the
    cached token, fetches a fresh one and resends the request once. The request goes to the API of the payment
-   method's mode (`HostProviderInterface::getApiBaseUrlForMode()`), the same one its token was issued by. The token
-   request moved to `AuthorizeClientApi`.
+   method's mode (`HostProviderInterface::getApiBaseUrlForMode()`), the same one its token was issued by, and carries
+   the `PayPal-Partner-Attribution-Id` of that payment method instead of the one of the channel in the request. The
+   token request moved to `AuthorizeClientApi`.
 
    ```diff
     // Sylius\PayPalPlugin\Client\PayPalClient
@@ -254,8 +254,8 @@
    +    private ClientInterface $client, // sylius_paypal.http_client.retrying
         private LoggerInterface $logger,
         private UuidProviderInterface $uuidProvider,
-        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private ChannelContextInterface $channelContext,
+   -    private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+   -    private ChannelContextInterface $channelContext,
    +    private CacheAuthorizeClientApiInterface $authorizeClientApi,
    -    private string $baseUrl,
    +    private HostProviderInterface $hostProvider,
@@ -983,13 +983,15 @@
    +public function provide(PaymentRequestInterface $paymentRequest, string $locale): array;
    ```
 
-   The payment page context also carries `sandbox`, `messagingEnabled` and `messagingInstanceConfig`.
+   The payment page context also carries `sandbox`, `messagingEnabled` and `messagingInstanceConfig`; the
+   `sylius_is_paypal_sandbox()` Twig function has been removed, use `context.sandbox` on the payment page.
 
    The following constructor signatures have changed:
 
    | Class | Change |
    |---|---|
-   | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | lost `PayPalConfigurationProviderInterface` and `ActiveModeProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | takes only `HostProviderInterface` and the test buyer country |
+   | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | lost `PayPalConfigurationProviderInterface`; the partner attribution id comes from the payment method |
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |

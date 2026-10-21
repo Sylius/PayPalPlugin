@@ -18,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider;
 
@@ -103,7 +102,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
     private function createProvider(?string $testBuyerCountry): WebSdkConfigurationProvider
     {
         return new WebSdkConfigurationProvider(
-            new HostProvider($this->createStub(ActiveModeProviderInterface::class)),
+            new HostProvider(),
             $testBuyerCountry,
         );
     }
