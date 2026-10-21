@@ -48,6 +48,20 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
+        self::assertSame('WH-LEGACY', $this->storedWebhookId());
+    }
+
+    public function test_it_stores_the_id_of_the_webhook_it_registers(): void
+    {
+        $paymentMethod = $this->loadShop();
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig->setConfig(['webhook_id' => 'WH-STALE'] + $gatewayConfig->getConfig());
+        $this->getEntityManager()->flush();
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => []]);
+        $this->payPalHttpClient()->addExpectation('POST', 'v1/notifications/webhooks', ['id' => 'WH-NEW']);
+
+        self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
+        self::assertSame('WH-NEW', $this->storedWebhookId());
     }
 
     public function test_it_finds_the_webhook_registered_on_the_legacy_url_of_the_channel_hostname_from_the_console(): void
@@ -62,6 +76,15 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
+    }
+
+    private function storedWebhookId(): mixed
+    {
+        self::getContainer()->get('sylius.manager.payment_method')->clear();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = self::getContainer()->get('sylius.repository.payment_method')->findOneBy(['code' => 'PAYPAL']);
+
+        return $paymentMethod->getGatewayConfig()?->getConfig()['webhook_id'] ?? null;
     }
 
     private function loadShop(): PaymentMethodInterface

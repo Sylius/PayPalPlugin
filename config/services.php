@@ -561,6 +561,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),
+            service('sylius_paypal.updater.webhook_id'),
         ]);
 
     $services->alias(SellerWebhookEventTypesRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook_event_types');
