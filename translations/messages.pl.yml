@@ -1,4 +1,5 @@
 sylius_paypal:
+    add_paypal_account: 'Dodaj konto PayPal'
     apple_pay_enabled: 'Włącz Apple Pay'
     awaiting_payer_action: 'Czekamy, aż Twój bank prześle pieniądze. Zamówienie potwierdzimy, gdy tylko dotrą.'
     back_to_store: 'Wróć do sklepu'

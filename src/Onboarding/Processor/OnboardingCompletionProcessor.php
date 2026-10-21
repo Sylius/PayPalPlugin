@@ -18,11 +18,9 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
-use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
@@ -30,7 +28,6 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 final readonly class OnboardingCompletionProcessor implements OnboardingCompletionProcessorInterface
 {
     public function __construct(
-        private SellerOnboardedCheckerInterface $sellerOnboardedChecker,
         private SellerNonceManagerInterface $sellerNonceManager,
         private SellerOnboardingResolverInterface $sellerOnboardingResolver,
         private PayPalOnboardingPaymentMethodCreatorInterface $onboardingPaymentMethodCreator,
@@ -39,20 +36,16 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
     ) {
     }
 
-    public function process(string $authCode, string $sharedId, bool $sandbox): OnboardingCompletionResult
+    public function process(string $authCode, string $sharedId, bool $sandbox, ?string $paymentMethodCode = null): OnboardingCompletionResult
     {
         $sellerNonce = $this->sellerNonceManager->get($sandbox);
         if (null === $sellerNonce) {
             throw new OnboardingSessionExpiredException();
         }
 
-        if ($this->sellerOnboardedChecker->isOnboarded($sandbox)) {
-            throw new PayPalPaymentMethodAlreadyExistsException();
-        }
-
         try {
             $sellerOnboardingResult = $this->sellerOnboardingResolver->resolve($authCode, $sharedId, $sellerNonce, $sandbox);
-            $paymentMethod = $this->onboardingPaymentMethodCreator->create($sellerOnboardingResult, $sandbox);
+            $paymentMethod = $this->onboardingPaymentMethodCreator->create($sellerOnboardingResult, $sandbox, $paymentMethodCode);
             $webhookUrlValid = $this->registerWebhook($paymentMethod);
 
             $this->entityManager->flush();

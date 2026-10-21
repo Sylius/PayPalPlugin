@@ -1,4 +1,5 @@
 sylius_paypal:
+    add_paypal_account: 'Ajouter un compte PayPal'
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     card_fields_invalid: 'Veuillez vérifier les informations de carte en surbrillance.'

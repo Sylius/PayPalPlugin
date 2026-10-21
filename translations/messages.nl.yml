@@ -1,4 +1,5 @@
 sylius_paypal:
+    add_paypal_account: 'PayPal-account toevoegen'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
     card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'

@@ -2,8 +2,6 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedChecker;
-use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManager;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
@@ -50,17 +48,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(OnboardingStatusMessagesProviderInterface::class, 'sylius_paypal.provider.onboarding_status_messages');
 
-    $services->set('sylius_paypal.onboarding.checker.seller_onboarded', SellerOnboardedChecker::class)
-        ->args([
-            service('sylius_paypal.provider.paypal_payment_method'),
-            service('sylius_paypal.manager.credentials'),
-        ]);
-
-    $services->alias(SellerOnboardedCheckerInterface::class, 'sylius_paypal.onboarding.checker.seller_onboarded');
-
     $services->set('sylius_paypal.onboarding.processor.completion', OnboardingCompletionProcessor::class)
         ->args([
-            service('sylius_paypal.onboarding.checker.seller_onboarded'),
             service('sylius_paypal.manager.seller_nonce'),
             service('sylius_paypal.onboarding.resolver.seller'),
             service('sylius_paypal.creator.onboarding_payment_method'),
