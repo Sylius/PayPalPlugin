@@ -12,6 +12,8 @@ use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentCompletionChecker;
+use Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
 use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
@@ -549,6 +551,11 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalLateCaptureRefundConfirmationProcessorInterface::class, 'sylius_paypal.processor.late_capture_refund_confirmation');
+
+    $services->set('sylius_paypal.checker.payment_completion', PaymentCompletionChecker::class)
+        ->public();
+
+    $services->alias(PaymentCompletionCheckerInterface::class, 'sylius_paypal.checker.payment_completion');
 
     $services->set('sylius_paypal.checker.payment_refund', PaymentRefundChecker::class)
         ->public();

@@ -2,6 +2,10 @@ winzou_state_machine:
     sylius_payment:
         callbacks:
             guard:
+                paypal_capture_confirmed:
+                    on: [ 'complete' ]
+                    do: [ '@sylius_paypal.checker.payment_completion', 'canBeCompleted' ]
+                    args: [ 'object' ]
                 paypal_refund_confirmed:
                     on: [ 'refund' ]
                     do: [ '@sylius_paypal.checker.payment_refund', 'canBeRefunded' ]

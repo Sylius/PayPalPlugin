@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderPaymentStates;
@@ -21,12 +22,15 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Command\CaptureAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
+use Symfony\Component\HttpFoundation\Response;
 
 final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
 {
     use MocksPayPalApiTrait;
 
     private PaymentInterface $payment;
+
+    private AdminUserInterface $admin;
 
     protected function setUp(): void
     {
@@ -38,6 +42,7 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
             'resources/authorized_paypal_order.yaml',
         ]);
         $this->payment = $fixtures['authorized_paypal_payment'];
+        $this->admin = $fixtures['admin'];
     }
 
     public function test_it_captures_the_authorization_at_paypal_and_completes_the_payment(): void
@@ -73,6 +78,21 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
         $paymentRequest = $this->paymentRequest($hash);
         self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest->getState());
         self::assertStringContainsString('AUTHORIZATION_EXPIRED', (string) $paymentRequest->getResponseData()['reason']);
+    }
+
+    public function test_it_does_not_let_the_core_complete_skip_paypal(): void
+    {
+        $this->admin->addRole('ROLE_API_ACCESS');
+        $this->getEntityManager()->flush();
+
+        $this->client->request('PATCH', sprintf('/api/v2/admin/payments/%d/complete', $this->payment->getId()), server: [
+            'CONTENT_TYPE' => 'application/merge-patch+json',
+            'HTTP_ACCEPT' => 'application/ld+json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . self::getContainer()->get('lexik_jwt_authentication.jwt_manager')->create($this->admin),
+        ], content: '{}');
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
     }
 
     private function captureRequestHash(): string

@@ -2,11 +2,16 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sylius\PayPalPlugin\EventListener\Workflow\PaymentCompleteGuardListener;
 use Sylius\PayPalPlugin\EventListener\Workflow\PaymentRefundGuardListener;
 use Sylius\PayPalPlugin\PackageTracking\EventListener\Workflow\SendShipmentTrackingListener;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
+
+    $services->set('sylius_paypal.listener.workflow.payment_complete_guard', PaymentCompleteGuardListener::class)
+        ->args([service('sylius_paypal.checker.payment_completion')])
+        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.guard.complete']);
 
     $services->set('sylius_paypal.listener.workflow.payment_refund_guard', PaymentRefundGuardListener::class)
         ->args([service('sylius_paypal.checker.payment_refund')])
