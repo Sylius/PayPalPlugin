@@ -14,42 +14,29 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
+use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider;
 
 final class WebSdkConfigurationProviderTest extends TestCase
 {
-    private PayPalConfigurationProviderInterface&MockObject $payPalConfigurationProvider;
-
-    private WebSdkConfigurationProvider $provider;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->payPalConfigurationProvider = $this->createMock(PayPalConfigurationProviderInterface::class);
-
-        $this->provider = $this->createProvider(true, null);
-    }
-
     #[Test]
-    public function it_builds_the_v6_web_sdk_script_url_from_the_configured_web_url(): void
+    public function it_builds_the_v6_web_sdk_script_url_on_the_host_of_the_mode_of_the_payment_method(): void
     {
-        self::assertSame('https://www.sandbox.paypal.com/web-sdk/v6/core', $this->provider->getScriptUrl());
+        $provider = $this->createProvider(null);
+
+        self::assertSame('https://www.sandbox.paypal.com/web-sdk/v6/core', $provider->getScriptUrl($this->paymentMethod(sandbox: true)));
+        self::assertSame('https://www.paypal.com/web-sdk/v6/core', $provider->getScriptUrl($this->paymentMethod(sandbox: false)));
     }
 
     #[Test]
     public function it_only_includes_paypal_payments_by_default(): void
     {
-        $channel = $this->createMock(ChannelInterface::class);
-        $this->payPalConfigurationProvider->method('getClientId')->with($channel)->willReturn('CLIENT_ID');
-        $this->payPalConfigurationProvider->method('getPartnerAttributionId')->with($channel)->willReturn('Sylius_MP_PPCP');
-
-        $config = $this->provider->getInstanceConfig($channel, 'checkout');
+        $config = $this->createProvider(null)->getInstanceConfig($this->paymentMethod(), 'checkout');
 
         self::assertSame(['paypal-payments'], $config['components']);
         self::assertSame('CLIENT_ID', $config['clientId']);
@@ -60,11 +47,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
     #[Test]
     public function it_builds_the_instance_config_with_the_given_components(): void
     {
-        $config = $this->provider->getInstanceConfig(
-            $this->createMock(ChannelInterface::class),
-            'checkout',
-            ['paypal-payments', 'card-fields'],
-        );
+        $config = $this->createProvider(null)->getInstanceConfig($this->paymentMethod(), 'checkout', ['paypal-payments', 'card-fields']);
 
         self::assertSame(['paypal-payments', 'card-fields'], $config['components']);
     }
@@ -72,11 +55,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
     #[Test]
     public function it_builds_the_instance_config_with_the_given_locale(): void
     {
-        $config = $this->provider->getInstanceConfig(
-            $this->createMock(ChannelInterface::class),
-            'checkout',
-            locale: 'en-US',
-        );
+        $config = $this->createProvider(null)->getInstanceConfig($this->paymentMethod(), 'checkout', locale: 'en-US');
 
         self::assertSame('en-US', $config['locale']);
     }
@@ -84,11 +63,7 @@ final class WebSdkConfigurationProviderTest extends TestCase
     #[Test]
     public function it_hands_the_sdk_a_locale_it_understands(): void
     {
-        $config = $this->provider->getInstanceConfig(
-            $this->createMock(ChannelInterface::class),
-            'checkout',
-            locale: 'en_US',
-        );
+        $config = $this->createProvider(null)->getInstanceConfig($this->paymentMethod(), 'checkout', locale: 'en_US');
 
         self::assertSame('en-US', $config['locale']);
     }
@@ -96,57 +71,54 @@ final class WebSdkConfigurationProviderTest extends TestCase
     #[Test]
     public function it_builds_the_instance_config_without_a_locale_when_none_is_given(): void
     {
-        $config = $this->provider->getInstanceConfig($this->createMock(ChannelInterface::class), 'checkout');
+        $config = $this->createProvider(null)->getInstanceConfig($this->paymentMethod(), 'checkout');
 
         self::assertArrayNotHasKey('locale', $config);
     }
 
     #[Test]
-    public function it_includes_the_test_buyer_country_in_sandbox_when_configured(): void
+    public function it_includes_the_test_buyer_country_for_a_sandbox_payment_method_when_configured(): void
     {
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $provider = $this->createProvider(true, 'US');
-
-        $config = $provider->getInstanceConfig($channel, 'cart');
+        $config = $this->createProvider('US')->getInstanceConfig($this->paymentMethod(sandbox: true), 'cart');
 
         self::assertSame('US', $config['testBuyerCountry']);
     }
 
     #[Test]
-    public function it_omits_the_test_buyer_country_in_sandbox_when_not_configured(): void
+    public function it_omits_the_test_buyer_country_for_a_sandbox_payment_method_when_not_configured(): void
     {
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $provider = $this->createProvider(true, null);
-
-        $config = $provider->getInstanceConfig($channel, 'cart');
+        $config = $this->createProvider(null)->getInstanceConfig($this->paymentMethod(sandbox: true), 'cart');
 
         self::assertArrayNotHasKey('testBuyerCountry', $config);
     }
 
     #[Test]
-    public function it_never_includes_the_test_buyer_country_outside_sandbox_even_when_configured(): void
+    public function it_never_includes_the_test_buyer_country_for_a_live_payment_method_even_when_configured(): void
     {
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $provider = $this->createProvider(false, 'US');
-
-        $config = $provider->getInstanceConfig($channel, 'cart');
+        $config = $this->createProvider('US')->getInstanceConfig($this->paymentMethod(sandbox: false), 'cart');
 
         self::assertArrayNotHasKey('testBuyerCountry', $config);
     }
 
-    private function createProvider(bool $sandbox, ?string $testBuyerCountry): WebSdkConfigurationProvider
+    private function createProvider(?string $testBuyerCountry): WebSdkConfigurationProvider
     {
-        $activeModeProvider = $this->createMock(ActiveModeProviderInterface::class);
-        $activeModeProvider->method('isSandbox')->willReturn($sandbox);
-
         return new WebSdkConfigurationProvider(
-            $this->payPalConfigurationProvider,
-            new HostProvider($activeModeProvider),
-            $activeModeProvider,
+            new HostProvider($this->createStub(ActiveModeProviderInterface::class)),
             $testBuyerCountry,
         );
+    }
+
+    private function paymentMethod(bool $sandbox = true): PaymentMethodInterface
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig([
+            'client_id' => 'CLIENT_ID',
+            'partner_attribution_id' => 'Sylius_MP_PPCP',
+            'sandbox' => $sandbox,
+        ]);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        return $paymentMethod;
     }
 }

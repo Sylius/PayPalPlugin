@@ -18,24 +18,24 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 
 final class PayPalConfigurationProviderTest extends TestCase
 {
     /** @var PaymentMethodRepositoryInterface<PaymentMethodInterface>&MockObject */
-    private PaymentMethodRepositoryInterface&MockObject $paymentMethodRepository;
+    private PayPalPaymentMethodsResolverInterface&MockObject $payPalPaymentMethodsResolver;
 
     private PayPalConfigurationProvider $payPalConfigurationProvider;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->paymentMethodRepository = $this->createMock(PaymentMethodRepositoryInterface::class);
-        $this->payPalConfigurationProvider = new PayPalConfigurationProvider($this->paymentMethodRepository);
+        $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $this->payPalConfigurationProvider = new PayPalConfigurationProvider($this->payPalPaymentMethodsResolver);
     }
 
     #[Test]
@@ -157,10 +157,10 @@ final class PayPalConfigurationProviderTest extends TestCase
         $payPalGatewayConfig = $this->createMock(GatewayConfigInterface::class);
         $otherGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
-            ->willReturn([$otherPaymentMethod, $payPalPaymentMethod]);
+            ->willReturn([$payPalPaymentMethod]);
 
         $otherPaymentMethod
             ->method('getGatewayConfig')
@@ -187,6 +187,20 @@ final class PayPalConfigurationProviderTest extends TestCase
         self::assertEquals('123123', $result);
     }
 
+    public function test_it_takes_the_configuration_of_the_first_paypal_payment_method_of_the_channel(): void
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $firstGatewayConfig = $this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['client_id' => 'FIRST']]);
+        $secondGatewayConfig = $this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['client_id' => 'SECOND']]);
+
+        $this->payPalPaymentMethodsResolver->method('getInChannel')->with($channel)->willReturn([
+            $this->createConfiguredStub(PaymentMethodInterface::class, ['getGatewayConfig' => $firstGatewayConfig]),
+            $this->createConfiguredStub(PaymentMethodInterface::class, ['getGatewayConfig' => $secondGatewayConfig]),
+        ]);
+
+        self::assertSame('FIRST', $this->payPalConfigurationProvider->getClientId($channel));
+    }
+
     #[Test]
     public function it_returns_partner_attribution_id_from_payment_method_config(): void
     {
@@ -196,10 +210,10 @@ final class PayPalConfigurationProviderTest extends TestCase
         $payPalGatewayConfig = $this->createMock(GatewayConfigInterface::class);
         $otherGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
-            ->willReturn([$otherPaymentMethod, $payPalPaymentMethod]);
+            ->willReturn([$payPalPaymentMethod]);
 
         $otherPaymentMethod
             ->method('getGatewayConfig')
@@ -233,10 +247,10 @@ final class PayPalConfigurationProviderTest extends TestCase
         $otherPaymentMethod = $this->createMock(PaymentMethodInterface::class);
         $otherGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
-            ->willReturn([$otherPaymentMethod]);
+            ->willReturn([]);
 
         $otherPaymentMethod
             ->method('getGatewayConfig')
@@ -257,10 +271,10 @@ final class PayPalConfigurationProviderTest extends TestCase
         $otherPaymentMethod = $this->createMock(PaymentMethodInterface::class);
         $otherGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
-            ->willReturn([$otherPaymentMethod]);
+            ->willReturn([]);
 
         $otherPaymentMethod
             ->method('getGatewayConfig')
@@ -283,10 +297,10 @@ final class PayPalConfigurationProviderTest extends TestCase
         $payPalGatewayConfig = $this->createMock(GatewayConfigInterface::class);
         $otherGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
-            ->willReturn([$otherPaymentMethod, $payPalPaymentMethod]);
+            ->willReturn([$payPalPaymentMethod]);
 
         $otherPaymentMethod
             ->method('getGatewayConfig')
@@ -321,10 +335,10 @@ final class PayPalConfigurationProviderTest extends TestCase
         $payPalGatewayConfig = $this->createMock(GatewayConfigInterface::class);
         $otherGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
-            ->willReturn([$otherPaymentMethod, $payPalPaymentMethod]);
+            ->willReturn([$payPalPaymentMethod]);
 
         $otherPaymentMethod
             ->method('getGatewayConfig')
@@ -357,8 +371,8 @@ final class PayPalConfigurationProviderTest extends TestCase
         $payPalPaymentMethod = $this->createMock(PaymentMethodInterface::class);
         $payPalGatewayConfig = $this->createMock(GatewayConfigInterface::class);
 
-        $this->paymentMethodRepository
-            ->method('findEnabledForChannel')
+        $this->payPalPaymentMethodsResolver
+            ->method('getInChannel')
             ->with($channel)
             ->willReturn([$payPalPaymentMethod]);
 

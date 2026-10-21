@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
@@ -28,6 +29,7 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -57,6 +59,10 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private ChannelInterface&MockObject $channel;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
+    private PayPalPaymentMethodsResolverInterface&MockObject $payPalPaymentMethodsResolver;
+
     private PayPalButtonsController $controller;
 
     /** @var array<int, mixed>|null */
@@ -81,6 +87,9 @@ final class PayPalButtonsControllerTest extends TestCase
 
         $this->channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($this->channel);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $this->payPalPaymentMethodsResolver->method('getInChannel')->with($this->channel)->willReturn([$this->paymentMethod]);
         $this->localeContext->method('getLocaleCode')->willReturnCallback(fn (): string => $this->currentLocale);
         $this->localeProcessor->method('process')->willReturnCallback(static function (string $locale): string {
             if ('es_MX' === $locale) {
@@ -112,7 +121,18 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $this->payPalPaymentMethodsResolver,
         );
+    }
+
+    public function test_it_initialises_the_sdk_with_the_first_paypal_payment_method_of_the_channel(): void
+    {
+        $this->twig->method('render')->willReturn('');
+        $this->webSdkConfigurationProvider->expects(self::once())->method('getScriptUrl')->with($this->paymentMethod)->willReturn('SCRIPT_URL');
+
+        $this->controller->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertSame($this->paymentMethod, $this->capturedInstanceConfigArgs[0]);
     }
 
     #[Test]
@@ -201,7 +221,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->channel, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
+            ->with($this->paymentMethod, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -220,7 +240,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->channel, 'cart', ['paypal-payments'], 'pl_PL')
+            ->with($this->paymentMethod, 'cart', ['paypal-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -253,6 +273,7 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->localeProcessor,
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
+            payPalPaymentMethodsResolver: $this->payPalPaymentMethodsResolver,
         );
         $controller->renderProductPageButtonsAction(Request::create('/'));
 

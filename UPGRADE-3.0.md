@@ -714,3 +714,42 @@
    | `PaypalPaymentQueryInterface::getForRefundingByOrderId()` and the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter | none |
 
    `WebhookRequestVerifier` no longer depends on `PayPalPaymentMethodProviderInterface`.
+
+1. #### The storefront takes the PayPal account of the channel or of the payment being paid.
+
+   The buttons on the product, cart and select payment pages, the Pay Later messages and express checkout use the
+   first enabled PayPal payment method of the channel by position (`PayPalPaymentMethodsResolverInterface::getInChannel()`);
+   express checkout moves a cart paid with another PayPal payment method to it. The payment page takes the client id,
+   partner attribution id, mode and the enabled payment sources from the payment method of the Payment Request being
+   paid.
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface
+   -public function getScriptUrl(): string;
+   +public function getScriptUrl(PaymentMethodInterface $paymentMethod): string;
+    public function getInstanceConfig(
+   -    ChannelInterface $channel,
+   +    PaymentMethodInterface $paymentMethod,
+        string $pageType,
+        array $components = self::DEFAULT_COMPONENTS,
+        ?string $locale = null,
+    ): array;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface
+   -public function provide(PaymentInterface $payment, string $locale): array;
+   +public function provide(PaymentRequestInterface $paymentRequest, string $locale): array;
+   ```
+
+   The payment page context also carries `sandbox`, `messagingEnabled` and `messagingInstanceConfig`.
+
+   The following constructor signatures have changed:
+
+   | Class | Change |
+   |---|---|
+   | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | lost `PayPalConfigurationProviderInterface` and `ActiveModeProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
+   | `Sylius\PayPalPlugin\Controller\PayPalButtonsController`, `Sylius\PayPalPlugin\Twig\PayPalExtension` | gained `PayPalPaymentMethodsResolverInterface` as the last argument |
