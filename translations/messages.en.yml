@@ -4,6 +4,7 @@ sylius:
         refund_late_capture: 'Refund late capture'
         void_authorization: 'Void authorization'
 sylius_paypal:
+    add_paypal_account: 'Add PayPal account'
     apple_pay_enabled: 'Enable Apple Pay'
     awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'

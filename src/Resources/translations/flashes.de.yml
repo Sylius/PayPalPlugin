@@ -1,6 +1,5 @@
 sylius:
     pay_pal:
-        more_than_one_seller_not_allowed: 'Es ist nicht erlaubt, mehr als einen PayPal-Verkäufer zu registrieren!'
         order_cancelled: 'Die PayPal-Bestellung wurde storniert.'
         payment_cancelled: 'Die PayPal-Zahlung wurde storniert.'
         payment_enabled: 'Die PayPal-Zahlung wurde gerade aktiviert.'

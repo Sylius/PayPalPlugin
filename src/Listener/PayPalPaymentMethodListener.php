@@ -17,7 +17,6 @@ use Sylius\Bundle\ResourceBundle\Event\ResourceControllerEvent;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -28,7 +27,6 @@ final readonly class PayPalPaymentMethodListener
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
         private RequestStack $flashBagOrRequestStack,
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
     ) {
     }
 
@@ -42,15 +40,9 @@ final readonly class PayPalPaymentMethodListener
             return;
         }
 
-        if ($this->payPalPaymentMethodProvider->exists()) {
-            FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
-                ->add('error', 'sylius_paypal.more_than_one_seller_not_allowed')
-            ;
-        } else {
-            FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
-                ->add('info', 'sylius_paypal.create_paypal_payment_method_via_onboarding')
-            ;
-        }
+        FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)
+            ->add('info', 'sylius_paypal.create_paypal_payment_method_via_onboarding')
+        ;
 
         $event->setResponse(new RedirectResponse($this->urlGenerator->generate('sylius_admin_payment_method_index')));
     }

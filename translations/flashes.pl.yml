@@ -3,7 +3,6 @@ sylius_paypal:
     create_paypal_payment_method_via_onboarding: 'Aby utworzyć metodę płatności PayPal, użyj onboardingu PayPal dostępnego na liście metod płatności.'
     late_capture_not_refunded: 'Nie udało się zwrócić kwoty pobranej przez PayPal dla zamkniętej próby.'
     late_capture_refunded: 'Kwota pobrana przez PayPal dla zamkniętej próby została zwrócona.'
-    more_than_one_seller_not_allowed: 'Nie można podłączyć więcej niż jednego sprzedawcy PayPal!'
     onboarding_session_expired: 'Sesja onboardingu PayPal wygasła. Spróbuj ponownie.'
     order_cancelled: 'Zamówienie PayPal zostało anulowane'
     order_total_changed: 'Kwota zamówienia zmieniła się od rozpoczęcia płatności. Sprawdź zamówienie i spróbuj ponownie.'

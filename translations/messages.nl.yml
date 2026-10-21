@@ -4,6 +4,7 @@ sylius:
         refund_late_capture: 'Late vastlegging terugbetalen'
         void_authorization: 'Autorisatie intrekken'
 sylius_paypal:
+    add_paypal_account: 'PayPal-account toevoegen'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
     capture_strategy: 'Incassostrategie'
