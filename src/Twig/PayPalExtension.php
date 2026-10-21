@@ -24,7 +24,6 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Model\ModeSwitchView;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
@@ -44,7 +43,6 @@ final class PayPalExtension extends AbstractExtension
     private readonly HostProviderInterface $hostProvider;
 
     public function __construct(
-        private readonly ActiveModeProviderInterface $activeModeProvider,
         private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         private readonly ?ChannelContextInterface $channelContext = null,
@@ -55,7 +53,7 @@ final class PayPalExtension extends AbstractExtension
         private readonly ?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
-        $this->hostProvider = $hostProvider ?? new HostProvider($this->activeModeProvider);
+        $this->hostProvider = $hostProvider ?? new HostProvider();
 
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -95,7 +93,6 @@ final class PayPalExtension extends AbstractExtension
     {
         return [
             new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
-            new TwigFunction('sylius_is_paypal_sandbox', [$this, 'isSandbox']),
             new TwigFunction('sylius_paypal_is_messaging_enabled', [$this, 'isMessagingEnabled']),
             new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
@@ -113,11 +110,6 @@ final class PayPalExtension extends AbstractExtension
     public function getModeSwitchView(array $config): ModeSwitchView
     {
         return $this->modeSwitchViewFactory->createFromConfig($config);
-    }
-
-    public function isSandbox(): bool
-    {
-        return $this->activeModeProvider->isSandbox();
     }
 
     public function isMessagingEnabled(): bool

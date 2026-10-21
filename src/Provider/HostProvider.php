@@ -15,25 +15,6 @@ namespace Sylius\PayPalPlugin\Provider;
 
 final readonly class HostProvider implements HostProviderInterface
 {
-    public function __construct(private ActiveModeProviderInterface $activeModeProvider)
-    {
-    }
-
-    public function getApiBaseUrl(): string
-    {
-        return $this->getApiBaseUrlForMode($this->activeModeProvider->isSandbox());
-    }
-
-    public function getReportsSftpHost(): string
-    {
-        return $this->getReportsSftpHostForMode($this->activeModeProvider->isSandbox());
-    }
-
-    public function getWebUrl(): string
-    {
-        return $this->getWebUrlForMode($this->activeModeProvider->isSandbox());
-    }
-
     public function getApiBaseUrlForMode(bool $sandbox): string
     {
         return $sandbox ? self::SANDBOX_API_BASE_URL : self::PRODUCTION_API_BASE_URL;

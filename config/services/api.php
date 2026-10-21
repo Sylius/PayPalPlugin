@@ -81,8 +81,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.http_client.retrying'),
             service('monolog.logger.paypal'),
             service('sylius_paypal.provider.uuid'),
-            service('sylius_paypal.provider.paypal_configuration'),
-            service('sylius.context.channel'),
             service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.provider.host'),
             service(RequestFactoryInterface::class),
