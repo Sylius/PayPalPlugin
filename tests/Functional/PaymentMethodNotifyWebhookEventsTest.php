@@ -346,6 +346,23 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
     }
 
+    public function test_it_authorizes_the_order_of_an_approval_when_the_payment_method_authorizes(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest(PaymentRequestInterface::ACTION_AUTHORIZE);
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest));
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockAuthorize();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+
+        $this->notifyAboutApproval('WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        $reloaded = $this->reloadPaymentRequest($paymentRequest);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $reloaded->getState());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $reloaded->getPayment()->getState());
+    }
+
     public function test_it_keeps_a_capture_paypal_refused_on_the_failed_payment_request_and_accepts_the_approval(): void
     {
         $paymentRequest = $this->processingCapturePaymentRequest();
@@ -440,7 +457,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         return $paymentRequest;
     }
 
-    private function processingCapturePaymentRequest(): PaymentRequestInterface
+    private function processingCapturePaymentRequest(string $action = PaymentRequestInterface::ACTION_CAPTURE): PaymentRequestInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
@@ -463,10 +480,11 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $gatewayConfig->setUsePayum(false);
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['use_authorize' => PaymentRequestInterface::ACTION_AUTHORIZE === $action]));
 
         /** @var PaymentRequestInterface $paymentRequest */
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
-        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->setAction($action);
         $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
 
         $this->getEntityManager()->persist($paymentRequest);

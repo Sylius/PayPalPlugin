@@ -651,7 +651,7 @@
    | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture, an authorized payment too once its authorization has been captured, from the admin panel or at PayPal |
    | `PAYMENT.CAPTURE.REFUNDED` | refunds the payment, or marks its `paypal_late_capture` refunded, and completes the refund Payment Request waiting for that refund |
    | `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded, without completing a refund Payment Request still waiting for PayPal |
-   | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it; a capture PayPal refuses stays on the failed payment request with its reason |
+   | `CHECKOUT.ORDER.APPROVED` | captures, or authorizes when the payment method authorizes, the order of a payment request still awaiting it; a capture or an authorization PayPal refuses stays on the failed payment request with its reason |
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
    | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
 
