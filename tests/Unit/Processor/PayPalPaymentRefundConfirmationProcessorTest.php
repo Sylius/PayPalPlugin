@@ -87,11 +87,42 @@ final class PayPalPaymentRefundConfirmationProcessorTest extends TestCase
         self::assertSame([], $this->appliedTransitions);
     }
 
-    private function paymentRequest(Payment $payment, string $action): PaymentRequestInterface
+    public function test_it_leaves_processing_refund_requests_of_another_refund_or_of_no_refund_alone(): void
+    {
+        $payment = new Payment();
+        $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $anotherRefundRequest = $this->paymentRequest($payment, PaymentRequestInterface::ACTION_REFUND, 'ANOTHER_REFUND_ID');
+        $unansweredRefundRequest = $this->paymentRequest($payment, PaymentRequestInterface::ACTION_REFUND, null);
+        $this->stateMachine->method('can')->willReturn(true);
+        $this->paymentRequestRepository->method('findByPaymentIdAndStates')->willReturn([$anotherRefundRequest, $unansweredRefundRequest]);
+
+        $this->processor->confirm($payment, 'REFUND_ID');
+
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $anotherRefundRequest->getState());
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $unansweredRefundRequest->getState());
+        self::assertNotContains([$anotherRefundRequest, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+        self::assertNotContains([$unansweredRefundRequest, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+    }
+
+    public function test_it_completes_no_refund_request_when_the_confirmation_names_no_refund(): void
+    {
+        $payment = new Payment();
+        $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $refundRequest = $this->paymentRequest($payment, PaymentRequestInterface::ACTION_REFUND);
+        $this->stateMachine->method('can')->willReturn(true);
+        $this->paymentRequestRepository->method('findByPaymentIdAndStates')->willReturn([$refundRequest]);
+
+        $this->processor->confirm($payment, null);
+
+        self::assertNotContains([$refundRequest, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+    }
+
+    private function paymentRequest(Payment $payment, string $action, ?string $refundId = 'REFUND_ID'): PaymentRequestInterface
     {
         $paymentRequest = new PaymentRequest($payment, new PaymentMethod());
         $paymentRequest->setAction($action);
         $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest->setResponseData(null === $refundId ? [] : ['refund_id' => $refundId, 'refund_status' => 'PENDING']);
 
         return $paymentRequest;
     }

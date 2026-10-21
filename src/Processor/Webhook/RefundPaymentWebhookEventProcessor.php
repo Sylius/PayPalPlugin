@@ -39,7 +39,7 @@ final readonly class RefundPaymentWebhookEventProcessor implements WebhookEventP
     {
         $captureId = $this->captureId($resource);
 
-        $refundId = (string) $resource['id'];
+        $refundId = self::REVERSED_EVENT_TYPE === $eventType ? null : (string) $resource['id'];
 
         if ($this->isLateCapture($payment, $captureId)) {
             $this->lateCaptureRefundConfirmationProcessor->confirm($payment, $refundId);

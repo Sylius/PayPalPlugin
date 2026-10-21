@@ -597,13 +597,14 @@
    or reuse the open one, and dispatch it with `RefundPayPalPaymentRequestDispatcherInterface`. The payment
    becomes `refunded` only once PayPal confirms the refund: `RefundPayPalPaymentRequestHandler` stores the
    confirmation in the payment details (`refunded`, `refund_id`) and applies the `refund` transition, a pending
-   refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook confirms it, and a
-   refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`.
+   refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook of that refund confirms
+   it, and a refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`.
 
    The late capture is refunded the same way, through a `refund_late_capture` Payment Request dispatched with
    `RefundPayPalLateCapturePaymentRequestDispatcherInterface`. `PayPalLateCaptureRefundConfirmationProcessorInterface`
    records the confirmed refund in the `paypal_late_capture` payment details and leaves the payment state alone, a
-   pending refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook confirms it:
+   pending refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook of that refund
+   confirms it:
 
    ```diff
     // Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction
@@ -673,7 +674,8 @@
    | Event | Effect |
    |---|---|
    | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture |
-   | `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded |
+   | `PAYMENT.CAPTURE.REFUNDED` | refunds the payment, or marks its `paypal_late_capture` refunded, and completes the refund Payment Request waiting for that refund |
+   | `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded, without completing a refund Payment Request still waiting for PayPal |
    | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it; a capture PayPal refuses stays on the failed payment request with its reason |
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
    | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
