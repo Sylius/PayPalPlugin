@@ -26,22 +26,35 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
 
     public function provide(PaymentMethodInterface $paymentMethod): string
     {
-        return $this->url(self::ROUTE, ['code' => (string) $paymentMethod->getCode()]);
+        return $this->url($paymentMethod, self::ROUTE, ['code' => (string) $paymentMethod->getCode()]);
     }
 
-    public function provideLegacy(): string
+    public function provideLegacy(PaymentMethodInterface $paymentMethod): string
     {
-        return $this->url(self::LEGACY_ROUTE, []);
+        return $this->url($paymentMethod, self::LEGACY_ROUTE, []);
     }
 
     /** @param array<string, string> $parameters */
-    private function url(string $route, array $parameters): string
+    private function url(PaymentMethodInterface $paymentMethod, string $route, array $parameters): string
     {
-        if ('' === $this->webhookBaseUrl) {
+        $baseUrl = '' !== $this->webhookBaseUrl ? $this->webhookBaseUrl : $this->channelBaseUrl($paymentMethod);
+        if (null === $baseUrl) {
             return $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
-        return rtrim($this->webhookBaseUrl, '/') .
+        return rtrim($baseUrl, '/') .
             $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_PATH);
+    }
+
+    private function channelBaseUrl(PaymentMethodInterface $paymentMethod): ?string
+    {
+        foreach ($paymentMethod->getChannels() as $channel) {
+            $hostname = $channel->getHostname();
+            if (null !== $hostname && '' !== $hostname) {
+                return sprintf('https://%s', $hostname);
+            }
+        }
+
+        return null;
     }
 }

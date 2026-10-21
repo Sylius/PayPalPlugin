@@ -50,6 +50,20 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
     }
 
+    public function test_it_finds_the_webhook_registered_on_the_legacy_url_of_the_channel_hostname_from_the_console(): void
+    {
+        $paymentMethod = $this->loadShop();
+        $paymentMethod->getChannels()->first()->setHostname('paypal-shop.example.com');
+        $this->getEntityManager()->flush();
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
+            ['id' => 'WH-LEGACY', 'url' => 'https://paypal-shop.example.com/paypal-webhook/api/'],
+        ]]);
+        $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
+
+        self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
+    }
+
     private function loadShop(): PaymentMethodInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml']);

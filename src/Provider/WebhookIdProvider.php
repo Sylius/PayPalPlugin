@@ -46,7 +46,7 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 
         return
             $this->findWebhookId($webhooks, $this->webhookUrlProvider->provide($paymentMethod)) ??
-            $this->findWebhookId($webhooks, $this->webhookUrlProvider->provideLegacy())
+            $this->findWebhookId($webhooks, $this->webhookUrlProvider->provideLegacy($paymentMethod))
         ;
     }
 

@@ -23,5 +23,5 @@ interface WebhookUrlProviderInterface
 
     public function provide(PaymentMethodInterface $paymentMethod): string;
 
-    public function provideLegacy(): string;
+    public function provideLegacy(PaymentMethodInterface $paymentMethod): string;
 }

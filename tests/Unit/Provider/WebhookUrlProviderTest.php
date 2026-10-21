@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
@@ -40,7 +42,7 @@ final class WebhookUrlProviderTest extends TestCase
                 return UrlGeneratorInterface::ABSOLUTE_URL === $referenceType ? 'https://shop.example.com' . $path : $path;
             },
         );
-        $this->paymentMethod = $this->createConfiguredStub(PaymentMethodInterface::class, ['getCode' => 'PAYPAL']);
+        $this->paymentMethod = $this->paymentMethod();
     }
 
     public function test_it_implements_webhook_url_provider_interface(): void
@@ -77,10 +79,40 @@ final class WebhookUrlProviderTest extends TestCase
 
     public function test_it_generates_the_legacy_webhook_url(): void
     {
-        self::assertSame('https://shop.example.com/paypal-webhook/api/', (new WebhookUrlProvider($this->urlGenerator))->provideLegacy());
+        self::assertSame('https://shop.example.com/paypal-webhook/api/', (new WebhookUrlProvider($this->urlGenerator))->provideLegacy($this->paymentMethod));
         self::assertSame(
             'https://sylius.ngrok.dev/paypal-webhook/api/',
-            (new WebhookUrlProvider($this->urlGenerator, 'https://sylius.ngrok.dev'))->provideLegacy(),
+            (new WebhookUrlProvider($this->urlGenerator, 'https://sylius.ngrok.dev'))->provideLegacy($this->paymentMethod),
         );
+    }
+
+    public function test_it_takes_the_hostname_of_the_channel_of_the_payment_method_when_no_base_url_is_configured(): void
+    {
+        $paymentMethod = $this->paymentMethod(null, 'paypal-shop.example.com');
+        $provider = new WebhookUrlProvider($this->urlGenerator);
+
+        self::assertSame('https://paypal-shop.example.com/payment-methods/PAYPAL', $provider->provide($paymentMethod));
+        self::assertSame('https://paypal-shop.example.com/paypal-webhook/api/', $provider->provideLegacy($paymentMethod));
+    }
+
+    public function test_it_prefers_the_configured_base_url_over_the_hostname_of_the_channel(): void
+    {
+        self::assertSame(
+            'https://sylius.ngrok.dev/payment-methods/PAYPAL',
+            (new WebhookUrlProvider($this->urlGenerator, 'https://sylius.ngrok.dev'))->provide($this->paymentMethod('paypal-shop.example.com')),
+        );
+    }
+
+    private function paymentMethod(?string ...$hostnames): PaymentMethodInterface
+    {
+        $channels = array_map(
+            fn (?string $hostname): ChannelInterface => $this->createConfiguredStub(ChannelInterface::class, ['getHostname' => $hostname]),
+            $hostnames,
+        );
+
+        return $this->createConfiguredStub(PaymentMethodInterface::class, [
+            'getCode' => 'PAYPAL',
+            'getChannels' => new ArrayCollection($channels),
+        ]);
     }
 }

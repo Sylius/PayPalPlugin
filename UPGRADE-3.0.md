@@ -682,6 +682,10 @@
    Run the command once after the upgrade: it points a webhook registered on `/paypal-webhook/api/` at the URL of its
    payment method and keeps its id, so PayPal stops sending to the old endpoint.
 
+   The webhook URL starts with `sylius_paypal.webhook_base_url` or, when it is empty, with the hostname of the first
+   channel of the payment method that has one, so the command run from the console does not register `localhost`;
+   only without either does it fall back to the request context.
+
    `WebhookIdProvider` looks the webhook up by the URL of the payment method, then by `/paypal-webhook/api/`.
    `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook.
@@ -694,7 +698,7 @@
 
    -public function provide(): string;
    +public function provide(PaymentMethodInterface $paymentMethod): string;
-   +public function provideLegacy(): string;
+   +public function provideLegacy(PaymentMethodInterface $paymentMethod): string;
    ```
 
    ```diff
