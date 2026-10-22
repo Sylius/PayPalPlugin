@@ -165,6 +165,7 @@ final class PayPalPaymentDetailsTest extends TestCase
             'reference_id' => 'REFERENCE_ID',
             'payment_source' => 'paypal',
             'transaction_id' => 'CAPTURE_ID',
+            'paypal_order_intent' => 'AUTHORIZE',
             'superseded_paypal_orders' => ['SUPERSEDED' => 'trustly'],
         ])->withSupersededPayPalOrderRestored('SUPERSEDED');
 
@@ -237,6 +238,24 @@ final class PayPalPaymentDetailsTest extends TestCase
 
         self::assertNull($details->authorizationId());
         self::assertNull($details->authorizationStatus());
+    }
+
+    public function test_it_knows_the_paypal_order_authorizes_when_created_with_the_authorize_intent(): void
+    {
+        $details = PayPalPaymentDetails::create()->withPayPalOrderIntent('AUTHORIZE');
+
+        self::assertTrue($details->isAuthorizeIntent());
+        self::assertSame(['paypal_order_intent' => 'AUTHORIZE'], $details->toArray());
+    }
+
+    public function test_it_knows_the_paypal_order_captures_when_created_with_the_capture_intent(): void
+    {
+        self::assertFalse(PayPalPaymentDetails::create()->withPayPalOrderIntent('CAPTURE')->isAuthorizeIntent());
+    }
+
+    public function test_it_knows_the_paypal_order_captures_when_no_intent_is_stored(): void
+    {
+        self::assertFalse(PayPalPaymentDetails::create()->isAuthorizeIntent());
     }
 
     public function test_it_reads_the_status_of_an_authorized_payment(): void

@@ -22,6 +22,8 @@ final readonly class PayPalPaymentDetails
 
     public const PAYPAL_ORDER_ID = 'paypal_order_id';
 
+    public const PAYPAL_ORDER_INTENT = 'paypal_order_intent';
+
     public const REFERENCE_ID = 'reference_id';
 
     public const AMOUNT = 'payment_amount';
@@ -91,6 +93,11 @@ final readonly class PayPalPaymentDetails
     public function hasPayPalOrderId(): bool
     {
         return null !== $this->payPalOrderId() && '' !== $this->payPalOrderId();
+    }
+
+    public function isAuthorizeIntent(): bool
+    {
+        return PayPalOrder::INTENT_AUTHORIZE === $this->optional(self::PAYPAL_ORDER_INTENT);
     }
 
     public function referenceId(): ?string
@@ -191,6 +198,11 @@ final readonly class PayPalPaymentDetails
         return $this->with([self::PAYPAL_ORDER_ID => $payPalOrderId]);
     }
 
+    public function withPayPalOrderIntent(string $intent): self
+    {
+        return $this->with([self::PAYPAL_ORDER_INTENT => $intent]);
+    }
+
     public function withReferenceId(string $referenceId): self
     {
         return $this->with([self::REFERENCE_ID => $referenceId]);
@@ -256,7 +268,7 @@ final readonly class PayPalPaymentDetails
         $paymentSource = $supersededPayPalOrders[$payPalOrderId] ?? PayPalPaymentSourceProviderInterface::PAYPAL;
         unset($supersededPayPalOrders[$payPalOrderId]);
 
-        return (new self(array_diff_key($this->details, array_flip([self::REFERENCE_ID, self::TRANSACTION_ID]))))
+        return (new self(array_diff_key($this->details, array_flip([self::REFERENCE_ID, self::TRANSACTION_ID, self::PAYPAL_ORDER_INTENT]))))
             ->withPayPalOrderId($payPalOrderId)
             ->withPaymentSource($paymentSource)
             ->withSupersededPayPalOrders($supersededPayPalOrders)

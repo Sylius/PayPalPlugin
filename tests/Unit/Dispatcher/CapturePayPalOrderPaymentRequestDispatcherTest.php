@@ -22,7 +22,6 @@ use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
-use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
@@ -32,12 +31,12 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
 {
-    public function test_it_dispatches_the_capture_of_the_approved_paypal_order_for_the_payment(): void
+    public function test_it_dispatches_the_capture_of_the_approved_paypal_order_created_with_the_capture_intent(): void
     {
         $paymentMethod = new PaymentMethod();
         $payment = new Payment();
         $payment->setMethod($paymentMethod);
-        $payment->setDetails(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL-ORDER')->toArray());
+        $payment->setDetails(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL-ORDER')->withPayPalOrderIntent('CAPTURE')->toArray());
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('0199e8a4-6c1f-7a52-9a8e-5c6c2f0e3b11');
 
@@ -60,20 +59,16 @@ final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
             ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
         ;
 
-        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
-        $paymentAuthorizationChecker->method('isAuthorizeEnabled')->with($paymentMethod)->willReturn(false);
-
-        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher($paymentRequestFactory, $paymentRequestRepository, $stateMachine, $commandBus, $paymentAuthorizationChecker);
+        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher($paymentRequestFactory, $paymentRequestRepository, $stateMachine, $commandBus);
 
         self::assertSame($paymentRequest, $dispatcher->dispatch($payment));
     }
 
-    public function test_it_dispatches_the_authorization_of_the_approved_paypal_order_when_the_payment_method_authorizes(): void
+    public function test_it_dispatches_the_authorization_of_the_approved_paypal_order_created_with_the_authorize_intent(): void
     {
-        $paymentMethod = new PaymentMethod();
         $payment = new Payment();
-        $payment->setMethod($paymentMethod);
-        $payment->setDetails(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL-ORDER')->toArray());
+        $payment->setMethod(new PaymentMethod());
+        $payment->setDetails(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL-ORDER')->withPayPalOrderIntent('AUTHORIZE')->toArray());
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('0199e8a4-6c1f-7a52-9a8e-5c6c2f0e3b11');
 
@@ -81,8 +76,6 @@ final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
         $paymentRequestFactory = $this->createMock(PaymentRequestFactoryInterface::class);
         $paymentRequestFactory->method('create')->willReturn($paymentRequest);
         $commandBus = $this->createMock(MessageBusInterface::class);
-        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
-        $paymentAuthorizationChecker->method('isAuthorizeEnabled')->with($paymentMethod)->willReturn(true);
 
         $paymentRequest->expects(self::once())->method('setAction')->with(PaymentRequestInterface::ACTION_AUTHORIZE);
         $commandBus
@@ -97,7 +90,6 @@ final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
             $this->createMock(PaymentRequestRepositoryInterface::class),
             $this->createMock(StateMachineInterface::class),
             $commandBus,
-            $paymentAuthorizationChecker,
         );
 
         self::assertSame($paymentRequest, $dispatcher->dispatch($payment));
