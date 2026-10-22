@@ -667,9 +667,33 @@
    of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
    to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
    `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED` and `PAYMENT.CAPTURE.REVERSED`.
-   Run the command before deploying the upgrade: it points a webhook registered on `/paypal-webhook/api/` at the URL
-   of its payment method and keeps its id. `/paypal-webhook/api/` no longer exists, so PayPal gets a `404` for every
-   event of a webhook left on it.
+
+   `/paypal-webhook/api/` no longer exists, so a webhook still registered on it has to be moved:
+
+   1. Make the console generate the public URL of the shop: set `SYLIUS_PAYPAL_WEBHOOK_BASE_URL`
+      (`sylius_paypal.webhook_base_url`) or give the channels of the PayPal payment method their hostname. Without
+      either, the command builds the URL from the console request context (`framework.router.default_uri`,
+      `localhost` by default), which PayPal rejects.
+   2. Run `bin/console sylius-paypal:register-webhook-event-types` as part of the deployment, right when the new
+      release goes live; with an atomic deployment, from the new release before switching to it. For every PayPal
+      payment method it finds the webhook registered on its notify URL or on `/paypal-webhook/api/`, points it at
+      `/payment-methods/{code}` through a PATCH, so its id stays the same, subscribes it to the events above and
+      stores its id. It registers a new webhook only when it finds none, so it can be run again.
+   3. Check that it reports `Updated the webhook of "<code>".` for every PayPal payment method and exits with `0`.
+      A webhook it could not update stays where it was: fix the URL and run it again.
+
+   Until the command runs, PayPal gets a `404` from `/paypal-webhook/api/` for every event. A webhook moved before
+   the new release is live gets an error from `/payment-methods/{code}` until it is, as the old release has no PayPal
+   notify payment provider. PayPal delivers a failed event again for up to 3 days, so nothing is lost when the
+   deployment and the command happen close together; a webhook left on `/paypal-webhook/api/` keeps failing and
+   PayPal may disable it.
+
+   Payment methods sharing PayPal credentials shared one webhook: the first of them takes it over and the others get
+   their own. PayPal sends every event to each of them, and a payment method answers `204` to an event about a payment
+   of another one.
+
+   `WebhookUrlProviderInterface::LEGACY_PATH` and `provideLegacy()` are only there for the command to find a webhook
+   still registered on `/paypal-webhook/api/`; they will be removed in 4.0.
 
    The webhook URL starts with `sylius_paypal.webhook_base_url` or, when it is empty, with the hostname of the first
    channel of the payment method that has one, so the command run from the console does not register `localhost`;
@@ -712,5 +736,19 @@
    | `Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface` | `Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider` and its interface (`sylius_paypal.provider.paypal_refund_data`) | the event resource `NotifyPaymentRequestHandler` reads again from PayPal |
    | `PaypalPaymentQueryInterface::getForRefundingByOrderId()` and the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter | none |
+
+   The following constructor signature has changed:
+
+   ```diff
+    // Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private PaymentRepositoryInterface&EntityRepository $paymentRepository,
+        private array $updatableStates = [...],
+        private array $cancellableStates = [...],
+   -    private array $refundableStates = [PaymentInterface::STATE_COMPLETED],
+        private array $settleableStates = [...],
+    ) {
+   ```
 
    `WebhookRequestVerifier` no longer depends on `PayPalPaymentMethodProviderInterface`.

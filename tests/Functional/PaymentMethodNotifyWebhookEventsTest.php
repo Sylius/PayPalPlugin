@@ -168,7 +168,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
     }
 
-    public function test_it_refunds_a_completed_payment_paypal_says_was_refunded(): void
+    public function test_it_stores_the_refund_paypal_confirmed_and_refunds_the_payment_without_calling_paypal(): void
     {
         $order = $this->completedOrder();
         $this->payPalApi()->mockRefundDetails();
@@ -180,6 +180,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_REFUNDED, $payment->getState());
         self::assertTrue($payment->getDetails()['refunded']);
         self::assertSame('REFUND_ID', $payment->getDetails()['refund_id']);
+        self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
     }
 
     public function test_it_refunds_a_completed_payment_paypal_reversed_without_refunding_it_again(): void
