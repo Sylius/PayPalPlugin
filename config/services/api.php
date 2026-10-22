@@ -34,6 +34,8 @@ use Sylius\PayPalPlugin\Api\UpdateOrderApi;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
+use Sylius\PayPalPlugin\Api\VoidAuthorizationApi;
+use Sylius\PayPalPlugin\Api\VoidAuthorizationApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookResourceApi;
@@ -143,6 +145,11 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.client.paypal')]);
 
     $services->alias(CaptureAuthorizationApiInterface::class, 'sylius_paypal.api.capture_authorization');
+
+    $services->set('sylius_paypal.api.void_authorization', VoidAuthorizationApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(VoidAuthorizationApiInterface::class, 'sylius_paypal.api.void_authorization');
 
     $services->set('sylius_paypal.api.complete_order', CompleteOrderApi::class)
         ->args([service('sylius_paypal.client.paypal')]);
