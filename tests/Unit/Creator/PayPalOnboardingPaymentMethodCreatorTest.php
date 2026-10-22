@@ -114,6 +114,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
 
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $paymentMethod->expects(self::once())->method('setPosition')->with(0);
         $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);
         $this->entityManager->expects(self::never())->method('flush');
 
@@ -155,6 +156,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $paymentMethod->expects(self::never())->method('setPosition');
         $this->cachedAccessTokenRemover->expects(self::once())->method('remove')->with($paymentMethod);
 
         $this->gatewayFactory->expects(self::never())->method('createNew');
