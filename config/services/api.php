@@ -7,6 +7,8 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeOrderApi;
+use Sylius\PayPalPlugin\Api\AuthorizeOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifier;
@@ -129,6 +131,11 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.client.paypal')]);
 
     $services->alias(FindEligibleMethodsApiInterface::class, 'sylius_paypal.api.find_eligible_methods');
+
+    $services->set('sylius_paypal.api.authorize_order', AuthorizeOrderApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(AuthorizeOrderApiInterface::class, 'sylius_paypal.api.authorize_order');
 
     $services->set('sylius_paypal.api.complete_order', CompleteOrderApi::class)
         ->args([service('sylius_paypal.client.paypal')]);

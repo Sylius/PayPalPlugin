@@ -530,11 +530,13 @@
    When the buyer approves in the wallet, `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`
    (`sylius_paypal_shop_complete_express_checkout`, `POST /{_locale}/paypal/express-checkout/complete`) places the
    order with `Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter` and only then captures the PayPal order through
-   a `capture` Payment Request, dispatched by `Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher`.
+   a `capture` Payment Request, dispatched by `Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher`.
    The capture, its settlement and a declined or pending capture are handled as on the payment page. The response's
    `return_url` leads to the Payment Request (`/payment-request/pay/{hash}`), which ends on the thank-you page, or on
    the order to pay again when PayPal did not capture. A total that grew since the approval still returns the buyer
-   to the unplaced checkout.
+   to the unplaced checkout. A PayPal order created with the `AUTHORIZE` intent, by a payment method that authorizes
+   (`use_authorize`), gets an `authorize` Payment Request instead, which leaves the payment `authorized`; the intent is
+   stored in the payment details, so changing the capture strategy after the PayPal order was created does not matter.
 
    The request body (`orderId`, `payPalOrderId`) is unchanged; the response carries only `return_url`.
 
@@ -752,3 +754,81 @@
    ```
 
    `WebhookRequestVerifier` no longer depends on `PayPalPaymentMethodProviderInterface`.
+
+1. #### `PaymentCaptureProcessor` brings the approved PayPal order up to date through `ApprovedPayPalOrderUpdater`.
+
+   Updating the amount and the shipping address of an approved PayPal order before it is completed moved to
+   `Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface` (`sylius_paypal.updater.approved_paypal_order`),
+   and telling whether the payer has approved it to `Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface`
+   (`sylius_paypal.checker.approved_paypal_order`).
+
+   ```diff
+    // Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor
+    public function __construct(
+   -    private UpdateOrderApiInterface $updateOrderApi,
+   -    private UpdateOrderAddressApiInterface $updateOrderAddressApi,
+   +    private ApprovedPayPalOrderCheckerInterface $approvedPayPalOrderChecker,
+   +    private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
+        private CompleteOrderApiInterface $completeOrderApi,
+        private OrderDetailsApiInterface $orderDetailsApi,
+   -    private PaymentUpdaterInterface $paymentUpdater,
+   -    private StateResolverInterface $orderPaymentStateResolver,
+    ) {
+   ```
+
+1. #### A payment method that authorizes offers only the payment sources PayPal can authorize.
+
+   `Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface` (`sylius_paypal.checker.payment_authorization`)
+   tells whether a payment source is allowed by the payment method's capture strategy. The payment page hides the
+   others, and the `cardEnabled` variable tells the card fields template whether to render.
+
+   ```diff
+    // Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker
+   +public function __construct(private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker)
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider
+    public function __construct(
+        private FindEligibleMethodsApiInterface $findEligibleMethodsApi,
+        private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
+        private LoggerInterface $logger,
+   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+    ) {
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider
+    public function __construct(
+        // ...
+        private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
+   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+    ) {
+   ```
+
+1. #### The PayPal payment method can authorize payments and capture them later.
+
+   The new "Capture strategy" setting of the PayPal payment method (Immediate capture, or Authorize and capture)
+   stores `use_authorize` in its gateway config:
+
+   | `use_authorize` | Sent to PayPal | Payment after the buyer approves |
+   |---|---|---|
+   | `false` (default) | `"intent": "CAPTURE"`, then `POST /v2/checkout/orders/{id}/capture` | `completed` |
+   | `true` | `"intent": "AUTHORIZE"`, then `POST /v2/checkout/orders/{id}/authorize` | `authorized` |
+
+   Sylius picks the `authorize` Payment Request action from the same key, on the order pay page, in express
+   checkout and in the shop API. An authorizing payment method offers only the payment sources listed in
+   `sylius_paypal.authorize.payment_sources` (PayPal with Pay Later, Venmo, cards, Apple Pay and Google Pay by
+   default); redirect methods such as Trustly are hidden. The list accepts only these sources, so it can narrow the
+   default but not extend it:
+
+   ```yaml
+   sylius_paypal:
+       authorize:
+           payment_sources: [paypal, venmo, card, apple_pay, google_pay]
+   ```
+
+   In 2.x `use_authorize` was a hidden, always `true` flag that made Payum postpone creating the PayPal order; it
+   never meant a PayPal authorization. Gateways still on Payum keep it, every other PayPal gateway config is saved with
+   the strategy the merchant chose. Set `use_authorize` to `false` on the PayPal gateway configs you upgrade, or they
+   will start authorizing instead of capturing.

@@ -19,7 +19,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutStates;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
-use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -37,7 +37,7 @@ final readonly class CompleteExpressCheckoutAction
         private OrderProviderInterface $orderProvider,
         private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private ExpressCheckoutCompleterInterface $expressCheckoutCompleter,
-        private CapturePayPalOrderPaymentRequestDispatcherInterface $capturePaymentRequestDispatcher,
+        private ApprovedPayPalOrderPaymentRequestDispatcherInterface $approvedPayPalOrderPaymentRequestDispatcher,
         private UrlProviderInterface $paymentRequestPayUrlProvider,
         private UrlGeneratorInterface $router,
         private LoggerInterface $logger,
@@ -77,10 +77,10 @@ final readonly class CompleteExpressCheckoutAction
         $request->getSession()->set('sylius_order_id', $order->getId());
 
         try {
-            $paymentRequest = $this->capturePaymentRequestDispatcher->dispatch($payment);
+            $paymentRequest = $this->approvedPayPalOrderPaymentRequestDispatcher->dispatch($payment);
         } catch (HandlerFailedException $exception) {
             $this->logger->error(
-                sprintf('Capturing the express checkout PayPal order "%s" failed: %s', $payPalOrderId, $exception->getMessage()),
+                sprintf('Completing the express checkout PayPal order "%s" failed: %s', $payPalOrderId, $exception->getMessage()),
                 ['exception' => $exception],
             );
 

@@ -6,8 +6,12 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
 use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
@@ -56,6 +60,8 @@ use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessor;
+use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
@@ -137,6 +143,8 @@ use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdater;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PayPalPaymentUpdater;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifier;
@@ -251,6 +259,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.shipping_callback_url'),
             service('sylius_paypal.provider.experience_context'),
             service('sylius_paypal.provider.paypal_payment_source'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(PayPalOrderFactoryInterface::class, 'sylius_paypal.factory.paypal_order');
@@ -352,17 +361,39 @@ return static function (ContainerConfigurator $container) {
         ->decorate('sylius.order_processing.order_payment_processor.after_checkout')
         ->args([service('.inner')]);
 
-    $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
+    $services->set('sylius_paypal.updater.approved_paypal_order', ApprovedPayPalOrderUpdater::class)
         ->args([
             service('sylius_paypal.api.update_order'),
             service('sylius_paypal.api.update_order_address'),
-            service('sylius_paypal.api.complete_order'),
-            service('sylius_paypal.api.order_details'),
             service('sylius_paypal.updater.payment'),
             service('sylius.state_resolver.order_payment'),
         ]);
 
+    $services->alias(ApprovedPayPalOrderUpdaterInterface::class, 'sylius_paypal.updater.approved_paypal_order');
+
+    $services->set('sylius_paypal.checker.approved_paypal_order', ApprovedPayPalOrderChecker::class);
+
+    $services->alias(ApprovedPayPalOrderCheckerInterface::class, 'sylius_paypal.checker.approved_paypal_order');
+
+    $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
+        ->args([
+            service('sylius_paypal.checker.approved_paypal_order'),
+            service('sylius_paypal.updater.approved_paypal_order'),
+            service('sylius_paypal.api.complete_order'),
+            service('sylius_paypal.api.order_details'),
+        ]);
+
     $services->alias(PaymentCaptureProcessorInterface::class, 'sylius_paypal.processor.payment_capture');
+
+    $services->set('sylius_paypal.processor.payment_authorization', PaymentAuthorizationProcessor::class)
+        ->args([
+            service('sylius_paypal.checker.approved_paypal_order'),
+            service('sylius_paypal.updater.approved_paypal_order'),
+            service('sylius_paypal.api.authorize_order'),
+            service('sylius_paypal.api.order_details'),
+        ]);
+
+    $services->alias(PaymentAuthorizationProcessorInterface::class, 'sylius_paypal.processor.payment_authorization');
 
     $services->set('sylius_paypal.processor.locale', LocaleProcessor::class)
         ->args([service('sylius_paypal.resolver.supported_locale')]);
@@ -416,6 +447,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.processor.locale'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(PayPalPaymentPageContextProviderInterface::class, 'sylius_paypal.provider.paypal_payment_page_context');
@@ -465,6 +497,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.find_eligible_methods'),
             service('sylius_paypal.provider.paypal_configuration'),
             service('monolog.logger.paypal'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(EligibleRedirectPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.eligible_redirect_payment_sources');
@@ -481,9 +514,15 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
 
-    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class);
+    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class)
+        ->args([service('sylius_paypal.checker.payment_authorization')]);
 
     $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
+
+    $services->set('sylius_paypal.checker.payment_authorization', PaymentAuthorizationChecker::class)
+        ->args([param('sylius_paypal.authorize.payment_sources')]);
+
+    $services->alias(PaymentAuthorizationCheckerInterface::class, 'sylius_paypal.checker.payment_authorization');
 
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([

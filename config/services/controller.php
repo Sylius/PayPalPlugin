@@ -115,7 +115,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.order'),
             service('sylius_paypal.verifier.order_ownership'),
             service('sylius_paypal.completer.express_checkout'),
-            service('sylius_paypal.dispatcher.capture_paypal_order_payment_request'),
+            service('sylius_paypal.dispatcher.approved_paypal_order_payment_request'),
             service('sylius_paypal.provider.payment_request_return_url'),
             service('router'),
             service('monolog.logger.paypal'),

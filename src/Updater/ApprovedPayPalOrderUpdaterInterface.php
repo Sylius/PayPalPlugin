@@ -11,12 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Dispatcher;
+namespace Sylius\PayPalPlugin\Updater;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
-interface CapturePayPalOrderPaymentRequestDispatcherInterface
+interface ApprovedPayPalOrderUpdaterInterface
 {
-    public function dispatch(PaymentInterface $payment): PaymentRequestInterface;
+    public function update(PaymentInterface $payment): void;
 }

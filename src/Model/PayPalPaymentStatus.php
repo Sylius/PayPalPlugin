@@ -19,4 +19,5 @@ enum PayPalPaymentStatus: string
     case Captured = 'CAPTURED';
     case Completed = 'COMPLETED';
     case Processing = 'PROCESSING';
+    case Authorized = 'AUTHORIZED';
 }

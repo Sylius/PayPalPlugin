@@ -102,7 +102,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             ->expects(self::once())
             ->method('store')
             ->with(
-                ['reports_sftp_password' => null, 'reports_sftp_username' => null],
+                ['reports_sftp_password' => null, 'reports_sftp_username' => null, 'use_authorize' => false],
                 false,
                 self::CREDENTIALS,
             )

@@ -34,6 +34,7 @@ use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Sylius\Resource\Factory\FactoryInterface;
@@ -68,6 +69,9 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         $payPalOrderId = (string) PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
 
         $payPalOrder = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
+        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)
+            ->withPayPalOrderIntent((string) ($payPalOrder['intent'] ?? PayPalOrder::INTENT_CAPTURE))
+            ->toArray());
         $purchaseUnit = (array) $payPalOrder['purchase_units'][0];
         $payerPhoneNumber = $payPalOrder['payer']['phone']['phone_number']['national_number'] ?? null;
 
