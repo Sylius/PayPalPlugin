@@ -860,4 +860,42 @@
    `Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface` (`sylius_paypal.checker.payment_completion`) until
    PayPal confirms the capture, so the core "Complete" button is hidden for it and
    `PATCH /api/v2/admin/payments/{id}/complete` answers `422`. The action is not one of the
-   `sylius_api.shop_payment_request.allowed_actions`, so a shop customer cannot request it.
+   `sylius_api.shop_payment_request.allowed_actions`, so a shop customer cannot request it. That list exists since
+   Sylius 2.1.16 and 2.2.9; earlier versions let a shop caller request any action the gateway handles, the
+   `capture_authorization`, `void_authorization` and `refund` ones included, so run one of these versions or later.
+
+1. #### The authorization of a cancelled PayPal payment is voided through a Payment Request.
+
+   When an authorized PayPal payment is cancelled, usually because the order is cancelled,
+   `Sylius\PayPalPlugin\EventListener\Workflow\VoidCancelledAuthorizationListener`
+   (`sylius_paypal.listener.workflow.void_cancelled_authorization`, on `workflow.sylius_payment.completed.cancel`, and a
+   winzou `after` callback) dispatches a Payment Request with the `void_authorization` action through
+   `Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcherInterface`
+   (`sylius_paypal.dispatcher.void_authorization_payment_request`). It voids the authorization at PayPal
+   (`POST /v2/payments/authorizations/{id}/void`, the request hash as `PayPal-Request-Id`) and records
+   `authorization_status: VOIDED` on the payment. The payment is cancelled first and the void follows, so the
+   cancellation never waits for PayPal: a void PayPal rejects fails the request with the reason, listed under
+   `/admin/payments/{id}/payment-requests`, and the funds stay held until the authorization expires. An authorization
+   PayPal has already voided or let expire is not voided again.
+
+   When an authorized payment is cancelled while its order is not, as after a void made at PayPal and picked up by the
+   webhook or by `sylius-paypal:complete-payments`, Sylius moves the order's `payment_state` back to `awaiting_payment`
+   only since Sylius 2.2.7 (#19050); in earlier versions it stays `authorized`.
+
+1. #### Captures and voids made in the PayPal account are picked up by `sylius-paypal:complete-payments`.
+
+   `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED` join the webhook event types the plugin
+   registers. A webhook registered before does not get them by itself; subscribe it with
+   `bin/console sylius-paypal:register-webhook-event-types`. A capture made by the merchant in their PayPal account, rather than through the shop, emits no webhook
+   event to the application created by the onboarding, and a void made there may not either, so the shop is not told
+   about them. The
+   `sylius-paypal:complete-payments` command now settles `authorized` payments as well as `processing` ones from their
+   PayPal orders: an authorization captured at PayPal completes the payment, a voided or expired one cancels it. Run
+   it periodically, for example every hour, when you authorize payments:
+
+   ```bash
+   bin/console sylius-paypal:complete-payments
+   ```
+
+   `Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor` settles an authorization without a capture: a
+   created one authorizes the payment, a voided or expired one cancels an authorized payment.
