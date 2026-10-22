@@ -52,14 +52,21 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
 
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
-        if (null === $capture) {
-            return;
-        }
 
         $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrderDetails);
         if (null !== $authorization && $payPalOrderId === $details->payPalOrderId()) {
             $details = $details->withAuthorization($authorization);
             $payment->setDetails($details->toArray());
+
+            if (null === $capture) {
+                $this->settleAuthorization($payment, $authorization);
+
+                return;
+            }
+        }
+
+        if (null === $capture) {
+            return;
         }
 
         $transition = match ($capture->status()) {
@@ -119,6 +126,27 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         );
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+        $this->paymentManager->flush();
+    }
+
+    private function settleAuthorization(PaymentInterface $payment, PayPalAuthorization $authorization): void
+    {
+        $transition = match ($authorization->status()) {
+            PayPalAuthorization::STATUS_CREATED => PaymentTransitions::TRANSITION_AUTHORIZE,
+            PayPalAuthorization::STATUS_VOIDED, PayPalAuthorization::STATUS_EXPIRED => PaymentInterface::STATE_AUTHORIZED === $payment->getState()
+                ? PaymentTransitions::TRANSITION_CANCEL
+                : null,
+            default => null,
+        };
+
+        if (null !== $transition && $this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+            if (PaymentTransitions::TRANSITION_AUTHORIZE === $transition) {
+                $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withStatus(PayPalPaymentStatus::Authorized)->toArray());
+            }
+
+            $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+        }
+
         $this->paymentManager->flush();
     }
 
