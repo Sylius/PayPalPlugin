@@ -26,4 +26,7 @@ interface PayPalClientInterface
 
     /** @throws PayPalApiException */
     public function patch(PaymentMethodInterface $paymentMethod, string $url, ?array $data = null): array;
+
+    /** @throws PayPalApiException */
+    public function delete(PaymentMethodInterface $paymentMethod, string $url): array;
 }

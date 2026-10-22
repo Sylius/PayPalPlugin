@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Payment\Model\PaymentInterface;
@@ -66,6 +77,7 @@ use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\PaymentTokenWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
 use Sylius\PayPalPlugin\Provider\ActiveModeProvider;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
@@ -265,7 +277,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(ExperienceContextProviderInterface::class, 'sylius_paypal.provider.experience_context');
 
-    $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class);
+    $services->set('sylius_paypal.provider.paypal_payment_source', PayPalPaymentSourceProvider::class)
+        ->args([service('sylius_paypal.provider.vault_request')]);
 
     $services->alias(PayPalPaymentSourceProviderInterface::class, 'sylius_paypal.provider.paypal_payment_source');
 
@@ -429,6 +442,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.processor.locale'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->alias(PayPalPaymentPageContextProviderInterface::class, 'sylius_paypal.provider.paypal_payment_page_context');
@@ -490,6 +504,13 @@ return static function (ContainerConfigurator $container) {
             service('sylius.manager.payment'),
             service('sylius_paypal.repository.query.paypal_payment'),
             service('sylius_paypal.processor.late_capture_refund_confirmation'),
+        ]);
+
+    $services->set('sylius_paypal.processor.webhook.payment_token', PaymentTokenWebhookProcessor::class)
+        ->args([
+            service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius.manager.payment'),
+            service('event_dispatcher'),
         ]);
 
     $services->set('sylius_paypal.processor.webhook.capture_payment', CapturePaymentWebhookProcessor::class)

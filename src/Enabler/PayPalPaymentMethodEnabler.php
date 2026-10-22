@@ -63,6 +63,13 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
             throw new PaymentMethodCouldNotBeEnabledException($status);
         }
 
+        if (null !== $status) {
+            $gatewayConfig->setConfig(array_merge(
+                $gatewayConfig->getConfig(),
+                [PayPalGatewayConfig::VAULTING_ENABLED => $status->isVaultingEnabled()],
+            ));
+        }
+
         try {
             $this->sellerWebhookRegistrar->register($paymentMethod);
         } catch (PayPalWebhookAlreadyRegisteredException) {

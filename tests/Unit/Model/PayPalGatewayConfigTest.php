@@ -103,6 +103,7 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertFalse($config->isApplePayEnabled());
         self::assertFalse($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
         self::assertFalse($config->isCardThreeDSecureAlways());
+        self::assertFalse($config->isVaultingEnabled());
     }
 
     public function test_it_reads_every_funding_source_flag_the_gateway_carries(): void
@@ -115,6 +116,7 @@ final class PayPalGatewayConfigTest extends TestCase
             'apple_pay_enabled' => true,
             'trustly_enabled' => true,
             'card_three_d_secure_always' => true,
+            'vaulting_enabled' => true,
         ]);
 
         self::assertFalse($config->isPayLaterEnabled());
@@ -124,6 +126,7 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertTrue($config->isApplePayEnabled());
         self::assertTrue($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
         self::assertTrue($config->isCardThreeDSecureAlways());
+        self::assertTrue($config->isVaultingEnabled());
     }
 
     public function test_it_takes_the_redirect_payment_source_key_from_the_enum(): void

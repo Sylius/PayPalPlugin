@@ -46,6 +46,16 @@ final readonly class PayPalPaymentDetails
 
     public const REFUND_ID = 'refund_id';
 
+    public const VAULT_ID = 'vault_id';
+
+    public const VAULT_STATUS = 'vault_status';
+
+    public const VAULT_CUSTOMER_ID = 'vault_customer_id';
+
+    public const PAYER_EMAIL = 'payer_email';
+
+    public const VAULT_STATUS_DELETED = 'DELETED';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -126,6 +136,26 @@ final readonly class PayPalPaymentDetails
     public function refundId(): ?string
     {
         return $this->optional(self::REFUND_ID);
+    }
+
+    public function vaultId(): ?string
+    {
+        return $this->optional(self::VAULT_ID);
+    }
+
+    public function vaultStatus(): ?string
+    {
+        return $this->optional(self::VAULT_STATUS);
+    }
+
+    public function vaultCustomerId(): ?string
+    {
+        return $this->optional(self::VAULT_CUSTOMER_ID);
+    }
+
+    public function payerEmail(): ?string
+    {
+        return $this->optional(self::PAYER_EMAIL);
     }
 
     /** @return array<string, string> */
@@ -216,6 +246,25 @@ final readonly class PayPalPaymentDetails
             self::REFUNDED => true,
             self::REFUND_ID => $refundId,
         ]);
+    }
+
+    public function withVault(PayPalVault $vault): self
+    {
+        return $this->with(array_filter([
+            self::VAULT_ID => $vault->id(),
+            self::VAULT_STATUS => $vault->status(),
+            self::VAULT_CUSTOMER_ID => $vault->customerId(),
+            self::PAYER_EMAIL => $vault->payerEmail(),
+        ], static fn (?string $value): bool => null !== $value));
+    }
+
+    public function withVaultDeleted(): self
+    {
+        $details = $this->details;
+        unset($details[self::VAULT_ID]);
+        $details[self::VAULT_STATUS] = self::VAULT_STATUS_DELETED;
+
+        return new self($details);
     }
 
     /** @param array<string, string> $supersededPayPalOrders */

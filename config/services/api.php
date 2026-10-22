@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Doctrine\ORM\EntityRepository;
@@ -11,6 +22,8 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifier;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifierInterface;
+use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApi;
+use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApi;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApi;
@@ -23,6 +36,8 @@ use Sylius\PayPalPlugin\Api\IdentityApi;
 use Sylius\PayPalPlugin\Api\IdentityApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApi;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Api\PaymentTokenApi;
+use Sylius\PayPalPlugin\Api\PaymentTokenApiInterface;
 use Sylius\PayPalPlugin\Api\RefundPaymentApi;
 use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApi;
@@ -36,8 +51,8 @@ use Sylius\PayPalPlugin\Api\WebhookResourceApi;
 use Sylius\PayPalPlugin\Api\WebhookResourceApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
-use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\LoggingHttpClient;
+use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Client\RetryingHttpClient;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
@@ -150,6 +165,19 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(CreateOrderApiInterface::class, 'sylius_paypal.api.create_order');
+
+    $services->set('sylius_paypal.api.charge_vaulted_order', ChargeVaultedOrderApi::class)
+        ->args([
+            service('sylius_paypal.client.paypal'),
+            service('sylius_paypal.factory.purchase_unit'),
+        ]);
+
+    $services->alias(ChargeVaultedOrderApiInterface::class, 'sylius_paypal.api.charge_vaulted_order');
+
+    $services->set('sylius_paypal.api.payment_token', PaymentTokenApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(PaymentTokenApiInterface::class, 'sylius_paypal.api.payment_token');
 
     $services->set('sylius_paypal.api.identity', IdentityApi::class)
         ->args([service('sylius_paypal.client.paypal')]);

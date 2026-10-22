@@ -36,6 +36,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'merchant_id' => 'MERCHANT-ID',
         'sylius_merchant_id' => 'MERCHANT-ID',
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
+        'vaulting_enabled' => false,
     ];
 
     private const STORED_CONFIG = [
@@ -192,6 +193,23 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
         self::assertSame($paymentMethod, $this->creator->create($result, true));
+    }
+
+    #[Test]
+    public function it_stores_the_vaulting_flag_when_the_vaulting_capability_is_active(): void
+    {
+        $this->mockFactories();
+        $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
+
+        $this->credentialsManager
+            ->expects(self::once())
+            ->method('store')
+            ->with(self::anything(), false, ['vaulting_enabled' => true] + self::CREDENTIALS)
+            ->willReturn(self::STORED_CONFIG);
+
+        $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, 'ACTIVE'));
+
+        $this->creator->create($result);
     }
 
     /** @return array{0: GatewayConfigInterface&MockObject, 1: PaymentMethodInterface&MockObject} */

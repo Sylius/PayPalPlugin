@@ -38,6 +38,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         private LocaleProcessorInterface $localeProcessor,
         private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
     }
 
@@ -54,25 +55,29 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             $processedLocale = null;
         }
 
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod());
+
         return [
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),
-            'applePayEnabled' => $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
+            'applePayEnabled' => !$vaultRequired && $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
             'billingAddress' => $order->getBillingAddress(),
+            'cardEnabled' => !$vaultRequired,
             'countryCode' => $channel->getShopBillingData()?->getCountryCode(),
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
-            'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
+            'googlePayEnabled' => !$vaultRequired && $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
             'languageCode' => $this->languageCode($locale),
             'locale' => $processedLocale,
             'order' => $order,
             'payment' => $payment,
-            'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
-            'redirectPaymentSources' => $this->redirectPaymentSources($payment),
-            'venmoEnabled' => $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel),
+            'paylaterEnabled' => !$vaultRequired && $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
+            'redirectPaymentSources' => $vaultRequired ? [] : $this->redirectPaymentSources($payment),
+            'vaultRequired' => $vaultRequired,
+            'venmoEnabled' => !$vaultRequired && $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
-                $this->components($channel),
+                $vaultRequired ? WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS : $this->components($channel),
                 $processedLocale,
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
