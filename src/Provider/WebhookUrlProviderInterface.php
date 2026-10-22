@@ -19,7 +19,7 @@ interface WebhookUrlProviderInterface
 {
     public const ROUTE = 'sylius_payment_method_notify';
 
-    public const LEGACY_ROUTE = 'sylius_paypal_webhook_refund_order';
+    public const LEGACY_PATH = '/paypal-webhook/api/';
 
     public function provide(PaymentMethodInterface $paymentMethod): string;
 

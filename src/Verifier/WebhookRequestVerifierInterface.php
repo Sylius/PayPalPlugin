@@ -18,5 +18,5 @@ use Symfony\Component\HttpFoundation\Request;
 
 interface WebhookRequestVerifierInterface
 {
-    public function verify(Request $request, ?PaymentMethodInterface $paymentMethod = null): bool;
+    public function verify(Request $request, PaymentMethodInterface $paymentMethod): bool;
 }

@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
 
 final class WebhookIdProviderTest extends TestCase
 {
@@ -32,9 +33,9 @@ final class WebhookIdProviderTest extends TestCase
 
     private const WEBHOOKS_URL = 'https://api.sandbox.paypal.com/v1/notifications/webhooks';
 
-    private const WEBHOOK_PATH = '/paypal-webhook/api/';
+    private const NOTIFY_URL = 'https://shop.example.com/payment-methods/PAYPAL';
 
-    private const GENERATED_ABSOLUTE_URL = 'https://shop.example.com/paypal-webhook/api/';
+    private const LEGACY_URL = 'https://shop.example.com/paypal-webhook/api/';
 
     private GenericApiInterface&MockObject $genericApi;
 
@@ -60,16 +61,15 @@ final class WebhookIdProviderTest extends TestCase
         self::assertInstanceOf(WebhookIdProviderInterface::class, $this->createProvider());
     }
 
-    #[Test]
-    public function it_returns_the_id_of_the_webhook_registered_for_the_generated_url(): void
+    public function test_it_returns_the_id_of_the_webhook_still_registered_on_the_legacy_url(): void
     {
         $this->mockGeneratedUrls();
         $this->mockRegisteredWebhooks([
             ['id' => 'WH-OTHER', 'url' => 'https://shop.example.com/other/endpoint'],
-            ['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL],
+            ['id' => 'WH-LEGACY', 'url' => self::LEGACY_URL],
         ]);
 
-        self::assertSame('WH-REFUND', $this->createProvider()->provide($this->paymentMethod()));
+        self::assertSame('WH-LEGACY', $this->createProvider()->provide($this->paymentMethod()));
     }
 
     public function test_it_returns_the_id_of_the_webhook_registered_for_the_notify_url_of_the_payment_method(): void
@@ -77,7 +77,7 @@ final class WebhookIdProviderTest extends TestCase
         $this->mockGeneratedUrls();
         $this->mockRegisteredWebhooks([
             ['id' => 'WH-OTHER', 'url' => 'https://shop.example.com/payment-methods/OTHER'],
-            ['id' => 'WH-NOTIFY', 'url' => 'https://shop.example.com/payment-methods/PAYPAL'],
+            ['id' => 'WH-NOTIFY', 'url' => self::NOTIFY_URL],
         ]);
 
         self::assertSame('WH-NOTIFY', $this->createProvider()->provide($this->paymentMethod()));
@@ -87,8 +87,8 @@ final class WebhookIdProviderTest extends TestCase
     {
         $this->mockGeneratedUrls();
         $this->mockRegisteredWebhooks([
-            ['id' => 'WH-LEGACY', 'url' => self::GENERATED_ABSOLUTE_URL],
-            ['id' => 'WH-NOTIFY', 'url' => 'https://shop.example.com/payment-methods/PAYPAL'],
+            ['id' => 'WH-LEGACY', 'url' => self::LEGACY_URL],
+            ['id' => 'WH-NOTIFY', 'url' => self::NOTIFY_URL],
         ]);
 
         self::assertSame('WH-NOTIFY', $this->createProvider()->provide($this->paymentMethod()));
@@ -97,7 +97,7 @@ final class WebhookIdProviderTest extends TestCase
     public function test_it_does_not_take_the_webhook_of_a_payment_method_whose_code_starts_the_same(): void
     {
         $this->mockGeneratedUrls();
-        $this->mockRegisteredWebhooks([['id' => 'WH-PAYPAL', 'url' => 'https://shop.example.com/payment-methods/PAYPAL']]);
+        $this->mockRegisteredWebhooks([['id' => 'WH-PAYPAL', 'url' => self::NOTIFY_URL]]);
 
         self::assertNull($this->createProvider()->provide($this->paymentMethod(code: 'PAYPAL_2')));
     }
@@ -112,7 +112,7 @@ final class WebhookIdProviderTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with($paymentMethod, self::WEBHOOKS_URL)
-            ->willReturn(['webhooks' => [['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL]]]);
+            ->willReturn(['webhooks' => [['id' => 'WH-REFUND', 'url' => self::NOTIFY_URL]]]);
 
         self::assertSame('WH-REFUND', $this->createProvider()->provide($paymentMethod));
     }
@@ -127,7 +127,7 @@ final class WebhookIdProviderTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with($paymentMethod, 'https://api.paypal.com/v1/notifications/webhooks')
-            ->willReturn(['webhooks' => [['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL]]]);
+            ->willReturn(['webhooks' => [['id' => 'WH-REFUND', 'url' => self::NOTIFY_URL]]]);
 
         self::assertSame('WH-REFUND', $this->createProvider()->provide($paymentMethod));
     }
@@ -138,7 +138,7 @@ final class WebhookIdProviderTest extends TestCase
         $this->mockGeneratedUrls();
         $this->mockRegisteredWebhooks([
             ['id' => 'WH-A', 'url' => 'https://shop.example.com/different/endpoint'],
-            ['id' => 'WH-B', 'url' => 'https://another-shop.example.com/paypal-webhook/api/'],
+            ['id' => 'WH-B', 'url' => 'https://another-shop.example.com/payment-methods/PAYPAL'],
         ]);
 
         self::assertNull($this->createProvider()->provide($this->paymentMethod()));
@@ -158,9 +158,9 @@ final class WebhookIdProviderTest extends TestCase
     {
         $this->mockGeneratedUrls();
         $this->mockRegisteredWebhooks([
-            ['url' => self::GENERATED_ABSOLUTE_URL],
+            ['url' => self::NOTIFY_URL],
             ['id' => 'WH-NO-URL'],
-            ['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL],
+            ['id' => 'WH-REFUND', 'url' => self::NOTIFY_URL],
         ]);
 
         self::assertSame('WH-REFUND', $this->createProvider()->provide($this->paymentMethod()));
@@ -179,11 +179,11 @@ final class WebhookIdProviderTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function matchingUrlProvider(): iterable
     {
-        yield 'exact' => ['https://shop.example.com/paypal-webhook/api/'];
-        yield 'no trailing slash' => ['https://shop.example.com/paypal-webhook/api'];
-        yield 'http instead of https' => ['http://shop.example.com/paypal-webhook/api/'];
-        yield 'explicit port' => ['https://shop.example.com:8443/paypal-webhook/api/'];
-        yield 'uppercase host' => ['https://SHOP.EXAMPLE.COM/paypal-webhook/api/'];
+        yield 'exact' => ['https://shop.example.com/payment-methods/PAYPAL'];
+        yield 'trailing slash' => ['https://shop.example.com/payment-methods/PAYPAL/'];
+        yield 'http instead of https' => ['http://shop.example.com/payment-methods/PAYPAL'];
+        yield 'explicit port' => ['https://shop.example.com:8443/payment-methods/PAYPAL'];
+        yield 'uppercase host' => ['https://SHOP.EXAMPLE.COM/payment-methods/PAYPAL'];
     }
 
     #[Test]
@@ -199,9 +199,9 @@ final class WebhookIdProviderTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function notMatchingUrlProvider(): iterable
     {
-        yield 'different domain' => ['https://evil.example.com/paypal-webhook/api/'];
+        yield 'different domain' => ['https://evil.example.com/payment-methods/PAYPAL'];
         yield 'different endpoint' => ['https://shop.example.com/some/other/path'];
-        yield 'endpoint as prefix only' => ['https://shop.example.com/paypal-webhook/api/extra'];
+        yield 'endpoint as prefix only' => ['https://shop.example.com/payment-methods/PAYPAL/extra'];
     }
 
     #[Test]
@@ -221,23 +221,23 @@ final class WebhookIdProviderTest extends TestCase
     {
         yield 'without trailing slash' => [
             'https://shop.example.com',
-            'https://shop.example.com/paypal-webhook/api/',
+            'https://shop.example.com/payment-methods/PAYPAL',
         ];
         yield 'with trailing slash' => [
             'https://shop.example.com/',
-            'https://shop.example.com/paypal-webhook/api/',
+            'https://shop.example.com/payment-methods/PAYPAL',
         ];
         yield 'with path prefix' => [
             'https://shop.example.com/shop',
-            'https://shop.example.com/shop/paypal-webhook/api/',
+            'https://shop.example.com/shop/payment-methods/PAYPAL',
         ];
         yield 'with path prefix and trailing slash' => [
             'https://shop.example.com/shop/',
-            'https://shop.example.com/shop/paypal-webhook/api/',
+            'https://shop.example.com/shop/payment-methods/PAYPAL',
         ];
         yield 'base scheme differs from registered' => [
             'http://shop.example.com',
-            'https://shop.example.com/paypal-webhook/api',
+            'https://shop.example.com/payment-methods/PAYPAL/',
         ];
     }
 
@@ -245,7 +245,7 @@ final class WebhookIdProviderTest extends TestCase
     public function it_refreshes_by_delegating_to_a_live_lookup(): void
     {
         $this->mockGeneratedUrls();
-        $this->mockRegisteredWebhooks([['id' => 'WH-REFUND', 'url' => self::GENERATED_ABSOLUTE_URL]]);
+        $this->mockRegisteredWebhooks([['id' => 'WH-REFUND', 'url' => self::NOTIFY_URL]]);
 
         self::assertSame('WH-REFUND', $this->createProvider()->refresh($this->paymentMethod()));
     }
@@ -254,7 +254,7 @@ final class WebhookIdProviderTest extends TestCase
     public function it_uses_the_configured_base_url_instead_of_the_absolute_url(): void
     {
         $this->mockGeneratedUrls();
-        $this->mockRegisteredWebhooks([['id' => 'WH-REFUND', 'url' => 'https://configured.example.com/paypal-webhook/api/']]);
+        $this->mockRegisteredWebhooks([['id' => 'WH-REFUND', 'url' => 'https://configured.example.com/payment-methods/PAYPAL']]);
 
         self::assertSame(
             'WH-REFUND',
@@ -265,7 +265,7 @@ final class WebhookIdProviderTest extends TestCase
     public function test_matches_when_the_generated_url_has_a_prefix_the_registered_one_lacks(): void
     {
         $this->mockGeneratedUrls();
-        $this->mockRegisteredWebhooks([['id' => 'WH-REFUND', 'url' => 'https://shop.example.com/paypal-webhook/api/']]);
+        $this->mockRegisteredWebhooks([['id' => 'WH-REFUND', 'url' => self::NOTIFY_URL]]);
 
         self::assertSame(
             'WH-REFUND',
@@ -305,14 +305,12 @@ final class WebhookIdProviderTest extends TestCase
     {
         $this->urlGenerator->method('generate')->willReturnCallback(
             static function (string $route, array $parameters, int $referenceType): string {
-                $path = match ($route) {
-                    'sylius_payment_method_notify' => '/payment-methods/' . $parameters['code'],
-                    'sylius_paypal_webhook_refund_order' => self::WEBHOOK_PATH,
-                };
+                $path = '/payment-methods/' . $parameters['code'];
 
                 return UrlGeneratorInterface::ABSOLUTE_URL === $referenceType ? 'https://shop.example.com' . $path : $path;
             },
         );
+        $this->urlGenerator->method('getContext')->willReturn(new RequestContext(host: 'shop.example.com', scheme: 'https'));
     }
 
     /** @param list<array<string, string>> $webhooks */

@@ -31,13 +31,29 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
 
     public function provideLegacy(PaymentMethodInterface $paymentMethod): string
     {
-        return $this->url($paymentMethod, self::LEGACY_ROUTE, []);
+        $baseUrl = $this->baseUrl($paymentMethod);
+        if (null !== $baseUrl) {
+            return rtrim($baseUrl, '/') . self::LEGACY_PATH;
+        }
+
+        $context = $this->urlGenerator->getContext();
+        $port = 'https' === $context->getScheme() ? $context->getHttpsPort() : $context->getHttpPort();
+        $defaultPort = 'https' === $context->getScheme() ? 443 : 80;
+
+        return sprintf(
+            '%s://%s%s%s%s',
+            $context->getScheme(),
+            $context->getHost(),
+            $defaultPort === $port ? '' : ':' . $port,
+            $context->getBaseUrl(),
+            self::LEGACY_PATH,
+        );
     }
 
     /** @param array<string, string> $parameters */
     private function url(PaymentMethodInterface $paymentMethod, string $route, array $parameters): string
     {
-        $baseUrl = '' !== $this->webhookBaseUrl ? $this->webhookBaseUrl : $this->channelBaseUrl($paymentMethod);
+        $baseUrl = $this->baseUrl($paymentMethod);
         if (null === $baseUrl) {
             return $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
         }
@@ -46,8 +62,12 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
             $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_PATH);
     }
 
-    private function channelBaseUrl(PaymentMethodInterface $paymentMethod): ?string
+    private function baseUrl(PaymentMethodInterface $paymentMethod): ?string
     {
+        if ('' !== $this->webhookBaseUrl) {
+            return $this->webhookBaseUrl;
+        }
+
         foreach ($paymentMethod->getChannels() as $channel) {
             $hostname = $channel->getHostname();
             if (null !== $hostname && '' !== $hostname) {

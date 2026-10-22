@@ -334,13 +334,11 @@
 
    The `CacheAuthorizeClientApiInterface $authorizeClientApi` argument has been removed from the constructors of:
 
-   - `Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction`
    - `Sylius\PayPalPlugin\Creator\PayPalOrderCreator`
    - `Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessor`
    - `Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor`
    - `Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor`
    - `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider`
-   - `Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider`
    - `Sylius\PayPalPlugin\Provider\WebhookIdProvider`
    - `Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar`
    - `Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifier`
@@ -635,32 +633,6 @@
    | `Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface` | none |
    | `Sylius\PayPalPlugin\Exception\PayPalOrderRefundException` | the reason of the failed refund Payment Request |
 
-   The webhook refund confirms the refund through `PayPalPaymentRefundConfirmationProcessorInterface`, or
-   `PayPalLateCaptureRefundConfirmationProcessorInterface` for the late capture, instead of applying the transition
-   itself:
-
-   ```diff
-    // Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor
-    public function __construct(
-        private PayPalRefundDataProviderInterface $payPalRefundDataProvider,
-        private PaypalPaymentQueryInterface $paypalPaymentQuery,
-   -    private StateMachineInterface $stateMachine,
-   +    private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
-        private ObjectManager $paymentManager,
-        private SettleablePaypalPaymentQueryInterface $settleablePaymentQuery,
-   +    private PayPalLateCaptureRefundConfirmationProcessorInterface $lateCaptureRefundConfirmationProcessor,
-    ) {
-   ```
-
-   ```diff
-    // Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction
-    public function __construct(
-   -    private StateMachineInterface $stateMachineFactory,
-   +    private PayPalPaymentRefundConfirmationProcessorInterface $refundConfirmationProcessor,
-        // ...
-    ) {
-   ```
-
 1. #### PayPal webhooks are accepted on `/payment-methods/{code}`.
 
    Sylius' `sylius_payment_method_notify` route accepts PayPal webhooks for the payment method in the URL.
@@ -684,7 +656,7 @@
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
    -public function verify(Request $request): bool;
-   +public function verify(Request $request, ?PaymentMethodInterface $paymentMethod = null): bool;
+   +public function verify(Request $request, PaymentMethodInterface $paymentMethod): bool;
    ```
 
    `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.
@@ -695,8 +667,33 @@
    of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
    to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
    `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED` and `PAYMENT.CAPTURE.REVERSED`.
-   Run the command once after the upgrade: it points a webhook registered on `/paypal-webhook/api/` at the URL of its
-   payment method and keeps its id, so PayPal stops sending to the old endpoint.
+
+   `/paypal-webhook/api/` no longer exists, so a webhook still registered on it has to be moved:
+
+   1. Make the console generate the public URL of the shop: set `SYLIUS_PAYPAL_WEBHOOK_BASE_URL`
+      (`sylius_paypal.webhook_base_url`) or give the channels of the PayPal payment method their hostname. Without
+      either, the command builds the URL from the console request context (`framework.router.default_uri`,
+      `localhost` by default), which PayPal rejects.
+   2. Run `bin/console sylius-paypal:register-webhook-event-types` as part of the deployment, right when the new
+      release goes live; with an atomic deployment, from the new release before switching to it. For every PayPal
+      payment method it finds the webhook registered on its notify URL or on `/paypal-webhook/api/`, points it at
+      `/payment-methods/{code}` through a PATCH, so its id stays the same, subscribes it to the events above and
+      stores its id. It registers a new webhook only when it finds none, so it can be run again.
+   3. Check that it reports `Updated the webhook of "<code>".` for every PayPal payment method and exits with `0`.
+      A webhook it could not update stays where it was: fix the URL and run it again.
+
+   Until the command runs, PayPal gets a `404` from `/paypal-webhook/api/` for every event. A webhook moved before
+   the new release is live gets an error from `/payment-methods/{code}` until it is, as the old release has no PayPal
+   notify payment provider. PayPal delivers a failed event again for up to 3 days, so nothing is lost when the
+   deployment and the command happen close together; a webhook left on `/paypal-webhook/api/` keeps failing and
+   PayPal may disable it.
+
+   Payment methods that share PayPal credentials used to share one webhook: the first of them takes it over and the
+   others get their own. PayPal sends every event to each of them, and a payment method answers `204` to an event
+   about a payment of another one.
+
+   `WebhookUrlProviderInterface::LEGACY_PATH` and `provideLegacy()` are only there for the command to find a webhook
+   still registered on `/paypal-webhook/api/`; they will be removed in 4.0.
 
    The webhook URL starts with `sylius_paypal.webhook_base_url` or, when it is empty, with the hostname of the first
    channel of the payment method that has one, so the command run from the console does not register `localhost`;
@@ -715,7 +712,7 @@
     // Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface
    -public const ROUTE = 'sylius_paypal_webhook_refund_order';
    +public const ROUTE = 'sylius_payment_method_notify';
-   +public const LEGACY_ROUTE = 'sylius_paypal_webhook_refund_order';
+   +public const LEGACY_PATH = '/paypal-webhook/api/';
 
    -public function provide(): string;
    +public function provide(PaymentMethodInterface $paymentMethod): string;
@@ -728,4 +725,30 @@
    +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array;
    ```
 
-   The `sylius_paypal.controller.webhook.paypal_webhook` service behind `/paypal-webhook/api/` is deprecated.
+   The `sylius_paypal_webhook_refund_order` route (`/paypal-webhook/api/`) and the following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Controller\Webhook\PayPalWebhookAction` (`sylius_paypal.controller.webhook.paypal_webhook`) | `Sylius\PayPalPlugin\Controller\Webhook\PaymentMethodNotifyAction` |
+   | `Sylius\PayPalPlugin\Controller\Webhook\RefundOrderAction` (`sylius_paypal.controller.webhook.refund_order`) | `Sylius\PayPalPlugin\Controller\Webhook\PaymentMethodNotifyAction` |
+   | `Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor` (`sylius_paypal.processor.webhook.refund_order`) | `Sylius\PayPalPlugin\Processor\Webhook\RefundPaymentWebhookEventProcessor` |
+   | `Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor` (`sylius_paypal.processor.webhook.capture_payment`) | `Sylius\PayPalPlugin\Processor\Webhook\SettlePaymentWebhookEventProcessor` |
+   | `Sylius\PayPalPlugin\Processor\Webhook\WebhookProcessorInterface` | `Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider` and its interface (`sylius_paypal.provider.paypal_refund_data`) | the event resource `NotifyPaymentRequestHandler` reads again from PayPal |
+   | `PaypalPaymentQueryInterface::getForRefundingByOrderId()` and the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter | none |
+
+   The following constructor signature has changed:
+
+   ```diff
+    // Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery
+    public function __construct(
+        private EntityManagerInterface $entityManager,
+        private PaymentRepositoryInterface&EntityRepository $paymentRepository,
+        private array $updatableStates = [...],
+        private array $cancellableStates = [...],
+   -    private array $refundableStates = [PaymentInterface::STATE_COMPLETED],
+        private array $settleableStates = [...],
+    ) {
+   ```
+
+   `WebhookRequestVerifier` no longer depends on `PayPalPaymentMethodProviderInterface`.

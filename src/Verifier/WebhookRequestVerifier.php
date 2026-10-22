@@ -15,23 +15,20 @@ namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 final readonly class WebhookRequestVerifier implements WebhookRequestVerifierInterface
 {
     public function __construct(
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
         private WebhookIdProviderInterface $webhookIdProvider,
         private WebhookSignatureVerifierInterface $webhookSignatureVerifier,
     ) {
     }
 
-    public function verify(Request $request, ?PaymentMethodInterface $paymentMethod = null): bool
+    public function verify(Request $request, PaymentMethodInterface $paymentMethod): bool
     {
         try {
-            $paymentMethod ??= $this->payPalPaymentMethodProvider->provide();
             $webhookId = $this->webhookIdProvider->provide($paymentMethod);
 
             $verified = null !== $webhookId && $this->webhookSignatureVerifier->verify($request, $webhookId, $paymentMethod);
