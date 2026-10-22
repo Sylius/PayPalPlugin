@@ -279,7 +279,7 @@ return function (ContainerConfigurator $container): void {
 
     $settlePayment = $services->set('sylius_paypal.processor.webhook_event.settle_payment', SettlePaymentWebhookEventProcessor::class)
         ->args([service('sylius_paypal.processor.payment_settlement')]);
-    foreach ([...SettlePaymentWebhookEventProcessor::CAPTURE_EVENT_TYPES, SettlePaymentWebhookEventProcessor::ORDER_EVENT_TYPE] as $eventType) {
+    foreach ([...SettlePaymentWebhookEventProcessor::CAPTURE_EVENT_TYPES, ...SettlePaymentWebhookEventProcessor::AUTHORIZATION_EVENT_TYPES, SettlePaymentWebhookEventProcessor::ORDER_EVENT_TYPE] as $eventType) {
         $settlePayment->tag('sylius_paypal.webhook_event_processor', ['event_type' => $eventType]);
     }
 

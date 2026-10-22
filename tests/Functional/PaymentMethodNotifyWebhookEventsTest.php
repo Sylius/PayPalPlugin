@@ -82,6 +82,33 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
     }
 
+    public function test_it_cancels_an_authorized_payment_once_paypal_says_its_authorization_was_voided(): void
+    {
+        $order = $this->authorizedOrder();
+        $this->payPalApi()->mockAuthorizationDetails(status: 'VOIDED');
+        $this->payPalApi()->mockOrderDetailsWithAuthorization(authorizationStatus: 'VOIDED');
+
+        $this->notifyAboutAuthorization('PAYMENT.AUTHORIZATION.VOIDED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
+        self::assertSame('VOIDED', $payment->getDetails()['authorization_status']);
+        self::assertSame([], self::getContainer()->get('sylius.repository.payment_request')->findBy(['action' => 'void_authorization']));
+    }
+
+    public function test_it_authorizes_the_payment_once_paypal_says_its_authorization_was_created(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest(PaymentRequestInterface::ACTION_AUTHORIZE);
+        $this->payPalApi()->mockAuthorizationDetails();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+
+        $this->notifyAboutAuthorization('PAYMENT.AUTHORIZATION.CREATED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadPaymentRequest($paymentRequest)->getPayment()->getState());
+    }
+
     public function test_a_pending_capture_reaches_its_final_state_from_the_webhooks_alone(): void
     {
         $order = $this->processingOrder();
@@ -510,6 +537,19 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
             'resource_type' => 'capture',
             'resource' => [
                 'id' => 'CAPTURE_ID',
+                'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+            ],
+        ]);
+    }
+
+    private function notifyAboutAuthorization(string $eventType, string $eventId): void
+    {
+        $this->notify([
+            'id' => $eventId,
+            'event_type' => $eventType,
+            'resource_type' => 'authorization',
+            'resource' => [
+                'id' => 'AUTHORIZATION_ID',
                 'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
             ],
         ]);

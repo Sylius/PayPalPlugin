@@ -186,6 +186,15 @@ final readonly class PayPalApiMocker
         ]);
     }
 
+    public function mockAuthorizationDetails(string $authorizationId = 'AUTHORIZATION_ID', string $status = 'CREATED', string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('GET', 'v2/payments/authorizations/' . $authorizationId, [
+            'id' => $authorizationId,
+            'status' => $status,
+            'supplementary_data' => ['related_ids' => ['order_id' => $payPalOrderId]],
+        ]);
+    }
+
     public function mockRefundDetails(string $refundId = 'REFUND_ID', string $captureId = 'CAPTURE_ID'): void
     {
         $this->client->addExpectation('GET', 'v2/payments/refunds/' . $refundId, [

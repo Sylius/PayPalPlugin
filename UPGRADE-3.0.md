@@ -653,7 +653,8 @@
    | `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded, without completing a refund Payment Request still waiting for PayPal |
    | `CHECKOUT.ORDER.APPROVED` | captures, or authorizes when the payment method authorizes, the order of a payment request still awaiting it; a capture or an authorization PayPal refuses stays on the failed payment request with its reason |
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
-   | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
+   | `PAYMENT.AUTHORIZATION.CREATED` | authorizes the payment whose authorization PayPal created, when the payer never came back to the shop |
+   | `PAYMENT.AUTHORIZATION.VOIDED` | cancels the authorized payment whose authorization was voided outside the shop, without voiding it again |
 
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
@@ -668,7 +669,8 @@
    The onboarding, the payment method enabler and `sylius-paypal:register-webhook-event-types` register the webhook
    of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
    to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
-   `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED` and `PAYMENT.CAPTURE.REVERSED`.
+   `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`,
+   `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED`.
 
    `/paypal-webhook/api/` no longer exists, so a webhook still registered on it has to be moved:
 
