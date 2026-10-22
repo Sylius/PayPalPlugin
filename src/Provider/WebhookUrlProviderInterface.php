@@ -13,9 +13,15 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface WebhookUrlProviderInterface
 {
-    public const ROUTE = 'sylius_paypal_webhook_refund_order';
+    public const ROUTE = 'sylius_payment_method_notify';
 
-    public function provide(): string;
+    public const LEGACY_ROUTE = 'sylius_paypal_webhook_refund_order';
+
+    public function provide(PaymentMethodInterface $paymentMethod): string;
+
+    public function provideLegacy(PaymentMethodInterface $paymentMethod): string;
 }

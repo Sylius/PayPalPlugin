@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
@@ -23,13 +24,37 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
     ) {
     }
 
-    public function provide(): string
+    public function provide(PaymentMethodInterface $paymentMethod): string
     {
-        if ('' === $this->webhookBaseUrl) {
-            return $this->urlGenerator->generate(self::ROUTE, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        return $this->url($paymentMethod, self::ROUTE, ['code' => (string) $paymentMethod->getCode()]);
+    }
+
+    public function provideLegacy(PaymentMethodInterface $paymentMethod): string
+    {
+        return $this->url($paymentMethod, self::LEGACY_ROUTE, []);
+    }
+
+    /** @param array<string, string> $parameters */
+    private function url(PaymentMethodInterface $paymentMethod, string $route, array $parameters): string
+    {
+        $baseUrl = '' !== $this->webhookBaseUrl ? $this->webhookBaseUrl : $this->channelBaseUrl($paymentMethod);
+        if (null === $baseUrl) {
+            return $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
-        return rtrim($this->webhookBaseUrl, '/') .
-            $this->urlGenerator->generate(self::ROUTE, [], UrlGeneratorInterface::ABSOLUTE_PATH);
+        return rtrim($baseUrl, '/') .
+            $this->urlGenerator->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_PATH);
+    }
+
+    private function channelBaseUrl(PaymentMethodInterface $paymentMethod): ?string
+    {
+        foreach ($paymentMethod->getChannels() as $channel) {
+            $hostname = $channel->getHostname();
+            if (null !== $hostname && '' !== $hostname) {
+                return sprintf('https://%s', $hostname);
+            }
+        }
+
+        return null;
     }
 }

@@ -26,7 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'sylius-paypal:register-webhook-event-types',
-    description: 'Subscribes every registered PayPal webhook to the events this plugin handles',
+    description: 'Points the PayPal webhook of every PayPal payment method at its notify endpoint and subscribes it to the events this plugin handles',
 )]
 final class RegisterWebhookEventTypesCommand extends Command
 {

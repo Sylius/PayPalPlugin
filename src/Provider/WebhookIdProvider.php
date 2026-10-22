@@ -17,26 +17,18 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 {
-    private WebhookUrlProviderInterface $webhookUrlProvider;
-
     public function __construct(
         private GenericApiInterface $genericApi,
-        private UrlGeneratorInterface $urlGenerator,
         private HostProviderInterface $hostProvider,
-        private string $webhookBaseUrl = '',
-        ?WebhookUrlProviderInterface $webhookUrlProvider = null,
+        private WebhookUrlProviderInterface $webhookUrlProvider,
     ) {
-        $this->webhookUrlProvider = $webhookUrlProvider ?? new WebhookUrlProvider($urlGenerator, $webhookBaseUrl);
     }
 
     public function provide(PaymentMethodInterface $paymentMethod): ?string
     {
-        $webhookUrl = $this->webhookUrlProvider->provide();
-
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $sandbox = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
@@ -45,6 +37,21 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 
         /** @var array<array{id?: string, url?: string}> $webhooks */
         $webhooks = $data['webhooks'] ?? [];
+
+        return
+            $this->findWebhookId($webhooks, $this->webhookUrlProvider->provide($paymentMethod)) ??
+            $this->findWebhookId($webhooks, $this->webhookUrlProvider->provideLegacy($paymentMethod))
+        ;
+    }
+
+    public function refresh(PaymentMethodInterface $paymentMethod): ?string
+    {
+        return $this->provide($paymentMethod);
+    }
+
+    /** @param array<array{id?: string, url?: string}> $webhooks */
+    private function findWebhookId(array $webhooks, string $webhookUrl): ?string
+    {
         foreach ($webhooks as $webhook) {
             if (isset($webhook['url'], $webhook['id']) && $this->urlsMatch($webhook['url'], $webhookUrl)) {
                 return (string) $webhook['id'];
@@ -52,11 +59,6 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         }
 
         return null;
-    }
-
-    public function refresh(PaymentMethodInterface $paymentMethod): ?string
-    {
-        return $this->provide($paymentMethod);
     }
 
     private function urlsMatch(string $registered, string $expected): bool
@@ -78,6 +80,6 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         $registeredPath = rtrim((string) parse_url($registered, \PHP_URL_PATH), '/');
         $expectedPath = rtrim((string) parse_url($expected, \PHP_URL_PATH), '/');
 
-        return '' !== $registeredPath && str_contains($expectedPath, $registeredPath);
+        return '' !== $registeredPath && str_ends_with($expectedPath, $registeredPath);
     }
 }
