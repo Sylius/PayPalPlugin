@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Dispatcher;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
-interface CapturePayPalOrderPaymentRequestDispatcherInterface
+interface ApprovedPayPalOrderPaymentRequestDispatcherInterface
 {
     public function dispatch(PaymentInterface $payment): PaymentRequestInterface;
 }

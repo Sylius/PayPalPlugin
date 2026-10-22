@@ -530,12 +530,13 @@
    When the buyer approves in the wallet, `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`
    (`sylius_paypal_shop_complete_express_checkout`, `POST /{_locale}/paypal/express-checkout/complete`) places the
    order with `Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter` and only then captures the PayPal order through
-   a `capture` Payment Request, dispatched by `Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher`.
+   a `capture` Payment Request, dispatched by `Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher`.
    The capture, its settlement and a declined or pending capture are handled as on the payment page. The response's
    `return_url` leads to the Payment Request (`/payment-request/pay/{hash}`), which ends on the thank-you page, or on
    the order to pay again when PayPal did not capture. A total that grew since the approval still returns the buyer
-   to the unplaced checkout. A payment method that authorizes (`use_authorize`) gets an `authorize` Payment Request
-   instead, which leaves the payment `authorized`.
+   to the unplaced checkout. A PayPal order created with the `AUTHORIZE` intent, by a payment method that authorizes
+   (`use_authorize`), gets an `authorize` Payment Request instead, which leaves the payment `authorized`; the intent is
+   stored in the payment details, so changing the capture strategy after the PayPal order was created does not matter.
 
    The request body (`orderId`, `payPalOrderId`) is unchanged; the response carries only `return_url`.
 

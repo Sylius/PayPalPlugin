@@ -30,8 +30,8 @@ use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandPr
 use Sylius\PayPalPlugin\CommandProvider\RefundPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\StatusPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
-use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcher;
@@ -173,7 +173,7 @@ return function (ContainerConfigurator $container): void {
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
 
-    $services->set('sylius_paypal.dispatcher.capture_paypal_order_payment_request', CapturePayPalOrderPaymentRequestDispatcher::class)
+    $services->set('sylius_paypal.dispatcher.approved_paypal_order_payment_request', ApprovedPayPalOrderPaymentRequestDispatcher::class)
         ->args([
             service('sylius.factory.payment_request'),
             service('sylius.repository.payment_request'),
@@ -181,7 +181,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius.payment_request.command_bus'),
         ]);
 
-    $services->alias(CapturePayPalOrderPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.capture_paypal_order_payment_request');
+    $services->alias(ApprovedPayPalOrderPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.approved_paypal_order_payment_request');
 
     $services->set('sylius_paypal.dispatcher.refund_paypal_payment_request', RefundPayPalPaymentRequestDispatcher::class)
         ->args([

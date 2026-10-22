@@ -24,12 +24,12 @@ use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
-use Sylius\PayPalPlugin\Dispatcher\CapturePayPalOrderPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
+final class ApprovedPayPalOrderPaymentRequestDispatcherTest extends TestCase
 {
     public function test_it_dispatches_the_capture_of_the_approved_paypal_order_created_with_the_capture_intent(): void
     {
@@ -59,7 +59,7 @@ final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
             ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
         ;
 
-        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher($paymentRequestFactory, $paymentRequestRepository, $stateMachine, $commandBus);
+        $dispatcher = new ApprovedPayPalOrderPaymentRequestDispatcher($paymentRequestFactory, $paymentRequestRepository, $stateMachine, $commandBus);
 
         self::assertSame($paymentRequest, $dispatcher->dispatch($payment));
     }
@@ -85,7 +85,7 @@ final class CapturePayPalOrderPaymentRequestDispatcherTest extends TestCase
             ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
         ;
 
-        $dispatcher = new CapturePayPalOrderPaymentRequestDispatcher(
+        $dispatcher = new ApprovedPayPalOrderPaymentRequestDispatcher(
             $paymentRequestFactory,
             $this->createMock(PaymentRequestRepositoryInterface::class),
             $this->createMock(StateMachineInterface::class),

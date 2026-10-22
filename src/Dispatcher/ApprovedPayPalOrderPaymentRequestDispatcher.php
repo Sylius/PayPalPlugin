@@ -26,7 +26,7 @@ use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final readonly class CapturePayPalOrderPaymentRequestDispatcher implements CapturePayPalOrderPaymentRequestDispatcherInterface
+final readonly class ApprovedPayPalOrderPaymentRequestDispatcher implements ApprovedPayPalOrderPaymentRequestDispatcherInterface
 {
     /**
      * @param PaymentRequestFactoryInterface<PaymentRequestInterface> $paymentRequestFactory
