@@ -819,7 +819,8 @@
    Sylius picks the `authorize` Payment Request action from the same key, on the order pay page, in express
    checkout and in the shop API. An authorizing payment method offers only the payment sources listed in
    `sylius_paypal.authorize.payment_sources` (PayPal with Pay Later, Venmo, cards, Apple Pay and Google Pay by
-   default); redirect methods such as Trustly are hidden:
+   default); redirect methods such as Trustly are hidden. The list accepts only these sources, so it can narrow the
+   default but not extend it:
 
    ```yaml
    sylius_paypal:

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -39,7 +40,13 @@ final class Configuration implements ConfigurationInterface
         'INDIA_POST',
     ];
 
-    private const DEFAULT_AUTHORIZABLE_PAYMENT_SOURCES = ['paypal', 'venmo', 'card', 'apple_pay', 'google_pay'];
+    private const AUTHORIZABLE_PAYMENT_SOURCES = [
+        PayPalPaymentSourceProviderInterface::PAYPAL,
+        PayPalPaymentSourceProviderInterface::VENMO,
+        PayPalPaymentSourceProviderInterface::CARD,
+        PayPalPaymentSourceProviderInterface::APPLE_PAY,
+        PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+    ];
 
     public function getConfigTreeBuilder(): TreeBuilder
     {
@@ -66,8 +73,8 @@ final class Configuration implements ConfigurationInterface
                     ->addDefaultsIfNotSet()
                     ->children()
                         ->arrayNode('payment_sources')
-                            ->scalarPrototype()->end()
-                            ->defaultValue(self::DEFAULT_AUTHORIZABLE_PAYMENT_SOURCES)
+                            ->enumPrototype()->values(self::AUTHORIZABLE_PAYMENT_SOURCES)->end()
+                            ->defaultValue(self::AUTHORIZABLE_PAYMENT_SOURCES)
                             ->performNoDeepMerging()
                         ->end()
                     ->end()
