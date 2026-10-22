@@ -688,9 +688,9 @@
    deployment and the command happen close together; a webhook left on `/paypal-webhook/api/` keeps failing and
    PayPal may disable it.
 
-   Payment methods sharing PayPal credentials shared one webhook: the first of them takes it over and the others get
-   their own. PayPal sends every event to each of them, and a payment method answers `204` to an event about a payment
-   of another one.
+   Payment methods that share PayPal credentials used to share one webhook: the first of them takes it over and the
+   others get their own. PayPal sends every event to each of them, and a payment method answers `204` to an event
+   about a payment of another one.
 
    `WebhookUrlProviderInterface::LEGACY_PATH` and `provideLegacy()` are only there for the command to find a webhook
    still registered on `/paypal-webhook/api/`; they will be removed in 4.0.
