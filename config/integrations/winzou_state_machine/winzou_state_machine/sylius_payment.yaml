@@ -16,6 +16,11 @@ winzou_state_machine:
                     from: [ 'authorized' ]
                     do: [ '@sylius_paypal.completer.capture_authorization_payment_request', 'complete' ]
                     args: [ 'object' ]
+                paypal_void_cancelled_authorization:
+                    on: [ 'cancel' ]
+                    from: [ 'authorized' ]
+                    do: [ '@sylius_paypal.listener.workflow.void_cancelled_authorization', 'void' ]
+                    args: [ 'object' ]
         transitions:
             cancel:
                 from: [ cart ]
