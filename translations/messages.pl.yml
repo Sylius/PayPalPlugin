@@ -1,3 +1,8 @@
+sylius:
+    ui:
+        capture_authorization: 'Pobierz płatność z autoryzacji'
+        refund_late_capture: 'Zwrot późnego pobrania'
+        void_authorization: 'Unieważnij autoryzację'
 sylius_paypal:
     apple_pay_enabled: 'Włącz Apple Pay'
     awaiting_payer_action: 'Czekamy, aż Twój bank prześle pieniądze. Zamówienie potwierdzimy, gdy tylko dotrą.'
