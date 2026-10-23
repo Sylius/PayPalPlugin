@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Checker;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Model\PayPalAuthorization;
+use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final readonly class PaymentCompletionChecker implements PaymentCompletionCheckerInterface
@@ -35,6 +35,6 @@ final readonly class PaymentCompletionChecker implements PaymentCompletionChecke
             return true;
         }
 
-        return PayPalAuthorization::STATUS_CAPTURED === PayPalPaymentDetails::fromPayment($payment)->authorizationStatus();
+        return PayPalCapture::STATUS_COMPLETED === PayPalPaymentDetails::fromPayment($payment)->captureStatus();
     }
 }

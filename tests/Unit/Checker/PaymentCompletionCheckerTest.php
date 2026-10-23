@@ -31,12 +31,23 @@ final class PaymentCompletionCheckerTest extends TestCase
         ])));
     }
 
+    public function test_it_blocks_completing_an_authorized_paypal_payment_whose_capture_paypal_holds_pending(): void
+    {
+        self::assertFalse((new PaymentCompletionChecker())->canBeCompleted($this->payment('sylius_paypal', PaymentInterface::STATE_AUTHORIZED, [
+            'paypal_order_id' => 'PAYPAL_ORDER_ID',
+            'authorization_id' => 'AUTHORIZATION_ID',
+            'authorization_status' => 'CAPTURED',
+            'capture_status' => 'PENDING',
+        ])));
+    }
+
     public function test_it_allows_completing_an_authorized_paypal_payment_paypal_has_captured(): void
     {
         self::assertTrue((new PaymentCompletionChecker())->canBeCompleted($this->payment('sylius_paypal', PaymentInterface::STATE_AUTHORIZED, [
             'paypal_order_id' => 'PAYPAL_ORDER_ID',
             'authorization_id' => 'AUTHORIZATION_ID',
             'authorization_status' => 'CAPTURED',
+            'capture_status' => 'COMPLETED',
         ])));
     }
 
