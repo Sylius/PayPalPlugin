@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\CommandHandler;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -41,6 +43,8 @@ final class AuthorizePayPalOrderPaymentRequestHandler
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly PaymentThreeDSecureVerifierInterface $paymentThreeDSecureVerifier,
         private readonly PaymentAuthorizationProcessorInterface $paymentAuthorizationProcessor,
+        private readonly EntityManagerInterface $paymentManager,
+        private readonly EntityManagerInterface $paymentRequestManager,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -49,13 +53,14 @@ final class AuthorizePayPalOrderPaymentRequestHandler
     public function __invoke(AuthorizePayPalOrderPaymentRequest $authorizePayPalOrderPaymentRequest): void
     {
         $paymentRequest = $this->paymentRequestProvider->provide($authorizePayPalOrderPaymentRequest);
+        /** @var PaymentInterface $payment */
+        $payment = $paymentRequest->getPayment();
+        $this->paymentManager->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+        $this->paymentRequestManager->refresh($paymentRequest, LockMode::PESSIMISTIC_WRITE);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
             return;
         }
-
-        /** @var PaymentInterface $payment */
-        $payment = $paymentRequest->getPayment();
 
         if (in_array($payment->getState(), self::SETTLED_PAYMENT_STATES, true)) {
             $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);
