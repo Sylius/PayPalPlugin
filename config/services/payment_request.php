@@ -143,6 +143,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.verifier.payment_three_d_secure'),
             service('sylius_paypal.processor.payment_capture'),
             service('sylius_paypal.processor.payment_settlement'),
+            service('sylius.manager.payment'),
             service('sylius.manager.payment_request'),
             service('sylius_abstraction.state_machine'),
         ])

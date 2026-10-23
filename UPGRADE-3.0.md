@@ -445,8 +445,9 @@
 
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
-   capturing again. It locks the Payment Request (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's
-   return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it one after the other.
+   capturing again. It locks the Payment and then the Payment Request (`PESSIMISTIC_WRITE`) before reading its
+   state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it
+   one after the other, in the same lock order as the webhook that creates a notify Payment Request of the Payment.
    `RefundPayPalPaymentRequestHandler` passes the payment request id, so reprocessing a
    refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
    is used, as before.
