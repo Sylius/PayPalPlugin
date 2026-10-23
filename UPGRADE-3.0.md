@@ -663,7 +663,10 @@
    +public function verify(Request $request, PaymentMethodInterface $paymentMethod): bool;
    ```
 
-   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.
+   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface` and
+   `getByPaymentRequestHash(): PaymentInterface`. `WebhookEventPaymentResolver` finds the payment of the Payment Request
+   an event names through the latter, without loading the Payment Request, so the webhook does not rewrite (and lock)
+   the Payment Request a buyer may be capturing at the same time.
 
 1. #### PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method.
 
