@@ -28,6 +28,8 @@ final readonly class WebhookApi implements WebhookApiInterface
         'PAYMENT.CAPTURE.PENDING',
         'PAYMENT.CAPTURE.REFUNDED',
         'PAYMENT.CAPTURE.REVERSED',
+        'PAYMENT.AUTHORIZATION.CREATED',
+        'PAYMENT.AUTHORIZATION.VOIDED',
     ];
 
     public function __construct(private PayPalClientInterface $client)

@@ -1,3 +1,8 @@
+sylius:
+    ui:
+        capture_authorization: 'Autorisatie vastleggen'
+        refund_late_capture: 'Late vastlegging terugbetalen'
+        void_authorization: 'Autorisatie intrekken'
 sylius_paypal:
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'

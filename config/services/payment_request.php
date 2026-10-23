@@ -17,25 +17,35 @@ use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
 use Sylius\Bundle\PaymentBundle\Provider\ActionsHttpResponseProvider;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\CaptureAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\NotifyPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
+use Sylius\PayPalPlugin\CommandHandler\VoidAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\AuthorizePaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\CapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\NotifyPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\RefundPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\CommandProvider\StatusPaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\VoidAuthorizationPaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\Completer\CaptureAuthorizationPaymentRequestCompleter;
+use Sylius\PayPalPlugin\Completer\CaptureAuthorizationPaymentRequestCompleterInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\ApprovedPayPalOrderPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 use Sylius\PayPalPlugin\OrderPay\Provider\CapturePaymentRequestPayResponseProvider;
 use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
@@ -64,6 +74,12 @@ return function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.command_provider.refund_late_capture', RefundLateCapturePaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => RefundLateCapturePaymentRequestCommandProvider::ACTION]);
+
+    $services->set('sylius_paypal.command_provider.capture_authorization', CaptureAuthorizationPaymentRequestCommandProvider::class)
+        ->tag('sylius_paypal.command_provider', ['action' => CaptureAuthorizationPaymentRequestCommandProvider::ACTION]);
+
+    $services->set('sylius_paypal.command_provider.void_authorization', VoidAuthorizationPaymentRequestCommandProvider::class)
+        ->tag('sylius_paypal.command_provider', ['action' => VoidAuthorizationPaymentRequestCommandProvider::ACTION]);
 
     $services->set('sylius_paypal.command_provider.notify', NotifyPaymentRequestCommandProvider::class)
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_NOTIFY]);
@@ -127,6 +143,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.verifier.payment_three_d_secure'),
             service('sylius_paypal.processor.payment_capture'),
             service('sylius_paypal.processor.payment_settlement'),
+            service('sylius.manager.payment'),
             service('sylius.manager.payment_request'),
             service('sylius_abstraction.state_machine'),
         ])
@@ -137,6 +154,8 @@ return function (ContainerConfigurator $container): void {
             service('sylius.provider.payment_request'),
             service('sylius_paypal.verifier.payment_three_d_secure'),
             service('sylius_paypal.processor.payment_authorization'),
+            service('sylius.manager.payment'),
+            service('sylius.manager.payment_request'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
@@ -172,6 +191,54 @@ return function (ContainerConfigurator $container): void {
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.command_handler.capture_authorization', CaptureAuthorizationPaymentRequestHandler::class)
+        ->args([
+            service('sylius.provider.payment_request'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.capture_authorization'),
+            service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.completer.capture_authorization_payment_request', CaptureAuthorizationPaymentRequestCompleter::class)
+        ->public()
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+        ]);
+
+    $services->alias(CaptureAuthorizationPaymentRequestCompleterInterface::class, 'sylius_paypal.completer.capture_authorization_payment_request');
+
+    $services->set('sylius_paypal.dispatcher.capture_authorization_payment_request', CaptureAuthorizationPaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(CaptureAuthorizationPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.capture_authorization_payment_request');
+
+    $services->set('sylius_paypal.command_handler.void_authorization', VoidAuthorizationPaymentRequestHandler::class)
+        ->args([
+            service('sylius.provider.payment_request'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.void_authorization'),
+            service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.dispatcher.void_authorization_payment_request', VoidAuthorizationPaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(VoidAuthorizationPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.void_authorization_payment_request');
 
     $services->set('sylius_paypal.dispatcher.approved_paypal_order_payment_request', ApprovedPayPalOrderPaymentRequestDispatcher::class)
         ->args([
@@ -215,7 +282,7 @@ return function (ContainerConfigurator $container): void {
 
     $settlePayment = $services->set('sylius_paypal.processor.webhook_event.settle_payment', SettlePaymentWebhookEventProcessor::class)
         ->args([service('sylius_paypal.processor.payment_settlement')]);
-    foreach ([...SettlePaymentWebhookEventProcessor::CAPTURE_EVENT_TYPES, SettlePaymentWebhookEventProcessor::ORDER_EVENT_TYPE] as $eventType) {
+    foreach ([...SettlePaymentWebhookEventProcessor::CAPTURE_EVENT_TYPES, ...SettlePaymentWebhookEventProcessor::AUTHORIZATION_EVENT_TYPES, SettlePaymentWebhookEventProcessor::ORDER_EVENT_TYPE] as $eventType) {
         $settlePayment->tag('sylius_paypal.webhook_event_processor', ['event_type' => $eventType]);
     }
 

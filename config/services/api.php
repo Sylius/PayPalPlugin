@@ -13,6 +13,8 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifier;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifierInterface;
+use Sylius\PayPalPlugin\Api\CaptureAuthorizationApi;
+use Sylius\PayPalPlugin\Api\CaptureAuthorizationApiInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApi;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApi;
@@ -32,6 +34,8 @@ use Sylius\PayPalPlugin\Api\UpdateOrderApi;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
+use Sylius\PayPalPlugin\Api\VoidAuthorizationApi;
+use Sylius\PayPalPlugin\Api\VoidAuthorizationApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookResourceApi;
@@ -136,6 +140,16 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.client.paypal')]);
 
     $services->alias(AuthorizeOrderApiInterface::class, 'sylius_paypal.api.authorize_order');
+
+    $services->set('sylius_paypal.api.capture_authorization', CaptureAuthorizationApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(CaptureAuthorizationApiInterface::class, 'sylius_paypal.api.capture_authorization');
+
+    $services->set('sylius_paypal.api.void_authorization', VoidAuthorizationApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(VoidAuthorizationApiInterface::class, 'sylius_paypal.api.void_authorization');
 
     $services->set('sylius_paypal.api.complete_order', CompleteOrderApi::class)
         ->args([service('sylius_paypal.client.paypal')]);

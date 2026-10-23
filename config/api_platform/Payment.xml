@@ -36,6 +36,24 @@
                 </normalizationContext>
                 <openapi description="Refunds a completed PayPal payment through PayPal. A refund Payment Request is created, or the open one is reused, and processed. The payment becomes `refunded` once PayPal confirms the refund; a refund PayPal rejects leaves the payment `completed` and fails the Payment Request with the reason, listed under `/admin/payments/{id}/payment-requests`. A payment that is not a completed PayPal payment is rejected with `422`." />
             </operation>
+            <operation
+                name="sylius_paypal_api_admin_payment_patch_paypal_capture"
+                class="ApiPlatform\Metadata\Patch"
+                uriTemplate="/admin/payments/{id}/paypal-capture"
+                input="false"
+                controller="sylius_paypal.applicator.payment_capture::capture"
+            >
+                <normalizationContext>
+                    <values>
+                        <value name="groups">
+                            <values>
+                                <value>sylius:admin:payment:show</value>
+                            </values>
+                        </value>
+                    </values>
+                </normalizationContext>
+                <openapi description="Captures an authorized PayPal payment through PayPal. A Payment Request with the `capture_authorization` action is created, or the open one is reused, and processed. The payment becomes `completed` once PayPal reports the capture as completed; a capture PayPal rejects leaves the payment `authorized` and fails the Payment Request with the reason, listed under `/admin/payments/{id}/payment-requests`. A payment that is not an authorized PayPal payment is rejected with `422`." />
+            </operation>
         </operations>
     </resource>
 </resources>

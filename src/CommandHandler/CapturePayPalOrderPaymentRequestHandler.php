@@ -50,6 +50,7 @@ final class CapturePayPalOrderPaymentRequestHandler
         private readonly PaymentThreeDSecureVerifierInterface $paymentThreeDSecureVerifier,
         private readonly PaymentCaptureProcessorInterface $paymentCaptureProcessor,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
+        private readonly EntityManagerInterface $paymentManager,
         private readonly EntityManagerInterface $paymentRequestManager,
         StateMachineInterface $stateMachine,
     ) {
@@ -59,14 +60,14 @@ final class CapturePayPalOrderPaymentRequestHandler
     public function __invoke(CapturePayPalOrderPaymentRequest $capturePayPalOrderPaymentRequest): void
     {
         $paymentRequest = $this->paymentRequestProvider->provide($capturePayPalOrderPaymentRequest);
+        /** @var PaymentInterface $payment */
+        $payment = $paymentRequest->getPayment();
+        $this->paymentManager->refresh($payment, LockMode::PESSIMISTIC_WRITE);
         $this->paymentRequestManager->refresh($paymentRequest, LockMode::PESSIMISTIC_WRITE);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
             return;
         }
-
-        /** @var PaymentInterface $payment */
-        $payment = $paymentRequest->getPayment();
 
         if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
             $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);

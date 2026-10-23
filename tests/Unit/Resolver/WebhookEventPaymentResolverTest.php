@@ -16,8 +16,6 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Resolver;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventNotification;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
@@ -27,9 +25,6 @@ final class WebhookEventPaymentResolverTest extends TestCase
 {
     private const PAYMENT_REQUEST_HASH = '0192f0b8-4d0b-7d4a-9b5e-3c2a1f6e8d10';
 
-    /** @var PaymentRequestRepositoryInterface<PaymentRequestInterface>&MockObject */
-    private PaymentRequestRepositoryInterface&MockObject $paymentRequestRepository;
-
     private SettleablePaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
     private WebhookEventPaymentResolver $resolver;
@@ -37,16 +32,15 @@ final class WebhookEventPaymentResolverTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->paymentRequestRepository = $this->createMock(PaymentRequestRepositoryInterface::class);
         $this->paypalPaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
 
-        $this->resolver = new WebhookEventPaymentResolver($this->paymentRequestRepository, $this->paypalPaymentQuery);
+        $this->resolver = new WebhookEventPaymentResolver($this->paypalPaymentQuery);
     }
 
     public function test_it_resolves_the_payment_of_the_payment_request_paypal_was_given_as_custom_id(): void
     {
         $payment = $this->createStub(PaymentInterface::class);
-        $this->paymentRequestRepository->method('find')->with(self::PAYMENT_REQUEST_HASH)->willReturn($this->paymentRequestOf($payment));
+        $this->paypalPaymentQuery->method('getByPaymentRequestHash')->with(self::PAYMENT_REQUEST_HASH)->willReturn($payment);
 
         $this->paypalPaymentQuery->expects(self::never())->method('getForSettlementByOrderId');
 
@@ -60,7 +54,7 @@ final class WebhookEventPaymentResolverTest extends TestCase
     public function test_it_resolves_the_payment_request_named_in_a_purchase_unit_of_a_checkout_order(): void
     {
         $payment = $this->createStub(PaymentInterface::class);
-        $this->paymentRequestRepository->method('find')->with(self::PAYMENT_REQUEST_HASH)->willReturn($this->paymentRequestOf($payment));
+        $this->paypalPaymentQuery->method('getByPaymentRequestHash')->with(self::PAYMENT_REQUEST_HASH)->willReturn($payment);
 
         self::assertSame($payment, $this->resolver->resolve($this->notification('checkout-order', [
             'id' => 'PAYPAL_ORDER_ID',
@@ -72,7 +66,7 @@ final class WebhookEventPaymentResolverTest extends TestCase
     {
         $payment = $this->createStub(PaymentInterface::class);
 
-        $this->paymentRequestRepository->expects(self::never())->method('find');
+        $this->paypalPaymentQuery->expects(self::never())->method('getByPaymentRequestHash');
         $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
 
         self::assertSame($payment, $this->resolver->resolve($this->notification('capture', [
@@ -85,7 +79,7 @@ final class WebhookEventPaymentResolverTest extends TestCase
     public function test_it_falls_back_to_the_paypal_order_of_a_capture(): void
     {
         $payment = $this->createStub(PaymentInterface::class);
-        $this->paymentRequestRepository->method('find')->willReturn(null);
+        $this->paypalPaymentQuery->method('getByPaymentRequestHash')->willThrowException(new PaymentNotFoundException());
         $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
 
         self::assertSame($payment, $this->resolver->resolve($this->notification('capture', [
@@ -155,13 +149,5 @@ final class WebhookEventPaymentResolverTest extends TestCase
     private function notification(string $resourceType, array $resource): PayPalWebhookEventNotification
     {
         return new PayPalWebhookEventNotification('WH-1', 'EVENT.TYPE', $resourceType, (string) $resource['id'], $resource);
-    }
-
-    private function paymentRequestOf(PaymentInterface $payment): PaymentRequestInterface
-    {
-        $paymentRequest = $this->createStub(PaymentRequestInterface::class);
-        $paymentRequest->method('getPayment')->willReturn($payment);
-
-        return $paymentRequest;
     }
 }

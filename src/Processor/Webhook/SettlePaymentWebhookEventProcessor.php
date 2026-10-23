@@ -25,6 +25,11 @@ final readonly class SettlePaymentWebhookEventProcessor implements WebhookEventP
         'PAYMENT.CAPTURE.PENDING',
     ];
 
+    public const AUTHORIZATION_EVENT_TYPES = [
+        'PAYMENT.AUTHORIZATION.CREATED',
+        'PAYMENT.AUTHORIZATION.VOIDED',
+    ];
+
     public const ORDER_EVENT_TYPE = 'CHECKOUT.ORDER.COMPLETED';
 
     public function __construct(private PaymentSettlementProcessorInterface $paymentSettlementProcessor)
