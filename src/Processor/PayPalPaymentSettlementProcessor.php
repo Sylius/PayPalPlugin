@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -51,6 +52,22 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
 
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
+
+        $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrderDetails);
+        if (null !== $authorization && $payPalOrderId === $details->payPalOrderId()) {
+            $details = $details->withAuthorization($authorization);
+            if (null !== $capture) {
+                $details = $details->withCaptureStatus($capture->status());
+            }
+            $payment->setDetails($details->toArray());
+
+            if (null === $capture) {
+                $this->settleAuthorization($payment, $authorization);
+
+                return;
+            }
+        }
+
         if (null === $capture) {
             return;
         }
@@ -112,6 +129,27 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         );
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+        $this->paymentManager->flush();
+    }
+
+    private function settleAuthorization(PaymentInterface $payment, PayPalAuthorization $authorization): void
+    {
+        $transition = match ($authorization->status()) {
+            PayPalAuthorization::STATUS_CREATED => PaymentTransitions::TRANSITION_AUTHORIZE,
+            PayPalAuthorization::STATUS_VOIDED, PayPalAuthorization::STATUS_EXPIRED => PaymentInterface::STATE_AUTHORIZED === $payment->getState()
+                ? PaymentTransitions::TRANSITION_CANCEL
+                : null,
+            default => null,
+        };
+
+        if (null !== $transition && $this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+            if (PaymentTransitions::TRANSITION_AUTHORIZE === $transition) {
+                $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withStatus(PayPalPaymentStatus::Authorized)->toArray());
+            }
+
+            $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+        }
+
         $this->paymentManager->flush();
     }
 

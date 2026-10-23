@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
@@ -48,6 +49,67 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PayPalWebhookEventStatus::Processed->value, $this->webhookEventStatus('WH-1'));
     }
 
+    public function test_it_completes_an_authorized_payment_once_paypal_says_its_authorization_was_captured(): void
+    {
+        $order = $this->authorizedOrder();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+        self::assertSame('CAPTURE_ID', $payment->getDetails()['transaction_id']);
+        self::assertArrayNotHasKey('paypal_late_capture', $payment->getDetails());
+    }
+
+    public function test_it_completes_the_capture_request_the_admin_is_waiting_for_once_paypal_completes_the_capture(): void
+    {
+        $order = $this->authorizedOrder();
+        /** @var PaymentInterface $payment */
+        $payment = $order->getLastPayment();
+        $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $payment->getMethod());
+        $paymentRequest->setAction('capture_authorization');
+        $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
+        $this->getEntityManager()->persist($paymentRequest);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
+    }
+
+    public function test_it_cancels_an_authorized_payment_once_paypal_says_its_authorization_was_voided(): void
+    {
+        $order = $this->authorizedOrder();
+        $this->payPalApi()->mockAuthorizationDetails(status: 'VOIDED');
+        $this->payPalApi()->mockOrderDetailsWithAuthorization(authorizationStatus: 'VOIDED');
+
+        $this->notifyAboutAuthorization('PAYMENT.AUTHORIZATION.VOIDED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
+        self::assertSame('VOIDED', $payment->getDetails()['authorization_status']);
+        self::assertSame([], self::getContainer()->get('sylius.repository.payment_request')->findBy(['action' => 'void_authorization']));
+    }
+
+    public function test_it_authorizes_the_payment_once_paypal_says_its_authorization_was_created(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest(PaymentRequestInterface::ACTION_AUTHORIZE);
+        $this->payPalApi()->mockAuthorizationDetails();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+
+        $this->notifyAboutAuthorization('PAYMENT.AUTHORIZATION.CREATED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadPaymentRequest($paymentRequest)->getPayment()->getState());
+    }
+
     public function test_a_pending_capture_reaches_its_final_state_from_the_webhooks_alone(): void
     {
         $order = $this->processingOrder();
@@ -58,6 +120,24 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
 
         $this->notifyAboutCapture('PAYMENT.CAPTURE.PENDING', 'WH-1');
         self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-2');
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_a_pending_capture_of_an_authorization_keeps_the_core_complete_blocked_until_paypal_completes_it(): void
+    {
+        $order = $this->authorizedOrder();
+        $this->payPalApi()->mockCaptureDetails(status: 'PENDING');
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization(captureStatus: 'PENDING');
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.PENDING', 'WH-1');
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $payment->getState());
+        self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+        self::assertFalse(self::getContainer()->get('sylius_abstraction.state_machine')->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE));
 
         $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-2');
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
@@ -312,6 +392,23 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $reloaded->getPayment()->getState());
     }
 
+    public function test_it_authorizes_the_order_of_an_approval_when_the_payment_method_authorizes(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest(PaymentRequestInterface::ACTION_AUTHORIZE);
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->approvedOrder($paymentRequest));
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockAuthorize();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+
+        $this->notifyAboutApproval('WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        $reloaded = $this->reloadPaymentRequest($paymentRequest);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $reloaded->getState());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $reloaded->getPayment()->getState());
+    }
+
     public function test_it_keeps_a_capture_paypal_refused_on_the_failed_payment_request_and_accepts_the_approval(): void
     {
         $paymentRequest = $this->processingCapturePaymentRequest();
@@ -369,6 +466,16 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         return $order;
     }
 
+    private function authorizedOrder(): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml', 'resources/authorized_paypal_order.yaml']);
+
+        /** @var OrderInterface $order */
+        $order = $fixtures['authorized_order'];
+
+        return $order;
+    }
+
     private function completedOrder(): OrderInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/completed_paypal_order.yaml']);
@@ -396,7 +503,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         return $paymentRequest;
     }
 
-    private function processingCapturePaymentRequest(): PaymentRequestInterface
+    private function processingCapturePaymentRequest(string $action = PaymentRequestInterface::ACTION_CAPTURE): PaymentRequestInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
@@ -419,10 +526,11 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $gatewayConfig->setUsePayum(false);
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['use_authorize' => PaymentRequestInterface::ACTION_AUTHORIZE === $action]));
 
         /** @var PaymentRequestInterface $paymentRequest */
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
-        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->setAction($action);
         $paymentRequest->setState(PaymentRequestInterface::STATE_PROCESSING);
 
         $this->getEntityManager()->persist($paymentRequest);
@@ -448,6 +556,19 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
             'resource_type' => 'capture',
             'resource' => [
                 'id' => 'CAPTURE_ID',
+                'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+            ],
+        ]);
+    }
+
+    private function notifyAboutAuthorization(string $eventType, string $eventId): void
+    {
+        $this->notify([
+            'id' => $eventId,
+            'event_type' => $eventType,
+            'resource_type' => 'authorization',
+            'resource' => [
+                'id' => 'AUTHORIZATION_ID',
                 'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
             ],
         ]);

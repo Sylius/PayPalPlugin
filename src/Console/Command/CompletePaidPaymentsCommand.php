@@ -32,7 +32,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
     name: 'sylius-paypal:complete-payments',
-    description: 'Completes payments for completed PayPal orders',
+    description: 'Settles processing and authorized PayPal payments with the state of their PayPal orders',
 )]
 final class CompletePaidPaymentsCommand extends Command
 {
@@ -94,7 +94,7 @@ final class CompletePaidPaymentsCommand extends Command
             return Command::FAILURE;
         }
 
-        $payments = $this->paymentRepository->findBy(['state' => PaymentInterface::STATE_PROCESSING]);
+        $payments = $this->paymentRepository->findBy(['state' => [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]]);
 
         /** @var PaymentInterface $payment */
         foreach ($payments as $payment) {

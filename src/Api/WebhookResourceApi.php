@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Exception\PayPalWebhookResourceNotSupportedException;
 final readonly class WebhookResourceApi implements WebhookResourceApiInterface
 {
     private const PATHS = [
+        'authorization' => 'v2/payments/authorizations/%s',
         'capture' => 'v2/payments/captures/%s',
         'checkout-order' => 'v2/checkout/orders/%s',
         'refund' => 'v2/payments/refunds/%s',
