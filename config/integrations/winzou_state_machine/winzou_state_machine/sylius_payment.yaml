@@ -2,9 +2,24 @@ winzou_state_machine:
     sylius_payment:
         callbacks:
             guard:
+                paypal_capture_confirmed:
+                    on: [ 'complete' ]
+                    do: [ '@sylius_paypal.checker.payment_completion', 'canBeCompleted' ]
+                    args: [ 'object' ]
                 paypal_refund_confirmed:
                     on: [ 'refund' ]
                     do: [ '@sylius_paypal.checker.payment_refund', 'canBeRefunded' ]
+                    args: [ 'object' ]
+            after:
+                paypal_complete_capture_authorization_payment_requests:
+                    on: [ 'complete' ]
+                    from: [ 'authorized' ]
+                    do: [ '@sylius_paypal.completer.capture_authorization_payment_request', 'complete' ]
+                    args: [ 'object' ]
+                paypal_void_cancelled_authorization:
+                    on: [ 'cancel' ]
+                    from: [ 'authorized' ]
+                    do: [ '@sylius_paypal.listener.workflow.void_cancelled_authorization', 'void' ]
                     args: [ 'object' ]
         transitions:
             cancel:

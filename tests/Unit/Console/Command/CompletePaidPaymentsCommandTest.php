@@ -51,18 +51,27 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         );
     }
 
-    public function test_it_hands_every_processing_paypal_payment_to_the_settlement_processor(): void
+    public function test_it_hands_every_processing_or_authorized_paypal_payment_to_the_settlement_processor(): void
     {
-        $payment = $this->payment('sylius_paypal');
+        $processing = $this->payment('sylius_paypal');
+        $authorized = $this->payment('sylius_paypal');
         $this->paymentRepository
             ->method('findBy')
-            ->with(['state' => PaymentInterface::STATE_PROCESSING])
-            ->willReturn([$payment])
+            ->with(['state' => [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]])
+            ->willReturn([$processing, $authorized])
         ;
 
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment);
+        $settled = [];
+        $this->paymentSettlementProcessor
+            ->expects(self::exactly(2))
+            ->method('settle')
+            ->willReturnCallback(function (PaymentInterface $payment) use (&$settled): void {
+                $settled[] = $payment;
+            })
+        ;
 
         self::assertSame(0, $this->commandTester->execute([]));
+        self::assertSame([$processing, $authorized], $settled);
     }
 
     public function test_it_leaves_payments_of_other_gateways_alone(): void
