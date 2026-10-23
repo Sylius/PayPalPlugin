@@ -7,6 +7,7 @@ use Sylius\Component\Resource\Metadata\MetadataInterface;
 use Sylius\PayPalPlugin\Controller\AddToCartAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
+use Sylius\PayPalPlugin\Controller\CaptureAuthorizationAction;
 use Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderForPaymentRequestAction;
@@ -166,6 +167,14 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment'),
             service('sylius_paypal.dispatcher.refund_paypal_late_capture_payment_request'),
+            service('security.csrf.token_manager'),
+            service('router'),
+        ]);
+
+    $services->set('sylius_paypal.controller.capture_authorization', CaptureAuthorizationAction::class)
+        ->args([
+            service('sylius.repository.payment'),
+            service('sylius_paypal.dispatcher.capture_authorization_payment_request'),
             service('security.csrf.token_manager'),
             service('router'),
         ]);

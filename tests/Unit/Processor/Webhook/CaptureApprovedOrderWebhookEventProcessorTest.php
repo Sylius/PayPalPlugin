@@ -19,7 +19,9 @@ use Sylius\Bundle\PaymentBundle\CommandProvider\PaymentRequestCommandProviderInt
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -67,6 +69,37 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
             ->with($command)
             ->willReturn(new Envelope($command))
         ;
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
+    }
+
+    public function test_it_authorizes_the_order_of_the_payment_request_awaiting_its_authorization(): void
+    {
+        $paymentRequest = $this->capturePaymentRequest(stateAfterCapture: PaymentRequestInterface::STATE_COMPLETED, action: PaymentRequestInterface::ACTION_AUTHORIZE);
+        $command = new AuthorizePayPalOrderPaymentRequest(self::HASH);
+
+        $this->paymentRequestCommandProvider->method('provide')->with($paymentRequest)->willReturn($command);
+        $this->commandBus->expects(self::once())->method('dispatch')->with($command)->willReturn(new Envelope($command));
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
+    }
+
+    public function test_it_does_nothing_for_a_payment_another_payment_request_has_already_authorized(): void
+    {
+        $authorizedPayment = $this->createStub(PaymentInterface::class);
+        $authorizedPayment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
+        $this->capturePaymentRequest(payment: $authorizedPayment, action: PaymentRequestInterface::ACTION_AUTHORIZE);
+
+        $this->commandBus->expects(self::never())->method('dispatch');
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $authorizedPayment);
+    }
+
+    public function test_it_does_nothing_for_a_payment_request_of_another_action(): void
+    {
+        $this->capturePaymentRequest(action: CaptureAuthorizationPaymentRequestCommandProvider::ACTION);
+
+        $this->commandBus->expects(self::never())->method('dispatch');
 
         $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
@@ -120,10 +153,11 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         string $state = PaymentRequestInterface::STATE_PROCESSING,
         ?PaymentInterface $payment = null,
         ?string $stateAfterCapture = null,
+        string $action = PaymentRequestInterface::ACTION_CAPTURE,
     ): PaymentRequestInterface {
         $paymentRequest = $this->createStub(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn(self::HASH);
-        $paymentRequest->method('getAction')->willReturn(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->method('getAction')->willReturn($action);
         $paymentRequest->method('getState')->willReturnOnConsecutiveCalls($state, $stateAfterCapture ?? $state);
         $paymentRequest->method('getPayment')->willReturn($payment ?? $this->payment);
 

@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -53,6 +54,12 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
         if (null === $capture) {
             return;
+        }
+
+        $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrderDetails);
+        if (null !== $authorization && $payPalOrderId === $details->payPalOrderId()) {
+            $details = $details->withAuthorization($authorization);
+            $payment->setDetails($details->toArray());
         }
 
         $transition = match ($capture->status()) {

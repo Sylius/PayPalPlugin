@@ -26,6 +26,10 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
 
     private const APPROVED_ORDER_STATUS = 'APPROVED';
 
+    private const PAYPAL_ORDER_ACTIONS = [PaymentRequestInterface::ACTION_CAPTURE, PaymentRequestInterface::ACTION_AUTHORIZE];
+
+    private const SETTLED_PAYMENT_STATES = [PaymentInterface::STATE_AUTHORIZED, PaymentInterface::STATE_COMPLETED];
+
     /** @param PaymentRequestRepositoryInterface<PaymentRequestInterface> $paymentRequestRepository */
     public function __construct(
         private PaymentRequestRepositoryInterface $paymentRequestRepository,
@@ -38,7 +42,7 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
     {
         if (
             self::APPROVED_ORDER_STATUS !== ($resource['status'] ?? null) ||
-            PaymentInterface::STATE_COMPLETED === $payment->getState()
+            in_array($payment->getState(), self::SETTLED_PAYMENT_STATES, true)
         ) {
             return;
         }
@@ -64,7 +68,7 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
             $paymentRequest = $this->paymentRequestRepository->find($customId);
             if (
                 null !== $paymentRequest &&
-                PaymentRequestInterface::ACTION_CAPTURE === $paymentRequest->getAction() &&
+                in_array($paymentRequest->getAction(), self::PAYPAL_ORDER_ACTIONS, true) &&
                 PaymentRequestInterface::STATE_PROCESSING === $paymentRequest->getState() &&
                 $paymentRequest->getPayment() === $payment
             ) {

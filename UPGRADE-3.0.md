@@ -648,10 +648,10 @@
 
    | Event | Effect |
    |---|---|
-   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture |
+   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture, an authorized payment too once its authorization has been captured, from the admin panel or at PayPal |
    | `PAYMENT.CAPTURE.REFUNDED` | refunds the payment, or marks its `paypal_late_capture` refunded, and completes the refund Payment Request waiting for that refund |
    | `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded, without completing a refund Payment Request still waiting for PayPal |
-   | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it; a capture PayPal refuses stays on the failed payment request with its reason |
+   | `CHECKOUT.ORDER.APPROVED` | captures, or authorizes when the payment method authorizes, the order of a payment request still awaiting it; a capture or an authorization PayPal refuses stays on the failed payment request with its reason |
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
    | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
 
@@ -832,3 +832,30 @@
    never meant a PayPal authorization. Gateways still on Payum keep it, every other PayPal gateway config is saved with
    the strategy the merchant chose. Set `use_authorize` to `false` on the PayPal gateway configs you upgrade, or they
    will start authorizing instead of capturing.
+
+1. #### An authorized PayPal payment is captured from the admin panel through a Payment Request.
+
+   The "Complete" button of an authorized PayPal payment on the order page now sends
+   `PUT /admin/orders/{orderId}/payments/{id}/capture-paypal-authorization`
+   (`sylius_paypal_admin_order_payment_capture_authorization`, `sylius_paypal.controller.capture_authorization`). It
+   dispatches a Payment Request with the `capture_authorization` action, through
+   `Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface`
+   (`sylius_paypal.dispatcher.capture_authorization_payment_request`), which captures the authorization at PayPal
+   (`POST /v2/payments/authorizations/{id}/capture`, the request hash as `PayPal-Request-Id`) and completes the payment
+   only once PayPal reports the capture as completed. A pending capture leaves the request processing until the
+   payment is completed, for example by the `PAYMENT.CAPTURE.COMPLETED` webhook, when
+   `Sylius\PayPalPlugin\Completer\CaptureAuthorizationPaymentRequestCompleterInterface`
+   (`sylius_paypal.completer.capture_authorization_payment_request`) completes it. A rejected capture fails the
+   request and keeps the payment authorized.
+
+   The admin API captures it with `PATCH /api/v2/admin/payments/{id}/paypal-capture`
+   (`sylius_paypal_api_admin_payment_patch_paypal_capture`, handled by
+   `Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface`, `sylius_paypal.applicator.payment_capture`),
+   which answers `422` for a payment that is not an authorized PayPal payment. The outcome is listed under
+   `/api/v2/admin/payments/{id}/payment-requests`.
+
+   The `complete` transition of an authorized PayPal payment is guarded by
+   `Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface` (`sylius_paypal.checker.payment_completion`) until
+   PayPal confirms the capture, so the core "Complete" button is hidden for it and
+   `PATCH /api/v2/admin/payments/{id}/complete` answers `422`. The action is not one of the
+   `sylius_api.shop_payment_request.allowed_actions`, so a shop customer cannot request it.
