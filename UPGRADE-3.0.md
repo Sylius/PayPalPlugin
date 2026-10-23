@@ -819,6 +819,10 @@
    | `false` (default) | `"intent": "CAPTURE"`, then `POST /v2/checkout/orders/{id}/capture` | `completed` |
    | `true` | `"intent": "AUTHORIZE"`, then `POST /v2/checkout/orders/{id}/authorize` | `authorized` |
 
+   Like the capture, `AuthorizePayPalOrderPaymentRequestHandler` locks the Payment and then the Payment Request
+   (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook
+   authorizing it at the same time handle it one after the other.
+
    Sylius picks the `authorize` Payment Request action from the same key, on the order pay page, in express
    checkout and in the shop API. An authorizing payment method offers only the payment sources listed in
    `sylius_paypal.authorize.payment_sources` (PayPal with Pay Later, Venmo, cards, Apple Pay and Google Pay by
