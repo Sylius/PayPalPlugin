@@ -106,15 +106,15 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
     }
 
-    public function test_it_records_the_captured_authorization_before_asking_whether_the_payment_can_be_completed(): void
+    public function test_it_records_the_captured_authorization_and_its_capture_before_asking_whether_the_payment_can_be_completed(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
         $calls = [];
         $this->payment->method('setDetails')->willReturnCallback(function (array $details) use (&$calls): void {
-            $calls[] = ['setDetails', $details['authorization_status'] ?? null];
+            $calls[] = ['setDetails', $details['authorization_status'] ?? null, $details['capture_status'] ?? null];
         });
         $this->stateMachine->method('can')->willReturnCallback(function () use (&$calls): bool {
-            $calls[] = ['can', null];
+            $calls[] = ['can'];
 
             return true;
         });
@@ -124,7 +124,7 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
 
         $this->processor->settle($this->payment, $orderDetails);
 
-        self::assertSame([['setDetails', 'CAPTURED'], ['can', null], ['setDetails', 'CAPTURED']], $calls);
+        self::assertSame([['setDetails', 'CAPTURED', 'COMPLETED'], ['can'], ['setDetails', 'CAPTURED', 'COMPLETED']], $calls);
     }
 
     public function test_it_authorizes_the_payment_once_paypal_has_created_its_authorization(): void
