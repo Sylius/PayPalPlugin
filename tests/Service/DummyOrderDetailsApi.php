@@ -17,8 +17,43 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 
 final class DummyOrderDetailsApi implements OrderDetailsApiInterface
 {
+    public static string $captureStatus = 'COMPLETED';
+
+    public static ?\Throwable $failWith = null;
+
+    /** @var array<string, mixed>|null */
+    public static ?array $response = null;
+
+    /** @var array<string, mixed>|null */
+    private ?array $nextResponse = null;
+
+    /** @param array<string, mixed> $response */
+    public function useResponse(array $response): void
+    {
+        $this->nextResponse = $response;
+    }
+
     public function get(string $token, string $orderId): array
     {
-        return ['status' => 'COMPLETED', 'purchase_units' => [['payments' => ['captures' => [['id' => '123123']]]]]];
+        if (null !== self::$failWith) {
+            throw self::$failWith;
+        }
+
+        return $this->nextResponse ?? self::$response ?? [
+            'status' => 'COMPLETED',
+            'purchase_units' => [
+                [
+                    'payments' => [
+                        'captures' => [
+                            [
+                                'id' => '123123',
+                                'status' => self::$captureStatus,
+                                'amount' => ['currency_code' => 'USD', 'value' => '0.20'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 }

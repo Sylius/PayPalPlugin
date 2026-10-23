@@ -19,6 +19,15 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 final readonly class WebhookApi implements WebhookApiInterface
 {
+    /** @var list<string> */
+    public const EVENT_TYPES = [
+        'PAYMENT.CAPTURE.REFUNDED',
+        'PAYMENT.CAPTURE.COMPLETED',
+        'PAYMENT.CAPTURE.DENIED',
+        'PAYMENT.CAPTURE.DECLINED',
+        'PAYMENT.CAPTURE.PENDING',
+    ];
+
     public function __construct(
         private ClientInterface $client,
         private string $baseUrl,
@@ -39,9 +48,10 @@ final readonly class WebhookApi implements WebhookApiInterface
                 json_encode(
                     [
                         'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
-                        'event_types' => [
-                            ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
-                        ],
+                        'event_types' => array_map(
+                            static fn (string $eventType): array => ['name' => $eventType],
+                            self::EVENT_TYPES,
+                        ),
                     ],
                 ),
             ),

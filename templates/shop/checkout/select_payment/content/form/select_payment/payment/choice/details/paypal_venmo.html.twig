@@ -1,0 +1,9 @@
+{% if hookable_metadata.context.method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    <venmo-button
+        class="mb-3"
+        data-sylius-paypal-venmo-button
+        data-live-ignore
+        style="display: block; width: 250px"
+        hidden
+    ></venmo-button>
+{% endif %}

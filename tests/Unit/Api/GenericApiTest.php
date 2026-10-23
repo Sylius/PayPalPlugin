@@ -23,6 +23,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\GenericApi;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Symfony\Component\HttpFoundation\Response;
 
 final class GenericApiTest extends TestCase
 {
@@ -78,6 +80,8 @@ final class GenericApiTest extends TestCase
             ->with($request)
             ->willReturn($response);
 
+        $response->method('getStatusCode')->willReturn(Response::HTTP_OK);
+
         $response
             ->expects(self::once())
             ->method('getBody')
@@ -91,5 +95,22 @@ final class GenericApiTest extends TestCase
         $result = $this->genericApi->get('TOKEN', 'http://url.com/');
 
         self::assertEquals(['parameter' => 'VALUE'], $result);
+    }
+
+    public function test_it_refuses_to_read_a_response_paypal_answered_with_an_error(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestFactory->method('createRequest')->willReturn($request);
+
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(Response::HTTP_INTERNAL_SERVER_ERROR);
+        $response->expects(self::never())->method('getBody');
+
+        $this->client->method('sendRequest')->willReturn($response);
+
+        $this->expectException(PayPalPluginException::class);
+
+        $this->genericApi->get('TOKEN', 'http://url.com/');
     }
 }

@@ -1,0 +1,50 @@
+{
+    "name": "@sylius/paypal-plugin",
+    "version": "0.1.0",
+    "symfony": {
+        "controllers": {
+            "paypal-web-sdk": {
+                "main": "controllers/PaypalWebSdkController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-payment-wallet-button": {
+                "main": "controllers/PaymentPageWalletButtonController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-payment-card-fields": {
+                "main": "controllers/PaymentPageCardFieldsController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-message": {
+                "main": "controllers/PaypalMessageController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-payment-google-pay": {
+                "main": "controllers/PaymentPageGooglePayController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-payment-apple-pay": {
+                "main": "controllers/PaymentPageApplePayController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            },
+            "paypal-payment-redirect-button": {
+                "main": "controllers/PaymentPageRedirectButtonController.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            }
+        }
+    }
+}

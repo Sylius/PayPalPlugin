@@ -1,0 +1,9 @@
+{% from '@SyliusShop/shared/macro/order/state.html.twig' import label %}
+
+{% set payment = hookable_metadata.context.payment %}
+
+{% if payment.state == 'cancelled' %}
+    <div {{ sylius_test_html_attribute('payment-state') }}>
+        {{ label(payment.state) }}
+    </div>
+{% endif %}

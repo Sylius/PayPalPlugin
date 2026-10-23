@@ -18,6 +18,7 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxPaymentMethodCreatorInterface
 {
@@ -47,14 +48,14 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         $gatewayConfig->setGatewayName(self::GATEWAY_NAME);
 
         $gatewayConfig->setConfig([
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'merchant_id' => $merchantId,
-            'use_authorize' => 1,
-            'sylius_merchant_id' => self::SYLIUS_SANDBOX_MERCHANT_ID,
-            'reports_sftp_password' => null,
-            'reports_sftp_username' => null,
-            'partner_attribution_id' => self::PARTNER_ATTRIBUTION_ID,
+            PayPalGatewayConfig::CLIENT_ID => $clientId,
+            PayPalGatewayConfig::CLIENT_SECRET => $clientSecret,
+            PayPalGatewayConfig::MERCHANT_ID => $merchantId,
+            PayPalGatewayConfig::USE_AUTHORIZE => 1,
+            PayPalGatewayConfig::SYLIUS_MERCHANT_ID => self::SYLIUS_SANDBOX_MERCHANT_ID,
+            PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
+            PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
+            PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => self::PARTNER_ATTRIBUTION_ID,
         ]);
 
         return $gatewayConfig;

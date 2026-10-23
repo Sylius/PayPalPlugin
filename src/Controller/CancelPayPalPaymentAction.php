@@ -74,7 +74,9 @@ final readonly class CancelPayPalPaymentAction
         if ($this->stateMachineFactory->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)) {
             $this->stateMachineFactory->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
 
-            $this->orderPaymentProcessor->process($order);
+            if ($order->canBeProcessed()) {
+                $this->orderPaymentProcessor->process($order);
+            }
             $this->objectManager->flush();
 
             FlashBagProvider::getFlashBag($this->flashBagOrRequestStack)

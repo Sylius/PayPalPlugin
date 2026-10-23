@@ -1,0 +1,16 @@
+sylius_twig_hooks:
+    hooks:
+        'sylius_admin.order.show.content.sections.shipments.item.general':
+            paypal_tracking_state:
+                template: '@SyliusPayPalPlugin/admin/order/show/content/sections/shipments/item/general/paypal_tracking_state.html.twig'
+                priority: 50
+
+        'sylius_admin.order.show.content.sections.shipments.item.actions':
+            ship:
+                props:
+                    template: '@SyliusPayPalPlugin/admin/shipment/component/ship_gate.html.twig'
+
+        'sylius_admin.order.show.content.sections.shipments':
+            items:
+                template: '@SyliusPayPalPlugin/admin/order/show/content/sections/shipments/items.html.twig'
+                priority: 0

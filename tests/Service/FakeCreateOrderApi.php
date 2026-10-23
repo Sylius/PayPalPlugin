@@ -15,11 +15,18 @@ namespace Tests\Sylius\PayPalPlugin\Service;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final class FakeCreateOrderApi implements CreateOrderApiInterface
 {
-    public function create(string $token, PaymentInterface $payment, string $referenceId): array
-    {
+    public function create(
+        string $token,
+        PaymentInterface $payment,
+        string $referenceId,
+        string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+        ?string $payerActionReturnNonce = null,
+        ?string $payerActionCancelNonce = null,
+    ): array {
         return ['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED'];
     }
 }

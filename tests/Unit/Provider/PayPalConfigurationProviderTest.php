@@ -22,6 +22,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 
 final class PayPalConfigurationProviderTest extends TestCase
 {
@@ -41,6 +42,110 @@ final class PayPalConfigurationProviderTest extends TestCase
     public function it_implements_pay_pal_configuration_provider_interface(): void
     {
         self::assertInstanceOf(PayPalConfigurationProviderInterface::class, $this->payPalConfigurationProvider);
+    }
+
+    #[Test]
+    public function it_implements_pay_pal_funding_sources_configuration_provider_interface(): void
+    {
+        self::assertInstanceOf(PayPalFundingSourcesConfigurationProviderInterface::class, $this->payPalConfigurationProvider);
+    }
+
+    #[Test]
+    public function it_considers_pay_later_enabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isPayLaterEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_pay_later_disabled_when_explicitly_set_to_false(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['pay_later_enabled' => false]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isPayLaterEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_venmo_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isVenmoEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_venmo_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['venmo_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isVenmoEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_messaging_enabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isMessagingEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_messaging_disabled_when_explicitly_set_to_false(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['messaging_enabled' => false]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isMessagingEnabled($channel));
+    }
+
+    #[Test]
+    public function it_considers_messaging_disabled_when_pay_later_is_disabled_even_if_messaging_is_explicitly_enabled(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['pay_later_enabled' => false, 'messaging_enabled' => true]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isMessagingEnabled($channel));
+    }
+
+    public function test_it_considers_google_pay_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isGooglePayEnabled($channel));
+    }
+
+    public function test_it_considers_google_pay_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['google_pay_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isGooglePayEnabled($channel));
+    }
+
+    public function test_it_considers_apple_pay_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isApplePayEnabled($channel));
+    }
+
+    public function test_it_considers_apple_pay_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['apple_pay_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isApplePayEnabled($channel));
+    }
+
+    public function test_it_considers_trustly_disabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isTrustlyEnabled($channel));
+    }
+
+    public function test_it_considers_trustly_enabled_when_explicitly_set_to_true(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['trustly_enabled' => true]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isTrustlyEnabled($channel));
     }
 
     #[Test]
@@ -243,5 +348,24 @@ final class PayPalConfigurationProviderTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->payPalConfigurationProvider->getPartnerAttributionId($channel);
+    }
+
+    /** @param array<string, mixed> $config */
+    private function configurePayPalPaymentMethodConfig(array $config): ChannelInterface&MockObject
+    {
+        $channel = $this->createMock(ChannelInterface::class);
+        $payPalPaymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $payPalGatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $this->paymentMethodRepository
+            ->method('findEnabledForChannel')
+            ->with($channel)
+            ->willReturn([$payPalPaymentMethod]);
+
+        $payPalPaymentMethod->method('getGatewayConfig')->willReturn($payPalGatewayConfig);
+        $payPalGatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
+        $payPalGatewayConfig->method('getConfig')->willReturn($config);
+
+        return $channel;
     }
 }

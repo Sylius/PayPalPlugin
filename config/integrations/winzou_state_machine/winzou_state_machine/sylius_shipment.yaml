@@ -1,0 +1,8 @@
+winzou_state_machine:
+    sylius_shipment:
+        callbacks:
+            after:
+                paypal_send_shipment_tracking:
+                    on: [ 'ship' ]
+                    do: [ '@sylius_paypal.dispatcher.shipment_tracking', 'dispatch' ]
+                    args: [ 'object' ]
