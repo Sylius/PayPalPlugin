@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
-use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -23,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Provider\PersistingWebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
 final class PersistingWebhookIdProviderTest extends TestCase
 {
@@ -30,7 +30,7 @@ final class PersistingWebhookIdProviderTest extends TestCase
 
     private WebhookIdProviderInterface&MockObject $innerProvider;
 
-    private ObjectManager&MockObject $paymentMethodManager;
+    private WebhookIdUpdaterInterface&MockObject $webhookIdUpdater;
 
     private CacheItemPoolInterface&MockObject $cache;
 
@@ -40,12 +40,12 @@ final class PersistingWebhookIdProviderTest extends TestCase
     {
         parent::setUp();
         $this->innerProvider = $this->createMock(WebhookIdProviderInterface::class);
-        $this->paymentMethodManager = $this->createMock(ObjectManager::class);
+        $this->webhookIdUpdater = $this->createMock(WebhookIdUpdaterInterface::class);
         $this->cache = $this->createMock(CacheItemPoolInterface::class);
 
         $this->provider = new PersistingWebhookIdProvider(
             $this->innerProvider,
-            $this->paymentMethodManager,
+            $this->webhookIdUpdater,
             $this->cache,
             self::COOLDOWN,
         );
@@ -63,7 +63,7 @@ final class PersistingWebhookIdProviderTest extends TestCase
         $paymentMethod = $this->paymentMethod($this->gatewayConfig(['webhook_id' => 'WH-STORED']));
 
         $this->innerProvider->expects(self::never())->method('provide');
-        $this->paymentMethodManager->expects(self::never())->method('flush');
+        $this->webhookIdUpdater->expects(self::never())->method('update');
 
         self::assertSame('WH-STORED', $this->provider->provide($paymentMethod));
     }
@@ -75,8 +75,7 @@ final class PersistingWebhookIdProviderTest extends TestCase
         $paymentMethod = $this->paymentMethod($gatewayConfig);
 
         $this->innerProvider->method('provide')->with($paymentMethod)->willReturn('WH-NEW');
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(['webhook_id' => 'WH-NEW']);
-        $this->paymentMethodManager->expects(self::once())->method('flush');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($paymentMethod, 'WH-NEW');
 
         self::assertSame('WH-NEW', $this->provider->provide($paymentMethod));
     }
@@ -88,8 +87,7 @@ final class PersistingWebhookIdProviderTest extends TestCase
         $paymentMethod = $this->paymentMethod($gatewayConfig);
 
         $this->innerProvider->method('provide')->willReturn(null);
-        $gatewayConfig->expects(self::never())->method('setConfig');
-        $this->paymentMethodManager->expects(self::never())->method('flush');
+        $this->webhookIdUpdater->expects(self::never())->method('update');
 
         self::assertNull($this->provider->provide($paymentMethod));
     }
@@ -102,8 +100,7 @@ final class PersistingWebhookIdProviderTest extends TestCase
 
         $this->mockCooldown(isHit: false);
         $this->innerProvider->expects(self::once())->method('refresh')->with($paymentMethod)->willReturn('WH-FRESH');
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(['webhook_id' => 'WH-FRESH']);
-        $this->paymentMethodManager->expects(self::once())->method('flush');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($paymentMethod, 'WH-FRESH');
 
         self::assertSame('WH-FRESH', $this->provider->refresh($paymentMethod));
     }
@@ -115,7 +112,7 @@ final class PersistingWebhookIdProviderTest extends TestCase
 
         $this->mockCooldown(isHit: true);
         $this->innerProvider->expects(self::never())->method('refresh');
-        $this->paymentMethodManager->expects(self::never())->method('flush');
+        $this->webhookIdUpdater->expects(self::never())->method('update');
 
         self::assertNull($this->provider->refresh($paymentMethod));
     }

@@ -11,9 +11,10 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Provider;
+namespace Sylius\PayPalPlugin\Checker;
 
-interface PayPalRefundDataProviderInterface
+interface ApprovedPayPalOrderCheckerInterface
 {
-    public function provide(string $refundRefundUrl): array;
+    /** @param array<string, mixed> $payPalOrder */
+    public function isApproved(array $payPalOrder, string $paymentSource): bool;
 }

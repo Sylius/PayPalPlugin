@@ -74,6 +74,84 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_FAILED, $this->reloadPayment($order)->getState());
     }
 
+    public function test_it_completes_a_payment_whose_payer_never_came_back_from_the_bank(): void
+    {
+        $order = $this->processingOrder();
+        $order->getLastPayment()?->setState(PaymentInterface::STATE_NEW);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_it_keeps_a_capture_completed_for_a_cancelled_payment_to_be_refunded(): void
+    {
+        $order = $this->processingOrder();
+        $order->getLastPayment()?->setState(PaymentInterface::STATE_CANCELLED);
+        $this->getEntityManager()->flush();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
+        self::assertEquals(
+            ['id' => 'CAPTURE_ID', 'order_id' => 'PAYPAL_ORDER_ID', 'amount' => 20, 'currency_code' => 'USD'],
+            $payment->getDetails()['paypal_late_capture'] ?? null,
+        );
+    }
+
+    public function test_it_pays_the_payment_with_the_bank_order_another_attempt_superseded(): void
+    {
+        $order = $this->orderPaidAfterAnotherAttempt(PaymentInterface::STATE_NEW);
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        self::assertSame('PAYPAL_ORDER_ID', $payment->getDetails()['paypal_order_id']);
+        self::assertSame('trustly', $payment->getDetails()['payment_source']);
+        self::assertSame(['ANOTHER_PAYPAL_ORDER_ID' => 'paypal'], $payment->getDetails()['superseded_paypal_orders']);
+    }
+
+    public function test_it_keeps_the_capture_of_a_superseded_bank_order_on_a_paid_payment_to_be_refunded(): void
+    {
+        $order = $this->orderPaidAfterAnotherAttempt(PaymentInterface::STATE_COMPLETED);
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapture();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
+        self::assertSame('ANOTHER_PAYPAL_ORDER_ID', $payment->getDetails()['paypal_order_id']);
+        self::assertEquals(
+            ['id' => 'CAPTURE_ID', 'order_id' => 'PAYPAL_ORDER_ID', 'amount' => 20, 'currency_code' => 'USD'],
+            $payment->getDetails()['paypal_late_capture'] ?? null,
+        );
+    }
+
+    public function test_it_asks_paypal_to_deliver_the_event_again_when_settlement_fails(): void
+    {
+        $order = $this->processingOrder();
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsUnreachable();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-1');
+
+        self::assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+        self::assertNull($this->webhookEventStatus('WH-1'));
+    }
+
     public function test_it_completes_the_payment_of_a_completed_checkout_order(): void
     {
         $order = $this->processingOrder();
@@ -90,7 +168,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
     }
 
-    public function test_it_refunds_a_completed_payment_paypal_says_was_refunded(): void
+    public function test_it_stores_the_refund_paypal_confirmed_and_refunds_the_payment_without_calling_paypal(): void
     {
         $order = $this->completedOrder();
         $this->payPalApi()->mockRefundDetails();
@@ -102,6 +180,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_REFUNDED, $payment->getState());
         self::assertTrue($payment->getDetails()['refunded']);
         self::assertSame('REFUND_ID', $payment->getDetails()['refund_id']);
+        self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
     }
 
     public function test_it_refunds_a_completed_payment_paypal_reversed_without_refunding_it_again(): void
@@ -169,6 +248,34 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
 
         self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->reloadPaymentRequest($paymentRequest)->getState());
+    }
+
+    public function test_it_completes_the_refund_request_waiting_for_paypal(): void
+    {
+        $order = $this->completedOrder();
+        $paymentRequest = $this->pendingRefundPaymentRequest($order, 'REFUND_ID');
+        $this->payPalApi()->mockRefundDetails();
+
+        $this->notifyAboutRefund('PAYMENT.CAPTURE.REFUNDED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_REFUNDED, $this->reloadPayment($order)->getState());
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
+    }
+
+    public function test_it_accepts_a_refund_event_whose_refund_does_not_point_at_its_capture(): void
+    {
+        $order = $this->completedOrder();
+        $this->payPalHttpClient()->addExpectation('GET', 'v2/payments/refunds/REFUND_ID', [
+            'id' => 'REFUND_ID',
+            'links' => [['rel' => 'self', 'href' => 'https://api.sandbox.paypal.com/v2/payments/refunds/REFUND_ID']],
+        ]);
+
+        $this->notifyAboutRefund('PAYMENT.CAPTURE.REFUNDED', 'WH-1');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+        self::assertSame(PayPalWebhookEventStatus::Failed->value, $this->webhookEventStatus('WH-1'));
     }
 
     public function test_replaying_a_batch_of_events_changes_nothing_again(): void
@@ -242,6 +349,22 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
 
         /** @var OrderInterface $order */
         $order = $fixtures['processing_order'];
+
+        return $order;
+    }
+
+    private function orderPaidAfterAnotherAttempt(string $paymentState): OrderInterface
+    {
+        $order = $this->processingOrder();
+        $payment = $order->getLastPayment();
+        $payment?->setState($paymentState);
+        $payment?->setDetails([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => 'ANOTHER_PAYPAL_ORDER_ID',
+            'payment_source' => 'paypal',
+            'superseded_paypal_orders' => ['PAYPAL_ORDER_ID' => 'trustly'],
+        ]);
+        $this->getEntityManager()->flush();
 
         return $order;
     }

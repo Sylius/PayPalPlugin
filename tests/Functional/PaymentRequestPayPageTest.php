@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -280,6 +281,61 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertSame($paymentSource, $completed->getDetails()['payment_source']);
     }
 
+    #[DataProvider('walletPaymentSources')]
+    public function test_it_authorizes_a_wallet_payment_the_payer_approved_when_the_payment_method_authorizes(string $paymentSource): void
+    {
+        $payment = $this->payPalOrder(authorize: true);
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
+        $payment->setAmount($order->getTotal());
+        $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::ACTION_AUTHORIZE);
+
+        $this->payPalApi()->mockCreateOrder();
+        $this->client->request('POST', sprintf('/en_US/paypal/payment-requests/%s/order', $hash), server: ['CONTENT_TYPE' => 'application/json'], content: json_encode(['paymentSource' => $paymentSource], \JSON_THROW_ON_ERROR));
+        /** @var array{approve_url: string} $attempt */
+        $attempt = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+
+        if ('google_pay' === $paymentSource) {
+            $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'APPROVED']);
+        }
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID');
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockAuthorize(requestId: sprintf('%s-authorize', $hash));
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        $this->client->request('GET', $attempt['approve_url']);
+        $this->client->followRedirect();
+
+        self::assertTrue($this->client->getResponse()->isRedirect('/en_US/order/thank-you'));
+        $authorized = $this->reloadedPayment(PaymentInterface::STATE_AUTHORIZED);
+        self::assertNotNull($authorized);
+        self::assertSame('AUTHORIZED', $authorized->getDetails()['status']);
+        self::assertSame('AUTHORIZATION_ID', $authorized->getDetails()['authorization_id']);
+        self::assertSame(OrderInterface::STATE_NEW, $authorized->getOrder()?->getState());
+        self::assertSame(OrderPaymentStates::STATE_AUTHORIZED, $authorized->getOrder()?->getPaymentState());
+    }
+
+    public function test_it_authorizes_a_card_payment_3d_secure_authenticated_when_the_payment_method_authorizes(): void
+    {
+        $payment = $this->payPalOrder(authorize: true);
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $order->setShippingAddress($this->shippingAddress());
+        $payment->setAmount($order->getTotal());
+        $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'reference_id' => 'REFERENCE_ID', 'payment_source' => 'card']);
+        $hash = $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_PROCESSING, PaymentRequestInterface::ACTION_AUTHORIZE);
+
+        $this->payPalApi()->mockCardOrderDetails();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'CREATED']);
+        $this->payPalApi()->mockUpdateOrderAddress();
+        $this->payPalApi()->mockAuthorize();
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $hash));
+
+        self::assertNotNull($this->reloadedPayment(PaymentInterface::STATE_AUTHORIZED));
+    }
+
     private function redirectPaymentRequestHash(): string
     {
         $payment = $this->payPalOrder();
@@ -329,7 +385,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         return $paymentRequest;
     }
 
-    private function payPalOrder(): PaymentInterface
+    private function payPalOrder(bool $authorize = false): PaymentInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
@@ -344,6 +400,7 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $gatewayConfig->setConfig(array_merge(
             array_diff_key($gatewayConfig->getConfig(), ['use_authorize' => true]),
             ['venmo_enabled' => true, 'google_pay_enabled' => true, 'apple_pay_enabled' => true, 'trustly_enabled' => true],
+            $authorize ? ['use_authorize' => true] : [],
         ));
 
         $this->getEntityManager()->flush();
@@ -351,13 +408,13 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         return $payment;
     }
 
-    private function paymentRequestHash(PaymentInterface $payment, string $state): string
+    private function paymentRequestHash(PaymentInterface $payment, string $state, string $action = PaymentRequestInterface::ACTION_CAPTURE): string
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
-        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->setAction($action);
         $paymentRequest->setState($state);
 
         $this->getEntityManager()->persist($paymentRequest);

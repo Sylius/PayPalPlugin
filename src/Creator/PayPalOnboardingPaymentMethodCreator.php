@@ -91,6 +91,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         $gatewayConfig->setConfig($this->credentialsManager->store([
             PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
             PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
+            PayPalGatewayConfig::USE_AUTHORIZE => false,
         ], $sandbox, $credentials));
 
         if ($gatewayConfig instanceof PayumGatewayConfigInterface) {
@@ -108,6 +109,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         $paymentMethod->setCode(self::PAYMENT_METHOD_CODE);
         $paymentMethod->setName(self::PAYMENT_METHOD_NAME);
         $paymentMethod->setDescription(self::PAYMENT_METHOD_DESCRIPTION);
+        $paymentMethod->setPosition(0);
 
         return $paymentMethod;
     }

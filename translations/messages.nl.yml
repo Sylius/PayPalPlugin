@@ -1,6 +1,10 @@
 sylius_paypal:
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
+    capture_strategy: 'Incassostrategie'
+    capture_strategy_authorize: 'Autoriseren en incasseren'
+    capture_strategy_capture: 'Onmiddellijk incasseren'
+    capture_strategy_help: 'Autoriseren reserveert het geld van de koper. Voltooi de betaling in de bestelling om te incasseren, of annuleer de bestelling om de autorisatie in te trekken. Alleen PayPal, Pay Later, Venmo, kaarten, Apple Pay en Google Pay worden aangeboden, andere betaalmethoden worden verborgen.'
     card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'
     card_number: 'Credit Card nummer'
     card_three_d_secure_always: 'Altijd 3D Secure aanvragen voor kaartbetalingen'

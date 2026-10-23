@@ -226,6 +226,15 @@ final class ExpressCheckoutCompleterTest extends TestCase
         $this->completer->complete($this->payment);
     }
 
+    public function test_it_stores_the_intent_the_approved_paypal_order_was_created_with(): void
+    {
+        $this->givenAnAddressedOrderWithTotal(10000);
+
+        $this->payment->expects(self::once())->method('setDetails')->with(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL-ORDER')->withReferenceId('REFERENCE')->withPayPalOrderIntent('AUTHORIZE')->toArray());
+
+        $this->completer->complete($this->payment);
+    }
+
     public function test_it_lowers_the_approved_amount_when_the_order_total_dropped(): void
     {
         $this->givenAnAddressedOrderWithTotal(9000);
@@ -301,6 +310,7 @@ final class ExpressCheckoutCompleterTest extends TestCase
     {
         return [
             'id' => 'PAYPAL-ORDER',
+            'intent' => 'AUTHORIZE',
             'payer' => [
                 'email_address' => 'buyer@example.com',
                 'name' => ['given_name' => 'John', 'surname' => 'Doe'],

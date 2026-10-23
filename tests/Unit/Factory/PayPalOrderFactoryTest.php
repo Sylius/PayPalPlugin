@@ -19,6 +19,8 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
@@ -416,6 +418,64 @@ final class PayPalOrderFactoryTest extends TestCase
         ;
 
         self::assertSame(['google_pay' => ['attributes' => []]], $payPalOrder['payment_source']);
+    }
+
+    public function test_it_authorizes_when_the_payment_method_authorizes_the_payment_source(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $this->payment->method('getMethod')->willReturn($paymentMethod);
+
+        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
+        $paymentAuthorizationChecker->expects(self::once())->method('isAuthorizable')->with('card', $paymentMethod)->willReturn(true);
+
+        $payPalOrder = $this->factoryCheckingAuthorizationWith($paymentAuthorizationChecker)
+            ->create($this->payment, 'REFERENCE_ID', 'card')
+            ->toArray()
+        ;
+
+        self::assertSame('AUTHORIZE', $payPalOrder['intent']);
+    }
+
+    public function test_it_captures_when_the_payment_method_does_not_authorize_the_payment_source(): void
+    {
+        $this->payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
+
+        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
+        $paymentAuthorizationChecker->method('isAuthorizable')->willReturn(false);
+
+        $payPalOrder = $this->factoryCheckingAuthorizationWith($paymentAuthorizationChecker)
+            ->create($this->payment, 'REFERENCE_ID')
+            ->toArray()
+        ;
+
+        self::assertSame('CAPTURE', $payPalOrder['intent']);
+    }
+
+    public function test_it_captures_a_payment_without_a_payment_method(): void
+    {
+        $this->payment->method('getMethod')->willReturn(null);
+
+        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
+        $paymentAuthorizationChecker->expects(self::never())->method('isAuthorizable');
+
+        $payPalOrder = $this->factoryCheckingAuthorizationWith($paymentAuthorizationChecker)
+            ->create($this->payment, 'REFERENCE_ID')
+            ->toArray()
+        ;
+
+        self::assertSame('CAPTURE', $payPalOrder['intent']);
+    }
+
+    private function factoryCheckingAuthorizationWith(PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker): PayPalOrderFactory
+    {
+        return new PayPalOrderFactory(
+            $this->payPalPurchaseUnitFactory,
+            $this->router,
+            $this->shippingCallbackUrlProvider,
+            null,
+            null,
+            $paymentAuthorizationChecker,
+        );
     }
 
     private function purchaseUnit(): PayPalPurchaseUnit

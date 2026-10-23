@@ -147,6 +147,11 @@ final readonly class PayPalGatewayConfig
         return $this->flag(self::APPLE_PAY_ENABLED, false);
     }
 
+    public function isAuthorizeEnabled(): bool
+    {
+        return $this->flag(self::USE_AUTHORIZE, false);
+    }
+
     public function isSandbox(): bool
     {
         return $this->flag(CredentialsManagerInterface::MODE_KEY, false);

@@ -102,7 +102,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             ->expects(self::once())
             ->method('store')
             ->with(
-                ['reports_sftp_password' => null, 'reports_sftp_username' => null],
+                ['reports_sftp_password' => null, 'reports_sftp_username' => null, 'use_authorize' => false],
                 false,
                 self::CREDENTIALS,
             )
@@ -114,6 +114,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
 
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $paymentMethod->expects(self::once())->method('setPosition')->with(0);
         $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);
         $this->entityManager->expects(self::never())->method('flush');
 
@@ -156,6 +157,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
         $gatewayConfig->expects(self::never())->method('setUsePayum');
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $paymentMethod->expects(self::never())->method('setPosition');
         $this->cachedAccessTokenRemover->expects(self::once())->method('remove')->with($paymentMethod);
 
         $this->gatewayFactory->expects(self::never())->method('createNew');

@@ -42,19 +42,22 @@ final class WebhookApiTest extends TestCase
             ->expects(self::once())
             ->method('post')
             ->with($this->paymentMethod, 'v1/notifications/webhooks', [
-                'url' => 'https://shop.example.com/paypal-webhook/api/',
+                'url' => 'https://shop.example.com/payment-methods/PAYPAL',
                 'event_types' => [
-                    ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ['name' => 'CHECKOUT.ORDER.APPROVED'],
+                    ['name' => 'CHECKOUT.ORDER.COMPLETED'],
                     ['name' => 'PAYMENT.CAPTURE.COMPLETED'],
                     ['name' => 'PAYMENT.CAPTURE.DENIED'],
                     ['name' => 'PAYMENT.CAPTURE.DECLINED'],
                     ['name' => 'PAYMENT.CAPTURE.PENDING'],
+                    ['name' => 'PAYMENT.CAPTURE.REFUNDED'],
+                    ['name' => 'PAYMENT.CAPTURE.REVERSED'],
                 ],
             ])
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->webhookApi->register($this->paymentMethod, 'https://shop.example.com/paypal-webhook/api/'));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->webhookApi->register($this->paymentMethod, 'https://shop.example.com/payment-methods/PAYPAL'));
     }
 
     public function test_it_registers_the_webhook_over_https(): void
@@ -62,10 +65,10 @@ final class WebhookApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with($this->paymentMethod, 'v1/notifications/webhooks', self::callback(static fn (array $data): bool => 'https://shop.example.com/paypal-webhook/api/' === $data['url']))
+            ->with($this->paymentMethod, 'v1/notifications/webhooks', self::callback(static fn (array $data): bool => 'https://shop.example.com/payment-methods/PAYPAL' === $data['url']))
             ->willReturn([])
         ;
 
-        $this->webhookApi->register($this->paymentMethod, 'http://shop.example.com/paypal-webhook/api/');
+        $this->webhookApi->register($this->paymentMethod, 'http://shop.example.com/payment-methods/PAYPAL');
     }
 }

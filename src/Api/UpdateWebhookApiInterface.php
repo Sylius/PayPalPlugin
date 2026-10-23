@@ -22,5 +22,5 @@ interface UpdateWebhookApiInterface
      *
      * @return array<string, mixed>
      */
-    public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array;
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array;
 }

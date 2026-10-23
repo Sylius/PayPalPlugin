@@ -20,12 +20,13 @@ use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final readonly class CapturePayPalOrderPaymentRequestDispatcher implements CapturePayPalOrderPaymentRequestDispatcherInterface
+final readonly class ApprovedPayPalOrderPaymentRequestDispatcher implements ApprovedPayPalOrderPaymentRequestDispatcherInterface
 {
     /**
      * @param PaymentRequestFactoryInterface<PaymentRequestInterface> $paymentRequestFactory
@@ -44,16 +45,21 @@ final readonly class CapturePayPalOrderPaymentRequestDispatcher implements Captu
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $authorize = $details->isAuthorizeIntent();
+
         $paymentRequest = $this->paymentRequestFactory->create($payment, $paymentMethod);
-        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->setAction($authorize ? PaymentRequestInterface::ACTION_AUTHORIZE : PaymentRequestInterface::ACTION_CAPTURE);
         $paymentRequest->setResponseData([
-            CreatePayPalOrderPaymentRequestHandler::RESPONSE_PAYPAL_ORDER_ID => PayPalPaymentDetails::fromPayment($payment)->payPalOrderId(),
+            CreatePayPalOrderPaymentRequestHandler::RESPONSE_PAYPAL_ORDER_ID => $details->payPalOrderId(),
         ]);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
 
         $this->paymentRequestRepository->add($paymentRequest);
 
-        $this->commandBus->dispatch(new CapturePayPalOrderPaymentRequest($paymentRequest->getId()));
+        $this->commandBus->dispatch($authorize
+            ? new AuthorizePayPalOrderPaymentRequest($paymentRequest->getId())
+            : new CapturePayPalOrderPaymentRequest($paymentRequest->getId()));
 
         return $paymentRequest;
     }

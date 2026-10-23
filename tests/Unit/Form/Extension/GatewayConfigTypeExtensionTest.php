@@ -49,11 +49,13 @@ final class GatewayConfigTypeExtensionTest extends TypeTestCase
         self::assertSame(['client_id' => 'CLIENT_ID', 'use_authorize' => true], $gatewayConfig->getConfig());
     }
 
-    public function test_it_lets_a_paypal_gateway_on_payment_requests_capture(): void
+    public function test_it_keeps_the_capture_strategy_of_a_paypal_gateway_on_payment_requests(): void
     {
-        $gatewayConfig = $this->submit($this->gatewayConfig('sylius_paypal', usePayum: false, config: ['client_id' => 'CLIENT_ID', 'use_authorize' => true]));
+        $authorizing = $this->submit($this->gatewayConfig('sylius_paypal', usePayum: false, config: ['client_id' => 'CLIENT_ID', 'use_authorize' => true]));
+        $capturing = $this->submit($this->gatewayConfig('sylius_paypal', usePayum: false, config: ['client_id' => 'CLIENT_ID', 'use_authorize' => false]));
 
-        self::assertSame(['client_id' => 'CLIENT_ID'], $gatewayConfig->getConfig());
+        self::assertSame(['client_id' => 'CLIENT_ID', 'use_authorize' => true], $authorizing->getConfig());
+        self::assertSame(['client_id' => 'CLIENT_ID', 'use_authorize' => false], $capturing->getConfig());
     }
 
     public function test_it_leaves_other_gateways_alone(): void

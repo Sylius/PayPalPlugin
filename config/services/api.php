@@ -7,6 +7,8 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Api\AuthorizeOrderApi;
+use Sylius\PayPalPlugin\Api\AuthorizeOrderApiInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApi;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\CallbackSignatureVerifier;
@@ -44,6 +46,8 @@ use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Provider\PersistingWebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemover;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
@@ -128,6 +132,11 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(FindEligibleMethodsApiInterface::class, 'sylius_paypal.api.find_eligible_methods');
 
+    $services->set('sylius_paypal.api.authorize_order', AuthorizeOrderApi::class)
+        ->args([service('sylius_paypal.client.paypal')]);
+
+    $services->alias(AuthorizeOrderApiInterface::class, 'sylius_paypal.api.authorize_order');
+
     $services->set('sylius_paypal.api.complete_order', CompleteOrderApi::class)
         ->args([service('sylius_paypal.client.paypal')]);
 
@@ -197,25 +206,27 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(CallbackSignatureVerifierInterface::class, 'sylius_paypal.api.callback_signature_verifier');
 
-    $services->set('sylius_paypal.provider.webhook_id', WebhookIdProvider::class)
+    $services->set('sylius_paypal.provider.webhook_id.lookup', WebhookIdProvider::class)
         ->args([
             service('sylius_paypal.api.generic'),
-            service('router'),
             service('sylius_paypal.provider.host'),
-            param('sylius_paypal.webhook_base_url'),
             service('sylius_paypal.provider.webhook_url'),
         ]);
 
-    $services->set('sylius_paypal.provider.webhook_id.persisting', PersistingWebhookIdProvider::class)
-        ->decorate('sylius_paypal.provider.webhook_id')
+    $services->set('sylius_paypal.provider.webhook_id', PersistingWebhookIdProvider::class)
         ->args([
-            service('.inner'),
-            service('doctrine.orm.entity_manager'),
+            service('sylius_paypal.provider.webhook_id.lookup'),
+            service('sylius_paypal.updater.webhook_id'),
             service('sylius_paypal.cache'),
             param('sylius_paypal.webhook_id_refresh_cooldown'),
         ]);
 
     $services->alias(WebhookIdProviderInterface::class, 'sylius_paypal.provider.webhook_id');
+
+    $services->set('sylius_paypal.updater.webhook_id', WebhookIdUpdater::class)
+        ->args([service('sylius.manager.payment_method')]);
+
+    $services->alias(WebhookIdUpdaterInterface::class, 'sylius_paypal.updater.webhook_id');
 
     $services->set('sylius_paypal.api.update_order', UpdateOrderApi::class)
         ->args([
