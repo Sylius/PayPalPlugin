@@ -57,6 +57,9 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         $authorizationRecorded = null !== $authorization && $payPalOrderId === $details->payPalOrderId();
         if ($authorizationRecorded) {
             $details = $details->withAuthorization($authorization);
+            if (null !== $capture) {
+                $details = $details->withCaptureStatus($capture->status());
+            }
             $payment->setDetails($details->toArray());
         }
 

@@ -59,6 +59,7 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
         self::assertSame('CAPTURE_ID', $payment->getDetails()['transaction_id']);
         self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+        self::assertSame('COMPLETED', $payment->getDetails()['capture_status']);
         self::assertSame(OrderPaymentStates::STATE_PAID, $payment->getOrder()?->getPaymentState());
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->paymentRequest($hash)->getState());
     }
@@ -140,6 +141,28 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
     }
 
+    public function test_it_does_not_let_the_core_complete_skip_a_capture_paypal_holds_pending(): void
+    {
+        $this->capturePending();
+
+        $this->patch(sprintf('/api/v2/admin/payments/%d/complete', $this->payment->getId()));
+
+        self::assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $this->client->getResponse()->getStatusCode());
+        $payment = $this->reloadedPayment();
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $payment->getState());
+        self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+    }
+
+    public function test_it_offers_only_the_paypal_complete_on_the_order_page_while_paypal_holds_the_capture_pending(): void
+    {
+        $this->capturePending();
+
+        $this->completeForm();
+        $coreCompleteForms = $this->client->getCrawler()->filter(sprintf('form[action$="/payments/%d/complete"]', $this->payment->getId()));
+        self::assertCount(0, $coreCompleteForms);
+        self::assertSame('CAPTURED', $this->reloadedPayment()->getDetails()['authorization_status']);
+    }
+
     private function patch(string $uri): void
     {
         $this->admin->addRole('ROLE_API_ACCESS');
@@ -175,6 +198,16 @@ final class CaptureAuthorizationPaymentRequestTest extends JsonApiTestCase
         $this->getEntityManager()->flush();
 
         return (string) $paymentRequest->getId();
+    }
+
+    private function capturePending(): void
+    {
+        $hash = $this->captureRequestHash();
+
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        $this->payPalApi()->mockCaptureAuthorization(requestId: $hash);
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization(captureStatus: 'PENDING');
+        $this->dispatchCapture($hash);
     }
 
     private function dispatchCapture(string $hash): void

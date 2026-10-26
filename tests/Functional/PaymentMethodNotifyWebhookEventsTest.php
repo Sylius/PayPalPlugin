@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
@@ -119,6 +120,24 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
 
         $this->notifyAboutCapture('PAYMENT.CAPTURE.PENDING', 'WH-1');
         self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-2');
+        self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
+    }
+
+    public function test_a_pending_capture_of_an_authorization_keeps_the_core_complete_blocked_until_paypal_completes_it(): void
+    {
+        $order = $this->authorizedOrder();
+        $this->payPalApi()->mockCaptureDetails(status: 'PENDING');
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization(captureStatus: 'PENDING');
+        $this->payPalApi()->mockCaptureDetails();
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        $this->notifyAboutCapture('PAYMENT.CAPTURE.PENDING', 'WH-1');
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $payment->getState());
+        self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+        self::assertFalse(self::getContainer()->get('sylius_abstraction.state_machine')->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE));
 
         $this->notifyAboutCapture('PAYMENT.CAPTURE.COMPLETED', 'WH-2');
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($order)->getState());
