@@ -35,6 +35,7 @@ use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
 use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
+use Sylius\PayPalPlugin\EventListener\RemovePayPalPaymentDetailsListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
@@ -224,6 +225,10 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.listener.remove_cached_access_token', RemoveCachedAccessTokenListener::class)
         ->args([service('sylius_paypal.remover.cached_access_token')])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.pre_update']);
+
+    $services->set('sylius_paypal.listener.remove_paypal_payment_details', RemovePayPalPaymentDetailsListener::class)
+        ->args([service('sylius_paypal.remover.payment_details')])
+        ->tag('kernel.event_listener', ['event' => 'sylius.order.pre_update']);
 
     $services->set('sylius_paypal.completer.express_checkout', ExpressCheckoutCompleter::class)
         ->args([

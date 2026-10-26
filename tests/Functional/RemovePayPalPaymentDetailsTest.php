@@ -18,6 +18,7 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
+use Sylius\Component\Core\OrderPaymentStates;
 
 final class RemovePayPalPaymentDetailsTest extends JsonApiTestCase
 {
@@ -61,5 +62,28 @@ final class RemovePayPalPaymentDetailsTest extends JsonApiTestCase
         /** @var OrderInterface $reloaded */
         $reloaded = self::getContainer()->get('sylius.repository.order')->find($order->getId());
         self::assertSame(['paypal_order_id' => 'PAYPAL_ORDER_ID'], $reloaded->getLastPayment()?->getDetails());
+    }
+
+    public function test_it_removes_the_paypal_details_when_another_method_is_chosen_on_the_order_page(): void
+    {
+        /** @var OrderInterface $order */
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml'])['new_order'];
+        $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
+        $order->getLastPayment()?->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'paypal']);
+        $this->getEntityManager()->flush();
+
+        $crawler = $this->client->request('GET', '/en_US/order/TOKEN');
+        $form = $crawler->filter('form[name="sylius_checkout_select_payment"]')->form();
+        $this->client->submit($form, ['sylius_checkout_select_payment[payments][0][method]' => 'CASH_ON_DELIVERY']);
+
+        self::assertSame(302, $this->client->getResponse()->getStatusCode());
+
+        self::getContainer()->get('sylius.manager.order')->clear();
+        /** @var OrderInterface $reloaded */
+        $reloaded = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $payment = $reloaded->getLastPayment();
+        self::assertNotNull($payment);
+        self::assertSame('CASH_ON_DELIVERY', $payment->getMethod()?->getCode());
+        self::assertSame([], $payment->getDetails());
     }
 }
