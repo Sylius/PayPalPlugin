@@ -20,7 +20,7 @@ interface PaypalPaymentBatchQueryInterface
     /**
      * @param list<string> $states
      *
-     * @return iterable<PaymentInterface>
+     * @return list<PaymentInterface>
      */
-    public function findInStates(array $states, int $batchSize): iterable;
+    public function findInStates(array $states, int $limit, ?int $afterId = null): array;
 }

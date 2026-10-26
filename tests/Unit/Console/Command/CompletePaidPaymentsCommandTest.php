@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Console\Command;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -122,19 +123,69 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         self::assertStringContainsString('Payment #7 of order #000000042 could not be settled', $this->commandTester->getDisplay());
     }
 
-    public function test_it_walks_the_payments_in_batches_of_the_given_size_when_it_is_given_the_batch_query(): void
+    public function test_it_walks_the_payments_batch_after_batch_and_clears_the_entity_manager_after_each_batch_when_it_is_given_the_batch_query(): void
     {
-        $payment = $this->payment('sylius_paypal');
+        $first = $this->payment('sylius_paypal');
+        $first->method('getId')->willReturn(3);
+        $second = $this->payment('sylius_paypal');
+        $second->method('getId')->willReturn(5);
+        $third = $this->payment('sylius_paypal');
+        $third->method('getId')->willReturn(8);
+
+        $states = [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED];
         $paypalPaymentBatchQuery = $this->createMock(PaypalPaymentBatchQueryInterface::class);
         $paypalPaymentBatchQuery
-            ->expects(self::once())
+            ->expects(self::exactly(3))
             ->method('findInStates')
-            ->with([PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED], 20)
-            ->willReturn([$payment])
+            ->willReturnMap([
+                [$states, 2, null, [$first, $second]],
+                [$states, 2, 5, [$third]],
+                [$states, 2, 8, []],
+            ])
         ;
 
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::exactly(2))->method('clear');
+
+        $settled = [];
         $this->paymentRepository->expects(self::never())->method('findBy');
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment);
+        $this->paymentSettlementProcessor
+            ->expects(self::exactly(3))
+            ->method('settle')
+            ->willReturnCallback(static function (PaymentInterface $payment) use (&$settled): void {
+                $settled[] = $payment;
+            })
+        ;
+
+        $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
+            $this->paymentRepository,
+            paymentSettlementProcessor: $this->paymentSettlementProcessor,
+            paypalPaymentBatchQuery: $paypalPaymentBatchQuery,
+            entityManager: $entityManager,
+        ));
+
+        self::assertSame(Command::SUCCESS, $commandTester->execute(['--batch-size' => '2']));
+        self::assertSame([$first, $second, $third], $settled);
+    }
+
+    public function test_it_moves_past_a_payment_it_cannot_settle_in_a_batch(): void
+    {
+        $failing = $this->payment('sylius_paypal');
+        $failing->method('getId')->willReturn(4);
+        $failing->method('getOrder')->willReturn(null);
+
+        $states = [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED];
+        $paypalPaymentBatchQuery = $this->createMock(PaypalPaymentBatchQueryInterface::class);
+        $paypalPaymentBatchQuery
+            ->expects(self::exactly(2))
+            ->method('findInStates')
+            ->willReturnMap([
+                [$states, 100, null, [$failing]],
+                [$states, 100, 4, []],
+            ])
+        ;
+
+        $this->paymentSettlementProcessor->method('settle')->willThrowException(new \RuntimeException('PayPal is down'));
 
         $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
             $this->paymentRepository,
@@ -142,7 +193,8 @@ final class CompletePaidPaymentsCommandTest extends TestCase
             paypalPaymentBatchQuery: $paypalPaymentBatchQuery,
         ));
 
-        self::assertSame(Command::SUCCESS, $commandTester->execute(['--batch-size' => '20']));
+        self::assertSame(Command::FAILURE, $commandTester->execute([]));
+        self::assertStringContainsString('Payment #4 of order # could not be settled: PayPal is down', $commandTester->getDisplay());
     }
 
     private function payment(string $factoryName): PaymentInterface&MockObject

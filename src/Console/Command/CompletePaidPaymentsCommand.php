@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Console\Command;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Log\NullLogger;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
@@ -58,6 +59,7 @@ final class CompletePaidPaymentsCommand extends Command
         private readonly ?StateMachineInterface $stateMachine = null,
         private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
         private readonly ?PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery = null,
+        private readonly ?EntityManagerInterface $entityManager = null,
     ) {
         parent::__construct();
 
@@ -107,14 +109,9 @@ final class CompletePaidPaymentsCommand extends Command
             return Command::FAILURE;
         }
 
-        $payments = null === $this->paypalPaymentBatchQuery
-            ? $this->paymentRepository->findBy(['state' => self::SETTLEABLE_STATES])
-            : $this->paypalPaymentBatchQuery->findInStates(self::SETTLEABLE_STATES, max(1, (int) $input->getOption('batch-size')));
-
         $failed = false;
 
-        /** @var PaymentInterface $payment */
-        foreach ($payments as $payment) {
+        foreach ($this->findSettleablePayments(max(1, (int) $input->getOption('batch-size'))) as $payment) {
             if (!$this->isPayPalPayment($payment)) {
                 continue;
             }
@@ -133,6 +130,29 @@ final class CompletePaidPaymentsCommand extends Command
         }
 
         return $failed ? Command::FAILURE : Command::SUCCESS;
+    }
+
+    /** @return iterable<PaymentInterface> */
+    private function findSettleablePayments(int $batchSize): iterable
+    {
+        if (null === $this->paypalPaymentBatchQuery) {
+            yield from $this->paymentRepository->findBy(['state' => self::SETTLEABLE_STATES]);
+
+            return;
+        }
+
+        $lastId = null;
+
+        while ([] !== $payments = $this->paypalPaymentBatchQuery->findInStates(self::SETTLEABLE_STATES, $batchSize, $lastId)) {
+            foreach ($payments as $payment) {
+                /** @var int $lastId */
+                $lastId = $payment->getId();
+
+                yield $payment;
+            }
+
+            $this->entityManager?->clear();
+        }
     }
 
     private function buildPaymentSettlementProcessor(): ?PaymentSettlementProcessorInterface

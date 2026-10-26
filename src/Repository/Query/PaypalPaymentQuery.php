@@ -107,31 +107,26 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         throw new PaymentNotFoundException();
     }
 
-    public function findInStates(array $states, int $batchSize): iterable
+    public function findInStates(array $states, int $limit, ?int $afterId = null): array
     {
-        $lastId = 0;
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $states)
+            ->orderBy('o.id', 'ASC')
+            ->setMaxResults($limit)
+        ;
 
-        do {
-            /** @var list<PaymentInterface> $payments */
-            $payments = $this->getPaypalPaymentQueryBuilder()
-                ->andWhere('o.state IN (:states)')
-                ->andWhere('o.id > :lastId')
-                ->setParameter('states', $states)
-                ->setParameter('lastId', $lastId)
-                ->orderBy('o.id', 'ASC')
-                ->setMaxResults($batchSize)
-                ->getQuery()
-                ->getResult()
+        if (null !== $afterId) {
+            $queryBuilder
+                ->andWhere('o.id > :afterId')
+                ->setParameter('afterId', $afterId)
             ;
+        }
 
-            foreach ($payments as $payment) {
-                $lastId = $payment->getId();
+        /** @var list<PaymentInterface> $payments */
+        $payments = $queryBuilder->getQuery()->getResult();
 
-                yield $payment;
-            }
-
-            $this->entityManager->clear();
-        } while (count($payments) === $batchSize);
+        return $payments;
     }
 
     private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface

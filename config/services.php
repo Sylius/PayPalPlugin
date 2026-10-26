@@ -627,6 +627,7 @@ return static function (ContainerConfigurator $container) {
             null,
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius_paypal.repository.query.paypal_payment'),
+            service('doctrine.orm.entity_manager'),
         ])
         ->tag('console.command');
 
