@@ -20,6 +20,8 @@ use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Refresher\ThrottledVaultingCapabilityRefresher;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresher;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 use Sylius\PayPalPlugin\Resolver\NullVaultRequestResolver;
 use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolver;
@@ -30,6 +32,14 @@ return static function (ContainerConfigurator $container): void {
     $parameters->set('sylius_paypal.vaulting_capability_refresh_cooldown', 3600);
 
     $services = $container->services();
+
+    $services->set('sylius_paypal.repository.query.paypal_payment_method', PayPalPaymentMethodQuery::class)
+        ->args([
+            service('doctrine.orm.entity_manager'),
+            param('sylius.model.payment_method.class'),
+        ]);
+
+    $services->alias(PayPalPaymentMethodQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment_method');
 
     $services->set('sylius_paypal.resolver.vault_request', NullVaultRequestResolver::class);
 
@@ -49,7 +59,6 @@ return static function (ContainerConfigurator $container): void {
             service('sylius_paypal.api.authorize_client'),
             service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius_paypal.provider.partner_credentials'),
-            service('sylius.manager.payment_method'),
         ]);
 
     $services->alias(VaultingCapabilityRefresherInterface::class, 'sylius_paypal.refresher.vaulting_capability');
@@ -64,15 +73,17 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.console.command.refresh_vaulting_capability', RefreshVaultingCapabilityCommand::class)
         ->args([
-            service('sylius.repository.payment_method'),
+            service('sylius_paypal.repository.query.paypal_payment_method'),
             service('sylius_paypal.refresher.vaulting_capability'),
+            service('sylius.manager.payment_method'),
         ])
         ->tag('console.command');
 
     $services->set('sylius_paypal.processor.webhook.vaulting_capability', VaultingCapabilityWebhookProcessor::class)
         ->args([
-            service('sylius.repository.payment_method'),
+            service('sylius_paypal.repository.query.paypal_payment_method'),
             service('sylius_paypal.refresher.vaulting_capability'),
+            service('sylius.manager.payment_method'),
         ]);
 
     $services->set('sylius_paypal.resolver.vaulted_charge_failure', VaultedChargeFailureResolver::class);

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Refresher;
 
-use Doctrine\Persistence\ObjectManager;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
@@ -27,7 +26,6 @@ final readonly class VaultingCapabilityRefresher implements VaultingCapabilityRe
         private AuthorizeClientApiInterface $authorizeClientApi,
         private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
-        private ObjectManager $paymentMethodManager,
     ) {
     }
 
@@ -54,7 +52,6 @@ final readonly class VaultingCapabilityRefresher implements VaultingCapabilityRe
                 $gatewayConfig->getConfig(),
                 [PayPalGatewayConfig::VAULTING_ENABLED => $vaultingEnabled],
             ));
-            $this->paymentMethodManager->flush();
         }
 
         return $vaultingEnabled;
