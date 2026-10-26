@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Command\RefundPayPalLateCapturePaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalLateCapturePaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
@@ -249,9 +250,8 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    /** @return array<string, mixed> */
-    private function orderDetails(string $captureStatus): array
+    private function orderDetails(string $captureStatus): PayPalOrderDetails
     {
-        return ['purchase_units' => [['payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => $captureStatus]]]]]];
+        return PayPalOrderDetails::fromArray(['purchase_units' => [['payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => $captureStatus]]]]]]);
     }
 }

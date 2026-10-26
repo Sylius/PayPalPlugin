@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFactoryInterface
 {
@@ -26,20 +27,22 @@ final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFa
     ) {
     }
 
-    public function createFromPurchaseUnit(array $purchaseUnit, ?string $phoneNumber): AddressInterface
+    public function createFromPayPalOrder(PayPalOrderDetails $payPalOrder): AddressInterface
     {
         $address = $this->addressFactory->createNew();
-        $address->setPhoneNumber($phoneNumber);
+        $address->setPhoneNumber($payPalOrder->phoneNumber());
 
-        $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
+        $name = explode(' ', (string) $payPalOrder->shippingFullName());
         /** @phpstan-ignore-next-line false positive */
         $address->setLastName(array_pop($name) ?? '');
         $address->setFirstName(implode(' ', $name));
-        $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
-        $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
-        $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
-        $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
-        $this->applyProvince($address, (array) $purchaseUnit['shipping']['address']);
+
+        $shippingAddress = $payPalOrder->shippingAddress() ?? [];
+        $address->setStreet($shippingAddress['address_line_1'] ?? null);
+        $address->setCity($shippingAddress['admin_area_2'] ?? null);
+        $address->setPostcode($shippingAddress['postal_code'] ?? null);
+        $address->setCountryCode($shippingAddress['country_code'] ?? null);
+        $this->applyProvince($address, $shippingAddress);
 
         return $address;
     }

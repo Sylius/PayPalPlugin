@@ -24,7 +24,6 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Command\CaptureAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
-use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
@@ -95,12 +94,12 @@ final class CaptureAuthorizationPaymentRequestHandler
 
         try {
             $payPalOrder = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
-            $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrder);
+            $authorization = $payPalOrder->authorization();
 
             if (null !== $authorization && $authorization->isCapturable()) {
                 $this->capture($paymentMethod, $authorizationId, (string) $paymentRequest->getId());
                 $payPalOrder = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
-                $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrder);
+                $authorization = $payPalOrder->authorization();
             }
         } catch (PayPalApiException $exception) {
             $this->failWithReason($paymentRequest, null === $exception->getStatusCode()
@@ -114,7 +113,7 @@ final class CaptureAuthorizationPaymentRequestHandler
             $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withAuthorization($authorization)->toArray());
         }
 
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
+        $capture = $payPalOrder->capture();
         if (null === $capture) {
             $this->failWithReason($paymentRequest, sprintf('PayPal reported the authorization as %s.', $authorization?->status() ?? 'missing'));
 

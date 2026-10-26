@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
@@ -96,7 +97,7 @@ final class CapturePayPalOrderPaymentRequestHandler
 
             return;
         }
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
+        $capture = $payPalOrder->capture();
 
         if (null !== $capture) {
             $this->paymentSettlementProcessor->settle($payment, $payPalOrder);
@@ -120,11 +121,10 @@ final class CapturePayPalOrderPaymentRequestHandler
         $this->complete($paymentRequest, $payment);
     }
 
-    /** @param array<string, mixed> $payPalOrder */
-    private function refusalReason(array $payPalOrder, ?PayPalCapture $capture): ?string
+    private function refusalReason(PayPalOrderDetails $payPalOrder, ?PayPalCapture $capture): ?string
     {
         if (null === $capture) {
-            return in_array($payPalOrder['status'] ?? null, self::UNAPPROVED_ORDER_STATUSES, true)
+            return in_array($payPalOrder->status(), self::UNAPPROVED_ORDER_STATUSES, true)
                 ? null
                 : 'PayPal did not capture the order.';
         }
@@ -134,12 +134,11 @@ final class CapturePayPalOrderPaymentRequestHandler
             : null;
     }
 
-    /** @param array<string, mixed> $payPalOrder */
-    private function isPayerAtTheBank(PaymentInterface $payment, array $payPalOrder): bool
+    private function isPayerAtTheBank(PaymentInterface $payment, PayPalOrderDetails $payPalOrder): bool
     {
         return
             null !== RedirectPaymentSource::tryFrom(PayPalPaymentDetails::fromPayment($payment)->paymentSource()) &&
-            self::PAYER_ACTION_REQUIRED_ORDER_STATUS === ($payPalOrder['status'] ?? null)
+            $payPalOrder->isStatus(self::PAYER_ACTION_REQUIRED_ORDER_STATUS)
         ;
     }
 

@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 interface PaymentSettlementProcessorInterface
 {
-    /** @param array<string, mixed>|null $payPalOrderDetails */
-    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null, ?string $payPalOrderId = null): void;
+    public function settle(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null, ?string $payPalOrderId = null): void;
 }

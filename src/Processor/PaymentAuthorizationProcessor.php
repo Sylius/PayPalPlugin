@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
@@ -38,7 +39,7 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
     ) {
     }
 
-    public function authorize(PaymentInterface $payment, ?string $requestId = null): array
+    public function authorize(PaymentInterface $payment, ?string $requestId = null): PayPalOrderDetails
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -53,7 +54,7 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
 
-        $authorization = PayPalAuthorization::fromPayPalOrder($orderDetails);
+        $authorization = $orderDetails->authorization();
         if (null === $authorization) {
             return $orderDetails;
         }

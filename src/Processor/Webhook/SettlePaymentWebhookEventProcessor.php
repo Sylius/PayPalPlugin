@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor\Webhook;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
 final readonly class SettlePaymentWebhookEventProcessor implements WebhookEventProcessorInterface
@@ -39,7 +40,8 @@ final readonly class SettlePaymentWebhookEventProcessor implements WebhookEventP
     public function process(string $eventType, array $resource, PaymentInterface $payment): void
     {
         if (self::ORDER_EVENT_TYPE === $eventType) {
-            $this->paymentSettlementProcessor->settle($payment, $resource, (string) $resource['id']);
+            $payPalOrderDetails = PayPalOrderDetails::fromArray($resource);
+            $this->paymentSettlementProcessor->settle($payment, $payPalOrderDetails, $payPalOrderDetails->id());
 
             return;
         }

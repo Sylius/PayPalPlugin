@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final class ExpressOrderAddressFactoryTest extends TestCase
 {
@@ -53,7 +54,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
     {
         $this->shippingAddressFactory->method('create')->willReturn(new Address());
 
-        $address = $this->factory->createFromPurchaseUnit($this->purchaseUnit(), '15551234567');
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder(phoneNumber: '15551234567'));
 
         self::assertSame('Oliver', $address->getFirstName());
         self::assertSame('Queen', $address->getLastName());
@@ -68,7 +69,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
     {
         $this->shippingAddressFactory->method('create')->willReturn(new Address());
 
-        $address = $this->factory->createFromPurchaseUnit($this->purchaseUnit('Mary Jane Watson Parker'), null);
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder('Mary Jane Watson Parker'));
 
         self::assertSame('Mary Jane Watson', $address->getFirstName());
         self::assertSame('Parker', $address->getLastName());
@@ -78,7 +79,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
     {
         $this->shippingAddressFactory->method('create')->willReturn(new Address());
 
-        $address = $this->factory->createFromPurchaseUnit($this->purchaseUnit('Cher'), null);
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder('Cher'));
 
         self::assertSame('', $address->getFirstName());
         self::assertSame('Cher', $address->getLastName());
@@ -88,7 +89,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
     {
         $this->shippingAddressFactory->method('create')->willReturn(new Address());
 
-        $address = $this->factory->createFromPurchaseUnit($this->purchaseUnit(), null);
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder());
 
         self::assertNull($address->getPhoneNumber());
     }
@@ -111,7 +112,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
             ->willReturn($resolved)
         ;
 
-        $address = $this->factory->createFromPurchaseUnit($this->purchaseUnit(adminArea1: 'TX'), null);
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder(adminArea1: 'TX'));
 
         self::assertSame('US-TX', $address->getProvinceCode());
         self::assertNull($address->getProvinceName());
@@ -124,7 +125,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
 
         $this->shippingAddressFactory->method('create')->willReturn($resolved);
 
-        $address = $this->factory->createFromPurchaseUnit($this->purchaseUnit(adminArea1: 'Nowhere County'), null);
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder(adminArea1: 'Nowhere County'));
 
         self::assertNull($address->getProvinceCode());
         self::assertSame('Nowhere County', $address->getProvinceName());
@@ -132,7 +133,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
 
     public function test_it_leaves_the_region_out_when_it_has_no_shipping_address_factory(): void
     {
-        $address = $this->factoryWithoutProvinces->createFromPurchaseUnit($this->purchaseUnit(adminArea1: 'TX'), null);
+        $address = $this->factoryWithoutProvinces->createFromPayPalOrder($this->payPalOrder(adminArea1: 'TX'));
 
         self::assertNull($address->getProvinceCode());
         self::assertNull($address->getProvinceName());
@@ -149,10 +150,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
 
         $this->shippingAddressFactory->method('create')->willReturn($resolved);
 
-        $purchaseUnit = $this->purchaseUnit(adminArea1: 'TX');
-        $purchaseUnit['shipping']['address']['country_code'] = null;
-
-        $address = $this->factory->createFromPurchaseUnit($purchaseUnit, null);
+        $address = $this->factory->createFromPayPalOrder($this->payPalOrder(adminArea1: 'TX', countryCode: null));
 
         self::assertSame('TX', $address->getProvinceCode());
     }
@@ -161,8 +159,8 @@ final class ExpressOrderAddressFactoryTest extends TestCase
     {
         $this->shippingAddressFactory->method('create')->willReturn(new Address());
 
-        $first = $this->factory->createFromPurchaseUnit($this->purchaseUnit(), null);
-        $second = $this->factory->createFromPurchaseUnit($this->purchaseUnit(), null);
+        $first = $this->factory->createFromPayPalOrder($this->payPalOrder());
+        $second = $this->factory->createFromPayPalOrder($this->payPalOrder());
 
         self::assertNotSame($first, $second);
     }
@@ -211,21 +209,30 @@ final class ExpressOrderAddressFactoryTest extends TestCase
         self::assertNull($address->getPhoneNumber());
     }
 
-    /** @return array<string, mixed> */
-    private function purchaseUnit(string $fullName = 'Oliver Queen', ?string $adminArea1 = null): array
-    {
+    private function payPalOrder(
+        string $fullName = 'Oliver Queen',
+        ?string $adminArea1 = null,
+        ?string $phoneNumber = null,
+        ?string $countryCode = 'US',
+    ): PayPalOrderDetails {
         $address = [
             'address_line_1' => '1 Star City Plaza',
             'admin_area_2' => 'Star City',
             'postal_code' => '10001',
-            'country_code' => 'US',
+            'country_code' => $countryCode,
         ];
 
         if (null !== $adminArea1) {
             $address['admin_area_1'] = $adminArea1;
         }
 
-        return ['shipping' => ['name' => ['full_name' => $fullName], 'address' => $address]];
+        $shipping = ['name' => ['full_name' => $fullName], 'address' => $address];
+
+        if (null !== $phoneNumber) {
+            $shipping['phone_number'] = ['country_code' => '1', 'national_number' => $phoneNumber];
+        }
+
+        return PayPalOrderDetails::fromArray(['purchase_units' => [['shipping' => $shipping]]]);
     }
 
     private function customer(?AddressInterface $defaultAddress): CustomerInterface&MockObject

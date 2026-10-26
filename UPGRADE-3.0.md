@@ -908,3 +908,24 @@
 
    `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED` join the webhook event types the plugin
    registers. Subscribe a webhook registered before with `bin/console sylius-paypal:register-webhook-event-types`.
+
+1. #### `OrderDetailsApiInterface::get()` returns a `PayPalOrderDetails` object.
+
+   `Sylius\PayPalPlugin\Api\OrderDetailsApiInterface::get()` returns `Sylius\PayPalPlugin\Model\PayPalOrderDetails`
+   instead of the raw PayPal order array. It reads the order status, intent, first purchase unit, capture,
+   authorization, the shipping and the payer chosen in the wallet; `paymentSource()` and `shippingAddress()` keep
+   PayPal's raw arrays. Build one from a PayPal order array, e.g. a webhook resource, with
+   `PayPalOrderDetails::fromArray()`.
+
+   ```diff
+   -public function get(PaymentMethodInterface $paymentMethod, string $orderId): array;
+   +public function get(PaymentMethodInterface $paymentMethod, string $orderId): PayPalOrderDetails;
+   ```
+
+   `Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface::verify()` takes it as well; without it the amount
+   still comes from the payment details:
+
+   ```diff
+   -public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void;
+   +public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void;
+   ```

@@ -28,6 +28,7 @@ use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
@@ -167,7 +168,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     public function test_it_fails_the_payment_request_when_paypal_captured_nothing(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
 
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not capture the order.']);
@@ -180,7 +181,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     public function test_it_cancels_an_attempt_the_payer_never_approved_and_leaves_the_payment_payable(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED']));
 
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payer did not approve the PayPal order.']);
@@ -194,7 +195,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestWith(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'trustly']);
         $paymentRequest->method('getResponseData')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
-        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']));
 
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['awaiting_payer' => true, 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
 
@@ -206,7 +207,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     public function test_it_cancels_a_wallet_attempt_that_still_needs_the_payer(): void
     {
         $this->paymentRequestWith();
-        $this->paymentCaptureProcessor->method('capture')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']));
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -319,16 +320,15 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    /** @return array<string, mixed> */
-    private function capturedOrder(string $captureStatus): array
+    private function capturedOrder(string $captureStatus): PayPalOrderDetails
     {
-        return [
+        return PayPalOrderDetails::fromArray([
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => ['captures' => [[
                 'id' => 'CAPTURE_ID',
                 'status' => $captureStatus,
                 'amount' => ['currency_code' => 'USD', 'value' => '20.00'],
             ]]]]],
-        ];
+        ]);
     }
 }

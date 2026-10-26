@@ -90,10 +90,10 @@ final class AuthorizePayPalOrderPaymentRequestHandler
             return;
         }
 
-        $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrder);
+        $authorization = $payPalOrder->authorization();
 
         if (null === $authorization) {
-            in_array($payPalOrder['status'] ?? null, self::UNAPPROVED_ORDER_STATUSES, true)
+            in_array($payPalOrder->status(), self::UNAPPROVED_ORDER_STATUSES, true)
                 ? $this->cancelUnapproved($paymentRequest)
                 : $this->failWithReason($paymentRequest, 'PayPal did not authorize the order.');
 

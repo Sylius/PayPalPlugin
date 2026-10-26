@@ -102,7 +102,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
         }
 
         try {
-            $capture = PayPalCapture::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
+            $capture = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId)->capture();
             if (PayPalCapture::STATUS_REFUNDED === $capture?->status()) {
                 $this->confirm($paymentRequest, $payment, null);
 

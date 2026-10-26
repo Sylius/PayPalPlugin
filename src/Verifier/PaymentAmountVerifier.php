@@ -15,37 +15,18 @@ namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class PaymentAmountVerifier implements PaymentAmountVerifierInterface
 {
-    public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void
+    public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void
     {
-        $totalAmount = $this->getTotalPaymentAmountFromPaypal($payment, $paypalOrderDetails);
+        $totalAmount = $payPalOrderDetails?->totalAmount() ?? $this->getPaymentAmountFromDetails($payment);
 
         if ($payment->getOrder()->getTotal() !== $totalAmount) {
             throw new PaymentAmountMismatchException();
         }
-    }
-
-    private function getTotalPaymentAmountFromPaypal(PaymentInterface $payment, array $paypalOrderDetails = []): int
-    {
-        if (empty($paypalOrderDetails)) {
-            return $this->getPaymentAmountFromDetails($payment);
-        }
-
-        if (!isset($paypalOrderDetails['purchase_units']) || !is_array($paypalOrderDetails['purchase_units'])) {
-            return 0;
-        }
-
-        $totalAmount = 0;
-
-        foreach ($paypalOrderDetails['purchase_units'] as $unit) {
-            $stringAmount = $unit['amount']['value'] ?? '0';
-            $totalAmount += (int) round((float) $stringAmount * 100, 0);
-        }
-
-        return $totalAmount;
     }
 
     private function getPaymentAmountFromDetails(PaymentInterface $payment): int

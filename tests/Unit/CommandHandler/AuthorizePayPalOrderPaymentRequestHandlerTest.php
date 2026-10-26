@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 
@@ -164,7 +165,7 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
     public function test_it_fails_the_payment_request_when_paypal_authorized_nothing(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentAuthorizationProcessor->method('authorize')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']);
+        $this->paymentAuthorizationProcessor->method('authorize')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
 
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not authorize the order.']);
 
@@ -176,7 +177,7 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
     public function test_it_cancels_an_attempt_the_payer_never_approved_and_leaves_the_payment_payable(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentAuthorizationProcessor->method('authorize')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED']);
+        $this->paymentAuthorizationProcessor->method('authorize')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED']));
 
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payer did not approve the PayPal order.']);
 
@@ -281,15 +282,14 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    /** @return array<string, mixed> */
-    private function authorizedOrder(string $authorizationStatus): array
+    private function authorizedOrder(string $authorizationStatus): PayPalOrderDetails
     {
-        return [
+        return PayPalOrderDetails::fromArray([
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => ['authorizations' => [[
                 'id' => 'AUTHORIZATION_ID',
                 'status' => $authorizationStatus,
             ]]]]],
-        ];
+        ]);
     }
 }

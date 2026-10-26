@@ -31,6 +31,7 @@ use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
@@ -237,7 +238,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
     public function test_it_fails_the_request_when_the_paypal_order_has_no_capture(): void
     {
         $paymentRequest = $this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING);
-        $this->orderDetailsApi->method('get')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']);
+        $this->orderDetailsApi->method('get')->willReturn(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
         ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
@@ -295,16 +296,15 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    /** @return array<string, mixed> */
-    private function orderWithCapture(string $status): array
+    private function orderWithCapture(string $status): PayPalOrderDetails
     {
-        return [
+        return PayPalOrderDetails::fromArray([
             'id' => 'PAYPAL_ORDER_ID',
             'purchase_units' => [['payments' => ['captures' => [[
                 'id' => 'CAPTURE_ID',
                 'status' => $status,
                 'amount' => ['value' => '10.50', 'currency_code' => 'USD'],
             ]]]]],
-        ];
+        ]);
     }
 }

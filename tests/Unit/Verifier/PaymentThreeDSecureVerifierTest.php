@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifier;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 
@@ -42,16 +43,17 @@ final class PaymentThreeDSecureVerifierTest extends TestCase
     public function test_it_verifies_the_3d_secure_result_paypal_holds_for_a_card_payment(): void
     {
         $payment = $this->paymentWith('card');
+        $orderDetails = PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'payment_source' => ['card' => []]]);
 
-        $this->orderDetailsApi->method('get')->with($payment->getMethod(), 'PAYPAL_ORDER_ID')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'payment_source' => ['card' => []]]);
-        $this->threeDSecureVerifier->expects(self::once())->method('verify')->with(['id' => 'PAYPAL_ORDER_ID', 'payment_source' => ['card' => []]]);
+        $this->orderDetailsApi->method('get')->with($payment->getMethod(), 'PAYPAL_ORDER_ID')->willReturn($orderDetails);
+        $this->threeDSecureVerifier->expects(self::once())->method('verify')->with($orderDetails);
 
         $this->verifier->verify($payment);
     }
 
     public function test_it_lets_the_refusal_of_the_3d_secure_result_through(): void
     {
-        $this->orderDetailsApi->method('get')->willReturn([]);
+        $this->orderDetailsApi->method('get')->willReturn(PayPalOrderDetails::fromArray([]));
         $this->threeDSecureVerifier->method('verify')->willThrowException(new ThreeDSecureAuthenticationFailedException(retryable: false));
 
         $this->expectException(ThreeDSecureAuthenticationFailedException::class);
@@ -61,8 +63,10 @@ final class PaymentThreeDSecureVerifierTest extends TestCase
 
     public function test_it_verifies_the_3d_secure_result_paypal_holds_for_a_google_pay_payment(): void
     {
-        $this->orderDetailsApi->method('get')->willReturn(['id' => 'PAYPAL_ORDER_ID']);
-        $this->threeDSecureVerifier->expects(self::once())->method('verify')->with(['id' => 'PAYPAL_ORDER_ID']);
+        $orderDetails = PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID']);
+
+        $this->orderDetailsApi->method('get')->willReturn($orderDetails);
+        $this->threeDSecureVerifier->expects(self::once())->method('verify')->with($orderDetails);
 
         $this->verifier->verify($this->paymentWith('google_pay'));
     }
