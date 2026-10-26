@@ -62,11 +62,27 @@ final class CompletePaidPaymentsCommandTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
     }
 
+    public function test_it_reports_a_payment_whose_paypal_order_cannot_be_read(): void
+    {
+        $this->payPalApi()->mockOrderDetailsNotFound();
+
+        $commandTester = new CommandTester((new Application(self::$kernel))->find('sylius-paypal:settle-payments'));
+
+        self::assertSame(Command::FAILURE, $commandTester->execute([]));
+        self::assertStringContainsString('could not be settled', $commandTester->getDisplay());
+        self::assertSame(PaymentInterface::STATE_AUTHORIZED, $this->reloadedPayment()->getState());
+    }
+
+    public function test_it_is_still_reachable_under_its_former_name(): void
+    {
+        self::assertSame('sylius-paypal:settle-payments', (new Application(self::$kernel))->find('sylius-paypal:complete-payments')->getName());
+    }
+
     private function completePayments(): int
     {
-        $commandTester = new CommandTester((new Application(self::$kernel))->find('sylius-paypal:complete-payments'));
+        $commandTester = new CommandTester((new Application(self::$kernel))->find('sylius-paypal:settle-payments'));
 
-        return $commandTester->execute([]);
+        return $commandTester->execute(['--batch-size' => '1']);
     }
 
     private function reloadedPayment(): PaymentInterface

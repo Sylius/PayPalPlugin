@@ -129,6 +129,7 @@ use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
@@ -625,6 +626,7 @@ return static function (ContainerConfigurator $container) {
             null,
             null,
             service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_paypal.repository.query.paypal_payment'),
         ])
         ->tag('console.command');
 
@@ -733,6 +735,8 @@ return static function (ContainerConfigurator $container) {
     $services->alias(PaypalPaymentQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
 
     $services->alias(SettleablePaypalPaymentQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
+
+    $services->alias(PaypalPaymentBatchQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
 
     $services->set('sylius_paypal.resolver.paypal_payment_methods', PayPalPaymentMethodsResolver::class)
         ->args([service('sylius.repository.payment_method')]);

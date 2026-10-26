@@ -25,17 +25,24 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: 'sylius-paypal:complete-payments',
+    name: 'sylius-paypal:settle-payments',
     description: 'Settles processing and authorized PayPal payments with the state of their PayPal orders',
+    aliases: ['sylius-paypal:complete-payments'],
 )]
 final class CompletePaidPaymentsCommand extends Command
 {
+    private const DEFAULT_BATCH_SIZE = 100;
+
+    private const SETTLEABLE_STATES = [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED];
+
     /**
      * @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository
      *
@@ -50,6 +57,7 @@ final class CompletePaidPaymentsCommand extends Command
         private readonly ?OrderDetailsApiInterface $orderDetailsApi = null,
         private readonly ?StateMachineInterface $stateMachine = null,
         private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
+        private readonly ?PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery = null,
     ) {
         parent::__construct();
 
@@ -81,6 +89,11 @@ final class CompletePaidPaymentsCommand extends Command
         }
     }
 
+    protected function configure(): void
+    {
+        $this->addOption('batch-size', null, InputOption::VALUE_REQUIRED, 'How many payments are loaded at once', self::DEFAULT_BATCH_SIZE);
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $paymentSettlementProcessor = $this->paymentSettlementProcessor ?? $this->buildPaymentSettlementProcessor();
@@ -94,7 +107,11 @@ final class CompletePaidPaymentsCommand extends Command
             return Command::FAILURE;
         }
 
-        $payments = $this->paymentRepository->findBy(['state' => [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]]);
+        $payments = null === $this->paypalPaymentBatchQuery
+            ? $this->paymentRepository->findBy(['state' => self::SETTLEABLE_STATES])
+            : $this->paypalPaymentBatchQuery->findInStates(self::SETTLEABLE_STATES, max(1, (int) $input->getOption('batch-size')));
+
+        $failed = false;
 
         /** @var PaymentInterface $payment */
         foreach ($payments as $payment) {
@@ -102,10 +119,20 @@ final class CompletePaidPaymentsCommand extends Command
                 continue;
             }
 
-            $paymentSettlementProcessor->settle($payment);
+            try {
+                $paymentSettlementProcessor->settle($payment);
+            } catch (\Exception $exception) {
+                $failed = true;
+                $output->writeln(sprintf(
+                    '<error>Payment #%s of order #%s could not be settled: %s</error>',
+                    (string) $payment->getId(),
+                    (string) $payment->getOrder()?->getNumber(),
+                    $exception->getMessage(),
+                ));
+            }
         }
 
-        return Command::SUCCESS;
+        return $failed ? Command::FAILURE : Command::SUCCESS;
     }
 
     private function buildPaymentSettlementProcessor(): ?PaymentSettlementProcessorInterface

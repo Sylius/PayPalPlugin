@@ -17,6 +17,7 @@ use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
@@ -24,7 +25,9 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
+use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -90,6 +93,56 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         $this->paymentRepository->method('findBy')->willReturn([$payment]);
 
         $this->commandTester->execute([]);
+    }
+
+    public function test_it_reports_a_payment_that_could_not_be_settled_and_settles_the_next_ones(): void
+    {
+        $failing = $this->payment('sylius_paypal');
+        $failing->method('getId')->willReturn(7);
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getNumber')->willReturn('000000042');
+        $failing->method('getOrder')->willReturn($order);
+        $next = $this->payment('sylius_paypal');
+        $this->paymentRepository->method('findBy')->willReturn([$failing, $next]);
+
+        $settled = [];
+        $this->paymentSettlementProcessor
+            ->method('settle')
+            ->willReturnCallback(function (PaymentInterface $payment) use ($failing, &$settled): void {
+                if ($payment === $failing) {
+                    throw new PayPalApiNotFoundException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID', 404, 'RESOURCE_NOT_FOUND');
+                }
+
+                $settled[] = $payment;
+            })
+        ;
+
+        self::assertSame(Command::FAILURE, $this->commandTester->execute([]));
+        self::assertSame([$next], $settled);
+        self::assertStringContainsString('Payment #7 of order #000000042 could not be settled', $this->commandTester->getDisplay());
+    }
+
+    public function test_it_walks_the_payments_in_batches_of_the_given_size_when_it_is_given_the_batch_query(): void
+    {
+        $payment = $this->payment('sylius_paypal');
+        $paypalPaymentBatchQuery = $this->createMock(PaypalPaymentBatchQueryInterface::class);
+        $paypalPaymentBatchQuery
+            ->expects(self::once())
+            ->method('findInStates')
+            ->with([PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED], 20)
+            ->willReturn([$payment])
+        ;
+
+        $this->paymentRepository->expects(self::never())->method('findBy');
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment);
+
+        $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
+            $this->paymentRepository,
+            paymentSettlementProcessor: $this->paymentSettlementProcessor,
+            paypalPaymentBatchQuery: $paypalPaymentBatchQuery,
+        ));
+
+        self::assertSame(Command::SUCCESS, $commandTester->execute(['--batch-size' => '20']));
     }
 
     private function payment(string $factoryName): PaymentInterface&MockObject
