@@ -79,10 +79,10 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestWith();
         $lockedEntities = [];
-        $this->paymentManager->method('refresh')->willReturnCallback(static function (object $entity, ?LockMode $lockMode) use (&$lockedEntities): void {
+        $this->paymentManager->method('refresh')->willReturnCallback(static function (object $entity, LockMode|int|null $lockMode) use (&$lockedEntities): void {
             $lockedEntities[] = [$entity, $lockMode];
         });
-        $this->paymentRequestManager->method('refresh')->willReturnCallback(static function (object $entity, ?LockMode $lockMode) use (&$lockedEntities): void {
+        $this->paymentRequestManager->method('refresh')->willReturnCallback(static function (object $entity, LockMode|int|null $lockMode) use (&$lockedEntities): void {
             $lockedEntities[] = [$entity, $lockMode];
         });
         $this->paymentAuthorizationProcessor->method('authorize')->willReturn($this->authorizedOrder('CREATED'));
