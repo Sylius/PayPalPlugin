@@ -16,6 +16,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
 use Sylius\Bundle\PaymentBundle\Provider\ActionsHttpResponseProvider;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\CommandHandler\AnnouncePayPalPaymentTokenDeletionHandler;
 use Sylius\PayPalPlugin\CommandHandler\AnnouncePayPalPaymentTokenHandler;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
@@ -44,6 +45,8 @@ use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 use Sylius\PayPalPlugin\OrderPay\Provider\CapturePaymentRequestPayResponseProvider;
 use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\PaymentTokenCreatedWebhookEventProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\PaymentTokenDeletedWebhookEventProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundPaymentWebhookEventProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\SettlePaymentWebhookEventProcessor;
 use Sylius\PayPalPlugin\Provider\PayPalNotifyPaymentProvider;
@@ -147,6 +150,10 @@ return function (ContainerConfigurator $container): void {
             service('sylius.repository.payment'),
             service('event_dispatcher'),
         ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.command_handler.announce_paypal_payment_token_deletion', AnnouncePayPalPaymentTokenDeletionHandler::class)
+        ->args([service('event_dispatcher')])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
 
     $services->set('sylius_paypal.command_handler.authorize_paypal_order', AuthorizePayPalOrderPaymentRequestHandler::class)
@@ -265,6 +272,20 @@ return function (ContainerConfigurator $container): void {
         ])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => RefundPaymentWebhookEventProcessor::REFUNDED_EVENT_TYPE])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => RefundPaymentWebhookEventProcessor::REVERSED_EVENT_TYPE]);
+
+    $services->set('sylius_paypal.processor.webhook_event.payment_token_created', PaymentTokenCreatedWebhookEventProcessor::class)
+        ->args([
+            service('sylius.manager.payment'),
+            service('sylius.payment_request.command_bus'),
+        ])
+        ->tag('sylius_paypal.webhook_event_processor', ['event_type' => PaymentTokenCreatedWebhookEventProcessor::EVENT_TYPE]);
+
+    $services->set('sylius_paypal.processor.webhook_event.payment_token_deleted', PaymentTokenDeletedWebhookEventProcessor::class)
+        ->args([
+            service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius.payment_request.command_bus'),
+        ])
+        ->tag('sylius_paypal.webhook_event_processor', ['event_type' => PaymentTokenDeletedWebhookEventProcessor::EVENT_TYPE]);
 
     $services->set('sylius_paypal.processor.webhook_event.capture_approved_order', CaptureApprovedOrderWebhookEventProcessor::class)
         ->args([

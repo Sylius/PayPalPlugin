@@ -82,7 +82,6 @@ use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorIn
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
-use Sylius\PayPalPlugin\Processor\Webhook\PaymentTokenWebhookProcessor;
 use Sylius\PayPalPlugin\Provider\ActiveModeProvider;
 use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProvider;
@@ -515,13 +514,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(EligibleRedirectPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.eligible_redirect_payment_sources');
-
-    $services->set('sylius_paypal.processor.webhook.payment_token', PaymentTokenWebhookProcessor::class)
-        ->args([
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius.manager.payment'),
-            service('event_dispatcher'),
-        ]);
 
     $services->set('sylius_paypal.verifier.webhook_request', WebhookRequestVerifier::class)
         ->args([

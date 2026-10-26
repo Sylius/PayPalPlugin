@@ -15,6 +15,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\PayPalPlugin\Console\Command\RefreshVaultingCapabilityCommand;
 use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProvider;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Refresher\ThrottledVaultingCapabilityRefresher;
@@ -71,10 +72,11 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.processor.webhook.vaulting_capability', VaultingCapabilityWebhookProcessor::class)
         ->args([
-            service('sylius_paypal.repository.query.paypal_payment_method'),
             service('sylius_paypal.refresher.vaulting_capability'),
             service('sylius.manager.payment_method'),
         ]);
+
+    $services->alias(VaultingCapabilityWebhookProcessorInterface::class, 'sylius_paypal.processor.webhook.vaulting_capability');
 
     $services->set('sylius_paypal.resolver.vaulted_charge_failure', VaultedChargeFailureResolver::class);
 

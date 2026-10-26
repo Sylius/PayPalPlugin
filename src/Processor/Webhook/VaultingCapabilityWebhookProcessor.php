@@ -14,49 +14,26 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor\Webhook;
 
 use Doctrine\Persistence\ObjectManager;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
-use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 
-final readonly class VaultingCapabilityWebhookProcessor implements WebhookProcessorInterface
+final readonly class VaultingCapabilityWebhookProcessor implements VaultingCapabilityWebhookProcessorInterface
 {
-    public const EVENT_TYPE = 'CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED';
-
     public function __construct(
-        private PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery,
         private VaultingCapabilityRefresherInterface $refresher,
         private ObjectManager $paymentMethodManager,
     ) {
     }
 
-    public function supports(string $eventType): bool
+    public function process(array $resource, PaymentMethodInterface $paymentMethod): void
     {
-        return self::EVENT_TYPE === $eventType;
-    }
-
-    public function process(array $payload): void
-    {
-        $resource = $payload['resource'] ?? null;
-        $merchantId = is_array($resource) ? ($resource['merchant_id'] ?? null) : null;
-
-        $failure = null;
-        foreach ($this->payPalPaymentMethodQuery->findAll() as $paymentMethod) {
-            if (!$this->isRefreshable($paymentMethod->getGatewayConfig()?->getConfig() ?? [], $merchantId)) {
-                continue;
-            }
-
-            try {
-                $this->refresher->refresh($paymentMethod);
-            } catch (\Throwable $exception) {
-                $failure ??= $exception;
-            }
+        if (!$this->isRefreshable($paymentMethod->getGatewayConfig()?->getConfig() ?? [], $resource['merchant_id'] ?? null)) {
+            return;
         }
 
+        $this->refresher->refresh($paymentMethod);
         $this->paymentMethodManager->flush();
-
-        if (null !== $failure) {
-            throw $failure;
-        }
     }
 
     /** @param array<string, mixed> $config */
