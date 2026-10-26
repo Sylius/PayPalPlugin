@@ -216,6 +216,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius.provider.payment_request'),
             service('sylius_paypal.api.charge_vaulted_order'),
             service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_paypal.resolver.vaulted_charge_failure'),
             service('sylius_abstraction.state_machine'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);

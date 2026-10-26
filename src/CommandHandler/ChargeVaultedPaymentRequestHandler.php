@@ -27,8 +27,10 @@ use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolverInterface;
 
 final class ChargeVaultedPaymentRequestHandler
 {
@@ -36,12 +38,15 @@ final class ChargeVaultedPaymentRequestHandler
 
     public const RESPONSE_ISSUES = 'issues';
 
+    public const RESPONSE_FAILURE = 'failure';
+
     private const ORDER_STATUS_COMPLETED = 'COMPLETED';
 
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly ChargeVaultedOrderApiInterface $chargeVaultedOrderApi,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
+        private readonly VaultedChargeFailureResolverInterface $failureResolver,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -65,7 +70,7 @@ final class ChargeVaultedPaymentRequestHandler
         $vaultId = $details->vaultId();
         if (null === $vaultId || '' === $vaultId) {
             $this->failPayment($payment);
-            $this->failWithReason($paymentRequest, 'The payment carries no vaulted PayPal wallet.');
+            $this->failWith($paymentRequest, 'The payment carries no vaulted PayPal wallet.', VaultedChargeFailure::CredentialInvalid);
 
             return;
         }
@@ -78,7 +83,12 @@ final class ChargeVaultedPaymentRequestHandler
             throw $exception;
         } catch (PayPalApiException $exception) {
             $this->failPayment($payment);
-            $this->failWithIssues($paymentRequest, 'PayPal refused to charge the vaulted wallet.', $exception->getIssues());
+            $this->failWith(
+                $paymentRequest,
+                'PayPal refused to charge the vaulted wallet.',
+                $this->failureResolver->resolveFromIssues($exception->getIssues()),
+                $exception->getIssues(),
+            );
 
             return;
         }
@@ -101,7 +111,7 @@ final class ChargeVaultedPaymentRequestHandler
 
         if (null === $capture) {
             $this->failPayment($payment);
-            $this->failWithReason($paymentRequest, 'PayPal did not capture the order.');
+            $this->failWith($paymentRequest, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($payPalOrder));
 
             return;
         }
@@ -111,7 +121,11 @@ final class ChargeVaultedPaymentRequestHandler
         match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => $this->complete($paymentRequest),
             PayPalCapture::STATUS_PENDING => $this->awaitCapture($paymentRequest, $payment),
-            default => $this->failWithReason($paymentRequest, sprintf('PayPal reported the capture as %s.', $capture->status())),
+            default => $this->failWith(
+                $paymentRequest,
+                sprintf('PayPal reported the capture as %s.', $capture->status()),
+                $this->failureResolver->resolveFromPayPalOrder($payPalOrder),
+            ),
         };
     }
 
@@ -136,10 +150,15 @@ final class ChargeVaultedPaymentRequestHandler
         }
     }
 
-    /** @param list<string> $issues */
-    private function failWithIssues(PaymentRequestInterface $paymentRequest, string $reason, array $issues): void
+    /** @param array<string>|null $issues */
+    private function failWith(PaymentRequestInterface $paymentRequest, string $reason, VaultedChargeFailure $failure, ?array $issues = null): void
     {
-        $paymentRequest->setResponseData([self::RESPONSE_REASON => $reason, self::RESPONSE_ISSUES => $issues]);
+        $responseData = [self::RESPONSE_REASON => $reason, self::RESPONSE_FAILURE => $failure->value];
+        if (null !== $issues) {
+            $responseData[self::RESPONSE_ISSUES] = $issues;
+        }
+
+        $paymentRequest->setResponseData($responseData);
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
     }
 }
