@@ -19,13 +19,11 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessor;
+use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessorInterface;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
-use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 
 final class VaultingCapabilityWebhookProcessorTest extends TestCase
 {
-    private PayPalPaymentMethodQueryInterface&MockObject $payPalPaymentMethodQuery;
-
     private VaultingCapabilityRefresherInterface&MockObject $refresher;
 
     private ObjectManager&MockObject $paymentMethodManager;
@@ -34,94 +32,68 @@ final class VaultingCapabilityWebhookProcessorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->payPalPaymentMethodQuery = $this->createMock(PayPalPaymentMethodQueryInterface::class);
         $this->refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
         $this->paymentMethodManager = $this->createMock(ObjectManager::class);
 
-        $this->processor = new VaultingCapabilityWebhookProcessor($this->payPalPaymentMethodQuery, $this->refresher, $this->paymentMethodManager);
+        $this->processor = new VaultingCapabilityWebhookProcessor($this->refresher, $this->paymentMethodManager);
     }
 
-    public function test_it_supports_the_capability_updated_event_only(): void
+    public function test_it_implements_the_vaulting_capability_webhook_processor_interface(): void
     {
-        self::assertTrue($this->processor->supports('CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED'));
-        self::assertFalse($this->processor->supports('VAULT.PAYMENT-TOKEN.CREATED'));
+        self::assertInstanceOf(VaultingCapabilityWebhookProcessorInterface::class, $this->processor);
     }
 
-    public function test_it_refreshes_and_stores_the_paypal_payment_methods_of_the_merchant_whose_capability_changed(): void
+    public function test_it_refreshes_and_stores_the_payment_method_of_the_merchant_whose_capability_changed(): void
     {
-        $merchantMethod = $this->paymentMethod('MERCHANT_ID');
-        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([$merchantMethod, $this->paymentMethod('OTHER_MERCHANT_ID')]);
+        $paymentMethod = $this->paymentMethod(['client_id' => 'CLIENT_ID', 'client_secret' => 'SECRET', 'merchant_id' => 'MERCHANT_ID']);
 
-        $this->refresher->expects(self::once())->method('refresh')->with($merchantMethod);
+        $this->refresher->expects(self::once())->method('refresh')->with($paymentMethod);
         $this->paymentMethodManager->expects(self::once())->method('flush');
 
-        $this->processor->process($this->event(['merchant_id' => 'MERCHANT_ID']));
+        $this->processor->process(['merchant_id' => 'MERCHANT_ID'], $paymentMethod);
     }
 
-    public function test_it_refreshes_every_paypal_payment_method_when_the_event_names_no_merchant(): void
+    public function test_it_refreshes_the_payment_method_when_the_event_names_no_merchant(): void
     {
-        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([
-            $this->paymentMethod('MERCHANT_ID'),
-            $this->paymentMethod('OTHER_MERCHANT_ID'),
-        ]);
+        $this->refresher->expects(self::once())->method('refresh');
 
-        $this->refresher->expects(self::exactly(2))->method('refresh');
-
-        $this->processor->process($this->event([]));
+        $this->processor->process([], $this->paymentMethod(['client_id' => 'CLIENT_ID', 'client_secret' => 'SECRET', 'merchant_id' => 'MERCHANT_ID']));
     }
 
-    public function test_it_skips_a_paypal_payment_method_without_credentials_to_ask_paypal_with(): void
+    public function test_it_leaves_a_payment_method_of_another_merchant_alone(): void
     {
-        $incompleteMethod = $this->paymentMethod('MERCHANT_ID');
-        $incompleteMethod->getGatewayConfig()?->setConfig(['merchant_id' => 'MERCHANT_ID']);
-        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([$incompleteMethod]);
+        $this->refresher->expects(self::never())->method('refresh');
+        $this->paymentMethodManager->expects(self::never())->method('flush');
 
+        $this->processor->process(
+            ['merchant_id' => 'OTHER_MERCHANT_ID'],
+            $this->paymentMethod(['client_id' => 'CLIENT_ID', 'client_secret' => 'SECRET', 'merchant_id' => 'MERCHANT_ID']),
+        );
+    }
+
+    public function test_it_skips_a_payment_method_without_credentials_to_ask_paypal_with(): void
+    {
         $this->refresher->expects(self::never())->method('refresh');
 
-        $this->processor->process($this->event([]));
+        $this->processor->process(['merchant_id' => 'MERCHANT_ID'], $this->paymentMethod(['merchant_id' => 'MERCHANT_ID']));
     }
 
-    public function test_it_refreshes_the_other_methods_and_lets_paypal_deliver_the_event_again_when_one_refresh_fails(): void
+    public function test_it_lets_a_failed_refresh_through_so_paypal_delivers_the_event_again(): void
     {
-        $failingMethod = $this->paymentMethod('MERCHANT_ID');
-        $otherMethod = $this->paymentMethod('MERCHANT_ID');
-        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([$failingMethod, $otherMethod]);
-        $refreshed = [];
-        $this->refresher->method('refresh')->willReturnCallback(static function (PaymentMethod $paymentMethod) use ($failingMethod, &$refreshed): bool {
-            if ($failingMethod === $paymentMethod) {
-                throw new \RuntimeException('PayPal is down');
-            }
-            $refreshed[] = $paymentMethod;
+        $this->refresher->method('refresh')->willThrowException(new \RuntimeException('PayPal is down'));
+        $this->paymentMethodManager->expects(self::never())->method('flush');
 
-            return true;
-        });
-        $this->paymentMethodManager->expects(self::once())->method('flush');
+        $this->expectExceptionMessage('PayPal is down');
 
-        try {
-            $this->processor->process($this->event(['merchant_id' => 'MERCHANT_ID']));
-            self::fail('The failed refresh must reach PayPal as a failed delivery.');
-        } catch (\RuntimeException $exception) {
-            self::assertSame('PayPal is down', $exception->getMessage());
-        }
-
-        self::assertSame([$otherMethod], $refreshed);
+        $this->processor->process([], $this->paymentMethod(['client_id' => 'CLIENT_ID', 'client_secret' => 'SECRET', 'merchant_id' => 'MERCHANT_ID']));
     }
 
-    /**
-     * @param array<string, mixed> $resource
-     *
-     * @return array<string, mixed>
-     */
-    private function event(array $resource): array
-    {
-        return ['event_type' => 'CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED', 'resource' => $resource];
-    }
-
-    private function paymentMethod(string $merchantId): PaymentMethod
+    /** @param array<string, mixed> $config */
+    private function paymentMethod(array $config): PaymentMethod
     {
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setFactoryName('sylius_paypal');
-        $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID', 'client_secret' => 'SECRET', 'merchant_id' => $merchantId]);
+        $gatewayConfig->setConfig($config);
 
         $paymentMethod = new PaymentMethod();
         $paymentMethod->setGatewayConfig($gatewayConfig);

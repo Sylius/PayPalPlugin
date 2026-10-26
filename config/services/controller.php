@@ -44,6 +44,9 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('.inner'),
             service('monolog.logger.paypal'),
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.verifier.webhook_request'),
+            service('sylius_paypal.processor.webhook.vaulting_capability'),
         ]);
 
     $services->set('sylius_paypal.controller.cancel_paypal_order', CancelPayPalOrderAction::class)
