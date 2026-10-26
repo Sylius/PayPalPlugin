@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\CommandHandler;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
@@ -36,6 +38,10 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private PaymentAuthorizationProcessorInterface&MockObject $paymentAuthorizationProcessor;
 
+    private EntityManagerInterface&MockObject $paymentManager;
+
+    private EntityManagerInterface&MockObject $paymentRequestManager;
+
     private StateMachineInterface&MockObject $stateMachine;
 
     private PaymentInterface&MockObject $payment;
@@ -50,6 +56,8 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentRequestProvider = $this->createMock(PaymentRequestProviderInterface::class);
         $this->paymentThreeDSecureVerifier = $this->createMock(PaymentThreeDSecureVerifierInterface::class);
         $this->paymentAuthorizationProcessor = $this->createMock(PaymentAuthorizationProcessorInterface::class);
+        $this->paymentManager = $this->createMock(EntityManagerInterface::class);
+        $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
@@ -61,8 +69,52 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentRequestProvider,
             $this->paymentThreeDSecureVerifier,
             $this->paymentAuthorizationProcessor,
+            $this->paymentManager,
+            $this->paymentRequestManager,
             $this->stateMachine,
         );
+    }
+
+    public function test_it_locks_the_payment_before_the_request(): void
+    {
+        $paymentRequest = $this->paymentRequestWith();
+        $lockedEntities = [];
+        $this->paymentManager->method('refresh')->willReturnCallback(static function (object $entity, LockMode|int|null $lockMode) use (&$lockedEntities): void {
+            $lockedEntities[] = [$entity, $lockMode];
+        });
+        $this->paymentRequestManager->method('refresh')->willReturnCallback(static function (object $entity, LockMode|int|null $lockMode) use (&$lockedEntities): void {
+            $lockedEntities[] = [$entity, $lockMode];
+        });
+        $this->paymentAuthorizationProcessor->method('authorize')->willReturn($this->authorizedOrder('CREATED'));
+        $this->stateMachine->method('can')->willReturn(true);
+
+        ($this->handler)(new AuthorizePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            [$this->payment, LockMode::PESSIMISTIC_WRITE],
+            [$paymentRequest, LockMode::PESSIMISTIC_WRITE],
+        ], $lockedEntities);
+    }
+
+    public function test_it_leaves_a_request_completed_while_it_waited_for_the_lock(): void
+    {
+        $this->payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $state = PaymentRequestInterface::STATE_PROCESSING;
+        $paymentRequest = $this->createMock(PaymentRequestInterface::class);
+        $paymentRequest->method('getPayment')->willReturn($this->payment);
+        $paymentRequest->method('getState')->willReturnCallback(static function () use (&$state): string {
+            return $state;
+        });
+        $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
+        $this->paymentRequestManager->method('refresh')->willReturnCallback(static function () use (&$state): void {
+            $state = PaymentRequestInterface::STATE_COMPLETED;
+        });
+
+        $this->paymentAuthorizationProcessor->expects(self::never())->method('authorize');
+
+        ($this->handler)(new AuthorizePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([], $this->appliedTransitions);
     }
 
     public function test_it_authorizes_the_payment_paypal_holds_the_funds_of_and_completes_the_request(): void

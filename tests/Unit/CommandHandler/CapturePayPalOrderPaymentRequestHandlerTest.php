@@ -42,6 +42,8 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
+    private EntityManagerInterface&MockObject $paymentManager;
+
     private EntityManagerInterface&MockObject $paymentRequestManager;
 
     private StateMachineInterface&MockObject $stateMachine;
@@ -59,6 +61,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentThreeDSecureVerifier = $this->createMock(PaymentThreeDSecureVerifierInterface::class);
         $this->paymentCaptureProcessor = $this->createMock(PaymentCaptureProcessorInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->paymentManager = $this->createMock(EntityManagerInterface::class);
         $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
@@ -72,19 +75,31 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentThreeDSecureVerifier,
             $this->paymentCaptureProcessor,
             $this->paymentSettlementProcessor,
+            $this->paymentManager,
             $this->paymentRequestManager,
             $this->stateMachine,
         );
     }
 
-    public function test_it_locks_the_request_and_reads_its_state_again_before_capturing(): void
+    public function test_it_locks_the_payment_before_the_request(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentRequestManager->expects(self::once())->method('refresh')->with($paymentRequest, LockMode::PESSIMISTIC_WRITE);
+        $lockedEntities = [];
+        $this->paymentManager->method('refresh')->willReturnCallback(static function (object $entity, LockMode|int|null $lockMode) use (&$lockedEntities): void {
+            $lockedEntities[] = [$entity, $lockMode];
+        });
+        $this->paymentRequestManager->method('refresh')->willReturnCallback(static function (object $entity, LockMode|int|null $lockMode) use (&$lockedEntities): void {
+            $lockedEntities[] = [$entity, $lockMode];
+        });
         $this->paymentCaptureProcessor->method('capture')->willReturn($this->capturedOrder('COMPLETED'));
         $this->stateMachine->method('can')->willReturn(false);
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            [$this->payment, LockMode::PESSIMISTIC_WRITE],
+            [$paymentRequest, LockMode::PESSIMISTIC_WRITE],
+        ], $lockedEntities);
     }
 
     public function test_it_leaves_a_request_completed_while_it_waited_for_the_lock(): void
@@ -92,6 +107,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
         $state = PaymentRequestInterface::STATE_PROCESSING;
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
+        $paymentRequest->method('getPayment')->willReturn($this->payment);
         $paymentRequest->method('getState')->willReturnCallback(static function () use (&$state): string {
             return $state;
         });

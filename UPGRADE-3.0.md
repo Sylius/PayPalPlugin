@@ -445,8 +445,9 @@
 
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
-   capturing again. It locks the Payment Request (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's
-   return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it one after the other.
+   capturing again. It locks the Payment and then the Payment Request (`PESSIMISTIC_WRITE`) before reading its
+   state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it
+   one after the other, in the same lock order as the webhook that creates a notify Payment Request of the Payment.
    `RefundPayPalPaymentRequestHandler` passes the payment request id, so reprocessing a
    refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
    is used, as before.
@@ -662,7 +663,10 @@
    +public function verify(Request $request, PaymentMethodInterface $paymentMethod): bool;
    ```
 
-   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.
+   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface` and
+   `getByPaymentRequestHash(): PaymentInterface`. `WebhookEventPaymentResolver` finds the payment of the Payment Request
+   an event names through the latter, without loading the Payment Request, so the webhook does not rewrite (and lock)
+   the Payment Request a buyer may be capturing at the same time.
 
 1. #### PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method.
 
@@ -817,6 +821,10 @@
    |---|---|---|
    | `false` (default) | `"intent": "CAPTURE"`, then `POST /v2/checkout/orders/{id}/capture` | `completed` |
    | `true` | `"intent": "AUTHORIZE"`, then `POST /v2/checkout/orders/{id}/authorize` | `authorized` |
+
+   Like the capture, `AuthorizePayPalOrderPaymentRequestHandler` locks the Payment and then the Payment Request
+   (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook
+   authorizing it at the same time handle it one after the other.
 
    Sylius picks the `authorize` Payment Request action from the same key, on the order pay page, in express
    checkout and in the shop API. An authorizing payment method offers only the payment sources listed in

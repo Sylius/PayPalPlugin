@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Resolver;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventNotification;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
@@ -29,9 +27,7 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
 
     private const RESOURCE_TYPE_REFUND = 'refund';
 
-    /** @param PaymentRequestRepositoryInterface<PaymentRequestInterface> $paymentRequestRepository */
     public function __construct(
-        private PaymentRequestRepositoryInterface $paymentRequestRepository,
         private SettleablePaypalPaymentQueryInterface $paypalPaymentQuery,
     ) {
     }
@@ -42,9 +38,9 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
         $resourceType = $notification->resourceType();
 
         foreach ($this->customIds($resource) as $customId) {
-            $payment = $this->paymentOfPaymentRequest($customId);
-            if (null !== $payment) {
-                return $payment;
+            try {
+                return $this->paypalPaymentQuery->getByPaymentRequestHash($customId);
+            } catch (PaymentNotFoundException) {
             }
         }
 
@@ -82,13 +78,6 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
         }
 
         return array_values(array_filter($customIds, static fn (mixed $customId): bool => is_string($customId) && Uuid::isValid($customId)));
-    }
-
-    private function paymentOfPaymentRequest(string $hash): ?PaymentInterface
-    {
-        $payment = $this->paymentRequestRepository->find($hash)?->getPayment();
-
-        return $payment instanceof PaymentInterface ? $payment : null;
     }
 
     /** @param array<string, mixed> $resource */

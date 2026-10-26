@@ -605,7 +605,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.resolver.webhook_event_payment', WebhookEventPaymentResolver::class)
         ->args([
-            service('sylius.repository.payment_request'),
             service('sylius_paypal.repository.query.paypal_payment'),
         ]);
 

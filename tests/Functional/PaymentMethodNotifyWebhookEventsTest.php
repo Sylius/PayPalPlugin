@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -438,6 +439,20 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
 
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
+    }
+
+    public function test_it_finds_the_payment_of_the_payment_request_an_event_names_without_loading_the_request(): void
+    {
+        $paymentRequest = $this->processingCapturePaymentRequest();
+        $paymentId = $paymentRequest->getPayment()->getId();
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $entityManager->clear();
+
+        $payment = self::getContainer()->get('sylius_paypal.repository.query.paypal_payment')->getByPaymentRequestHash((string) $paymentRequest->getId());
+
+        self::assertSame($paymentId, $payment->getId());
+        self::assertSame([], $entityManager->getUnitOfWork()->getIdentityMap()[$paymentRequest::class] ?? []);
     }
 
     private function processingOrder(): OrderInterface
