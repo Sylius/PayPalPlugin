@@ -394,6 +394,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.updater.approved_paypal_order'),
             service('sylius_paypal.api.complete_order'),
             service('sylius_paypal.api.order_details'),
+            service('event_dispatcher'),
         ]);
 
     $services->alias(PaymentCaptureProcessorInterface::class, 'sylius_paypal.processor.payment_capture');
