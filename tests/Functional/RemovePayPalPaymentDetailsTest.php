@@ -86,4 +86,31 @@ final class RemovePayPalPaymentDetailsTest extends JsonApiTestCase
         self::assertSame('CASH_ON_DELIVERY', $payment->getMethod()?->getCode());
         self::assertSame([], $payment->getDetails());
     }
+
+    public function test_it_removes_the_paypal_details_when_another_method_is_chosen_through_the_api(): void
+    {
+        /** @var OrderInterface $order */
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml'])['new_order'];
+        $payment = $order->getLastPayment();
+        self::assertNotNull($payment);
+        $payment->setDetails(['status' => 'CAPTURED', 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'paypal']);
+        $this->getEntityManager()->flush();
+
+        $this->client->request(
+            'PATCH',
+            sprintf('/api/v2/shop/orders/TOKEN/payments/%s', (string) $payment->getId()),
+            server: ['CONTENT_TYPE' => 'application/merge-patch+json', 'HTTP_ACCEPT' => 'application/ld+json'],
+            content: json_encode(['paymentMethod' => '/api/v2/shop/payment-methods/CASH_ON_DELIVERY'], \JSON_THROW_ON_ERROR),
+        );
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode(), (string) $this->client->getResponse()->getContent());
+
+        self::getContainer()->get('sylius.manager.order')->clear();
+        /** @var OrderInterface $reloaded */
+        $reloaded = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $payment = $reloaded->getLastPayment();
+        self::assertNotNull($payment);
+        self::assertSame('CASH_ON_DELIVERY', $payment->getMethod()?->getCode());
+        self::assertSame([], $payment->getDetails());
+    }
 }

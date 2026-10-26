@@ -8,6 +8,7 @@ use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
+use Sylius\PayPalPlugin\Changer\PaymentMethodChanger;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
@@ -165,6 +166,7 @@ use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -663,6 +665,13 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.remover.payment_details', PayPalPaymentDetailsRemover::class);
 
     $services->alias(PayPalPaymentDetailsRemoverInterface::class, 'sylius_paypal.remover.payment_details');
+
+    $services->set('sylius_paypal.changer.payment_method', PaymentMethodChanger::class)
+        ->decorate('sylius_api.changer.payment_method', null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->args([
+            service('.inner'),
+            service('sylius_paypal.remover.payment_details'),
+        ]);
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
         ->args([
