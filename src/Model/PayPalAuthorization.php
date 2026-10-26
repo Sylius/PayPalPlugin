@@ -62,6 +62,11 @@ final readonly class PayPalAuthorization
         );
     }
 
+    public static function isStatusReleased(?string $status): bool
+    {
+        return in_array($status, self::RELEASED_STATUSES, true);
+    }
+
     public function status(): string
     {
         return $this->status;
@@ -89,11 +94,6 @@ final readonly class PayPalAuthorization
 
     public function isReleased(): bool
     {
-        return self::isReleasedStatus($this->status);
-    }
-
-    public static function isReleasedStatus(?string $status): bool
-    {
-        return in_array($status, self::RELEASED_STATUSES, true);
+        return self::isStatusReleased($this->status);
     }
 }

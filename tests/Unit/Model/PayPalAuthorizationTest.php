@@ -80,10 +80,10 @@ final class PayPalAuthorizationTest extends TestCase
             self::assertSame($capturable, $authorization->isCapturable(), $status);
             self::assertSame($voidable, $authorization->isVoidable(), $status);
             self::assertSame($released, $authorization->isReleased(), $status);
-            self::assertSame($released, PayPalAuthorization::isReleasedStatus($status), $status);
+            self::assertSame($released, PayPalAuthorization::isStatusReleased($status), $status);
         }
 
-        self::assertFalse(PayPalAuthorization::isReleasedStatus(null));
+        self::assertFalse(PayPalAuthorization::isStatusReleased(null));
     }
 
     /**

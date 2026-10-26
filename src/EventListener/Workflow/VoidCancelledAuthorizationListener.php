@@ -48,7 +48,7 @@ final readonly class VoidCancelledAuthorizationListener
         if (
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $payment->getMethod()?->getGatewayConfig()?->getFactoryName() ||
             null === $details->authorizationId() ||
-            PayPalAuthorization::isReleasedStatus($details->authorizationStatus())
+            PayPalAuthorization::isStatusReleased($details->authorizationStatus())
         ) {
             return;
         }

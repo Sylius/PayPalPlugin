@@ -66,7 +66,7 @@ final class VoidAuthorizationPaymentRequestHandler
         $payment = $paymentRequest->getPayment();
         $details = PayPalPaymentDetails::fromPayment($payment);
 
-        if (PayPalAuthorization::isReleasedStatus($details->authorizationStatus())) {
+        if (PayPalAuthorization::isStatusReleased($details->authorizationStatus())) {
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
 
             return;
