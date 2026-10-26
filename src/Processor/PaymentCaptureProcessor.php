@@ -18,7 +18,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
-use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
@@ -27,7 +26,6 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Model\PayPalVault;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
 {
@@ -38,7 +36,6 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
         private CompleteOrderApiInterface $completeOrderApi,
         private OrderDetailsApiInterface $orderDetailsApi,
-        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -85,11 +82,6 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
         }
 
         $payment->setDetails($capturedDetails->toArray());
-
-        $vaultId = $vault?->id();
-        if (null !== $vaultId && null === $knownVault?->id()) {
-            $this->eventDispatcher->dispatch(new PayPalPaymentTokenCreated($payment, $vaultId));
-        }
 
         return $orderDetails;
     }

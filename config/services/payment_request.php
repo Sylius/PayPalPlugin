@@ -16,6 +16,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
 use Sylius\Bundle\PaymentBundle\Provider\ActionsHttpResponseProvider;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\CommandHandler\AnnouncePayPalPaymentTokenHandler;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\ChargeVaultedPaymentRequestHandler;
@@ -136,7 +137,15 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.processor.payment_capture'),
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius.manager.payment_request'),
+            service('sylius.payment_request.command_bus'),
             service('sylius_abstraction.state_machine'),
+        ])
+        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
+
+    $services->set('sylius_paypal.command_handler.announce_paypal_payment_token', AnnouncePayPalPaymentTokenHandler::class)
+        ->args([
+            service('sylius.repository.payment'),
+            service('event_dispatcher'),
         ])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
 
