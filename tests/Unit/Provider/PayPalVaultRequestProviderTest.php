@@ -40,22 +40,32 @@ final class PayPalVaultRequestProviderTest extends TestCase
         self::assertSame($vaultRequest, (new PayPalVaultRequestProvider($resolver, $this->createStub(PayPalPaymentMethodsResolverInterface::class), $this->createStub(VaultingCapabilityRefresherInterface::class)))->provide($order, $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true])));
     }
 
-    /** @return iterable<string, array{string, array<string, mixed>}> */
-    public static function gatewaysThatCannotVault(): iterable
+    /** @return iterable<string, array{array<string, mixed>}> */
+    public static function payPalConfigsWithoutVaulting(): iterable
     {
-        yield 'merchant without the vaulting capability' => ['sylius_paypal', ['vaulting_enabled' => false]];
-        yield 'merchant onboarded before vaulting' => ['sylius_paypal', []];
-        yield 'gateway that is not paypal' => ['offline', ['vaulting_enabled' => true]];
+        yield 'merchant without the vaulting capability' => [['vaulting_enabled' => false]];
+        yield 'merchant onboarded before vaulting' => [[]];
     }
 
     /** @param array<string, mixed> $config */
-    #[DataProvider('gatewaysThatCannotVault')]
-    public function test_it_provides_no_vault_request_through_a_gateway_that_cannot_vault(string $factoryName, array $config): void
+    #[DataProvider('payPalConfigsWithoutVaulting')]
+    public function test_it_provides_no_vault_request_through_a_paypal_merchant_paypal_still_cannot_vault_for(array $config): void
+    {
+        $resolver = $this->createStub(VaultRequestResolverInterface::class);
+        $resolver->method('resolve')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
+
+        $refresher = $this->createStub(VaultingCapabilityRefresherInterface::class);
+        $refresher->method('refresh')->willReturn(false);
+
+        self::assertNull((new PayPalVaultRequestProvider($resolver, $this->createStub(PayPalPaymentMethodsResolverInterface::class), $refresher))->provide($this->createStub(OrderInterface::class), $this->paymentMethod('sylius_paypal', $config)));
+    }
+
+    public function test_it_provides_no_vault_request_through_a_gateway_that_is_not_paypal(): void
     {
         $resolver = $this->createMock(VaultRequestResolverInterface::class);
         $resolver->expects(self::never())->method('resolve');
 
-        self::assertNull((new PayPalVaultRequestProvider($resolver, $this->createStub(PayPalPaymentMethodsResolverInterface::class), $this->createStub(VaultingCapabilityRefresherInterface::class)))->provide($this->createStub(OrderInterface::class), $this->paymentMethod($factoryName, $config)));
+        self::assertNull((new PayPalVaultRequestProvider($resolver, $this->createStub(PayPalPaymentMethodsResolverInterface::class), $this->createStub(VaultingCapabilityRefresherInterface::class)))->provide($this->createStub(OrderInterface::class), $this->paymentMethod('offline', ['vaulting_enabled' => true])));
     }
 
     public function test_it_provides_no_vault_request_without_a_payment_method(): void
@@ -128,14 +138,13 @@ final class PayPalVaultRequestProviderTest extends TestCase
         self::assertFalse((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $this->createStub(VaultingCapabilityRefresherInterface::class)))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
     }
 
-    public function test_it_asks_paypal_again_whether_a_method_can_vault_once_an_integration_vaults_in_its_channel(): void
+    public function test_it_asks_paypal_again_whether_a_method_can_vault_once_the_order_needs_vaulting(): void
     {
         $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]);
         $order = $this->cartWith($paymentMethod);
         $vaultRequest = new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID);
 
         $resolver = $this->createStub(VaultRequestResolverInterface::class);
-        $resolver->method('vaultsInChannel')->willReturn(true);
         $resolver->method('resolve')->willReturn($vaultRequest);
 
         $refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
@@ -144,7 +153,7 @@ final class PayPalVaultRequestProviderTest extends TestCase
         self::assertSame($vaultRequest, (new PayPalVaultRequestProvider($resolver, $this->createStub(PayPalPaymentMethodsResolverInterface::class), $refresher))->provide($order, $paymentMethod));
     }
 
-    public function test_it_does_not_ask_paypal_whether_a_method_can_vault_when_no_integration_vaults_in_its_channel(): void
+    public function test_it_does_not_ask_paypal_whether_a_method_can_vault_when_the_order_needs_no_vaulting(): void
     {
         $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]);
 
@@ -152,6 +161,20 @@ final class PayPalVaultRequestProviderTest extends TestCase
         $refresher->expects(self::never())->method('refresh');
 
         self::assertNull((new PayPalVaultRequestProvider(new NullVaultRequestResolver(), $this->createStub(PayPalPaymentMethodsResolverInterface::class), $refresher))->provide($this->cartWith($paymentMethod), $paymentMethod));
+    }
+
+    public function test_it_never_asks_paypal_whether_a_channel_vaults(): void
+    {
+        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+        $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false])]);
+
+        $resolver = $this->createStub(VaultRequestResolverInterface::class);
+        $resolver->method('vaultsInChannel')->willReturn(true);
+
+        $refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
+        $refresher->expects(self::never())->method('refresh');
+
+        self::assertFalse((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $refresher))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
     }
 
     private function cartWith(PaymentMethodInterface $paymentMethod): OrderInterface
