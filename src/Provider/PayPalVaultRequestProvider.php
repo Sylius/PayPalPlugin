@@ -36,13 +36,25 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
 
     public function provide(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): ?PayPalVaultRequest
     {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-        if (!$this->canVault($paymentMethod, $channel)) {
+        if (null === $paymentMethod) {
             return null;
         }
 
-        return $this->vaultRequestResolver->resolve($order);
+        $gatewayConfig = $this->payPalGatewayConfig($paymentMethod);
+        if (null === $gatewayConfig) {
+            return null;
+        }
+
+        $vaultRequest = $this->vaultRequestResolver->resolve($order);
+        if (null === $vaultRequest) {
+            return null;
+        }
+
+        if (!$gatewayConfig->isVaultingEnabled() && !$this->vaultingCapabilityRefresher->refresh($paymentMethod)) {
+            return null;
+        }
+
+        return $vaultRequest;
     }
 
     public function provideForCart(OrderInterface $order): ?PayPalVaultRequest
@@ -57,7 +69,7 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
         }
 
         foreach ($this->payPalMethodsResolver->getInChannel($channel) as $paymentMethod) {
-            if ($this->canVault($paymentMethod, $channel)) {
+            if (true === $this->payPalGatewayConfig($paymentMethod)?->isVaultingEnabled()) {
                 return true;
             }
         }
@@ -65,29 +77,17 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
         return false;
     }
 
-    private function canVault(?PaymentMethodInterface $paymentMethod, ?ChannelInterface $channel): bool
+    private function payPalGatewayConfig(PaymentMethodInterface $paymentMethod): ?PayPalGatewayConfig
     {
-        if (null === $paymentMethod) {
-            return false;
-        }
-
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         if (
             !$gatewayConfig instanceof GatewayConfigInterface ||
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $gatewayConfig->getFactoryName()
         ) {
-            return false;
+            return null;
         }
 
-        if (PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVaultingEnabled()) {
-            return true;
-        }
-
-        return
-            null !== $channel &&
-            $this->vaultRequestResolver->vaultsInChannel($channel) &&
-            $this->vaultingCapabilityRefresher->refresh($paymentMethod)
-        ;
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
     }
 
     private function cartPaymentMethod(OrderInterface $order): ?PaymentMethodInterface
