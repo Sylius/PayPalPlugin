@@ -13,19 +13,25 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Payum\Action;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final readonly class CompleteOrderAction implements ActionInterface
 {
     public function __construct(
         private PaymentCaptureProcessorInterface $paymentCaptureProcessor,
+        private EntityManagerInterface $paymentManager,
+        private EventDispatcherInterface $eventDispatcher,
         private LoggerInterface $logger,
     ) {
     }
@@ -48,7 +54,19 @@ final readonly class CompleteOrderAction implements ActionInterface
             return;
         }
 
-        $this->paymentCaptureProcessor->capture($payment);
+        $knownVaultId = $this->paymentManager->wrapInTransaction(function () use ($payment): ?string {
+            $this->paymentManager->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+            $knownVaultId = PayPalPaymentDetails::fromPayment($payment)->vaultId();
+
+            $this->paymentCaptureProcessor->capture($payment);
+
+            return $knownVaultId;
+        });
+
+        $vaultId = PayPalPaymentDetails::fromPayment($payment)->vaultId();
+        if (null !== $vaultId && $knownVaultId !== $vaultId) {
+            $this->eventDispatcher->dispatch(new PayPalPaymentTokenCreated($payment, $vaultId));
+        }
     }
 
     public function supports($request): bool
