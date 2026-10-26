@@ -29,6 +29,12 @@ final readonly class PayPalAuthorization
 
     public const STATUS_EXPIRED = 'EXPIRED';
 
+    private const CAPTURABLE_STATUSES = [self::STATUS_CREATED, self::STATUS_PENDING, self::STATUS_PARTIALLY_CAPTURED];
+
+    private const VOIDABLE_STATUSES = [self::STATUS_CREATED, self::STATUS_PENDING];
+
+    private const RELEASED_STATUSES = [self::STATUS_VOIDED, self::STATUS_EXPIRED, self::STATUS_DENIED];
+
     public function __construct(
         private string $status,
         private ?string $id = null,
@@ -40,7 +46,13 @@ final readonly class PayPalAuthorization
     {
         $authorization = $payPalOrderDetails['purchase_units'][0]['payments']['authorizations'][0] ?? null;
 
-        if (!is_array($authorization) || !is_string($authorization['status'] ?? null)) {
+        return is_array($authorization) ? self::fromAuthorization($authorization) : null;
+    }
+
+    /** @param array<string, mixed> $authorization */
+    public static function fromAuthorization(array $authorization): ?self
+    {
+        if (!is_string($authorization['status'] ?? null)) {
             return null;
         }
 
@@ -48,6 +60,11 @@ final readonly class PayPalAuthorization
             $authorization['status'],
             isset($authorization['id']) ? (string) $authorization['id'] : null,
         );
+    }
+
+    public static function isStatusReleased(?string $status): bool
+    {
+        return in_array($status, self::RELEASED_STATUSES, true);
     }
 
     public function status(): string
@@ -63,5 +80,20 @@ final readonly class PayPalAuthorization
     public function isStatus(string $status): bool
     {
         return $status === $this->status;
+    }
+
+    public function isCapturable(): bool
+    {
+        return in_array($this->status, self::CAPTURABLE_STATUSES, true);
+    }
+
+    public function isVoidable(): bool
+    {
+        return in_array($this->status, self::VOIDABLE_STATUSES, true);
+    }
+
+    public function isReleased(): bool
+    {
+        return self::isStatusReleased($this->status);
     }
 }

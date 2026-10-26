@@ -68,7 +68,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $paymentRequest->getMethod();
         if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()) {
-            $this->failWithReason($paymentRequest, 'The payment was not paid with PayPal.');
+            $this->failWithReason($paymentRequest, 'Payment method mismatch.');
 
             return;
         }

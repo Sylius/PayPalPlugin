@@ -92,6 +92,44 @@ final readonly class PayPalApiMocker
         ]);
     }
 
+    public function mockCaptureAuthorization(string $authorizationId = 'AUTHORIZATION_ID', ?string $requestId = null): void
+    {
+        $this->client->addExpectation('POST', sprintf('v2/payments/authorizations/%s/capture', $authorizationId), [
+            'id' => 'CAPTURE_ID',
+            'status' => 'COMPLETED',
+        ], 201, $this->requestIdHeader($requestId));
+    }
+
+    public function mockVoidAuthorization(string $authorizationId = 'AUTHORIZATION_ID', ?string $requestId = null): void
+    {
+        $this->client->addExpectation('POST', sprintf('v2/payments/authorizations/%s/void', $authorizationId), [
+            'id' => $authorizationId,
+            'status' => 'VOIDED',
+        ], 200, ['Prefer' => 'return=representation'] + $this->requestIdHeader($requestId));
+    }
+
+    public function mockOrderDetailsWithCapturedAuthorization(
+        string $payPalOrderId = 'PAYPAL_ORDER_ID',
+        string $captureStatus = 'COMPLETED',
+        string $value = '0.20',
+        string $currencyCode = 'USD',
+    ): void {
+        $this->mockOrderDetails($payPalOrderId, [
+            'status' => 'COMPLETED',
+            'purchase_units' => [[
+                'reference_id' => 'REFERENCE_ID',
+                'payments' => [
+                    'authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => 'CAPTURED']],
+                    'captures' => [[
+                        'id' => 'CAPTURE_ID',
+                        'status' => $captureStatus,
+                        'amount' => ['currency_code' => $currencyCode, 'value' => $value],
+                    ]],
+                ],
+            ]],
+        ]);
+    }
+
     public function mockUpdateOrderAddress(string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
     {
         $this->client->addExpectation('PATCH', 'v2/checkout/orders/' . $payPalOrderId, [], 204);
@@ -146,6 +184,15 @@ final readonly class PayPalApiMocker
     {
         $this->client->addExpectation('GET', 'v2/payments/captures/' . $captureId, [
             'id' => $captureId,
+            'status' => $status,
+            'supplementary_data' => ['related_ids' => ['order_id' => $payPalOrderId]],
+        ]);
+    }
+
+    public function mockAuthorizationDetails(string $authorizationId = 'AUTHORIZATION_ID', string $status = 'CREATED', string $payPalOrderId = 'PAYPAL_ORDER_ID'): void
+    {
+        $this->client->addExpectation('GET', 'v2/payments/authorizations/' . $authorizationId, [
+            'id' => $authorizationId,
             'status' => $status,
             'supplementary_data' => ['related_ids' => ['order_id' => $payPalOrderId]],
         ]);

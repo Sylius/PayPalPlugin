@@ -23,7 +23,7 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 
-final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
+final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface, PaypalPaymentBatchQueryInterface
 {
     /** @param PaymentRepositoryInterface<PaymentInterface>&EntityRepository $paymentRepository */
     public function __construct(
@@ -105,6 +105,28 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         }
 
         throw new PaymentNotFoundException();
+    }
+
+    public function findInStates(array $states, int $limit, ?int $afterId = null): array
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $states)
+            ->orderBy('o.id', 'ASC')
+            ->setMaxResults($limit)
+        ;
+
+        if (null !== $afterId) {
+            $queryBuilder
+                ->andWhere('o.id > :afterId')
+                ->setParameter('afterId', $afterId)
+            ;
+        }
+
+        /** @var list<PaymentInterface> $payments */
+        $payments = $queryBuilder->getQuery()->getResult();
+
+        return $payments;
     }
 
     private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface

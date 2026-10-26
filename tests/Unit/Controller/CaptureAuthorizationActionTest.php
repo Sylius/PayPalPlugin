@@ -1,0 +1,176 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
+
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
+use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\Payment;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\Component\Payment\Model\GatewayConfig;
+use Sylius\Component\Payment\Model\PaymentRequest;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\Controller\CaptureAuthorizationAction;
+use Sylius\PayPalPlugin\Dispatcher\CaptureAuthorizationPaymentRequestDispatcherInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+
+final class CaptureAuthorizationActionTest extends TestCase
+{
+    /** @var PaymentRepositoryInterface<PaymentInterface>&Stub */
+    private PaymentRepositoryInterface&Stub $paymentRepository;
+
+    private CaptureAuthorizationPaymentRequestDispatcherInterface&MockObject $dispatcher;
+
+    private CsrfTokenManagerInterface&Stub $csrfTokenManager;
+
+    private Payment $payment;
+
+    private CaptureAuthorizationAction $action;
+
+    protected function setUp(): void
+    {
+        $this->paymentRepository = $this->createStub(PaymentRepositoryInterface::class);
+        $this->dispatcher = $this->createMock(CaptureAuthorizationPaymentRequestDispatcherInterface::class);
+        $this->csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $router = $this->createStub(UrlGeneratorInterface::class);
+        $router->method('generate')->willReturnCallback(
+            static fn (string $route, array $parameters): string => sprintf('/admin/orders/%s', (string) $parameters['id']),
+        );
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setFactoryName('sylius_paypal');
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+        $this->payment = new Payment();
+        $this->payment->setMethod($paymentMethod);
+        $this->payment->setState(PaymentInterface::STATE_AUTHORIZED);
+
+        $this->action = new CaptureAuthorizationAction($this->paymentRepository, $this->dispatcher, $this->csrfTokenManager, $router);
+    }
+
+    public function test_it_tells_the_admin_the_payment_has_been_completed(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturnCallback(
+            static fn (CsrfToken $token): bool => '7' === $token->getId() && 'TOKEN' === $token->getValue(),
+        );
+        $this->paymentRepository->method('findOneByOrderId')->willReturnMap([['7', '3', $this->payment]]);
+        $this->dispatcher->expects(self::once())->method('dispatch')->with($this->payment)->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_COMPLETED));
+
+        $request = $this->request();
+        $response = ($this->action)($request);
+
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('/admin/orders/3', $response->getTargetUrl());
+        self::assertSame(['sylius.payment.completed'], $request->getSession()->getFlashBag()->peek('success'));
+    }
+
+    public function test_it_tells_the_admin_why_paypal_did_not_capture_the_payment(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('findOneByOrderId')->willReturn($this->payment);
+        $this->dispatcher->method('dispatch')->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_FAILED, ['reason' => 'PayPal rejected the capture.']));
+
+        $request = $this->request();
+        ($this->action)($request);
+
+        self::assertSame(
+            [['message' => 'sylius_paypal.payment_not_captured', 'parameters' => ['%reason%' => 'PayPal rejected the capture.']]],
+            $request->getSession()->getFlashBag()->peek('error'),
+        );
+    }
+
+    public function test_it_tells_the_admin_paypal_is_still_processing_the_capture(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('findOneByOrderId')->willReturn($this->payment);
+        $this->dispatcher->method('dispatch')->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING));
+
+        $request = $this->request();
+        ($this->action)($request);
+
+        self::assertSame(['sylius_paypal.payment_capture_pending'], $request->getSession()->getFlashBag()->peek('info'));
+    }
+
+    public function test_it_refuses_a_request_without_a_valid_csrf_token(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(false);
+        $this->dispatcher->expects(self::never())->method('dispatch');
+
+        $this->expectException(AccessDeniedHttpException::class);
+
+        ($this->action)($this->request());
+    }
+
+    public function test_it_refuses_a_payment_that_does_not_belong_to_the_order(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('findOneByOrderId')->willReturn(null);
+        $this->dispatcher->expects(self::never())->method('dispatch');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        ($this->action)($this->request());
+    }
+
+    public function test_it_refuses_a_payment_that_is_not_authorized(): void
+    {
+        $this->payment->setState(PaymentInterface::STATE_COMPLETED);
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('findOneByOrderId')->willReturn($this->payment);
+        $this->dispatcher->expects(self::never())->method('dispatch');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        ($this->action)($this->request());
+    }
+
+    public function test_it_refuses_a_payment_of_another_gateway(): void
+    {
+        $this->payment->getMethod()?->getGatewayConfig()?->setFactoryName('offline');
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('findOneByOrderId')->willReturn($this->payment);
+        $this->dispatcher->expects(self::never())->method('dispatch');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        ($this->action)($this->request());
+    }
+
+    /** @param array<string, mixed> $responseData */
+    private function paymentRequest(string $state, array $responseData = []): PaymentRequestInterface
+    {
+        $paymentRequest = new PaymentRequest($this->payment, new PaymentMethod());
+        $paymentRequest->setState($state);
+        $paymentRequest->setResponseData($responseData);
+
+        return $paymentRequest;
+    }
+
+    private function request(): Request
+    {
+        $request = new Request([], ['_csrf_token' => 'TOKEN'], ['id' => '7', 'orderId' => '3']);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+
+        return $request;
+    }
+}

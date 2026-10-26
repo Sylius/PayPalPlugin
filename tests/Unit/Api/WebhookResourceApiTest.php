@@ -51,6 +51,7 @@ final class WebhookResourceApiTest extends TestCase
     /** @return iterable<string, array{string, string}> */
     public static function resources(): iterable
     {
+        yield 'authorization' => ['authorization', 'v2/payments/authorizations/RESOURCE_ID'];
         yield 'capture' => ['capture', 'v2/payments/captures/RESOURCE_ID'];
         yield 'checkout order' => ['checkout-order', 'v2/checkout/orders/RESOURCE_ID'];
         yield 'refund' => ['refund', 'v2/payments/refunds/RESOURCE_ID'];

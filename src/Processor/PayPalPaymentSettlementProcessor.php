@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -51,10 +52,27 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
 
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
         $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
-        if (null === $capture) {
-            return;
+
+        $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrderDetails);
+        $authorizationRecorded = null !== $authorization && $payPalOrderId === $details->payPalOrderId();
+        if ($authorizationRecorded) {
+            $details = $details->withAuthorization($authorization);
+            $payment->setDetails($details->toArray());
         }
 
+        $settled = match (true) {
+            null !== $capture => $this->settleCapture($payment, $details, $payPalOrderId, $capture),
+            $authorizationRecorded => $this->settleAuthorization($payment, $authorization),
+            default => false,
+        };
+
+        if ($settled || $authorizationRecorded) {
+            $this->paymentManager->flush();
+        }
+    }
+
+    private function settleCapture(PaymentInterface $payment, PayPalPaymentDetails $details, string $payPalOrderId, PayPalCapture $capture): bool
+    {
         $transition = match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => PaymentTransitions::TRANSITION_COMPLETE,
             PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED => PaymentTransitions::TRANSITION_FAIL,
@@ -62,18 +80,16 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         };
 
         if (null === $transition) {
-            return;
+            return false;
         }
 
         if ($details->isSupersededPayPalOrder($payPalOrderId)) {
             if (PaymentTransitions::TRANSITION_COMPLETE !== $transition) {
-                return;
+                return false;
             }
 
             if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
-                $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, PaymentInterface::STATE_COMPLETED);
-
-                return;
+                return $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, PaymentInterface::STATE_COMPLETED);
             }
 
             $details = $details->withSupersededPayPalOrderRestored($payPalOrderId);
@@ -84,17 +100,15 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             : PaymentInterface::STATE_FAILED;
 
         if ($state === $payment->getState()) {
-            return;
+            return false;
         }
 
         if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
             if (PaymentTransitions::TRANSITION_FAIL === $transition && PaymentInterface::STATE_CANCELLED === $payment->getState()) {
-                return;
+                return false;
             }
 
-            $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, $state);
-
-            return;
+            return $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, $state);
         }
 
         $settledDetails = $details
@@ -112,7 +126,30 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         );
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
-        $this->paymentManager->flush();
+
+        return true;
+    }
+
+    private function settleAuthorization(PaymentInterface $payment, PayPalAuthorization $authorization): bool
+    {
+        $transition = match (true) {
+            $authorization->isStatus(PayPalAuthorization::STATUS_CREATED) => PaymentTransitions::TRANSITION_AUTHORIZE,
+            $authorization->isStatus(PayPalAuthorization::STATUS_DENIED) => PaymentTransitions::TRANSITION_FAIL,
+            $authorization->isReleased() && PaymentInterface::STATE_AUTHORIZED === $payment->getState() => PaymentTransitions::TRANSITION_CANCEL,
+            default => null,
+        };
+
+        if (null === $transition || !$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+            return false;
+        }
+
+        if (PaymentTransitions::TRANSITION_AUTHORIZE === $transition) {
+            $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withStatus(PayPalPaymentStatus::Authorized)->toArray());
+        }
+
+        $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+
+        return true;
     }
 
     private function keepLateCapture(
@@ -121,11 +158,11 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         PayPalCapture $capture,
         string $transition,
         string $state,
-    ): void {
+    ): bool {
         $details = $payment->getDetails();
         $lateCapture = $details[self::LATE_CAPTURE] ?? null;
         if (is_array($lateCapture) && ($lateCapture['id'] ?? null) === $capture->id()) {
-            return;
+            return false;
         }
 
         $kept = PaymentTransitions::TRANSITION_COMPLETE === $transition &&
@@ -144,7 +181,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         ));
 
         if (!$kept) {
-            return;
+            return false;
         }
 
         $details[self::LATE_CAPTURE] = [
@@ -154,7 +191,8 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             'currency_code' => $capture->currencyCode(),
         ];
         $payment->setDetails($details);
-        $this->paymentManager->flush();
+
+        return true;
     }
 
     /** @return array<string, mixed> */
