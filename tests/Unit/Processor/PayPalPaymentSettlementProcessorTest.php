@@ -160,12 +160,51 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderWithAuthorization($status));
     }
 
+    #[DataProvider('statesPayPalCanDenyTheAuthorizationOf')]
+    public function test_it_fails_the_payment_whose_authorization_paypal_has_denied(string $state): void
+    {
+        $this->payment->method('getState')->willReturn($state);
+        $this->stateMachine->method('can')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL)->willReturn(true);
+
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => 'DENIED' === $details['authorization_status'],
+        ));
+        $this->stateMachine->expects(self::once())->method('apply')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL);
+        $this->paymentManager->expects(self::once())->method('flush');
+
+        $this->processor->settle($this->payment, $this->orderWithAuthorization('DENIED'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function statesPayPalCanDenyTheAuthorizationOf(): iterable
+    {
+        yield 'processing' => [PaymentInterface::STATE_PROCESSING];
+        yield 'authorized' => [PaymentInterface::STATE_AUTHORIZED];
+    }
+
+    public function test_it_stores_the_authorization_it_records_while_the_capture_is_still_pending(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
+
+        $orderDetails = $this->orderDetails('PENDING');
+        $orderDetails['purchase_units'][0]['payments']['authorizations'] = [['id' => 'AUTHORIZATION_ID', 'status' => 'CAPTURED']];
+
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => 'CAPTURED' === $details['authorization_status'],
+        ));
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->paymentManager->expects(self::once())->method('flush');
+
+        $this->processor->settle($this->payment, $orderDetails);
+    }
+
     public function test_it_only_records_a_released_authorization_of_a_payment_that_is_not_authorized(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_CANCELLED);
 
         $this->payment->expects(self::once())->method('setDetails');
         $this->stateMachine->expects(self::never())->method('apply');
+        $this->paymentManager->expects(self::once())->method('flush');
 
         $this->processor->settle($this->payment, $this->orderWithAuthorization('VOIDED'));
     }
