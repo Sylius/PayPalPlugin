@@ -13,11 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Console\Command;
 
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
-use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Doctrine\Persistence\ObjectManager;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,10 +28,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RefreshVaultingCapabilityCommand extends Command
 {
-    /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
     public function __construct(
-        private readonly PaymentMethodRepositoryInterface $paymentMethodRepository,
+        private readonly PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery,
         private readonly VaultingCapabilityRefresherInterface $refresher,
+        private readonly ObjectManager $paymentMethodManager,
     ) {
         parent::__construct();
     }
@@ -43,11 +41,7 @@ final class RefreshVaultingCapabilityCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $failed = false;
 
-        foreach ($this->paymentMethodRepository->findAll() as $paymentMethod) {
-            if (!$this->isPayPalPaymentMethod($paymentMethod)) {
-                continue;
-            }
-
+        foreach ($this->payPalPaymentMethodQuery->findAll() as $paymentMethod) {
             try {
                 $io->success(sprintf(
                     'Vaulting is %s for "%s".',
@@ -64,16 +58,8 @@ final class RefreshVaultingCapabilityCommand extends Command
             }
         }
 
+        $this->paymentMethodManager->flush();
+
         return $failed ? Command::FAILURE : Command::SUCCESS;
-    }
-
-    private function isPayPalPaymentMethod(PaymentMethodInterface $paymentMethod): bool
-    {
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        return
-            $gatewayConfig instanceof GatewayConfigInterface &&
-            $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
-        ;
     }
 }

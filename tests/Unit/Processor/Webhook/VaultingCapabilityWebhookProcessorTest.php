@@ -13,30 +13,32 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor\Webhook;
 
+use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfig;
-use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessor;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
+use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 
 final class VaultingCapabilityWebhookProcessorTest extends TestCase
 {
-    /** @var PaymentMethodRepositoryInterface<PaymentMethodInterface>&MockObject */
-    private PaymentMethodRepositoryInterface&MockObject $paymentMethodRepository;
+    private PayPalPaymentMethodQueryInterface&MockObject $payPalPaymentMethodQuery;
 
     private VaultingCapabilityRefresherInterface&MockObject $refresher;
+
+    private ObjectManager&MockObject $paymentMethodManager;
 
     private VaultingCapabilityWebhookProcessor $processor;
 
     protected function setUp(): void
     {
-        $this->paymentMethodRepository = $this->createMock(PaymentMethodRepositoryInterface::class);
+        $this->payPalPaymentMethodQuery = $this->createMock(PayPalPaymentMethodQueryInterface::class);
         $this->refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
+        $this->paymentMethodManager = $this->createMock(ObjectManager::class);
 
-        $this->processor = new VaultingCapabilityWebhookProcessor($this->paymentMethodRepository, $this->refresher);
+        $this->processor = new VaultingCapabilityWebhookProcessor($this->payPalPaymentMethodQuery, $this->refresher, $this->paymentMethodManager);
     }
 
     public function test_it_supports_the_capability_updated_event_only(): void
@@ -45,26 +47,22 @@ final class VaultingCapabilityWebhookProcessorTest extends TestCase
         self::assertFalse($this->processor->supports('VAULT.PAYMENT-TOKEN.CREATED'));
     }
 
-    public function test_it_refreshes_the_paypal_payment_methods_of_the_merchant_whose_capability_changed(): void
+    public function test_it_refreshes_and_stores_the_paypal_payment_methods_of_the_merchant_whose_capability_changed(): void
     {
-        $merchantMethod = $this->paymentMethod('sylius_paypal', 'MERCHANT_ID');
-        $this->paymentMethodRepository->method('findAll')->willReturn([
-            $merchantMethod,
-            $this->paymentMethod('sylius_paypal', 'OTHER_MERCHANT_ID'),
-            $this->paymentMethod('offline', null),
-        ]);
+        $merchantMethod = $this->paymentMethod('MERCHANT_ID');
+        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([$merchantMethod, $this->paymentMethod('OTHER_MERCHANT_ID')]);
 
         $this->refresher->expects(self::once())->method('refresh')->with($merchantMethod);
+        $this->paymentMethodManager->expects(self::once())->method('flush');
 
         $this->processor->process($this->event(['merchant_id' => 'MERCHANT_ID']));
     }
 
     public function test_it_refreshes_every_paypal_payment_method_when_the_event_names_no_merchant(): void
     {
-        $this->paymentMethodRepository->method('findAll')->willReturn([
-            $this->paymentMethod('sylius_paypal', 'MERCHANT_ID'),
-            $this->paymentMethod('sylius_paypal', 'OTHER_MERCHANT_ID'),
-            $this->paymentMethod('offline', null),
+        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([
+            $this->paymentMethod('MERCHANT_ID'),
+            $this->paymentMethod('OTHER_MERCHANT_ID'),
         ]);
 
         $this->refresher->expects(self::exactly(2))->method('refresh');
@@ -72,14 +70,41 @@ final class VaultingCapabilityWebhookProcessorTest extends TestCase
         $this->processor->process($this->event([]));
     }
 
-    public function test_it_lets_paypal_deliver_the_event_again_when_the_refresh_fails(): void
+    public function test_it_skips_a_paypal_payment_method_without_credentials_to_ask_paypal_with(): void
     {
-        $this->paymentMethodRepository->method('findAll')->willReturn([$this->paymentMethod('sylius_paypal', 'MERCHANT_ID')]);
-        $this->refresher->method('refresh')->willThrowException(new \RuntimeException('PayPal is down'));
+        $incompleteMethod = $this->paymentMethod('MERCHANT_ID');
+        $incompleteMethod->getGatewayConfig()?->setConfig(['merchant_id' => 'MERCHANT_ID']);
+        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([$incompleteMethod]);
 
-        $this->expectException(\RuntimeException::class);
+        $this->refresher->expects(self::never())->method('refresh');
 
-        $this->processor->process($this->event(['merchant_id' => 'MERCHANT_ID']));
+        $this->processor->process($this->event([]));
+    }
+
+    public function test_it_refreshes_the_other_methods_and_lets_paypal_deliver_the_event_again_when_one_refresh_fails(): void
+    {
+        $failingMethod = $this->paymentMethod('MERCHANT_ID');
+        $otherMethod = $this->paymentMethod('MERCHANT_ID');
+        $this->payPalPaymentMethodQuery->method('findAll')->willReturn([$failingMethod, $otherMethod]);
+        $refreshed = [];
+        $this->refresher->method('refresh')->willReturnCallback(static function (PaymentMethod $paymentMethod) use ($failingMethod, &$refreshed): bool {
+            if ($failingMethod === $paymentMethod) {
+                throw new \RuntimeException('PayPal is down');
+            }
+            $refreshed[] = $paymentMethod;
+
+            return true;
+        });
+        $this->paymentMethodManager->expects(self::once())->method('flush');
+
+        try {
+            $this->processor->process($this->event(['merchant_id' => 'MERCHANT_ID']));
+            self::fail('The failed refresh must reach PayPal as a failed delivery.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('PayPal is down', $exception->getMessage());
+        }
+
+        self::assertSame([$otherMethod], $refreshed);
     }
 
     /**
@@ -92,11 +117,11 @@ final class VaultingCapabilityWebhookProcessorTest extends TestCase
         return ['event_type' => 'CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED', 'resource' => $resource];
     }
 
-    private function paymentMethod(string $factoryName, ?string $merchantId): PaymentMethod
+    private function paymentMethod(string $merchantId): PaymentMethod
     {
         $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName($factoryName);
-        $gatewayConfig->setConfig(null !== $merchantId ? ['merchant_id' => $merchantId] : []);
+        $gatewayConfig->setFactoryName('sylius_paypal');
+        $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID', 'client_secret' => 'SECRET', 'merchant_id' => $merchantId]);
 
         $paymentMethod = new PaymentMethod();
         $paymentMethod->setGatewayConfig($gatewayConfig);
