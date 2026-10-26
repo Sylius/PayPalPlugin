@@ -132,7 +132,7 @@ final class ExpressCheckoutCompleterTest extends TestCase
         $this->order->method('getShippingAddress')->willReturn(null);
         $this->order->method('getShipments')->willReturn(new ArrayCollection([$shipment]));
         $this->customerRepository->method('findOneBy')->with(['email' => 'buyer@example.com'])->willReturn($customer);
-        $this->expressOrderAddressFactory->expects(self::once())->method('createFromPurchaseUnit')->with($this->payPalOrder()['purchase_units'][0], '5551234')->willReturn($address);
+        $this->expressOrderAddressFactory->expects(self::once())->method('createFromPurchaseUnit')->with($this->payPalOrder()['purchase_units'][0], '2029790941')->willReturn($address);
         $this->shippingMethodRepository->method('findOneBy')->with(['code' => 'DHL'])->willReturn($shippingMethod);
 
         $this->order->expects(self::once())->method('setCustomer')->with($customer);
@@ -166,7 +166,7 @@ final class ExpressCheckoutCompleterTest extends TestCase
         $customer->expects(self::once())->method('setEmail')->with('buyer@example.com');
         $customer->expects(self::once())->method('setFirstName')->with('John');
         $customer->expects(self::once())->method('setLastName')->with('Doe');
-        $customer->expects(self::once())->method('setPhoneNumber')->with('5551234');
+        $customer->expects(self::once())->method('setPhoneNumber')->with('2029790941');
         $this->order->expects(self::once())->method('setCustomer')->with($customer);
 
         $this->completer->complete($this->payment);
@@ -187,12 +187,45 @@ final class ExpressCheckoutCompleterTest extends TestCase
         $this->completer->complete($this->payment);
     }
 
+    public function test_it_creates_a_customer_with_the_payer_phone_number_when_paypal_sends_no_shipping_contact(): void
+    {
+        $customer = $this->createMock(CustomerInterface::class);
+
+        $this->orderDetailsApi->method('get')->willReturn($this->payPalOrder(null, '5551234'));
+        $this->order->method('getCustomer')->willReturn(null);
+        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+        $this->order->method('getShipments')->willReturn(new ArrayCollection());
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->customerRepository->method('findOneBy')->willReturn(null);
+        $this->customerFactory->method('createNew')->willReturn($customer);
+
+        $customer->expects(self::once())->method('setPhoneNumber')->with('5551234');
+
+        $this->completer->complete($this->payment);
+    }
+
+    public function test_it_prefers_the_shipping_contact_phone_number_over_the_payer_one(): void
+    {
+        $address = $this->createMock(AddressInterface::class);
+        $payPalOrder = $this->payPalOrder('2029790941', '5551234');
+
+        $this->orderDetailsApi->method('get')->willReturn($payPalOrder);
+        $this->order->method('getCustomer')->willReturn($this->createMock(CustomerInterface::class));
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn(null);
+        $this->order->method('getShipments')->willReturn(new ArrayCollection());
+
+        $this->expressOrderAddressFactory->expects(self::once())->method('createFromPurchaseUnit')->with($payPalOrder['purchase_units'][0], '2029790941')->willReturn($address);
+
+        $this->completer->complete($this->payment);
+    }
+
     public function test_it_addresses_an_order_without_shipping_from_the_payer_country(): void
     {
         $customer = $this->createMock(CustomerInterface::class);
         $address = $this->createMock(AddressInterface::class);
 
-        $this->orderDetailsApi->method('get')->willReturn($this->payPalOrder());
+        $this->orderDetailsApi->method('get')->willReturn($this->payPalOrder(null, '5551234'));
         $this->order->method('getCustomer')->willReturn($customer);
         $this->order->method('isShippingRequired')->willReturn(false);
         $this->order->method('getShippingAddress')->willReturn(null);
@@ -306,15 +339,14 @@ final class ExpressCheckoutCompleterTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function payPalOrder(): array
+    private function payPalOrder(?string $shippingPhoneNumber = '2029790941', ?string $payerPhoneNumber = null): array
     {
-        return [
+        $payPalOrder = [
             'id' => 'PAYPAL-ORDER',
             'intent' => 'AUTHORIZE',
             'payer' => [
                 'email_address' => 'buyer@example.com',
                 'name' => ['given_name' => 'John', 'surname' => 'Doe'],
-                'phone' => ['phone_number' => ['national_number' => '5551234']],
                 'address' => ['country_code' => 'US'],
             ],
             'purchase_units' => [[
@@ -328,5 +360,15 @@ final class ExpressCheckoutCompleterTest extends TestCase
                 ],
             ]],
         ];
+
+        if (null !== $shippingPhoneNumber) {
+            $payPalOrder['purchase_units'][0]['shipping']['phone_number'] = ['country_code' => '1', 'national_number' => $shippingPhoneNumber];
+        }
+
+        if (null !== $payerPhoneNumber) {
+            $payPalOrder['payer']['phone'] = ['phone_number' => ['national_number' => $payerPhoneNumber]];
+        }
+
+        return $payPalOrder;
     }
 }
