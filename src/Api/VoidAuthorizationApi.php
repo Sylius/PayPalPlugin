@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 
 final readonly class VoidAuthorizationApi implements VoidAuthorizationApiInterface
 {
@@ -22,13 +23,13 @@ final readonly class VoidAuthorizationApi implements VoidAuthorizationApiInterfa
     {
     }
 
-    public function void(PaymentMethodInterface $paymentMethod, string $authorizationId, ?string $requestId = null): array
+    public function void(PaymentMethodInterface $paymentMethod, string $authorizationId, ?string $requestId = null): ?PayPalAuthorization
     {
-        return $this->client->post(
+        return PayPalAuthorization::fromAuthorization($this->client->post(
             $paymentMethod,
             sprintf('v2/payments/authorizations/%s/void', $authorizationId),
             null,
-            null === $requestId ? [] : ['PayPal-Request-Id' => $requestId],
-        );
+            ['Prefer' => 'return=representation'] + (null === $requestId ? [] : ['PayPal-Request-Id' => $requestId]),
+        ));
     }
 }

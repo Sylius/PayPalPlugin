@@ -40,7 +40,13 @@ final readonly class PayPalAuthorization
     {
         $authorization = $payPalOrderDetails['purchase_units'][0]['payments']['authorizations'][0] ?? null;
 
-        if (!is_array($authorization) || !is_string($authorization['status'] ?? null)) {
+        return is_array($authorization) ? self::fromAuthorization($authorization) : null;
+    }
+
+    /** @param array<string, mixed> $authorization */
+    public static function fromAuthorization(array $authorization): ?self
+    {
+        if (!is_string($authorization['status'] ?? null)) {
             return null;
         }
 

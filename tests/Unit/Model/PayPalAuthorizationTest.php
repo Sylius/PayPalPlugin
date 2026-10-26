@@ -53,6 +53,15 @@ final class PayPalAuthorizationTest extends TestCase
         self::assertNull($authorization?->id());
     }
 
+    public function test_it_reads_an_authorization_paypal_returns_on_its_own(): void
+    {
+        $authorization = PayPalAuthorization::fromAuthorization(['id' => 'AUTHORIZATION_ID', 'status' => 'VOIDED']);
+
+        self::assertSame('AUTHORIZATION_ID', $authorization?->id());
+        self::assertSame('VOIDED', $authorization?->status());
+        self::assertNull(PayPalAuthorization::fromAuthorization([]));
+    }
+
     /**
      * @param array<string, mixed> $authorization
      *

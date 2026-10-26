@@ -14,8 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 
 interface VoidAuthorizationApiInterface
 {
-    public function void(PaymentMethodInterface $paymentMethod, string $authorizationId, ?string $requestId = null): array;
+    public function void(PaymentMethodInterface $paymentMethod, string $authorizationId, ?string $requestId = null): ?PayPalAuthorization;
 }

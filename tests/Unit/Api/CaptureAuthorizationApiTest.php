@@ -41,7 +41,7 @@ final class CaptureAuthorizationApiTest extends TestCase
         self::assertInstanceOf(CaptureAuthorizationApiInterface::class, $this->captureAuthorizationApi);
     }
 
-    public function test_it_captures_the_whole_authorization_as_the_final_capture(): void
+    public function test_it_captures_the_whole_authorization_as_the_final_capture_and_returns_the_capture(): void
     {
         $this->client
             ->expects(self::once())
@@ -50,7 +50,10 @@ final class CaptureAuthorizationApiTest extends TestCase
             ->willReturn(['id' => 'CAPTURE_ID', 'status' => 'COMPLETED'])
         ;
 
-        self::assertSame(['id' => 'CAPTURE_ID', 'status' => 'COMPLETED'], $this->captureAuthorizationApi->capture($this->paymentMethod, 'AUTHORIZATION_ID'));
+        $capture = $this->captureAuthorizationApi->capture($this->paymentMethod, 'AUTHORIZATION_ID');
+
+        self::assertSame('CAPTURE_ID', $capture?->id());
+        self::assertSame('COMPLETED', $capture?->status());
     }
 
     public function test_it_captures_the_authorization_under_the_request_id_given_by_the_caller(): void

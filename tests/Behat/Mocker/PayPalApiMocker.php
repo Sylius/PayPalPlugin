@@ -102,7 +102,10 @@ final readonly class PayPalApiMocker
 
     public function mockVoidAuthorization(string $authorizationId = 'AUTHORIZATION_ID', ?string $requestId = null): void
     {
-        $this->client->addExpectation('POST', sprintf('v2/payments/authorizations/%s/void', $authorizationId), [], 204, $this->requestIdHeader($requestId));
+        $this->client->addExpectation('POST', sprintf('v2/payments/authorizations/%s/void', $authorizationId), [
+            'id' => $authorizationId,
+            'status' => 'VOIDED',
+        ], 200, ['Prefer' => 'return=representation'] + $this->requestIdHeader($requestId));
     }
 
     public function mockOrderDetailsWithCapturedAuthorization(

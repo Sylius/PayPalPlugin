@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\PayPalCapture;
 
 final readonly class CaptureAuthorizationApi implements CaptureAuthorizationApiInterface
 {
@@ -22,13 +23,13 @@ final readonly class CaptureAuthorizationApi implements CaptureAuthorizationApiI
     {
     }
 
-    public function capture(PaymentMethodInterface $paymentMethod, string $authorizationId, ?string $requestId = null): array
+    public function capture(PaymentMethodInterface $paymentMethod, string $authorizationId, ?string $requestId = null): ?PayPalCapture
     {
-        return $this->client->post(
+        return PayPalCapture::fromCapture($this->client->post(
             $paymentMethod,
             sprintf('v2/payments/authorizations/%s/capture', $authorizationId),
             ['final_capture' => true],
             null === $requestId ? [] : ['PayPal-Request-Id' => $requestId],
-        );
+        ));
     }
 }
