@@ -46,8 +46,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
     public function supports(RequestConfiguration|Request $request, PaymentRequestInterface $paymentRequest): bool
     {
         return match ($paymentRequest->getState()) {
-            PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_CANCELLED => true,
-            PaymentRequestInterface::STATE_FAILED => $this->isThreeDSecure($paymentRequest, CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE_DECLINED),
+            PaymentRequestInterface::STATE_NEW, PaymentRequestInterface::STATE_CANCELLED, PaymentRequestInterface::STATE_FAILED => true,
             PaymentRequestInterface::STATE_COMPLETED => PaymentInterface::STATE_PROCESSING === $paymentRequest->getPayment()->getState(),
             PaymentRequestInterface::STATE_PROCESSING => $this->isPayerAtTheBank($paymentRequest),
             default => false,
@@ -67,7 +66,7 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
 
         return match ($paymentRequest->getState()) {
             PaymentRequestInterface::STATE_CANCELLED => $this->sendBackToPay($request, $paymentRequest, $order),
-            PaymentRequestInterface::STATE_FAILED => $this->sendToOrder($request, $order),
+            PaymentRequestInterface::STATE_FAILED => $this->sendToOrder($request, $paymentRequest, $payment, $order),
             PaymentRequestInterface::STATE_COMPLETED => $this->hasPayerCancelled($request)
                 ? $this->sendToOrderAwaitingCancellation($request, $order)
                 : $this->sendToThankYou($request),
@@ -87,9 +86,13 @@ final readonly class CaptureHttpResponseProvider implements HttpResponseProvider
         return new RedirectResponse($this->router->generate('sylius_shop_order_pay', ['tokenValue' => $order->getTokenValue()]));
     }
 
-    private function sendToOrder(Request $request, OrderInterface $order): Response
+    private function sendToOrder(Request $request, PaymentRequestInterface $paymentRequest, PaymentInterface $payment, OrderInterface $order): Response
     {
-        $this->addFlash($request, 'error', 'sylius_paypal.three_d_secure_declined');
+        if ($this->isThreeDSecure($paymentRequest, CapturePayPalOrderPaymentRequestHandler::THREE_D_SECURE_DECLINED)) {
+            $this->addFlash($request, 'error', 'sylius_paypal.three_d_secure_declined');
+        } elseif (PaymentInterface::STATE_NEW === $payment->getState()) {
+            $this->addFlash($request, 'error', 'sylius_paypal.something_went_wrong');
+        }
 
         return new RedirectResponse($this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]));
     }
