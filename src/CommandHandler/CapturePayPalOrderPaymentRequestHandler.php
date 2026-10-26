@@ -67,6 +67,7 @@ final class CapturePayPalOrderPaymentRequestHandler
 
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
+        $this->paymentRequestManager->refresh($payment, LockMode::PESSIMISTIC_WRITE);
 
         if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
             $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);

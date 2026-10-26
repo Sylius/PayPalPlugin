@@ -251,6 +251,35 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
+    public function test_it_keeps_the_token_a_webhook_recorded_when_the_capture_reports_the_vault_without_it(): void
+    {
+        $this->paymentOf([
+            'paypal_order_id' => '123123',
+            'vault_id' => 'j7hzkgdn',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => '163456532',
+            'payer_email' => 'buyer@example.com',
+        ], amount: 1000, total: 1000);
+
+        $this->completeOrderApi->method('complete')->willReturn(self::ORDER_DETAILS + [
+            'payment_source' => ['paypal' => ['attributes' => ['vault' => ['status' => 'APPROVED', 'customer' => ['id' => '163456532']]]]],
+        ]);
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => PayPalPaymentStatus::Completed->value,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
+            'transaction_id' => 'TRANSACTION_ID',
+            'vault_id' => 'j7hzkgdn',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => '163456532',
+            'payer_email' => 'buyer@example.com',
+        ]);
+
+        $this->processor->capture($this->payment);
+    }
+
     public function test_it_keeps_the_paypal_orders_earlier_attempts_superseded_through_the_capture(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'google_pay', 'superseded_paypal_orders' => ['TRUSTLY_ORDER_ID' => 'trustly']], amount: 1000, total: 1000);

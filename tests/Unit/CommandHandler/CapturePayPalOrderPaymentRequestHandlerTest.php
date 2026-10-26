@@ -77,14 +77,26 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         );
     }
 
-    public function test_it_locks_the_request_and_reads_its_state_again_before_capturing(): void
+    public function test_it_locks_the_request_and_its_payment_and_reads_them_again_before_capturing(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentRequestManager->expects(self::once())->method('refresh')->with($paymentRequest, LockMode::PESSIMISTIC_WRITE);
+        $locked = [];
+        $this->paymentRequestManager
+            ->expects(self::exactly(2))
+            ->method('refresh')
+            ->willReturnCallback(static function (object $entity, mixed $lockMode = null) use (&$locked): void {
+                $locked[] = [$entity, $lockMode];
+            })
+        ;
         $this->paymentCaptureProcessor->method('capture')->willReturn($this->capturedOrder('COMPLETED'));
         $this->stateMachine->method('can')->willReturn(false);
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            [$paymentRequest, LockMode::PESSIMISTIC_WRITE],
+            [$this->payment, LockMode::PESSIMISTIC_WRITE],
+        ], $locked);
     }
 
     public function test_it_leaves_a_request_completed_while_it_waited_for_the_lock(): void
