@@ -219,7 +219,7 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
-        self::assertSame(['reason' => 'The payment was not paid with PayPal.'], $paymentRequest->getResponseData());
+        self::assertSame(['reason' => 'Payment method mismatch.'], $paymentRequest->getResponseData());
     }
 
     /** @param array<string, mixed>|null $lateCapture */

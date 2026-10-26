@@ -29,6 +29,12 @@ final readonly class PayPalAuthorization
 
     public const STATUS_EXPIRED = 'EXPIRED';
 
+    private const CAPTURABLE_STATUSES = [self::STATUS_CREATED, self::STATUS_PENDING, self::STATUS_PARTIALLY_CAPTURED];
+
+    private const VOIDABLE_STATUSES = [self::STATUS_CREATED, self::STATUS_PENDING];
+
+    private const RELEASED_STATUSES = [self::STATUS_VOIDED, self::STATUS_EXPIRED, self::STATUS_DENIED];
+
     public function __construct(
         private string $status,
         private ?string $id = null,
@@ -69,5 +75,25 @@ final readonly class PayPalAuthorization
     public function isStatus(string $status): bool
     {
         return $status === $this->status;
+    }
+
+    public function isCapturable(): bool
+    {
+        return in_array($this->status, self::CAPTURABLE_STATUSES, true);
+    }
+
+    public function isVoidable(): bool
+    {
+        return in_array($this->status, self::VOIDABLE_STATUSES, true);
+    }
+
+    public function isReleased(): bool
+    {
+        return self::isReleasedStatus($this->status);
+    }
+
+    public static function isReleasedStatus(?string $status): bool
+    {
+        return in_array($status, self::RELEASED_STATUSES, true);
     }
 }

@@ -23,11 +23,6 @@ use Symfony\Component\Workflow\Event\CompletedEvent;
 
 final readonly class VoidCancelledAuthorizationListener
 {
-    private const RELEASED_AUTHORIZATION_STATUSES = [
-        PayPalAuthorization::STATUS_VOIDED,
-        PayPalAuthorization::STATUS_EXPIRED,
-    ];
-
     public function __construct(
         private VoidAuthorizationPaymentRequestDispatcherInterface $voidAuthorizationPaymentRequestDispatcher,
         private LoggerInterface $logger,
@@ -53,7 +48,7 @@ final readonly class VoidCancelledAuthorizationListener
         if (
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $payment->getMethod()?->getGatewayConfig()?->getFactoryName() ||
             null === $details->authorizationId() ||
-            in_array($details->authorizationStatus(), self::RELEASED_AUTHORIZATION_STATUSES, true)
+            PayPalAuthorization::isReleasedStatus($details->authorizationStatus())
         ) {
             return;
         }

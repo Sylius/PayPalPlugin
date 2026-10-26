@@ -47,7 +47,6 @@ final class VoidAuthorizationPaymentRequestTest extends JsonApiTestCase
 
         $this->payPalApi()->mockOrderDetailsWithAuthorization();
         $this->payPalApi()->mockVoidAuthorization(requestId: $hash);
-        $this->payPalApi()->mockOrderDetailsWithAuthorization(authorizationStatus: 'VOIDED');
         $this->dispatchVoid($hash);
 
         self::assertSame('VOIDED', $this->reloadedPayment()->getDetails()['authorization_status']);
@@ -64,7 +63,6 @@ final class VoidAuthorizationPaymentRequestTest extends JsonApiTestCase
             'details' => [['issue' => 'AUTHORIZATION_ALREADY_CAPTURED']],
             'debug_id' => 'DEBUG_ID',
         ], 422);
-        $this->payPalApi()->mockOrderDetailsWithAuthorization();
         $this->dispatchVoid($hash);
 
         self::assertSame('CREATED', $this->reloadedPayment()->getDetails()['authorization_status']);
@@ -77,7 +75,6 @@ final class VoidAuthorizationPaymentRequestTest extends JsonApiTestCase
     {
         $this->payPalApi()->mockOrderDetailsWithAuthorization();
         $this->payPalApi()->mockVoidAuthorization();
-        $this->payPalApi()->mockOrderDetailsWithAuthorization(authorizationStatus: 'VOIDED');
 
         $this->cancelOrder();
 
@@ -95,7 +92,6 @@ final class VoidAuthorizationPaymentRequestTest extends JsonApiTestCase
     {
         $this->payPalApi()->mockOrderDetailsWithAuthorization();
         $this->payPalHttpClient()->addExpectation('POST', 'v2/payments/authorizations/AUTHORIZATION_ID/void', ['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID'], 422);
-        $this->payPalApi()->mockOrderDetailsWithAuthorization();
 
         $this->cancelOrder();
 
@@ -106,6 +102,25 @@ final class VoidAuthorizationPaymentRequestTest extends JsonApiTestCase
         $voidRequests = self::getContainer()->get('sylius.repository.payment_request')->findBy(['action' => VoidAuthorizationPaymentRequestCommandProvider::ACTION]);
         self::assertCount(1, $voidRequests);
         self::assertSame(PaymentRequestInterface::STATE_FAILED, $voidRequests[0]->getState());
+    }
+
+    public function test_it_cancels_the_order_and_keeps_the_void_open_for_a_retry_when_paypal_cannot_be_reached(): void
+    {
+        $this->payPalApi()->mockOrderDetailsWithAuthorization();
+        for ($attempt = 0; $attempt < 3; ++$attempt) {
+            $this->payPalHttpClient()->addConnectionFailure('POST', 'v2/payments/authorizations/AUTHORIZATION_ID/void');
+        }
+
+        $this->cancelOrder();
+
+        $payment = $this->reloadedPayment();
+        self::assertSame(PaymentInterface::STATE_CANCELLED, $payment->getState());
+        self::assertSame('CREATED', $payment->getDetails()['authorization_status']);
+        self::assertSame(OrderInterface::STATE_CANCELLED, $payment->getOrder()?->getState());
+
+        $voidRequests = self::getContainer()->get('sylius.repository.payment_request')->findBy(['action' => VoidAuthorizationPaymentRequestCommandProvider::ACTION]);
+        self::assertCount(1, $voidRequests);
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $voidRequests[0]->getState());
     }
 
     private function cancelOrder(): void

@@ -27,7 +27,10 @@ use Sylius\PayPalPlugin\Api\VoidAuthorizationApiInterface;
 use Sylius\PayPalPlugin\Command\VoidAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\VoidAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
+use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 
 final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
 {
@@ -83,9 +86,9 @@ final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
     public function test_it_voids_the_authorization_records_it_and_completes_the_request(): void
     {
         $this->paymentRequestIn(PaymentRequestInterface::STATE_NEW);
-        $this->orderDetailsApi->method('get')->with($this->paymentMethod, 'PAYPAL_ORDER_ID')->willReturnOnConsecutiveCalls($this->orderWithAuthorization('CREATED'), $this->orderWithAuthorization('VOIDED'));
+        $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, 'PAYPAL_ORDER_ID')->willReturn($this->orderWithAuthorization('CREATED'));
 
-        $this->voidAuthorizationApi->expects(self::once())->method('void')->with($this->paymentMethod, 'AUTHORIZATION_ID', 'PAYMENT_REQUEST_HASH');
+        $this->voidAuthorizationApi->expects(self::once())->method('void')->with($this->paymentMethod, 'AUTHORIZATION_ID', 'PAYMENT_REQUEST_HASH')->willReturn(new PayPalAuthorization('VOIDED', 'AUTHORIZATION_ID'));
         $this->payment->expects(self::never())->method('getState');
 
         ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
@@ -120,17 +123,29 @@ final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
         self::assertSame('EXPIRED', $this->details['authorization_status']);
     }
 
-    public function test_it_completes_the_request_when_paypal_refuses_the_void_of_an_authorization_it_has_voided_meanwhile(): void
+    public function test_it_records_an_authorization_voided_by_paypal_without_a_representation_in_the_response(): void
     {
         $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING);
-        $this->orderDetailsApi->method('get')->willReturnOnConsecutiveCalls($this->orderWithAuthorization('CREATED'), $this->orderWithAuthorization('VOIDED'));
-        $this->voidAuthorizationApi->method('void')->willThrowException(
-            new PayPalApiRequestException('POST', 'v2/payments/authorizations/AUTHORIZATION_ID/void', 422, 'UNPROCESSABLE_ENTITY', issues: ['PREVIOUSLY_VOIDED']),
-        );
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn($this->orderWithAuthorization('PENDING'));
+        $this->voidAuthorizationApi->method('void')->willReturn(null);
 
         ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+        self::assertSame('VOIDED', $this->details['authorization_status']);
+    }
+
+    public function test_it_completes_the_request_of_an_authorization_paypal_has_denied_without_voiding_it(): void
+    {
+        $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->orderDetailsApi->method('get')->willReturn($this->orderWithAuthorization('DENIED'));
+
+        $this->voidAuthorizationApi->expects(self::never())->method('void');
+
+        ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+        self::assertSame('DENIED', $this->details['authorization_status']);
     }
 
     public function test_it_fails_the_request_with_the_reason_paypal_rejected_the_void(): void
@@ -161,17 +176,50 @@ final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
     }
 
-    public function test_it_fails_the_request_when_paypal_cannot_be_reached(): void
+    public function test_it_fails_the_request_with_the_reason_paypal_rejected_reading_the_order(): void
+    {
+        $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->orderDetailsApi->method('get')->willThrowException(new PayPalApiNotFoundException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID', 404, 'RESOURCE_NOT_FOUND'));
+
+        $this->voidAuthorizationApi->expects(self::never())->method('void');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal rejected reading the order: RESOURCE_NOT_FOUND']);
+
+        ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
+    }
+
+    public function test_it_leaves_the_request_processing_for_a_retry_when_paypal_cannot_be_reached_to_void(): void
     {
         $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING);
         $this->orderDetailsApi->method('get')->willReturn($this->orderWithAuthorization('CREATED'));
         $this->voidAuthorizationApi->method('void')->willThrowException(new PayPalApiConnectionException('POST', 'v2/payments/authorizations/AUTHORIZATION_ID/void'));
 
-        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal could not be reached to void the authorization.']);
+        $paymentRequest->expects(self::never())->method('setResponseData');
+        self::expectException(PayPalApiConnectionException::class);
 
-        ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
+        try {
+            ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
+        } finally {
+            self::assertSame([], $this->appliedTransitions);
+            self::assertSame('CREATED', $this->details['authorization_status']);
+        }
+    }
 
-        self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
+    public function test_it_leaves_the_request_processing_for_a_retry_when_paypal_fails_to_read_the_order(): void
+    {
+        $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->orderDetailsApi->method('get')->willThrowException(new PayPalApiServerException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID', 503, 'SERVICE_UNAVAILABLE'));
+
+        $this->voidAuthorizationApi->expects(self::never())->method('void');
+        $paymentRequest->expects(self::never())->method('setResponseData');
+        self::expectException(PayPalApiServerException::class);
+
+        try {
+            ($this->handler)(new VoidAuthorizationPaymentRequest('PAYMENT_REQUEST_HASH'));
+        } finally {
+            self::assertSame([], $this->appliedTransitions);
+        }
     }
 
     public function test_it_fails_the_request_of_a_payment_without_a_paypal_authorization(): void

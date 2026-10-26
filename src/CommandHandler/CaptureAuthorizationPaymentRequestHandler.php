@@ -39,12 +39,6 @@ final class CaptureAuthorizationPaymentRequestHandler
 
     private const AUTHORIZATION_ALREADY_CAPTURED = 'AUTHORIZATION_ALREADY_CAPTURED';
 
-    private const CAPTURABLE_AUTHORIZATION_STATUSES = [
-        PayPalAuthorization::STATUS_CREATED,
-        PayPalAuthorization::STATUS_PENDING,
-        PayPalAuthorization::STATUS_PARTIALLY_CAPTURED,
-    ];
-
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly OrderDetailsApiInterface $orderDetailsApi,
@@ -66,7 +60,7 @@ final class CaptureAuthorizationPaymentRequestHandler
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $paymentRequest->getMethod();
         if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()) {
-            $this->failWithReason($paymentRequest, 'The payment was not paid with PayPal.');
+            $this->failWithReason($paymentRequest, 'Payment method mismatch.');
 
             return;
         }
@@ -103,7 +97,7 @@ final class CaptureAuthorizationPaymentRequestHandler
             $payPalOrder = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
             $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrder);
 
-            if (null !== $authorization && in_array($authorization->status(), self::CAPTURABLE_AUTHORIZATION_STATUSES, true)) {
+            if (null !== $authorization && $authorization->isCapturable()) {
                 $this->capture($paymentMethod, $authorizationId, (string) $paymentRequest->getId());
                 $payPalOrder = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
                 $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrder);

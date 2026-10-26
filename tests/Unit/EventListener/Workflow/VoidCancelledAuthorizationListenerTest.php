@@ -62,6 +62,7 @@ final class VoidCancelledAuthorizationListenerTest extends TestCase
 
         $this->listener->void($this->payment('sylius_paypal', ['authorization_id' => 'AUTHORIZATION_ID', 'authorization_status' => 'VOIDED']));
         $this->listener->void($this->payment('sylius_paypal', ['authorization_id' => 'AUTHORIZATION_ID', 'authorization_status' => 'EXPIRED']));
+        $this->listener->void($this->payment('sylius_paypal', ['authorization_id' => 'AUTHORIZATION_ID', 'authorization_status' => 'DENIED']));
     }
 
     public function test_it_does_not_void_a_payment_without_a_paypal_authorization(): void

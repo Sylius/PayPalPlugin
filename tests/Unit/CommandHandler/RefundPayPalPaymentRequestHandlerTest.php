@@ -276,7 +276,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
-        self::assertSame(['reason' => 'The payment was not paid with PayPal.'], $paymentRequest->getResponseData());
+        self::assertSame(['reason' => 'Payment method mismatch.'], $paymentRequest->getResponseData());
     }
 
     private function paymentRequest(string $state): PaymentRequestInterface

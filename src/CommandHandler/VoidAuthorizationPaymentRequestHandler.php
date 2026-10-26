@@ -23,23 +23,15 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\VoidAuthorizationApiInterface;
 use Sylius\PayPalPlugin\Command\VoidAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
 final class VoidAuthorizationPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
-
-    private const VOIDABLE_AUTHORIZATION_STATUSES = [
-        PayPalAuthorization::STATUS_CREATED,
-        PayPalAuthorization::STATUS_PENDING,
-    ];
-
-    private const RELEASED_AUTHORIZATION_STATUSES = [
-        PayPalAuthorization::STATUS_VOIDED,
-        PayPalAuthorization::STATUS_EXPIRED,
-    ];
 
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
@@ -61,7 +53,7 @@ final class VoidAuthorizationPaymentRequestHandler
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $paymentRequest->getMethod();
         if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()) {
-            $this->failWithReason($paymentRequest, 'The payment was not paid with PayPal.');
+            $this->failWithReason($paymentRequest, 'Payment method mismatch.');
 
             return;
         }
@@ -74,7 +66,7 @@ final class VoidAuthorizationPaymentRequestHandler
         $payment = $paymentRequest->getPayment();
         $details = PayPalPaymentDetails::fromPayment($payment);
 
-        if (in_array($details->authorizationStatus(), self::RELEASED_AUTHORIZATION_STATUSES, true)) {
+        if (PayPalAuthorization::isReleasedStatus($details->authorizationStatus())) {
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
 
             return;
@@ -88,19 +80,12 @@ final class VoidAuthorizationPaymentRequestHandler
             return;
         }
 
-        $voidException = null;
-
         try {
             $authorization = PayPalAuthorization::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
-
-            if (null !== $authorization && in_array($authorization->status(), self::VOIDABLE_AUTHORIZATION_STATUSES, true)) {
-                $voidException = $this->void($paymentMethod, $authorizationId, (string) $paymentRequest->getId());
-                $authorization = PayPalAuthorization::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
-            }
+        } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
+            throw $exception;
         } catch (PayPalApiException $exception) {
-            $this->failWithReason($paymentRequest, null === $exception->getStatusCode()
-                ? 'PayPal could not be reached to void the authorization.'
-                : sprintf('PayPal rejected the void: %s', $exception->getDescription()));
+            $this->failWithReason($paymentRequest, sprintf('PayPal rejected reading the order: %s', $exception->getDescription()));
 
             return;
         }
@@ -111,31 +96,27 @@ final class VoidAuthorizationPaymentRequestHandler
             return;
         }
 
-        $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withAuthorization($authorization)->toArray());
+        if ($authorization->isVoidable()) {
+            try {
+                $authorization = $this->voidAuthorizationApi->void($paymentMethod, $authorizationId, (string) $paymentRequest->getId())
+                    ?? new PayPalAuthorization(PayPalAuthorization::STATUS_VOIDED, $authorizationId);
+            } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
+                throw $exception;
+            } catch (PayPalApiException $exception) {
+                $this->failWithReason($paymentRequest, sprintf('PayPal rejected the void: %s', $exception->getDescription()));
 
-        if (!in_array($authorization->status(), self::RELEASED_AUTHORIZATION_STATUSES, true)) {
-            $this->failWithReason($paymentRequest, null !== $voidException
-                ? sprintf('PayPal rejected the void: %s', $voidException->getDescription())
-                : sprintf('PayPal reported the authorization as %s.', $authorization->status()));
+                return;
+            }
+        }
+
+        $payment->setDetails($details->withAuthorization($authorization)->toArray());
+
+        if (!$authorization->isReleased()) {
+            $this->failWithReason($paymentRequest, sprintf('PayPal reported the authorization as %s.', $authorization->status()));
 
             return;
         }
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
-    }
-
-    private function void(PaymentMethodInterface $paymentMethod, string $authorizationId, string $requestId): ?PayPalApiException
-    {
-        try {
-            $this->voidAuthorizationApi->void($paymentMethod, $authorizationId, $requestId);
-        } catch (PayPalApiException $exception) {
-            if (null === $exception->getStatusCode()) {
-                throw $exception;
-            }
-
-            return $exception;
-        }
-
-        return null;
     }
 }
