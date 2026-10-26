@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Webmozart\Assert\Assert;
@@ -33,6 +34,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         private ExperienceContextProviderInterface $experienceContextProvider,
         private PayPalPaymentSourceProviderInterface $paymentSourceProvider,
         private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
     }
 
@@ -62,6 +64,9 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
                 $referenceId,
                 withItemTaxes: !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
                 customId: $customId,
+                vaultRequest: PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource
+                    ? $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest()
+                    : null,
             ),
             intent: $this->intent($payment, $paymentSource),
             paymentSource: $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext),

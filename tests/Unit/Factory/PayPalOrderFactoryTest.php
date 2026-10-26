@@ -25,11 +25,14 @@ use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -424,6 +427,7 @@ final class PayPalOrderFactoryTest extends TestCase
         ?ExperienceContextProviderInterface $experienceContextProvider = null,
         ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
         ?PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker = null,
+        ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ): PayPalOrderFactory {
         return new PayPalOrderFactory(
             $purchaseUnitFactory ?? $this->payPalPurchaseUnitFactory,
@@ -432,6 +436,7 @@ final class PayPalOrderFactoryTest extends TestCase
             $experienceContextProvider ?? new ExperienceContextProvider($this->createStub(CurrentPayPalLocaleProviderInterface::class)),
             $paymentSourceProvider ?? new PayPalPaymentSourceProvider(),
             $paymentAuthorizationChecker ?? $this->createStub(PaymentAuthorizationCheckerInterface::class),
+            $vaultRequestProvider,
         );
     }
 
@@ -458,5 +463,40 @@ final class PayPalOrderFactoryTest extends TestCase
             [],
             true,
         );
+    }
+
+    public function test_it_lets_the_items_of_a_wallet_order_recur_on_the_vault_request(): void
+    {
+        $vaultRequest = new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID);
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::met($vaultRequest));
+
+        self::assertSame($vaultRequest, $this->vaultRequestHandedToThePurchaseUnit($vaultRequestProvider, PayPalPaymentSourceProviderInterface::PAYPAL));
+    }
+
+    public function test_it_lets_no_item_recur_on_an_order_paid_otherwise_than_with_the_wallet(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::never())->method('provide');
+
+        self::assertNull($this->vaultRequestHandedToThePurchaseUnit($vaultRequestProvider, PayPalPaymentSourceProviderInterface::VENMO));
+    }
+
+    private function vaultRequestHandedToThePurchaseUnit(PayPalVaultRequestProviderInterface $vaultRequestProvider, string $paymentSource): ?PayPalVaultRequest
+    {
+        $handedVaultRequest = null;
+        $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
+        $payPalPurchaseUnitFactory
+            ->method('create')
+            ->willReturnCallback(function (...$arguments) use (&$handedVaultRequest): PayPalPurchaseUnit {
+                $handedVaultRequest = $arguments[5] ?? null;
+
+                return $this->purchaseUnit();
+            })
+        ;
+
+        $this->createFactory($payPalPurchaseUnitFactory, vaultRequestProvider: $vaultRequestProvider)->create($this->payment, 'REFERENCE_ID', $paymentSource);
+
+        return $handedVaultRequest;
     }
 }

@@ -17,6 +17,9 @@ use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalBillingPlan;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Webmozart\Assert\Assert;
 
 final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInterface
 {
@@ -30,8 +33,11 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
     ) {
     }
 
-    public function provide(OrderInterface $order): array
+    public function provide(OrderInterface $order /* , ?PayPalVaultRequest $vaultRequest = null */): array
     {
+        $vaultRequest = func_get_args()[1] ?? null;
+        Assert::nullOrIsInstanceOf($vaultRequest, PayPalVaultRequest::class);
+
         $itemData = [
             'items' => [],
             'total_item_value' => 0,
@@ -57,11 +63,12 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
             $baseTax = (int) floor($totalTax / $quantity);
             $remainder = $totalTax % $quantity;
+            $billingPlan = $vaultRequest?->billingPlanFor($orderItem);
 
             if (0 === $remainder || 1 === $quantity) {
-                $this->addItem($itemData, $orderItem, $quantity, $unitPrice, $baseTax, $currencyCode, $category);
+                $this->addItem($itemData, $orderItem, $quantity, $unitPrice, $baseTax, $currencyCode, $category, $billingPlan);
             } else {
-                $this->addItem($itemData, $orderItem, $quantity - 1, $unitPrice, $baseTax, $currencyCode, $category);
+                $this->addItem($itemData, $orderItem, $quantity - 1, $unitPrice, $baseTax, $currencyCode, $category, $billingPlan);
                 $this->addItem($itemData, $orderItem, 1, $unitPrice, $baseTax + $remainder, $currencyCode, $category);
             }
         }
@@ -80,6 +87,7 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         int $tax,
         string $currencyCode,
         string $category,
+        ?PayPalBillingPlan $billingPlan = null,
     ): void {
         $itemData['total_item_value'] += $unitPrice * $quantity;
         $itemData['total_tax'] += $tax * $quantity;
@@ -91,6 +99,7 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
             $tax,
             $currencyCode,
             $category,
+            $billingPlan,
         )->toArray();
     }
 

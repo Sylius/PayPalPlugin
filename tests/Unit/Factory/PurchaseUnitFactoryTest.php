@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
@@ -211,5 +212,20 @@ final class PurchaseUnitFactoryTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $this->factory->create($payment, 'REFERENCE_ID');
+    }
+
+    public function test_it_lets_the_items_recur_on_the_vault_request_it_is_given(): void
+    {
+        $vaultRequest = new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID);
+
+        $payPalItemDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
+        $payPalItemDataProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($this->order, $vaultRequest)
+            ->willReturn(['items' => [], 'total_item_value' => '90.00', 'total_tax' => '0.00'])
+        ;
+
+        (new PurchaseUnitFactory($this->paymentReferenceNumberProvider, $payPalItemDataProvider))->create($this->payment, 'REFERENCE_ID', vaultRequest: $vaultRequest);
     }
 }

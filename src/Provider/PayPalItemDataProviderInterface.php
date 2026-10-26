@@ -17,5 +17,5 @@ use Sylius\Component\Core\Model\OrderInterface;
 
 interface PayPalItemDataProviderInterface
 {
-    public function provide(OrderInterface $order): array;
+    public function provide(OrderInterface $order /* , ?PayPalVaultRequest $vaultRequest = null */): array;
 }

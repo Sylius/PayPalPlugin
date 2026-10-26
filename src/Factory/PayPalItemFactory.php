@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\ProductInterface as CoreProductInterface;
 use Sylius\Component\Product\Model\ProductInterface;
+use Sylius\PayPalPlugin\Model\PayPalBillingPlan;
 use Sylius\PayPalPlugin\Model\PayPalItem;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -48,6 +49,7 @@ final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
         int $tax,
         string $currencyCode,
         string $category,
+        ?PayPalBillingPlan $billingPlan = null,
     ): PayPalItem {
         $variant = $orderItem->getVariant();
         $product = $variant?->getProduct();
@@ -62,6 +64,7 @@ final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
             $variant?->getCode(),
             $this->resolveDescription($product),
             $this->resolveProductUrl($product, $this->order($orderItem)),
+            $billingPlan,
         );
     }
 
