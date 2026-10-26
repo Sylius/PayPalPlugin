@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Processor\Webhook;
 
-use Doctrine\Persistence\ObjectManager;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Event\PayPalPaymentTokenDeleted;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
@@ -33,7 +35,7 @@ final readonly class PaymentTokenWebhookProcessor implements WebhookProcessorInt
 
     public function __construct(
         private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface $paypalPaymentQuery,
-        private ObjectManager $paymentManager,
+        private EntityManagerInterface $paymentManager,
         private EventDispatcherInterface $eventDispatcher,
     ) {
     }
@@ -88,20 +90,32 @@ final readonly class PaymentTokenWebhookProcessor implements WebhookProcessorInt
             return;
         }
 
+        $customerId = $resource['customer']['id'] ?? null;
+        $recorded = $this->paymentManager->wrapInTransaction(
+            fn (): bool => $this->recordTokenOnLockedPayment($payment, $vaultId, is_string($customerId) ? $customerId : null),
+        );
+
+        if ($recorded) {
+            $this->eventDispatcher->dispatch(new PayPalPaymentTokenCreated($payment, $vaultId));
+        }
+    }
+
+    private function recordTokenOnLockedPayment(PaymentInterface $payment, string $vaultId, ?string $customerId): bool
+    {
+        $this->paymentManager->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+
         $details = PayPalPaymentDetails::fromPayment($payment);
         if (null !== $details->vaultId()) {
-            return;
+            return false;
         }
 
-        $customerId = $resource['customer']['id'] ?? null;
         $payment->setDetails($details->withVault(new PayPalVault(
             self::STATUS_VAULTED,
             $vaultId,
-            is_string($customerId) ? $customerId : $details->vaultCustomerId(),
+            $customerId ?? $details->vaultCustomerId(),
             $details->payerEmail(),
         ))->toArray());
-        $this->paymentManager->flush();
 
-        $this->eventDispatcher->dispatch(new PayPalPaymentTokenCreated($payment, $vaultId));
+        return true;
     }
 }
