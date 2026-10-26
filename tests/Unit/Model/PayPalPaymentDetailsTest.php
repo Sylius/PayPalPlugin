@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 
 final class PayPalPaymentDetailsTest extends TestCase
 {
@@ -269,5 +270,34 @@ final class PayPalPaymentDetailsTest extends TestCase
         $details->withPayPalOrderId('PAYPAL_ORDER_ID');
 
         self::assertSame([], $details->toArray());
+    }
+
+    public function test_it_records_the_vault_paypal_saved_the_wallet_in(): void
+    {
+        $details = PayPalPaymentDetails::create()->withVault(new PayPalVault('VAULTED', 'j7hzkgdn', '163456532', 'buyer@example.com'));
+
+        self::assertSame('j7hzkgdn', $details->vaultId());
+        self::assertSame('VAULTED', $details->vaultStatus());
+        self::assertSame('163456532', $details->vaultCustomerId());
+        self::assertSame('buyer@example.com', $details->payerEmail());
+    }
+
+    public function test_it_records_only_what_paypal_said_about_a_vault_it_has_not_saved_yet(): void
+    {
+        $details = PayPalPaymentDetails::create()->withVault(new PayPalVault('APPROVED', customerId: '163456532'));
+
+        self::assertSame(['vault_status' => 'APPROVED', 'vault_customer_id' => '163456532'], $details->toArray());
+        self::assertNull($details->vaultId());
+    }
+
+    public function test_it_forgets_the_vaulted_wallet_paypal_deleted(): void
+    {
+        $details = PayPalPaymentDetails::create()
+            ->withVault(new PayPalVault('VAULTED', 'j7hzkgdn', '163456532'))
+            ->withVaultDeleted()
+        ;
+
+        self::assertNull($details->vaultId());
+        self::assertSame(['vault_status' => 'DELETED', 'vault_customer_id' => '163456532'], $details->toArray());
     }
 }

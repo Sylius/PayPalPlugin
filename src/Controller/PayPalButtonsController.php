@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,6 +51,7 @@ final readonly class PayPalButtonsController
         private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -78,6 +80,15 @@ final readonly class PayPalButtonsController
                 self::class,
             );
         }
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
 
         $this->currentLocaleProvider = $currentLocaleProvider ?? new CurrentPayPalLocaleProvider($localeContext, $localeProcessor);
     }
@@ -89,7 +100,8 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $vaultPossible = true === $this->vaultRequestProvider?->isVaultingEnabledInChannel($channel);
+            $venmoEnabled = !$vaultPossible && $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -106,7 +118,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => !$vaultPossible && $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -124,7 +136,8 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $vaultRequired = null !== $this->vaultRequestProvider?->provideForCart($order);
+            $venmoEnabled = !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -144,7 +157,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -162,7 +175,8 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $vaultRequired = null !== $this->vaultRequestProvider?->provideForCart($order);
+            $venmoEnabled = !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -182,7 +196,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {

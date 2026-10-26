@@ -29,6 +29,8 @@ return static function (ContainerConfigurator $container) {
         ->public()
         ->args([
             service('sylius_paypal.processor.payment_capture'),
+            service('sylius.manager.payment'),
+            service('event_dispatcher'),
             service('monolog.logger.paypal'),
         ])
         ->tag('payum.action', ['factory' => 'sylius_paypal', 'alias' => 'payum.action.complete_order']);

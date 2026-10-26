@@ -20,6 +20,7 @@ sylius_paypal:
     sandbox_connected_successfully: 'Połączono konto PayPal (sandbox).'
     seller_onboarding_payments_not_receivable: 'Uwaga: obecnie nie możesz przyjmować płatności z powodu możliwego ograniczenia na Twoim koncie PayPal. Skontaktuj się z obsługą klienta PayPal lub przejdź na %paypal_url%, aby dowiedzieć się więcej. Po wyjaśnieniu sprawy wróć na tę stronę, aby odświeżyć status onboardingu.'
     seller_onboarding_primary_email_not_confirmed: 'Uwaga: potwierdź swój adres e-mail na %business_profile_url%, aby przyjmować płatności! Obecnie nie możesz przyjmować płatności. Gdy to zrobisz, wróć na tę stronę, aby odświeżyć status onboardingu.'
+    seller_onboarding_vaulting_not_active: 'Nie możesz oferować zapisywania metod płatności (Vaulting), ponieważ jego status onboardingu to %status%. Skontaktuj się z PayPal, aby uzyskać więcej informacji.'
     shipment_cannot_be_shipped: 'Tej przesyłki nie można już wysłać. Mogła zostać wysłana w międzyczasie.'
     something_went_wrong: 'Coś poszło nie tak. Spróbuj ponownie.'
     three_d_secure_declined: 'Nie udało się uwierzytelnić karty. Wybierz inną metodę płatności.'

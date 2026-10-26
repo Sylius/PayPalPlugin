@@ -21,6 +21,7 @@ use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventNotification;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\VaultedPaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
 
 final class WebhookEventPaymentResolverTest extends TestCase
@@ -30,7 +31,7 @@ final class WebhookEventPaymentResolverTest extends TestCase
     /** @var PaymentRequestRepositoryInterface<PaymentRequestInterface>&MockObject */
     private PaymentRequestRepositoryInterface&MockObject $paymentRequestRepository;
 
-    private SettleablePaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
+    private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
     private WebhookEventPaymentResolver $resolver;
 
@@ -38,7 +39,10 @@ final class WebhookEventPaymentResolverTest extends TestCase
     {
         parent::setUp();
         $this->paymentRequestRepository = $this->createMock(PaymentRequestRepositoryInterface::class);
-        $this->paypalPaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
+        $this->paypalPaymentQuery = $this->createMockForIntersectionOfInterfaces([
+            SettleablePaypalPaymentQueryInterface::class,
+            VaultedPaypalPaymentQueryInterface::class,
+        ]);
 
         $this->resolver = new WebhookEventPaymentResolver($this->paymentRequestRepository, $this->paypalPaymentQuery);
     }
@@ -149,6 +153,40 @@ final class WebhookEventPaymentResolverTest extends TestCase
             'id' => 'REFUND_ID',
             'links' => [['rel' => 'up', 'href' => 'https://api.paypal.com/v2/checkout/orders/PAYPAL_ORDER_ID']],
         ])));
+    }
+
+    public function test_it_resolves_the_payment_of_the_paypal_order_a_token_was_saved_during(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('payment_token', [
+            'id' => 'VAULT_ID',
+            'metadata' => ['order_id' => 'PAYPAL_ORDER_ID'],
+        ])));
+    }
+
+    public function test_it_resolves_a_payment_that_carries_the_token_when_the_event_names_no_paypal_order(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('findByVaultId')->with('VAULT_ID')->willReturn([$payment, $this->createStub(PaymentInterface::class)]);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('payment_token', ['id' => 'VAULT_ID'])));
+    }
+
+    public function test_it_resolves_nothing_for_a_token_no_payment_carries(): void
+    {
+        $this->paypalPaymentQuery->method('findByVaultId')->willReturn([]);
+
+        self::assertNull($this->resolver->resolve($this->notification('payment_token', ['id' => 'VAULT_ID'])));
+    }
+
+    public function test_it_does_not_look_up_tokens_for_other_resources(): void
+    {
+        $this->paypalPaymentQuery->method('getForSettlementByCaptureId')->willThrowException(new PaymentNotFoundException());
+        $this->paypalPaymentQuery->expects(self::never())->method('findByVaultId');
+
+        self::assertNull($this->resolver->resolve($this->notification('capture', ['id' => 'CAPTURE_ID'])));
     }
 
     /** @param array<string, mixed> $resource */

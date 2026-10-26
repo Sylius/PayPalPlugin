@@ -22,11 +22,13 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -112,6 +114,7 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $this->createStub(PayPalVaultRequestProviderInterface::class),
         );
     }
 
@@ -160,6 +163,112 @@ final class PayPalButtonsControllerTest extends TestCase
         self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertSame('30.50', $capturedContext['amount']);
         self::assertTrue($capturedContext['venmoEnabled']);
+    }
+
+    #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_cart_page_when_the_cart_needs_vaulting(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider
+            ->expects(self::once())
+            ->method('provideForCart')
+            ->with($order)
+            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+        ;
+
+        $capturedContext = null;
+        $this->twig->method('render')->willReturnCallback(function (string $template, array $context) use (&$capturedContext): string {
+            $capturedContext = $context;
+
+            return '';
+        });
+
+        $controller = new PayPalButtonsController(
+            $this->twig,
+            $this->router,
+            $this->channelContext,
+            $this->localeContext,
+            $this->payPalConfigurationProvider,
+            $this->orderRepository,
+            $this->availableCountriesProvider,
+            $this->localeProcessor,
+            $this->webSdkConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $vaultRequestProvider,
+        );
+
+        $controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_payment_page_when_the_order_needs_vaulting(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider
+            ->expects(self::once())
+            ->method('provideForCart')
+            ->with($order)
+            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+        ;
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controllerWith($vaultRequestProvider)->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertFalse($capturedContext->context['paylaterEnabled']);
+        self::assertFalse($capturedContext->context['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_product_page_of_a_channel_that_vaults(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('isVaultingEnabledInChannel')->with($this->channel)->willReturn(true);
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controllerWith($vaultRequestProvider)->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertFalse($capturedContext->context['paylaterEnabled']);
+        self::assertFalse($capturedContext->context['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_venmo_and_pay_later_on_the_product_page_of_a_channel_that_does_not_vault(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('isVaultingEnabledInChannel')->willReturn(false);
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controllerWith($vaultRequestProvider)->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertTrue($capturedContext->context['paylaterEnabled']);
+        self::assertTrue($capturedContext->context['venmoEnabled']);
     }
 
     #[Test]
@@ -345,5 +454,36 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertSame('1234', $capturedContext['amount']);
+    }
+
+    private function captureRenderedContext(): \stdClass
+    {
+        $captured = new \stdClass();
+        $captured->context = [];
+        $this->twig->method('render')->willReturnCallback(static function (string $template, array $context) use ($captured): string {
+            $captured->context = $context;
+
+            return '';
+        });
+
+        return $captured;
+    }
+
+    private function controllerWith(PayPalVaultRequestProviderInterface $vaultRequestProvider): PayPalButtonsController
+    {
+        return new PayPalButtonsController(
+            $this->twig,
+            $this->router,
+            $this->channelContext,
+            $this->localeContext,
+            $this->payPalConfigurationProvider,
+            $this->orderRepository,
+            $this->availableCountriesProvider,
+            $this->localeProcessor,
+            $this->webSdkConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $vaultRequestProvider,
+        );
     }
 }

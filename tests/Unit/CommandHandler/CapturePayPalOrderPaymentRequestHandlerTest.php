@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Command\AnnouncePayPalPaymentToken;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
@@ -31,6 +32,9 @@ use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 {
@@ -43,6 +47,8 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
     private EntityManagerInterface&MockObject $paymentRequestManager;
+
+    private MessageBusInterface&MockObject $commandBus;
 
     private StateMachineInterface&MockObject $stateMachine;
 
@@ -60,6 +66,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentCaptureProcessor = $this->createMock(PaymentCaptureProcessorInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
         $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
+        $this->commandBus = $this->createMock(MessageBusInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
@@ -73,18 +80,31 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentCaptureProcessor,
             $this->paymentSettlementProcessor,
             $this->paymentRequestManager,
+            $this->commandBus,
             $this->stateMachine,
         );
     }
 
-    public function test_it_locks_the_request_and_reads_its_state_again_before_capturing(): void
+    public function test_it_locks_the_request_and_its_payment_and_reads_them_again_before_capturing(): void
     {
         $paymentRequest = $this->paymentRequestWith();
-        $this->paymentRequestManager->expects(self::once())->method('refresh')->with($paymentRequest, LockMode::PESSIMISTIC_WRITE);
+        $locked = [];
+        $this->paymentRequestManager
+            ->expects(self::exactly(2))
+            ->method('refresh')
+            ->willReturnCallback(static function (object $entity, mixed $lockMode = null) use (&$locked): void {
+                $locked[] = [$entity, $lockMode];
+            })
+        ;
         $this->paymentCaptureProcessor->method('capture')->willReturn($this->capturedOrder('COMPLETED'));
         $this->stateMachine->method('can')->willReturn(false);
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            [$paymentRequest, LockMode::PESSIMISTIC_WRITE],
+            [$this->payment, LockMode::PESSIMISTIC_WRITE],
+        ], $locked);
     }
 
     public function test_it_leaves_a_request_completed_while_it_waited_for_the_lock(): void
@@ -285,6 +305,81 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
+    }
+
+    public function test_it_announces_the_vault_token_the_capture_revealed_once_the_payment_request_is_stored(): void
+    {
+        $this->paymentRequestWhoseCaptureRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID'], ['vault_id' => 'VAULT_ID']);
+
+        $this->commandBus
+            ->expects(self::once())
+            ->method('dispatch')
+            ->with(
+                self::callback(static fn (AnnouncePayPalPaymentToken $command): bool => 7 === $command->paymentId && 'VAULT_ID' === $command->vaultId),
+                self::callback(static fn (array $stamps): bool => [new DispatchAfterCurrentBusStamp()] == $stamps),
+            )
+            ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
+        ;
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_announces_a_vault_token_the_capture_replaced(): void
+    {
+        $this->paymentRequestWhoseCaptureRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'OLD_VAULT_ID'], ['vault_id' => 'VAULT_ID']);
+
+        $this->commandBus
+            ->expects(self::once())
+            ->method('dispatch')
+            ->with(self::callback(static fn (AnnouncePayPalPaymentToken $command): bool => 'VAULT_ID' === $command->vaultId))
+            ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
+        ;
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_announce_a_vault_token_the_payment_already_carried(): void
+    {
+        $this->paymentRequestWhoseCaptureRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'VAULT_ID'], []);
+
+        $this->commandBus->expects(self::never())->method('dispatch');
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_announce_a_vault_token_when_the_capture_failed(): void
+    {
+        $this->paymentRequestWith();
+        $this->paymentCaptureProcessor->method('capture')->willThrowException(new PayPalApiConnectionException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID'));
+
+        $this->commandBus->expects(self::never())->method('dispatch');
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @param array<string, mixed> $recordedByCapture
+     */
+    private function paymentRequestWhoseCaptureRecords(array $details, array $recordedByCapture): void
+    {
+        $this->payment->method('getId')->willReturn(7);
+        $this->payment->method('getDetails')->willReturnCallback(static function () use (&$details): array {
+            return $details;
+        });
+
+        $paymentRequest = $this->createMock(PaymentRequestInterface::class);
+        $paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest->method('getPayment')->willReturn($this->payment);
+        $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
+
+        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(function () use (&$details, $recordedByCapture): array {
+            $details = array_merge($details, $recordedByCapture);
+
+            return $this->capturedOrder('COMPLETED');
+        });
+        $this->stateMachine->method('can')->willReturn(false);
     }
 
     private function paymentRequestWith(

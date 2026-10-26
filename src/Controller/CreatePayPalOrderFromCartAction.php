@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
@@ -45,6 +46,7 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -85,6 +87,15 @@ final readonly class CreatePayPalOrderFromCartAction
                 '2.2',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
                 PayPalFundingSourcesConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalVaultRequestProviderInterface::class,
                 self::class,
             );
         }
@@ -173,7 +184,10 @@ final readonly class CreatePayPalOrderFromCartAction
             return $paymentSource;
         }
 
-        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($order)) {
+        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource &&
+            $this->isVenmoEnabled($order) &&
+            null === $this->vaultRequestProvider?->provideForCart($order)
+        ) {
             return $paymentSource;
         }
 

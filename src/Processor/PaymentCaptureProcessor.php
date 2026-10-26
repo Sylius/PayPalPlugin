@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 
 final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorInterface
@@ -48,8 +49,9 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
+        $captureResponse = [];
         if ($this->approvedPayPalOrderChecker->isApproved($orderDetails, $details->paymentSource())) {
-            $this->captureApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
+            $captureResponse = $this->captureApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
 
@@ -70,26 +72,38 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             );
         }
 
+        $vault = PayPalVault::fromPayPalOrder($captureResponse) ?? PayPalVault::fromPayPalOrder($orderDetails);
+        $knownVault = $details->vault();
+        if (null === $vault?->id() && null !== $knownVault?->id()) {
+            $vault = $knownVault;
+        }
+        if (null !== $vault) {
+            $capturedDetails = $capturedDetails->withVault($vault);
+        }
+
         $payment->setDetails($capturedDetails->toArray());
 
         return $orderDetails;
     }
 
+    /** @return array<string, mixed> */
     private function captureApprovedOrder(
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         string $payPalOrderId,
         ?string $requestId,
-    ): void {
+    ): array {
         $this->approvedPayPalOrderUpdater->update($payment);
 
         try {
-            $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
+            return $this->completeOrderApi->complete($paymentMethod, $payPalOrderId, $requestId);
         } catch (PayPalApiConnectionException|PayPalApiServerException) {
         } catch (PayPalApiRequestException $exception) {
             if ([] === array_intersect($exception->getIssues(), self::ISSUES_LEAVING_THE_ORDER_TO_READ)) {
                 throw $exception;
             }
         }
+
+        return [];
     }
 }

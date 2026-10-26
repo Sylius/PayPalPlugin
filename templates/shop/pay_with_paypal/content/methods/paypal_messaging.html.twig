@@ -1,4 +1,4 @@
-{% if sylius_paypal_is_messaging_enabled() %}
+{% if sylius_paypal_is_messaging_enabled() and not hookable_metadata.context.vaultRequired|default(false) %}
     {% set context = hookable_metadata.context %}
 
     <paypal-message

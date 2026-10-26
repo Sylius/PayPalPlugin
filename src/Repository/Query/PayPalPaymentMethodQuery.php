@@ -52,6 +52,18 @@ final readonly class PayPalPaymentMethodQuery implements PayPalPaymentMethodQuer
         return null !== $id;
     }
 
+    public function findAll(): array
+    {
+        /** @var list<PaymentMethodInterface> $paymentMethods */
+        $paymentMethods = $this->getPayPalPaymentMethodQueryBuilder()
+            ->addOrderBy('o.id', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+
+        return $paymentMethods;
+    }
+
     private function getPayPalPaymentMethodQueryBuilder(): QueryBuilder
     {
         return $this->entityManager
