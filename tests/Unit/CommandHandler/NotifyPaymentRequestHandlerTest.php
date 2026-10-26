@@ -28,6 +28,7 @@ use Sylius\PayPalPlugin\CommandHandler\NotifyPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
+use Sylius\PayPalPlugin\Processor\Webhook\PayloadResourceWebhookEventProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 
@@ -89,6 +90,27 @@ final class NotifyPaymentRequestHandlerTest extends TestCase
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
 
         ($this->handler)(new NotifyPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_processes_an_event_its_processor_reads_from_the_signed_payload_without_asking_paypal_again(): void
+    {
+        $this->notifyPaymentRequest('PAYMENT.CAPTURE.COMPLETED');
+        $payloadProcessor = $this->createMock(PayloadResourceWebhookEventProcessorInterface::class);
+        $webhookEventProcessors = $this->createStub(ContainerInterface::class);
+        $webhookEventProcessors->method('has')->willReturn(true);
+        $webhookEventProcessors->method('get')->willReturn($payloadProcessor);
+        $this->webhookEventRepository->method('claim')->willReturn(true);
+
+        $this->webhookResourceApi->expects(self::never())->method('get');
+        $payloadProcessor->expects(self::once())->method('process')->with('PAYMENT.CAPTURE.COMPLETED', ['id' => 'CAPTURE_ID', 'status' => 'PENDING'], $this->payment);
+
+        (new NotifyPaymentRequestHandler(
+            $this->paymentRequestProvider,
+            $this->webhookEventRepository,
+            $webhookEventProcessors,
+            $this->webhookResourceApi,
+            $this->stateMachine,
+        ))(new NotifyPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
     public function test_it_does_nothing_for_an_event_it_has_already_received(): void
