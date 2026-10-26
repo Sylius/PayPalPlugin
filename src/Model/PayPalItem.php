@@ -25,6 +25,7 @@ final readonly class PayPalItem
         private ?string $sku = null,
         private ?string $description = null,
         private ?string $url = null,
+        private ?PayPalBillingPlan $billingPlan = null,
     ) {
     }
 
@@ -55,6 +56,10 @@ final readonly class PayPalItem
 
         if (null !== $this->url) {
             $item['url'] = $this->url;
+        }
+
+        if (null !== $this->billingPlan) {
+            $item['billing_plan'] = $this->billingPlan->toArray($this->currencyCode);
         }
 
         return $item;

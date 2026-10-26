@@ -22,6 +22,11 @@ use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
+use Sylius\PayPalPlugin\Model\PayPalBillingCycle;
+use Sylius\PayPalPlugin\Model\PayPalBillingCycleTenure;
+use Sylius\PayPalPlugin\Model\PayPalBillingIntervalUnit;
+use Sylius\PayPalPlugin\Model\PayPalBillingPlan;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -559,5 +564,60 @@ final class PayPalItemDataProviderTest extends TestCase
         ];
 
         self::assertEquals($expected, $result);
+    }
+
+    #[Test]
+    public function attaches_the_billing_plan_to_the_item_a_vault_request_recurs_for(): void
+    {
+        $subscription = $this->orderItemWithId(7, 'SUBSCRIPTION');
+        $oneOff = $this->orderItemWithId(8, 'ONE_OFF');
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getItems')->willReturn(new ArrayCollection([$subscription, $oneOff]));
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->willReturn([0]);
+
+        $billingPlan = new PayPalBillingPlan([new PayPalBillingCycle(PayPalBillingCycleTenure::Regular, PayPalBillingIntervalUnit::Month, totalCycles: 0, price: 999)]);
+        $result = $this->provider->provide($order, new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, billingPlans: [7 => $billingPlan]));
+
+        self::assertSame($billingPlan->toArray('USD'), $result['items'][0]['billing_plan']);
+        self::assertArrayNotHasKey('billing_plan', $result['items'][1]);
+    }
+
+    #[Test]
+    public function attaches_the_billing_plan_once_to_an_item_split_for_its_tax(): void
+    {
+        $subscription = $this->orderItemWithId(7, 'SUBSCRIPTION', 2);
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getItems')->willReturn(new ArrayCollection([$subscription]));
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->willReturn([50, 51]);
+
+        $result = $this->provider->provide($order, new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, billingPlans: [7 => new PayPalBillingPlan([new PayPalBillingCycle(PayPalBillingCycleTenure::Regular, PayPalBillingIntervalUnit::Month, totalCycles: 0, price: 999)])]));
+
+        self::assertCount(2, $result['items']);
+        self::assertArrayHasKey('billing_plan', $result['items'][0]);
+        self::assertArrayNotHasKey('billing_plan', $result['items'][1]);
+    }
+
+    #[Test]
+    public function attaches_no_billing_plan_without_a_vault_request(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getItems')->willReturn(new ArrayCollection([$this->orderItemWithId(7, 'SUBSCRIPTION')]));
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $this->orderItemNonNeutralTaxesProvider->method('provide')->willReturn([0]);
+
+        self::assertArrayNotHasKey('billing_plan', $this->provider->provide($order)['items'][0]);
+    }
+
+    private function orderItemWithId(int $id, string $productName, int $quantity = 1): OrderItemInterface&MockObject
+    {
+        $orderItem = $this->createMock(OrderItemInterface::class);
+        $orderItem->method('getId')->willReturn($id);
+        $orderItem->method('getProductName')->willReturn($productName);
+        $orderItem->method('getUnitPrice')->willReturn(999);
+        $orderItem->method('getQuantity')->willReturn($quantity);
+
+        return $orderItem;
     }
 }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
+use Sylius\Component\Core\Model\OrderItemInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class PayPalVaultRequest
@@ -21,9 +22,11 @@ final readonly class PayPalVaultRequest
 
     private const DESCRIPTION_MAX_LENGTH = 128;
 
+    /** @param array<int, PayPalBillingPlan> $billingPlans */
     public function __construct(
         private string $usagePattern,
         private ?string $description = null,
+        private array $billingPlans = [],
     ) {
         Assert::notEmpty($usagePattern);
     }
@@ -36,6 +39,13 @@ final readonly class PayPalVaultRequest
     public function description(): ?string
     {
         return $this->description;
+    }
+
+    public function billingPlanFor(OrderItemInterface $orderItem): ?PayPalBillingPlan
+    {
+        $orderItemId = $orderItem->getId();
+
+        return is_int($orderItemId) ? ($this->billingPlans[$orderItemId] ?? null) : null;
     }
 
     /** @return array<string, mixed> */

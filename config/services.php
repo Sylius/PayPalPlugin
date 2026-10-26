@@ -271,6 +271,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.experience_context'),
             service('sylius_paypal.provider.paypal_payment_source'),
             service('sylius_paypal.checker.payment_authorization'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->alias(PayPalOrderFactoryInterface::class, 'sylius_paypal.factory.paypal_order');

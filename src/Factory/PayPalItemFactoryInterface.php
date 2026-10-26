@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\PayPalPlugin\Model\PayPalBillingPlan;
 use Sylius\PayPalPlugin\Model\PayPalItem;
 
 interface PayPalItemFactoryInterface
@@ -25,5 +26,6 @@ interface PayPalItemFactoryInterface
         int $tax,
         string $currencyCode,
         string $category,
+        ?PayPalBillingPlan $billingPlan = null,
     ): PayPalItem;
 }
