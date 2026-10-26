@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolver;
 
 final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 {
@@ -73,6 +74,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             $paymentRequestProvider,
             $this->chargeVaultedOrderApi,
             $this->paymentSettlementProcessor,
+            new VaultedChargeFailureResolver(),
             $this->stateMachine,
         );
     }
@@ -135,7 +137,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->chargeVaultedOrderApi->method('charge')->willReturn($payPalOrder);
 
         $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, $payPalOrder);
-        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal reported the capture as DECLINED.']);
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal reported the capture as DECLINED.', 'failure' => 'declined']);
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -152,6 +154,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
             'reason' => 'PayPal refused to charge the vaulted wallet.',
+            'failure' => 'declined',
             'issues' => ['INSTRUMENT_DECLINED'],
         ]);
 
@@ -169,7 +172,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->chargeVaultedOrderApi->method('charge')->willReturn(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']);
 
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
-        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not capture the order.']);
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal did not capture the order.', 'failure' => 'payer_action_required']);
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -202,7 +205,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->payment->setDetails([]);
 
         $this->chargeVaultedOrderApi->expects(self::never())->method('charge');
-        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment carries no vaulted PayPal wallet.']);
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment carries no vaulted PayPal wallet.', 'failure' => 'credential_invalid']);
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -210,6 +213,22 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
             [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
         ], $this->appliedTransitions);
+    }
+
+    public function test_it_tells_the_vaulted_wallet_is_no_longer_usable_when_paypal_does_not_know_the_token(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INVALID_VAULT_ID']),
+        );
+
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
+            'reason' => 'PayPal refused to charge the vaulted wallet.',
+            'failure' => 'credential_invalid',
+            'issues' => ['INVALID_VAULT_ID'],
+        ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
     /** @return iterable<string, array{\Throwable}> */
