@@ -13,17 +13,18 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Refresher;
 
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 final readonly class ThrottledVaultingCapabilityRefresher implements VaultingCapabilityRefresherInterface
 {
     public function __construct(
         private VaultingCapabilityRefresherInterface $refresher,
-        private CacheItemPoolInterface $cache,
+        private CacheInterface $cache,
         private LoggerInterface $logger,
         private int $refreshCooldown,
     ) {
@@ -36,36 +37,27 @@ final readonly class ThrottledVaultingCapabilityRefresher implements VaultingCap
             return false;
         }
 
-        $vaultingEnabled = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVaultingEnabled();
-        if ($vaultingEnabled || !$this->cooldownAllows($paymentMethod)) {
-            return $vaultingEnabled;
+        if (PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVaultingEnabled()) {
+            return true;
         }
 
-        try {
-            return $this->refresher->refresh($paymentMethod);
-        } catch (\Throwable $exception) {
-            $this->logger->warning(sprintf(
-                'Could not refresh the PayPal vaulting capability of "%s": %s',
-                (string) $paymentMethod->getCode(),
-                $exception->getMessage(),
-            ));
-
-            return false;
-        }
-    }
-
-    private function cooldownAllows(PaymentMethodInterface $paymentMethod): bool
-    {
-        $item = $this->cache->getItem(
+        return true === $this->cache->get(
             'sylius_paypal_vaulting_capability_refresh_' . hash('sha256', (string) $paymentMethod->getCode()),
+            function (ItemInterface $item) use ($paymentMethod): bool {
+                $item->expiresAfter($this->refreshCooldown);
+
+                try {
+                    return $this->refresher->refresh($paymentMethod);
+                } catch (\Throwable $exception) {
+                    $this->logger->warning(sprintf(
+                        'Could not refresh the PayPal vaulting capability of "%s": %s',
+                        (string) $paymentMethod->getCode(),
+                        $exception->getMessage(),
+                    ));
+
+                    return false;
+                }
+            },
         );
-        if ($item->isHit()) {
-            return false;
-        }
-
-        $item->expiresAfter($this->refreshCooldown);
-        $this->cache->save($item);
-
-        return true;
     }
 }

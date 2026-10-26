@@ -55,6 +55,15 @@ final class ThrottledVaultingCapabilityRefresherTest extends TestCase
         self::assertFalse($this->refresher->refresh($paymentMethod));
     }
 
+    public function test_it_remembers_paypal_activated_vaulting_for_the_cooldown_until_the_payment_method_is_stored(): void
+    {
+        $paymentMethod = $this->paymentMethod('PAYPAL', false);
+        $this->innerRefresher->expects(self::once())->method('refresh')->willReturn(true);
+
+        self::assertTrue($this->refresher->refresh($paymentMethod));
+        self::assertTrue($this->refresher->refresh($paymentMethod));
+    }
+
     public function test_it_keeps_a_separate_cooldown_for_every_payment_method(): void
     {
         $this->innerRefresher->expects(self::exactly(2))->method('refresh')->willReturn(false);
