@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Processor\Webhook;
 
-use Doctrine\Persistence\ObjectManager;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Payment;
@@ -29,7 +30,7 @@ final class PaymentTokenWebhookProcessorTest extends TestCase
 {
     private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
 
-    private ObjectManager&MockObject $paymentManager;
+    private EntityManagerInterface&MockObject $paymentManager;
 
     private EventDispatcherInterface&MockObject $eventDispatcher;
 
@@ -38,7 +39,8 @@ final class PaymentTokenWebhookProcessorTest extends TestCase
     protected function setUp(): void
     {
         $this->paypalPaymentQuery = $this->createMockForIntersectionOfInterfaces([SettleablePaypalPaymentQueryInterface::class, VaultedPaypalPaymentQueryInterface::class]);
-        $this->paymentManager = $this->createMock(ObjectManager::class);
+        $this->paymentManager = $this->createMock(EntityManagerInterface::class);
+        $this->paymentManager->method('wrapInTransaction')->willReturnCallback(static fn (callable $func): mixed => $func());
         $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
 
         $this->processor = new PaymentTokenWebhookProcessor($this->paypalPaymentQuery, $this->paymentManager, $this->eventDispatcher);
@@ -58,7 +60,7 @@ final class PaymentTokenWebhookProcessorTest extends TestCase
         $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_status' => 'APPROVED', 'vault_customer_id' => 'CUSTOMER_ID', 'payer_email' => 'buyer@example.com']);
 
         $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
-        $this->paymentManager->expects(self::once())->method('flush');
+        $this->paymentManager->expects(self::once())->method('refresh')->with($payment, LockMode::PESSIMISTIC_WRITE);
         $this->eventDispatcher
             ->expects(self::once())
             ->method('dispatch')
@@ -83,10 +85,27 @@ final class PaymentTokenWebhookProcessorTest extends TestCase
         $payment->setDetails(['vault_id' => 'VAULT_ID', 'vault_status' => 'VAULTED']);
 
         $this->paypalPaymentQuery->method('getForSettlementByOrderId')->willReturn($payment);
-        $this->paymentManager->expects(self::never())->method('flush');
         $this->eventDispatcher->expects(self::never())->method('dispatch');
 
         $this->processor->process($this->created(['id' => 'VAULT_ID', 'metadata' => ['order_id' => 'PAYPAL_ORDER_ID']]));
+
+        self::assertSame(['vault_id' => 'VAULT_ID', 'vault_status' => 'VAULTED'], $payment->getDetails());
+    }
+
+    public function test_it_reads_the_payment_again_under_a_lock_before_recording_the_token(): void
+    {
+        $payment = new Payment();
+        $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_status' => 'APPROVED']);
+
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->willReturn($payment);
+        $this->paymentManager->method('refresh')->willReturnCallback(static function (Payment $payment): void {
+            $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'CAPTURED_VAULT_ID', 'vault_status' => 'VAULTED']);
+        });
+        $this->eventDispatcher->expects(self::never())->method('dispatch');
+
+        $this->processor->process($this->created(['id' => 'VAULT_ID', 'metadata' => ['order_id' => 'PAYPAL_ORDER_ID']]));
+
+        self::assertSame(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'CAPTURED_VAULT_ID', 'vault_status' => 'VAULTED'], $payment->getDetails());
     }
 
     public function test_it_ignores_a_created_token_of_no_known_payment(): void

@@ -171,6 +171,16 @@ final readonly class PayPalPaymentDetails
         return $this->optional(self::PAYER_EMAIL);
     }
 
+    public function vault(): ?PayPalVault
+    {
+        $status = $this->vaultStatus();
+        if (null === $status) {
+            return null;
+        }
+
+        return new PayPalVault($status, $this->vaultId(), $this->vaultCustomerId(), $this->payerEmail());
+    }
+
     public function authorizationId(): ?string
     {
         return $this->optional(self::AUTHORIZATION_ID);
