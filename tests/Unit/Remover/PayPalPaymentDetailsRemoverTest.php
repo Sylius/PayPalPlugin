@@ -47,13 +47,13 @@ final class PayPalPaymentDetailsRemoverTest extends TestCase
         self::assertSame([], $payment->getDetails());
     }
 
-    public function test_it_removes_a_paypal_payment_source_written_before_the_paypal_order_was_created(): void
+    public function test_it_keeps_a_payment_source_without_a_paypal_order(): void
     {
-        $payment = $this->payment('offline', PaymentInterface::STATE_CART, ['payment_source' => 'venmo']);
+        $payment = $this->payment('offline', PaymentInterface::STATE_NEW, ['payment_source' => 'card']);
 
         (new PayPalPaymentDetailsRemover())->removeFromOrder($this->order($payment));
 
-        self::assertSame([], $payment->getDetails());
+        self::assertSame(['payment_source' => 'card'], $payment->getDetails());
     }
 
     public function test_it_keeps_the_details_of_a_paypal_payment(): void

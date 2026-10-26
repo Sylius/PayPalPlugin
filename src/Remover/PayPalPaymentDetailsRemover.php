@@ -44,9 +44,6 @@ final readonly class PayPalPaymentDetailsRemover implements PayPalPaymentDetails
             return false;
         }
 
-        return
-            PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId() ||
-            array_key_exists(PayPalPaymentDetails::PAYMENT_SOURCE, $payment->getDetails())
-        ;
+        return PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId();
     }
 }
