@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Command\NotifyPaymentRequest;
 use Sylius\PayPalPlugin\Exception\PermanentWebhookFailureInterface;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventNotification;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
+use Sylius\PayPalPlugin\Processor\Webhook\PayloadResourceWebhookEventProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\WebhookEventProcessorInterface;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 
@@ -82,7 +83,9 @@ final class NotifyPaymentRequestHandler
         $payment = $paymentRequest->getPayment();
 
         try {
-            $resource = $this->webhookResourceApi->get($paymentMethod, $notification->resourceType(), $notification->resourceId());
+            $resource = $webhookEventProcessor instanceof PayloadResourceWebhookEventProcessorInterface
+                ? $notification->resource()
+                : $this->webhookResourceApi->get($paymentMethod, $notification->resourceType(), $notification->resourceId());
             $webhookEventProcessor->process($eventType, $resource, $payment);
         } catch (PermanentWebhookFailureInterface $exception) {
             $this->webhookEventRepository->markAs($eventId, $paymentMethodCode, PayPalWebhookEventStatus::Failed);
