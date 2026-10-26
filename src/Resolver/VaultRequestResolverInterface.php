@@ -13,10 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Resolver;
 
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 
 interface VaultRequestResolverInterface
 {
     public function resolve(OrderInterface $order): ?PayPalVaultRequest;
+
+    public function vaultsInChannel(ChannelInterface $channel): bool;
 }
