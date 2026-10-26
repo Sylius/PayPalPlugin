@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
@@ -29,6 +30,7 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class PaymentCaptureProcessorTest extends TestCase
 {
@@ -46,6 +48,8 @@ final class PaymentCaptureProcessorTest extends TestCase
 
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
 
+    private EventDispatcherInterface&MockObject $eventDispatcher;
+
     private PaymentMethodInterface&MockObject $paymentMethod;
 
     private OrderInterface&MockObject $order;
@@ -60,6 +64,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->approvedPayPalOrderUpdater = $this->createMock(ApprovedPayPalOrderUpdaterInterface::class);
         $this->completeOrderApi = $this->createMock(CompleteOrderApiInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
+        $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->order = $this->createMock(OrderInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
@@ -72,6 +77,7 @@ final class PaymentCaptureProcessorTest extends TestCase
             $this->approvedPayPalOrderUpdater,
             $this->completeOrderApi,
             $this->orderDetailsApi,
+            $this->eventDispatcher,
         );
     }
 
@@ -227,6 +233,12 @@ final class PaymentCaptureProcessorTest extends TestCase
             'vault_customer_id' => '163456532',
             'payer_email' => 'buyer@example.com',
         ]);
+        $this->eventDispatcher
+            ->expects(self::once())
+            ->method('dispatch')
+            ->with(self::callback(fn (PayPalPaymentTokenCreated $event): bool => $this->payment === $event->payment && 'j7hzkgdn' === $event->vaultId))
+            ->willReturnArgument(0)
+        ;
 
         $this->processor->capture($this->payment);
     }
@@ -248,6 +260,7 @@ final class PaymentCaptureProcessorTest extends TestCase
             'vault_status' => 'APPROVED',
             'vault_customer_id' => '163456532',
         ]);
+        $this->eventDispatcher->expects(self::never())->method('dispatch');
 
         $this->processor->capture($this->payment);
     }
@@ -277,6 +290,7 @@ final class PaymentCaptureProcessorTest extends TestCase
             'vault_customer_id' => '163456532',
             'payer_email' => 'buyer@example.com',
         ]);
+        $this->eventDispatcher->expects(self::never())->method('dispatch');
 
         $this->processor->capture($this->payment);
     }
