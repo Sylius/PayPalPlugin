@@ -100,7 +100,8 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $vaultPossible = true === $this->vaultRequestProvider?->isVaultingEnabledInChannel($channel);
+            $venmoEnabled = !$vaultPossible && $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -117,7 +118,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => !$vaultPossible && $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -174,7 +175,8 @@ final readonly class PayPalButtonsController
 
         try {
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
+            $vaultRequired = null !== $this->vaultRequestProvider?->provideForCart($order);
+            $venmoEnabled = !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -194,7 +196,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
+                'paylaterEnabled' => !$vaultRequired && $this->getFundingSourcesConfigurationProvider()->isPayLaterEnabled($channel),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {

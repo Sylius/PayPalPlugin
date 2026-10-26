@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Resolver;
 
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 
@@ -25,5 +26,10 @@ final readonly class NullVaultRequestResolver implements VaultRequestResolverInt
     public function resolve(OrderInterface $order): ?PayPalVaultRequest
     {
         return null;
+    }
+
+    public function vaultsInChannel(ChannelInterface $channel): bool
+    {
+        return false;
     }
 }

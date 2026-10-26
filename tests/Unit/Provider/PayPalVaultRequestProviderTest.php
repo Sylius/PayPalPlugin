@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProvider;
+use Sylius\PayPalPlugin\Resolver\NullVaultRequestResolver;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
 
@@ -91,6 +92,39 @@ final class PayPalVaultRequestProviderTest extends TestCase
         $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true])]);
 
         self::assertSame($vaultRequest, (new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver))->provideForCart($order));
+    }
+
+    public function test_it_tells_a_channel_vaults_when_any_of_its_paypal_methods_can_vault(): void
+    {
+        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+        $payPalMethodsResolver->method('getInChannel')->willReturn([
+            $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]),
+            $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true]),
+        ]);
+
+        $resolver = $this->createStub(VaultRequestResolverInterface::class);
+        $resolver->method('vaultsInChannel')->willReturn(true);
+
+        self::assertTrue((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
+    }
+
+    public function test_it_tells_a_channel_no_integration_vaults_in_does_not_vault(): void
+    {
+        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+        $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true])]);
+
+        self::assertFalse((new PayPalVaultRequestProvider(new NullVaultRequestResolver(), $payPalMethodsResolver))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
+    }
+
+    public function test_it_tells_a_channel_without_a_paypal_method_that_can_vault_does_not_vault(): void
+    {
+        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+        $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false])]);
+
+        $resolver = $this->createStub(VaultRequestResolverInterface::class);
+        $resolver->method('vaultsInChannel')->willReturn(true);
+
+        self::assertFalse((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
     }
 
     private function cartWith(PaymentMethodInterface $paymentMethod): OrderInterface

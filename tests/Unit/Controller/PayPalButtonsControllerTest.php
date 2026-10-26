@@ -213,6 +213,65 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_payment_page_when_the_order_needs_vaulting(): void
+    {
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider
+            ->expects(self::once())
+            ->method('provideForCart')
+            ->with($order)
+            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+        ;
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controllerWith($vaultRequestProvider)->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
+
+        self::assertFalse($capturedContext->context['paylaterEnabled']);
+        self::assertFalse($capturedContext->context['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_product_page_of_a_channel_that_vaults(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('isVaultingEnabledInChannel')->with($this->channel)->willReturn(true);
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controllerWith($vaultRequestProvider)->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertFalse($capturedContext->context['paylaterEnabled']);
+        self::assertFalse($capturedContext->context['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_venmo_and_pay_later_on_the_product_page_of_a_channel_that_does_not_vault(): void
+    {
+        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(true);
+        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->willReturn(true);
+
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('isVaultingEnabledInChannel')->willReturn(false);
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controllerWith($vaultRequestProvider)->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertTrue($capturedContext->context['paylaterEnabled']);
+        self::assertTrue($capturedContext->context['venmoEnabled']);
+    }
+
+    #[Test]
     public function it_passes_paylater_enabled_to_the_payment_page_template(): void
     {
         $order = $this->createMock(OrderInterface::class);
@@ -395,5 +454,36 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertSame('1234', $capturedContext['amount']);
+    }
+
+    private function captureRenderedContext(): \stdClass
+    {
+        $captured = new \stdClass();
+        $captured->context = [];
+        $this->twig->method('render')->willReturnCallback(static function (string $template, array $context) use ($captured): string {
+            $captured->context = $context;
+
+            return '';
+        });
+
+        return $captured;
+    }
+
+    private function controllerWith(PayPalVaultRequestProviderInterface $vaultRequestProvider): PayPalButtonsController
+    {
+        return new PayPalButtonsController(
+            $this->twig,
+            $this->router,
+            $this->channelContext,
+            $this->localeContext,
+            $this->payPalConfigurationProvider,
+            $this->orderRepository,
+            $this->availableCountriesProvider,
+            $this->localeProcessor,
+            $this->webSdkConfigurationProvider,
+            $this->fundingSourcesConfigurationProvider,
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            $vaultRequestProvider,
+        );
     }
 }
