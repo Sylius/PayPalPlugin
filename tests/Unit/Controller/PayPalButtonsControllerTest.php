@@ -211,6 +211,61 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_payment_page_when_the_order_needs_vaulting(): void
+    {
+        $order = $this->order(3050);
+        $this->orderRepository->method('find')->willReturn($order);
+        $paymentMethod = $this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'pay_later_enabled' => true, 'venmo_enabled' => true]);
+        $this->channelPaymentMethods = [$paymentMethod];
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($order, $paymentMethod)
+            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+        ;
+        $this->controller = $this->controller($vaultRequestProvider);
+
+        $capturedContext = $this->renderPaymentPageButtons(['orderId' => 1]);
+
+        self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_only_the_paypal_wallet_on_the_product_page_of_a_channel_that_vaults(): void
+    {
+        $this->channelPaymentMethods = [$this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'pay_later_enabled' => true, 'venmo_enabled' => true])];
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('isVaultingEnabledInChannel')->with($this->channel)->willReturn(true);
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controller($vaultRequestProvider)->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertFalse($capturedContext->context['paylaterEnabled']);
+        self::assertFalse($capturedContext->context['venmoEnabled']);
+        self::assertSame(['paypal-payments'], $this->capturedInstanceConfigArgs[2] ?? null);
+    }
+
+    #[Test]
+    public function it_offers_venmo_and_pay_later_on_the_product_page_of_a_channel_that_does_not_vault(): void
+    {
+        $this->channelPaymentMethods = [$this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'pay_later_enabled' => true, 'venmo_enabled' => true])];
+
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('isVaultingEnabledInChannel')->willReturn(false);
+        $capturedContext = $this->captureRenderedContext();
+
+        $this->controller($vaultRequestProvider)->renderProductPageButtonsAction(Request::create('/'));
+
+        self::assertTrue($capturedContext->context['paylaterEnabled']);
+        self::assertTrue($capturedContext->context['venmoEnabled']);
+    }
+
+    #[Test]
     public function it_passes_the_configuration_of_the_first_paypal_payment_method_to_the_payment_page_template(): void
     {
         $this->orderRepository->method('find')->willReturn($this->order(3000));
@@ -411,6 +466,19 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
         self::assertSame('1234', $capturedContext['amount']);
+    }
+
+    private function captureRenderedContext(): \stdClass
+    {
+        $captured = new \stdClass();
+        $captured->context = [];
+        $this->twig->method('render')->willReturnCallback(static function (string $template, array $context) use ($captured): string {
+            $captured->context = $context;
+
+            return '';
+        });
+
+        return $captured;
     }
 
     private function controller(?PayPalVaultRequestProviderInterface $vaultRequestProvider = null): PayPalButtonsController
