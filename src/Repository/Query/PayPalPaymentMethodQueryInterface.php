@@ -20,4 +20,7 @@ interface PayPalPaymentMethodQueryInterface
     public function findOne(): ?PaymentMethodInterface;
 
     public function exists(): bool;
+
+    /** @return list<PaymentMethodInterface> */
+    public function findAll(): array;
 }

@@ -29,6 +29,10 @@ final class PayPalPaymentMethodQueryTest extends JsonApiTestCase
         self::assertInstanceOf(PaymentMethodInterface::class, $paymentMethod);
         self::assertSame('PAYPAL', $paymentMethod->getCode());
         self::assertTrue($this->query()->exists());
+        self::assertSame(['PAYPAL'], array_map(
+            static fn (PaymentMethodInterface $paymentMethod): ?string => $paymentMethod->getCode(),
+            $this->query()->findAll(),
+        ));
 
         /** @var EntityManagerInterface $entityManager */
         $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
@@ -37,6 +41,7 @@ final class PayPalPaymentMethodQueryTest extends JsonApiTestCase
 
         self::assertNull($this->query()->findOne());
         self::assertFalse($this->query()->exists());
+        self::assertSame([], $this->query()->findAll());
     }
 
     private function query(): PayPalPaymentMethodQueryInterface

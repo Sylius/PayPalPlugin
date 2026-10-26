@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Refresher;
 
-use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
@@ -32,8 +31,6 @@ final class VaultingCapabilityRefresherTest extends TestCase
 
     private MerchantOnboardingStatusApiInterface&MockObject $merchantOnboardingStatusApi;
 
-    private ObjectManager&MockObject $paymentMethodManager;
-
     private VaultingCapabilityRefresher $refresher;
 
     protected function setUp(): void
@@ -41,7 +38,6 @@ final class VaultingCapabilityRefresherTest extends TestCase
         $this->authorizeClientApi = $this->createMock(AuthorizeClientApiInterface::class);
         $this->authorizeClientApi->method('authorize')->with('CLIENT-ID', 'SECRET', true)->willReturn(new AccessToken('SELLER-TOKEN', 32400));
         $this->merchantOnboardingStatusApi = $this->createMock(MerchantOnboardingStatusApiInterface::class);
-        $this->paymentMethodManager = $this->createMock(ObjectManager::class);
 
         $partnerCredentialsProvider = $this->createStub(PartnerCredentialsProviderInterface::class);
         $partnerCredentialsProvider->method('provide')->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
@@ -50,7 +46,6 @@ final class VaultingCapabilityRefresherTest extends TestCase
             $this->authorizeClientApi,
             $this->merchantOnboardingStatusApi,
             $partnerCredentialsProvider,
-            $this->paymentMethodManager,
         );
     }
 
@@ -63,7 +58,6 @@ final class VaultingCapabilityRefresherTest extends TestCase
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)
             ->willReturn(new OnboardingStatus(true, true, 'ACTIVE'))
         ;
-        $this->paymentMethodManager->expects(self::once())->method('flush');
 
         self::assertTrue($this->refresher->refresh($paymentMethod));
         self::assertTrue($paymentMethod->getGatewayConfig()?->getConfig()['vaulting_enabled']);
@@ -73,18 +67,20 @@ final class VaultingCapabilityRefresherTest extends TestCase
     {
         $paymentMethod = $this->paymentMethod(true);
         $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, 'SUSPENDED'));
-        $this->paymentMethodManager->expects(self::once())->method('flush');
 
         self::assertFalse($this->refresher->refresh($paymentMethod));
         self::assertFalse($paymentMethod->getGatewayConfig()?->getConfig()['vaulting_enabled']);
     }
 
-    public function test_it_writes_nothing_when_the_capability_did_not_change(): void
+    public function test_it_leaves_the_gateway_config_alone_when_the_capability_did_not_change(): void
     {
+        $paymentMethod = $this->paymentMethod(false);
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig?->setConfig(array_diff_key($gatewayConfig->getConfig(), ['vaulting_enabled' => true]));
         $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, 'PENDING'));
-        $this->paymentMethodManager->expects(self::never())->method('flush');
 
-        self::assertFalse($this->refresher->refresh($this->paymentMethod(false)));
+        self::assertFalse($this->refresher->refresh($paymentMethod));
+        self::assertArrayNotHasKey('vaulting_enabled', $gatewayConfig?->getConfig() ?? []);
     }
 
     public function test_it_cannot_tell_a_payment_method_without_a_gateway_vaults(): void
