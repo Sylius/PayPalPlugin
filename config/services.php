@@ -125,6 +125,8 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
+use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemover;
+use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemoverInterface;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
@@ -652,6 +654,10 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');
+
+    $services->set('sylius_paypal.remover.payment_details', PayPalPaymentDetailsRemover::class);
+
+    $services->alias(PayPalPaymentDetailsRemoverInterface::class, 'sylius_paypal.remover.payment_details');
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
         ->args([
