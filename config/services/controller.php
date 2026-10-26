@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Core\Storage\CartStorageInterface;
@@ -33,6 +44,9 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('.inner'),
             service('monolog.logger.paypal'),
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.verifier.webhook_request'),
+            service('sylius_paypal.processor.webhook.vaulting_capability'),
         ]);
 
     $services->set('sylius_paypal.controller.cancel_paypal_order', CancelPayPalOrderAction::class)
@@ -93,6 +107,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.verifier.order_ownership'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->set('sylius_paypal.controller.paypal_buttons', PayPalButtonsController::class)
@@ -108,6 +123,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.web_sdk_configuration'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.current_paypal_locale'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->set('sylius_paypal.controller.complete_express_checkout', CompleteExpressCheckoutAction::class)

@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Webmozart\Assert\Assert;
@@ -38,11 +39,13 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
         ?string $merchantId = null,
         bool $withItemTaxes = true,
         ?string $customId = null,
+        ?PayPalVaultRequest $vaultRequest = null,
     ): PayPalPurchaseUnit {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        $payPalItemData = $this->payPalItemDataProvider->provide($order);
+        /** @phpstan-ignore arguments.count */
+        $payPalItemData = $this->payPalItemDataProvider->provide($order, $vaultRequest);
 
         $shippingDiscount = $order->getAdjustmentsTotalRecursively(
             AdjustmentInterface::ORDER_SHIPPING_PROMOTION_ADJUSTMENT,

@@ -17,6 +17,7 @@ sylius_paypal:
     sandbox_connected_successfully: 'PayPal Sandbox a été connecté avec succès.'
     seller_onboarding_payments_not_receivable: 'Attention : vous ne pouvez actuellement pas recevoir de paiements en raison d''une possible restriction sur votre compte PayPal. Merci de contacter le Service Client PayPal ou de vous rendre sur %paypal_url% pour plus d''informations. Une fois le problème résolu, revenez simplement sur cette page pour actualiser le statut de l''intégration.'
     seller_onboarding_primary_email_not_confirmed: 'Attention : merci de confirmer votre adresse e-mail sur %business_profile_url% afin de recevoir des paiements ! Vous ne pouvez actuellement pas recevoir de paiements. Une fois cela fait, revenez simplement sur cette page pour actualiser le statut de l''intégration.'
+    seller_onboarding_vaulting_not_active: 'Vous ne pouvez pas proposer la fonctionnalité d''enregistrement des moyens de paiement (Vaulting), car son statut d''intégration est %status%. Merci de contacter PayPal pour plus d''informations.'
     something_went_wrong: 'Une erreur est survenue. Merci de réessayer.'
     three_d_secure_declined: 'Votre carte n''a pas pu être authentifiée. Merci d''utiliser un autre mode de paiement.'
     three_d_secure_retry: 'L''authentification de la carte n''a pas pu être finalisée. Merci de réessayer.'

@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 
 interface PurchaseUnitFactoryInterface
 {
@@ -24,5 +25,6 @@ interface PurchaseUnitFactoryInterface
         ?string $merchantId = null,
         bool $withItemTaxes = true,
         ?string $customId = null,
+        ?PayPalVaultRequest $vaultRequest = null,
     ): PayPalPurchaseUnit;
 }
