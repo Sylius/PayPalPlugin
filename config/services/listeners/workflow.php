@@ -5,6 +5,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\PayPalPlugin\EventListener\Workflow\CompleteCaptureAuthorizationPaymentRequestsListener;
 use Sylius\PayPalPlugin\EventListener\Workflow\PaymentCompleteGuardListener;
 use Sylius\PayPalPlugin\EventListener\Workflow\PaymentRefundGuardListener;
+use Sylius\PayPalPlugin\EventListener\Workflow\RemovePayPalPaymentDetailsListener;
 use Sylius\PayPalPlugin\EventListener\Workflow\VoidCancelledAuthorizationListener;
 use Sylius\PayPalPlugin\PackageTracking\EventListener\Workflow\SendShipmentTrackingListener;
 
@@ -30,6 +31,10 @@ return static function (ContainerConfigurator $container) {
             service('monolog.logger.paypal'),
         ])
         ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.completed.cancel']);
+
+    $services->set('sylius_paypal.listener.workflow.remove_paypal_payment_details', RemovePayPalPaymentDetailsListener::class)
+        ->args([service('sylius_paypal.remover.payment_details')])
+        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_order_checkout.completed.select_payment']);
 
     $services->set('sylius_paypal.listener.workflow.send_shipment_tracking', SendShipmentTrackingListener::class)
         ->args([service('sylius_paypal.dispatcher.shipment_tracking')])
