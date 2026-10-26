@@ -35,7 +35,7 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
                 'partnerId' => $partnerCredentials->getPartnerId(),
                 'product' => 'ppcp',
                 'secondaryProducts' => 'payment_methods,advanced_vaulting',
-                'capabilities' => 'APPLE_PAY,GOOGLE_PAY,PAYPAL_WALLET_VAULTING_ADVANCED',
+                'capabilities' => 'apple_pay,google_pay,paypal_wallet_vaulting_advanced',
                 'integrationType' => 'FO',
                 'features' => 'payment,refund,access_merchant_information,billing_agreement,vault',
                 'partnerClientId' => $partnerCredentials->getPartnerClientId(),
