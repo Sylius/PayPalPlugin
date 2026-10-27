@@ -29,10 +29,13 @@ final readonly class PaymentCaptureApplicator implements PaymentCaptureApplicato
     {
         $paymentMethod = $data->getMethod();
         if (
-            PaymentInterface::STATE_AUTHORIZED !== $data->getState() ||
             !$paymentMethod instanceof PaymentMethodInterface ||
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()
         ) {
+            throw new StateMachineTransitionFailedException('The payment was not paid with PayPal.');
+        }
+
+        if (PaymentInterface::STATE_AUTHORIZED !== $data->getState()) {
             throw new StateMachineTransitionFailedException(sprintf(
                 'Only an authorized PayPal payment can be captured through PayPal, the payment is "%s".',
                 (string) $data->getState(),

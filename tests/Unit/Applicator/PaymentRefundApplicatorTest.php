@@ -39,6 +39,7 @@ final class PaymentRefundApplicatorTest extends TestCase
         $dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(StateMachineTransitionFailedException::class);
+        $this->expectExceptionMessage('Only a completed PayPal payment can be refunded through PayPal, the payment is "refunded".');
 
         (new PaymentRefundApplicator($dispatcher))->refund($this->payment('sylius_paypal', PaymentInterface::STATE_REFUNDED));
     }
@@ -49,6 +50,7 @@ final class PaymentRefundApplicatorTest extends TestCase
         $dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(StateMachineTransitionFailedException::class);
+        $this->expectExceptionMessage('The payment was not paid with PayPal.');
 
         (new PaymentRefundApplicator($dispatcher))->refund($this->payment('offline', PaymentInterface::STATE_COMPLETED));
     }
