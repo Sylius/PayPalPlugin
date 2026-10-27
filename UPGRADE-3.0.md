@@ -716,6 +716,19 @@
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
    `PersistingWebhookIdProvider` now takes instead of the object manager.
 
+   The onboarding stores the id of the webhook it registers the same way:
+
+   ```diff
+    // Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar
+    public function __construct(
+   -    private UrlGeneratorInterface $urlGenerator,
+        private WebhookApiInterface $webhookApi,
+   -    ?WebhookUrlProviderInterface $webhookUrlProvider = null,
+   +    private WebhookUrlProviderInterface $webhookUrlProvider,
+   +    private WebhookIdUpdaterInterface $webhookIdUpdater,
+    ) {
+   ```
+
    ```diff
     // Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface
    -public const ROUTE = 'sylius_paypal_webhook_refund_order';

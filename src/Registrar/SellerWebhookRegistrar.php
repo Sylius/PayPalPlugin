@@ -18,20 +18,16 @@ use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
-use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
 final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInterface
 {
-    private WebhookUrlProviderInterface $webhookUrlProvider;
-
     public function __construct(
-        private UrlGeneratorInterface $urlGenerator,
         private WebhookApiInterface $webhookApi,
-        ?WebhookUrlProviderInterface $webhookUrlProvider = null,
+        private WebhookUrlProviderInterface $webhookUrlProvider,
+        private WebhookIdUpdaterInterface $webhookIdUpdater,
     ) {
-        $this->webhookUrlProvider = $webhookUrlProvider ?? new WebhookUrlProvider($urlGenerator);
     }
 
     public function register(PaymentMethodInterface $paymentMethod): void
@@ -39,13 +35,19 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
         $webhookUrl = $this->webhookUrlProvider->provide($paymentMethod);
 
         try {
-            $this->webhookApi->register($paymentMethod, $webhookUrl);
+            $response = $this->webhookApi->register($paymentMethod, $webhookUrl);
         } catch (PayPalApiException $exception) {
             match ($exception->getErrorName()) {
                 'WEBHOOK_URL_ALREADY_EXISTS' => throw new PayPalWebhookAlreadyRegisteredException(),
                 'VALIDATION_ERROR' => throw new PayPalWebhookUrlNotValidException(),
                 default => null,
             };
+
+            return;
+        }
+
+        if (isset($response['id'])) {
+            $this->webhookIdUpdater->update($paymentMethod, (string) $response['id']);
         }
     }
 }
