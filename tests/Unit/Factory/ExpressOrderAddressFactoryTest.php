@@ -21,8 +21,8 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
@@ -228,7 +228,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
             $shipping['phone_number'] = ['country_code' => '1', 'national_number' => $phoneNumber];
         }
 
-        return (new PayPalOrderDetailsFactory())->create(['purchase_units' => [['shipping' => $shipping]]]);
+        return (new PayPalOrderDetailsMapper())->map(['purchase_units' => [['shipping' => $shipping]]]);
     }
 
     private function customer(?AddressInterface $defaultAddress): CustomerInterface&MockObject

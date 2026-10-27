@@ -193,7 +193,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.order_details', OrderDetailsApi::class)
         ->args([
             service('sylius_paypal.client.paypal'),
-            service('sylius_paypal.factory.paypal_order_details'),
+            service('sylius_paypal.mapper.paypal_order_details'),
         ]);
 
     $services->alias(OrderDetailsApiInterface::class, 'sylius_paypal.api.order_details');

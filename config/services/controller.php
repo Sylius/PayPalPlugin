@@ -138,7 +138,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.callback_signature_verifier'),
             service('sylius_paypal.repository.query.paypal_payment'),
             service('sylius_paypal.provider.available_countries'),
-            service('sylius_paypal.factory.paypal_order_details'),
+            service('sylius_paypal.mapper.paypal_order_details'),
             service('sylius_paypal.factory.paypal_shipping_address'),
             service('sylius_paypal.resolver.shipping_options'),
             service('sylius_paypal.factory.shipping_callback_response'),

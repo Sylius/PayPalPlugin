@@ -23,9 +23,9 @@ use Sylius\PayPalPlugin\Api\CallbackSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
@@ -103,7 +103,7 @@ final class ShippingCallbackActionTest extends TestCase
             $this->signatureVerifier,
             $this->paypalPaymentQuery,
             $this->availableCountriesProvider,
-            new PayPalOrderDetailsFactory(),
+            new PayPalOrderDetailsMapper(),
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
@@ -217,7 +217,7 @@ final class ShippingCallbackActionTest extends TestCase
             $this->signatureVerifier,
             $paypalPaymentQuery,
             $this->availableCountriesProvider,
-            new PayPalOrderDetailsFactory(),
+            new PayPalOrderDetailsMapper(),
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
@@ -278,7 +278,7 @@ final class ShippingCallbackActionTest extends TestCase
             $signatureVerifier,
             $this->paypalPaymentQuery,
             $this->availableCountriesProvider,
-            new PayPalOrderDetailsFactory(),
+            new PayPalOrderDetailsMapper(),
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,

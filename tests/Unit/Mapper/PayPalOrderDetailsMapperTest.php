@@ -11,27 +11,27 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
+namespace Tests\Sylius\PayPalPlugin\Unit\Mapper;
 
 use PHPUnit\Framework\TestCase;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\Payer;
 use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalShipping;
 
-final class PayPalOrderDetailsFactoryTest extends TestCase
+final class PayPalOrderDetailsMapperTest extends TestCase
 {
-    private PayPalOrderDetailsFactory $factory;
+    private PayPalOrderDetailsMapper $mapper;
 
     protected function setUp(): void
     {
-        $this->factory = new PayPalOrderDetailsFactory();
+        $this->mapper = new PayPalOrderDetailsMapper();
     }
 
     public function test_it_reads_the_order_and_its_first_purchase_unit(): void
     {
-        $details = $this->factory->create($this->payPalOrder());
+        $details = $this->mapper->map($this->payPalOrder());
 
         self::assertSame('8VX25688WW4240157', $details->id());
         self::assertSame('COMPLETED', $details->status());
@@ -45,7 +45,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
 
     public function test_it_reads_the_capture_and_the_authorization_of_the_first_purchase_unit(): void
     {
-        $details = $this->factory->create($this->payPalOrder());
+        $details = $this->mapper->map($this->payPalOrder());
 
         self::assertSame('55V81560LH563161G', $details->capture()?->id());
         self::assertSame('COMPLETED', $details->capture()->status());
@@ -55,7 +55,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
 
     public function test_it_reads_the_shipping_and_the_payer_chosen_in_the_wallet(): void
     {
-        $details = $this->factory->create($this->payPalOrder());
+        $details = $this->mapper->map($this->payPalOrder());
 
         self::assertEquals(new PayPalShipping('John Doe', new PayPalAddress('1 Main St', null, 'San Jose', '95131', 'US'), 'DHL', '4089238291'), $details->shipping());
         self::assertEquals(new Payer('buyer@example.com', 'John', 'Doe', 'US', '5551234'), $details->payer());
@@ -63,7 +63,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
 
     public function test_it_prefers_the_shipping_contact_phone_number_over_the_payer_one(): void
     {
-        self::assertSame('4089238291', $this->factory->create($this->payPalOrder())->phoneNumber());
+        self::assertSame('4089238291', $this->mapper->map($this->payPalOrder())->phoneNumber());
     }
 
     public function test_it_falls_back_to_the_payer_phone_number_without_a_shipping_contact(): void
@@ -71,12 +71,12 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
         $payPalOrder = $this->payPalOrder();
         unset($payPalOrder['purchase_units'][0]['shipping']['phone_number']);
 
-        self::assertSame('5551234', $this->factory->create($payPalOrder)->phoneNumber());
+        self::assertSame('5551234', $this->mapper->map($payPalOrder)->phoneNumber());
     }
 
     public function test_it_sums_the_amounts_of_every_purchase_unit(): void
     {
-        $details = $this->factory->create(['purchase_units' => [
+        $details = $this->mapper->map(['purchase_units' => [
             ['amount' => ['currency_code' => 'USD', 'value' => '100.59']],
             ['amount' => ['currency_code' => 'USD', 'value' => '0.41']],
         ]]);
@@ -86,7 +86,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
 
     public function test_it_reads_nothing_from_an_order_without_details(): void
     {
-        $details = $this->factory->create([]);
+        $details = $this->mapper->map([]);
 
         self::assertSame('', $details->id());
         self::assertNull($details->status());
@@ -104,7 +104,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
 
     public function test_it_reads_no_selected_shipping_option_when_the_buyer_picked_none(): void
     {
-        $details = $this->factory->create(['purchase_units' => [['shipping' => ['options' => [
+        $details = $this->mapper->map(['purchase_units' => [['shipping' => ['options' => [
             ['id' => 'UPS', 'selected' => false],
             ['id' => '', 'selected' => true],
         ]]]]]);
@@ -116,7 +116,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
     {
         self::assertEquals(
             new PayPalAddress('1 Main St', 'TX', 'Dallas', '75001', 'US'),
-            $this->factory->createAddress(['address_line_1' => '1 Main St', 'admin_area_1' => 'TX', 'admin_area_2' => 'Dallas', 'postal_code' => '75001', 'country_code' => 'US']),
+            $this->mapper->mapAddress(['address_line_1' => '1 Main St', 'admin_area_1' => 'TX', 'admin_area_2' => 'Dallas', 'postal_code' => '75001', 'country_code' => 'US']),
         );
     }
 
@@ -124,7 +124,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
     {
         self::assertEquals(
             new PayPalAddress(countryCode: 'DE'),
-            $this->factory->createAddress(['country_code' => ' DE ', 'admin_area_1' => '   ', 'admin_area_2' => '', 'postal_code' => ' ']),
+            $this->mapper->mapAddress(['country_code' => ' DE ', 'admin_area_1' => '   ', 'admin_area_2' => '', 'postal_code' => ' ']),
         );
     }
 

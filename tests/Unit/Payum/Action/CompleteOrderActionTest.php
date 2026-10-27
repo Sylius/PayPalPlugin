@@ -18,7 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
@@ -49,7 +49,7 @@ final class CompleteOrderActionTest extends TestCase
     {
         $payment = $this->paymentWith(['paypal_order_id' => '123123', 'payment_source' => 'card']);
 
-        $this->paymentCaptureProcessor->expects(self::once())->method('capture')->with($payment)->willReturn((new PayPalOrderDetailsFactory())->create([]));
+        $this->paymentCaptureProcessor->expects(self::once())->method('capture')->with($payment)->willReturn((new PayPalOrderDetailsMapper())->map([]));
 
         $this->completeOrderAction->execute($this->completeOrderOf($payment));
     }

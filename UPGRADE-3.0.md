@@ -915,7 +915,7 @@
    instead of the raw PayPal order array. It reads the order status, intent, first purchase unit, capture,
    authorization, and the shipping (`PayPalShipping` with a `PayPalAddress`) and the payer (`Payer`) chosen in the
    wallet; `paymentSource()` keeps PayPal's raw array. Build one from a PayPal order array, e.g. a webhook resource, with
-   `Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface::create()` (`sylius_paypal.factory.paypal_order_details`).
+   `Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface::map()` (`sylius_paypal.mapper.paypal_order_details`).
 
    ```diff
    -public function get(PaymentMethodInterface $paymentMethod, string $orderId): array;
@@ -926,7 +926,7 @@
     // Sylius\PayPalPlugin\Api\OrderDetailsApi
     public function __construct(
         private PayPalClientInterface $client,
-   +    private PayPalOrderDetailsFactoryInterface $payPalOrderDetailsFactory,
+   +    private PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
     ) {
    ```
 

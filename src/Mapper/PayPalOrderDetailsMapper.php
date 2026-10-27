@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Factory;
+namespace Sylius\PayPalPlugin\Mapper;
 
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Model\Payer;
@@ -22,9 +22,9 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalShipping;
 
-final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFactoryInterface
+final readonly class PayPalOrderDetailsMapper implements PayPalOrderDetailsMapperInterface
 {
-    public function create(array $payPalOrder): PayPalOrderDetails
+    public function map(array $payPalOrder): PayPalOrderDetails
     {
         $purchaseUnits = is_array($payPalOrder['purchase_units'] ?? null) ? $payPalOrder['purchase_units'] : [];
         $purchaseUnit = is_array($purchaseUnits[0] ?? null) ? $purchaseUnits[0] : [];
@@ -44,12 +44,12 @@ final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFact
             PayPalCapture::fromPayPalOrder($payPalOrder),
             PayPalAuthorization::fromPayPalOrder($payPalOrder),
             is_array($payPalOrder['payment_source'] ?? null) ? $payPalOrder['payment_source'] : [],
-            [] !== $shipping ? $this->createShipping($shipping) : null,
-            [] !== $payer ? $this->createPayer($payer) : null,
+            [] !== $shipping ? $this->mapShipping($shipping) : null,
+            [] !== $payer ? $this->mapPayer($payer) : null,
         );
     }
 
-    public function createAddress(array $payPalAddress): PayPalAddress
+    public function mapAddress(array $payPalAddress): PayPalAddress
     {
         return new PayPalAddress(
             $this->stringOrNull($payPalAddress['address_line_1'] ?? null),
@@ -61,18 +61,18 @@ final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFact
     }
 
     /** @param array<string, mixed> $shipping */
-    private function createShipping(array $shipping): PayPalShipping
+    private function mapShipping(array $shipping): PayPalShipping
     {
         return new PayPalShipping(
             $this->stringOrNull($shipping['name']['full_name'] ?? null),
-            is_array($shipping['address'] ?? null) ? $this->createAddress($shipping['address']) : null,
+            is_array($shipping['address'] ?? null) ? $this->mapAddress($shipping['address']) : null,
             $this->findSelectedShippingOptionId($shipping),
             $this->stringOrNull($shipping['phone_number']['national_number'] ?? null),
         );
     }
 
     /** @param array<string, mixed> $payer */
-    private function createPayer(array $payer): Payer
+    private function mapPayer(array $payer): Payer
     {
         return new Payer(
             $this->stringOrNull($payer['email_address'] ?? null),

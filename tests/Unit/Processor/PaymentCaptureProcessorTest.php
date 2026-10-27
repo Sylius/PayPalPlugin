@@ -24,7 +24,7 @@ use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
@@ -94,7 +94,7 @@ final class PaymentCaptureProcessorTest extends TestCase
             'transaction_id' => 'TRANSACTION_ID',
         ]);
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS), $this->processor->capture($this->payment));
     }
 
     public function test_it_captures_the_paypal_order_under_the_request_id_given_by_the_caller(): void
@@ -126,7 +126,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->paypalReadsTheApprovedOrderThen(self::APPROVED_ORDER);
         $this->payment->expects(self::never())->method('setDetails');
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::APPROVED_ORDER), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map(self::APPROVED_ORDER), $this->processor->capture($this->payment));
     }
 
     #[DataProvider('ordersThePayerHasNotApproved')]
@@ -135,12 +135,12 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID', 'payment_source' => $paymentSource], amount: 1000, total: 1200);
         $notApproved = ['status' => $status, 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
 
-        $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn((new PayPalOrderDetailsFactory())->create($notApproved));
+        $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn((new PayPalOrderDetailsMapper())->map($notApproved));
         $this->approvedPayPalOrderUpdater->expects(self::never())->method('update');
         $this->completeOrderApi->expects(self::never())->method('complete');
         $this->payment->expects(self::never())->method('setDetails');
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create($notApproved), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map($notApproved), $this->processor->capture($this->payment));
     }
 
     /** @return iterable<string, array{string, string}> */
@@ -156,23 +156,23 @@ final class PaymentCaptureProcessorTest extends TestCase
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID', 'payment_source' => 'card'], amount: 1000, total: 1000);
 
-        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->willReturnOnConsecutiveCalls((new PayPalOrderDetailsFactory())->create(['status' => 'CREATED'] + self::APPROVED_ORDER), (new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS));
+        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->willReturnOnConsecutiveCalls((new PayPalOrderDetailsMapper())->map(['status' => 'CREATED'] + self::APPROVED_ORDER), (new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS));
         $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, '123123');
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS), $this->processor->capture($this->payment));
     }
 
     public function test_it_records_an_order_paypal_has_already_captured_without_capturing_it_again(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123', 'reference_id' => 'REFERENCE_ID'], amount: 1000, total: 1000);
 
-        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS));
         $this->completeOrderApi->expects(self::never())->method('complete');
         $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
             fn (array $details): bool => 'TRANSACTION_ID' === $details['transaction_id'],
         ));
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS), $this->processor->capture($this->payment));
     }
 
     public function test_it_only_reads_an_order_paypal_captures_on_payment_approval(): void
@@ -181,12 +181,12 @@ final class PaymentCaptureProcessorTest extends TestCase
 
         $this->approvedPayPalOrderUpdater->expects(self::never())->method('update');
         $this->completeOrderApi->expects(self::never())->method('complete');
-        $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS));
+        $this->orderDetailsApi->expects(self::once())->method('get')->with($this->paymentMethod, '123123')->willReturn((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS));
         $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
             fn (array $details): bool => 'trustly' === $details['payment_source'] && 'TRANSACTION_ID' === $details['transaction_id'],
         ));
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS), $this->processor->capture($this->payment));
     }
 
     public function test_it_carries_the_payment_source_and_the_transaction_id_through_the_capture(): void
@@ -236,7 +236,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
         $this->payment->expects(self::once())->method('setDetails');
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS), $this->processor->capture($this->payment));
     }
 
     #[DataProvider('issuesLeavingTheOrderToRead')]
@@ -248,7 +248,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->completeOrderApi->method('complete')->willThrowException(new PayPalApiRequestException('POST', 'v2/checkout/orders/123123/capture', 422, 'UNPROCESSABLE_ENTITY', issues: [$issue]));
         $this->paypalReadsTheApprovedOrderThen($notCaptured);
 
-        self::assertEquals((new PayPalOrderDetailsFactory())->create($notCaptured), $this->processor->capture($this->payment));
+        self::assertEquals((new PayPalOrderDetailsMapper())->map($notCaptured), $this->processor->capture($this->payment));
     }
 
     /** @return iterable<string, array{string}> */
@@ -265,7 +265,7 @@ final class PaymentCaptureProcessorTest extends TestCase
         $declined = new PayPalApiRequestException('POST', 'v2/checkout/orders/123123/capture', 422, 'UNPROCESSABLE_ENTITY', issues: ['INSTRUMENT_DECLINED']);
 
         $this->completeOrderApi->method('complete')->willThrowException($declined);
-        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsFactory())->create(self::APPROVED_ORDER));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsMapper())->map(self::APPROVED_ORDER));
 
         $this->expectExceptionObject($declined);
 
@@ -275,7 +275,7 @@ final class PaymentCaptureProcessorTest extends TestCase
     /** @param array<string, mixed> $order */
     private function paypalReadsTheApprovedOrderThen(array $order): void
     {
-        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->with($this->paymentMethod, '123123')->willReturnOnConsecutiveCalls((new PayPalOrderDetailsFactory())->create(self::APPROVED_ORDER), (new PayPalOrderDetailsFactory())->create($order));
+        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->with($this->paymentMethod, '123123')->willReturnOnConsecutiveCalls((new PayPalOrderDetailsMapper())->map(self::APPROVED_ORDER), (new PayPalOrderDetailsMapper())->map($order));
     }
 
     /** @param array<string, mixed> $details */

@@ -20,7 +20,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApi;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final class OrderDetailsApiTest extends TestCase
@@ -29,7 +29,7 @@ final class OrderDetailsApiTest extends TestCase
 
     private PaymentMethodInterface&MockObject $paymentMethod;
 
-    private PayPalOrderDetailsFactoryInterface&MockObject $payPalOrderDetailsFactory;
+    private PayPalOrderDetailsMapperInterface&MockObject $payPalOrderDetailsMapper;
 
     private OrderDetailsApi $orderDetailsApi;
 
@@ -38,8 +38,8 @@ final class OrderDetailsApiTest extends TestCase
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $this->payPalOrderDetailsFactory = $this->createMock(PayPalOrderDetailsFactoryInterface::class);
-        $this->orderDetailsApi = new OrderDetailsApi($this->client, $this->payPalOrderDetailsFactory);
+        $this->payPalOrderDetailsMapper = $this->createMock(PayPalOrderDetailsMapperInterface::class);
+        $this->orderDetailsApi = new OrderDetailsApi($this->client, $this->payPalOrderDetailsMapper);
     }
 
     #[Test]
@@ -58,7 +58,7 @@ final class OrderDetailsApiTest extends TestCase
             ->willReturn(['id' => '123123', 'status' => 'APPROVED']);
 
         $payPalOrderDetails = new PayPalOrderDetails('123123', 'APPROVED');
-        $this->payPalOrderDetailsFactory->expects(self::once())->method('create')->with(['id' => '123123', 'status' => 'APPROVED'])->willReturn($payPalOrderDetails);
+        $this->payPalOrderDetailsMapper->expects(self::once())->method('map')->with(['id' => '123123', 'status' => 'APPROVED'])->willReturn($payPalOrderDetails);
 
         self::assertSame($payPalOrderDetails, $this->orderDetailsApi->get($this->paymentMethod, '123123'));
     }

@@ -30,8 +30,8 @@ use Sylius\PayPalPlugin\Command\RefundPayPalPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\RefundPayPalPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
@@ -239,7 +239,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
     public function test_it_fails_the_request_when_the_paypal_order_has_no_capture(): void
     {
         $paymentRequest = $this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING);
-        $this->orderDetailsApi->method('get')->willReturn((new PayPalOrderDetailsFactory())->create(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
+        $this->orderDetailsApi->method('get')->willReturn((new PayPalOrderDetailsMapper())->map(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
         $this->refundPaymentApi->expects(self::never())->method('refund');
 
         ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
@@ -299,7 +299,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
 
     private function orderWithCapture(string $status): PayPalOrderDetails
     {
-        return (new PayPalOrderDetailsFactory())->create([
+        return (new PayPalOrderDetailsMapper())->map([
             'id' => 'PAYPAL_ORDER_ID',
             'purchase_units' => [['payments' => ['captures' => [[
                 'id' => 'CAPTURE_ID',

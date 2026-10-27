@@ -52,8 +52,6 @@ use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
-use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
@@ -74,6 +72,8 @@ use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
 use Sylius\PayPalPlugin\Manager\CredentialsManager;
 use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
@@ -252,9 +252,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(ExpressCheckoutCompleterInterface::class, 'sylius_paypal.completer.express_checkout');
 
-    $services->set('sylius_paypal.factory.paypal_order_details', PayPalOrderDetailsFactory::class);
+    $services->set('sylius_paypal.mapper.paypal_order_details', PayPalOrderDetailsMapper::class);
 
-    $services->alias(PayPalOrderDetailsFactoryInterface::class, 'sylius_paypal.factory.paypal_order_details');
+    $services->alias(PayPalOrderDetailsMapperInterface::class, 'sylius_paypal.mapper.paypal_order_details');
 
     $services->set('sylius_paypal.factory.paypal_shipping_address', PayPalShippingAddressFactory::class)
         ->args([
