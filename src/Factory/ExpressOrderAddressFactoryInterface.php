@@ -15,11 +15,11 @@ namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 interface ExpressOrderAddressFactoryInterface
 {
-    /** @param array<string, mixed> $purchaseUnit */
-    public function createFromPurchaseUnit(array $purchaseUnit, ?string $phoneNumber): AddressInterface;
+    public function createFromPayPalOrder(PayPalOrderDetails $payPalOrder): AddressInterface;
 
     public function createFromCustomer(
         CustomerInterface $customer,

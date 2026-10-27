@@ -15,15 +15,19 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final readonly class OrderDetailsApi implements OrderDetailsApiInterface
 {
-    public function __construct(private PayPalClientInterface $client)
-    {
+    public function __construct(
+        private PayPalClientInterface $client,
+        private PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
+    ) {
     }
 
-    public function get(PaymentMethodInterface $paymentMethod, string $orderId): array
+    public function get(PaymentMethodInterface $paymentMethod, string $orderId): PayPalOrderDetails
     {
-        return $this->client->get($paymentMethod, sprintf('v2/checkout/orders/%s', $orderId));
+        return $this->payPalOrderDetailsMapper->map($this->client->get($paymentMethod, sprintf('v2/checkout/orders/%s', $orderId)));
     }
 }

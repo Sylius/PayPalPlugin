@@ -30,7 +30,9 @@ use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
 {
@@ -258,13 +260,12 @@ final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    /** @return array<string, mixed> */
-    private function orderWithAuthorization(string $status): array
+    private function orderWithAuthorization(string $status): PayPalOrderDetails
     {
-        return [
+        return (new PayPalOrderDetailsMapper())->map([
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $status]]]]],
-        ];
+        ]);
     }
 }

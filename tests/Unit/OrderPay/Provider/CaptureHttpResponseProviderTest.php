@@ -70,7 +70,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
         yield 'abandoned' => [PaymentRequestInterface::STATE_CANCELLED, true];
         yield 'waiting for the PayPal order capture' => [PaymentRequestInterface::STATE_PROCESSING, false];
         yield 'completed' => [PaymentRequestInterface::STATE_COMPLETED, false];
-        yield 'failed' => [PaymentRequestInterface::STATE_FAILED, false];
+        yield 'failed' => [PaymentRequestInterface::STATE_FAILED, true];
     }
 
     #[DataProvider('states')]
@@ -113,12 +113,6 @@ final class CaptureHttpResponseProviderTest extends TestCase
         self::assertSame('PAGE', $this->provider->getResponse($request, $paymentRequest)->getContent());
     }
 
-    public function test_it_answers_a_failed_payment_request_only_when_3d_secure_refused_the_card(): void
-    {
-        self::assertTrue($this->provider->supports($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['three_d_secure' => 'declined'])));
-        self::assertFalse($this->provider->supports($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['reason' => 'PayPal did not capture the order.'])));
-    }
-
     public function test_it_asks_the_payer_to_authenticate_the_card_again(): void
     {
         $this->router->method('generate')->with('sylius_shop_order_pay', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN/pay');
@@ -137,6 +131,26 @@ final class CaptureHttpResponseProviderTest extends TestCase
 
         self::assertSame('/en_US/order/TOKEN', $response->headers->get('Location'));
         self::assertSame(['sylius_paypal.three_d_secure_declined'], $this->session->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_tells_the_payer_of_a_payment_paypal_did_not_capture_that_something_went_wrong(): void
+    {
+        $this->router->method('generate')->with('sylius_shop_order_show', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['reason' => 'PayPal did not capture the order.']));
+
+        self::assertSame('/en_US/order/TOKEN', $response->headers->get('Location'));
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->session->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_leaves_telling_the_payer_of_a_declined_payment_to_the_after_pay_page(): void
+    {
+        $this->router->method('generate')->with('sylius_shop_order_show', ['tokenValue' => 'TOKEN'])->willReturn('/en_US/order/TOKEN');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $this->paymentRequestIn(PaymentRequestInterface::STATE_FAILED, ['reason' => 'PayPal reported the capture as DECLINED.'], 'failed'));
+
+        self::assertSame('/en_US/order/TOKEN', $response->headers->get('Location'));
+        self::assertSame([], $this->session->getFlashBag()->peek('error'));
     }
 
     public function test_it_tells_the_payer_who_cancelled_at_the_bank_that_the_payment_was_cancelled(): void

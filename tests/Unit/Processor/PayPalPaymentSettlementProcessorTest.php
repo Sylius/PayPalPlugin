@@ -23,6 +23,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 
@@ -119,8 +121,7 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             return true;
         });
 
-        $orderDetails = $this->orderDetails('COMPLETED');
-        $orderDetails['purchase_units'][0]['payments']['authorizations'] = [['id' => 'AUTHORIZATION_ID', 'status' => 'CAPTURED']];
+        $orderDetails = $this->orderDetails('COMPLETED', authorizationStatus: 'CAPTURED');
 
         $this->processor->settle($this->payment, $orderDetails);
 
@@ -186,8 +187,7 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
 
-        $orderDetails = $this->orderDetails('PENDING');
-        $orderDetails['purchase_units'][0]['payments']['authorizations'] = [['id' => 'AUTHORIZATION_ID', 'status' => 'CAPTURED']];
+        $orderDetails = $this->orderDetails('PENDING', authorizationStatus: 'CAPTURED');
 
         $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
             static fn (array $details): bool => 'CAPTURED' === $details['authorization_status'],
@@ -486,36 +486,34 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         return $payment;
     }
 
-    /** @return array<string, mixed> */
-    /** @return array<string, mixed> */
-    private function orderWithAuthorization(string $authorizationStatus): array
+    private function orderWithAuthorization(string $authorizationStatus): PayPalOrderDetails
     {
-        return [
+        return (new PayPalOrderDetailsMapper())->map([
             'id' => '5O190127TN364715T',
             'status' => 'COMPLETED',
             'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $authorizationStatus]]]]],
-        ];
+        ]);
     }
 
-    private function orderDetails(string $captureStatus, string $value = '15.39'): array
+    private function orderDetails(string $captureStatus, string $value = '15.39', ?string $authorizationStatus = null): PayPalOrderDetails
     {
-        return [
-            'id' => '5O190127TN364715T',
-            'status' => 'COMPLETED',
-            'purchase_units' => [
+        $payments = [
+            'captures' => [
                 [
-                    'reference_id' => 'REFERENCE_ID',
-                    'payments' => [
-                        'captures' => [
-                            [
-                                'id' => '892032536L382192T',
-                                'status' => $captureStatus,
-                                'amount' => ['currency_code' => 'EUR', 'value' => $value],
-                            ],
-                        ],
-                    ],
+                    'id' => '892032536L382192T',
+                    'status' => $captureStatus,
+                    'amount' => ['currency_code' => 'EUR', 'value' => $value],
                 ],
             ],
         ];
+        if (null !== $authorizationStatus) {
+            $payments['authorizations'] = [['id' => 'AUTHORIZATION_ID', 'status' => $authorizationStatus]];
+        }
+
+        return (new PayPalOrderDetailsMapper())->map([
+            'id' => '5O190127TN364715T',
+            'status' => 'COMPLETED',
+            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => $payments]],
+        ]);
     }
 }

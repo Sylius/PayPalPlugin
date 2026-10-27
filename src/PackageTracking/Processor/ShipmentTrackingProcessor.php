@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Model\ShipmentInterface as BaseShipmentInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
@@ -121,14 +122,14 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $paymentMethod = $payment->getMethod();
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
-        $status = (string) ($orderDetails['status'] ?? '');
+        $status = (string) $orderDetails->status();
         if (!in_array($status, self::ELIGIBLE_ORDER_STATUSES, true)) {
             $tracking->markAsFailed(sprintf('PayPal order status "%s" is not eligible for tracking.', $status));
 
             return;
         }
 
-        if ([] === ($orderDetails['purchase_units'][0]['items'] ?? [])) {
+        if (!$orderDetails->hasItems()) {
             $tracking->markAsFailed('PayPal order has no items, so it is not eligible for tracking.');
 
             return;
@@ -164,17 +165,14 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
         $tracking->markAsSynced($this->extractTrackerId($response, $trackingNumber));
     }
 
-    /** @param array<string, mixed> $orderDetails */
-    private function resolveCaptureId(PayPalPaymentDetails $paymentDetails, array $orderDetails): ?string
+    private function resolveCaptureId(PayPalPaymentDetails $paymentDetails, PayPalOrderDetails $orderDetails): ?string
     {
         $transactionId = $paymentDetails->transactionId();
         if (null !== $transactionId && '' !== $transactionId) {
             return $transactionId;
         }
 
-        $captureId = $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'] ?? null;
-
-        return null !== $captureId ? (string) $captureId : null;
+        return $orderDetails->capture()?->id();
     }
 
     /**

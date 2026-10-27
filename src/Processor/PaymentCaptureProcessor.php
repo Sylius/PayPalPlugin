@@ -21,7 +21,7 @@ use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
-use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
@@ -38,7 +38,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
     ) {
     }
 
-    public function capture(PaymentInterface $payment, ?string $requestId = null): array
+    public function capture(PaymentInterface $payment, ?string $requestId = null): PayPalOrderDetails
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -53,21 +53,20 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
 
-        if (null === PayPalCapture::fromPayPalOrder($orderDetails)) {
+        $capture = $orderDetails->capture();
+        if (null === $capture) {
             return $orderDetails;
         }
 
         $capturedDetails = PayPalPaymentDetails::create()
-            ->withStatus('COMPLETED' === $orderDetails['status'] ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
-            ->withPayPalOrderId((string) $orderDetails['id'])
-            ->withReferenceId((string) $orderDetails['purchase_units'][0]['reference_id'])
+            ->withStatus($orderDetails->isStatus('COMPLETED') ? PayPalPaymentStatus::Completed : PayPalPaymentStatus::Processing)
+            ->withPayPalOrderId($orderDetails->id())
+            ->withReferenceId((string) $orderDetails->referenceId())
             ->withPaymentSource($details->paymentSource())
             ->withSupersededPayPalOrders($details->supersededPayPalOrders())
         ;
-        if (isset($orderDetails['purchase_units'][0]['payments']['captures'][0]['id'])) {
-            $capturedDetails = $capturedDetails->withTransactionId(
-                (string) $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'],
-            );
+        if (null !== $capture->id()) {
+            $capturedDetails = $capturedDetails->withTransactionId($capture->id());
         }
 
         $payment->setDetails($capturedDetails->toArray());

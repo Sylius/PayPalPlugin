@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Doctrine\ORM\EntityRepository;
@@ -42,18 +53,18 @@ use Sylius\PayPalPlugin\Api\WebhookResourceApi;
 use Sylius\PayPalPlugin\Api\WebhookResourceApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
-use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\LoggingHttpClient;
+use Sylius\PayPalPlugin\Client\PayPalClient;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Client\RetryingHttpClient;
 use Sylius\PayPalPlugin\Entity\PayPalCredentials;
 use Sylius\PayPalPlugin\Provider\PersistingWebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
-use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
-use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemover;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -180,7 +191,10 @@ return static function (ContainerConfigurator $container) {
     $services->alias(IdentityApiInterface::class, 'sylius_paypal.api.identity');
 
     $services->set('sylius_paypal.api.order_details', OrderDetailsApi::class)
-        ->args([service('sylius_paypal.client.paypal')]);
+        ->args([
+            service('sylius_paypal.client.paypal'),
+            service('sylius_paypal.mapper.paypal_order_details'),
+        ]);
 
     $services->alias(OrderDetailsApiInterface::class, 'sylius_paypal.api.order_details');
 

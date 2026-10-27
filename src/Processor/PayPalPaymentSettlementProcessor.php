@@ -22,6 +22,7 @@ use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 
@@ -37,7 +38,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
     ) {
     }
 
-    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null, ?string $payPalOrderId = null): void
+    public function settle(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null, ?string $payPalOrderId = null): void
     {
         $details = PayPalPaymentDetails::fromPayment($payment);
         $payPalOrderId ??= $details->payPalOrderId();
@@ -51,9 +52,9 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         }
 
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
+        $capture = $payPalOrderDetails->capture();
 
-        $authorization = PayPalAuthorization::fromPayPalOrder($payPalOrderDetails);
+        $authorization = $payPalOrderDetails->authorization();
         $authorizationRecorded = null !== $authorization && $payPalOrderId === $details->payPalOrderId();
         if ($authorizationRecorded) {
             $details = $details->withAuthorization($authorization);
@@ -198,8 +199,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         return true;
     }
 
-    /** @return array<string, mixed> */
-    private function fetchOrderDetails(PaymentInterface $payment, string $payPalOrderId): array
+    private function fetchOrderDetails(PaymentInterface $payment, string $payPalOrderId): PayPalOrderDetails
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();

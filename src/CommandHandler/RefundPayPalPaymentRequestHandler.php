@@ -96,7 +96,7 @@ final class RefundPayPalPaymentRequestHandler
         }
 
         try {
-            $capture = PayPalCapture::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
+            $capture = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId)->capture();
             if (null === $capture || null === $capture->id()) {
                 $this->failWithReason($paymentRequest, 'The PayPal order has no capture to refund.');
 

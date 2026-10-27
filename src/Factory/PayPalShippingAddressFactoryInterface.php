@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 
 interface PayPalShippingAddressFactoryInterface
 {
-    /** @param array<string, mixed> $payPalShippingAddress */
-    public function create(array $payPalShippingAddress): AddressInterface;
+    public function create(PayPalAddress $payPalShippingAddress): AddressInterface;
 }
