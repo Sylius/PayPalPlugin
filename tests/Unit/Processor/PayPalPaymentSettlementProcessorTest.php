@@ -328,6 +328,8 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             'amount' => 1539,
             'currency_code' => 'EUR',
         ] === $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] && '8XN46231DT201694L' === $details['paypal_order_id']));
+        $this->logger->expects(self::once())->method('warning')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
+        $this->logger->expects(self::never())->method('error');
         $this->stateMachine->expects(self::never())->method('apply');
 
         $this->processor->settle($payment, $this->orderDetails('COMPLETED'), '5O190127TN364715T');
@@ -364,7 +366,8 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'order_id' => '5O190127TN364715T', 'amount' => 1539, 'currency_code' => 'EUR'],
         ]);
         $this->paymentManager->expects(self::once())->method('flush');
-        $this->logger->expects(self::once())->method('error')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
+        $this->logger->expects(self::once())->method('warning')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
+        $this->logger->expects(self::never())->method('error');
         $this->stateMachine->expects(self::never())->method('apply');
 
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
