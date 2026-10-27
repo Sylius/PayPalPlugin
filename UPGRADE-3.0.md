@@ -445,8 +445,9 @@
 
    `CapturePayPalOrderPaymentRequestHandler` passes `{payment request id}-capture` as the `PayPal-Request-Id`, so
    reprocessing the same Payment Request makes PayPal return the stored result of the first capture instead of
-   capturing again. It locks the Payment Request (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's
-   return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it one after the other.
+   capturing again. It locks the Payment and then the Payment Request (`PESSIMISTIC_WRITE`) before reading its
+   state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook capturing it at the same time handle it
+   one after the other, in the same lock order as the webhook that creates a notify Payment Request of the Payment.
    `RefundPayPalPaymentRequestHandler` passes the payment request id, so reprocessing a
    refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
    is used, as before.
@@ -648,12 +649,13 @@
 
    | Event | Effect |
    |---|---|
-   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture |
+   | `PAYMENT.CAPTURE.COMPLETED`, `.DENIED`, `.DECLINED`, `.PENDING`, `CHECKOUT.ORDER.COMPLETED` | settles the payment from its capture, an authorized payment too once its authorization has been captured, from the admin panel or at PayPal |
    | `PAYMENT.CAPTURE.REFUNDED` | refunds the payment, or marks its `paypal_late_capture` refunded, and completes the refund Payment Request waiting for that refund |
    | `PAYMENT.CAPTURE.REVERSED` | refunds the payment, or marks its `paypal_late_capture` refunded, without completing a refund Payment Request still waiting for PayPal |
-   | `CHECKOUT.ORDER.APPROVED` | captures the order of a payment request still awaiting it; a capture PayPal refuses stays on the failed payment request with its reason |
+   | `CHECKOUT.ORDER.APPROVED` | captures, or authorizes when the payment method authorizes, the order of a payment request still awaiting it; a capture or an authorization PayPal refuses stays on the failed payment request with its reason |
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
-   | `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED` | ignored |
+   | `PAYMENT.AUTHORIZATION.CREATED` | authorizes the payment whose authorization PayPal created, when the payer never came back to the shop |
+   | `PAYMENT.AUTHORIZATION.VOIDED` | cancels the authorized payment whose authorization was voided outside the shop, without voiding it again |
 
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
@@ -661,14 +663,18 @@
    +public function verify(Request $request, PaymentMethodInterface $paymentMethod): bool;
    ```
 
-   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface`.
+   `SettleablePaypalPaymentQueryInterface` has gained `getForSettlementByCaptureId(): PaymentInterface` and
+   `getByPaymentRequestHash(): PaymentInterface`. `WebhookEventPaymentResolver` finds the payment of the Payment Request
+   an event names through the latter, without loading the Payment Request, so the webhook does not rewrite (and lock)
+   the Payment Request a buyer may be capturing at the same time.
 
 1. #### PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method.
 
    The onboarding, the payment method enabler and `sylius-paypal:register-webhook-event-types` register the webhook
    of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
    to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
-   `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED` and `PAYMENT.CAPTURE.REVERSED`.
+   `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`,
+   `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED`.
 
    `/paypal-webhook/api/` no longer exists, so a webhook still registered on it has to be moved:
 
@@ -816,6 +822,10 @@
    | `false` (default) | `"intent": "CAPTURE"`, then `POST /v2/checkout/orders/{id}/capture` | `completed` |
    | `true` | `"intent": "AUTHORIZE"`, then `POST /v2/checkout/orders/{id}/authorize` | `authorized` |
 
+   Like the capture, `AuthorizePayPalOrderPaymentRequestHandler` locks the Payment and then the Payment Request
+   (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook
+   authorizing it at the same time handle it one after the other.
+
    Sylius picks the `authorize` Payment Request action from the same key, on the order pay page, in express
    checkout and in the shop API. An authorizing payment method offers only the payment sources listed in
    `sylius_paypal.authorize.payment_sources` (PayPal with Pay Later, Venmo, cards, Apple Pay and Google Pay by
@@ -832,3 +842,69 @@
    never meant a PayPal authorization. Gateways still on Payum keep it, every other PayPal gateway config is saved with
    the strategy the merchant chose. Set `use_authorize` to `false` on the PayPal gateway configs you upgrade, or they
    will start authorizing instead of capturing.
+
+1. #### An authorized PayPal payment is captured, voided and settled through Payment Requests, webhooks and a command.
+
+   ```mermaid
+   stateDiagram-v2
+       processing --> authorized: PayPal creates the authorization
+       authorized --> completed: capture_authorization request, the capture is COMPLETED
+       authorized --> cancelled: order cancelled, then a void_authorization request
+       authorized --> cancelled: authorization VOIDED or EXPIRED at PayPal
+       processing --> failed: authorization DENIED
+       authorized --> failed: authorization DENIED
+   ```
+
+   An authorized payment moves on from three places: a Payment Request the shop dispatches, a webhook, or the
+   `sylius-paypal:settle-payments` command, which picks up what PayPal does not report.
+
+1. #### An authorized PayPal payment is captured from the admin panel through a Payment Request.
+
+   The "Complete" button of an authorized PayPal payment and `PATCH /api/v2/admin/payments/{id}/paypal-capture`
+   dispatch a `capture_authorization` Payment Request. The payment is completed once PayPal reports the capture as
+   completed, right away or through the `PAYMENT.CAPTURE.COMPLETED` webhook; a rejected capture fails the request and
+   keeps the payment authorized. Until then the core `complete` transition is guarded, so the core "Complete" button is
+   hidden and `PATCH /api/v2/admin/payments/{id}/complete` answers `422`.
+
+   | Service | Role |
+   |---|---|
+   | `sylius_paypal.controller.capture_authorization` (route `sylius_paypal_admin_order_payment_capture_authorization`) | the admin panel button |
+   | `sylius_paypal.applicator.payment_capture` | the admin API operation |
+   | `sylius_paypal.dispatcher.capture_authorization_payment_request` | dispatches the Payment Request |
+   | `sylius_paypal.completer.capture_authorization_payment_request` | completes the request once a pending capture completes |
+   | `sylius_paypal.checker.payment_completion` | guards the `complete` transition |
+
+   The `capture_authorization` and `void_authorization` actions are for the admin only, so keep them out of
+   `sylius_api.shop_payment_request.allowed_actions`. That list exists since Sylius 2.1.16 and 2.2.9; earlier versions
+   let a shop customer request any action, so run one of these versions or later.
+
+1. #### The authorization of a cancelled PayPal payment is voided through a Payment Request.
+
+   Cancelling an authorized PayPal payment, usually by cancelling its order, dispatches a `void_authorization` Payment
+   Request (`sylius_paypal.listener.workflow.void_cancelled_authorization`,
+   `sylius_paypal.dispatcher.void_authorization_payment_request`). The cancellation does not wait for PayPal: a void
+   PayPal rejects fails the request with the reason, and the funds stay held until the authorization expires. When
+   PayPal cannot be reached, the request stays processing; with an asynchronous `payment_request` transport Messenger
+   retries it and finally keeps it in `payment_request_failed`, from where it is retried with:
+
+   ```bash
+   bin/console messenger:failed:retry --transport=payment_request_failed
+   ```
+
+   When a payment is cancelled while its order is not, for example after a void made at PayPal, Sylius moves the
+   order's `payment_state` back to `awaiting_payment` only since Sylius 2.2.7.
+
+1. #### `sylius-paypal:complete-payments` is renamed to `sylius-paypal:settle-payments` and settles authorized payments.
+
+   The former name stays as an alias. The command settles `authorized` PayPal payments as well as `processing` ones,
+   loading them in batches (`--batch-size`, 100 by default). A payment it cannot settle is reported and the next ones
+   are still settled; the command then exits with a failure. A capture made in the merchant's PayPal account emits no
+   webhook event, and a void made there may not either, so run the command periodically, for example every hour, when
+   you authorize payments:
+
+   ```bash
+   bin/console sylius-paypal:settle-payments
+   ```
+
+   `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED` join the webhook event types the plugin
+   registers. Subscribe a webhook registered before with `bin/console sylius-paypal:register-webhook-event-types`.

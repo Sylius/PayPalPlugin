@@ -53,6 +53,39 @@ final class PayPalAuthorizationTest extends TestCase
         self::assertNull($authorization?->id());
     }
 
+    public function test_it_reads_an_authorization_paypal_returns_on_its_own(): void
+    {
+        $authorization = PayPalAuthorization::fromAuthorization(['id' => 'AUTHORIZATION_ID', 'status' => 'VOIDED']);
+
+        self::assertSame('AUTHORIZATION_ID', $authorization?->id());
+        self::assertSame('VOIDED', $authorization?->status());
+        self::assertNull(PayPalAuthorization::fromAuthorization([]));
+    }
+
+    public function test_it_tells_whether_the_authorization_can_be_captured_voided_or_is_released(): void
+    {
+        $statuses = [
+            'CREATED' => [true, true, false],
+            'PENDING' => [true, true, false],
+            'PARTIALLY_CAPTURED' => [true, false, false],
+            'CAPTURED' => [false, false, false],
+            'VOIDED' => [false, false, true],
+            'EXPIRED' => [false, false, true],
+            'DENIED' => [false, false, true],
+        ];
+
+        foreach ($statuses as $status => [$capturable, $voidable, $released]) {
+            $authorization = new PayPalAuthorization($status);
+
+            self::assertSame($capturable, $authorization->isCapturable(), $status);
+            self::assertSame($voidable, $authorization->isVoidable(), $status);
+            self::assertSame($released, $authorization->isReleased(), $status);
+            self::assertSame($released, PayPalAuthorization::isStatusReleased($status), $status);
+        }
+
+        self::assertFalse(PayPalAuthorization::isStatusReleased(null));
+    }
+
     /**
      * @param array<string, mixed> $authorization
      *

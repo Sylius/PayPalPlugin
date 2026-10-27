@@ -52,6 +52,8 @@ final readonly class PayPalPaymentDetails
 
     public const AUTHORIZATION_STATUS = 'authorization_status';
 
+    public const CAPTURE_STATUS = 'capture_status';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -147,6 +149,11 @@ final readonly class PayPalPaymentDetails
     public function authorizationStatus(): ?string
     {
         return $this->optional(self::AUTHORIZATION_STATUS);
+    }
+
+    public function captureStatus(): ?string
+    {
+        return $this->optional(self::CAPTURE_STATUS);
     }
 
     /** @return array<string, string> */
@@ -250,6 +257,11 @@ final readonly class PayPalPaymentDetails
             self::AUTHORIZATION_ID => $authorization->id() ?? $this->authorizationId(),
             self::AUTHORIZATION_STATUS => $authorization->status(),
         ]);
+    }
+
+    public function withCaptureStatus(string $captureStatus): self
+    {
+        return $this->with([self::CAPTURE_STATUS => $captureStatus]);
     }
 
     /** @param array<string, string> $supersededPayPalOrders */

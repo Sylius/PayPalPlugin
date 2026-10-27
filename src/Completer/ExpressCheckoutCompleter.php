@@ -73,18 +73,18 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
             ->withPayPalOrderIntent((string) ($payPalOrder['intent'] ?? PayPalOrder::INTENT_CAPTURE))
             ->toArray());
         $purchaseUnit = (array) $payPalOrder['purchase_units'][0];
-        $payerPhoneNumber = $payPalOrder['payer']['phone']['phone_number']['national_number'] ?? null;
+        $phoneNumber = $this->resolvePhoneNumber($payPalOrder, $purchaseUnit);
 
         /** @var CustomerInterface|null $customer */
         $customer = $order->getCustomer();
         if (null === $customer) {
-            $customer = $this->getOrderCustomer($payPalOrder['payer']);
+            $customer = $this->getOrderCustomer($payPalOrder['payer'], $phoneNumber);
             $order->setCustomer($customer);
         }
 
         if ($order->isShippingRequired()) {
             if (null === $order->getShippingAddress()) {
-                $address = $this->expressOrderAddressFactory->createFromPurchaseUnit($purchaseUnit, $payerPhoneNumber);
+                $address = $this->expressOrderAddressFactory->createFromPurchaseUnit($purchaseUnit, $phoneNumber);
 
                 $order->setShippingAddress(clone $address);
                 $order->setBillingAddress(clone $address);
@@ -98,7 +98,7 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
                 $address = $this->expressOrderAddressFactory->createFromCustomer(
                     $customer,
                     $payPalOrder['payer']['address']['country_code'] ?? null,
-                    $payerPhoneNumber,
+                    $phoneNumber,
                 );
 
                 $order->setShippingAddress(clone $address);
@@ -201,8 +201,19 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         $this->orderManager->flush();
     }
 
+    /**
+     * @param array<string, mixed> $payPalOrder
+     * @param array<string, mixed> $purchaseUnit
+     */
+    private function resolvePhoneNumber(array $payPalOrder, array $purchaseUnit): ?string
+    {
+        return $purchaseUnit['shipping']['phone_number']['national_number']
+            ?? $payPalOrder['payer']['phone']['phone_number']['national_number']
+            ?? null;
+    }
+
     /** @param array<string, mixed> $payer */
-    private function getOrderCustomer(array $payer): CustomerInterface
+    private function getOrderCustomer(array $payer, ?string $phoneNumber): CustomerInterface
     {
         /** @var CustomerInterface|null $existingCustomer */
         $existingCustomer = $this->customerRepository->findOneBy(['email' => $payer['email_address']]);
@@ -214,7 +225,7 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         $customer->setEmail($payer['email_address']);
         $customer->setFirstName($payer['name']['given_name']);
         $customer->setLastName($payer['name']['surname']);
-        $customer->setPhoneNumber($payer['phone']['phone_number']['national_number'] ?? null);
+        $customer->setPhoneNumber($phoneNumber);
 
         return $customer;
     }

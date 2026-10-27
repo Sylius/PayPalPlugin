@@ -13,6 +13,8 @@ sylius_paypal:
     payment_enabled: 'Płatność PayPal została właśnie włączona.'
     payment_pending: 'Płatność jest w drodze. Potwierdzimy zamówienie, gdy tylko Twój bank prześle pieniądze.'
     payment_not_enabled: 'Nie udało się włączyć płatności PayPal. Spróbuj ponownie później.'
+    payment_capture_pending: 'PayPal przetwarza pobranie środków. Płatność zostanie oznaczona jako ukończona, gdy PayPal je potwierdzi.'
+    payment_not_captured: 'Środki z płatności nie zostały pobrane. %reason%'
     payment_not_refunded: 'Płatność nie została zwrócona. %reason%'
     payment_refund_pending: 'PayPal przetwarza zwrot. Płatność zostanie oznaczona jako zwrócona, gdy PayPal go potwierdzi.'
     payment_source_not_available: 'Wybrana metoda płatności jest niedostępna. Wybierz inną.'

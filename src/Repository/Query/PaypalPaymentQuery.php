@@ -18,12 +18,14 @@ use Doctrine\ORM\QueryBuilder;
 use Sylius\Bundle\ResourceBundle\Doctrine\ORM\EntityRepository;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
-final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
+final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface, PaypalPaymentBatchQueryInterface
 {
     /** @param PaymentRepositoryInterface<PaymentInterface>&EntityRepository $paymentRepository */
     public function __construct(
@@ -105,6 +107,46 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         }
 
         throw new PaymentNotFoundException();
+    }
+
+    public function findInStates(array $states, int $limit, ?int $afterId = null): array
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $states)
+            ->orderBy('o.id', 'ASC')
+            ->setMaxResults($limit)
+        ;
+
+        if (null !== $afterId) {
+            $queryBuilder
+                ->andWhere('o.id > :afterId')
+                ->setParameter('afterId', $afterId)
+            ;
+        }
+
+        /** @var list<PaymentInterface> $payments */
+        $payments = $queryBuilder->getQuery()->getResult();
+
+        return $payments;
+    }
+
+    public function getByPaymentRequestHash(string $paymentRequestHash): PaymentInterface
+    {
+        $payment = $this->paymentRepository
+            ->createQueryBuilder('o')
+            ->innerJoin(PaymentRequestInterface::class, 'paymentRequest', 'WITH', 'paymentRequest.payment = o')
+            ->andWhere('paymentRequest.hash = :paymentRequestHash')
+            ->setParameter('paymentRequestHash', $paymentRequestHash, UuidType::NAME)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+
+        if (!$payment instanceof PaymentInterface) {
+            throw new PaymentNotFoundException();
+        }
+
+        return $payment;
     }
 
     private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface

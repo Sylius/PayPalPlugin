@@ -40,7 +40,13 @@ final readonly class PayPalCapture
     {
         $capture = $payPalOrderDetails['purchase_units'][0]['payments']['captures'][0] ?? null;
 
-        if (!is_array($capture) || !is_string($capture['status'] ?? null)) {
+        return is_array($capture) ? self::fromCapture($capture) : null;
+    }
+
+    /** @param array<string, mixed> $capture */
+    public static function fromCapture(array $capture): ?self
+    {
+        if (!is_string($capture['status'] ?? null)) {
             return null;
         }
 

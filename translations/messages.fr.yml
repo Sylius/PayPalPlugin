@@ -1,3 +1,8 @@
+sylius:
+    ui:
+        capture_authorization: 'Capturer l''autorisation'
+        refund_late_capture: 'Rembourser la capture tardive'
+        void_authorization: 'Annuler l''autorisation'
 sylius_paypal:
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'

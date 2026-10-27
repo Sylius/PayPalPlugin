@@ -238,6 +238,15 @@ final class PayPalPaymentDetailsTest extends TestCase
 
         self::assertNull($details->authorizationId());
         self::assertNull($details->authorizationStatus());
+        self::assertNull($details->captureStatus());
+    }
+
+    public function test_it_knows_the_status_of_the_capture_paypal_made_for_the_payment(): void
+    {
+        $details = PayPalPaymentDetails::create()->withCaptureStatus('PENDING')->withCaptureStatus('COMPLETED');
+
+        self::assertSame('COMPLETED', $details->captureStatus());
+        self::assertSame(['capture_status' => 'COMPLETED'], $details->toArray());
     }
 
     public function test_it_knows_the_paypal_order_authorizes_when_created_with_the_authorize_intent(): void
