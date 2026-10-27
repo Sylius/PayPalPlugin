@@ -700,14 +700,19 @@
    others get their own. PayPal sends every event to each of them, and a payment method answers `204` to an event
    about a payment of another one.
 
-   `WebhookUrlProviderInterface::LEGACY_PATH` and `provideLegacy()` are only there for the command to find a webhook
-   still registered on `/paypal-webhook/api/`; they will be removed in 4.0.
+   `WebhookUrlProviderInterface::LEGACY_PATH` is only there for the command to find a webhook still registered on
+   `/paypal-webhook/api/`; it will be removed in 4.0.
 
-   The webhook URL starts with `sylius_paypal.webhook_base_url` or, when it is empty, with the hostname of the first
-   channel of the payment method that has one, so the command run from the console does not register `localhost`;
-   only without either does it fall back to the request context.
+   The webhook URL starts with `sylius_paypal.webhook_base_url`. When it is empty, the URL takes the host of the
+   request, and on the console the hostname of the first enabled channel of the payment method that has one other
+   than `localhost`, so the command does not register `localhost`; only without such a channel does the console fall
+   back to the request context (`framework.router.default_uri`). `WebhookUrlProvider` takes the `request_stack` for
+   that.
 
-   `WebhookIdProvider` looks the webhook up by the URL of the payment method, then by `/paypal-webhook/api/`.
+   `WebhookIdProvider` looks the webhook up by the notify URL and then by `/paypal-webhook/api/` on every host it may
+   have been registered on (`WebhookUrlProviderInterface::provideCandidates()`): the configured base URL, the request
+   host and the hostnames of the enabled channels of the payment method, so a webhook registered on the admin host or
+   on another channel is found and moved instead of a second one being registered.
    It is the `sylius_paypal.provider.webhook_id.lookup` service; `sylius_paypal.provider.webhook_id` is the
    `PersistingWebhookIdProvider` wrapping it instead of decorating it.
    `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal
@@ -737,7 +742,8 @@
 
    -public function provide(): string;
    +public function provide(PaymentMethodInterface $paymentMethod): string;
-   +public function provideLegacy(PaymentMethodInterface $paymentMethod): string;
+   +/** @return list<string> */
+   +public function provideCandidates(PaymentMethodInterface $paymentMethod): array;
    ```
 
    ```diff

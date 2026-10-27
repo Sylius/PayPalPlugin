@@ -600,6 +600,7 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.webhook_url', WebhookUrlProvider::class)
         ->args([
             service('router'),
+            service('request_stack'),
             param('sylius_paypal.webhook_base_url'),
         ]);
 

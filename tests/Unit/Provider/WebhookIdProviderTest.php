@@ -13,17 +13,21 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
 
@@ -81,6 +85,16 @@ final class WebhookIdProviderTest extends TestCase
         ]);
 
         self::assertSame('WH-NOTIFY', $this->createProvider()->provide($this->paymentMethod()));
+    }
+
+    public function test_it_returns_the_id_of_the_webhook_registered_on_the_hostname_of_a_channel_rather_than_the_request_host(): void
+    {
+        $this->mockGeneratedUrls();
+        $this->mockRegisteredWebhooks([
+            ['id' => 'WH-CHANNEL', 'url' => 'https://www.shop.example.com/paypal-webhook/api/'],
+        ]);
+
+        self::assertSame('WH-CHANNEL', $this->createProvider()->provide($this->paymentMethod(true, 'PAYPAL', 'other.example.com', 'www.shop.example.com')));
     }
 
     public function test_it_prefers_the_webhook_of_the_notify_url_to_the_one_of_the_legacy_url(): void
@@ -283,20 +297,27 @@ final class WebhookIdProviderTest extends TestCase
 
     private function createProvider(string $webhookBaseUrl = ''): WebhookIdProvider
     {
+        $requestStack = new RequestStack();
+        $requestStack->push(Request::create('https://shop.example.com/admin'));
+
         return new WebhookIdProvider(
             $this->genericApi,
             $this->hostProvider,
-            new WebhookUrlProvider($this->urlGenerator, $webhookBaseUrl),
+            new WebhookUrlProvider($this->urlGenerator, $requestStack, $webhookBaseUrl),
         );
     }
 
-    private function paymentMethod(bool $sandbox = true, string $code = 'PAYPAL'): PaymentMethodInterface&MockObject
+    private function paymentMethod(bool $sandbox = true, string $code = 'PAYPAL', string ...$channelHostnames): PaymentMethodInterface&MockObject
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getCode')->willReturn($code);
         $paymentMethod->method('getGatewayConfig')->willReturn(
             $this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['sandbox' => $sandbox]]),
         );
+        $paymentMethod->method('getChannels')->willReturn(new ArrayCollection(array_map(
+            fn (string $hostname): ChannelInterface => $this->createConfiguredStub(ChannelInterface::class, ['getHostname' => $hostname, 'isEnabled' => true]),
+            $channelHostnames,
+        )));
 
         return $paymentMethod;
     }
