@@ -56,6 +56,15 @@
    The `Sylius\PayPalPlugin\Model\PayPalGatewayConfig::ONBOARDING_ID` constant has been removed. The `onboarding_id`
    key stored in the gateway config by the facilitator-based onboarding is no longer read and can be left in place.
 
+   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written,
+   mirrored between the sandbox and production credentials, or part of the PayPal configuration form. The following
+   have been removed from `Sylius\PayPalPlugin\Model\PayPalGatewayConfig`:
+   - the `SYLIUS_MERCHANT_ID` constant
+   - the `syliusMerchantId()` and `hasSyliusMerchantId()` methods
+
+   `sylius_merchant_id` has also been removed from `CredentialsManagerInterface::MIRRORED_KEYS`. The key already
+   stored in the gateway config is no longer read and can be left in place.
+
 1. #### `PayPalPaymentMethodEnabler` checks the seller's onboarding status directly with PayPal.
 
    ```diff
