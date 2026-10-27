@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
@@ -487,7 +488,7 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
 
     private function orderWithAuthorization(string $authorizationStatus): PayPalOrderDetails
     {
-        return PayPalOrderDetails::fromArray([
+        return (new PayPalOrderDetailsFactory())->create([
             'id' => '5O190127TN364715T',
             'status' => 'COMPLETED',
             'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $authorizationStatus]]]]],
@@ -509,7 +510,7 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             $payments['authorizations'] = [['id' => 'AUTHORIZATION_ID', 'status' => $authorizationStatus]];
         }
 
-        return PayPalOrderDetails::fromArray([
+        return (new PayPalOrderDetailsFactory())->create([
             'id' => '5O190127TN364715T',
             'status' => 'COMPLETED',
             'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => $payments]],

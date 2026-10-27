@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Payment\Model\PaymentInterface;
@@ -41,6 +52,8 @@ use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
@@ -127,9 +140,9 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
-use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
@@ -238,6 +251,10 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(ExpressCheckoutCompleterInterface::class, 'sylius_paypal.completer.express_checkout');
+
+    $services->set('sylius_paypal.factory.paypal_order_details', PayPalOrderDetailsFactory::class);
+
+    $services->alias(PayPalOrderDetailsFactoryInterface::class, 'sylius_paypal.factory.paypal_order_details');
 
     $services->set('sylius_paypal.factory.paypal_shipping_address', PayPalShippingAddressFactory::class)
         ->args([

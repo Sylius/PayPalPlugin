@@ -11,17 +11,24 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sylius\PayPalPlugin\Unit\Model;
+namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 
 use PHPUnit\Framework\TestCase;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
-use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
-final class PayPalOrderDetailsTest extends TestCase
+final class PayPalOrderDetailsFactoryTest extends TestCase
 {
+    private PayPalOrderDetailsFactory $factory;
+
+    protected function setUp(): void
+    {
+        $this->factory = new PayPalOrderDetailsFactory();
+    }
+
     public function test_it_reads_the_order_and_its_first_purchase_unit(): void
     {
-        $details = PayPalOrderDetails::fromArray($this->payPalOrder());
+        $details = $this->factory->create($this->payPalOrder());
 
         self::assertSame('8VX25688WW4240157', $details->id());
         self::assertSame('COMPLETED', $details->status());
@@ -36,7 +43,7 @@ final class PayPalOrderDetailsTest extends TestCase
 
     public function test_it_reads_the_capture_and_the_authorization_of_the_first_purchase_unit(): void
     {
-        $details = PayPalOrderDetails::fromArray($this->payPalOrder());
+        $details = $this->factory->create($this->payPalOrder());
 
         self::assertSame('55V81560LH563161G', $details->capture()?->id());
         self::assertSame('COMPLETED', $details->capture()->status());
@@ -46,7 +53,7 @@ final class PayPalOrderDetailsTest extends TestCase
 
     public function test_it_reads_the_shipping_and_the_payer_chosen_in_the_wallet(): void
     {
-        $details = PayPalOrderDetails::fromArray($this->payPalOrder());
+        $details = $this->factory->create($this->payPalOrder());
 
         self::assertSame('John Doe', $details->shippingFullName());
         self::assertSame(['address_line_1' => '1 Main St', 'admin_area_2' => 'San Jose', 'postal_code' => '95131', 'country_code' => 'US'], $details->shippingAddress());
@@ -59,7 +66,7 @@ final class PayPalOrderDetailsTest extends TestCase
 
     public function test_it_prefers_the_shipping_contact_phone_number_over_the_payer_one(): void
     {
-        self::assertSame('4089238291', PayPalOrderDetails::fromArray($this->payPalOrder())->phoneNumber());
+        self::assertSame('4089238291', $this->factory->create($this->payPalOrder())->phoneNumber());
     }
 
     public function test_it_falls_back_to_the_payer_phone_number_without_a_shipping_contact(): void
@@ -67,12 +74,12 @@ final class PayPalOrderDetailsTest extends TestCase
         $payPalOrder = $this->payPalOrder();
         unset($payPalOrder['purchase_units'][0]['shipping']['phone_number']);
 
-        self::assertSame('5551234', PayPalOrderDetails::fromArray($payPalOrder)->phoneNumber());
+        self::assertSame('5551234', $this->factory->create($payPalOrder)->phoneNumber());
     }
 
     public function test_it_sums_the_amounts_of_every_purchase_unit(): void
     {
-        $details = PayPalOrderDetails::fromArray(['purchase_units' => [
+        $details = $this->factory->create(['purchase_units' => [
             ['amount' => ['currency_code' => 'USD', 'value' => '100.59']],
             ['amount' => ['currency_code' => 'USD', 'value' => '0.41']],
         ]]);
@@ -83,7 +90,7 @@ final class PayPalOrderDetailsTest extends TestCase
 
     public function test_it_reads_nothing_from_an_order_without_details(): void
     {
-        $details = PayPalOrderDetails::fromArray([]);
+        $details = $this->factory->create([]);
 
         self::assertSame('', $details->id());
         self::assertNull($details->status());
@@ -105,7 +112,7 @@ final class PayPalOrderDetailsTest extends TestCase
 
     public function test_it_reads_no_selected_shipping_option_when_the_buyer_picked_none(): void
     {
-        $details = PayPalOrderDetails::fromArray(['purchase_units' => [['shipping' => ['options' => [
+        $details = $this->factory->create(['purchase_units' => [['shipping' => ['options' => [
             ['id' => 'UPS', 'selected' => false],
             ['id' => '', 'selected' => true],
         ]]]]]);

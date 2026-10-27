@@ -28,6 +28,7 @@ use Sylius\PayPalPlugin\Command\CaptureAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CaptureAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
@@ -279,7 +280,7 @@ final class CaptureAuthorizationPaymentRequestHandlerTest extends TestCase
 
     private function authorizedOrder(string $status = 'CREATED'): PayPalOrderDetails
     {
-        return PayPalOrderDetails::fromArray([
+        return (new PayPalOrderDetailsFactory())->create([
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $status]]]]],
@@ -288,7 +289,7 @@ final class CaptureAuthorizationPaymentRequestHandlerTest extends TestCase
 
     private function capturedOrder(string $captureStatus): PayPalOrderDetails
     {
-        return PayPalOrderDetails::fromArray([
+        return (new PayPalOrderDetailsFactory())->create([
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => [

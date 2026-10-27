@@ -24,7 +24,7 @@ use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
-use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
@@ -96,7 +96,7 @@ final class PaymentAuthorizationProcessorTest extends TestCase
             'authorization_status' => 'CREATED',
         ]);
 
-        self::assertEquals(PayPalOrderDetails::fromArray(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
+        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
     }
 
     public function test_it_brings_the_approved_paypal_order_up_to_date_before_authorizing_it(): void
@@ -135,24 +135,24 @@ final class PaymentAuthorizationProcessorTest extends TestCase
 
         $this->payment->expects(self::never())->method('setDetails');
 
-        self::assertEquals(PayPalOrderDetails::fromArray(self::APPROVED_ORDER), $this->processor->authorize($this->payment));
+        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::APPROVED_ORDER), $this->processor->authorize($this->payment));
     }
 
     public function test_it_does_not_authorize_a_paypal_order_the_payer_has_not_approved(): void
     {
         $notApproved = ['status' => 'PAYER_ACTION_REQUIRED', 'id' => '123123', 'purchase_units' => [['reference_id' => 'REFERENCE_ID']]];
 
-        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn(PayPalOrderDetails::fromArray($notApproved));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsFactory())->create($notApproved));
         $this->approvedPayPalOrderUpdater->expects(self::never())->method('update');
         $this->authorizeOrderApi->expects(self::never())->method('authorize');
         $this->payment->expects(self::never())->method('setDetails');
 
-        self::assertEquals(PayPalOrderDetails::fromArray($notApproved), $this->processor->authorize($this->payment));
+        self::assertEquals((new PayPalOrderDetailsFactory())->create($notApproved), $this->processor->authorize($this->payment));
     }
 
     public function test_it_records_an_order_paypal_has_already_authorized_without_authorizing_it_again(): void
     {
-        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn(PayPalOrderDetails::fromArray(self::ORDER_DETAILS));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS));
         $this->authorizeOrderApi->expects(self::never())->method('authorize');
         $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
             static fn (array $details): bool => 'AUTHORIZATION_ID' === $details['authorization_id'],
@@ -166,7 +166,7 @@ final class PaymentAuthorizationProcessorTest extends TestCase
         $this->authorizeOrderApi->method('authorize')->willThrowException(new PayPalApiServerException('POST', 'v2/checkout/orders/123123/authorize', 503));
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
 
-        self::assertEquals(PayPalOrderDetails::fromArray(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
+        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
     }
 
     public function test_it_reads_the_order_paypal_could_not_be_reached_to_authorize(): void
@@ -174,7 +174,7 @@ final class PaymentAuthorizationProcessorTest extends TestCase
         $this->authorizeOrderApi->method('authorize')->willThrowException(new PayPalApiConnectionException('POST', 'v2/checkout/orders/123123/authorize'));
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
 
-        self::assertEquals(PayPalOrderDetails::fromArray(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
+        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
     }
 
     #[DataProvider('issuesLeavingTheOrderToRead')]
@@ -183,7 +183,7 @@ final class PaymentAuthorizationProcessorTest extends TestCase
         $this->authorizeOrderApi->method('authorize')->willThrowException(new PayPalApiRequestException('POST', 'v2/checkout/orders/123123/authorize', 422, 'UNPROCESSABLE_ENTITY', issues: [$issue]));
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
 
-        self::assertEquals(PayPalOrderDetails::fromArray(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
+        self::assertEquals((new PayPalOrderDetailsFactory())->create(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
     }
 
     /** @return iterable<string, array{string}> */
@@ -199,7 +199,7 @@ final class PaymentAuthorizationProcessorTest extends TestCase
         $declined = new PayPalApiRequestException('POST', 'v2/checkout/orders/123123/authorize', 422, 'UNPROCESSABLE_ENTITY', issues: ['INSTRUMENT_DECLINED']);
         $this->authorizeOrderApi->method('authorize')->willThrowException($declined);
 
-        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn(PayPalOrderDetails::fromArray(self::APPROVED_ORDER));
+        $this->orderDetailsApi->expects(self::once())->method('get')->willReturn((new PayPalOrderDetailsFactory())->create(self::APPROVED_ORDER));
 
         $this->expectExceptionObject($declined);
 
@@ -209,7 +209,7 @@ final class PaymentAuthorizationProcessorTest extends TestCase
     /** @param array<string, mixed> $order */
     private function paypalReadsTheApprovedOrderThen(array $order): void
     {
-        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->with($this->paymentMethod, '123123')->willReturnOnConsecutiveCalls(PayPalOrderDetails::fromArray(self::APPROVED_ORDER), PayPalOrderDetails::fromArray($order));
+        $this->orderDetailsApi->expects(self::exactly(2))->method('get')->with($this->paymentMethod, '123123')->willReturnOnConsecutiveCalls((new PayPalOrderDetailsFactory())->create(self::APPROVED_ORDER), (new PayPalOrderDetailsFactory())->create($order));
     }
 
     /**

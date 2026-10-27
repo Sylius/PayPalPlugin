@@ -36,6 +36,7 @@ use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
@@ -336,6 +337,6 @@ final class ExpressCheckoutCompleterTest extends TestCase
             $payPalOrder['payer']['phone'] = ['phone_number' => ['national_number' => $payerPhoneNumber]];
         }
 
-        return PayPalOrderDetails::fromArray($payPalOrder);
+        return (new PayPalOrderDetailsFactory())->create($payPalOrder);
     }
 }

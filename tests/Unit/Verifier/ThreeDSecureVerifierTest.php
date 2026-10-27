@@ -16,7 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Verifier;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
-use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Model\ThreeDSecureAuthenticationStatus;
 use Sylius\PayPalPlugin\Model\ThreeDSecureEnrollmentStatus;
 use Sylius\PayPalPlugin\Model\ThreeDSecureLiabilityShift;
@@ -40,14 +40,14 @@ final class ThreeDSecureVerifierTest extends TestCase
 
     public function test_it_accepts_an_order_carrying_no_authentication_result(): void
     {
-        $this->verifier->verify(PayPalOrderDetails::fromArray(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
+        $this->verifier->verify((new PayPalOrderDetailsFactory())->create(['id' => 'PAYPAL_ORDER_ID', 'status' => 'APPROVED']));
 
         $this->expectNotToPerformAssertions();
     }
 
     public function test_it_accepts_an_order_whose_payment_source_is_not_a_card(): void
     {
-        $this->verifier->verify(PayPalOrderDetails::fromArray(['payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']]]));
+        $this->verifier->verify((new PayPalOrderDetailsFactory())->create(['payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']]]));
 
         $this->expectNotToPerformAssertions();
     }
@@ -69,7 +69,7 @@ final class ThreeDSecureVerifierTest extends TestCase
 
     public function test_it_accepts_a_wallet_payment_source_carrying_no_authentication_result(): void
     {
-        $this->verifier->verify(PayPalOrderDetails::fromArray(['payment_source' => ['google_pay' => ['card' => ['last_digits' => '1111']]]]));
+        $this->verifier->verify((new PayPalOrderDetailsFactory())->create(['payment_source' => ['google_pay' => ['card' => ['last_digits' => '1111']]]]));
 
         $this->expectNotToPerformAssertions();
     }
@@ -87,7 +87,7 @@ final class ThreeDSecureVerifierTest extends TestCase
         ThreeDSecureAuthenticationStatus|string|null $authenticationStatus,
         ThreeDSecureLiabilityShift $liabilityShift,
     ): void {
-        $this->verifier->verify(PayPalOrderDetails::fromArray($this->orderDetails($enrollmentStatus, $authenticationStatus, $liabilityShift)));
+        $this->verifier->verify((new PayPalOrderDetailsFactory())->create($this->orderDetails($enrollmentStatus, $authenticationStatus, $liabilityShift)));
 
         $this->expectNotToPerformAssertions();
     }
@@ -206,7 +206,7 @@ final class ThreeDSecureVerifierTest extends TestCase
     private function rejectionOf(array $paypalOrderDetails): ThreeDSecureAuthenticationFailedException
     {
         try {
-            $this->verifier->verify(PayPalOrderDetails::fromArray($paypalOrderDetails));
+            $this->verifier->verify((new PayPalOrderDetailsFactory())->create($paypalOrderDetails));
         } catch (ThreeDSecureAuthenticationFailedException $exception) {
             return $exception;
         }

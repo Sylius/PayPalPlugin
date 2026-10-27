@@ -30,6 +30,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
@@ -261,7 +262,7 @@ final class VoidAuthorizationPaymentRequestHandlerTest extends TestCase
 
     private function orderWithAuthorization(string $status): PayPalOrderDetails
     {
-        return PayPalOrderDetails::fromArray([
+        return (new PayPalOrderDetailsFactory())->create([
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $status]]]]],

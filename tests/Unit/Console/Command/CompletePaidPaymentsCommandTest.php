@@ -27,7 +27,7 @@ use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
 use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
-use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Symfony\Component\Console\Command\Command;
@@ -219,7 +219,7 @@ final class CompletePaidPaymentsCommandTest extends TestCase
         $this->paymentRepository->method('findBy')->willReturn([$payment]);
 
         $orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
-        $orderDetailsApi->expects(self::once())->method('get')->with($payment->getMethod(), 'PAYPAL_ORDER_ID')->willReturn(PayPalOrderDetails::fromArray([]));
+        $orderDetailsApi->expects(self::once())->method('get')->with($payment->getMethod(), 'PAYPAL_ORDER_ID')->willReturn((new PayPalOrderDetailsFactory())->create([]));
 
         $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
             $this->paymentRepository,

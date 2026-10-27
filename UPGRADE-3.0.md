@@ -915,11 +915,19 @@
    instead of the raw PayPal order array. It reads the order status, intent, first purchase unit, capture,
    authorization, the shipping and the payer chosen in the wallet; `paymentSource()` and `shippingAddress()` keep
    PayPal's raw arrays. Build one from a PayPal order array, e.g. a webhook resource, with
-   `PayPalOrderDetails::fromArray()`.
+   `Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface::create()` (`sylius_paypal.factory.paypal_order_details`).
 
    ```diff
    -public function get(PaymentMethodInterface $paymentMethod, string $orderId): array;
    +public function get(PaymentMethodInterface $paymentMethod, string $orderId): PayPalOrderDetails;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\OrderDetailsApi
+    public function __construct(
+        private PayPalClientInterface $client,
+   +    private PayPalOrderDetailsFactoryInterface $payPalOrderDetailsFactory,
+    ) {
    ```
 
    `Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface::verify()` takes it as well; without it the amount

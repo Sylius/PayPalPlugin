@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
-use Sylius\PayPalPlugin\AmountUtils;
-
 final readonly class PayPalOrderDetails
 {
     /**
@@ -41,40 +39,6 @@ final readonly class PayPalOrderDetails
         private ?string $payerCountryCode = null,
         private ?string $phoneNumber = null,
     ) {
-    }
-
-    /** @param array<string, mixed> $payPalOrder */
-    public static function fromArray(array $payPalOrder): self
-    {
-        $purchaseUnits = is_array($payPalOrder['purchase_units'] ?? null) ? $payPalOrder['purchase_units'] : [];
-        $purchaseUnit = is_array($purchaseUnits[0] ?? null) ? $purchaseUnits[0] : [];
-        $shipping = is_array($purchaseUnit['shipping'] ?? null) ? $purchaseUnit['shipping'] : [];
-        $payer = is_array($payPalOrder['payer'] ?? null) ? $payPalOrder['payer'] : [];
-
-        return new self(
-            (string) ($payPalOrder['id'] ?? ''),
-            self::stringOrNull($payPalOrder['status'] ?? null),
-            self::stringOrNull($payPalOrder['intent'] ?? null) ?? PayPalOrder::INTENT_CAPTURE,
-            self::stringOrNull($purchaseUnit['reference_id'] ?? null),
-            self::amountOrNull($purchaseUnit),
-            array_sum(array_map(
-                static fn (mixed $unit): int => is_array($unit) ? (self::amountOrNull($unit) ?? 0) : 0,
-                $purchaseUnits,
-            )),
-            [] !== ($purchaseUnit['items'] ?? []),
-            PayPalCapture::fromPayPalOrder($payPalOrder),
-            PayPalAuthorization::fromPayPalOrder($payPalOrder),
-            is_array($payPalOrder['payment_source'] ?? null) ? $payPalOrder['payment_source'] : [],
-            self::stringOrNull($shipping['name']['full_name'] ?? null),
-            is_array($shipping['address'] ?? null) ? $shipping['address'] : null,
-            self::findSelectedShippingOptionId($shipping),
-            self::stringOrNull($payer['email_address'] ?? null),
-            self::stringOrNull($payer['name']['given_name'] ?? null),
-            self::stringOrNull($payer['name']['surname'] ?? null),
-            self::stringOrNull($payer['address']['country_code'] ?? null),
-            self::stringOrNull($shipping['phone_number']['national_number'] ?? null)
-                ?? self::stringOrNull($payer['phone']['phone_number']['national_number'] ?? null),
-        );
     }
 
     public function id(): string
@@ -172,30 +136,5 @@ final readonly class PayPalOrderDetails
     public function phoneNumber(): ?string
     {
         return $this->phoneNumber;
-    }
-
-    /** @param array<string, mixed> $purchaseUnit */
-    private static function amountOrNull(array $purchaseUnit): ?int
-    {
-        $value = $purchaseUnit['amount']['value'] ?? null;
-
-        return is_string($value) || is_numeric($value) ? AmountUtils::toMinorUnits((string) $value) : null;
-    }
-
-    /** @param array<string, mixed> $shipping */
-    private static function findSelectedShippingOptionId(array $shipping): ?string
-    {
-        foreach ((array) ($shipping['options'] ?? []) as $option) {
-            if (is_array($option) && true === ($option['selected'] ?? false)) {
-                return self::stringOrNull($option['id'] ?? null);
-            }
-        }
-
-        return null;
-    }
-
-    private static function stringOrNull(mixed $value): ?string
-    {
-        return is_string($value) && '' !== $value ? $value : null;
     }
 }

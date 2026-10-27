@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Processor\Webhook;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\SettlePaymentWebhookEventProcessor;
@@ -24,6 +25,8 @@ final class SettlePaymentWebhookEventProcessorTest extends TestCase
 {
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
+    private PayPalOrderDetailsFactoryInterface&MockObject $payPalOrderDetailsFactory;
+
     private SettlePaymentWebhookEventProcessor $processor;
 
     protected function setUp(): void
@@ -31,7 +34,9 @@ final class SettlePaymentWebhookEventProcessorTest extends TestCase
         parent::setUp();
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
 
-        $this->processor = new SettlePaymentWebhookEventProcessor($this->paymentSettlementProcessor);
+        $this->payPalOrderDetailsFactory = $this->createMock(PayPalOrderDetailsFactoryInterface::class);
+
+        $this->processor = new SettlePaymentWebhookEventProcessor($this->paymentSettlementProcessor, $this->payPalOrderDetailsFactory);
     }
 
     public function test_it_settles_the_payment_against_the_paypal_order_of_the_capture(): void
@@ -60,7 +65,10 @@ final class SettlePaymentWebhookEventProcessorTest extends TestCase
         $payment = $this->createStub(PaymentInterface::class);
         $order = ['id' => 'PAYPAL_ORDER_ID', 'status' => 'COMPLETED'];
 
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment, PayPalOrderDetails::fromArray($order), 'PAYPAL_ORDER_ID');
+        $payPalOrderDetails = new PayPalOrderDetails('PAYPAL_ORDER_ID', 'COMPLETED');
+
+        $this->payPalOrderDetailsFactory->expects(self::once())->method('create')->with($order)->willReturn($payPalOrderDetails);
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment, $payPalOrderDetails, 'PAYPAL_ORDER_ID');
 
         $this->processor->process('CHECKOUT.ORDER.COMPLETED', $order, $payment);
     }
