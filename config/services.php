@@ -662,7 +662,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');
 
-    $services->set('sylius_paypal.remover.payment_details', PayPalPaymentDetailsRemover::class);
+    $services->set('sylius_paypal.remover.payment_details', PayPalPaymentDetailsRemover::class)
+        ->public();
 
     $services->alias(PayPalPaymentDetailsRemoverInterface::class, 'sylius_paypal.remover.payment_details');
 
