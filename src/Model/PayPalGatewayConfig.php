@@ -31,8 +31,6 @@ final readonly class PayPalGatewayConfig
 
     public const USE_AUTHORIZE = 'use_authorize';
 
-    public const ONBOARDING_ID = 'onboarding_id';
-
     public const WEBHOOK_ID = 'webhook_id';
 
     public const REPORTS_SFTP_USERNAME = 'reports_sftp_username';
