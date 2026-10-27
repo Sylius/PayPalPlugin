@@ -53,6 +53,17 @@ final class PayPalOrderDetailsMapperTest extends TestCase
         self::assertSame('CAPTURED', $details->authorization()->status());
     }
 
+    public function test_it_reads_the_last_completed_refund_of_the_first_purchase_unit(): void
+    {
+        $details = $this->mapper->map(['purchase_units' => [['payments' => ['refunds' => [
+            ['id' => 'FIRST_REFUND_ID', 'status' => 'COMPLETED'],
+            ['id' => 'LAST_REFUND_ID', 'status' => 'COMPLETED'],
+        ]]]]]);
+
+        self::assertSame('LAST_REFUND_ID', $details->refund()?->id());
+        self::assertSame('COMPLETED', $details->refund()->status());
+    }
+
     public function test_it_reads_the_shipping_and_the_payer_chosen_in_the_wallet(): void
     {
         $details = $this->mapper->map($this->payPalOrder());
@@ -96,6 +107,7 @@ final class PayPalOrderDetailsMapperTest extends TestCase
         self::assertFalse($details->hasItems());
         self::assertNull($details->capture());
         self::assertNull($details->authorization());
+        self::assertNull($details->refund());
         self::assertSame([], $details->paymentSource());
         self::assertNull($details->shipping());
         self::assertNull($details->payer());

@@ -28,6 +28,7 @@ final readonly class PayPalOrderDetails
         private array $paymentSource = [],
         private ?PayPalShipping $shipping = null,
         private ?Payer $payer = null,
+        private ?PayPalRefund $refund = null,
     ) {
     }
 
@@ -69,6 +70,11 @@ final readonly class PayPalOrderDetails
     public function capture(): ?PayPalCapture
     {
         return $this->capture;
+    }
+
+    public function refund(): ?PayPalRefund
+    {
+        return $this->refund;
     }
 
     public function authorization(): ?PayPalAuthorization

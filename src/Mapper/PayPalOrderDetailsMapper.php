@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Model\PayPalRefund;
 use Sylius\PayPalPlugin\Model\PayPalShipping;
 
 final readonly class PayPalOrderDetailsMapper implements PayPalOrderDetailsMapperInterface
@@ -46,6 +47,7 @@ final readonly class PayPalOrderDetailsMapper implements PayPalOrderDetailsMappe
             is_array($payPalOrder['payment_source'] ?? null) ? $payPalOrder['payment_source'] : [],
             [] !== $shipping ? $this->mapShipping($shipping) : null,
             [] !== $payer ? $this->mapPayer($payer) : null,
+            PayPalRefund::completedFromPayPalOrder($payPalOrder),
         );
     }
 

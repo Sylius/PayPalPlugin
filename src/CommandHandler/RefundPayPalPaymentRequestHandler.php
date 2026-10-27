@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalRefund;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
@@ -95,8 +96,11 @@ final class RefundPayPalPaymentRequestHandler
             return;
         }
 
+        $payPalOrderDetails = null;
+
         try {
-            $capture = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId)->capture();
+            $payPalOrderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
+            $capture = $payPalOrderDetails->capture();
             if (null === $capture || null === $capture->id()) {
                 $this->failWithReason($paymentRequest, 'The PayPal order has no capture to refund.');
 
@@ -104,7 +108,7 @@ final class RefundPayPalPaymentRequestHandler
             }
 
             if (PayPalCapture::STATUS_REFUNDED === $capture->status()) {
-                $this->confirm($paymentRequest, $payment, null);
+                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails->refund());
 
                 return;
             }
@@ -124,7 +128,7 @@ final class RefundPayPalPaymentRequestHandler
             );
         } catch (PayPalApiException $exception) {
             if ($exception->hasIssue(self::CAPTURE_FULLY_REFUNDED)) {
-                $this->confirm($paymentRequest, $payment, null);
+                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails?->refund());
 
                 return;
             }
@@ -153,6 +157,18 @@ final class RefundPayPalPaymentRequestHandler
         if (self::REFUND_STATUS_COMPLETED === $refundStatus) {
             $this->confirm($paymentRequest, $payment, $refundId);
         }
+    }
+
+    private function confirmRefundedOnPayPal(PaymentRequestInterface $paymentRequest, PaymentInterface $payment, ?PayPalRefund $refund): void
+    {
+        if (null !== $refund) {
+            $paymentRequest->setResponseData([
+                self::RESPONSE_REFUND_ID => $refund->id(),
+                self::RESPONSE_REFUND_STATUS => $refund->status(),
+            ]);
+        }
+
+        $this->confirm($paymentRequest, $payment, $refund?->id());
     }
 
     private function confirm(PaymentRequestInterface $paymentRequest, PaymentInterface $payment, ?string $refundId): void

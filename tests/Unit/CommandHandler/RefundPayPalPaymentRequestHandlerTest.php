@@ -195,9 +195,22 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
         self::assertSame(['reason' => 'PayPal could not be reached to refund the payment.'], $paymentRequest->getResponseData());
     }
 
-    public function test_it_confirms_a_capture_paypal_has_already_refunded_without_refunding_it_again(): void
+    public function test_it_confirms_a_capture_paypal_has_already_refunded_with_its_refund_without_refunding_it_again(): void
     {
-        $this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest = $this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING);
+        $this->orderDetailsApi->method('get')->willReturn($this->orderWithCapture('REFUNDED', [['id' => 'REFUND_ID', 'status' => 'COMPLETED']]));
+        $this->refundPaymentApi->expects(self::never())->method('refund');
+        $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($this->payment, 'REFUND_ID');
+
+        ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+        self::assertSame(['refund_id' => 'REFUND_ID', 'refund_status' => 'COMPLETED'], $paymentRequest->getResponseData());
+    }
+
+    public function test_it_confirms_a_capture_paypal_has_already_refunded_when_paypal_lists_no_refund_of_it(): void
+    {
+        $paymentRequest = $this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING);
         $this->orderDetailsApi->method('get')->willReturn($this->orderWithCapture('REFUNDED'));
         $this->refundPaymentApi->expects(self::never())->method('refund');
         $this->refundConfirmationProcessor->expects(self::once())->method('confirm')->with($this->payment, null);
@@ -205,6 +218,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new RefundPayPalPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+        self::assertSame([], $paymentRequest->getResponseData());
     }
 
     public function test_it_confirms_the_refund_when_paypal_says_the_capture_is_fully_refunded(): void
@@ -297,15 +311,19 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    private function orderWithCapture(string $status): PayPalOrderDetails
+    /** @param list<array<string, mixed>> $refunds */
+    private function orderWithCapture(string $status, array $refunds = []): PayPalOrderDetails
     {
         return (new PayPalOrderDetailsMapper())->map([
             'id' => 'PAYPAL_ORDER_ID',
-            'purchase_units' => [['payments' => ['captures' => [[
-                'id' => 'CAPTURE_ID',
-                'status' => $status,
-                'amount' => ['value' => '10.50', 'currency_code' => 'USD'],
-            ]]]]],
+            'purchase_units' => [['payments' => [
+                'captures' => [[
+                    'id' => 'CAPTURE_ID',
+                    'status' => $status,
+                    'amount' => ['value' => '10.50', 'currency_code' => 'USD'],
+                ]],
+                'refunds' => $refunds,
+            ]]],
         ]);
     }
 }

@@ -143,13 +143,14 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
     public function test_it_records_a_capture_paypal_already_refunded_without_refunding_it_again(): void
     {
         $paymentRequest = $this->paymentRequest(['id' => 'CAPTURE_ID', 'amount' => 1539, 'currency_code' => 'EUR']);
-        $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('REFUNDED'));
+        $this->orderDetailsApi->method('get')->willReturn($this->orderDetails('REFUNDED', [['id' => 'REFUND_ID', 'status' => 'COMPLETED']]));
         $this->refundPaymentApi->expects(self::never())->method('refund');
-        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($paymentRequest->getPayment(), null);
+        $this->lateCaptureRefundConfirmationProcessor->expects(self::once())->method('confirm')->with($paymentRequest->getPayment(), 'REFUND_ID');
 
         ($this->handler)(new RefundPayPalLateCapturePaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_PROCESS, PaymentRequestTransitions::TRANSITION_COMPLETE], $this->appliedTransitions);
+        self::assertSame(['refund_id' => 'REFUND_ID', 'refund_status' => 'COMPLETED'], $paymentRequest->getResponseData());
     }
 
     public function test_it_fails_the_request_with_the_reason_paypal_gave_for_refusing_the_refund(): void
@@ -251,8 +252,9 @@ final class RefundPayPalLateCapturePaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    private function orderDetails(string $captureStatus): PayPalOrderDetails
+    /** @param list<array<string, mixed>> $refunds */
+    private function orderDetails(string $captureStatus, array $refunds = []): PayPalOrderDetails
     {
-        return (new PayPalOrderDetailsMapper())->map(['purchase_units' => [['payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => $captureStatus]]]]]]);
+        return (new PayPalOrderDetailsMapper())->map(['purchase_units' => [['payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => $captureStatus]], 'refunds' => $refunds]]]]);
     }
 }
