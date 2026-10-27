@@ -36,7 +36,6 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
         self::assertSame('AUTHORIZE', $details->intent());
         self::assertSame('REFERENCE', $details->referenceId());
         self::assertSame(10851, $details->amount());
-        self::assertSame(10851, $details->totalAmount());
         self::assertTrue($details->hasItems());
         self::assertSame(['paypal' => ['email_address' => 'buyer@example.com']], $details->paymentSource());
     }
@@ -84,8 +83,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
             ['amount' => ['currency_code' => 'USD', 'value' => '0.41']],
         ]]);
 
-        self::assertSame(10059, $details->amount());
-        self::assertSame(10100, $details->totalAmount());
+        self::assertSame(10100, $details->amount());
     }
 
     public function test_it_reads_nothing_from_an_order_without_details(): void
@@ -96,8 +94,7 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
         self::assertNull($details->status());
         self::assertSame(PayPalOrder::INTENT_CAPTURE, $details->intent());
         self::assertNull($details->referenceId());
-        self::assertNull($details->amount());
-        self::assertSame(0, $details->totalAmount());
+        self::assertSame(0, $details->amount());
         self::assertFalse($details->hasItems());
         self::assertNull($details->capture());
         self::assertNull($details->authorization());

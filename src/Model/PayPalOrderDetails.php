@@ -24,8 +24,7 @@ final readonly class PayPalOrderDetails
         private ?string $status = null,
         private string $intent = PayPalOrder::INTENT_CAPTURE,
         private ?string $referenceId = null,
-        private ?int $amount = null,
-        private int $totalAmount = 0,
+        private int $amount = 0,
         private bool $hasItems = false,
         private ?PayPalCapture $capture = null,
         private ?PayPalAuthorization $authorization = null,
@@ -66,14 +65,9 @@ final readonly class PayPalOrderDetails
         return $this->referenceId;
     }
 
-    public function amount(): ?int
+    public function amount(): int
     {
         return $this->amount;
-    }
-
-    public function totalAmount(): int
-    {
-        return $this->totalAmount;
     }
 
     public function hasItems(): bool

@@ -148,7 +148,7 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
 
     private function isLowerThanApproved(OrderInterface $order, PayPalOrderDetails $payPalOrder): bool
     {
-        return $order->getTotal() < ($payPalOrder->amount() ?? 0);
+        return $order->getTotal() < $payPalOrder->amount();
     }
 
     private function lowerApprovedAmount(PaymentInterface $payment, string $payPalOrderId): bool

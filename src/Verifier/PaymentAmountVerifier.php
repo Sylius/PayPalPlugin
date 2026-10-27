@@ -22,7 +22,7 @@ final class PaymentAmountVerifier implements PaymentAmountVerifierInterface
 {
     public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void
     {
-        $totalAmount = $payPalOrderDetails?->totalAmount() ?? $this->getPaymentAmountFromDetails($payment);
+        $totalAmount = $payPalOrderDetails?->amount() ?? $this->getPaymentAmountFromDetails($payment);
 
         if ($payment->getOrder()->getTotal() !== $totalAmount) {
             throw new PaymentAmountMismatchException();

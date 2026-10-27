@@ -33,9 +33,8 @@ final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFact
             $this->stringOrNull($payPalOrder['status'] ?? null),
             $this->stringOrNull($payPalOrder['intent'] ?? null) ?? PayPalOrder::INTENT_CAPTURE,
             $this->stringOrNull($purchaseUnit['reference_id'] ?? null),
-            $this->amountOrNull($purchaseUnit),
             array_sum(array_map(
-                fn (mixed $unit): int => is_array($unit) ? ($this->amountOrNull($unit) ?? 0) : 0,
+                fn (mixed $unit): int => is_array($unit) ? $this->amountOf($unit) : 0,
                 $purchaseUnits,
             )),
             [] !== ($purchaseUnit['items'] ?? []),
@@ -55,11 +54,11 @@ final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFact
     }
 
     /** @param array<string, mixed> $purchaseUnit */
-    private function amountOrNull(array $purchaseUnit): ?int
+    private function amountOf(array $purchaseUnit): int
     {
         $value = $purchaseUnit['amount']['value'] ?? null;
 
-        return is_string($value) || is_numeric($value) ? AmountUtils::toMinorUnits((string) $value) : null;
+        return is_string($value) || is_numeric($value) ? AmountUtils::toMinorUnits((string) $value) : 0;
     }
 
     /** @param array<string, mixed> $shipping */
