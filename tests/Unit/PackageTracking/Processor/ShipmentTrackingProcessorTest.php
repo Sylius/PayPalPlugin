@@ -25,6 +25,8 @@ use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTracking;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
@@ -241,10 +243,10 @@ final class ShipmentTrackingProcessorTest extends TestCase
 
         $this->repository->method('findOneByShipment')->willReturn($tracking);
         $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
-        $this->orderDetailsApi->method('get')->willReturn([
+        $this->orderDetailsApi->method('get')->willReturn((new PayPalOrderDetailsMapper())->map([
             'status' => 'COMPLETED',
             'purchase_units' => [['reference_id' => 'default']],
-        ]);
+        ]));
 
         $this->addTrackingApi->expects(self::never())->method('add');
 
@@ -262,7 +264,7 @@ final class ShipmentTrackingProcessorTest extends TestCase
 
         $this->repository->method('findOneByShipment')->willReturn($tracking);
         $this->paymentProvider->method('provide')->willReturn($this->payPalPayment(['paypal_order_id' => 'ORDER123', 'transaction_id' => 'CAP123']));
-        $this->orderDetailsApi->method('get')->willReturn(['status' => 'CREATED']);
+        $this->orderDetailsApi->method('get')->willReturn((new PayPalOrderDetailsMapper())->map(['status' => 'CREATED']));
 
         $this->addTrackingApi->expects(self::never())->method('add');
 
@@ -331,12 +333,11 @@ final class ShipmentTrackingProcessorTest extends TestCase
         return $payment;
     }
 
-    /** @return array<string, mixed> */
-    private function completedOrderDetails(): array
+    private function completedOrderDetails(): PayPalOrderDetails
     {
-        return [
+        return (new PayPalOrderDetailsMapper())->map([
             'status' => 'COMPLETED',
             'purchase_units' => [['items' => [['name' => 'T-Shirt', 'quantity' => '1', 'sku' => 'sku01']]]],
-        ];
+        ]);
     }
 }

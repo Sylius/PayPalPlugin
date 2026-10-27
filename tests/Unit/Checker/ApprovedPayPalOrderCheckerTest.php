@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 
 final class ApprovedPayPalOrderCheckerTest extends TestCase
 {
@@ -49,17 +50,17 @@ final class ApprovedPayPalOrderCheckerTest extends TestCase
     #[DataProvider('approvedOrders')]
     public function test_it_knows_an_order_the_payer_has_approved(string $paymentSource, string $status): void
     {
-        self::assertTrue((new ApprovedPayPalOrderChecker())->isApproved(['status' => $status], $paymentSource));
+        self::assertTrue((new ApprovedPayPalOrderChecker())->isApproved((new PayPalOrderDetailsMapper())->map(['status' => $status]), $paymentSource));
     }
 
     #[DataProvider('ordersThePayerHasNotApproved')]
     public function test_it_knows_an_order_that_is_not_waiting_to_be_completed(string $paymentSource, string $status): void
     {
-        self::assertFalse((new ApprovedPayPalOrderChecker())->isApproved(['status' => $status], $paymentSource));
+        self::assertFalse((new ApprovedPayPalOrderChecker())->isApproved((new PayPalOrderDetailsMapper())->map(['status' => $status]), $paymentSource));
     }
 
     public function test_it_knows_no_approval_of_an_order_without_a_status(): void
     {
-        self::assertFalse((new ApprovedPayPalOrderChecker())->isApproved([], 'paypal'));
+        self::assertFalse((new ApprovedPayPalOrderChecker())->isApproved((new PayPalOrderDetailsMapper())->map([]), 'paypal'));
     }
 }

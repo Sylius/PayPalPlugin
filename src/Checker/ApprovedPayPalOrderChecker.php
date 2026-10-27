@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Checker;
 
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
@@ -27,13 +28,13 @@ final readonly class ApprovedPayPalOrderChecker implements ApprovedPayPalOrderCh
         PayPalPaymentSourceProviderInterface::VENMO,
     ];
 
-    public function isApproved(array $payPalOrder, string $paymentSource): bool
+    public function isApproved(PayPalOrderDetails $payPalOrder, string $paymentSource): bool
     {
         if (null !== RedirectPaymentSource::tryFrom($paymentSource)) {
             return false;
         }
 
-        return match ($payPalOrder['status'] ?? null) {
+        return match ($payPalOrder->status()) {
             self::APPROVED_ORDER_STATUS => true,
             self::CREATED_ORDER_STATUS => !in_array($paymentSource, self::SOURCES_APPROVED_IN_THE_PAYPAL_WINDOW, true),
             default => false,

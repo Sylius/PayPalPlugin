@@ -13,8 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Checker;
 
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+
 interface ApprovedPayPalOrderCheckerInterface
 {
-    /** @param array<string, mixed> $payPalOrder */
-    public function isApproved(array $payPalOrder, string $paymentSource): bool;
+    public function isApproved(PayPalOrderDetails $payPalOrder, string $paymentSource): bool;
 }

@@ -15,13 +15,14 @@ namespace Sylius\PayPalPlugin\Processor;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 interface PaymentAuthorizationProcessorInterface
 {
     /**
-     * @return array<string, mixed> the PayPal order after the authorization
+     * @return PayPalOrderDetails the PayPal order after the authorization
      *
      * @throws PayPalApiException
      */
-    public function authorize(PaymentInterface $payment, ?string $requestId = null): array;
+    public function authorize(PaymentInterface $payment, ?string $requestId = null): PayPalOrderDetails;
 }

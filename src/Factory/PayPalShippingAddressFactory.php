@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 
 final readonly class PayPalShippingAddressFactory implements PayPalShippingAddressFactoryInterface
 {
@@ -26,16 +27,16 @@ final readonly class PayPalShippingAddressFactory implements PayPalShippingAddre
     ) {
     }
 
-    public function create(array $payPalShippingAddress): AddressInterface
+    public function create(PayPalAddress $payPalShippingAddress): AddressInterface
     {
-        $countryCode = $this->stringOrNull($payPalShippingAddress['country_code'] ?? null);
+        $countryCode = $payPalShippingAddress->countryCode();
 
         /** @var AddressInterface $address */
         $address = $this->addressFactory->createNew();
         $address->setCountryCode($countryCode);
-        $address->setCity($this->stringOrNull($payPalShippingAddress['admin_area_2'] ?? null));
-        $address->setPostcode($this->stringOrNull($payPalShippingAddress['postal_code'] ?? null));
-        $adminArea1 = $this->stringOrNull($payPalShippingAddress['admin_area_1'] ?? null);
+        $address->setCity($payPalShippingAddress->adminArea2());
+        $address->setPostcode($payPalShippingAddress->postalCode());
+        $adminArea1 = $payPalShippingAddress->adminArea1();
         $provinceCode = $this->resolveProvinceCode($countryCode, $adminArea1);
 
         $address->setProvinceCode($provinceCode);
@@ -59,16 +60,5 @@ final readonly class PayPalShippingAddressFactory implements PayPalShippingAddre
         }
 
         return null;
-    }
-
-    private function stringOrNull(mixed $value): ?string
-    {
-        if (!is_scalar($value)) {
-            return null;
-        }
-
-        $value = trim((string) $value);
-
-        return '' === $value ? null : $value;
     }
 }

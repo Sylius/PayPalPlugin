@@ -28,6 +28,8 @@ use Sylius\PayPalPlugin\Command\CaptureAuthorizationPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CaptureAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 
 final class CaptureAuthorizationPaymentRequestHandlerTest extends TestCase
@@ -276,26 +278,24 @@ final class CaptureAuthorizationPaymentRequestHandlerTest extends TestCase
         return $paymentRequest;
     }
 
-    /** @return array<string, mixed> */
-    private function authorizedOrder(string $status = 'CREATED'): array
+    private function authorizedOrder(string $status = 'CREATED'): PayPalOrderDetails
     {
-        return [
+        return (new PayPalOrderDetailsMapper())->map([
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $status]]]]],
-        ];
+        ]);
     }
 
-    /** @return array<string, mixed> */
-    private function capturedOrder(string $captureStatus): array
+    private function capturedOrder(string $captureStatus): PayPalOrderDetails
     {
-        return [
+        return (new PayPalOrderDetailsMapper())->map([
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'COMPLETED',
             'purchase_units' => [['payments' => [
                 'authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => 'CAPTURED']],
                 'captures' => [['id' => 'CAPTURE_ID', 'status' => $captureStatus, 'amount' => ['currency_code' => 'USD', 'value' => '20.00']]],
             ]]],
-        ];
+        ]);
     }
 }

@@ -20,12 +20,16 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApi;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final class OrderDetailsApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
     private PaymentMethodInterface&MockObject $paymentMethod;
+
+    private PayPalOrderDetailsMapperInterface&MockObject $payPalOrderDetailsMapper;
 
     private OrderDetailsApi $orderDetailsApi;
 
@@ -34,7 +38,8 @@ final class OrderDetailsApiTest extends TestCase
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $this->orderDetailsApi = new OrderDetailsApi($this->client);
+        $this->payPalOrderDetailsMapper = $this->createMock(PayPalOrderDetailsMapperInterface::class);
+        $this->orderDetailsApi = new OrderDetailsApi($this->client, $this->payPalOrderDetailsMapper);
     }
 
     #[Test]
@@ -50,10 +55,11 @@ final class OrderDetailsApiTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with($this->paymentMethod, 'v2/checkout/orders/123123')
-            ->willReturn(['total' => 1111]);
+            ->willReturn(['id' => '123123', 'status' => 'APPROVED']);
 
-        $result = $this->orderDetailsApi->get($this->paymentMethod, '123123');
+        $payPalOrderDetails = new PayPalOrderDetails('123123', 'APPROVED');
+        $this->payPalOrderDetailsMapper->expects(self::once())->method('map')->with(['id' => '123123', 'status' => 'APPROVED'])->willReturn($payPalOrderDetails);
 
-        self::assertEquals(['total' => 1111], $result);
+        self::assertSame($payPalOrderDetails, $this->orderDetailsApi->get($this->paymentMethod, '123123'));
     }
 }

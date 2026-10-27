@@ -27,14 +27,13 @@ use Sylius\Component\Core\Repository\ShippingMethodRepositoryInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Sylius\Resource\Factory\FactoryInterface;
@@ -70,35 +69,33 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
 
         $payPalOrder = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)
-            ->withPayPalOrderIntent((string) ($payPalOrder['intent'] ?? PayPalOrder::INTENT_CAPTURE))
+            ->withPayPalOrderIntent($payPalOrder->intent())
             ->toArray());
-        $purchaseUnit = (array) $payPalOrder['purchase_units'][0];
-        $phoneNumber = $this->resolvePhoneNumber($payPalOrder, $purchaseUnit);
 
         /** @var CustomerInterface|null $customer */
         $customer = $order->getCustomer();
         if (null === $customer) {
-            $customer = $this->getOrderCustomer($payPalOrder['payer'], $phoneNumber);
+            $customer = $this->getOrderCustomer($payPalOrder);
             $order->setCustomer($customer);
         }
 
         if ($order->isShippingRequired()) {
             if (null === $order->getShippingAddress()) {
-                $address = $this->expressOrderAddressFactory->createFromPurchaseUnit($purchaseUnit, $phoneNumber);
+                $address = $this->expressOrderAddressFactory->createFromPayPalOrder($payPalOrder);
 
                 $order->setShippingAddress(clone $address);
                 $order->setBillingAddress(clone $address);
             }
 
             $this->applyCheckoutTransition($order, OrderCheckoutTransitions::TRANSITION_ADDRESS);
-            $this->applyShippingMethodSelectedInWallet($order, $purchaseUnit);
+            $this->applyShippingMethodSelectedInWallet($order, $payPalOrder->shipping()?->selectedOptionId());
             $this->applyCheckoutTransition($order, OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
         } else {
             if (null === $order->getShippingAddress() && null === $order->getBillingAddress()) {
                 $address = $this->expressOrderAddressFactory->createFromCustomer(
                     $customer,
-                    $payPalOrder['payer']['address']['country_code'] ?? null,
-                    $phoneNumber,
+                    $payPalOrder->payer()?->countryCode(),
+                    $payPalOrder->phoneNumber(),
                 );
 
                 $order->setShippingAddress(clone $address);
@@ -114,7 +111,7 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         try {
             $this->paymentAmountVerifier->verify($payment, $payPalOrder);
         } catch (PaymentAmountMismatchException $exception) {
-            if (!$this->isLowerThanApproved($order, $purchaseUnit) || !$this->lowerApprovedAmount($payment, $payPalOrderId)) {
+            if (!$this->isLowerThanApproved($order, $payPalOrder) || !$this->lowerApprovedAmount($payment, $payPalOrderId)) {
                 $this->abandonPayment($order, $payment);
 
                 throw $exception;
@@ -132,22 +129,9 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         }
     }
 
-    /** @param array<string, mixed> $purchaseUnit */
-    private function applyShippingMethodSelectedInWallet(OrderInterface $order, array $purchaseUnit): void
+    private function applyShippingMethodSelectedInWallet(OrderInterface $order, ?string $selectedCode): void
     {
-        /** @var array<int, array<string, mixed>> $options */
-        $options = (array) ($purchaseUnit['shipping']['options'] ?? []);
-
-        $selectedCode = null;
-        foreach ($options as $option) {
-            if (true === ($option['selected'] ?? false)) {
-                $selectedCode = (string) ($option['id'] ?? '');
-
-                break;
-            }
-        }
-
-        if (null === $selectedCode || '' === $selectedCode) {
+        if (null === $selectedCode) {
             return;
         }
 
@@ -162,10 +146,9 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         }
     }
 
-    /** @param array<string, mixed> $purchaseUnit */
-    private function isLowerThanApproved(OrderInterface $order, array $purchaseUnit): bool
+    private function isLowerThanApproved(OrderInterface $order, PayPalOrderDetails $payPalOrder): bool
     {
-        return $order->getTotal() < AmountUtils::toMinorUnits((string) ($purchaseUnit['amount']['value'] ?? '0'));
+        return $order->getTotal() < $payPalOrder->amount();
     }
 
     private function lowerApprovedAmount(PaymentInterface $payment, string $payPalOrderId): bool
@@ -201,31 +184,21 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
         $this->orderManager->flush();
     }
 
-    /**
-     * @param array<string, mixed> $payPalOrder
-     * @param array<string, mixed> $purchaseUnit
-     */
-    private function resolvePhoneNumber(array $payPalOrder, array $purchaseUnit): ?string
+    private function getOrderCustomer(PayPalOrderDetails $payPalOrder): CustomerInterface
     {
-        return $purchaseUnit['shipping']['phone_number']['national_number']
-            ?? $payPalOrder['payer']['phone']['phone_number']['national_number']
-            ?? null;
-    }
+        $payer = $payPalOrder->payer();
 
-    /** @param array<string, mixed> $payer */
-    private function getOrderCustomer(array $payer, ?string $phoneNumber): CustomerInterface
-    {
         /** @var CustomerInterface|null $existingCustomer */
-        $existingCustomer = $this->customerRepository->findOneBy(['email' => $payer['email_address']]);
+        $existingCustomer = $this->customerRepository->findOneBy(['email' => $payer?->email()]);
         if (null !== $existingCustomer) {
             return $existingCustomer;
         }
 
         $customer = $this->customerFactory->createNew();
-        $customer->setEmail($payer['email_address']);
-        $customer->setFirstName($payer['name']['given_name']);
-        $customer->setLastName($payer['name']['surname']);
-        $customer->setPhoneNumber($phoneNumber);
+        $customer->setEmail($payer?->email());
+        $customer->setFirstName($payer?->givenName());
+        $customer->setLastName($payer?->surname());
+        $customer->setPhoneNumber($payPalOrder->phoneNumber());
 
         return $customer;
     }

@@ -81,7 +81,7 @@ final class VoidAuthorizationPaymentRequestHandler
         }
 
         try {
-            $authorization = PayPalAuthorization::fromPayPalOrder($this->orderDetailsApi->get($paymentMethod, $payPalOrderId));
+            $authorization = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId)->authorization();
         } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
             throw $exception;
         } catch (PayPalApiException $exception) {
