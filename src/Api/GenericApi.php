@@ -15,6 +15,8 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Symfony\Component\HttpFoundation\Response;
 
 final readonly class GenericApi implements GenericApiInterface
 {
@@ -31,6 +33,12 @@ final readonly class GenericApi implements GenericApiInterface
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json');
 
-        return (array) json_decode($this->client->sendRequest($request)->getBody()->getContents(), true);
+        $response = $this->client->sendRequest($request);
+
+        if (Response::HTTP_OK !== $response->getStatusCode()) {
+            throw new PayPalPluginException();
+        }
+
+        return (array) json_decode($response->getBody()->getContents(), true);
     }
 }

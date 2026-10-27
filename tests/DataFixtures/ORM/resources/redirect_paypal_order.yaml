@@ -1,0 +1,46 @@
+Sylius\Component\Core\Model\Address:
+    redirect_billing_address:
+        firstName: "Patrick"
+        lastName: "Watson"
+        street: "1 Main St"
+        city: "Berlin"
+        postcode: "10115"
+        countryCode: "DE"
+
+Sylius\Component\Core\Model\Order:
+    redirect_order:
+        channel: "@channel_web"
+        items: ["@redirect_mug_item"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        state: "new"
+        checkoutState: "completed"
+        tokenValue: "TOKEN"
+        billingAddress: "@redirect_billing_address"
+        payments: ["@redirect_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    redirect_mug_item:
+        units: ["@redirect_mug_item_unit"]
+        variant: "@mug_sw"
+        order: "@redirect_order"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    redirect_mug_item_unit:
+        __construct: ["@redirect_mug_item"]
+
+Sylius\Component\Core\Model\Payment:
+    redirect_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 20
+        state: "processing"
+        details:
+            status: "CAPTURED"
+            paypal_order_id: "PAYPAL_ORDER_ID"
+            payment_amount: 20
+            payment_source: "trustly"
+            payer_action_url: "https://www.sandbox.paypal.com/payment/trustly?token=PAYPAL_ORDER_ID"
+            payer_action_return_nonce: "0123456789abcdef0123456789abcdef"
+            payer_action_cancel_nonce: "fedcba9876543210fedcba9876543210"

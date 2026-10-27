@@ -17,16 +17,22 @@ use Doctrine\Persistence\ObjectManager;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
+use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
 final readonly class PaymentStateManager implements PaymentStateManagerInterface
 {
+    private PayerActionCheckerInterface $payerActionChecker;
+
     public function __construct(
         private StateMachineInterface $stateMachineFactory,
         private ObjectManager $paymentManager,
         private PaymentCompleteProcessorInterface $paypalPaymentCompleteProcessor,
+        ?PayerActionCheckerInterface $payerActionChecker = null,
     ) {
+        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
     }
 
     public function create(PaymentInterface $payment): void
@@ -61,6 +67,10 @@ final readonly class PaymentStateManager implements PaymentStateManagerInterface
 
     public function cancel(PaymentInterface $payment): void
     {
+        if ($this->payerActionChecker->isAwaitingPayerAction($payment)) {
+            return;
+        }
+
         $this->applyTransitionAndSave($payment, PaymentTransitions::TRANSITION_CANCEL);
     }
 

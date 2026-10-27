@@ -108,6 +108,29 @@ final class PayPalPaymentRefundProcessorTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_refund_a_capture_paypal_has_already_refunded(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => '123123']);
+
+        $this->authorizeClientApi->method('authorize')->with($paymentMethod)->willReturn('TOKEN');
+        $this->orderDetailsApi
+            ->method('get')
+            ->with('TOKEN', '123123')
+            ->willReturn(['purchase_units' => [['payments' => ['captures' => [['id' => '555', 'status' => 'REFUNDED']]]]]]);
+
+        $this->refundOrderApi->expects(self::never())->method('refund');
+
+        $this->paypalPaymentRefundProcessor->refund($payment);
+    }
+
+    #[Test]
     public function it_does_nothing_if_payment_is_not_paypal(): void
     {
         $payment = $this->createMock(PaymentInterface::class);

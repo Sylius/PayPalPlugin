@@ -26,6 +26,8 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.create_order'),
             service('sylius_paypal.provider.uuid'),
+            service('sylius_paypal.provider.paypal_order_created_statuses'),
+            service('sylius_paypal.provider.nonce'),
         ])
         ->tag('payum.action', ['factory' => 'sylius_paypal', 'alias' => 'payum.action.capture']);
 
@@ -40,6 +42,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.updater.payment'),
             service('sylius.state_resolver.order_payment'),
             service('sylius_paypal.api.update_order_address'),
+            service('monolog.logger.paypal'),
         ])
         ->tag('payum.action', ['factory' => 'sylius_paypal', 'alias' => 'payum.action.complete_order']);
 

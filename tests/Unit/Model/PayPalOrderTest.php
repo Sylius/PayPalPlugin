@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
-use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
@@ -27,291 +26,150 @@ final class PayPalOrderTest extends TestCase
 
     private PayPalPurchaseUnit&MockObject $payPalPurchaseUnit;
 
-    private PayPalOrder $payPalOrder;
-
     protected function setUp(): void
     {
         parent::setUp();
         $this->order = $this->createMock(OrderInterface::class);
         $this->payPalPurchaseUnit = $this->createMock(PayPalPurchaseUnit::class);
-        $this->payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, 'CAPTURE');
     }
 
-    #[Test]
-    public function it_returns_full_paypal_order_data(): void
+    public function test_it_sends_the_given_payment_source_as_it_is(): void
     {
-        $shippingAddress = $this->createMock(AddressInterface::class);
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
 
-        $this->order->method('isShippingRequired')->willReturn(true);
-        $this->order->method('getShippingAddress')->willReturn($shippingAddress);
+        $paymentSource = ['paypal' => ['experience_context' => ['locale' => 'en-US', 'user_action' => 'PAY_NOW']]];
 
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([
-            'reference_id' => 'REFERENCE_ID',
-            'invoice_id' => 'INVOICE_ID',
-            'amount' => [
-                'currency_code' => 'CURRENCY_CODE',
-                'value' => 100,
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'item_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 80,
-                    ],
-                    'tax_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'discount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 0,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => 'MERCHANT_ID',
-            ],
-            'soft_descriptor' => 'DESCRIPTION',
-            'items' => [
-                ['test_item'],
-            ],
-            'shipping' => [
-                'name' => [
-                    'full_name' => 'Gandalf The Grey',
-                ],
-                'address' => [
-                    'address_line_1' => 'Hobbit St. 123',
-                    'admin_area_2' => 'Minas Tirith',
-                    'postal_code' => '000',
-                    'country_code' => 'US',
-                ],
-            ],
-        ]);
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: $paymentSource,
+        );
 
-        $result = $this->payPalOrder->toArray();
-
-        self::assertEquals([
+        self::assertSame([
             'intent' => 'CAPTURE',
             'purchase_units' => [
-                [
-                    'reference_id' => 'REFERENCE_ID',
-                    'invoice_id' => 'INVOICE_ID',
-                    'amount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'item_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 80,
-                            ],
-                            'tax_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'discount' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 0,
-                            ],
-                        ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => 'MERCHANT_ID',
-                    ],
-                    'soft_descriptor' => 'DESCRIPTION',
-                    'items' => [
-                        ['test_item'],
-                    ],
-                    'shipping' => [
-                        'name' => [
-                            'full_name' => 'Gandalf The Grey',
-                        ],
-                        'address' => [
-                            'address_line_1' => 'Hobbit St. 123',
-                            'admin_area_2' => 'Minas Tirith',
-                            'postal_code' => '000',
-                            'country_code' => 'US',
-                        ],
-                    ],
-                ],
+                ['reference_id' => 'REFERENCE_ID'],
             ],
-            'application_context' => [
-                'shipping_preference' => 'SET_PROVIDED_ADDRESS',
-            ],
-        ], $result);
+            'payment_source' => $paymentSource,
+        ], $payPalOrder->toArray());
     }
 
-    #[Test]
-    public function it_returns_paypal_order_data_without_shipping_address(): void
+    public function test_it_carries_a_payment_source_other_than_paypal(): void
     {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $paymentSource = ['google_pay' => ['attributes' => ['verification' => ['method' => 'SCA_WHEN_REQUIRED']]]];
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: $paymentSource,
+        );
+
+        self::assertSame($paymentSource, $payPalOrder->toArray()['payment_source']);
+    }
+
+    public function test_it_omits_the_payment_source_when_there_is_nothing_to_send(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: [],
+        );
+
+        self::assertArrayNotHasKey('payment_source', $payPalOrder->toArray());
+    }
+
+    public function test_it_never_sends_the_legacy_application_context(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: ['paypal' => ['experience_context' => []]],
+        );
+
+        $result = $payPalOrder->toArray();
+
+        self::assertArrayHasKey('payment_source', $result);
+        self::assertArrayNotHasKey('application_context', $result);
+    }
+
+    public function test_it_sends_no_processing_instruction_unless_it_is_given_one(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: ['paypal' => ['experience_context' => []]],
+        );
+
+        self::assertArrayNotHasKey('processing_instruction', $payPalOrder->toArray());
+    }
+
+    public function test_it_asks_paypal_to_complete_the_order_on_payment_approval(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
+
+        $payPalOrder = new PayPalOrder(
+            order: $this->order,
+            payPalPurchaseUnit: $this->payPalPurchaseUnit,
+            intent: PayPalOrder::INTENT_CAPTURE,
+            paymentSource: ['trustly' => []],
+            processingInstruction: PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,
+        );
+
+        self::assertSame(
+            'ORDER_COMPLETE_ON_PAYMENT_APPROVAL',
+            $payPalOrder->toArray()['processing_instruction'],
+        );
+    }
+
+    public function test_it_sends_the_legacy_application_context_when_no_payment_source_is_given(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);
+        $this->order->method('isShippingRequired')->willReturn(true);
+        $this->order->method('getShippingAddress')->willReturn($this->createMock(AddressInterface::class));
+
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
+
+        self::assertSame([
+            'intent' => 'CAPTURE',
+            'purchase_units' => [
+                ['reference_id' => 'REFERENCE_ID'],
+            ],
+            'application_context' => ['shipping_preference' => 'SET_PROVIDED_ADDRESS'],
+        ], $payPalOrder->toArray());
+    }
+
+    public function test_it_lets_paypal_collect_the_address_in_the_legacy_application_context_when_the_order_has_none(): void
+    {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
         $this->order->method('isShippingRequired')->willReturn(true);
         $this->order->method('getShippingAddress')->willReturn(null);
 
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([
-            'reference_id' => 'REFERENCE_ID',
-            'invoice_id' => 'INVOICE_ID',
-            'amount' => [
-                'currency_code' => 'CURRENCY_CODE',
-                'value' => 100,
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'item_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 80,
-                    ],
-                    'tax_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'discount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 0,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => 'MERCHANT_ID',
-            ],
-            'soft_descriptor' => 'DESCRIPTION',
-            'items' => [
-                ['test_item'],
-            ],
-        ]);
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
 
-        $result = $this->payPalOrder->toArray();
-
-        self::assertEquals([
-            'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'reference_id' => 'REFERENCE_ID',
-                    'invoice_id' => 'INVOICE_ID',
-                    'amount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'item_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 80,
-                            ],
-                            'tax_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'discount' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 0,
-                            ],
-                        ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => 'MERCHANT_ID',
-                    ],
-                    'soft_descriptor' => 'DESCRIPTION',
-                    'items' => [
-                        ['test_item'],
-                    ],
-                ],
-            ],
-            'application_context' => [
-                'shipping_preference' => 'GET_FROM_FILE',
-            ],
-        ], $result);
+        self::assertSame(['shipping_preference' => 'GET_FROM_FILE'], $payPalOrder->toArray()['application_context']);
     }
 
-    #[Test]
-    public function it_returns_paypal_order_data_if_shipping_is_not_required(): void
+    public function test_it_asks_for_no_shipping_in_the_legacy_application_context_when_the_order_needs_none(): void
     {
+        $this->payPalPurchaseUnit->method('toArray')->willReturn([]);
         $this->order->method('isShippingRequired')->willReturn(false);
 
-        $this->payPalPurchaseUnit->method('toArray')->willReturn([
-            'reference_id' => 'REFERENCE_ID',
-            'invoice_id' => 'INVOICE_ID',
-            'amount' => [
-                'currency_code' => 'CURRENCY_CODE',
-                'value' => 100,
-                'breakdown' => [
-                    'shipping' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'item_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 80,
-                    ],
-                    'tax_total' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 10,
-                    ],
-                    'discount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 0,
-                    ],
-                ],
-            ],
-            'payee' => [
-                'merchant_id' => 'MERCHANT_ID',
-            ],
-            'soft_descriptor' => 'DESCRIPTION',
-            'items' => [
-                ['test_item'],
-            ],
-        ]);
+        $payPalOrder = new PayPalOrder($this->order, $this->payPalPurchaseUnit, PayPalOrder::INTENT_CAPTURE);
 
-        $result = $this->payPalOrder->toArray();
-
-        self::assertEquals([
-            'intent' => 'CAPTURE',
-            'purchase_units' => [
-                [
-                    'reference_id' => 'REFERENCE_ID',
-                    'invoice_id' => 'INVOICE_ID',
-                    'amount' => [
-                        'currency_code' => 'CURRENCY_CODE',
-                        'value' => 100,
-                        'breakdown' => [
-                            'shipping' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'item_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 80,
-                            ],
-                            'tax_total' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 10,
-                            ],
-                            'discount' => [
-                                'currency_code' => 'CURRENCY_CODE',
-                                'value' => 0,
-                            ],
-                        ],
-                    ],
-                    'payee' => [
-                        'merchant_id' => 'MERCHANT_ID',
-                    ],
-                    'soft_descriptor' => 'DESCRIPTION',
-                    'items' => [
-                        ['test_item'],
-                    ],
-                ],
-            ],
-            'application_context' => [
-                'shipping_preference' => 'NO_SHIPPING',
-            ],
-        ], $result);
+        self::assertSame(['shipping_preference' => 'NO_SHIPPING'], $payPalOrder->toArray()['application_context']);
+        self::assertArrayNotHasKey('payment_source', $payPalOrder->toArray());
     }
 }

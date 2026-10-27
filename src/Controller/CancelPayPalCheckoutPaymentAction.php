@@ -62,7 +62,7 @@ final readonly class CancelPayPalCheckoutPaymentAction
 
         /** @var FlashBagInterface $flashBag */
         $flashBag = $request->getSession()->getBag('flashes');
-        $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+        $flashBag->add('success', 'sylius_paypal.payment_cancelled');
 
         $this->paymentStateManager->cancel($payment);
 

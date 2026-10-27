@@ -1,0 +1,9 @@
+sylius_twig_hooks:
+    hooks:
+        'sylius_shop.order.show.content':
+            form:
+                template: '@SyliusPayPalPlugin/shop/order/show/content/form.html.twig'
+
+        'sylius_shop.order.show.content.paypal_awaiting_payer_action':
+            awaiting_payer_action:
+                template: '@SyliusPayPalPlugin/shop/shared/order/show/summary/statuses/payments/list/paypal_awaiting_payer_action.html.twig'

@@ -39,7 +39,7 @@ final readonly class OrderPaymentProcessor implements OrderProcessorInterface
 
         if (
             $payment !== null &&
-            $payment->getDetails()['status'] === 'CAPTURED' &&
+            ($payment->getDetails()['status'] ?? null) === 'CAPTURED' &&
             $this->getFactoryName($payment) === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
         ) {
             return;

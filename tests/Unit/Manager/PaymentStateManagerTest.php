@@ -191,4 +191,19 @@ final class PaymentStateManagerTest extends TestCase
 
         $this->paymentStateManager->cancel($payment);
     }
+
+    public function test_it_never_cancels_a_payment_the_payer_is_finishing_off_site(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $payment->method('getDetails')->willReturn([
+            'payment_source' => 'trustly',
+            'payer_action_url' => 'https://www.paypal.com/payment/trustly?token=X',
+        ]);
+
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->paymentManager->expects(self::never())->method('flush');
+
+        $this->paymentStateManager->cancel($payment);
+    }
 }

@@ -21,7 +21,7 @@ use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 
-final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
+final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
 {
     /** @param PaymentRepositoryInterface<PaymentInterface>&EntityRepository $paymentRepository */
     public function __construct(
@@ -30,10 +30,11 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
         private readonly array $updatableStates = ['cart', 'new', 'processing'],
         private readonly array $cancellableStates = ['cart', 'new', 'processing', 'completed'],
         private readonly array $refundableStates = ['completed'],
+        private readonly array $settleableStates = ['processing', 'completed', 'cancelled', 'failed'],
     ) {
     }
 
-    public function getForUpdateByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForUpdateByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -44,7 +45,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    public function getForCancellationByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForCancellationByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -55,7 +56,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    public function getForRefundingByOrderId(string $paypalOrderId): ?PaymentInterface
+    public function getForRefundingByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
             ->andWhere('o.state IN (:states)')
@@ -66,7 +67,18 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): ?PaymentInterface
+    public function getForSettlementByOrderId(string $paypalOrderId): PaymentInterface
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $this->settleableStates)
+            ->addOrderBy('o.updatedAt', 'DESC')
+        ;
+
+        return $this->doGetPayment($queryBuilder, $paypalOrderId);
+    }
+
+    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): PaymentInterface
     {
         if ($this->isCastAvailable()) {
             $payment = $queryBuilder

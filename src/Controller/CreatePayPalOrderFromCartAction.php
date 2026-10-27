@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
 use GuzzleHttp\Exception\GuzzleException;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -22,8 +23,11 @@ use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
+use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,6 +42,8 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
+        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -63,15 +69,50 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->orderOwnershipVerifier) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
+                OrderOwnershipVerifierInterface::class,
+                self::class,
+            );
+        }
+        if (null === $this->fundingSourcesConfigurationProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '2.2',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                PayPalFundingSourcesConfigurationProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
     {
         $id = $request->attributes->getInt('id');
         $order = $this->orderProvider->provideOrderById($id);
+        if (null === $this->orderOwnershipVerifier) {
+            throw new \RuntimeException(sprintf(
+                'An instance of "%s" is required to verify order ownership.',
+                OrderOwnershipVerifierInterface::class,
+            ));
+        }
+        $this->orderOwnershipVerifier->verify($order, $request);
+
+        $paymentSource = $this->resolvePaymentSource($request, $order);
+        if (null === $paymentSource) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
 
         try {
             $payment = $this->getPayment($order);
+            $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
             $this->capturePaymentResolver->resolve($payment);
         } catch (\DomainException|GuzzleException) {
             /** @var FlashBagInterface $flashBag */
@@ -83,9 +124,12 @@ final readonly class CreatePayPalOrderFromCartAction
 
         $this->paymentManager->flush();
 
+        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+
         return new JsonResponse([
             'id' => $order->getId(),
-            'orderID' => $payment->getDetails()['paypal_order_id'],
+            'orderId' => $payPalOrderId,
+            'orderID' => $payPalOrderId, // BC with 2.1. Deprecated in 2.2; use "orderId" instead.
             'status' => $payment->getState(),
         ]);
     }
@@ -118,5 +162,35 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         return $payment;
+    }
+
+    private function resolvePaymentSource(Request $request, OrderInterface $order): ?string
+    {
+        $paymentSource = $request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL);
+
+        if (PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource) {
+            return $paymentSource;
+        }
+
+        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($order)) {
+            return $paymentSource;
+        }
+
+        return null;
+    }
+
+    private function isVenmoEnabled(OrderInterface $order): bool
+    {
+        /** @var ChannelInterface|null $channel */
+        $channel = $order->getChannel();
+        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+            return false;
+        }
+
+        try {
+            return $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel);
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
     }
 }

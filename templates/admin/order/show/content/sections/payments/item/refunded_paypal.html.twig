@@ -7,8 +7,13 @@
     <td class="py-2">
         <div class="alert alert-purple mb-0" role="alert">
             <div class="d-flex">
-                <div>{{ ux_icon('tabler:brand-paypal-filled') }}</div>
-                <div>{{ 'sylius_paypal.tender_type'|trans }}</div>
+                {% if sylius_paypal_is_refunded_to_paypal_wallet(payment) %}
+                    <div>{{ ux_icon('tabler:brand-paypal-filled') }}</div>
+                    <div>{{ 'sylius_paypal.tender_type'|trans }}</div>
+                {% else %}
+                    <div>{{ ux_icon('tabler:arrow-back-up') }}</div>
+                    <div>{{ 'sylius_paypal.tender_type_original_payment_method'|trans }}</div>
+                {% endif %}
             </div>
         </div>
     </td>

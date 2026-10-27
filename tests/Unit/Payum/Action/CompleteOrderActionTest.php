@@ -109,9 +109,45 @@ final class CompleteOrderActionTest extends TestCase
             'status' => StatusAction::STATUS_COMPLETED,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
         ]);
 
         $order->method('isShippingRequired')->willReturn(false);
+
+        $this->completeOrderAction->execute($request);
+    }
+
+    public function test_it_carries_a_non_paypal_payment_source_through_completion(): void
+    {
+        $request = $this->createMock(CompleteOrder::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $order = $this->createMock(OrderInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $request->method('getOrderId')->willReturn('123123');
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getDetails')->willReturn(['payment_source' => 'google_pay']);
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(1000);
+        $order->method('getTotal')->willReturn(1000);
+        $order->method('isShippingRequired')->willReturn(false);
+
+        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
+        $this->orderDetailsApi->method('get')->willReturn([
+            'status' => 'COMPLETED',
+            'id' => '123123',
+            'purchase_units' => [
+                ['reference_id' => 'REFERENCE_ID'],
+            ],
+        ]);
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => StatusAction::STATUS_COMPLETED,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'google_pay',
+        ]);
 
         $this->completeOrderAction->execute($request);
     }
@@ -152,6 +188,7 @@ final class CompleteOrderActionTest extends TestCase
             'status' => StatusAction::STATUS_COMPLETED,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
             'transaction_id' => 'TRANSACTION_ID',
         ]);
 
@@ -187,6 +224,7 @@ final class CompleteOrderActionTest extends TestCase
         $payment->method('getDetails')->willReturn([
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
         ]);
         $payment->method('getOrder')->willReturn($order);
 
@@ -210,6 +248,7 @@ final class CompleteOrderActionTest extends TestCase
             'status' => StatusAction::STATUS_COMPLETED,
             'paypal_order_id' => '123123',
             'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
         ]);
 
         $order->method('isShippingRequired')->willReturn(true);
@@ -218,5 +257,24 @@ final class CompleteOrderActionTest extends TestCase
         $updateOrderAddressApi->expects(self::once())->method('update')->with('TOKEN', '123123', 'REFERENCE_ID', $shippingAddress);
 
         $completeOrderAction->execute($request);
+    }
+
+    public function test_it_never_captures_an_order_paypal_completes_on_payment_approval(): void
+    {
+        $request = $this->createMock(CompleteOrder::class);
+        $payment = $this->createMock(PaymentInterface::class);
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $request->method('getModel')->willReturn($payment);
+        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getDetails')->willReturn(['payment_source' => 'trustly']);
+
+        $this->authorizeClientApi->expects(self::never())->method('authorize');
+        $this->updateOrderApi->expects(self::never())->method('update');
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->orderDetailsApi->expects(self::never())->method('get');
+        $payment->expects(self::never())->method('setDetails');
+
+        $this->completeOrderAction->execute($request);
     }
 }

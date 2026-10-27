@@ -17,6 +17,9 @@ use Sylius\PayPalPlugin\Api\RefundPaymentApiInterface;
 
 final class DummyRefundPaymentApi implements RefundPaymentApiInterface
 {
+    /** @var list<string> */
+    public static array $refundedPaymentIds = [];
+
     public function refund(
         string $token,
         string $paymentId,
@@ -25,6 +28,8 @@ final class DummyRefundPaymentApi implements RefundPaymentApiInterface
         string $amount,
         string $currencyCode,
     ): array {
+        self::$refundedPaymentIds[] = $paymentId;
+
         return ['status' => 'COMPLETED', 'id' => $paymentId];
     }
 }
