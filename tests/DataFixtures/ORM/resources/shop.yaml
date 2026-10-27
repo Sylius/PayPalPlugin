@@ -115,7 +115,6 @@ Sylius\Bundle\PayumBundle\Model\GatewayConfig:
             client_id: "CLIENT_ID"
             client_secret: "CLIENT_SECRET"
             merchant_id: "MERCHANT_ID"
-            sylius_merchant_id: "SYLIUS_MERCHANT_ID"
             partner_attribution_id: "PARTNER_ATTRIBUTION_ID"
             use_authorize: true
     cash_on_delivery_config:

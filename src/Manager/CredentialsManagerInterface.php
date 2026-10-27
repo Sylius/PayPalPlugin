@@ -28,7 +28,6 @@ interface CredentialsManagerInterface
         'client_id',
         'client_secret',
         'merchant_id',
-        'sylius_merchant_id',
         'partner_attribution_id',
         'webhook_id',
         'reports_sftp_username',

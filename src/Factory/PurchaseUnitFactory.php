@@ -22,7 +22,6 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
-use Webmozart\Assert\Assert;
 
 final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
 {
@@ -76,9 +75,6 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-        Assert::true($config->hasSyliusMerchantId());
-
-        return $config->merchantId();
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId();
     }
 }

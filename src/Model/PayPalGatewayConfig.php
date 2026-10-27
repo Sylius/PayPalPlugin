@@ -25,8 +25,6 @@ final readonly class PayPalGatewayConfig
 
     public const MERCHANT_ID = 'merchant_id';
 
-    public const SYLIUS_MERCHANT_ID = 'sylius_merchant_id';
-
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
 
     public const USE_AUTHORIZE = 'use_authorize';
@@ -83,16 +81,6 @@ final readonly class PayPalGatewayConfig
     public function merchantId(): string
     {
         return $this->required(self::MERCHANT_ID);
-    }
-
-    public function syliusMerchantId(): string
-    {
-        return $this->required(self::SYLIUS_MERCHANT_ID);
-    }
-
-    public function hasSyliusMerchantId(): bool
-    {
-        return isset($this->config[self::SYLIUS_MERCHANT_ID]);
     }
 
     public function partnerAttributionId(): string
