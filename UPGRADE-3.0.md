@@ -467,7 +467,9 @@
    | `PayPalApiRequestException` | PayPal answered any other status, such as `400`, `403` or `422` |
 
    The exception carries the request method and path, the status, PayPal's error name and message, the issues of
-   its `details` (`getIssues()`, `hasIssue()`) and the `PayPal-Debug-Id` (`getDebugId()`).
+   its `details` (`getIssues()`, `hasIssue()`) with their descriptions (`getIssueDescriptions()`) and the
+   `PayPal-Debug-Id` (`getDebugId()`). `getDescription()` puts the issue descriptions in place of PayPal's general
+   message when PayPal gives them.
 
    The following exceptions have been removed:
 

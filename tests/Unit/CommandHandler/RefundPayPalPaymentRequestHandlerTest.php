@@ -169,6 +169,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
             'The requested action could not be performed.',
             ['REFUND_AMOUNT_EXCEEDED'],
             'DEBUG_ID',
+            issueDescriptions: ['The refund amount must be less than or equal to the capture amount that has not yet been refunded.'],
         ));
         $this->refundConfirmationProcessor->expects(self::never())->method('confirm');
 
@@ -176,7 +177,7 @@ final class RefundPayPalPaymentRequestHandlerTest extends TestCase
 
         self::assertSame([PaymentRequestTransitions::TRANSITION_FAIL], $this->appliedTransitions);
         self::assertSame(
-            ['reason' => 'PayPal rejected the refund: UNPROCESSABLE_ENTITY The requested action could not be performed. [REFUND_AMOUNT_EXCEEDED] (debug id: DEBUG_ID)'],
+            ['reason' => 'PayPal rejected the refund: UNPROCESSABLE_ENTITY The refund amount must be less than or equal to the capture amount that has not yet been refunded. [REFUND_AMOUNT_EXCEEDED] (debug id: DEBUG_ID)'],
             $paymentRequest->getResponseData(),
         );
     }
