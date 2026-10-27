@@ -19,6 +19,7 @@ use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
+use Sylius\PayPalPlugin\Changer\PaymentMethodChanger;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
 use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
@@ -46,6 +47,7 @@ use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
 use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
+use Sylius\PayPalPlugin\EventListener\RemovePayPalPaymentDetailsListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
@@ -138,6 +140,8 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
+use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemover;
+use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemoverInterface;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
@@ -175,6 +179,7 @@ use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -235,6 +240,10 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.listener.remove_cached_access_token', RemoveCachedAccessTokenListener::class)
         ->args([service('sylius_paypal.remover.cached_access_token')])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.pre_update']);
+
+    $services->set('sylius_paypal.listener.remove_paypal_payment_details', RemovePayPalPaymentDetailsListener::class)
+        ->args([service('sylius_paypal.remover.payment_details')])
+        ->tag('kernel.event_listener', ['event' => 'sylius.order.pre_update']);
 
     $services->set('sylius_paypal.completer.express_checkout', ExpressCheckoutCompleter::class)
         ->args([
@@ -668,6 +677,18 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');
+
+    $services->set('sylius_paypal.remover.payment_details', PayPalPaymentDetailsRemover::class)
+        ->public();
+
+    $services->alias(PayPalPaymentDetailsRemoverInterface::class, 'sylius_paypal.remover.payment_details');
+
+    $services->set('sylius_paypal.changer.payment_method', PaymentMethodChanger::class)
+        ->decorate('sylius_api.changer.payment_method', null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->args([
+            service('.inner'),
+            service('sylius_paypal.remover.payment_details'),
+        ]);
 
     $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
         ->args([

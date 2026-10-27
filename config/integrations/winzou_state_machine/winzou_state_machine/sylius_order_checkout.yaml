@@ -1,0 +1,8 @@
+winzou_state_machine:
+    sylius_order_checkout:
+        callbacks:
+            after:
+                paypal_remove_paypal_payment_details:
+                    on: [ 'select_payment' ]
+                    do: [ '@sylius_paypal.remover.payment_details', 'removeFromOrder' ]
+                    args: [ 'object' ]
