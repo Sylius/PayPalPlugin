@@ -14,10 +14,13 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Factory;
 
 use Sylius\PayPalPlugin\AmountUtils;
+use Sylius\PayPalPlugin\Model\Payer;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Model\PayPalShipping;
 
 final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFactoryInterface
 {
@@ -41,15 +44,42 @@ final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFact
             PayPalCapture::fromPayPalOrder($payPalOrder),
             PayPalAuthorization::fromPayPalOrder($payPalOrder),
             is_array($payPalOrder['payment_source'] ?? null) ? $payPalOrder['payment_source'] : [],
+            [] !== $shipping ? $this->createShipping($shipping) : null,
+            [] !== $payer ? $this->createPayer($payer) : null,
+        );
+    }
+
+    public function createAddress(array $payPalAddress): PayPalAddress
+    {
+        return new PayPalAddress(
+            $this->stringOrNull($payPalAddress['address_line_1'] ?? null),
+            $this->stringOrNull($payPalAddress['admin_area_1'] ?? null),
+            $this->stringOrNull($payPalAddress['admin_area_2'] ?? null),
+            $this->stringOrNull($payPalAddress['postal_code'] ?? null),
+            $this->stringOrNull($payPalAddress['country_code'] ?? null),
+        );
+    }
+
+    /** @param array<string, mixed> $shipping */
+    private function createShipping(array $shipping): PayPalShipping
+    {
+        return new PayPalShipping(
             $this->stringOrNull($shipping['name']['full_name'] ?? null),
-            is_array($shipping['address'] ?? null) ? $shipping['address'] : null,
+            is_array($shipping['address'] ?? null) ? $this->createAddress($shipping['address']) : null,
             $this->findSelectedShippingOptionId($shipping),
+            $this->stringOrNull($shipping['phone_number']['national_number'] ?? null),
+        );
+    }
+
+    /** @param array<string, mixed> $payer */
+    private function createPayer(array $payer): Payer
+    {
+        return new Payer(
             $this->stringOrNull($payer['email_address'] ?? null),
             $this->stringOrNull($payer['name']['given_name'] ?? null),
             $this->stringOrNull($payer['name']['surname'] ?? null),
             $this->stringOrNull($payer['address']['country_code'] ?? null),
-            $this->stringOrNull($shipping['phone_number']['national_number'] ?? null)
-                ?? $this->stringOrNull($payer['phone']['phone_number']['national_number'] ?? null),
+            $this->stringOrNull($payer['phone']['phone_number']['national_number'] ?? null),
         );
     }
 
@@ -75,6 +105,12 @@ final readonly class PayPalOrderDetailsFactory implements PayPalOrderDetailsFact
 
     private function stringOrNull(mixed $value): ?string
     {
-        return is_string($value) && '' !== $value ? $value : null;
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return '' === $value ? null : $value;
     }
 }

@@ -88,13 +88,13 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
             }
 
             $this->applyCheckoutTransition($order, OrderCheckoutTransitions::TRANSITION_ADDRESS);
-            $this->applyShippingMethodSelectedInWallet($order, $payPalOrder->selectedShippingOptionId());
+            $this->applyShippingMethodSelectedInWallet($order, $payPalOrder->shipping()?->selectedOptionId());
             $this->applyCheckoutTransition($order, OrderCheckoutTransitions::TRANSITION_SELECT_SHIPPING);
         } else {
             if (null === $order->getShippingAddress() && null === $order->getBillingAddress()) {
                 $address = $this->expressOrderAddressFactory->createFromCustomer(
                     $customer,
-                    $payPalOrder->payerCountryCode(),
+                    $payPalOrder->payer()?->countryCode(),
                     $payPalOrder->phoneNumber(),
                 );
 
@@ -186,16 +186,18 @@ final readonly class ExpressCheckoutCompleter implements ExpressCheckoutComplete
 
     private function getOrderCustomer(PayPalOrderDetails $payPalOrder): CustomerInterface
     {
+        $payer = $payPalOrder->payer();
+
         /** @var CustomerInterface|null $existingCustomer */
-        $existingCustomer = $this->customerRepository->findOneBy(['email' => $payPalOrder->payerEmail()]);
+        $existingCustomer = $this->customerRepository->findOneBy(['email' => $payer?->email()]);
         if (null !== $existingCustomer) {
             return $existingCustomer;
         }
 
         $customer = $this->customerFactory->createNew();
-        $customer->setEmail($payPalOrder->payerEmail());
-        $customer->setFirstName($payPalOrder->payerGivenName());
-        $customer->setLastName($payPalOrder->payerSurname());
+        $customer->setEmail($payer?->email());
+        $customer->setFirstName($payer?->givenName());
+        $customer->setLastName($payer?->surname());
         $customer->setPhoneNumber($payPalOrder->phoneNumber());
 
         return $customer;

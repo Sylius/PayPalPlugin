@@ -913,8 +913,8 @@
 
    `Sylius\PayPalPlugin\Api\OrderDetailsApiInterface::get()` returns `Sylius\PayPalPlugin\Model\PayPalOrderDetails`
    instead of the raw PayPal order array. It reads the order status, intent, first purchase unit, capture,
-   authorization, the shipping and the payer chosen in the wallet; `paymentSource()` and `shippingAddress()` keep
-   PayPal's raw arrays. Build one from a PayPal order array, e.g. a webhook resource, with
+   authorization, and the shipping (`PayPalShipping` with a `PayPalAddress`) and the payer (`Payer`) chosen in the
+   wallet; `paymentSource()` keeps PayPal's raw array. Build one from a PayPal order array, e.g. a webhook resource, with
    `Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactoryInterface::create()` (`sylius_paypal.factory.paypal_order_details`).
 
    ```diff

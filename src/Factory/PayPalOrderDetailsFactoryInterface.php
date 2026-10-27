@@ -13,10 +13,14 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 interface PayPalOrderDetailsFactoryInterface
 {
     /** @param array<string, mixed> $payPalOrder */
     public function create(array $payPalOrder): PayPalOrderDetails;
+
+    /** @param array<string, mixed> $payPalAddress */
+    public function createAddress(array $payPalAddress): PayPalAddress;
 }

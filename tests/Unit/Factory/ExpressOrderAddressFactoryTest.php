@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final class ExpressOrderAddressFactoryTest extends TestCase
@@ -103,13 +104,7 @@ final class ExpressOrderAddressFactoryTest extends TestCase
         $this->shippingAddressFactory
             ->expects(self::once())
             ->method('create')
-            ->with([
-                'address_line_1' => '1 Star City Plaza',
-                'admin_area_2' => 'Star City',
-                'postal_code' => '10001',
-                'country_code' => 'US',
-                'admin_area_1' => 'TX',
-            ])
+            ->with(new PayPalAddress('1 Star City Plaza', 'TX', 'Star City', '10001', 'US'))
             ->willReturn($resolved)
         ;
 

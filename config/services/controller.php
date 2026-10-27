@@ -1,5 +1,16 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Core\Storage\CartStorageInterface;
@@ -127,6 +138,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.callback_signature_verifier'),
             service('sylius_paypal.repository.query.paypal_payment'),
             service('sylius_paypal.provider.available_countries'),
+            service('sylius_paypal.factory.paypal_order_details'),
             service('sylius_paypal.factory.paypal_shipping_address'),
             service('sylius_paypal.resolver.shipping_options'),
             service('sylius_paypal.factory.shipping_callback_response'),

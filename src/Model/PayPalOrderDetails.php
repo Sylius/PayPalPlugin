@@ -15,10 +15,7 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class PayPalOrderDetails
 {
-    /**
-     * @param array<string, mixed> $paymentSource
-     * @param array<string, mixed>|null $shippingAddress
-     */
+    /** @param array<string, mixed> $paymentSource */
     public function __construct(
         private string $id,
         private ?string $status = null,
@@ -29,14 +26,8 @@ final readonly class PayPalOrderDetails
         private ?PayPalCapture $capture = null,
         private ?PayPalAuthorization $authorization = null,
         private array $paymentSource = [],
-        private ?string $shippingFullName = null,
-        private ?array $shippingAddress = null,
-        private ?string $selectedShippingOptionId = null,
-        private ?string $payerEmail = null,
-        private ?string $payerGivenName = null,
-        private ?string $payerSurname = null,
-        private ?string $payerCountryCode = null,
-        private ?string $phoneNumber = null,
+        private ?PayPalShipping $shipping = null,
+        private ?Payer $payer = null,
     ) {
     }
 
@@ -91,44 +82,18 @@ final readonly class PayPalOrderDetails
         return $this->paymentSource;
     }
 
-    public function shippingFullName(): ?string
+    public function shipping(): ?PayPalShipping
     {
-        return $this->shippingFullName;
+        return $this->shipping;
     }
 
-    /** @return array<string, mixed>|null */
-    public function shippingAddress(): ?array
+    public function payer(): ?Payer
     {
-        return $this->shippingAddress;
-    }
-
-    public function selectedShippingOptionId(): ?string
-    {
-        return $this->selectedShippingOptionId;
-    }
-
-    public function payerEmail(): ?string
-    {
-        return $this->payerEmail;
-    }
-
-    public function payerGivenName(): ?string
-    {
-        return $this->payerGivenName;
-    }
-
-    public function payerSurname(): ?string
-    {
-        return $this->payerSurname;
-    }
-
-    public function payerCountryCode(): ?string
-    {
-        return $this->payerCountryCode;
+        return $this->payer;
     }
 
     public function phoneNumber(): ?string
     {
-        return $this->phoneNumber;
+        return $this->shipping?->phoneNumber() ?? $this->payer?->phoneNumber();
     }
 }

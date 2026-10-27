@@ -15,7 +15,10 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Factory\PayPalOrderDetailsFactory;
+use Sylius\PayPalPlugin\Model\Payer;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\PayPalShipping;
 
 final class PayPalOrderDetailsFactoryTest extends TestCase
 {
@@ -54,13 +57,8 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
     {
         $details = $this->factory->create($this->payPalOrder());
 
-        self::assertSame('John Doe', $details->shippingFullName());
-        self::assertSame(['address_line_1' => '1 Main St', 'admin_area_2' => 'San Jose', 'postal_code' => '95131', 'country_code' => 'US'], $details->shippingAddress());
-        self::assertSame('DHL', $details->selectedShippingOptionId());
-        self::assertSame('buyer@example.com', $details->payerEmail());
-        self::assertSame('John', $details->payerGivenName());
-        self::assertSame('Doe', $details->payerSurname());
-        self::assertSame('US', $details->payerCountryCode());
+        self::assertEquals(new PayPalShipping('John Doe', new PayPalAddress('1 Main St', null, 'San Jose', '95131', 'US'), 'DHL', '4089238291'), $details->shipping());
+        self::assertEquals(new Payer('buyer@example.com', 'John', 'Doe', 'US', '5551234'), $details->payer());
     }
 
     public function test_it_prefers_the_shipping_contact_phone_number_over_the_payer_one(): void
@@ -99,11 +97,8 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
         self::assertNull($details->capture());
         self::assertNull($details->authorization());
         self::assertSame([], $details->paymentSource());
-        self::assertNull($details->shippingFullName());
-        self::assertNull($details->shippingAddress());
-        self::assertNull($details->selectedShippingOptionId());
-        self::assertNull($details->payerEmail());
-        self::assertNull($details->payerCountryCode());
+        self::assertNull($details->shipping());
+        self::assertNull($details->payer());
         self::assertNull($details->phoneNumber());
     }
 
@@ -114,7 +109,23 @@ final class PayPalOrderDetailsFactoryTest extends TestCase
             ['id' => '', 'selected' => true],
         ]]]]]);
 
-        self::assertNull($details->selectedShippingOptionId());
+        self::assertNull($details->shipping()?->selectedOptionId());
+    }
+
+    public function test_it_reads_the_paypal_address(): void
+    {
+        self::assertEquals(
+            new PayPalAddress('1 Main St', 'TX', 'Dallas', '75001', 'US'),
+            $this->factory->createAddress(['address_line_1' => '1 Main St', 'admin_area_1' => 'TX', 'admin_area_2' => 'Dallas', 'postal_code' => '75001', 'country_code' => 'US']),
+        );
+    }
+
+    public function test_it_treats_blank_address_values_as_absent(): void
+    {
+        self::assertEquals(
+            new PayPalAddress(countryCode: 'DE'),
+            $this->factory->createAddress(['country_code' => ' DE ', 'admin_area_1' => '   ', 'admin_area_2' => '', 'postal_code' => ' ']),
+        );
     }
 
     /** @return array<string, mixed> */

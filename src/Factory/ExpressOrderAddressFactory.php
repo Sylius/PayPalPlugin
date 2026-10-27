@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFactoryInterface
@@ -29,20 +30,22 @@ final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFa
 
     public function createFromPayPalOrder(PayPalOrderDetails $payPalOrder): AddressInterface
     {
+        $shipping = $payPalOrder->shipping();
+        $payPalAddress = $shipping?->address() ?? new PayPalAddress();
+
         $address = $this->addressFactory->createNew();
         $address->setPhoneNumber($payPalOrder->phoneNumber());
 
-        $name = explode(' ', (string) $payPalOrder->shippingFullName());
+        $name = explode(' ', (string) $shipping?->fullName());
         /** @phpstan-ignore-next-line false positive */
         $address->setLastName(array_pop($name) ?? '');
         $address->setFirstName(implode(' ', $name));
 
-        $shippingAddress = $payPalOrder->shippingAddress() ?? [];
-        $address->setStreet($shippingAddress['address_line_1'] ?? null);
-        $address->setCity($shippingAddress['admin_area_2'] ?? null);
-        $address->setPostcode($shippingAddress['postal_code'] ?? null);
-        $address->setCountryCode($shippingAddress['country_code'] ?? null);
-        $this->applyProvince($address, $shippingAddress);
+        $address->setStreet($payPalAddress->addressLine1());
+        $address->setCity($payPalAddress->adminArea2());
+        $address->setPostcode($payPalAddress->postalCode());
+        $address->setCountryCode($payPalAddress->countryCode());
+        $this->applyProvince($address, $payPalAddress);
 
         return $address;
     }
@@ -67,8 +70,7 @@ final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFa
         return $address;
     }
 
-    /** @param array<string, mixed> $payPalAddress */
-    private function applyProvince(AddressInterface $address, array $payPalAddress): void
+    private function applyProvince(AddressInterface $address, PayPalAddress $payPalAddress): void
     {
         if (null === $this->shippingAddressFactory) {
             return;
