@@ -49,8 +49,13 @@ final class RegisterWebhookEventTypesCommand extends Command
             }
 
             try {
-                $this->registrar->register($paymentMethod);
-                $io->success(sprintf('Updated the webhook of "%s".', (string) $paymentMethod->getCode()));
+                $registration = $this->registrar->register($paymentMethod);
+                $io->success(sprintf(
+                    $registration->isNew() ? 'Registered webhook %s of "%s" at %s.' : 'Updated webhook %s of "%s" to point at %s.',
+                    $registration->id(),
+                    (string) $paymentMethod->getCode(),
+                    $registration->url(),
+                ));
             } catch (\Throwable $exception) {
                 $failed = true;
                 $io->error(sprintf(

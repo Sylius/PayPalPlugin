@@ -15,9 +15,10 @@ namespace Sylius\PayPalPlugin\Registrar;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 
 interface SellerWebhookEventTypesRegistrarInterface
 {
     /** @throws PayPalWebhookNotRegisteredException */
-    public function register(PaymentMethodInterface $paymentMethod): void;
+    public function register(PaymentMethodInterface $paymentMethod): WebhookRegistration;
 }

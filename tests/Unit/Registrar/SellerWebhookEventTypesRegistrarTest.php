@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
@@ -82,7 +83,10 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         ;
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
-        $this->registrar->register($this->paymentMethod);
+        self::assertEquals(
+            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', false),
+            $this->registrar->register($this->paymentMethod),
+        );
     }
 
     public function test_it_registers_a_webhook_for_a_shop_that_has_none(): void
@@ -98,7 +102,10 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         ;
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
-        $this->registrar->register($this->paymentMethod);
+        self::assertEquals(
+            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', true),
+            $this->registrar->register($this->paymentMethod),
+        );
     }
 
     public function test_it_reports_a_registration_paypal_refused(): void
