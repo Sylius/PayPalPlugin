@@ -1,0 +1,19 @@
+{% import '@SyliusAdmin/shared/helper/field/boolean.html.twig' as boolean %}
+
+{% set payment_method = hookable_metadata.context.payment_method %}
+
+{% if not hookable_metadata.context.legacy_layout %}
+    <div class="payment-method-list__meta d-flex flex-wrap align-items-center gap-4 fw-medium">
+        {% if payment_method.code is not null %}
+            <span class="d-inline-flex align-items-center gap-2">
+                {{ 'sylius.ui.code'|trans }}: <code class="payment-method-list__code px-2 py-1">{{ payment_method.code }}</code>
+            </span>
+        {% endif %}
+        <span class="d-inline-flex align-items-center gap-2">
+            {{ 'sylius.ui.gateway'|trans }}: <span>{{ 'sylius_paypal.label'|trans }}</span>
+        </span>
+        <span class="d-inline-flex align-items-center gap-2">
+            {{ 'sylius.ui.enabled'|trans }}: {{ boolean.default(payment_method.enabled) }}
+        </span>
+    </div>
+{% endif %}

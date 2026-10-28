@@ -34,6 +34,18 @@
    Then run `yarn install && yarn build`. To verify, load a product page and check that the browser fetches
    the controller chunk and the PayPal button loses its `hidden` attribute.
 
+1. **Add the plugin's admin entrypoint to your admin asset build.**
+
+   The admin payment method list shows the Pay Later and Trustly icons from the `app.admin` Encore build,
+   output to `public/build/app/admin` as in Sylius-Standard. Import the entrypoint in your
+   `assets/admin/entrypoint.js`:
+
+   ```js
+   import '../../vendor/sylius/paypal-plugin/assets/admin/entrypoint';
+   ```
+
+   Then run `yarn build`.
+
 1. **Enable the `JavaScript SDK v6` feature on the PayPal REST app behind your client id.**
 
    Do it in the PayPal Developer Dashboard, on the sandbox and the live app separately, and on the app that
@@ -281,6 +293,12 @@ Prerequisites the plugin cannot handle for you:
   Britain, Lithuania, Latvia, the Netherlands, Norway and Sweden, in `EUR`, `DKK`, `SEK`, `GBP` or `NOK`. There
   is no vaulting, no chargebacks and no shipping callback; refunds work for up to 365 days. Trustly does not
   exist in Web SDK v6, so the tile redirects to PayPal server-side and works even without the v6 app feature.
+
+In the admin payment method list a PayPal payment method is rendered like the suggested PayPal row: the PayPal
+logo, the payment sources its gateway config enables and a sandbox or production badge. The plugin overrides
+the `name` field of the `sylius_admin_payment_method` grid to do it and hands every other payment method to the
+Sylius template. The row is built from the `sylius_paypal.admin.payment_method.grid.field.name` hook, with a
+`badges` hook for further badges.
 
 ### Package tracking
 
