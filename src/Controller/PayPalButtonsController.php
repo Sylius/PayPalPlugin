@@ -51,10 +51,10 @@ final readonly class PayPalButtonsController
         private OrderRepositoryInterface $orderRepository,
         private AvailableCountriesProviderInterface $availableCountriesProvider,
         LocaleProcessorInterface $localeProcessor,
+        private PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
         private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
-        private ?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null,
     ) {
         if (null === $this->fundingSourcesConfigurationProvider) {
             trigger_deprecation(
@@ -216,13 +216,6 @@ final readonly class PayPalButtonsController
 
     private function getPaymentMethod(ChannelInterface $channel, string $code = ''): PaymentMethodInterface
     {
-        if (null === $this->payPalPaymentMethodsResolver) {
-            throw new \RuntimeException(sprintf(
-                'An instance of "%s" is required to render the v6 Web SDK placements.',
-                PayPalPaymentMethodsResolverInterface::class,
-            ));
-        }
-
         $paymentMethods = $this->payPalPaymentMethodsResolver->getInChannel($channel);
         foreach ($paymentMethods as $paymentMethod) {
             if ('' !== $code && $paymentMethod->getCode() === $code) {

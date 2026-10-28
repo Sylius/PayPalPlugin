@@ -999,5 +999,6 @@
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
-   | `Sylius\PayPalPlugin\Controller\PayPalButtonsController`, `Sylius\PayPalPlugin\Twig\PayPalExtension` | gained `PayPalPaymentMethodsResolverInterface` as the last argument |
+   | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |

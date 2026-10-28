@@ -45,13 +45,13 @@ final class PayPalExtension extends AbstractExtension
 
     public function __construct(
         private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
+        private readonly PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         private readonly ?ChannelContextInterface $channelContext = null,
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
         private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
         ?HostProviderInterface $hostProvider = null,
-        private readonly ?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null,
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
         $this->hostProvider = $hostProvider ?? new HostProvider();
@@ -202,7 +202,7 @@ final class PayPalExtension extends AbstractExtension
 
     private function channelPaymentMethod(): ?PaymentMethodInterface
     {
-        if (null === $this->payPalPaymentMethodsResolver || null === $this->channelContext) {
+        if (null === $this->channelContext) {
             return null;
         }
 

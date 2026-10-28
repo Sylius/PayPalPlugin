@@ -63,11 +63,11 @@ final class PayPalExtensionTest extends TestCase
         $this->payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod]);
         $this->extension = new PayPalExtension(
             $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $this->payPalPaymentMethodsResolver,
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
             currentLocaleProvider: new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
-            payPalPaymentMethodsResolver: $this->payPalPaymentMethodsResolver,
         );
     }
 
@@ -115,6 +115,7 @@ final class PayPalExtensionTest extends TestCase
     {
         $extension = new PayPalExtension(
             $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $this->payPalPaymentMethodsResolver,
         );
 
         self::assertFalse($extension->isMessagingEnabled());
@@ -149,6 +150,7 @@ final class PayPalExtensionTest extends TestCase
     {
         $extension = new PayPalExtension(
             $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $this->payPalPaymentMethodsResolver,
         );
 
         self::assertSame('', $extension->getWebSdkScriptUrl());
@@ -251,10 +253,10 @@ final class PayPalExtensionTest extends TestCase
         $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([]);
         $extension = new PayPalExtension(
             $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $payPalPaymentMethodsResolver,
             $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
-            payPalPaymentMethodsResolver: $payPalPaymentMethodsResolver,
         );
 
         $this->webSdkConfigurationProvider->expects(self::never())->method('getInstanceConfig');
@@ -268,6 +270,7 @@ final class PayPalExtensionTest extends TestCase
     {
         $extension = new PayPalExtension(
             $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $this->payPalPaymentMethodsResolver,
         );
 
         self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));

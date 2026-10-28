@@ -288,9 +288,9 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->orderRepository,
             $this->availableCountriesProvider,
             $this->localeProcessor,
+            $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
-            payPalPaymentMethodsResolver: $this->payPalPaymentMethodsResolver,
         );
         $controller->renderProductPageButtonsAction(Request::create('/'));
 
@@ -396,10 +396,10 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->orderRepository,
             $this->availableCountriesProvider,
             $this->localeProcessor,
+            $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
             $this->fundingSourcesConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
-            $this->payPalPaymentMethodsResolver,
         );
     }
 

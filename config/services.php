@@ -704,13 +704,13 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)
         ->args([
             service('sylius_paypal.factory.mode_switch_view'),
+            service('sylius_paypal.resolver.paypal_payment_methods'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius.context.channel'),
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
             service('sylius_paypal.provider.host'),
-            service('sylius_paypal.resolver.paypal_payment_methods'),
         ])
         ->tag('twig.extension');
 
