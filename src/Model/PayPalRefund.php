@@ -20,21 +20,18 @@ final readonly class PayPalRefund
     public function __construct(
         private string $id,
         private string $status,
+        private ?string $captureId = null,
     ) {
     }
 
-    /** @param array<string, mixed> $payPalOrderDetails */
-    public static function completedFromPayPalOrder(array $payPalOrderDetails): ?self
+    /** @param array<string, mixed> $refund */
+    public static function fromRefund(array $refund): ?self
     {
-        $refunds = $payPalOrderDetails['purchase_units'][0]['payments']['refunds'] ?? null;
-
-        foreach (array_reverse(is_array($refunds) ? $refunds : []) as $refund) {
-            if (is_array($refund) && is_string($refund['id'] ?? null) && self::STATUS_COMPLETED === ($refund['status'] ?? null)) {
-                return new self($refund['id'], self::STATUS_COMPLETED);
-            }
+        if (!is_string($refund['id'] ?? null) || !is_string($refund['status'] ?? null)) {
+            return null;
         }
 
-        return null;
+        return new self($refund['id'], $refund['status'], self::captureIdOf($refund));
     }
 
     public function id(): string
@@ -45,5 +42,33 @@ final readonly class PayPalRefund
     public function status(): string
     {
         return $this->status;
+    }
+
+    public function isCompleted(): bool
+    {
+        return self::STATUS_COMPLETED === $this->status;
+    }
+
+    public function captureId(): ?string
+    {
+        return $this->captureId;
+    }
+
+    /** @param array<string, mixed> $refund */
+    private static function captureIdOf(array $refund): ?string
+    {
+        $links = $refund['links'] ?? [];
+        foreach (is_array($links) ? $links : [] as $link) {
+            if (
+                is_array($link) &&
+                'up' === ($link['rel'] ?? null) &&
+                is_string($link['href'] ?? null) &&
+                1 === preg_match('#/v2/payments/captures/([^/?]+)$#', (string) parse_url($link['href'], \PHP_URL_PATH), $matches)
+            ) {
+                return $matches[1];
+            }
+        }
+
+        return null;
     }
 }

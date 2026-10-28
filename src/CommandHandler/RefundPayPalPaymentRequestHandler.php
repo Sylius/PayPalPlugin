@@ -97,6 +97,7 @@ final class RefundPayPalPaymentRequestHandler
         }
 
         $payPalOrderDetails = null;
+        $captureId = null;
 
         try {
             $payPalOrderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
@@ -107,8 +108,9 @@ final class RefundPayPalPaymentRequestHandler
                 return;
             }
 
+            $captureId = $capture->id();
             if (PayPalCapture::STATUS_REFUNDED === $capture->status()) {
-                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails->refund());
+                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails->completedRefundOf($captureId));
 
                 return;
             }
@@ -119,7 +121,7 @@ final class RefundPayPalPaymentRequestHandler
 
             $refund = $this->refundPaymentApi->refund(
                 $paymentMethod,
-                $capture->id(),
+                $captureId,
                 $this->payPalAuthAssertionGenerator->generate($paymentMethod),
                 $this->refundReferenceNumberProvider->provide($payment),
                 AmountUtils::toPayPalValue((int) $payment->getAmount(), $currencyCode),
@@ -128,7 +130,11 @@ final class RefundPayPalPaymentRequestHandler
             );
         } catch (PayPalApiException $exception) {
             if ($exception->hasIssue(self::CAPTURE_FULLY_REFUNDED)) {
-                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails?->refund());
+                $this->confirmRefundedOnPayPal(
+                    $paymentRequest,
+                    $payment,
+                    null === $captureId ? null : $payPalOrderDetails?->completedRefundOf($captureId),
+                );
 
                 return;
             }

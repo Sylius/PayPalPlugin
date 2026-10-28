@@ -106,8 +106,9 @@ final class RefundPayPalLateCapturePaymentRequestHandler
 
         try {
             $payPalOrderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
-            if (PayPalCapture::STATUS_REFUNDED === $payPalOrderDetails->capture()?->status()) {
-                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails->refund());
+            $capture = $payPalOrderDetails->capture();
+            if ($lateCapture['id'] === $capture?->id() && PayPalCapture::STATUS_REFUNDED === $capture->status()) {
+                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails->completedRefundOf($lateCapture['id']));
 
                 return;
             }
@@ -123,7 +124,7 @@ final class RefundPayPalLateCapturePaymentRequestHandler
             );
         } catch (PayPalApiException $exception) {
             if ($exception->hasIssue(self::CAPTURE_FULLY_REFUNDED)) {
-                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails?->refund());
+                $this->confirmRefundedOnPayPal($paymentRequest, $payment, $payPalOrderDetails?->completedRefundOf($lateCapture['id']));
 
                 return;
             }

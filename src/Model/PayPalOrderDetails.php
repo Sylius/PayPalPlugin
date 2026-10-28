@@ -15,7 +15,10 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class PayPalOrderDetails
 {
-    /** @param array<string, mixed> $paymentSource */
+    /**
+     * @param array<string, mixed> $paymentSource
+     * @param list<PayPalRefund> $refunds
+     */
     public function __construct(
         private string $id,
         private ?string $status = null,
@@ -28,7 +31,7 @@ final readonly class PayPalOrderDetails
         private array $paymentSource = [],
         private ?PayPalShipping $shipping = null,
         private ?Payer $payer = null,
-        private ?PayPalRefund $refund = null,
+        private array $refunds = [],
     ) {
     }
 
@@ -72,9 +75,21 @@ final readonly class PayPalOrderDetails
         return $this->capture;
     }
 
-    public function refund(): ?PayPalRefund
+    /** @return list<PayPalRefund> */
+    public function refunds(): array
     {
-        return $this->refund;
+        return $this->refunds;
+    }
+
+    public function completedRefundOf(string $captureId): ?PayPalRefund
+    {
+        foreach (array_reverse($this->refunds) as $refund) {
+            if ($refund->isCompleted() && $captureId === $refund->captureId()) {
+                return $refund;
+            }
+        }
+
+        return null;
     }
 
     public function authorization(): ?PayPalAuthorization

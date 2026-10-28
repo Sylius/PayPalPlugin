@@ -18,32 +18,42 @@ use Sylius\PayPalPlugin\Model\PayPalRefund;
 
 final class PayPalRefundTest extends TestCase
 {
-    public function test_it_reads_the_last_completed_refund_of_the_first_purchase_unit(): void
+    public function test_it_reads_the_refund_and_the_capture_it_refunds(): void
     {
-        $refund = PayPalRefund::completedFromPayPalOrder($this->payPalOrder([
-            ['id' => 'FIRST_REFUND_ID', 'status' => 'COMPLETED'],
-            ['id' => 'LAST_REFUND_ID', 'status' => 'COMPLETED'],
-            ['id' => 'FAILED_REFUND_ID', 'status' => 'FAILED'],
-        ]));
+        $refund = PayPalRefund::fromRefund([
+            'id' => 'REFUND_ID',
+            'status' => 'COMPLETED',
+            'links' => [
+                ['rel' => 'self', 'href' => 'https://api.sandbox.paypal.com/v2/payments/refunds/REFUND_ID'],
+                ['rel' => 'up', 'href' => 'https://api.sandbox.paypal.com/v2/payments/captures/CAPTURE_ID'],
+            ],
+        ]);
 
-        self::assertSame('LAST_REFUND_ID', $refund?->id());
+        self::assertSame('REFUND_ID', $refund?->id());
         self::assertSame('COMPLETED', $refund?->status());
+        self::assertTrue($refund?->isCompleted());
+        self::assertSame('CAPTURE_ID', $refund?->captureId());
     }
 
-    public function test_it_reads_no_refund_from_an_order_paypal_has_not_refunded(): void
+    public function test_it_reads_no_capture_without_a_link_up_to_it(): void
     {
-        self::assertNull(PayPalRefund::completedFromPayPalOrder([]));
-        self::assertNull(PayPalRefund::completedFromPayPalOrder(['purchase_units' => [['payments' => ['captures' => []]]]]));
-        self::assertNull(PayPalRefund::completedFromPayPalOrder($this->payPalOrder([['id' => 'REFUND_ID', 'status' => 'PENDING'], ['status' => 'COMPLETED']])));
+        self::assertNull(PayPalRefund::fromRefund(['id' => 'REFUND_ID', 'status' => 'PENDING'])?->captureId());
+        self::assertNull(PayPalRefund::fromRefund([
+            'id' => 'REFUND_ID',
+            'status' => 'PENDING',
+            'links' => [['rel' => 'up', 'href' => 'https://api.sandbox.paypal.com/v2/checkout/orders/ORDER_ID']],
+        ])?->captureId());
     }
 
-    /**
-     * @param list<array<string, mixed>> $refunds
-     *
-     * @return array<string, mixed>
-     */
-    private function payPalOrder(array $refunds): array
+    public function test_it_reads_no_refund_without_its_id_or_status(): void
     {
-        return ['purchase_units' => [['payments' => ['refunds' => $refunds]]]];
+        self::assertNull(PayPalRefund::fromRefund([]));
+        self::assertNull(PayPalRefund::fromRefund(['status' => 'COMPLETED']));
+        self::assertNull(PayPalRefund::fromRefund(['id' => 'REFUND_ID']));
+    }
+
+    public function test_it_is_completed_only_once_paypal_completes_it(): void
+    {
+        self::assertFalse((new PayPalRefund('REFUND_ID', 'PENDING'))->isCompleted());
     }
 }

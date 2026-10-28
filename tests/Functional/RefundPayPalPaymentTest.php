@@ -115,7 +115,11 @@ final class RefundPayPalPaymentTest extends JsonApiTestCase
     public function test_it_records_the_refund_paypal_already_made_without_refunding_the_payment_again(): void
     {
         $form = $this->refundForm();
-        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'REFUNDED', refunds: [['id' => 'REFUND_ID', 'status' => 'COMPLETED']]);
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'REFUNDED', refunds: [[
+            'id' => 'REFUND_ID',
+            'status' => 'COMPLETED',
+            'links' => [['rel' => 'up', 'href' => 'https://api.sandbox.paypal.com/v2/payments/captures/CAPTURE_ID']],
+        ]]);
         $this->client->submit($form);
 
         self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
