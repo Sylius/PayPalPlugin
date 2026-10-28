@@ -29,6 +29,11 @@ final class PaymentMethodListElement extends Element implements PaymentMethodLis
         return $this->getRow($paymentMethodName)->find('css', '[data-test-paypal-mode]')?->getAttribute('data-test-paypal-mode');
     }
 
+    public function getMorePaymentSources(string $paymentMethodName): ?string
+    {
+        return $this->getRow($paymentMethodName)->find('css', '[data-test-paypal-more-payment-sources]')?->getAttribute('data-bs-title');
+    }
+
     public function hasSuggestedPayPalPaymentMethod(): bool
     {
         return $this->getDocument()->has('css', '.payment-method-list__item--suggested.payment-method-list__item--paypal');

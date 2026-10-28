@@ -90,6 +90,12 @@ final readonly class ManagingPaymentMethodsContext implements Context
         Assert::false($this->paymentMethodListElement->hasPaymentSource($paymentMethodName, $this->paymentSourceCode($paymentSource)));
     }
 
+    #[Then('the :paymentMethodName payment method should hide :paymentSources under "and more"')]
+    public function thePaymentMethodShouldHideUnderAndMore(string $paymentMethodName, string $paymentSources): void
+    {
+        Assert::same($this->paymentMethodListElement->getMorePaymentSources($paymentMethodName), $paymentSources);
+    }
+
     #[Then('the :paymentMethodName payment method should be marked as working in sandbox mode')]
     public function thePaymentMethodShouldBeMarkedAsWorkingInSandboxMode(string $paymentMethodName): void
     {

@@ -24,6 +24,8 @@ sylius_twig_hooks:
             methods:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/methods.html.twig'
                 priority: 200
+                configuration:
+                    limit: 6
             meta:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/meta.html.twig'
                 priority: 100

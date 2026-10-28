@@ -19,5 +19,7 @@ interface PaymentMethodListElementInterface
 
     public function getMode(string $paymentMethodName): ?string;
 
+    public function getMorePaymentSources(string $paymentMethodName): ?string;
+
     public function hasSuggestedPayPalPaymentMethod(): bool;
 }
