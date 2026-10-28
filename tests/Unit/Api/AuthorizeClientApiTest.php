@@ -44,10 +44,10 @@ final class AuthorizeClientApiTest extends TestCase
     {
         $this->payPalClient
             ->method('authorize')
-            ->with('CLIENT_ID', 'CLIENT_SECRET')
+            ->with('CLIENT_ID', 'CLIENT_SECRET', true)
             ->willReturn(['access_token' => 'TOKEN']);
 
-        $result = $this->authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET');
+        $result = $this->authorizeClientApi->authorize('CLIENT_ID', 'CLIENT_SECRET', true);
 
         self::assertEquals('TOKEN', $result);
     }

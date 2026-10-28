@@ -13,10 +13,17 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Exception;
 
+use Sylius\PayPalPlugin\Model\OnboardingStatus;
+
 final class PaymentMethodCouldNotBeEnabledException extends \Exception
 {
-    public function __construct()
+    public function __construct(private readonly ?OnboardingStatus $onboardingStatus = null)
     {
         parent::__construct('PayPal payment method could not be enabled');
+    }
+
+    public function getOnboardingStatus(): ?OnboardingStatus
+    {
+        return $this->onboardingStatus;
     }
 }

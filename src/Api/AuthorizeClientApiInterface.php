@@ -15,5 +15,5 @@ namespace Sylius\PayPalPlugin\Api;
 
 interface AuthorizeClientApiInterface
 {
-    public function authorize(string $clientId, string $clientSecret): string;
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): string;
 }

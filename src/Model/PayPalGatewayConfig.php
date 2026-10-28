@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class PayPalGatewayConfig
@@ -24,13 +25,9 @@ final readonly class PayPalGatewayConfig
 
     public const MERCHANT_ID = 'merchant_id';
 
-    public const SYLIUS_MERCHANT_ID = 'sylius_merchant_id';
-
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
 
     public const USE_AUTHORIZE = 'use_authorize';
-
-    public const ONBOARDING_ID = 'onboarding_id';
 
     public const WEBHOOK_ID = 'webhook_id';
 
@@ -86,16 +83,6 @@ final readonly class PayPalGatewayConfig
         return $this->required(self::MERCHANT_ID);
     }
 
-    public function syliusMerchantId(): string
-    {
-        return $this->required(self::SYLIUS_MERCHANT_ID);
-    }
-
-    public function hasSyliusMerchantId(): bool
-    {
-        return isset($this->config[self::SYLIUS_MERCHANT_ID]);
-    }
-
     public function partnerAttributionId(): string
     {
         return $this->required(self::PARTNER_ATTRIBUTION_ID);
@@ -144,6 +131,11 @@ final readonly class PayPalGatewayConfig
     public function isApplePayEnabled(): bool
     {
         return $this->flag(self::APPLE_PAY_ENABLED, false);
+    }
+
+    public function isSandbox(): bool
+    {
+        return $this->flag(CredentialsManagerInterface::MODE_KEY, false);
     }
 
     public function isCardThreeDSecureAlways(): bool

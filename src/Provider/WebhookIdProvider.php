@@ -13,9 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class WebhookIdProvider implements WebhookIdProviderInterface
@@ -26,7 +28,7 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         private GenericApiInterface $genericApi,
         private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
-        private string $baseUrl,
+        private HostProviderInterface $hostProvider,
         private string $webhookBaseUrl = '',
         ?WebhookUrlProviderInterface $webhookUrlProvider = null,
     ) {
@@ -39,7 +41,11 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
 
         $webhookUrl = $this->webhookUrlProvider->provide();
 
-        $data = $this->genericApi->get($token, $this->baseUrl . 'v1/notifications/webhooks');
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $sandbox = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
+
+        $data = $this->genericApi->get($token, $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/notifications/webhooks');
 
         /** @var array<array{id?: string, url?: string}> $webhooks */
         $webhooks = $data['webhooks'] ?? [];

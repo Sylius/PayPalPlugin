@@ -96,10 +96,10 @@ final readonly class ManagingPaymentMethodsContext implements Context
         Assert::same($this->paymentMethodListElement->getMorePaymentSources($paymentMethodName), $paymentSources);
     }
 
-    #[Then('the :paymentMethodName payment method should be marked as working in sandbox mode')]
-    public function thePaymentMethodShouldBeMarkedAsWorkingInSandboxMode(string $paymentMethodName): void
+    #[Then('/^the "([^"]+)" payment method should be marked as working in (sandbox|production) mode$/')]
+    public function thePaymentMethodShouldBeMarkedAsWorkingInMode(string $paymentMethodName, string $mode): void
     {
-        Assert::same($this->paymentMethodListElement->getMode($paymentMethodName), 'sandbox');
+        Assert::same($this->paymentMethodListElement->getMode($paymentMethodName), $mode);
     }
 
     #[Then('I should not see PayPal suggested as a payment method')]
