@@ -4,3 +4,8 @@ sylius_paypal:
         carrier_name_other_required: 'Podaj nazwę przewoźnika, gdy wybrano „Inny”.'
         tracking_code_required: 'Podaj kod śledzenia, gdy wybrano przewoźnika.'
         tracking_code_too_long: 'Kod śledzenia może mieć najwyżej {{ limit }} znaki, aby można go było wysłać do PayPal.'
+    payment_request:
+        action_not_allowed: 'Akcji „{{ action }}” nie można zlecić dla płatności PayPal.'
+        payload_invalid: 'Payload może zawierać tylko „payment_source”, którym ma zostać opłacona płatność.'
+        payment_method_not_available: 'Ta metoda płatności PayPal nie jest dostępna w kanale zamówienia.'
+        payment_source_not_available: 'Źródło płatności „{{ payment_source }}” nie jest dostępne dla tej metody płatności.'

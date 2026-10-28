@@ -1027,3 +1027,15 @@
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
    | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
+
+1. #### A PayPal Payment Request created through the shop API is validated.
+
+   `POST /api/v2/shop/orders/{tokenValue}/payment-requests` and `PUT /api/v2/shop/payment-requests/{hash}` of a PayPal
+   payment method answer `422` unless:
+
+   - the action is `capture` or `authorize`;
+   - the payment method is a PayPal payment method of the order's channel;
+   - the payload is `{"payment_source": "<source>"}` with a payment source enabled for the payment method. No other key
+     is accepted.
+
+   The payload of a `PUT` is checked only while the Payment Request is `new`.
