@@ -27,8 +27,6 @@ use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -45,8 +43,6 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private LocaleContextInterface&MockObject $localeContext;
 
-    private PayPalConfigurationProviderInterface&MockObject $payPalConfigurationProvider;
-
     /** @var OrderRepositoryInterface<OrderInterface>&MockObject */
     private OrderRepositoryInterface&MockObject $orderRepository;
 
@@ -55,8 +51,6 @@ final class PayPalButtonsControllerTest extends TestCase
     private LocaleProcessorInterface&MockObject $localeProcessor;
 
     private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
-
-    private PayPalFundingSourcesConfigurationProviderInterface&MockObject $fundingSourcesConfigurationProvider;
 
     private ChannelInterface&MockObject $channel;
 
@@ -82,12 +76,10 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->router = $this->createMock(UrlGeneratorInterface::class);
         $this->channelContext = $this->createMock(ChannelContextInterface::class);
         $this->localeContext = $this->createMock(LocaleContextInterface::class);
-        $this->payPalConfigurationProvider = $this->createMock(PayPalConfigurationProviderInterface::class);
         $this->orderRepository = $this->createMock(OrderRepositoryInterface::class);
         $this->availableCountriesProvider = $this->createMock(AvailableCountriesProviderInterface::class);
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
         $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
-        $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
 
         $this->channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($this->channel);
@@ -122,6 +114,7 @@ final class PayPalButtonsControllerTest extends TestCase
     public function test_it_initialises_the_sdk_with_the_first_paypal_payment_method_of_the_channel(): void
     {
         $this->twig->method('render')->willReturn('');
+        $this->payPalPaymentMethodsResolver->expects(self::once())->method('getInChannel');
         $this->webSdkConfigurationProvider->expects(self::once())->method('getScriptUrl')->with($this->paymentMethod)->willReturn('SCRIPT_URL');
 
         $this->controller->renderProductPageButtonsAction(Request::create('/'));
@@ -130,10 +123,9 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_passes_paylater_enabled_to_the_product_page_template(): void
+    public function it_passes_the_configuration_of_the_first_paypal_payment_method_to_the_product_page_template(): void
     {
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(true);
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(false);
+        $this->channelPaymentMethods[] = $this->payPalMethod('PAYPAL_2', ['client_id' => 'SECOND_CLIENT_ID', 'venmo_enabled' => true]);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -146,19 +138,26 @@ final class PayPalButtonsControllerTest extends TestCase
 
         $this->controller->renderProductPageButtonsAction(Request::create('/'));
 
+        self::assertSame('CLIENT_ID', $capturedContext['clientId']);
+        self::assertSame('BN', $capturedContext['partnerAttributionId']);
         self::assertTrue($capturedContext['paylaterEnabled']);
         self::assertFalse($capturedContext['venmoEnabled']);
     }
 
     #[Test]
-    public function it_passes_paylater_enabled_to_the_cart_page_template(): void
+    public function it_passes_the_configuration_of_the_first_paypal_payment_method_to_the_cart_page_template(): void
     {
         $order = $this->createMock(OrderInterface::class);
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getTotal')->willReturn(3050);
         $this->orderRepository->method('find')->willReturn($order);
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->with($this->channel)->willReturn(false);
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+        $paymentMethod = $this->payPalMethod('PAYPAL', [
+            'client_id' => 'CART_CLIENT_ID',
+            'partner_attribution_id' => 'CART_BN',
+            'pay_later_enabled' => false,
+            'venmo_enabled' => true,
+        ]);
+        $this->channelPaymentMethods = [$paymentMethod, $this->paymentMethod];
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -171,9 +170,12 @@ final class PayPalButtonsControllerTest extends TestCase
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
 
+        self::assertSame('CART_CLIENT_ID', $capturedContext['clientId']);
+        self::assertSame('CART_BN', $capturedContext['partnerAttributionId']);
         self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertSame('30.50', $capturedContext['amount']);
         self::assertTrue($capturedContext['venmoEnabled']);
+        self::assertSame($paymentMethod, $this->capturedInstanceConfigArgs[0]);
     }
 
     #[Test]
@@ -232,13 +234,13 @@ final class PayPalButtonsControllerTest extends TestCase
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getTotal')->willReturn(3050);
         $this->orderRepository->method('find')->willReturn($order);
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(true);
+        $paymentMethod = $this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'venmo_enabled' => true]);
+        $this->channelPaymentMethods = [$paymentMethod];
 
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with($this->paymentMethod, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
+            ->with($paymentMethod, 'cart', ['paypal-payments', 'venmo-payments'], 'pl_PL')
             ->willReturn(['clientId' => 'CLIENT_ID']);
 
         $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]));
@@ -251,9 +253,6 @@ final class PayPalButtonsControllerTest extends TestCase
         $order->method('getCurrencyCode')->willReturn('USD');
         $order->method('getTotal')->willReturn(3050);
         $this->orderRepository->method('find')->willReturn($order);
-        $this->fundingSourcesConfigurationProvider->method('isPayLaterEnabled')->willReturn(false);
-        $this->fundingSourcesConfigurationProvider->method('isVenmoEnabled')->with($this->channel)->willReturn(false);
-
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
@@ -284,13 +283,11 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->router,
             $this->channelContext,
             $this->localeContext,
-            $this->payPalConfigurationProvider,
             $this->orderRepository,
             $this->availableCountriesProvider,
             $this->localeProcessor,
             $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
-            $this->fundingSourcesConfigurationProvider,
         );
         $controller->renderProductPageButtonsAction(Request::create('/'));
 
@@ -354,13 +351,12 @@ final class PayPalButtonsControllerTest extends TestCase
     #[Test]
     public function it_returns_an_empty_response_when_no_pay_pal_payment_method_is_configured(): void
     {
-        $this->payPalConfigurationProvider
-            ->method('getClientId')
-            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+        $this->channelPaymentMethods = [];
+        $this->orderRepository->method('find')->willReturn($this->order(3000));
+        $this->twig->expects(self::never())->method('render');
 
-        $response = $this->controller->renderProductPageButtonsAction(Request::create('/'));
-
-        self::assertSame('', $response->getContent());
+        self::assertSame('', $this->controller->renderProductPageButtonsAction(Request::create('/'))->getContent());
+        self::assertSame('', $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]))->getContent());
     }
 
     #[Test]
@@ -392,13 +388,11 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->router,
             $this->channelContext,
             $this->localeContext,
-            $this->payPalConfigurationProvider,
             $this->orderRepository,
             $this->availableCountriesProvider,
             $this->localeProcessor,
             $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
-            $this->fundingSourcesConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
         );
     }
