@@ -29,10 +29,13 @@ final readonly class PaymentRefundApplicator implements PaymentRefundApplicatorI
     {
         $paymentMethod = $data->getMethod();
         if (
-            PaymentInterface::STATE_COMPLETED !== $data->getState() ||
             !$paymentMethod instanceof PaymentMethodInterface ||
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()
         ) {
+            throw new StateMachineTransitionFailedException('The payment was not paid with PayPal.');
+        }
+
+        if (PaymentInterface::STATE_COMPLETED !== $data->getState()) {
             throw new StateMachineTransitionFailedException(sprintf(
                 'Only a completed PayPal payment can be refunded through PayPal, the payment is "%s".',
                 (string) $data->getState(),

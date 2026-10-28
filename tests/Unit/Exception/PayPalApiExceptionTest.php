@@ -62,13 +62,26 @@ final class PayPalApiExceptionTest extends TestCase
         self::assertSame('UNPROCESSABLE_ENTITY', $exception->getErrorName());
         self::assertSame('The requested action could not be performed.', $exception->getErrorMessage());
         self::assertSame(['INSTRUMENT_DECLINED'], $exception->getIssues());
+        self::assertSame(['The instrument was declined.'], $exception->getIssueDescriptions());
         self::assertTrue($exception->hasIssue('INSTRUMENT_DECLINED'));
         self::assertFalse($exception->hasIssue('PAYER_ACTION_REQUIRED'));
         self::assertSame('HEADER_DEBUG_ID', $exception->getDebugId());
         self::assertSame(
-            'PayPal rejected the "POST v2/checkout/orders/ORDER_ID/capture" request with HTTP 422: UNPROCESSABLE_ENTITY The requested action could not be performed. [INSTRUMENT_DECLINED] (debug id: HEADER_DEBUG_ID)',
+            'PayPal rejected the "POST v2/checkout/orders/ORDER_ID/capture" request with HTTP 422: UNPROCESSABLE_ENTITY The instrument was declined. [INSTRUMENT_DECLINED] (debug id: HEADER_DEBUG_ID)',
             $exception->getMessage(),
         );
+    }
+
+    public function test_it_describes_the_error_with_its_message_when_paypal_gives_no_issue_description(): void
+    {
+        $exception = PayPalApiException::fromResponse('POST', 'v2/payments/captures/CAPTURE_ID/refund', $this->response(422, (string) json_encode([
+            'name' => 'UNPROCESSABLE_ENTITY',
+            'message' => 'The requested action could not be performed.',
+            'details' => [['issue' => 'REFUND_AMOUNT_EXCEEDED']],
+        ])));
+
+        self::assertSame([], $exception->getIssueDescriptions());
+        self::assertSame('UNPROCESSABLE_ENTITY The requested action could not be performed. [REFUND_AMOUNT_EXCEEDED]', $exception->getDescription());
     }
 
     public function test_it_takes_the_debug_id_from_the_body_when_the_header_is_missing(): void

@@ -19,7 +19,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 abstract class PayPalApiException extends \RuntimeException
 {
-    /** @param list<string> $issues */
+    /**
+     * @param list<string> $issues
+     * @param list<string> $issueDescriptions
+     */
     public function __construct(
         private readonly string $method,
         private readonly string $path,
@@ -29,6 +32,7 @@ abstract class PayPalApiException extends \RuntimeException
         private readonly array $issues = [],
         private readonly ?string $debugId = null,
         ?\Throwable $previous = null,
+        private readonly array $issueDescriptions = [],
     ) {
         parent::__construct(
             null === $statusCode
@@ -46,9 +50,15 @@ abstract class PayPalApiException extends \RuntimeException
         $content = is_array($content) ? $content : [];
 
         $issues = [];
+        $issueDescriptions = [];
         foreach (is_array($content['details'] ?? null) ? $content['details'] : [] as $detail) {
-            if (is_array($detail) && is_string($detail['issue'] ?? null)) {
-                $issues[] = $detail['issue'];
+            if (!is_array($detail) || !is_string($detail['issue'] ?? null)) {
+                continue;
+            }
+
+            $issues[] = $detail['issue'];
+            if (null !== $description = self::stringOrNull($detail['description'] ?? null)) {
+                $issueDescriptions[] = $description;
             }
         }
 
@@ -65,6 +75,7 @@ abstract class PayPalApiException extends \RuntimeException
             self::stringOrNull($content['message'] ?? $content['error_description'] ?? null),
             $issues,
             $debugId,
+            'issueDescriptions' => $issueDescriptions,
         ];
 
         return match (true) {
@@ -111,6 +122,12 @@ abstract class PayPalApiException extends \RuntimeException
         return $this->issues;
     }
 
+    /** @return list<string> */
+    public function getIssueDescriptions(): array
+    {
+        return $this->issueDescriptions;
+    }
+
     public function hasIssue(string $issue): bool
     {
         return in_array($issue, $this->issues, true);
@@ -123,7 +140,8 @@ abstract class PayPalApiException extends \RuntimeException
 
     public function getDescription(): string
     {
-        $parts = array_values(array_filter([$this->errorName, $this->errorMessage], static fn (?string $part): bool => null !== $part));
+        $message = [] !== $this->issueDescriptions ? implode(' ', $this->issueDescriptions) : $this->errorMessage;
+        $parts = array_values(array_filter([$this->errorName, $message], static fn (?string $part): bool => null !== $part));
         if ([] === $parts) {
             $parts[] = 'unknown error';
         }

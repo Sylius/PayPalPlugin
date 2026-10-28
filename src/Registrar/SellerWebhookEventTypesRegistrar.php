@@ -19,6 +19,7 @@ use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
@@ -34,7 +35,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
     ) {
     }
 
-    public function register(PaymentMethodInterface $paymentMethod): void
+    public function register(PaymentMethodInterface $paymentMethod): WebhookRegistration
     {
         $webhookUrl = $this->webhookUrlProvider->provide($paymentMethod);
         $webhookId = $this->webhookIdProvider->refresh($paymentMethod);
@@ -43,7 +44,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
             $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
             $this->webhookIdUpdater->update($paymentMethod, $webhookId);
 
-            return;
+            return new WebhookRegistration($webhookId, $webhookUrl, false);
         }
 
         try {
@@ -57,5 +58,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         }
 
         $this->webhookIdUpdater->update($paymentMethod, (string) $response['id']);
+
+        return new WebhookRegistration((string) $response['id'], $webhookUrl, true);
     }
 }

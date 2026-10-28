@@ -467,7 +467,9 @@
    | `PayPalApiRequestException` | PayPal answered any other status, such as `400`, `403` or `422` |
 
    The exception carries the request method and path, the status, PayPal's error name and message, the issues of
-   its `details` (`getIssues()`, `hasIssue()`) and the `PayPal-Debug-Id` (`getDebugId()`).
+   its `details` (`getIssues()`, `hasIssue()`) with their descriptions (`getIssueDescriptions()`) and the
+   `PayPal-Debug-Id` (`getDebugId()`). `getDescription()` puts the issue descriptions in place of PayPal's general
+   message when PayPal gives them.
 
    The following exceptions have been removed:
 
@@ -687,8 +689,12 @@
       payment method it finds the webhook registered on its notify URL or on `/paypal-webhook/api/`, points it at
       `/payment-methods/{code}` through a PATCH, so its id stays the same, subscribes it to the events above and
       stores its id. It registers a new webhook only when it finds none, so it can be run again.
-   3. Check that it reports `Updated the webhook of "<code>".` for every PayPal payment method and exits with `0`.
-      A webhook it could not update stays where it was: fix the URL and run it again.
+   3. Check that it reports `Updated webhook <id> of "<code>" to point at <url>.` (or `Registered webhook <id> of
+      "<code>" at <url>.` for a new one) with the public URL of the shop for every PayPal payment method and exits
+      with `0`. A webhook it could not update stays where it was: fix the URL and run it again.
+
+   `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
+   it made: the webhook id, its URL and whether it was registered anew.
 
    Until the command runs, PayPal gets a `404` from `/paypal-webhook/api/` for every event. A webhook moved before
    the new release is live gets an error from `/payment-methods/{code}` until it is, as the old release has no PayPal
