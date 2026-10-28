@@ -39,6 +39,7 @@ final class PaymentCaptureApplicatorTest extends TestCase
         $dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(StateMachineTransitionFailedException::class);
+        $this->expectExceptionMessage('Only an authorized PayPal payment can be captured through PayPal, the payment is "completed".');
 
         (new PaymentCaptureApplicator($dispatcher))->capture($this->payment('sylius_paypal', PaymentInterface::STATE_COMPLETED));
     }
@@ -49,6 +50,7 @@ final class PaymentCaptureApplicatorTest extends TestCase
         $dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(StateMachineTransitionFailedException::class);
+        $this->expectExceptionMessage('The payment was not paid with PayPal.');
 
         (new PaymentCaptureApplicator($dispatcher))->capture($this->payment('offline', PaymentInterface::STATE_AUTHORIZED));
     }
