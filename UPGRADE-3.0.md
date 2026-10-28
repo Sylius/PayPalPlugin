@@ -969,6 +969,9 @@
    partner attribution id, mode and the enabled payment sources from the payment method of the Payment Request being
    paid.
 
+   The PayPal Web SDK can be loaded from one host per page only, so on a page that shows PayPal payment methods of
+   both modes, the buttons and Pay Later messages of the methods of the mode loaded second are not rendered.
+
    ```diff
     // Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface
    -public function getScriptUrl(): string;
