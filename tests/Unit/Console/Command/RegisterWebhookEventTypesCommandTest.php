@@ -20,6 +20,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -44,14 +45,35 @@ final class RegisterWebhookEventTypesCommandTest extends TestCase
         );
     }
 
-    public function test_it_updates_every_paypal_payment_method(): void
+    public function test_it_reports_the_webhook_it_pointed_at_the_notify_url_of_every_paypal_payment_method(): void
     {
         $paymentMethod = $this->paymentMethod('sylius_paypal');
         $this->paymentMethodRepository->method('findAll')->willReturn([$paymentMethod]);
 
-        $this->registrar->expects(self::once())->method('register')->with($paymentMethod);
+        $this->registrar
+            ->expects(self::once())
+            ->method('register')
+            ->with($paymentMethod)
+            ->willReturn(new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false))
+        ;
 
         self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
+        self::assertStringContainsString(
+            'Updated webhook WH-123 of "PAYPAL" to point at https://shop.example.com/payment-methods/PAYPAL.',
+            $this->normalizedDisplay(),
+        );
+    }
+
+    public function test_it_reports_the_webhook_it_registered(): void
+    {
+        $this->paymentMethodRepository->method('findAll')->willReturn([$this->paymentMethod('sylius_paypal')]);
+        $this->registrar->method('register')->willReturn(new WebhookRegistration('WH-NEW', 'https://shop.example.com/payment-methods/PAYPAL', true));
+
+        self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
+        self::assertStringContainsString(
+            'Registered webhook WH-NEW of "PAYPAL" at https://shop.example.com/payment-methods/PAYPAL.',
+            $this->normalizedDisplay(),
+        );
     }
 
     public function test_it_leaves_other_gateways_alone(): void
@@ -71,15 +93,22 @@ final class RegisterWebhookEventTypesCommandTest extends TestCase
 
         $this->registrar
             ->method('register')
-            ->willReturnCallback(static function (PaymentMethodInterface $paymentMethod): void {
+            ->willReturnCallback(static function (PaymentMethodInterface $paymentMethod): WebhookRegistration {
                 if ('PAYPAL_OLD' === $paymentMethod->getCode()) {
                     throw new PayPalWebhookNotRegisteredException('PAYPAL_OLD');
                 }
+
+                return new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false);
             })
         ;
 
         self::assertSame(Command::FAILURE, $this->commandTester->execute([]));
         self::assertStringContainsString('PAYPAL_OLD', $this->commandTester->getDisplay());
+    }
+
+    private function normalizedDisplay(): string
+    {
+        return (string) preg_replace('/\s+/', ' ', $this->commandTester->getDisplay());
     }
 
     private function paymentMethod(string $factoryName, string $code = 'PAYPAL'): PaymentMethodInterface&MockObject
