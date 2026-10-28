@@ -35,13 +35,12 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
 
     public function provideCandidates(PaymentMethodInterface $paymentMethod): array
     {
-        $urls = [];
-        foreach ($this->baseUrls($paymentMethod) as $baseUrl) {
-            $urls[] = $this->notifyUrl($paymentMethod, $baseUrl);
-            $urls[] = $this->legacyUrl($baseUrl);
-        }
+        $baseUrls = $this->baseUrls($paymentMethod);
 
-        return array_values(array_unique($urls));
+        return array_values(array_unique([
+            ...array_map(fn (?string $baseUrl): string => $this->notifyUrl($paymentMethod, $baseUrl), $baseUrls),
+            ...array_map(fn (?string $baseUrl): string => $this->legacyUrl($baseUrl), $baseUrls),
+        ]));
     }
 
     /** @return non-empty-list<string|null> the base URLs to try, null standing for the request context */

@@ -709,10 +709,10 @@
    back to the request context (`framework.router.default_uri`). `WebhookUrlProvider` takes the `request_stack` for
    that.
 
-   `WebhookIdProvider` looks the webhook up by the notify URL and then by `/paypal-webhook/api/` on every host it may
-   have been registered on (`WebhookUrlProviderInterface::provideCandidates()`): the configured base URL, the request
-   host and the hostnames of the enabled channels of the payment method, so a webhook registered on the admin host or
-   on another channel is found and moved instead of a second one being registered.
+   `WebhookIdProvider` looks the webhook up by the notify URL on every host it may have been registered on and only then
+   by `/paypal-webhook/api/` on them (`WebhookUrlProviderInterface::provideCandidates()`): the configured base URL, the
+   request host and the hostnames of the enabled channels of the payment method, so a webhook registered on the admin
+   host or on another channel is found and moved instead of a second one being registered.
    It is the `sylius_paypal.provider.webhook_id.lookup` service; `sylius_paypal.provider.webhook_id` is the
    `PersistingWebhookIdProvider` wrapping it instead of decorating it.
    `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal

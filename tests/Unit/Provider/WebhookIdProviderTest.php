@@ -108,6 +108,17 @@ final class WebhookIdProviderTest extends TestCase
         self::assertSame('WH-NOTIFY', $this->createProvider()->provide($this->paymentMethod()));
     }
 
+    public function test_it_prefers_the_webhook_moved_to_the_notify_url_of_another_host_to_the_one_left_on_the_legacy_url_of_the_request_host(): void
+    {
+        $this->mockGeneratedUrls();
+        $this->mockRegisteredWebhooks([
+            ['id' => 'WH-LEGACY', 'url' => self::LEGACY_URL],
+            ['id' => 'WH-NOTIFY', 'url' => 'https://www.shop.example.com/payment-methods/PAYPAL'],
+        ]);
+
+        self::assertSame('WH-NOTIFY', $this->createProvider()->provide($this->paymentMethod(true, 'PAYPAL', 'www.shop.example.com')));
+    }
+
     public function test_it_does_not_take_the_webhook_of_a_payment_method_whose_code_starts_the_same(): void
     {
         $this->mockGeneratedUrls();

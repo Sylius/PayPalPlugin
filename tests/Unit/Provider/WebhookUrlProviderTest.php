@@ -93,17 +93,17 @@ final class WebhookUrlProviderTest extends TestCase
         }
     }
 
-    public function test_it_lists_the_notify_and_legacy_urls_on_every_host_the_webhook_may_be_registered_on(): void
+    public function test_it_lists_the_notify_urls_and_then_the_legacy_urls_on_every_host_the_webhook_may_be_registered_on(): void
     {
         $paymentMethod = $this->paymentMethod('shop.example.com', 'www.shop.example.com', 'localhost');
 
         self::assertSame(
             [
                 'https://admin.example.com/payment-methods/PAYPAL',
-                'https://admin.example.com/paypal-webhook/api/',
                 'https://shop.example.com/payment-methods/PAYPAL',
-                'https://shop.example.com/paypal-webhook/api/',
                 'https://www.shop.example.com/payment-methods/PAYPAL',
+                'https://admin.example.com/paypal-webhook/api/',
+                'https://shop.example.com/paypal-webhook/api/',
                 'https://www.shop.example.com/paypal-webhook/api/',
             ],
             (new WebhookUrlProvider($this->urlGenerator, $this->request))->provideCandidates($paymentMethod),
@@ -111,12 +111,12 @@ final class WebhookUrlProviderTest extends TestCase
         self::assertSame(
             [
                 'https://sylius.ngrok.dev/payment-methods/PAYPAL',
-                'https://sylius.ngrok.dev/paypal-webhook/api/',
                 'https://shop.example.com/payment-methods/PAYPAL',
-                'https://shop.example.com/paypal-webhook/api/',
                 'https://www.shop.example.com/payment-methods/PAYPAL',
-                'https://www.shop.example.com/paypal-webhook/api/',
                 'https://admin.example.com/payment-methods/PAYPAL',
+                'https://sylius.ngrok.dev/paypal-webhook/api/',
+                'https://shop.example.com/paypal-webhook/api/',
+                'https://www.shop.example.com/paypal-webhook/api/',
                 'https://admin.example.com/paypal-webhook/api/',
             ],
             (new WebhookUrlProvider($this->urlGenerator, $this->console, 'https://sylius.ngrok.dev'))->provideCandidates($paymentMethod),
