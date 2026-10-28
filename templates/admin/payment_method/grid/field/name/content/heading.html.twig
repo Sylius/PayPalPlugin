@@ -1,0 +1,14 @@
+{% set payment_method = hookable_metadata.context.payment_method %}
+
+<div class="payment-method-list__heading">
+    {% if payment_method.name is not null %}
+        <h3 class="payment-method-list__name m-0 fw-semibold">{{ payment_method.name }}</h3>
+    {% else %}
+        <span class="text-danger" {{ sylius_test_html_attribute('missing-translation-paragraph') }}>
+            {{ ux_icon('tabler:exclamation-circle') }} <i>{{ 'sylius.ui.missing_translation'|trans }}</i>
+        </span>
+    {% endif %}
+    {% if payment_method.description is not empty %}
+        <p class="payment-method-list__description mt-1 mb-0">{{ payment_method.description }}</p>
+    {% endif %}
+</div>

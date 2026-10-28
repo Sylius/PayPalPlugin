@@ -30,6 +30,14 @@ sylius_grid:
             ship_with_tracking_code: "@SyliusPayPalPlugin/admin/shipment/grid/action/ship_with_tracking_code.html.twig"
     grids:
         sylius_admin_payment_method:
+            fields:
+                name:
+                    type: twig
+                    path: .
+                    options:
+                        template: "@SyliusPayPalPlugin/admin/payment_method/grid/field/name.html.twig"
+                        vars:
+                            legacy_layout: '%sylius_paypal.admin.legacy_payment_method_list%'
             actions:
                 item:
                     enable_seller:

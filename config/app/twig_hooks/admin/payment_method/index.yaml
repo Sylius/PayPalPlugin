@@ -7,6 +7,30 @@ sylius_twig_hooks:
                 configuration:
                     payment_methods: ['visa', 'master_card', 'amex', 'paypal', 'venmo', 'apple_pay']
                     payment_methods_more: true
+        'sylius_paypal.admin.payment_method.grid.field.name':
+            logo:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/logo.html.twig'
+                priority: 200
+            content:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content.html.twig'
+                priority: 100
+        'sylius_paypal.admin.payment_method.grid.field.name.content':
+            heading:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/heading.html.twig'
+                priority: 400
+            badges:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/badges.html.twig'
+                priority: 300
+            methods:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/methods.html.twig'
+                priority: 200
+            meta:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/meta.html.twig'
+                priority: 100
+        'sylius_paypal.admin.payment_method.grid.field.name.content.badges':
+            mode:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/badges/mode.html.twig'
+                priority: 100
         'sylius_admin.payment_method.index.content.grid':
             confirmation_modal_create_paypal:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/confirmation_modal_create_paypal.html.twig'
