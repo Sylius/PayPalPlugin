@@ -174,7 +174,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             null !== $capture->amount() &&
             null !== $capture->currencyCode();
 
-        $this->logger->error(sprintf(
+        $message = sprintf(
             'PayPal order %s settled as %s, but payment #%s is %s and cannot be %s. %s',
             $payPalOrderId,
             $capture->status(),
@@ -182,11 +182,15 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             (string) $payment->getState(),
             $state,
             $kept ? 'The capture is kept on the payment to be refunded from the admin panel.' : 'Reconcile it by hand.',
-        ));
+        );
 
         if (!$kept) {
+            $this->logger->error($message);
+
             return false;
         }
+
+        $this->logger->warning($message);
 
         $details[self::LATE_CAPTURE] = [
             'id' => $capture->id(),
