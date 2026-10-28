@@ -118,18 +118,14 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
     }
 
-    public function test_it_creates_the_paypal_order_with_the_first_paypal_payment_method_for_a_code_of_no_paypal_payment_method_of_the_channel(): void
+    public function test_it_does_not_create_the_paypal_order_for_a_code_of_no_paypal_payment_method_of_the_channel(): void
     {
         $order = $this->cartWithTwoPayPalMethods();
 
-        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=CASH_ON_DELIVERY');
 
-        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        $this->getEntityManager()->clear();
-        /** @var OrderInterface $order */
-        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
-        $this->assertSame('PAYPAL', $order->getLastPayment(PaymentInterface::STATE_CART)?->getMethod()?->getCode());
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertNull($this->recordedPaymentSource($order));
     }
 
     /** @test */

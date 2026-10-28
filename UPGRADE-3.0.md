@@ -963,7 +963,8 @@
    checkout moves a cart paid with another PayPal payment method to it. The buttons and Pay Later messages on the select
    payment page use the PayPal payment method they are shown for: `renderPaymentPageButtonsAction` takes its code as the
    `paymentMethodCode` attribute and passes it to `sylius_paypal_shop_create_paypal_order_from_cart` as the
-   `paymentMethod` query parameter, and `sylius_paypal_is_messaging_enabled()`, `sylius_paypal_web_sdk_script_url()` and
+   `paymentMethod` query parameter (answered with `400` when it is not a PayPal payment method of the order's channel),
+   and `sylius_paypal_is_messaging_enabled()`, `sylius_paypal_web_sdk_script_url()` and
    `sylius_paypal_web_sdk_instance_config()` accept an optional payment method. The payment page takes the client id,
    partner attribution id, mode and the enabled payment sources from the payment method of the Payment Request being
    paid.

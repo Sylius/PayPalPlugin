@@ -91,7 +91,16 @@ final readonly class CreatePayPalOrderFromCartAction
         }
         $this->orderOwnershipVerifier->verify($order, $request);
 
-        $paymentMethod = $this->channelPayPalMethod($order, $request->query->getString('paymentMethod'));
+        try {
+            $paymentMethod = $this->channelPayPalMethod($order, $request->query->getString('paymentMethod'));
+        } catch (\InvalidArgumentException) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
         $paymentSource = $this->resolvePaymentSource($request, $paymentMethod);
         if (null === $paymentSource) {
             /** @var FlashBagInterface $flashBag */
@@ -164,13 +173,17 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         $paymentMethods = $this->payPalMethodsResolver->getInChannel($channel);
+        if ('' === $code) {
+            return $paymentMethods[0] ?? null;
+        }
+
         foreach ($paymentMethods as $paymentMethod) {
-            if ('' !== $code && $paymentMethod->getCode() === $code) {
+            if ($paymentMethod->getCode() === $code) {
                 return $paymentMethod;
             }
         }
 
-        return $paymentMethods[0] ?? null;
+        throw new \InvalidArgumentException(sprintf('There is no PayPal payment method "%s" in the channel of the order.', $code));
     }
 
     private function resolvePaymentSource(Request $request, ?PaymentMethodInterface $paymentMethod): ?string
