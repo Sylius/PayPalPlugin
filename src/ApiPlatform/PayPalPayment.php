@@ -18,23 +18,15 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Routing\RouterInterface;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
 
 final class PayPalPayment
 {
-    private RouterInterface $router;
+    private PaymentSdkConfigurationProviderInterface $paymentSdkConfigurationProvider;
 
-    private AvailableCountriesProviderInterface $availableCountriesProvider;
-
-    public function __construct(
-        RouterInterface $router,
-        AvailableCountriesProviderInterface $availableCountriesProvider,
-    ) {
-        $this->router = $router;
-        $this->availableCountriesProvider = $availableCountriesProvider;
+    public function __construct(PaymentSdkConfigurationProviderInterface $paymentSdkConfigurationProvider)
+    {
+        $this->paymentSdkConfigurationProvider = $paymentSdkConfigurationProvider;
     }
 
     public function supports(PaymentMethodInterface $paymentMethod): bool
@@ -53,21 +45,6 @@ final class PayPalPayment
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-
-        return [
-            'clientId' => $config->clientId(),
-            'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment', [], UrlGeneratorInterface::ABSOLUTE_URL),
-            'partnerAttributionId' => $config->partnerAttributionId(),
-            'locale' => $order->getLocaleCode(),
-            'orderId' => $order->getId(),
-            'currency' => $order->getCurrencyCode(),
-            'orderToken' => $order->getTokenValue(),
-            'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error', [], UrlGeneratorInterface::ABSOLUTE_URL),
-            'available_countries' => $this->availableCountriesProvider->provide(),
-        ];
+        return $this->paymentSdkConfigurationProvider->provide($payment, $paymentMethod, (string) $order->getLocaleCode());
     }
 }
