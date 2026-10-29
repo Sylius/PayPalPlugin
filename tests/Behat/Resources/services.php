@@ -22,6 +22,7 @@ use Tests\Sylius\PayPalPlugin\Behat\Context\Hook\PayPalHttpClientContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Ui\Shop\PayingWithPayPalContext;
 use Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElement;
+use Tests\Sylius\PayPalPlugin\Behat\Element\PaymentMethodListElement;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalApiMocker;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalHttpClientWithExpectations;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPage;
@@ -61,6 +62,10 @@ return static function (ContainerConfigurator $container) {
         ->private()
         ->parent('sylius.behat.element');
 
+    $services->set(PaymentMethodListElement::class)
+        ->private()
+        ->parent('sylius.behat.element');
+
     $services->set(ManagingOrdersContext::class)
         ->args([
             service('sylius_abstraction.state_machine'),
@@ -76,6 +81,7 @@ return static function (ContainerConfigurator $container) {
             service(DownloadPayPalReportElement::class),
             service('sylius.behat.notification_checker.admin'),
             service('sylius.behat.page.admin.payment_method.create'),
+            service(PaymentMethodListElement::class),
         ]);
 
     $services->set('sylius.behat.context.ui.admin.managing_payment_methods', \Sylius\Behat\Context\Ui\Admin\ManagingPaymentMethodsContext::class)

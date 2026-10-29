@@ -20,6 +20,7 @@ use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPageInterface;
 use Webmozart\Assert\Assert;
@@ -44,14 +45,27 @@ final class PaymentPayPalContext implements Context
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
     }
 
-    #[Given('the store allows paying with Trustly through PayPal')]
-    public function theStoreAllowsPayingWithTrustlyThroughPayPal(): void
+    #[Given('the store uses PayPal in sandbox mode')]
+    public function theStoreUsesPayPalInSandboxMode(): void
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $this->sharedStorage->get('payment_method');
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['trustly_enabled' => true]));
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [CredentialsManagerInterface::MODE_KEY => true]));
+
+        $this->paymentMethodRepository->add($paymentMethod);
+    }
+
+    #[Given('/^the store allows paying with (Venmo|Apple Pay|Google Pay|Trustly) through PayPal$/')]
+    public function theStoreAllowsPayingWithThroughPayPal(string $paymentSource): void
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $this->sharedStorage->get('payment_method');
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        $configurationKey = str_replace(' ', '_', strtolower($paymentSource)) . '_enabled';
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [$configurationKey => true]));
 
         $this->paymentMethodRepository->add($paymentMethod);
     }
@@ -89,7 +103,6 @@ final class PaymentPayPalContext implements Context
             'client_secret' => 'SECRET',
             'partner_attribution_id' => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',
-            'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
             'reports_sftp_username' => 'USERNAME',
             'reports_sftp_password' => 'PASSWORD',
         ]);

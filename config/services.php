@@ -99,6 +99,8 @@ use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
+use Sylius\PayPalPlugin\Provider\EnabledPaymentSourcesProvider;
+use Sylius\PayPalPlugin\Provider\EnabledPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
@@ -163,6 +165,7 @@ use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
+use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdater;
@@ -539,6 +542,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(EligibleRedirectPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.eligible_redirect_payment_sources');
 
+    $services->set('sylius_paypal.provider.enabled_payment_sources', EnabledPaymentSourcesProvider::class);
+
+    $services->alias(EnabledPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.enabled_payment_sources');
+
     $services->set('sylius_paypal.verifier.webhook_request', WebhookRequestVerifier::class)
         ->args([
             service('sylius_paypal.provider.webhook_id'),
@@ -721,6 +728,10 @@ return static function (ContainerConfigurator $container) {
         ->tag('twig.extension');
 
     $services->set('sylius_paypal.twig.extension.order_address', OrderAddressExtension::class)
+        ->tag('twig.extension');
+
+    $services->set('sylius_paypal.twig.extension.enabled_payment_sources', EnabledPaymentSourcesExtension::class)
+        ->args([service('sylius_paypal.provider.enabled_payment_sources')])
         ->tag('twig.extension');
 
     $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)

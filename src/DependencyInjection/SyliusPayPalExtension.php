@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -64,6 +65,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
     public function prepend(ContainerBuilder $container): void
     {
+        $container->setParameter(
+            'sylius_paypal.admin.legacy_payment_method_list',
+            version_compare(SyliusCoreBundle::VERSION, '2.3.0', '<'),
+        );
+
         $this->prependDoctrineMapping($container);
         $this->prependApiPlatformMapping($container);
 
