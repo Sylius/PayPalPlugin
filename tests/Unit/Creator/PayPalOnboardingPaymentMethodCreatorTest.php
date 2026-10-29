@@ -41,7 +41,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'client_id' => 'CLIENT-ID',
         'client_secret' => 'CLIENT-SECRET',
         'merchant_id' => 'MERCHANT-ID',
-        'use_authorize' => 1,
         'reports_sftp_password' => null,
         'reports_sftp_username' => null,
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
@@ -101,7 +100,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             ->expects(self::once())
             ->method('store')
             ->with(
-                ['use_authorize' => 1, 'reports_sftp_password' => null, 'reports_sftp_username' => null],
+                ['reports_sftp_password' => null, 'reports_sftp_username' => null, 'use_authorize' => false],
                 false,
                 self::CREDENTIALS,
             )
@@ -110,6 +109,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())->method('setFactoryName')->with('sylius_paypal');
         $gatewayConfig->expects(self::once())->method('setGatewayName')->with('sylius_paypal');
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
+        $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
 
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
         $paymentMethod->expects(self::once())->method('setPosition')->with(0);
@@ -153,6 +153,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             ->willReturn(self::STORED_CONFIG);
 
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
+        $gatewayConfig->expects(self::never())->method('setUsePayum');
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
         $paymentMethod->expects(self::never())->method('setPosition');
         $this->cachedAccessTokenRemover->expects(self::once())->method('remove')->with($paymentMethod);

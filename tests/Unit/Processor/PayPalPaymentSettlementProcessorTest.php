@@ -22,15 +22,14 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 
 final class PayPalPaymentSettlementProcessorTest extends TestCase
 {
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
-
     private OrderDetailsApiInterface&MockObject $orderDetailsApi;
 
     private StateMachineInterface&MockObject $stateMachine;
@@ -39,6 +38,8 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
 
     private LoggerInterface&MockObject $logger;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private PaymentInterface&MockObject $payment;
 
     private PayPalPaymentSettlementProcessor $processor;
@@ -46,17 +47,17 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->paymentManager = $this->createMock(ObjectManager::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $this->payment = $this->createMock(PaymentInterface::class);
         $this->payment->method('getId')->willReturn(7);
         $this->payment->method('getAmount')->willReturn(1539);
         $this->payment->method('getCurrencyCode')->willReturn('EUR');
-        $this->payment->method('getMethod')->willReturn($this->createMock(PaymentMethodInterface::class));
+        $this->payment->method('getMethod')->willReturn($this->paymentMethod);
         $this->payment->method('getDetails')->willReturn([
             'status' => 'CAPTURED',
             'paypal_order_id' => '5O190127TN364715T',
@@ -64,7 +65,6 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         ]);
 
         $this->processor = new PayPalPaymentSettlementProcessor(
-            $this->authorizeClientApi,
             $this->orderDetailsApi,
             $this->stateMachine,
             $this->paymentManager,
@@ -106,6 +106,117 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->paymentManager->expects(self::once())->method('flush');
 
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
+    }
+
+    public function test_it_records_the_captured_authorization_and_its_capture_before_asking_whether_the_payment_can_be_completed(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
+        $calls = [];
+        $this->payment->method('setDetails')->willReturnCallback(function (array $details) use (&$calls): void {
+            $calls[] = ['setDetails', $details['authorization_status'] ?? null, $details['capture_status'] ?? null];
+        });
+        $this->stateMachine->method('can')->willReturnCallback(function () use (&$calls): bool {
+            $calls[] = ['can'];
+
+            return true;
+        });
+
+        $orderDetails = $this->orderDetails('COMPLETED', authorizationStatus: 'CAPTURED');
+
+        $this->processor->settle($this->payment, $orderDetails);
+
+        self::assertSame([['setDetails', 'CAPTURED', 'COMPLETED'], ['can'], ['setDetails', 'CAPTURED', 'COMPLETED']], $calls);
+    }
+
+    public function test_it_authorizes_the_payment_once_paypal_has_created_its_authorization(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->stateMachine->method('can')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_AUTHORIZE)->willReturn(true);
+
+        $this->payment->expects(self::exactly(2))->method('setDetails');
+        $this->stateMachine->expects(self::once())->method('apply')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_AUTHORIZE);
+        $this->paymentManager->expects(self::once())->method('flush');
+
+        $this->processor->settle($this->payment, $this->orderWithAuthorization('CREATED'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function releasedAuthorizationStatuses(): iterable
+    {
+        yield 'voided' => ['VOIDED'];
+        yield 'expired' => ['EXPIRED'];
+    }
+
+    #[DataProvider('releasedAuthorizationStatuses')]
+    public function test_it_cancels_an_authorized_payment_whose_authorization_paypal_has_released(string $status): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
+        $this->stateMachine->method('can')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)->willReturn(true);
+
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => $status === $details['authorization_status'],
+        ));
+        $this->stateMachine->expects(self::once())->method('apply')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
+
+        $this->processor->settle($this->payment, $this->orderWithAuthorization($status));
+    }
+
+    #[DataProvider('statesPayPalCanDenyTheAuthorizationOf')]
+    public function test_it_fails_the_payment_whose_authorization_paypal_has_denied(string $state): void
+    {
+        $this->payment->method('getState')->willReturn($state);
+        $this->stateMachine->method('can')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL)->willReturn(true);
+
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => 'DENIED' === $details['authorization_status'],
+        ));
+        $this->stateMachine->expects(self::once())->method('apply')->with($this->payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL);
+        $this->paymentManager->expects(self::once())->method('flush');
+
+        $this->processor->settle($this->payment, $this->orderWithAuthorization('DENIED'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function statesPayPalCanDenyTheAuthorizationOf(): iterable
+    {
+        yield 'processing' => [PaymentInterface::STATE_PROCESSING];
+        yield 'authorized' => [PaymentInterface::STATE_AUTHORIZED];
+    }
+
+    public function test_it_stores_the_authorization_it_records_while_the_capture_is_still_pending(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
+
+        $orderDetails = $this->orderDetails('PENDING', authorizationStatus: 'CAPTURED');
+
+        $this->payment->expects(self::once())->method('setDetails')->with(self::callback(
+            static fn (array $details): bool => 'CAPTURED' === $details['authorization_status'],
+        ));
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->paymentManager->expects(self::once())->method('flush');
+
+        $this->processor->settle($this->payment, $orderDetails);
+    }
+
+    public function test_it_only_records_a_released_authorization_of_a_payment_that_is_not_authorized(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_CANCELLED);
+
+        $this->payment->expects(self::once())->method('setDetails');
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->paymentManager->expects(self::once())->method('flush');
+
+        $this->processor->settle($this->payment, $this->orderWithAuthorization('VOIDED'));
+    }
+
+    public function test_it_only_records_an_authorization_paypal_still_holds_pending(): void
+    {
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+
+        $this->payment->expects(self::once())->method('setDetails');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($this->payment, $this->orderWithAuthorization('PENDING'));
     }
 
     public function test_it_fails_the_payment_once_the_capture_is_declined(): void
@@ -189,6 +300,53 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($this->payment, $this->orderDetails($status));
     }
 
+    public function test_it_pays_an_unpaid_payment_with_the_paypal_order_another_attempt_superseded(): void
+    {
+        $payment = $this->paymentWithSupersededPayPalOrder(PaymentInterface::STATE_NEW);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'COMPLETED',
+            'paypal_order_id' => '5O190127TN364715T',
+            'payment_source' => 'trustly',
+            'superseded_paypal_orders' => ['8XN46231DT201694L' => 'paypal'],
+            'transaction_id' => '892032536L382192T',
+        ]);
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_COMPLETE);
+
+        $this->processor->settle($payment, $this->orderDetails('COMPLETED'), '5O190127TN364715T');
+    }
+
+    public function test_it_keeps_the_capture_of_a_superseded_paypal_order_on_a_paid_payment_to_be_refunded(): void
+    {
+        $payment = $this->paymentWithSupersededPayPalOrder(PaymentInterface::STATE_COMPLETED);
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $payment->expects(self::once())->method('setDetails')->with(self::callback(static fn (array $details): bool => [
+            'id' => '892032536L382192T',
+            'order_id' => '5O190127TN364715T',
+            'amount' => 1539,
+            'currency_code' => 'EUR',
+        ] === $details[PayPalPaymentSettlementProcessor::LATE_CAPTURE] && '8XN46231DT201694L' === $details['paypal_order_id']));
+        $this->logger->expects(self::once())->method('warning')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
+        $this->logger->expects(self::never())->method('error');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($payment, $this->orderDetails('COMPLETED'), '5O190127TN364715T');
+    }
+
+    #[DataProvider('refusedCaptureStatuses')]
+    public function test_it_ignores_a_refused_capture_of_a_superseded_paypal_order(string $status): void
+    {
+        $payment = $this->paymentWithSupersededPayPalOrder(PaymentInterface::STATE_NEW);
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $payment->expects(self::never())->method('setDetails');
+        $this->stateMachine->expects(self::never())->method('apply');
+
+        $this->processor->settle($payment, $this->orderDetails($status), '5O190127TN364715T');
+    }
+
     /** @return iterable<string, array{string}> */
     public static function refusedCaptureStatuses(): iterable
     {
@@ -205,10 +363,11 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
             'status' => 'CAPTURED',
             'paypal_order_id' => '5O190127TN364715T',
             'payment_source' => 'trustly',
-            PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'amount' => 1539, 'currency_code' => 'EUR'],
+            PayPalPaymentSettlementProcessor::LATE_CAPTURE => ['id' => '892032536L382192T', 'order_id' => '5O190127TN364715T', 'amount' => 1539, 'currency_code' => 'EUR'],
         ]);
         $this->paymentManager->expects(self::once())->method('flush');
-        $this->logger->expects(self::once())->method('error')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
+        $this->logger->expects(self::once())->method('warning')->with(self::stringContains('kept on the payment to be refunded from the admin panel'));
+        $this->logger->expects(self::never())->method('error');
         $this->stateMachine->expects(self::never())->method('apply');
 
         $this->processor->settle($this->payment, $this->orderDetails('COMPLETED'));
@@ -291,11 +450,10 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
     public function test_it_reads_the_order_from_paypal_when_it_is_given_none(): void
     {
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
-        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
         $this->orderDetailsApi
             ->expects(self::once())
             ->method('get')
-            ->with('TOKEN', '5O190127TN364715T')
+            ->with($this->paymentMethod, '5O190127TN364715T')
             ->willReturn($this->orderDetails('PENDING'))
         ;
 
@@ -313,26 +471,52 @@ final class PayPalPaymentSettlementProcessorTest extends TestCase
         $this->processor->settle($payment);
     }
 
-    /** @return array<string, mixed> */
-    private function orderDetails(string $captureStatus, string $value = '15.39'): array
+    private function paymentWithSupersededPayPalOrder(string $state): PaymentInterface&MockObject
     {
-        return [
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getId')->willReturn(7);
+        $payment->method('getState')->willReturn($state);
+        $payment->method('getAmount')->willReturn(1539);
+        $payment->method('getCurrencyCode')->willReturn('EUR');
+        $payment->method('getDetails')->willReturn([
+            'status' => 'CAPTURED',
+            'paypal_order_id' => '8XN46231DT201694L',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'paypal',
+            'superseded_paypal_orders' => ['5O190127TN364715T' => 'trustly'],
+        ]);
+
+        return $payment;
+    }
+
+    private function orderWithAuthorization(string $authorizationStatus): PayPalOrderDetails
+    {
+        return (new PayPalOrderDetailsMapper())->map([
             'id' => '5O190127TN364715T',
             'status' => 'COMPLETED',
-            'purchase_units' => [
+            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => ['authorizations' => [['id' => 'AUTHORIZATION_ID', 'status' => $authorizationStatus]]]]],
+        ]);
+    }
+
+    private function orderDetails(string $captureStatus, string $value = '15.39', ?string $authorizationStatus = null): PayPalOrderDetails
+    {
+        $payments = [
+            'captures' => [
                 [
-                    'reference_id' => 'REFERENCE_ID',
-                    'payments' => [
-                        'captures' => [
-                            [
-                                'id' => '892032536L382192T',
-                                'status' => $captureStatus,
-                                'amount' => ['currency_code' => 'EUR', 'value' => $value],
-                            ],
-                        ],
-                    ],
+                    'id' => '892032536L382192T',
+                    'status' => $captureStatus,
+                    'amount' => ['currency_code' => 'EUR', 'value' => $value],
                 ],
             ],
         ];
+        if (null !== $authorizationStatus) {
+            $payments['authorizations'] = [['id' => 'AUTHORIZATION_ID', 'status' => $authorizationStatus]];
+        }
+
+        return (new PayPalOrderDetailsMapper())->map([
+            'id' => '5O190127TN364715T',
+            'status' => 'COMPLETED',
+            'purchase_units' => [['reference_id' => 'REFERENCE_ID', 'payments' => $payments]],
+        ]);
     }
 }

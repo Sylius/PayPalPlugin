@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
@@ -39,7 +40,7 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
     }
 
     public function update(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $orderId,
         PaymentInterface $payment,
         string $referenceId,
@@ -48,8 +49,8 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
         $payPalPurchaseUnit = $this->getPayPalPurchaseUnitFactory()->create($payment, $referenceId, $merchantId);
 
         return $this->client->patch(
+            $paymentMethod,
             sprintf('v2/checkout/orders/%s', $orderId),
-            $token,
             [
                 [
                     'op' => 'replace',

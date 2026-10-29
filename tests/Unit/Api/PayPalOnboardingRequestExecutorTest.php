@@ -22,7 +22,6 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
-use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutor;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 
@@ -30,17 +29,14 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
 {
     private ClientInterface&MockObject $client;
 
-    private LoggerInterface&MockObject $logger;
-
     private PayPalOnboardingRequestExecutor $executor;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(ClientInterface::class);
-        $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->executor = new PayPalOnboardingRequestExecutor($this->client, $this->logger, 'Sylius_MP_PPCP');
+        $this->executor = new PayPalOnboardingRequestExecutor($this->client, 'Sylius_MP_PPCP');
     }
 
     #[Test]
@@ -73,33 +69,6 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
         $this->expectException(PayPalPluginException::class);
 
         $this->executor->execute($request, 'Test');
-    }
-
-    #[Test]
-    public function it_redacts_credentials_from_the_error_log_on_a_non_successful_status(): void
-    {
-        $request = new Request('GET', 'https://api.paypal.com/');
-        $response = $this->createMock(ResponseInterface::class);
-        $body = $this->createMock(StreamInterface::class);
-
-        $this->client->method('sendRequest')->willReturn($response);
-        $response->method('getStatusCode')->willReturn(401);
-        $response->method('getBody')->willReturn($body);
-        $body->method('getContents')->willReturn('{"client_secret": "SUPER-SECRET", "access_token": "TOKEN", "error": "invalid"}');
-
-        $this->logger
-            ->expects(self::once())
-            ->method('error')
-            ->with(self::callback(static function (string $message): bool {
-                return !str_contains($message, 'SUPER-SECRET') &&
-                    !str_contains($message, 'TOKEN') &&
-                    str_contains($message, '[redacted]') &&
-                    str_contains($message, 'invalid');
-            }));
-
-        $this->expectException(PayPalPluginException::class);
-
-        $this->executor->execute($request, 'Seller credentials');
     }
 
     #[Test]
@@ -153,27 +122,9 @@ final class PayPalOnboardingRequestExecutorTest extends TestCase
     }
 
     #[Test]
-    public function it_logs_the_paypal_debug_id_of_a_successful_request(): void
-    {
-        $this->client->method('sendRequest')->willReturn($this->response(200, '{}', 'DEBUG-ID'));
-
-        $this->logger
-            ->expects(self::once())
-            ->method('info')
-            ->with('Test request succeeded with HTTP 200 (PayPal-Debug-Id: DEBUG-ID)');
-
-        $this->executor->execute(new Request('GET', 'https://api.sandbox.paypal.com/'), 'Test');
-    }
-
-    #[Test]
-    public function it_logs_the_paypal_debug_id_of_a_failed_request(): void
+    public function it_names_the_paypal_debug_id_of_a_failed_request(): void
     {
         $this->client->method('sendRequest')->willReturn($this->response(400, '{"name":"INVALID_REQUEST"}', 'DEBUG-ID'));
-
-        $this->logger
-            ->expects(self::once())
-            ->method('error')
-            ->with('Test request failed with HTTP 400 (PayPal-Debug-Id: DEBUG-ID): {"name":"INVALID_REQUEST"}');
 
         $this->expectException(PayPalPluginException::class);
         $this->expectExceptionMessage('Test request failed with HTTP 400 (PayPal-Debug-Id: DEBUG-ID)');

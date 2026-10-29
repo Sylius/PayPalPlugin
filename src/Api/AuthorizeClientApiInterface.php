@@ -13,7 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\AccessToken;
+
 interface AuthorizeClientApiInterface
 {
-    public function authorize(string $clientId, string $clientSecret, bool $sandbox): string;
+    /** @throws PayPalApiException */
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): AccessToken;
 }

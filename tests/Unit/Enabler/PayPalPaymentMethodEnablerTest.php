@@ -24,6 +24,8 @@ use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
+use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
@@ -85,7 +87,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('authorize')
             ->with('CLIENT-ID', 'SECRET', false)
-            ->willReturn('SELLER-TOKEN');
+            ->willReturn(new AccessToken('SELLER-TOKEN', 32400));
 
         $this->merchantOnboardingStatusApi
             ->expects(self::once())
@@ -119,7 +121,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('authorize')
             ->with('CLIENT-ID', 'SECRET', true)
-            ->willReturn('SELLER-TOKEN');
+            ->willReturn(new AccessToken('SELLER-TOKEN', 32400));
 
         $this->partnerCredentialsProvider->expects(self::never())->method('provide');
         $this->merchantOnboardingStatusApi->expects(self::never())->method('get');
@@ -146,7 +148,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->method('getConfig')
             ->willReturn(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
-        $this->authorizeClientApi->method('authorize')->willReturn('SELLER-TOKEN');
+        $this->authorizeClientApi->method('authorize')->willReturn(new AccessToken('SELLER-TOKEN', 32400));
         $status = new OnboardingStatus(false, true);
         $this->merchantOnboardingStatusApi->method('get')->willReturn($status);
 
@@ -160,5 +162,22 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
         } catch (PaymentMethodCouldNotBeEnabledException $exception) {
             self::assertSame($status, $exception->getOnboardingStatus());
         }
+    }
+
+    public function test_it_does_not_enable_the_payment_method_when_paypal_rejects_its_credentials(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(GatewayConfigInterface::class, [
+            'getConfig' => ['sandbox' => true, 'merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET'],
+        ]));
+
+        $this->authorizeClientApi->method('authorize')->willThrowException(new PayPalApiAuthenticationException('POST', 'v1/oauth2/token', 401, 'invalid_client'));
+
+        $this->sellerWebhookRegistrar->expects(self::never())->method('register');
+        $paymentMethod->expects(self::never())->method('setEnabled');
+
+        $this->expectException(PaymentMethodCouldNotBeEnabledException::class);
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
     }
 }

@@ -18,9 +18,9 @@ use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
-use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
-use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -36,7 +36,7 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
     /** @var PaymentRepositoryInterface<PaymentInterface>&Stub */
     private PaymentRepositoryInterface&Stub $paymentRepository;
 
-    private PaymentRefundProcessorInterface&MockObject $refundProcessor;
+    private RefundPayPalLateCapturePaymentRequestDispatcherInterface&MockObject $dispatcher;
 
     private CsrfTokenManagerInterface&Stub $csrfTokenManager;
 
@@ -46,7 +46,7 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
     {
         parent::setUp();
         $this->paymentRepository = $this->createStub(PaymentRepositoryInterface::class);
-        $this->refundProcessor = $this->createMock(PaymentRefundProcessorInterface::class);
+        $this->dispatcher = $this->createMock(RefundPayPalLateCapturePaymentRequestDispatcherInterface::class);
         $this->csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $router = $this->createStub(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(
@@ -55,7 +55,7 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
 
         $this->action = new RefundPayPalLateCaptureAction(
             $this->paymentRepository,
-            $this->refundProcessor,
+            $this->dispatcher,
             $this->csrfTokenManager,
             $router,
         );
@@ -69,7 +69,7 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
         );
         $this->paymentRepository->method('findOneByOrderId')->willReturnMap([['7', '3', $payment]]);
 
-        $this->refundProcessor->expects(self::once())->method('refund')->with($payment);
+        $this->dispatcher->expects(self::once())->method('dispatch')->with($payment)->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_COMPLETED));
 
         $request = $this->request();
         $response = ($this->action)($request);
@@ -83,7 +83,7 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
     {
         $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
         $this->paymentRepository->method('findOneByOrderId')->willReturn($this->createStub(PaymentInterface::class));
-        $this->refundProcessor->method('refund')->willThrowException(new PayPalOrderRefundException());
+        $this->dispatcher->method('dispatch')->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_FAILED));
 
         $request = $this->request();
         ($this->action)($request);
@@ -95,7 +95,7 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
     {
         $this->csrfTokenManager->method('isTokenValid')->willReturn(false);
 
-        $this->refundProcessor->expects(self::never())->method('refund');
+        $this->dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(AccessDeniedHttpException::class);
 
@@ -107,11 +107,19 @@ final class RefundPayPalLateCaptureActionTest extends TestCase
         $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
         $this->paymentRepository->method('findOneByOrderId')->willReturn(null);
 
-        $this->refundProcessor->expects(self::never())->method('refund');
+        $this->dispatcher->expects(self::never())->method('dispatch');
 
         $this->expectException(NotFoundHttpException::class);
 
         ($this->action)($this->request());
+    }
+
+    private function paymentRequest(string $state): PaymentRequestInterface
+    {
+        $paymentRequest = $this->createStub(PaymentRequestInterface::class);
+        $paymentRequest->method('getState')->willReturn($state);
+
+        return $paymentRequest;
     }
 
     private function request(): Request

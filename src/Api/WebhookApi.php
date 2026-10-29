@@ -13,55 +13,37 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Sylius\PayPalPlugin\Provider\HostProviderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class WebhookApi implements WebhookApiInterface
 {
     /** @var list<string> */
     public const EVENT_TYPES = [
-        'PAYMENT.CAPTURE.REFUNDED',
+        'CHECKOUT.ORDER.APPROVED',
+        'CHECKOUT.ORDER.COMPLETED',
         'PAYMENT.CAPTURE.COMPLETED',
         'PAYMENT.CAPTURE.DENIED',
         'PAYMENT.CAPTURE.DECLINED',
         'PAYMENT.CAPTURE.PENDING',
+        'PAYMENT.CAPTURE.REFUNDED',
+        'PAYMENT.CAPTURE.REVERSED',
+        'PAYMENT.AUTHORIZATION.CREATED',
+        'PAYMENT.AUTHORIZATION.VOIDED',
     ];
 
-    public function __construct(
-        private ClientInterface $client,
-        private HostProviderInterface $hostProvider,
-        private RequestFactoryInterface $requestFactory,
-        private StreamFactoryInterface $streamFactory,
-    ) {
+    public function __construct(private PayPalClientInterface $client)
+    {
     }
 
-    public function register(string $token, string $webhookUrl, bool $sandbox): array
+    public function register(PaymentMethodInterface $paymentMethod, string $webhookUrl): array
     {
-        $request = $this->requestFactory->createRequest('POST', $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/notifications/webhooks')
-            ->withHeader('Authorization', 'Bearer ' . $token)
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Accept', 'application/json');
-
-        $request = $request->withBody(
-            $this->streamFactory->createStream(
-                json_encode([
-                    'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
-                    'event_types' => array_map(
-                        static fn (string $eventType): array => ['name' => $eventType],
-                        self::EVENT_TYPES,
-                    ),
-                ], \JSON_THROW_ON_ERROR),
+        return $this->client->post($paymentMethod, 'v1/notifications/webhooks', [
+            'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
+            'event_types' => array_map(
+                static fn (string $eventType): array => ['name' => $eventType],
+                self::EVENT_TYPES,
             ),
-        );
-
-        $response = $this->client->sendRequest($request);
-
-        return (array) json_decode(
-            json: $response->getBody()->getContents(),
-            associative: true,
-            flags: \JSON_THROW_ON_ERROR,
-        );
+        ]);
     }
 }

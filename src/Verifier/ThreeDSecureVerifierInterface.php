@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Verifier;
 
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+
 interface ThreeDSecureVerifierInterface
 {
-    public function verify(array $paypalOrderDetails): void;
+    public function verify(PayPalOrderDetails $payPalOrderDetails): void;
 }

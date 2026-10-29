@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApi;
 use Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -23,6 +24,8 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 final class UpdateOrderAddressApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
+
+    private PaymentMethodInterface&MockObject $paymentMethod;
 
     private AddressInterface&MockObject $shippingAddress;
 
@@ -32,6 +35,7 @@ final class UpdateOrderAddressApiTest extends TestCase
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->shippingAddress = $this->createMock(AddressInterface::class);
         $this->updateOrderAddressApi = new UpdateOrderAddressApi($this->client);
     }
@@ -52,16 +56,16 @@ final class UpdateOrderAddressApiTest extends TestCase
 
         $patches = [];
         $this->client->expects(self::exactly(2))->method('patch')->willReturnCallback(
-            function (string $url, string $token, ?array $data = null) use (&$patches): array {
+            function (PaymentMethodInterface $paymentMethod, string $url, ?array $data = null) use (&$patches): array {
                 self::assertSame('v2/checkout/orders/ORDER_ID', $url);
-                self::assertSame('TOKEN', $token);
+                self::assertSame($this->paymentMethod, $paymentMethod);
                 $patches[] = $data[0];
 
                 return [];
             },
         );
 
-        $this->updateOrderAddressApi->update('TOKEN', 'ORDER_ID', 'REFERENCE_ID', $this->shippingAddress);
+        $this->updateOrderAddressApi->update($this->paymentMethod, 'ORDER_ID', 'REFERENCE_ID', $this->shippingAddress);
 
         self::assertSame([
             'op' => 'replace',
@@ -94,7 +98,7 @@ final class UpdateOrderAddressApiTest extends TestCase
     {
         $address = [];
         $this->client->method('patch')->willReturnCallback(
-            function (string $url, string $token, ?array $data = null) use (&$address): array {
+            function (PaymentMethodInterface $paymentMethod, string $url, ?array $data = null) use (&$address): array {
                 if (str_ends_with((string) $data[0]['path'], '/shipping/address')) {
                     $address = $data[0]['value'];
                 }
@@ -103,7 +107,7 @@ final class UpdateOrderAddressApiTest extends TestCase
             },
         );
 
-        $this->updateOrderAddressApi->update('TOKEN', 'ORDER_ID', 'REFERENCE_ID', $this->shippingAddress);
+        $this->updateOrderAddressApi->update($this->paymentMethod, 'ORDER_ID', 'REFERENCE_ID', $this->shippingAddress);
 
         return $address;
     }

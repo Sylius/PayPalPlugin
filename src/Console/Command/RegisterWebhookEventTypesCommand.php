@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Console\Command;
 
-use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
@@ -26,7 +26,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'sylius-paypal:register-webhook-event-types',
-    description: 'Subscribes every registered PayPal webhook to the events this plugin handles',
+    description: 'Points the PayPal webhook of every PayPal payment method at its notify endpoint and subscribes it to the events this plugin handles',
 )]
 final class RegisterWebhookEventTypesCommand extends Command
 {
@@ -49,8 +49,13 @@ final class RegisterWebhookEventTypesCommand extends Command
             }
 
             try {
-                $this->registrar->register($paymentMethod);
-                $io->success(sprintf('Updated the webhook of "%s".', (string) $paymentMethod->getCode()));
+                $registration = $this->registrar->register($paymentMethod);
+                $io->success(sprintf(
+                    $registration->isNew() ? 'Registered webhook %s of "%s" at %s.' : 'Updated webhook %s of "%s" to point at %s.',
+                    $registration->id(),
+                    (string) $paymentMethod->getCode(),
+                    $registration->url(),
+                ));
             } catch (\Throwable $exception) {
                 $failed = true;
                 $io->error(sprintf(

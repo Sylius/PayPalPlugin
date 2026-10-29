@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface UpdateWebhookApiInterface
 {
     /**
@@ -20,5 +22,5 @@ interface UpdateWebhookApiInterface
      *
      * @return array<string, mixed>
      */
-    public function updateEventTypes(string $token, string $webhookId, array $eventTypes, bool $sandbox): array;
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array;
 }

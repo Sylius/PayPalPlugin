@@ -116,6 +116,14 @@ final class PurchaseUnitFactoryTest extends TestCase
         self::assertSame('90.00', $purchaseUnit['items'][0]['unit_amount']['value']);
     }
 
+    public function test_it_prefers_the_custom_id_it_is_given_over_the_payment_reference_number(): void
+    {
+        $purchaseUnit = $this->factory->create($this->payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH')->toArray();
+
+        self::assertSame('PAYMENT_REQUEST_HASH', $purchaseUnit['custom_id']);
+        self::assertSame('REFERENCE-NUMBER-REFERENCE_ID', $purchaseUnit['invoice_id']);
+    }
+
     public function test_it_sends_the_item_taxes_by_default(): void
     {
         self::assertArrayHasKey('tax', $this->factory->create($this->payment, 'REFERENCE_ID')->toArray()['items'][0]);

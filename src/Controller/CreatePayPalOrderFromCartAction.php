@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Exception\GuzzleException;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -22,6 +21,8 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -112,9 +113,9 @@ final readonly class CreatePayPalOrderFromCartAction
 
         try {
             $payment = $this->getPayment($order);
-            $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+            $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withPaymentSource($paymentSource)->toArray());
             $this->capturePaymentResolver->resolve($payment);
-        } catch (\DomainException|GuzzleException) {
+        } catch (\DomainException|PayPalApiException) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.something_went_wrong');
@@ -124,7 +125,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         $this->paymentManager->flush();
 
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
 
         return new JsonResponse([
             'id' => $order->getId(),

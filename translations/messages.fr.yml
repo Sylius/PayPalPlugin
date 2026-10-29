@@ -1,6 +1,15 @@
+sylius:
+    ui:
+        capture_authorization: 'Capturer l''autorisation'
+        refund_late_capture: 'Rembourser la capture tardive'
+        void_authorization: 'Annuler l''autorisation'
 sylius_paypal:
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
+    capture_strategy: 'Stratégie d''encaissement'
+    capture_strategy_authorize: 'Autorisation et encaissement'
+    capture_strategy_capture: 'Encaissement immédiat'
+    capture_strategy_help: 'L''autorisation bloque les fonds de l''acheteur. Finalisez le paiement dans la commande pour les encaisser, ou annulez la commande pour libérer l''autorisation. Seuls PayPal, Pay Later, Venmo, les cartes, Apple Pay et Google Pay sont proposés, les autres moyens de paiement sont masqués.'
     card_fields_invalid: 'Veuillez vérifier les informations de carte en surbrillance.'
     card_number: 'Numéro de carte'
     card_three_d_secure_always: 'Toujours demander 3D Secure pour les paiements par carte'

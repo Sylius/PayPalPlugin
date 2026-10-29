@@ -16,9 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Verifier;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
@@ -26,11 +24,9 @@ use Symfony\Component\HttpFoundation\Request;
 
 final class WebhookRequestVerifierTest extends TestCase
 {
-    private PayPalPaymentMethodProviderInterface&MockObject $payPalPaymentMethodProvider;
-
     private WebhookIdProviderInterface&MockObject $webhookIdProvider;
 
-    private CacheAuthorizeClientApiInterface&MockObject $authorizeClientApi;
+    private PaymentMethodInterface&MockObject $paymentMethod;
 
     private WebhookSignatureVerifierInterface&MockObject $webhookSignatureVerifier;
 
@@ -41,20 +37,14 @@ final class WebhookRequestVerifierTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->payPalPaymentMethodProvider = $this->createMock(PayPalPaymentMethodProviderInterface::class);
         $this->webhookIdProvider = $this->createMock(WebhookIdProviderInterface::class);
-        $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->webhookSignatureVerifier = $this->createMock(WebhookSignatureVerifierInterface::class);
-
-        $this->payPalPaymentMethodProvider->method('provide')->willReturn($this->createMock(PaymentMethodInterface::class));
-        $this->authorizeClientApi->method('authorize')->willReturn('TOKEN');
 
         $this->request = new Request();
 
         $this->verifier = new WebhookRequestVerifier(
-            $this->payPalPaymentMethodProvider,
             $this->webhookIdProvider,
-            $this->authorizeClientApi,
             $this->webhookSignatureVerifier,
         );
     }
@@ -64,12 +54,12 @@ final class WebhookRequestVerifierTest extends TestCase
         self::assertInstanceOf(WebhookRequestVerifierInterface::class, $this->verifier);
     }
 
-    public function test_it_verifies_a_request_against_the_registered_webhook(): void
+    public function test_it_verifies_a_request_against_the_webhook_of_the_given_payment_method(): void
     {
-        $this->webhookIdProvider->method('provide')->willReturn('WEBHOOK_ID');
-        $this->webhookSignatureVerifier->method('verify')->with($this->request, 'WEBHOOK_ID', 'TOKEN')->willReturn(true);
+        $this->webhookIdProvider->expects(self::once())->method('provide')->with($this->paymentMethod)->willReturn('WEBHOOK_ID');
+        $this->webhookSignatureVerifier->method('verify')->with($this->request, 'WEBHOOK_ID', $this->paymentMethod)->willReturn(true);
 
-        self::assertTrue($this->verifier->verify($this->request));
+        self::assertTrue($this->verifier->verify($this->request, $this->paymentMethod));
     }
 
     public function test_it_tries_again_with_a_refreshed_webhook_id(): void
@@ -81,7 +71,7 @@ final class WebhookRequestVerifierTest extends TestCase
             ->willReturnCallback(static fn (Request $request, string $webhookId): bool => 'FRESH_WEBHOOK_ID' === $webhookId)
         ;
 
-        self::assertTrue($this->verifier->verify($this->request));
+        self::assertTrue($this->verifier->verify($this->request, $this->paymentMethod));
     }
 
     public function test_it_does_not_try_again_with_the_same_webhook_id(): void
@@ -90,14 +80,14 @@ final class WebhookRequestVerifierTest extends TestCase
         $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
         $this->webhookSignatureVerifier->expects(self::once())->method('verify')->willReturn(false);
 
-        self::assertFalse($this->verifier->verify($this->request));
+        self::assertFalse($this->verifier->verify($this->request, $this->paymentMethod));
     }
 
     public function test_it_refuses_a_request_it_could_not_check(): void
     {
         $this->webhookIdProvider->method('provide')->willThrowException(new \RuntimeException('PayPal is down'));
 
-        self::assertFalse($this->verifier->verify($this->request));
+        self::assertFalse($this->verifier->verify($this->request, $this->paymentMethod));
     }
 
     public function test_it_refuses_a_request_when_no_webhook_is_registered(): void
@@ -107,6 +97,6 @@ final class WebhookRequestVerifierTest extends TestCase
 
         $this->webhookSignatureVerifier->expects(self::never())->method('verify');
 
-        self::assertFalse($this->verifier->verify($this->request));
+        self::assertFalse($this->verifier->verify($this->request, $this->paymentMethod));
     }
 }

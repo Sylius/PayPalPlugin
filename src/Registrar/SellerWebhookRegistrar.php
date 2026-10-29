@@ -13,14 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Registrar;
 
-use GuzzleHttp\Exception\ClientException;
-use Psr\Http\Message\ResponseInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProvider;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -30,7 +27,6 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
     private WebhookUrlProviderInterface $webhookUrlProvider;
 
     public function __construct(
-        private AuthorizeClientApiInterface $authorizeClientApi,
         private UrlGeneratorInterface $urlGenerator,
         private WebhookApiInterface $webhookApi,
         ?WebhookUrlProviderInterface $webhookUrlProvider = null,
@@ -40,27 +36,16 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
 
     public function register(PaymentMethodInterface $paymentMethod): void
     {
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-
-        $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $config->isSandbox());
-        $webhookUrl = $this->webhookUrlProvider->provide();
+        $webhookUrl = $this->webhookUrlProvider->provide($paymentMethod);
 
         try {
-            $response = $this->webhookApi->register($token, $webhookUrl, $config->isSandbox());
-        } catch (ClientException $exception) {
-            /** @var ResponseInterface $exceptionResponse */
-            $exceptionResponse = $exception->getResponse();
-            /** @var array $exceptionMessage */
-            $exceptionMessage = json_decode($exceptionResponse->getBody()->getContents(), true);
-
-            if ($exceptionMessage['name'] === 'WEBHOOK_URL_ALREADY_EXISTS') {
-                throw new PayPalWebhookAlreadyRegisteredException();
-            }
-        }
-
-        if (isset($response['name']) && $response['name'] === 'VALIDATION_ERROR') {
-            throw new PayPalWebhookUrlNotValidException();
+            $this->webhookApi->register($paymentMethod, $webhookUrl);
+        } catch (PayPalApiException $exception) {
+            match ($exception->getErrorName()) {
+                'WEBHOOK_URL_ALREADY_EXISTS' => throw new PayPalWebhookAlreadyRegisteredException(),
+                'VALIDATION_ERROR' => throw new PayPalWebhookUrlNotValidException(),
+                default => null,
+            };
         }
     }
 }

@@ -20,6 +20,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
 final class StatusActionTest extends TestCase
@@ -45,7 +46,7 @@ final class StatusActionTest extends TestCase
         $payment = $this->createMock(PaymentInterface::class);
 
         $request->method('getFirstModel')->willReturn($payment);
-        $request->method('getModel')->willReturn(['status' => StatusAction::STATUS_CREATED]);
+        $request->method('getModel')->willReturn(['status' => PayPalPaymentStatus::Created->value]);
         $request->expects(self::once())->method('markNew');
 
         $this->statusAction->execute($request);
@@ -58,7 +59,7 @@ final class StatusActionTest extends TestCase
         $payment = $this->createMock(PaymentInterface::class);
 
         $request->method('getFirstModel')->willReturn($payment);
-        $request->method('getModel')->willReturn(['status' => StatusAction::STATUS_CAPTURED]);
+        $request->method('getModel')->willReturn(['status' => PayPalPaymentStatus::Captured->value]);
         $request->expects(self::once())->method('markPending');
 
         $this->statusAction->execute($request);

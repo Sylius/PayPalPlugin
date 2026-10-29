@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\PackageTracking\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApi;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
@@ -24,12 +25,15 @@ final class AddTrackingApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private AddTrackingApi $addTrackingApi;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->addTrackingApi = new AddTrackingApi($this->client);
     }
 
@@ -53,10 +57,10 @@ final class AddTrackingApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with('v2/checkout/orders/ORDER123/track', 'TOKEN', $body)
+            ->with($this->paymentMethod, 'v2/checkout/orders/ORDER123/track', $body)
             ->willReturn(['id' => 'ORDER123', 'status' => 'COMPLETED']);
 
-        $result = $this->addTrackingApi->add('TOKEN', 'ORDER123', $body);
+        $result = $this->addTrackingApi->add($this->paymentMethod, 'ORDER123', $body);
 
         self::assertSame(['id' => 'ORDER123', 'status' => 'COMPLETED'], $result);
     }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class RefundPaymentApi implements RefundPaymentApiInterface
@@ -22,18 +23,19 @@ final readonly class RefundPaymentApi implements RefundPaymentApiInterface
     }
 
     public function refund(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $paymentId,
         string $payPalAuthAssertion,
         string $invoiceNumber,
         string $amount,
         string $currencyCode,
+        ?string $requestId = null,
     ): array {
         return $this->client->post(
+            $paymentMethod,
             sprintf('v2/payments/captures/%s/refund', $paymentId),
-            $token,
             ['amount' => ['value' => $amount, 'currency_code' => $currencyCode], 'invoice_id' => $invoiceNumber],
-            ['PayPal-Auth-Assertion' => $payPalAuthAssertion],
+            ['PayPal-Auth-Assertion' => $payPalAuthAssertion] + (null === $requestId ? [] : ['PayPal-Request-Id' => $requestId]),
         );
     }
 }

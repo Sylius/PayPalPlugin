@@ -20,9 +20,10 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShipmentInterface;
 use Sylius\Component\Shipping\Model\ShipmentInterface as BaseShipmentInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiErrorException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
 use Sylius\PayPalPlugin\PackageTracking\Entity\ShipmentTrackingInterface;
 use Sylius\PayPalPlugin\PackageTracking\Exception\ShipmentTrackingNotReadyException;
@@ -38,7 +39,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
     public function __construct(
         private ShipmentTrackingRepositoryInterface $shipmentTrackingRepository,
         private OrderPayPalPaymentProviderInterface $orderPayPalPaymentProvider,
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private AddTrackingApiInterface $addTrackingApi,
         private ShipmentTrackingItemsProviderInterface $itemsProvider,
@@ -89,7 +89,7 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
     }
 
     /**
-     * @throws PayPalApiErrorException
+     * @throws PayPalApiException
      */
     private function sendTracking(
         ShipmentInterface $shipment,
@@ -110,9 +110,9 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
             return;
         }
 
-        $details = $payment->getDetails();
-        $payPalOrderId = (string) ($details['paypal_order_id'] ?? '');
-        if ('' === $payPalOrderId) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $payPalOrderId = (string) $details->payPalOrderId();
+        if (!$details->hasPayPalOrderId()) {
             $tracking->markAsFailed('Payment details do not carry a PayPal order id.');
 
             return;
@@ -120,22 +120,16 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        $token = $this->authorizeClientApi->authorize($paymentMethod);
+        $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
-        $orderDetails = $this->orderDetailsApi->get($token, $payPalOrderId);
-
-        if (!isset($orderDetails['status'])) {
-            throw new PayPalApiErrorException(sprintf('GET v2/checkout/orders/%s', $payPalOrderId), $orderDetails);
-        }
-
-        $status = (string) $orderDetails['status'];
+        $status = (string) $orderDetails->status();
         if (!in_array($status, self::ELIGIBLE_ORDER_STATUSES, true)) {
             $tracking->markAsFailed(sprintf('PayPal order status "%s" is not eligible for tracking.', $status));
 
             return;
         }
 
-        if ([] === ($orderDetails['purchase_units'][0]['items'] ?? [])) {
+        if (!$orderDetails->hasItems()) {
             $tracking->markAsFailed('PayPal order has no items, so it is not eligible for tracking.');
 
             return;
@@ -160,28 +154,25 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
             $body['carrier_name_other'] = (string) $tracking->getCarrierNameOther();
         }
 
-        $response = $this->addTrackingApi->add($token, $payPalOrderId, $body);
+        $response = $this->addTrackingApi->add($paymentMethod, $payPalOrderId, $body);
 
         if (!isset($response['id'])) {
-            throw new PayPalApiErrorException(sprintf('POST v2/checkout/orders/%s/track', $payPalOrderId), $response);
+            $tracking->markAsFailed('PayPal answered the tracking request without an id.');
+
+            return;
         }
 
         $tracking->markAsSynced($this->extractTrackerId($response, $trackingNumber));
     }
 
-    /**
-     * @param array<string, mixed> $paymentDetails
-     * @param array<string, mixed> $orderDetails
-     */
-    private function resolveCaptureId(array $paymentDetails, array $orderDetails): ?string
+    private function resolveCaptureId(PayPalPaymentDetails $paymentDetails, PayPalOrderDetails $orderDetails): ?string
     {
-        if (isset($paymentDetails['transaction_id']) && '' !== $paymentDetails['transaction_id']) {
-            return (string) $paymentDetails['transaction_id'];
+        $transactionId = $paymentDetails->transactionId();
+        if (null !== $transactionId && '' !== $transactionId) {
+            return $transactionId;
         }
 
-        $captureId = $orderDetails['purchase_units'][0]['payments']['captures'][0]['id'] ?? null;
-
-        return null !== $captureId ? (string) $captureId : null;
+        return $orderDetails->capture()?->id();
     }
 
     /**
@@ -211,6 +202,6 @@ final readonly class ShipmentTrackingProcessor implements ShipmentTrackingProces
 
     private function formatError(\Throwable $exception): string
     {
-        return $exception instanceof PayPalApiErrorException ? $exception->getDescription() : $exception->getMessage();
+        return $exception instanceof PayPalApiException ? $exception->getDescription() : $exception->getMessage();
     }
 }

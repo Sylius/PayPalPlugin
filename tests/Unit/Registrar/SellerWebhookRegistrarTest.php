@@ -17,9 +17,9 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
@@ -27,8 +27,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class SellerWebhookRegistrarTest extends TestCase
 {
-    private AuthorizeClientApiInterface&MockObject $authorizeClientApi;
-
     private UrlGeneratorInterface&MockObject $urlGenerator;
 
     private WebhookApiInterface&MockObject $webhookApi;
@@ -38,12 +36,10 @@ final class SellerWebhookRegistrarTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authorizeClientApi = $this->createMock(AuthorizeClientApiInterface::class);
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $this->webhookApi = $this->createMock(WebhookApiInterface::class);
 
         $this->sellerWebhookRegistrar = new SellerWebhookRegistrar(
-            $this->authorizeClientApi,
             $this->urlGenerator,
             $this->webhookApi,
         );
@@ -59,21 +55,17 @@ final class SellerWebhookRegistrarTest extends TestCase
     public function it_registers_sellers_webhook(): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $paymentMethod->method('getCode')->willReturn('PAYPAL');
 
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'sandbox' => true]);
-
-        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn('TOKEN');
         $this->urlGenerator
             ->method('generate')
-            ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->with('sylius_payment_method_notify', ['code' => 'PAYPAL'], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
         $this->webhookApi
             ->expects(self::once())
             ->method('register')
-            ->with('TOKEN', 'https://webhook-url.com', true)
+            ->with($paymentMethod, 'https://webhook-url.com')
             ->willReturn(['name' => 'WEBHOOK_REGISTERED']);
 
         // Test that register method executes without throwing an exception
@@ -87,21 +79,44 @@ final class SellerWebhookRegistrarTest extends TestCase
     public function it_throws_exception_if_webhook_could_not_be_registered(): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $paymentMethod->method('getCode')->willReturn('PAYPAL');
 
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $gatewayConfig->method('getConfig')->willReturn(['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'sandbox' => true]);
-
-        $this->authorizeClientApi->method('authorize')->with('CLIENT_ID', 'CLIENT_SECRET', true)->willReturn('TOKEN');
         $this->urlGenerator
             ->method('generate')
-            ->with('sylius_paypal_webhook_refund_order', [], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->with('sylius_payment_method_notify', ['code' => 'PAYPAL'], UrlGeneratorInterface::ABSOLUTE_URL)
             ->willReturn('https://webhook-url.com');
 
-        $this->webhookApi->method('register')->with('TOKEN', 'https://webhook-url.com', true)->willReturn(['name' => 'VALIDATION_ERROR']);
+        $this->webhookApi->method('register')->with($paymentMethod, 'https://webhook-url.com')->willThrowException($this->rejection('VALIDATION_ERROR'));
 
         $this->expectException(PayPalWebhookUrlNotValidException::class);
 
         $this->sellerWebhookRegistrar->register($paymentMethod);
+    }
+
+    public function test_it_throws_an_exception_if_the_webhook_is_already_registered(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $this->urlGenerator->method('generate')->willReturn('https://webhook-url.com');
+        $this->webhookApi->method('register')->willThrowException($this->rejection('WEBHOOK_URL_ALREADY_EXISTS'));
+
+        $this->expectException(PayPalWebhookAlreadyRegisteredException::class);
+
+        $this->sellerWebhookRegistrar->register($paymentMethod);
+    }
+
+    public function test_it_leaves_the_webhook_unregistered_when_paypal_fails_for_another_reason(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+
+        $this->urlGenerator->method('generate')->willReturn('https://webhook-url.com');
+        $this->webhookApi->expects(self::once())->method('register')->willThrowException($this->rejection('WEBHOOK_NUMBER_LIMIT_EXCEEDED'));
+
+        $this->sellerWebhookRegistrar->register($paymentMethod);
+    }
+
+    private function rejection(string $name): PayPalApiRequestException
+    {
+        return new PayPalApiRequestException('POST', 'v1/notifications/webhooks', 400, $name);
     }
 }

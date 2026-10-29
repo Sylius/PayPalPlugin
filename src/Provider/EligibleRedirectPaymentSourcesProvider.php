@@ -18,17 +18,17 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 final readonly class EligibleRedirectPaymentSourcesProvider implements EligibleRedirectPaymentSourcesProviderInterface
 {
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private FindEligibleMethodsApiInterface $findEligibleMethodsApi,
         private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private LoggerInterface $logger,
+        private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
     ) {
     }
 
@@ -36,10 +36,8 @@ final readonly class EligibleRedirectPaymentSourcesProvider implements EligibleR
     {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
-        /** @var ChannelInterface $channel */
-        $channel = $order->getChannel();
 
-        $enabled = $this->enabled($channel);
+        $enabled = $this->enabled($payment);
         if ([] === $enabled || null === $order->getBillingAddress()?->getCountryCode()) {
             return [];
         }
@@ -59,7 +57,7 @@ final readonly class EligibleRedirectPaymentSourcesProvider implements EligibleR
 
         try {
             $response = $this->findEligibleMethodsApi->find(
-                $this->authorizeClientApi->authorize($paymentMethod),
+                $paymentMethod,
                 $payment,
                 array_map(static fn (RedirectPaymentSource $case): string => $case->eligibilityCode(), $enabled),
             );
@@ -83,12 +81,22 @@ final readonly class EligibleRedirectPaymentSourcesProvider implements EligibleR
     }
 
     /** @return list<RedirectPaymentSource> */
-    private function enabled(ChannelInterface $channel): array
+    private function enabled(PaymentInterface $payment): array
     {
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        /** @var ChannelInterface $channel */
+        $channel = $order->getChannel();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+
         $enabled = [];
 
         foreach (RedirectPaymentSource::cases() as $case) {
-            if ($this->isEnabled($case, $channel)) {
+            if (
+                $this->isEnabled($case, $channel) &&
+                $this->paymentAuthorizationChecker->isAllowed($case->value, $paymentMethod)
+            ) {
                 $enabled[] = $case;
             }
         }

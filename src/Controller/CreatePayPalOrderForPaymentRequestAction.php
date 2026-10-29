@@ -1,0 +1,177 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Controller;
+
+use Sylius\Abstraction\StateMachine\StateMachineInterface;
+use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
+use Sylius\Bundle\PaymentBundle\Announcer\PaymentRequestAnnouncerInterface;
+use Sylius\Component\Payment\Factory\PaymentRequestFactoryInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\Component\Payment\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\Component\Payment\PaymentRequestTransitions;
+use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
+use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
+
+final readonly class CreatePayPalOrderForPaymentRequestAction
+{
+    public const RESPONSE_ERROR = 'error';
+
+    public const PAYMENT_SOURCE_NOT_AVAILABLE = 'payment_source_not_available';
+
+    public const ATTEMPT_CLOSED = 'attempt_closed';
+
+    private const PAYPAL_ORDER_ACTIONS = [PaymentRequestInterface::ACTION_CAPTURE, PaymentRequestInterface::ACTION_AUTHORIZE];
+
+    /**
+     * @param PaymentRequestRepositoryInterface<PaymentRequestInterface> $paymentRequestRepository
+     * @param PaymentRequestFactoryInterface<PaymentRequestInterface> $paymentRequestFactory
+     */
+    public function __construct(
+        private PaymentRequestRepositoryInterface $paymentRequestRepository,
+        private PaymentRequestFactoryInterface $paymentRequestFactory,
+        private PaymentRequestAnnouncerInterface $paymentRequestAnnouncer,
+        private StateMachineInterface $stateMachine,
+        private UrlProviderInterface $paymentRequestPayUrlProvider,
+        private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
+    ) {
+    }
+
+    public function __invoke(Request $request, string $hash): Response
+    {
+        $paymentRequest = $this->paymentRequestRepository->find($hash);
+        if (null === $paymentRequest || !$this->isPayPalOrderPayment($paymentRequest)) {
+            return new JsonResponse([], Response::HTTP_NOT_FOUND);
+        }
+
+        if (PaymentInterface::STATE_NEW !== $paymentRequest->getPayment()->getState()) {
+            return $this->attemptClosed();
+        }
+
+        $paymentSource = $this->paymentSource($request);
+        if (null === $paymentSource) {
+            return new JsonResponse([], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (!$this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentRequest->getMethod())) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
+            return new JsonResponse([self::RESPONSE_ERROR => self::PAYMENT_SOURCE_NOT_AVAILABLE], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (PaymentRequestInterface::STATE_PROCESSING === $paymentRequest->getState()) {
+            if ($paymentSource === $this->requestedPaymentSource($paymentRequest)) {
+                return $this->respond($paymentRequest);
+            }
+
+            if ($this->isPaidAtTheBank($paymentRequest)) {
+                return $this->attemptClosed();
+            }
+
+            $paymentRequest = $this->startAnotherAttempt($paymentRequest);
+        } elseif (PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState()) {
+            return $this->attemptClosed();
+        }
+
+        $paymentRequest->setPayload([CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE => $paymentSource]);
+        $this->paymentRequestRepository->add($paymentRequest);
+
+        $this->paymentRequestAnnouncer->dispatchPaymentRequestCommand($paymentRequest);
+
+        return $this->respond($paymentRequest);
+    }
+
+    private function isPayPalOrderPayment(PaymentRequestInterface $paymentRequest): bool
+    {
+        /** @var GatewayConfigInterface|null $gatewayConfig */
+        $gatewayConfig = $paymentRequest->getMethod()->getGatewayConfig();
+
+        return
+            in_array($paymentRequest->getAction(), self::PAYPAL_ORDER_ACTIONS, true) &&
+            SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $gatewayConfig?->getFactoryName()
+        ;
+    }
+
+    private function paymentSource(Request $request): ?string
+    {
+        $payload = json_decode($request->getContent(), true);
+        $paymentSource = is_array($payload) ? ($payload['paymentSource'] ?? null) : null;
+
+        if (null === $paymentSource) {
+            return PayPalPaymentSourceProviderInterface::PAYPAL;
+        }
+
+        return is_string($paymentSource) ? $paymentSource : null;
+    }
+
+    private function requestedPaymentSource(PaymentRequestInterface $paymentRequest): mixed
+    {
+        $payload = $paymentRequest->getPayload();
+
+        return is_array($payload) ? ($payload[CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE] ?? null) : null;
+    }
+
+    private function isPaidAtTheBank(PaymentRequestInterface $paymentRequest): bool
+    {
+        $requestedPaymentSource = $this->requestedPaymentSource($paymentRequest);
+        if (!is_string($requestedPaymentSource) || null === RedirectPaymentSource::tryFrom($requestedPaymentSource)) {
+            return false;
+        }
+
+        $this->paymentRequestAnnouncer->dispatchPaymentRequestCommand($paymentRequest);
+
+        return PaymentInterface::STATE_NEW !== $paymentRequest->getPayment()->getState();
+    }
+
+    private function startAnotherAttempt(PaymentRequestInterface $paymentRequest): PaymentRequestInterface
+    {
+        if ($this->stateMachine->can($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL)) {
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+        }
+
+        $anotherAttempt = $this->paymentRequestFactory->createFromPaymentRequest($paymentRequest);
+        $anotherAttempt->setAction($paymentRequest->getAction());
+
+        return $anotherAttempt;
+    }
+
+    private function attemptClosed(): JsonResponse
+    {
+        return new JsonResponse([self::RESPONSE_ERROR => self::ATTEMPT_CLOSED], Response::HTTP_CONFLICT);
+    }
+
+    private function respond(PaymentRequestInterface $paymentRequest): JsonResponse
+    {
+        $payUrl = $this->paymentRequestPayUrlProvider->getUrl($paymentRequest);
+
+        return new JsonResponse(
+            [
+                'hash' => $paymentRequest->getId(),
+                'approve_url' => $payUrl,
+                'cancel_url' => sprintf('%s?%s=1', $payUrl, CreatePayPalOrderPaymentRequestHandler::PAYER_CANCELLED_QUERY_PARAMETER),
+            ] + $paymentRequest->getResponseData(),
+            PaymentRequestInterface::STATE_FAILED === $paymentRequest->getState() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK,
+        );
+    }
+}

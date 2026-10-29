@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\AmountUtils;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -38,6 +39,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         private LocaleProcessorInterface $localeProcessor,
         private PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider,
         private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
+        private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
     ) {
     }
 
@@ -56,32 +58,24 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
 
         return [
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),
-            'applePayEnabled' => $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel),
+            'applePayEnabled' => $this->isApplePayEnabled($payment, $channel),
             'billingAddress' => $order->getBillingAddress(),
-            'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_checkout_payment'),
-            'completePayPalOrderUrl' => $this->router->generate(
-                'sylius_paypal_shop_complete_paypal_order',
-                ['token' => $order->getTokenValue()],
-            ),
             'countryCode' => $channel->getShopBillingData()?->getCountryCode(),
-            'createPayPalOrderUrl' => $this->router->generate(
-                'sylius_paypal_shop_create_paypal_order',
-                ['token' => $order->getTokenValue()],
-            ),
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
-            'googlePayEnabled' => $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel),
+            'cardEnabled' => $this->isAllowed($payment, PayPalPaymentSourceProviderInterface::CARD),
+            'googlePayEnabled' => $this->isGooglePayEnabled($payment, $channel),
             'languageCode' => $this->languageCode($locale),
             'locale' => $processedLocale,
             'order' => $order,
             'payment' => $payment,
             'paylaterEnabled' => $this->fundingSourcesConfigurationProvider->isPayLaterEnabled($channel),
             'redirectPaymentSources' => $this->redirectPaymentSources($payment),
-            'venmoEnabled' => $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel),
+            'venmoEnabled' => $this->isVenmoEnabled($payment, $channel),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $channel,
                 self::PAGE_TYPE,
-                $this->components($channel),
+                $this->components($payment, $channel),
                 $processedLocale,
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl(),
@@ -106,22 +100,57 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
     }
 
     /** @return array<int, string> */
-    private function components(ChannelInterface $channel): array
+    private function components(PaymentInterface $payment, ChannelInterface $channel): array
     {
-        $components = [...WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS, self::CARD_FIELDS_COMPONENT];
+        $components = WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
 
-        if ($this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel)) {
+        if ($this->isAllowed($payment, PayPalPaymentSourceProviderInterface::CARD)) {
+            $components[] = self::CARD_FIELDS_COMPONENT;
+        }
+
+        if ($this->isGooglePayEnabled($payment, $channel)) {
             $components[] = self::GOOGLE_PAY_COMPONENT;
         }
 
-        if ($this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel)) {
+        if ($this->isApplePayEnabled($payment, $channel)) {
             $components[] = self::APPLE_PAY_COMPONENT;
         }
 
-        if ($this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel)) {
+        if ($this->isVenmoEnabled($payment, $channel)) {
             $components[] = self::VENMO_COMPONENT;
         }
 
         return $components;
+    }
+
+    private function isGooglePayEnabled(PaymentInterface $payment, ChannelInterface $channel): bool
+    {
+        return
+            $this->fundingSourcesConfigurationProvider->isGooglePayEnabled($channel) &&
+            $this->isAllowed($payment, PayPalPaymentSourceProviderInterface::GOOGLE_PAY)
+        ;
+    }
+
+    private function isApplePayEnabled(PaymentInterface $payment, ChannelInterface $channel): bool
+    {
+        return
+            $this->fundingSourcesConfigurationProvider->isApplePayEnabled($channel) &&
+            $this->isAllowed($payment, PayPalPaymentSourceProviderInterface::APPLE_PAY)
+        ;
+    }
+
+    private function isVenmoEnabled(PaymentInterface $payment, ChannelInterface $channel): bool
+    {
+        return
+            $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel) &&
+            $this->isAllowed($payment, PayPalPaymentSourceProviderInterface::VENMO)
+        ;
+    }
+
+    private function isAllowed(PaymentInterface $payment, string $paymentSource): bool
+    {
+        $paymentMethod = $payment->getMethod();
+
+        return null === $paymentMethod || $this->paymentAuthorizationChecker->isAllowed($paymentSource, $paymentMethod);
     }
 }

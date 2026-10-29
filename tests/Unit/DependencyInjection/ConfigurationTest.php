@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\DependencyInjection;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\DependencyInjection\Configuration;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 final class ConfigurationTest extends TestCase
@@ -49,6 +50,38 @@ final class ConfigurationTest extends TestCase
         ]);
 
         self::assertSame(['INPOST_PACZKOMATY'], $config['tracking']['carriers']);
+    }
+
+    public function test_it_authorizes_the_payment_sources_paypal_can_authorize_by_default(): void
+    {
+        self::assertSame(
+            ['paypal', 'venmo', 'card', 'apple_pay', 'google_pay'],
+            $this->process([])['authorize']['payment_sources'],
+        );
+    }
+
+    public function test_it_replaces_the_default_authorizable_payment_sources_with_the_configured_ones(): void
+    {
+        $config = $this->process([
+            ['authorize' => ['payment_sources' => ['paypal', 'card']]],
+            ['authorize' => ['payment_sources' => ['paypal']]],
+        ]);
+
+        self::assertSame(['paypal'], $config['authorize']['payment_sources']);
+    }
+
+    public function test_it_rejects_an_unknown_authorizable_payment_source(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->process([['authorize' => ['payment_sources' => ['paypal', 'paypall']]]]);
+    }
+
+    public function test_it_rejects_a_payment_source_paypal_cannot_authorize(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->process([['authorize' => ['payment_sources' => ['trustly']]]]);
     }
 
     /**

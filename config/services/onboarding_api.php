@@ -12,6 +12,7 @@ use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutor;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApi;
 use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
+use Sylius\PayPalPlugin\Client\LoggingHttpClient;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Symfony\Component\HttpClient\HttpClient;
@@ -38,10 +39,16 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.http_client.onboarding'),
         ]);
 
-    $services->set('sylius_paypal.api.onboarding_request_executor', PayPalOnboardingRequestExecutor::class)
+    $services->set('sylius_paypal.psr18_client.onboarding.logging', LoggingHttpClient::class)
+        ->private()
         ->args([
             service('sylius_paypal.psr18_client.onboarding'),
             service('monolog.logger.paypal'),
+        ]);
+
+    $services->set('sylius_paypal.api.onboarding_request_executor', PayPalOnboardingRequestExecutor::class)
+        ->args([
+            service('sylius_paypal.psr18_client.onboarding.logging'),
             param('sylius_paypal.partner_attribution_id'),
         ]);
 

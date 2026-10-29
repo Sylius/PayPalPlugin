@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
-use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +26,8 @@ use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     /** @test */
     public function it_creates_paypal_order_from_cart_and_returns_its_data(): void
     {
@@ -35,6 +37,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
 
         $response = $this->client->getResponse();
@@ -55,6 +58,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
 
         $response = $this->client->getResponse();
@@ -84,6 +88,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $order = $this->seededCart();
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
 
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
@@ -95,6 +100,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $order = $this->seededCart(venmoEnabled: true);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
 
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
