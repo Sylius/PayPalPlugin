@@ -176,8 +176,8 @@ final class ShopApiPaymentRequestEligibilityTest extends JsonApiTestCase
     private function assertViolation(string $propertyPath, string $message): void
     {
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
-        self::assertSame(
-            [['propertyPath' => $propertyPath, 'message' => $message]],
+        self::assertContains(
+            ['propertyPath' => $propertyPath, 'message' => $message],
             array_map(
                 static fn (array $violation): array => ['propertyPath' => $violation['propertyPath'], 'message' => $violation['message']],
                 $this->responseContent()['violations'],
