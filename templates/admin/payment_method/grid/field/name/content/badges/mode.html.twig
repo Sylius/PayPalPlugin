@@ -1,0 +1,7 @@
+{% set gateway_config = hookable_metadata.context.payment_method.gatewayConfig %}
+
+{% if gateway_config.config[constant('Sylius\\PayPalPlugin\\Manager\\CredentialsManagerInterface::MODE_KEY')]|default(false) %}
+    <span class="badge bg-orange-lt" {{ sylius_test_html_attribute('paypal-mode', 'sandbox') }}>{{ 'sylius_paypal.mode_sandbox'|trans }}</span>
+{% else %}
+    <span class="badge bg-green-lt" {{ sylius_test_html_attribute('paypal-mode', 'production') }}>{{ 'sylius_paypal.mode_production'|trans }}</span>
+{% endif %}

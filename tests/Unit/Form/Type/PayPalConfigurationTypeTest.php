@@ -196,7 +196,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         return [
             'client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'merchant_id' => 'MERCHANT_ID',
-            'sylius_merchant_id' => 'MERCHANT_ID', 'partner_attribution_id' => 'bn', 'use_authorize' => 1,
+            'partner_attribution_id' => 'bn', 'use_authorize' => 1,
             'reports_sftp_username' => null, 'reports_sftp_password' => null,
         ];
     }
@@ -232,7 +232,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $config = $this->productionConfig();
         $config['sandbox_credentials'] = [
             'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
-            'sylius_merchant_id' => 'SYLIUS_SANDBOX_MERCHANT_ID', 'partner_attribution_id' => 'bn',
+            'partner_attribution_id' => 'bn',
         ];
 
         $form = $this->factory->create(PayPalConfigurationType::class, $config);
@@ -253,7 +253,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $config = $this->productionConfig();
         $config['sandbox_credentials'] = [
             'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
-            'sylius_merchant_id' => 'SYLIUS_SANDBOX_MERCHANT_ID', 'partner_attribution_id' => 'bn',
+            'partner_attribution_id' => 'bn',
         ];
 
         $form = $this->factory->create(PayPalConfigurationType::class, $config);
@@ -289,11 +289,11 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         return [
             'client_id' => 'PROD', 'client_secret' => 'PRODS', 'merchant_id' => 'PRODM',
-            'sylius_merchant_id' => 'PRODM', 'partner_attribution_id' => 'bn', 'use_authorize' => 1,
+            'partner_attribution_id' => 'bn', 'use_authorize' => 1,
             'reports_sftp_username' => null, 'reports_sftp_password' => null, 'webhook_id' => 'WH', 'sandbox' => false,
             'production_credentials' => [
                 'client_id' => 'PROD', 'client_secret' => 'PRODS', 'merchant_id' => 'PRODM',
-                'sylius_merchant_id' => 'PRODM', 'partner_attribution_id' => 'bn', 'webhook_id' => 'WH',
+                'partner_attribution_id' => 'bn', 'webhook_id' => 'WH',
             ],
         ];
     }
@@ -305,11 +305,11 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         return [
             'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
-            'sylius_merchant_id' => 'SYLIUS_SANDBOX_MERCHANT_ID', 'partner_attribution_id' => 'bn', 'use_authorize' => 1,
+            'partner_attribution_id' => 'bn', 'use_authorize' => 1,
             'reports_sftp_username' => null, 'reports_sftp_password' => null, 'sandbox' => true,
             'sandbox_credentials' => [
                 'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
-                'sylius_merchant_id' => 'SYLIUS_SANDBOX_MERCHANT_ID', 'partner_attribution_id' => 'bn',
+                'partner_attribution_id' => 'bn',
             ],
         ];
     }
@@ -323,7 +323,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         return array_merge([
             'client_id' => 'PROD', 'client_secret' => 'PRODS', 'merchant_id' => 'PRODM',
-            'sylius_merchant_id' => 'PRODM', 'partner_attribution_id' => 'bn',
+            'partner_attribution_id' => 'bn',
             'reports_sftp_username' => '', 'reports_sftp_password' => '',
         ], $overrides);
     }

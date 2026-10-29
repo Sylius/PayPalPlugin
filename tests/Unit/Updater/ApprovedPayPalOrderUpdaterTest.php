@@ -78,7 +78,7 @@ final class ApprovedPayPalOrderUpdaterTest extends TestCase
         $this->paymentOf(amount: 1000, total: 1200);
 
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gatewayConfig->method('getConfig')->willReturn(['merchant_id' => 'MERCHANT_ID', 'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID']);
+        $gatewayConfig->method('getConfig')->willReturn(['merchant_id' => 'MERCHANT_ID']);
         $this->paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
         $this->updateOrderApi->expects(self::once())->method('update')->with($this->paymentMethod, '123123', $this->payment, 'REFERENCE_ID', 'MERCHANT_ID');

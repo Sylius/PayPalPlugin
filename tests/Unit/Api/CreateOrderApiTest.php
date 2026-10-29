@@ -165,7 +165,7 @@ final class CreateOrderApiTest extends TestCase
 
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
         $gatewayConfig->method('getConfig')->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+            ['merchant_id' => 'merchant-id'],
         );
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);

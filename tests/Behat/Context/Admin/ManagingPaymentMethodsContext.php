@@ -23,6 +23,7 @@ use Sylius\Behat\Page\Admin\PaymentMethod\CreatePageInterface;
 use Sylius\Behat\Service\NotificationCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Tests\Sylius\PayPalPlugin\Behat\Element\DownloadPayPalReportElementInterface;
+use Tests\Sylius\PayPalPlugin\Behat\Element\PaymentMethodListElementInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class ManagingPaymentMethodsContext implements Context
@@ -31,6 +32,7 @@ final readonly class ManagingPaymentMethodsContext implements Context
         private DownloadPayPalReportElementInterface $downloadPayPalReportElement,
         private NotificationCheckerInterface $notificationChecker,
         private CreatePageInterface $createPage,
+        private PaymentMethodListElementInterface $paymentMethodListElement,
     ) {
     }
 
@@ -74,5 +76,40 @@ final readonly class ManagingPaymentMethodsContext implements Context
         }
 
         throw new \DomainException('Step should fail');
+    }
+
+    #[Then('the :paymentMethodName payment method should offer :paymentSource')]
+    public function thePaymentMethodShouldOffer(string $paymentMethodName, string $paymentSource): void
+    {
+        Assert::true($this->paymentMethodListElement->hasPaymentSource($paymentMethodName, $this->paymentSourceCode($paymentSource)));
+    }
+
+    #[Then('the :paymentMethodName payment method should not offer :paymentSource')]
+    public function thePaymentMethodShouldNotOffer(string $paymentMethodName, string $paymentSource): void
+    {
+        Assert::false($this->paymentMethodListElement->hasPaymentSource($paymentMethodName, $this->paymentSourceCode($paymentSource)));
+    }
+
+    #[Then('the :paymentMethodName payment method should hide :paymentSources under "and more"')]
+    public function thePaymentMethodShouldHideUnderAndMore(string $paymentMethodName, string $paymentSources): void
+    {
+        Assert::same($this->paymentMethodListElement->getMorePaymentSources($paymentMethodName), $paymentSources);
+    }
+
+    #[Then('/^the "([^"]+)" payment method should be marked as working in (sandbox|production) mode$/')]
+    public function thePaymentMethodShouldBeMarkedAsWorkingInMode(string $paymentMethodName, string $mode): void
+    {
+        Assert::same($this->paymentMethodListElement->getMode($paymentMethodName), $mode);
+    }
+
+    #[Then('I should not see PayPal suggested as a payment method')]
+    public function iShouldNotSeePayPalSuggestedAsAPaymentMethod(): void
+    {
+        Assert::false($this->paymentMethodListElement->hasSuggestedPayPalPaymentMethod());
+    }
+
+    private function paymentSourceCode(string $paymentSource): string
+    {
+        return str_replace(' ', '_', strtolower($paymentSource));
     }
 }

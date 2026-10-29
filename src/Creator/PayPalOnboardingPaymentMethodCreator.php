@@ -44,7 +44,6 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::CLIENT_ID => $result->getClientId(),
             PayPalGatewayConfig::CLIENT_SECRET => $result->getClientSecret(),
             PayPalGatewayConfig::MERCHANT_ID => $result->getMerchantId(),
-            PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $result->getMerchantId(),
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
         ];
 

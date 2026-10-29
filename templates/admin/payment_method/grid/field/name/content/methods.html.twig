@@ -1,0 +1,25 @@
+{% import '@SyliusAdmin/shared/helper/payment_method_icon.html.twig' as payment_method_icon %}
+
+{% set plugin_icons = ['pay_later', 'trustly'] %}
+{% set payment_sources = sylius_paypal_enabled_payment_sources(hookable_metadata.context.payment_method) %}
+{% set limit = hookable_metadata.configuration.limit %}
+
+<div class="d-flex flex-wrap gap-2">
+    {% for code in payment_sources|slice(0, limit) %}
+        <span class="payment-method-list__method d-inline-flex align-items-center justify-content-center" {{ sylius_test_html_attribute('paypal-payment-source', code) }}>
+            {% if code in plugin_icons %}
+                <img src="{{ asset('build/app/admin/images/' ~ code ~ '.svg', 'app.admin') }}" alt="{{ payment_method_icon.label(code)|trim }}">
+            {% else %}
+                {{ payment_method_icon.image(code) }}
+            {% endif %}
+        </span>
+    {% endfor %}
+    {% if payment_sources|length > limit %}
+        <span
+            class="payment-method-list__method payment-method-list__method--more d-inline-flex align-items-center justify-content-center px-1 fw-semibold"
+            data-bs-toggle="tooltip"
+            data-bs-title="{{ payment_sources|slice(limit)|map(code => payment_method_icon.label(code)|trim)|join(', ') }}"
+            {{ sylius_test_html_attribute('paypal-more-payment-sources') }}
+        >{{ 'sylius.ui.and_more'|trans }}</span>
+    {% endif %}
+</div>

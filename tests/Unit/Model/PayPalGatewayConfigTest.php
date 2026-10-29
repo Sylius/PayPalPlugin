@@ -26,14 +26,12 @@ final class PayPalGatewayConfigTest extends TestCase
             'client_id' => 'CLIENT_ID',
             'client_secret' => 'CLIENT_SECRET',
             'merchant_id' => 'MERCHANT_ID',
-            'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID',
             'partner_attribution_id' => 'PARTNER_ATTRIBUTION_ID',
         ]);
 
         self::assertSame('CLIENT_ID', $config->clientId());
         self::assertSame('CLIENT_SECRET', $config->clientSecret());
         self::assertSame('MERCHANT_ID', $config->merchantId());
-        self::assertSame('SYLIUS_MERCHANT_ID', $config->syliusMerchantId());
         self::assertSame('PARTNER_ATTRIBUTION_ID', $config->partnerAttributionId());
     }
 
@@ -59,9 +57,6 @@ final class PayPalGatewayConfigTest extends TestCase
 
         self::assertFalse(PayPalGatewayConfig::fromArray([])->hasPartnerAttributionId());
         self::assertTrue(PayPalGatewayConfig::fromArray(['partner_attribution_id' => 'BN'])->hasPartnerAttributionId());
-
-        self::assertFalse(PayPalGatewayConfig::fromArray([])->hasSyliusMerchantId());
-        self::assertTrue(PayPalGatewayConfig::fromArray(['sylius_merchant_id' => 'ID'])->hasSyliusMerchantId());
     }
 
     public function test_it_reads_the_optional_values_as_null_when_they_are_not_set(): void

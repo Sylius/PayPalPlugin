@@ -34,7 +34,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'client_id' => 'CLIENT-ID',
         'client_secret' => 'CLIENT-SECRET',
         'merchant_id' => 'MERCHANT-ID',
-        'sylius_merchant_id' => 'MERCHANT-ID',
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
     ];
 
@@ -42,7 +41,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'client_id' => 'CLIENT-ID',
         'client_secret' => 'CLIENT-SECRET',
         'merchant_id' => 'MERCHANT-ID',
-        'sylius_merchant_id' => 'MERCHANT-ID',
         'reports_sftp_password' => null,
         'reports_sftp_username' => null,
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
