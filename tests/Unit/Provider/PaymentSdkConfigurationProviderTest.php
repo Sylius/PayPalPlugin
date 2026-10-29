@@ -1,0 +1,365 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
+
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
+use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
+use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Model\ShopBillingDataInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
+use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
+
+final class PaymentSdkConfigurationProviderTest extends TestCase
+{
+    private const SCRIPT_URL = 'https://www.sandbox.paypal.com/web-sdk/v6/core';
+
+    private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
+
+    /** @var array<string, bool> */
+    private array $paymentMethodConfig = [
+        'pay_later_enabled' => false,
+        'messaging_enabled' => false,
+        'google_pay_enabled' => false,
+        'apple_pay_enabled' => false,
+        'venmo_enabled' => false,
+        'sandbox' => true,
+    ];
+
+    /** @var list<string> */
+    private array $disallowedPaymentSources = [];
+
+    private EligibleRedirectPaymentSourcesProviderInterface&Stub $eligibleRedirectPaymentSourcesProvider;
+
+    private PaymentAuthorizationCheckerInterface&Stub $paymentAuthorizationChecker;
+
+    private PaymentSdkConfigurationProvider $provider;
+
+    private PaymentInterface&Stub $payment;
+
+    private AddressInterface&Stub $billingAddress;
+
+    private ChannelInterface&Stub $channel;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
+        $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn(self::SCRIPT_URL);
+
+        $localeProcessor = $this->createStub(LocaleProcessorInterface::class);
+        $localeProcessor->method('process')->willReturnCallback(static function (string $locale): string {
+            if ('es_MX' === $locale) {
+                throw new \UnexpectedValueException('Locale "es_MX" is not supported by PayPal.');
+            }
+
+            return $locale;
+        });
+
+        $this->billingAddress = $this->createStub(AddressInterface::class);
+
+        $this->channel = $this->createStub(ChannelInterface::class);
+
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($this->channel);
+        $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getBillingAddress')->willReturn($this->billingAddress);
+
+        $this->payment = $this->createStub(PaymentInterface::class);
+        $this->payment->method('getOrder')->willReturn($order);
+        $this->payment->method('getAmount')->willReturn(12345);
+
+        $this->eligibleRedirectPaymentSourcesProvider = $this->createStub(EligibleRedirectPaymentSourcesProviderInterface::class);
+        $this->eligibleRedirectPaymentSourcesProvider->method('provide')->willReturn([]);
+        $this->paymentAuthorizationChecker = $this->createStub(PaymentAuthorizationCheckerInterface::class);
+        $this->paymentAuthorizationChecker->method('isAllowed')->willReturnCallback(
+            fn (string $paymentSource): bool => !in_array($paymentSource, $this->disallowedPaymentSources, true),
+        );
+
+        $this->provider = new PaymentSdkConfigurationProvider(
+            $this->webSdkConfigurationProvider,
+            $localeProcessor,
+            $this->eligibleRedirectPaymentSourcesProvider,
+            $this->paymentAuthorizationChecker,
+        );
+    }
+
+    public function test_it_implements_payment_sdk_configuration_provider_interface(): void
+    {
+        self::assertInstanceOf(PaymentSdkConfigurationProviderInterface::class, $this->provider);
+    }
+
+    public function test_it_provides_the_currency_of_the_order(): void
+    {
+        self::assertSame('USD', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['currency']);
+    }
+
+    public function test_it_provides_whether_pay_later_is_enabled_for_the_channel(): void
+    {
+        $this->paymentMethodConfig['pay_later_enabled'] = true;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertTrue($context['paylaterEnabled']);
+    }
+
+    public function test_it_provides_pay_later_as_disabled_when_the_channel_does_not_allow_it(): void
+    {
+        $this->paymentMethodConfig['pay_later_enabled'] = false;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertFalse($context['paylaterEnabled']);
+    }
+
+    public function test_it_asks_the_sdk_instance_for_the_card_fields_component(): void
+    {
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields'], 'en_US')
+            ->willReturn(['clientId' => 'CLIENT_ID'])
+        ;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertSame(['clientId' => 'CLIENT_ID'], $context['webSdkInstanceConfig']);
+        self::assertSame(self::SCRIPT_URL, $context['webSdkScriptUrl']);
+    }
+
+    public function test_it_provides_the_amount_google_pay_shows_the_buyer(): void
+    {
+        self::assertSame('123.45', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['amount']);
+    }
+
+    public function test_it_provides_the_amount_without_decimals_for_a_zero_decimal_currency(): void
+    {
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $order->method('getTokenValue')->willReturn('ORDER_TOKEN');
+        $order->method('getCurrencyCode')->willReturn('JPY');
+
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getOrder')->willReturn($order);
+        $payment->method('getAmount')->willReturn(123400);
+
+        self::assertSame('1234', $this->provider->provide($payment, $this->paymentMethod(), 'en_US')['amount']);
+    }
+
+    public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
+    {
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+
+        self::assertTrue($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['googlePayEnabled']);
+    }
+
+    public function test_it_tells_the_page_whether_the_channel_has_apple_pay_enabled(): void
+    {
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
+
+        self::assertTrue($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['applePayEnabled']);
+    }
+
+    public function test_it_takes_the_country_apple_pay_needs_from_the_shop_billing_data(): void
+    {
+        $shopBillingData = $this->createStub(ShopBillingDataInterface::class);
+        $shopBillingData->method('getCountryCode')->willReturn('DE');
+        $this->channel->method('getShopBillingData')->willReturn($shopBillingData);
+
+        self::assertSame('DE', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['countryCode']);
+    }
+
+    public function test_it_never_takes_the_country_apple_pay_needs_from_the_buyer(): void
+    {
+        $this->billingAddress->method('getCountryCode')->willReturn('FR');
+
+        self::assertNull($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['countryCode']);
+    }
+
+    public function test_it_provides_the_language_the_shop_is_being_browsed_in(): void
+    {
+        self::assertSame('en', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['languageCode']);
+        self::assertSame('pl', $this->provider->provide($this->payment, $this->paymentMethod(), 'pl_PL')['languageCode']);
+        self::assertSame('de', $this->provider->provide($this->payment, $this->paymentMethod(), 'de')['languageCode']);
+    }
+
+    public function test_it_provides_no_locale_when_paypal_does_not_support_it(): void
+    {
+        self::assertNull($this->provider->provide($this->payment, $this->paymentMethod(), 'es_MX')['locale']);
+    }
+
+    public function test_it_provides_the_processed_locale(): void
+    {
+        self::assertSame('en_US', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['locale']);
+    }
+
+    public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
+    {
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'googlepay-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+    }
+
+    public function test_it_asks_for_the_apple_pay_component_only_when_the_channel_has_it_enabled(): void
+    {
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'applepay-payments'], 'en_US')
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+    }
+
+    public function test_it_asks_for_both_wallet_components_when_the_channel_has_both_enabled(): void
+    {
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
+
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(
+                self::anything(),
+                'checkout',
+                ['paypal-payments', 'card-fields', 'googlepay-payments', 'applepay-payments'],
+                'en_US',
+            )
+            ->willReturn([])
+        ;
+
+        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+    }
+
+    public function test_it_provides_whether_venmo_is_enabled_for_the_channel(): void
+    {
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertTrue($context['venmoEnabled']);
+    }
+
+    public function test_it_provides_venmo_as_disabled_when_the_channel_does_not_allow_it(): void
+    {
+        $this->paymentMethodConfig['venmo_enabled'] = false;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertFalse($context['venmoEnabled']);
+    }
+
+    public function test_it_adds_the_venmo_component_when_venmo_is_enabled_for_the_channel(): void
+    {
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields', 'venmo-payments'], 'en_US')
+            ->willReturn(['clientId' => 'CLIENT_ID'])
+        ;
+
+        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+    }
+
+    public function test_it_builds_the_pay_later_message_from_the_payment_method_when_its_messaging_is_enabled(): void
+    {
+        $this->paymentMethodConfig['pay_later_enabled'] = true;
+        $this->paymentMethodConfig['messaging_enabled'] = true;
+        $this->webSdkConfigurationProvider
+            ->method('getInstanceConfig')
+            ->willReturnCallback(static fn ($paymentMethod, string $pageType, array $components): array => ['components' => $components])
+        ;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertTrue($context['messagingEnabled']);
+        self::assertSame(['components' => ['paypal-messages']], $context['messagingInstanceConfig']);
+    }
+
+    public function test_it_tells_the_page_whether_the_payment_method_is_in_sandbox(): void
+    {
+        self::assertTrue($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['sandbox']);
+
+        $this->paymentMethodConfig['sandbox'] = false;
+
+        self::assertFalse($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['sandbox']);
+    }
+
+    private function paymentMethod(): PaymentMethodInterface
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig($this->paymentMethodConfig);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        return $paymentMethod;
+    }
+
+    public function test_it_offers_the_cards_and_every_enabled_wallet_when_the_payment_method_allows_them(): void
+    {
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertTrue($context['cardEnabled']);
+        self::assertTrue($context['venmoEnabled']);
+        self::assertTrue($context['googlePayEnabled']);
+        self::assertTrue($context['applePayEnabled']);
+    }
+
+    public function test_it_hides_the_payment_sources_the_payment_method_does_not_allow(): void
+    {
+        $this->disallowedPaymentSources = ['card', 'venmo', 'apple_pay'];
+        $this->paymentMethodConfig['venmo_enabled'] = true;
+        $this->paymentMethodConfig['google_pay_enabled'] = true;
+        $this->paymentMethodConfig['apple_pay_enabled'] = true;
+        $this->webSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('getInstanceConfig')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'googlepay-payments'], 'en_US')
+            ->willReturn(['clientId' => 'CLIENT_ID'])
+        ;
+
+        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+
+        self::assertFalse($context['cardEnabled']);
+        self::assertFalse($context['venmoEnabled']);
+        self::assertTrue($context['googlePayEnabled']);
+        self::assertFalse($context['applePayEnabled']);
+    }
+}
