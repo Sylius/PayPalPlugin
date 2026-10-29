@@ -16,21 +16,22 @@ namespace Sylius\PayPalPlugin\Api;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
 {
     public function __construct(
         private ClientInterface $client,
-        private string $baseUrl,
+        private HostProviderInterface $hostProvider,
         private RequestFactoryInterface $requestFactory,
         private StreamFactoryInterface $streamFactory,
     ) {
     }
 
-    public function updateEventTypes(string $token, string $webhookId, array $eventTypes): array
+    public function updateEventTypes(string $token, string $webhookId, array $eventTypes, bool $sandbox): array
     {
         $request = $this->requestFactory
-            ->createRequest('PATCH', sprintf('%sv1/notifications/webhooks/%s', $this->baseUrl, $webhookId))
+            ->createRequest('PATCH', sprintf('%sv1/notifications/webhooks/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $webhookId))
             ->withHeader('Authorization', 'Bearer ' . $token)
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Accept', 'application/json')

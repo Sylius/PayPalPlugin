@@ -10,6 +10,13 @@ sylius_paypal_admin_enable_seller:
     defaults:
         _controller: sylius_paypal.controller.enable_seller
 
+sylius_paypal_admin_complete_onboarding:
+    path: /onboarding/complete
+    methods: [POST]
+    condition: "request.headers.get('Content-Type') matches '#^application/json#'"
+    defaults:
+        _controller: sylius_paypal.controller.complete_onboarding
+
 sylius_paypal_admin_order_payment_refund_late_capture:
     path: /orders/{orderId}/payments/{id}/refund-paypal-capture
     methods: [PUT]

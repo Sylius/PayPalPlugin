@@ -67,7 +67,7 @@ final class PurchaseUnitFactoryTest extends TestCase
             ->willReturn(0);
 
         $this->gatewayConfig->method('getConfig')->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+            ['merchant_id' => 'merchant-id'],
         );
 
         $this->paymentReferenceNumberProvider->method('provide')->with($this->payment)->willReturn('REFERENCE-NUMBER');
@@ -190,7 +190,7 @@ final class PurchaseUnitFactoryTest extends TestCase
     public function test_it_fails_when_the_gateway_config_carries_no_merchant_id(): void
     {
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gatewayConfig->method('getConfig')->willReturn(['sylius_merchant_id' => 'sylius-merchant-id']);
+        $gatewayConfig->method('getConfig')->willReturn([]);
 
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);

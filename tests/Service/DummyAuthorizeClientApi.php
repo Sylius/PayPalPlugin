@@ -17,7 +17,7 @@ use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 
 final class DummyAuthorizeClientApi implements AuthorizeClientApiInterface
 {
-    public function authorize(string $clientId, string $clientSecret): string
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): string
     {
         return 'TOKEN';
     }

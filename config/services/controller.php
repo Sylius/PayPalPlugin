@@ -11,6 +11,7 @@ use Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction;
+use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
@@ -124,6 +125,15 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment_method'),
             service('sylius_paypal.enabler.payment_method'),
+            service('sylius_paypal.provider.onboarding_status_messages'),
+        ]);
+
+    $services->set('sylius_paypal.controller.complete_onboarding', CompleteOnboardingAction::class)
+        ->args([
+            service('sylius_paypal.onboarding.processor.completion'),
+            service('sylius_paypal.provider.onboarding_status_messages'),
+            service('router'),
+            service('monolog.logger.paypal'),
         ]);
 
     $services->set('sylius_paypal.controller.create_paypal_order', CreatePayPalOrderAction::class)
@@ -174,7 +184,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.paypal_payment_page_context'),
             service('router'),
             service('sylius_paypal.checker.payer_action'),
-            '%sylius_paypal.web_url%',
+            service('sylius_paypal.provider.host'),
         ]);
 
     $services->set('sylius_paypal.controller.process_paypal_order', ProcessPayPalOrderAction::class)

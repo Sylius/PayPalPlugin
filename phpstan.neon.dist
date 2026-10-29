@@ -23,5 +23,3 @@ parameters:
                 - src/EventListener/Workflow/*
                 - src/PackageTracking/EventListener/Workflow/*
             reportUnmatched: false
-
-        - '/Dead catch - Sylius\\PayPalPlugin\\Exception\\PayPalWebhookUrlNotValidException is never thrown in the try block\./' # architectural smell

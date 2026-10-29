@@ -18,7 +18,7 @@ use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 interface PayPalClientInterface
 {
     /** @throws PayPalAuthorizationException */
-    public function authorize(string $clientId, string $clientSecret): array;
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): array;
 
     public function get(string $url, string $token): array;
 

@@ -24,6 +24,7 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,7 +37,7 @@ final class PayPalClient implements PayPalClientInterface
         private readonly UuidProviderInterface $uuidProvider,
         private readonly PayPalConfigurationProviderInterface $payPalConfigurationProvider,
         private readonly ChannelContextInterface $channelContext,
-        private readonly string $baseUrl,
+        private readonly HostProviderInterface $hostProvider,
         private int $requestTrialsLimit,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
@@ -44,11 +45,11 @@ final class PayPalClient implements PayPalClientInterface
     ) {
     }
 
-    public function authorize(string $clientId, string $clientSecret): array
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): array
     {
         $response = $this->doRequest(
             'POST',
-            $this->baseUrl . 'v1/oauth2/token',
+            $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/oauth2/token',
             [
                 'auth' => [$clientId, $clientSecret],
                 'form_params' => ['grant_type' => 'client_credentials'],
@@ -98,7 +99,7 @@ final class PayPalClient implements PayPalClientInterface
             $options['json'] = $data;
         }
 
-        $fullUrl = $this->baseUrl . $url;
+        $fullUrl = $this->hostProvider->getApiBaseUrl() . $url;
 
         try {
             $response = $this->doRequest($method, $fullUrl, $options);

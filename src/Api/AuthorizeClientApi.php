@@ -21,9 +21,9 @@ final readonly class AuthorizeClientApi implements AuthorizeClientApiInterface
     {
     }
 
-    public function authorize(string $clientId, string $clientSecret): string
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): string
     {
-        $content = $this->payPalClient->authorize($clientId, $clientSecret);
+        $content = $this->payPalClient->authorize($clientId, $clientSecret, $sandbox);
 
         return (string) $content['access_token'];
     }

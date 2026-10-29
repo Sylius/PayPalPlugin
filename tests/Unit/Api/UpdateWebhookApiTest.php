@@ -23,6 +23,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class UpdateWebhookApiTest extends TestCase
 {
@@ -41,9 +42,12 @@ final class UpdateWebhookApiTest extends TestCase
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
 
+        $hostProvider = $this->createMock(HostProviderInterface::class);
+        $hostProvider->method('getApiBaseUrlForMode')->with(true)->willReturn('https://api-m.sandbox.paypal.com/');
+
         $this->api = new UpdateWebhookApi(
             $this->client,
-            'https://api-m.sandbox.paypal.com/',
+            $hostProvider,
             $this->requestFactory,
             $this->streamFactory,
         );
@@ -85,7 +89,7 @@ final class UpdateWebhookApiTest extends TestCase
 
         $this->client->method('sendRequest')->willReturn($response);
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B']));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->updateEventTypes('TOKEN', 'WEBHOOK_ID', ['A', 'B'], true));
         self::assertSame([
             [
                 'op' => 'replace',

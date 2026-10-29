@@ -23,10 +23,13 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class WebhookApiTest extends TestCase
 {
     private ClientInterface&MockObject $client;
+
+    private HostProviderInterface&MockObject $hostProvider;
 
     private RequestFactoryInterface&MockObject $requestFactory;
 
@@ -38,12 +41,17 @@ final class WebhookApiTest extends TestCase
     {
         parent::setUp();
         $this->client = $this->createMock(ClientInterface::class);
+        $this->hostProvider = $this->createMock(HostProviderInterface::class);
+        $this->hostProvider->method('getApiBaseUrlForMode')->willReturnMap([
+            [true, 'http://sandbox-base-url.com/'],
+            [false, 'http://base-url.com/'],
+        ]);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
 
         $this->webhookApi = new WebhookApi(
             $this->client,
-            'http://base-url.com/',
+            $this->hostProvider,
             $this->requestFactory,
             $this->streamFactory,
         );
@@ -60,7 +68,7 @@ final class WebhookApiTest extends TestCase
         $this->requestFactory
             ->expects(self::once())
             ->method('createRequest')
-            ->with('POST', 'http://base-url.com/v1/notifications/webhooks')
+            ->with('POST', 'http://sandbox-base-url.com/v1/notifications/webhooks')
             ->willReturn($request);
 
         $request
@@ -91,7 +99,7 @@ final class WebhookApiTest extends TestCase
             ->method('getContents')
             ->willReturn('{ "status": "CREATED" }');
 
-        $result = $this->webhookApi->register('TOKEN', 'https://webhook.com');
+        $result = $this->webhookApi->register('TOKEN', 'https://webhook.com', true);
 
         self::assertEquals(['status' => 'CREATED'], $result);
     }
@@ -138,7 +146,7 @@ final class WebhookApiTest extends TestCase
             ->method('getContents')
             ->willReturn('{ "status": "CREATED" }');
 
-        $result = $this->webhookApi->register('TOKEN', 'http://webhook.com');
+        $result = $this->webhookApi->register('TOKEN', 'http://webhook.com', false);
 
         self::assertEquals(['status' => 'CREATED'], $result);
     }
@@ -166,7 +174,7 @@ final class WebhookApiTest extends TestCase
             })
         ;
 
-        $this->webhookApi->register('TOKEN', 'https://shop.example.com/paypal-webhook/api/');
+        $this->webhookApi->register('TOKEN', 'https://shop.example.com/paypal-webhook/api/', false);
 
         self::assertSame([
             ['name' => 'PAYMENT.CAPTURE.REFUNDED'],

@@ -11,6 +11,7 @@ Feature: Browsing PayPal payment methods
 
     @ui
     Scenario: Seeing the payment sources a PayPal payment method offers by default
+        Given the store uses PayPal in sandbox mode
         When I browse payment methods
         Then the "PayPal" payment method should offer "PayPal"
         And the "PayPal" payment method should offer "Pay Later"
@@ -25,6 +26,7 @@ Feature: Browsing PayPal payment methods
         Given the store allows paying with Trustly through PayPal
         When I browse payment methods
         Then the "PayPal" payment method should offer "Trustly"
+        And the "PayPal" payment method should be marked as working in production mode
 
     @ui
     Scenario: Seeing the payment sources beyond the first six under "and more"
