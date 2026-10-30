@@ -976,3 +976,19 @@
    -public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void;
    +public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void;
    ```
+
+1. #### The payer of a PayPal Payment Request created through the shop API can return to the headless storefront.
+
+   PayPal sends the payer back to the `return_url` and `cancel_url` of the PayPal order, which lead to the shop's
+   `sylius_shop_payment_request_pay` route. Set `sylius_paypal.shop_api.return_url` to send the payer of a Payment Request
+   created or restarted through the shop API to the headless storefront instead; `{hash}` is replaced with the Payment
+   Request hash, and `?payer_cancelled=1` is appended for a cancelled payment:
+
+   ```yaml
+   sylius_paypal:
+       shop_api:
+           return_url: 'https://headless.example.com/paypal/return/{hash}'
+   ```
+
+   The storefront completes the payment with `PUT /api/v2/shop/payment-requests/{hash}`. Without the option, the payer
+   returns to the shop as before.

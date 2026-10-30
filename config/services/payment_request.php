@@ -48,6 +48,7 @@ use Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
 use Sylius\PayPalPlugin\OrderPay\Provider\CapturePaymentRequestPayResponseProvider;
+use Sylius\PayPalPlugin\OrderPay\Provider\ShopApiReturnUrlProvider;
 use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\RefundPaymentWebhookEventProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\SettlePaymentWebhookEventProcessor;
@@ -124,6 +125,14 @@ return function (ContainerConfigurator $container): void {
                 'hash' => 'paymentRequest.getHash()',
                 '_locale' => 'payment.getOrder().getLocaleCode()',
             ],
+        ]);
+
+    $services->set('sylius_paypal.provider.shop_api_return_url', ShopApiReturnUrlProvider::class)
+        ->decorate('sylius_paypal.provider.payment_request_return_url')
+        ->args([
+            service('.inner'),
+            service('sylius.section_resolver.uri_based'),
+            param('sylius_paypal.shop_api.return_url'),
         ]);
 
     $services->set('sylius_paypal.command_handler.create_paypal_order', CreatePayPalOrderPaymentRequestHandler::class)

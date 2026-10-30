@@ -25,6 +25,8 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
 {
     public const CACHE_KEY = 'paypal_http_client_expectations';
 
+    public const SENT_REQUESTS_CACHE_KEY = 'paypal_http_client_sent_requests';
+
     private const CONNECTION_FAILURE = 0;
 
     public function __construct(
@@ -59,7 +61,7 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
 
     public function resetExpectations(): void
     {
-        $this->cache->deleteItem(self::CACHE_KEY);
+        $this->cache->deleteItems([self::CACHE_KEY, self::SENT_REQUESTS_CACHE_KEY]);
     }
 
     public function hasExpectations(): bool
@@ -76,9 +78,19 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         return $expectations;
     }
 
+    /** @return list<array{method: string, path: string, body: mixed}> */
+    public function getSentRequests(): array
+    {
+        /** @var list<array{method: string, path: string, body: mixed}> $sentRequests */
+        $sentRequests = $this->cache->getItem(self::SENT_REQUESTS_CACHE_KEY)->get() ?? [];
+
+        return $sentRequests;
+    }
+
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
         $currentRequest = $request->getMethod() . ' ' . $request->getUri()->getPath();
+        $this->saveSentRequest($request);
 
         $expectations = $this->getExpectations();
         $expectation = array_shift($expectations);
@@ -122,6 +134,20 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
     {
         $cacheItem = $this->getCacheItem();
         $cacheItem->set($expectations);
+        $this->cache->save($cacheItem);
+    }
+
+    private function saveSentRequest(RequestInterface $request): void
+    {
+        $sentRequests = $this->getSentRequests();
+        $sentRequests[] = [
+            'method' => $request->getMethod(),
+            'path' => $request->getUri()->getPath(),
+            'body' => json_decode((string) $request->getBody(), true),
+        ];
+
+        $cacheItem = $this->cache->getItem(self::SENT_REQUESTS_CACHE_KEY);
+        $cacheItem->set($sentRequests);
         $this->cache->save($cacheItem);
     }
 
