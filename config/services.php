@@ -118,8 +118,6 @@ use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
@@ -145,8 +143,6 @@ use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemoverInterface;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
 use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
-use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
-use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
@@ -233,7 +229,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('router'),
             service('request_stack'),
-            service('sylius_paypal.provider.paypal_payment_method'),
         ])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.initialize_create', 'method' => 'initializeCreate']);
 
@@ -357,13 +352,6 @@ return static function (ContainerConfigurator $container) {
         ->args([service('router')]);
 
     $services->alias(PayPalItemFactoryInterface::class, 'sylius_paypal.factory.paypal_item');
-
-    $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
-        ->args([
-            service('sylius_paypal.repository.query.paypal_payment_method'),
-        ]);
-
-    $services->alias(PayPalPaymentMethodProviderInterface::class, 'sylius_paypal.provider.paypal_payment_method');
 
     $services->set('sylius_paypal.provider.host', HostProvider::class);
 
@@ -691,7 +679,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.factory.payment_method'),
             service('doctrine.orm.entity_manager'),
             param('sylius_paypal.partner_attribution_id'),
-            service('sylius_paypal.provider.paypal_payment_method'),
+            service('sylius.repository.payment_method'),
             service('sylius_paypal.manager.credentials'),
             service('sylius_paypal.remover.cached_access_token'),
         ]);
@@ -726,7 +714,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.provider.onboarding_url'),
             service('sylius_paypal.manager.seller_nonce'),
-            service('sylius_paypal.onboarding.checker.seller_onboarded'),
             service('monolog.logger.paypal'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
@@ -751,14 +738,6 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius.context.cart')]);
 
     $services->alias(OrderOwnershipVerifierInterface::class, 'sylius_paypal.verifier.order_ownership');
-
-    $services->set('sylius_paypal.repository.query.paypal_payment_method', PayPalPaymentMethodQuery::class)
-        ->args([
-            service('doctrine.orm.entity_manager'),
-            param('sylius.model.payment_method.class'),
-        ]);
-
-    $services->alias(PayPalPaymentMethodQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment_method');
 
     $services->set('sylius_paypal.repository.query.paypal_payment', PaypalPaymentQuery::class)
         ->args([

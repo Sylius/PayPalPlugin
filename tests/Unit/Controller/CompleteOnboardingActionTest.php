@@ -21,7 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
@@ -75,7 +75,7 @@ final class CompleteOnboardingActionTest extends TestCase
         $this->onboardingCompletionProcessor
             ->expects(self::once())
             ->method('process')
-            ->with('AUTH-CODE', 'SHARED-ID', false)
+            ->with('AUTH-CODE', 'SHARED-ID', false, null)
             ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
 
         $response = ($this->action)($request);
@@ -83,6 +83,32 @@ final class CompleteOnboardingActionTest extends TestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame(['redirectUrl' => 'http://admin/payment-methods/42/edit'], json_decode((string) $response->getContent(), true));
         self::assertSame([], $this->flashBag($request)->all());
+    }
+
+    #[Test]
+    public function it_onboards_the_account_into_the_payment_method_it_was_started_for(): void
+    {
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => true, 'paymentMethodCode' => 'PAYPAL_2']);
+
+        $this->onboardingCompletionProcessor
+            ->expects(self::once())
+            ->method('process')
+            ->with('AUTH-CODE', 'SHARED-ID', true, 'PAYPAL_2')
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true), true));
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+    }
+
+    #[Test]
+    public function it_returns_bad_request_when_the_payment_method_code_is_not_a_string(): void
+    {
+        $this->onboardingCompletionProcessor->expects(self::never())->method('process');
+
+        $response = ($this->action)($this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false, 'paymentMethodCode' => 7]));
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
 
     #[Test]
@@ -114,19 +140,6 @@ final class CompleteOnboardingActionTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_bad_request_when_a_paypal_payment_method_already_exists(): void
-    {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
-
-        $this->onboardingCompletionProcessor->method('process')->willThrowException(new PayPalPaymentMethodAlreadyExistsException());
-
-        $response = ($this->action)($request);
-
-        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-        self::assertSame(['error' => ['sylius_paypal.more_than_one_seller_not_allowed']], $this->flashBag($request)->all());
-    }
-
-    #[Test]
     public function it_returns_bad_request_when_the_onboarding_session_has_expired(): void
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
@@ -137,6 +150,21 @@ final class CompleteOnboardingActionTest extends TestCase
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
         self::assertSame(['error' => ['sylius_paypal.onboarding_session_expired']], $this->flashBag($request)->all());
+    }
+
+    #[Test]
+    public function it_returns_bad_request_when_the_payment_method_already_has_credentials_for_the_mode(): void
+    {
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false, 'paymentMethodCode' => 'PAYPAL_2']);
+
+        $this->onboardingCompletionProcessor
+            ->method('process')
+            ->willThrowException(new PaymentMethodAlreadyOnboardedException('PAYPAL_2', false));
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        self::assertSame(['error' => ['sylius_paypal.paypal_account_already_connected']], $this->flashBag($request)->all());
     }
 
     #[Test]

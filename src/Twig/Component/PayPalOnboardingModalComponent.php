@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig\Component;
 
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -43,18 +42,17 @@ final class PayPalOnboardingModalComponent
     public bool $failed = false;
 
     #[LiveProp]
-    public bool $sellerAlreadyOnboarded = false;
-
-    #[LiveProp]
     public bool $opened = false;
 
     #[LiveProp]
     public bool $sandbox = false;
 
+    #[LiveProp]
+    public ?string $paymentMethodCode = null;
+
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceManagerInterface $sellerNonceManager,
-        private readonly SellerOnboardedCheckerInterface $sellerOnboardedChecker,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -63,13 +61,6 @@ final class PayPalOnboardingModalComponent
     public function loadOnboardingUrl(): void
     {
         $this->opened = true;
-
-        if ($this->sellerOnboardedChecker->isOnboarded($this->sandbox)) {
-            $this->sellerAlreadyOnboarded = true;
-            $this->loading = false;
-
-            return;
-        }
 
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(

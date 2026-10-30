@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Controller;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -55,18 +55,25 @@ final readonly class CompleteOnboardingAction
             Assert::stringNotEmpty($data['authCode']);
             Assert::stringNotEmpty($data['sharedId']);
             Assert::boolean($data['sandbox']);
+            $paymentMethodCode = $data['paymentMethodCode'] ?? null;
+            Assert::nullOrStringNotEmpty($paymentMethodCode);
         } catch (\JsonException | \InvalidArgumentException) {
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId'], $data['sandbox']);
-        } catch (PayPalPaymentMethodAlreadyExistsException) {
-            $flashBag->add('error', 'sylius_paypal.more_than_one_seller_not_allowed');
-
-            return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
+            $result = $this->onboardingCompletionProcessor->process(
+                $data['authCode'],
+                $data['sharedId'],
+                $data['sandbox'],
+                $paymentMethodCode,
+            );
         } catch (OnboardingSessionExpiredException) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
+
+            return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
+        } catch (PaymentMethodAlreadyOnboardedException) {
+            $flashBag->add('error', 'sylius_paypal.paypal_account_already_connected');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         } catch (OnboardingFailedException $exception) {

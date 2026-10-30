@@ -4,6 +4,7 @@ sylius:
         refund_late_capture: 'Rembourser la capture tardive'
         void_authorization: 'Annuler l''autorisation'
 sylius_paypal:
+    add_paypal_account: 'Ajouter un compte PayPal'
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
     capture_strategy: 'Stratégie d''encaissement'
