@@ -92,6 +92,16 @@ final class ShopApiPaymentRequestEligibilityTest extends JsonApiTestCase
         self::assertSame([], $this->paymentRequestsOf($payment));
     }
 
+    public function test_it_refuses_a_notification_requested_by_the_customer(): void
+    {
+        $payment = $this->loadNewOrderPayment();
+
+        $this->postPaymentRequest($payment, ['action' => 'notify', 'payload' => ['payment_source' => 'paypal']]);
+
+        $this->assertViolation('action', 'The "notify" action cannot be requested for a PayPal payment.');
+        self::assertSame([], $this->paymentRequestsOf($payment));
+    }
+
     public function test_it_refuses_a_payment_source_paypal_does_not_support(): void
     {
         $payment = $this->loadNewOrderPayment();

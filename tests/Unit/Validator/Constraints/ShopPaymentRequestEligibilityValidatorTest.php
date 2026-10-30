@@ -29,6 +29,9 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
+use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\RefundLateCapturePaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\CommandProvider\VoidAuthorizationPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Validator\Constraints\ShopPaymentRequestEligibility;
@@ -205,15 +208,26 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
         $this->assertNoViolation();
     }
 
+    /** @return iterable<string, array{string}> */
+    public static function refusedActions(): iterable
+    {
+        yield 'refund' => [PaymentRequestInterface::ACTION_REFUND];
+        yield 'notify' => [PaymentRequestInterface::ACTION_NOTIFY];
+        yield 'void authorization' => [VoidAuthorizationPaymentRequestCommandProvider::ACTION];
+        yield 'capture authorization' => [CaptureAuthorizationPaymentRequestCommandProvider::ACTION];
+        yield 'refund late capture' => [RefundLateCapturePaymentRequestCommandProvider::ACTION];
+    }
+
     #[Test]
-    public function it_refuses_an_action_other_than_capture_and_authorize(): void
+    #[DataProvider('refusedActions')]
+    public function it_refuses_an_action_other_than_capture_authorize_and_status(string $action): void
     {
         $constraint = new ShopPaymentRequestEligibility();
 
-        $this->validator->validate($this->addPaymentRequest(action: 'refund'), $constraint);
+        $this->validator->validate($this->addPaymentRequest(action: $action), $constraint);
 
         $this->buildViolation($constraint->actionNotAllowedMessage)
-            ->setParameter('{{ action }}', 'refund')
+            ->setParameter('{{ action }}', $action)
             ->atPath('property.path.action')
             ->assertRaised()
         ;
