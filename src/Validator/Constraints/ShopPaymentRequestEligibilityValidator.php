@@ -75,7 +75,7 @@ final class ShopPaymentRequestEligibilityValidator extends ConstraintValidator
             return;
         }
 
-        throw new UnexpectedValueException($value, AddPaymentRequest::class);
+        throw new UnexpectedValueException($value, AddPaymentRequest::class . '|' . UpdatePaymentRequest::class);
     }
 
     private function validateAddPaymentRequest(AddPaymentRequest $addPaymentRequest, ShopPaymentRequestEligibility $constraint): void

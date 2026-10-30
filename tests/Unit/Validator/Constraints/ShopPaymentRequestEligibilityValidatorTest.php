@@ -112,7 +112,7 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
     #[Test]
     public function it_throws_an_exception_when_given_an_unsupported_value(): void
     {
-        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionObject(new UnexpectedValueException(new \stdClass(), AddPaymentRequest::class . '|' . UpdatePaymentRequest::class));
 
         $this->validator->validate(new \stdClass(), new ShopPaymentRequestEligibility());
     }
