@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Model\PayPalRefund;
 use Sylius\PayPalPlugin\Model\PayPalShipping;
 
 final readonly class PayPalOrderDetailsMapper implements PayPalOrderDetailsMapperInterface
@@ -30,6 +31,7 @@ final readonly class PayPalOrderDetailsMapper implements PayPalOrderDetailsMappe
         $purchaseUnit = is_array($purchaseUnits[0] ?? null) ? $purchaseUnits[0] : [];
         $shipping = is_array($purchaseUnit['shipping'] ?? null) ? $purchaseUnit['shipping'] : [];
         $payer = is_array($payPalOrder['payer'] ?? null) ? $payPalOrder['payer'] : [];
+        $refunds = $purchaseUnit['payments']['refunds'] ?? [];
 
         return new PayPalOrderDetails(
             (string) ($payPalOrder['id'] ?? ''),
@@ -46,6 +48,10 @@ final readonly class PayPalOrderDetailsMapper implements PayPalOrderDetailsMappe
             is_array($payPalOrder['payment_source'] ?? null) ? $payPalOrder['payment_source'] : [],
             [] !== $shipping ? $this->mapShipping($shipping) : null,
             [] !== $payer ? $this->mapPayer($payer) : null,
+            array_values(array_filter(array_map(
+                static fn (mixed $refund): ?PayPalRefund => is_array($refund) ? PayPalRefund::fromRefund($refund) : null,
+                is_array($refunds) ? $refunds : [],
+            ))),
         );
     }
 

@@ -614,7 +614,9 @@
    becomes `refunded` only once PayPal confirms the refund: `RefundPayPalPaymentRequestHandler` stores the
    confirmation in the payment details (`refunded`, `refund_id`) and applies the `refund` transition, a pending
    refund keeps the Payment Request `processing` until the `PAYMENT.CAPTURE.REFUNDED` webhook of that refund confirms
-   it, and a refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`.
+   it, and a refund PayPal rejects fails the Payment Request with the reason while the payment stays `completed`. A
+   capture PayPal has already refunded is not refunded again: it is confirmed with the last completed refund of that
+   capture listed in the PayPal order, whose id and status the Payment Request keeps as its response data.
 
    The late capture is refunded the same way, through a `refund_late_capture` Payment Request dispatched with
    `RefundPayPalLateCapturePaymentRequestDispatcherInterface`. `PayPalLateCaptureRefundConfirmationProcessorInterface`
