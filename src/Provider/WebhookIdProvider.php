@@ -38,10 +38,14 @@ final readonly class WebhookIdProvider implements WebhookIdProviderInterface
         /** @var array<array{id?: string, url?: string}> $webhooks */
         $webhooks = $data['webhooks'] ?? [];
 
-        return
-            $this->findWebhookId($webhooks, $this->webhookUrlProvider->provide($paymentMethod)) ??
-            $this->findWebhookId($webhooks, $this->webhookUrlProvider->provideLegacy($paymentMethod))
-        ;
+        foreach ($this->webhookUrlProvider->provideCandidates($paymentMethod) as $webhookUrl) {
+            $webhookId = $this->findWebhookId($webhooks, $webhookUrl);
+            if (null !== $webhookId) {
+                return $webhookId;
+            }
+        }
+
+        return null;
     }
 
     public function refresh(PaymentMethodInterface $paymentMethod): ?string

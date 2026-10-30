@@ -101,7 +101,7 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $webhookUrlProvider = self::getContainer()->get('sylius_paypal.provider.webhook_url');
 
         $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
-            ['id' => 'WH-LEGACY', 'url' => $webhookUrlProvider->provideLegacy($paymentMethod)],
+            ['id' => 'WH-LEGACY', 'url' => $webhookUrlProvider->provideCandidates($paymentMethod)[1]],
         ]]);
     }
 
