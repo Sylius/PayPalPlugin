@@ -17,6 +17,7 @@ sylius_paypal:
     payment_not_refunded: 'Płatność nie została zwrócona. %reason%'
     payment_refund_pending: 'PayPal przetwarza zwrot. Płatność zostanie oznaczona jako zwrócona, gdy PayPal go potwierdzi.'
     payment_source_not_available: 'Wybrana metoda płatności jest niedostępna. Wybierz inną.'
+    paypal_account_already_connected: 'Ten tryb metody płatności PayPal jest już połączony z kontem PayPal.'
     production_connected_successfully: 'Połączono konto PayPal (produkcja).'
     sandbox_connected_successfully: 'Połączono konto PayPal (sandbox).'
     seller_onboarding_payments_not_receivable: 'Uwaga: obecnie nie możesz przyjmować płatności z powodu możliwego ograniczenia na Twoim koncie PayPal. Skontaktuj się z obsługą klienta PayPal lub przejdź na %paypal_url%, aby dowiedzieć się więcej. Po wyjaśnieniu sprawy wróć na tę stronę, aby odświeżyć status onboardingu.'

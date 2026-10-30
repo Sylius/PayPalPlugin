@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 
 interface OnboardingCompletionProcessorInterface
@@ -22,6 +23,7 @@ interface OnboardingCompletionProcessorInterface
     /**
      * @throws OnboardingSessionExpiredException
      * @throws OnboardingFailedException
+     * @throws PaymentMethodAlreadyOnboardedException
      */
     public function process(string $authCode, string $sharedId, bool $sandbox, ?string $paymentMethodCode = null): OnboardingCompletionResult;
 }

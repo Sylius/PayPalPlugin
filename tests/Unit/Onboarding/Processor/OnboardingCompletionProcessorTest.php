@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
@@ -188,6 +189,25 @@ final class OnboardingCompletionProcessorTest extends TestCase
         $this->expectException(OnboardingFailedException::class);
 
         $this->processor->process('AUTH-CODE', 'SHARED-ID', false);
+    }
+
+    #[Test]
+    public function it_lets_the_refusal_to_replace_the_credentials_of_a_payment_method_through(): void
+    {
+        $exception = new PaymentMethodAlreadyOnboardedException('PAYPAL_2', false);
+        $this->sellerNonceManager->method('get')->willReturn('SELLER-NONCE');
+        $this->sellerOnboardingResolver->method('resolve')->willReturn(
+            new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true)),
+        );
+        $this->onboardingPaymentMethodCreator->method('create')->willThrowException($exception);
+
+        $this->sellerWebhookRegistrar->expects(self::never())->method('register');
+        $this->entityManager->expects(self::never())->method('flush');
+        $this->sellerNonceManager->expects(self::never())->method('remove');
+
+        $this->expectExceptionObject($exception);
+
+        $this->processor->process('AUTH-CODE', 'SHARED-ID', false, 'PAYPAL_2');
     }
 
     #[Test]

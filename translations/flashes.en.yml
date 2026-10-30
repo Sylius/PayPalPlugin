@@ -17,6 +17,7 @@ sylius_paypal:
     payment_not_refunded: 'The payment has not been refunded. %reason%'
     payment_refund_pending: 'PayPal is processing the refund. The payment will be marked as refunded once PayPal confirms it.'
     payment_source_not_available: 'The selected payment method is not available. Please choose another one.'
+    paypal_account_already_connected: 'This mode of the PayPal payment method is already connected to a PayPal account.'
     production_connected_successfully: 'PayPal Production has been connected successfully.'
     sandbox_connected_successfully: 'PayPal Sandbox has been connected successfully.'
     shipment_cannot_be_shipped: 'This shipment can no longer be shipped. It may have been shipped in the meantime.'

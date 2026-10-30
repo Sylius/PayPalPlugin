@@ -20,6 +20,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
@@ -63,6 +64,10 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             $paymentMethod = $this->payPalPaymentMethod($paymentMethodCode);
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $paymentMethod->getGatewayConfig();
+            if ($this->credentialsManager->hasCredentials($gatewayConfig->getConfig(), $sandbox)) {
+                throw new PaymentMethodAlreadyOnboardedException($paymentMethodCode, $sandbox);
+            }
+
             $gatewayConfig->setConfig(
                 $this->credentialsManager->store($gatewayConfig->getConfig(), $sandbox, $credentials),
             );

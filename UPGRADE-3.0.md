@@ -17,8 +17,9 @@
 
    A store can connect several PayPal accounts. The onboarding started from the payment methods list creates a new
    PayPal payment method (`PAYPAL`, `PAYPAL_2`, ...), the one started from the edit page of a PayPal payment method
-   stores the credentials in that payment method. The `sylius_paypal.more_than_one_seller_not_allowed` flash message
-   has been removed.
+   stores the credentials in that payment method and is refused with the `sylius_paypal.paypal_account_already_connected`
+   flash message when that mode of the payment method already has credentials. The `sylius_paypal.more_than_one_seller_not_allowed`
+   flash message has been removed.
 
 1. #### `PayPalPaymentMethodProvider` has been removed.
 

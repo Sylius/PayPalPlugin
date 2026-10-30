@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Controller;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -69,6 +70,10 @@ final readonly class CompleteOnboardingAction
             );
         } catch (OnboardingSessionExpiredException) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
+
+            return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
+        } catch (PaymentMethodAlreadyOnboardedException) {
+            $flashBag->add('error', 'sylius_paypal.paypal_account_already_connected');
 
             return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
         } catch (OnboardingFailedException $exception) {
