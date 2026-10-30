@@ -57,6 +57,16 @@ final class ShopApiPaymentRequestEligibilityTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($fixtures['shippable_paypal_payment'])->getState());
     }
 
+    public function test_it_accepts_a_status_request_without_a_payload(): void
+    {
+        $payment = $this->loadNewOrderPayment();
+
+        $this->postPaymentRequest($payment, ['action' => 'status']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
+        self::assertSame('status', $this->responseContent()['action']);
+    }
+
     public function test_it_refuses_the_authorize_action_for_a_payment_method_that_captures_payments(): void
     {
         $payment = $this->loadNewOrderPayment();

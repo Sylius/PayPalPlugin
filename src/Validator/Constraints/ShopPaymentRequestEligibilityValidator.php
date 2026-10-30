@@ -38,6 +38,7 @@ final class ShopPaymentRequestEligibilityValidator extends ConstraintValidator
     private const ALLOWED_ACTIONS = [
         PaymentRequestInterface::ACTION_CAPTURE,
         PaymentRequestInterface::ACTION_AUTHORIZE,
+        PaymentRequestInterface::ACTION_STATUS,
     ];
 
     /**
@@ -100,7 +101,11 @@ final class ShopPaymentRequestEligibilityValidator extends ConstraintValidator
             ? PaymentRequestInterface::ACTION_AUTHORIZE
             : PaymentRequestInterface::ACTION_CAPTURE
         ;
-        if (null !== $addPaymentRequest->action && $expectedAction !== $addPaymentRequest->action) {
+        if (
+            null !== $addPaymentRequest->action &&
+            PaymentRequestInterface::ACTION_STATUS !== $addPaymentRequest->action &&
+            $expectedAction !== $addPaymentRequest->action
+        ) {
             $this->context
                 ->buildViolation($constraint->actionNotMatchingPaymentMethodMessage)
                 ->setParameter('{{ action }}', $addPaymentRequest->action)
@@ -130,13 +135,21 @@ final class ShopPaymentRequestEligibilityValidator extends ConstraintValidator
             return;
         }
 
+        if (PaymentRequestInterface::ACTION_STATUS === $addPaymentRequest->action) {
+            return;
+        }
+
         $this->validatePayload($addPaymentRequest->payload, $paymentMethod, $constraint);
     }
 
     private function validateUpdatePaymentRequest(UpdatePaymentRequest $updatePaymentRequest, ShopPaymentRequestEligibility $constraint): void
     {
         $paymentRequest = $this->paymentRequestRepository->find($updatePaymentRequest->hash);
-        if (null === $paymentRequest || PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState()) {
+        if (
+            null === $paymentRequest ||
+            PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState() ||
+            PaymentRequestInterface::ACTION_STATUS === $paymentRequest->getAction()
+        ) {
             return;
         }
 

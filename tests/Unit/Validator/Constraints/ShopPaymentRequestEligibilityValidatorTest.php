@@ -131,6 +131,28 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
     }
 
     #[Test]
+    public function it_accepts_the_status_action_without_a_payload(): void
+    {
+        $this->validator->validate($this->addPaymentRequest(action: 'status', payload: null), new ShopPaymentRequestEligibility());
+
+        $this->assertNoViolation();
+    }
+
+    #[Test]
+    public function it_refuses_the_status_action_for_a_paypal_payment_method_not_available_in_the_channel_of_the_order(): void
+    {
+        $constraint = new ShopPaymentRequestEligibility();
+        $this->payPalPaymentMethod = $this->paymentMethod('sylius_paypal');
+
+        $this->validator->validate($this->addPaymentRequest(action: 'status', payload: null), $constraint);
+
+        $this->buildViolation($constraint->paymentMethodNotAvailableMessage)
+            ->atPath('property.path.paymentMethodCode')
+            ->assertRaised()
+        ;
+    }
+
+    #[Test]
     public function it_accepts_the_authorize_action_for_a_payment_method_that_authorizes_payments(): void
     {
         $this->authorizeEnabled = true;
@@ -287,6 +309,18 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
     }
 
     #[Test]
+    public function it_ignores_the_payload_of_a_new_status_payment_request(): void
+    {
+        $this->paymentRequestRepository->method('find')->with('HASH')->willReturn(
+            $this->paymentRequest(PaymentRequestInterface::STATE_NEW, $this->payPalPaymentMethod, PaymentRequestInterface::ACTION_STATUS),
+        );
+
+        $this->validator->validate(new UpdatePaymentRequest('HASH'), new ShopPaymentRequestEligibility());
+
+        $this->assertNoViolation();
+    }
+
+    #[Test]
     public function it_ignores_the_payload_of_a_processing_payment_request(): void
     {
         $this->paymentRequestRepository->method('find')->with('HASH')->willReturn(
@@ -336,10 +370,14 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
         return $paymentMethod;
     }
 
-    private function paymentRequest(string $state, PaymentMethodInterface $paymentMethod): PaymentRequestInterface&MockObject
-    {
+    private function paymentRequest(
+        string $state,
+        PaymentMethodInterface $paymentMethod,
+        string $action = PaymentRequestInterface::ACTION_CAPTURE,
+    ): PaymentRequestInterface&MockObject {
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getState')->willReturn($state);
+        $paymentRequest->method('getAction')->willReturn($action);
         $paymentRequest->method('getMethod')->willReturn($paymentMethod);
 
         return $paymentRequest;
