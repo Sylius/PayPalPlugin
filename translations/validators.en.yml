@@ -4,3 +4,9 @@ sylius_paypal:
         carrier_name_other_required: 'Please provide the carrier name when "Other" is selected.'
         tracking_code_required: 'Please provide the tracking code when a carrier is selected.'
         tracking_code_too_long: 'The tracking code can have at most {{ limit }} characters to be sent to PayPal.'
+    payment_request:
+        action_not_allowed: 'The "{{ action }}" action cannot be requested for a PayPal payment.'
+        action_not_matching_payment_method: 'This PayPal payment method takes payments with the "{{ expected_action }}" action, not "{{ action }}".'
+        payload_invalid: 'The payload must contain only the "payment_source" to pay with.'
+        payment_method_not_available: 'This PayPal payment method is not available in the channel of the order.'
+        payment_source_not_available: 'The "{{ payment_source }}" payment source is not available for this payment method.'

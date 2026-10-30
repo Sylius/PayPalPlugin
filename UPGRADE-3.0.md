@@ -1027,3 +1027,19 @@
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
    | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
+
+1. #### A PayPal Payment Request created through the shop API is validated.
+
+   `POST /api/v2/shop/orders/{tokenValue}/payment-requests` of a PayPal payment method answers `422` unless:
+
+   - the action is `status`, or `capture` or `authorize` matching the payment method: `authorize` when it authorizes
+     payments, `capture` otherwise. `notify`, which Sylius accepts on the shop API, is refused: PayPal notifies the
+     store through webhooks only;
+   - the payment method is a PayPal payment method of the order's channel;
+   - the payload is `{"payment_source": "<source>"}` with a payment source enabled for the payment method. No other key
+     is accepted. A `status` Payment Request takes no payload: it settles a `processing` payment from its PayPal
+     order, e.g. once the payer is back from the bank.
+
+   `PUT /api/v2/shop/payment-requests/{hash}` of a PayPal Payment Request answers `422` unless the payload is
+   `{"payment_source": "<source>"}` with a payment source enabled for the payment method. It is checked only while the
+   Payment Request is `new`, and not for a `status` Payment Request.

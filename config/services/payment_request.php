@@ -52,6 +52,7 @@ use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProces
 use Sylius\PayPalPlugin\Processor\Webhook\RefundPaymentWebhookEventProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\SettlePaymentWebhookEventProcessor;
 use Sylius\PayPalPlugin\Provider\PayPalNotifyPaymentProvider;
+use Sylius\PayPalPlugin\Validator\Constraints\ShopPaymentRequestEligibilityValidator;
 
 return function (ContainerConfigurator $container): void {
     $services = $container->services();
@@ -306,4 +307,16 @@ return function (ContainerConfigurator $container): void {
             service('sylius.payment_request.command_bus'),
         ])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => CaptureApprovedOrderWebhookEventProcessor::EVENT_TYPE]);
+
+    $services->set('sylius_paypal.validator.shop_payment_request_eligibility', ShopPaymentRequestEligibilityValidator::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius.repository.payment'),
+            service('sylius.repository.payment_request'),
+            service('sylius_paypal.resolver.paypal_payment_methods'),
+            service('sylius_paypal.provider.paypal_payment_source'),
+            service('sylius_paypal.checker.payment_source_enabled'),
+            service('sylius_paypal.checker.payment_authorization'),
+        ])
+        ->tag('validator.constraint_validator');
 };
