@@ -119,6 +119,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
 
         $paymentMethod->expects(self::once())->method('setCode')->with('PAYPAL');
+        $paymentMethod->expects(self::once())->method('setName')->with('PayPal');
         $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
         $paymentMethod->expects(self::once())->method('setPosition')->with(0);
         $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);
@@ -227,7 +228,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
     }
 
     #[Test]
-    public function it_creates_the_payment_method_of_another_paypal_account_with_the_first_free_code(): void
+    public function it_creates_the_payment_method_of_another_paypal_account_with_the_first_free_code_and_a_matching_name(): void
     {
         [, $paymentMethod] = $this->mockFactories();
         $this->credentialsManager->method('store')->willReturn(self::STORED_CONFIG);
@@ -235,6 +236,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->paymentMethods['PAYPAL_2'] = $this->createStub(PaymentMethodInterface::class);
 
         $paymentMethod->expects(self::once())->method('setCode')->with('PAYPAL_3');
+        $paymentMethod->expects(self::once())->method('setName')->with('PayPal 3');
         $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));

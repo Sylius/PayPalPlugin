@@ -124,21 +124,26 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $this->paymentMethodFactory->createNew();
         $paymentMethod->setGatewayConfig($gatewayConfig);
-        $paymentMethod->setCode($this->unusedPaymentMethodCode());
-        $paymentMethod->setName(self::PAYMENT_METHOD_NAME);
+        $suffix = $this->unusedSuffix();
+        $paymentMethod->setCode(null === $suffix ? self::PAYMENT_METHOD_CODE : sprintf('%s_%d', self::PAYMENT_METHOD_CODE, $suffix));
+        $paymentMethod->setName(null === $suffix ? self::PAYMENT_METHOD_NAME : sprintf('%s %d', self::PAYMENT_METHOD_NAME, $suffix));
         $paymentMethod->setDescription(self::PAYMENT_METHOD_DESCRIPTION);
         $paymentMethod->setPosition(0);
 
         return $paymentMethod;
     }
 
-    private function unusedPaymentMethodCode(): string
+    private function unusedSuffix(): ?int
     {
-        $code = self::PAYMENT_METHOD_CODE;
-        for ($suffix = 2; null !== $this->paymentMethodRepository->findOneBy(['code' => $code]); ++$suffix) {
-            $code = sprintf('%s_%d', self::PAYMENT_METHOD_CODE, $suffix);
+        if (null === $this->paymentMethodRepository->findOneBy(['code' => self::PAYMENT_METHOD_CODE])) {
+            return null;
         }
 
-        return $code;
+        $suffix = 2;
+        while (null !== $this->paymentMethodRepository->findOneBy(['code' => sprintf('%s_%d', self::PAYMENT_METHOD_CODE, $suffix)])) {
+            ++$suffix;
+        }
+
+        return $suffix;
     }
 }
