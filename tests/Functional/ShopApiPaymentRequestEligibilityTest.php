@@ -57,6 +57,31 @@ final class ShopApiPaymentRequestEligibilityTest extends JsonApiTestCase
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadPayment($fixtures['shippable_paypal_payment'])->getState());
     }
 
+    public function test_it_refuses_the_authorize_action_for_a_payment_method_that_captures_payments(): void
+    {
+        $payment = $this->loadNewOrderPayment();
+
+        $this->postPaymentRequest($payment, ['action' => 'authorize', 'payload' => ['payment_source' => 'paypal']]);
+
+        $this->assertViolation('action', 'This PayPal payment method takes payments with the "capture" action, not "authorize".');
+        self::assertSame([], $this->paymentRequestsOf($payment));
+    }
+
+    public function test_it_refuses_the_capture_action_for_a_payment_method_that_authorizes_payments(): void
+    {
+        $payment = $this->loadNewOrderPayment();
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['use_authorize' => true]));
+        $this->getEntityManager()->flush();
+
+        $this->postPaymentRequest($payment, ['action' => 'capture', 'payload' => ['payment_source' => 'paypal']]);
+
+        $this->assertViolation('action', 'This PayPal payment method takes payments with the "authorize" action, not "capture".');
+        self::assertSame([], $this->paymentRequestsOf($payment));
+    }
+
     public function test_it_refuses_a_payment_source_paypal_does_not_support(): void
     {
         $payment = $this->loadNewOrderPayment();

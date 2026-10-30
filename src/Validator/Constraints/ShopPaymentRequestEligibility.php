@@ -20,6 +20,8 @@ final class ShopPaymentRequestEligibility extends Constraint
 {
     public string $actionNotAllowedMessage = 'sylius_paypal.payment_request.action_not_allowed';
 
+    public string $actionNotMatchingPaymentMethodMessage = 'sylius_paypal.payment_request.action_not_matching_payment_method';
+
     public string $paymentMethodNotAvailableMessage = 'sylius_paypal.payment_request.payment_method_not_available';
 
     public string $payloadInvalidMessage = 'sylius_paypal.payment_request.payload_invalid';

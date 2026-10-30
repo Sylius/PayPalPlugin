@@ -316,6 +316,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.provider.paypal_payment_source'),
             service('sylius_paypal.checker.payment_source_enabled'),
+            service('sylius_paypal.checker.payment_authorization'),
         ])
         ->tag('validator.constraint_validator');
 };

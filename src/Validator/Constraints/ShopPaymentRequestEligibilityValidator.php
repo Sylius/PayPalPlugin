@@ -22,6 +22,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -51,6 +52,7 @@ final class ShopPaymentRequestEligibilityValidator extends ConstraintValidator
         private readonly PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
         private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
+        private readonly PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
     ) {
     }
 
@@ -87,6 +89,22 @@ final class ShopPaymentRequestEligibilityValidator extends ConstraintValidator
             $this->context
                 ->buildViolation($constraint->actionNotAllowedMessage)
                 ->setParameter('{{ action }}', $addPaymentRequest->action)
+                ->atPath('action')
+                ->addViolation()
+            ;
+
+            return;
+        }
+
+        $expectedAction = $this->paymentAuthorizationChecker->isAuthorizeEnabled($paymentMethod)
+            ? PaymentRequestInterface::ACTION_AUTHORIZE
+            : PaymentRequestInterface::ACTION_CAPTURE
+        ;
+        if (null !== $addPaymentRequest->action && $expectedAction !== $addPaymentRequest->action) {
+            $this->context
+                ->buildViolation($constraint->actionNotMatchingPaymentMethodMessage)
+                ->setParameter('{{ action }}', $addPaymentRequest->action)
+                ->setParameter('{{ expected_action }}', $expectedAction)
                 ->atPath('action')
                 ->addViolation()
             ;

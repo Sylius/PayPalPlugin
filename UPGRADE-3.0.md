@@ -1033,7 +1033,8 @@
    `POST /api/v2/shop/orders/{tokenValue}/payment-requests` and `PUT /api/v2/shop/payment-requests/{hash}` of a PayPal
    payment method answer `422` unless:
 
-   - the action is `capture` or `authorize`;
+   - the action is `capture` or `authorize` and matches the payment method: `authorize` when it authorizes payments,
+     `capture` otherwise;
    - the payment method is a PayPal payment method of the order's channel;
    - the payload is `{"payment_source": "<source>"}` with a payment source enabled for the payment method. No other key
      is accepted.

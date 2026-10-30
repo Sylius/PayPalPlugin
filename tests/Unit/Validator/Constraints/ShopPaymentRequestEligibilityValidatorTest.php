@@ -27,6 +27,7 @@ use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
@@ -48,6 +49,8 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
     private PayPalPaymentMethodsResolverInterface&MockObject $payPalPaymentMethodsResolver;
 
     private PaymentSourceEnabledCheckerInterface&MockObject $paymentSourceEnabledChecker;
+
+    private bool $authorizeEnabled = false;
 
     private PaymentMethodInterface&MockObject $payPalPaymentMethod;
 
@@ -81,6 +84,9 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
             fn (string $paymentSource, PaymentMethodInterface $paymentMethod): bool => 'venmo' !== $paymentSource && $paymentMethod === $this->payPalPaymentMethod,
         );
 
+        $paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
+        $paymentAuthorizationChecker->method('isAuthorizeEnabled')->willReturnCallback(fn (): bool => $this->authorizeEnabled);
+
         return new ShopPaymentRequestEligibilityValidator(
             $this->paymentMethodRepository,
             $paymentRepository,
@@ -88,6 +94,7 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
             $this->payPalPaymentMethodsResolver,
             new PayPalPaymentSourceProvider(),
             $this->paymentSourceEnabledChecker,
+            $paymentAuthorizationChecker,
         );
     }
 
@@ -116,12 +123,45 @@ final class ShopPaymentRequestEligibilityValidatorTest extends ConstraintValidat
     }
 
     #[Test]
-    public function it_accepts_the_authorize_action_and_the_default_action(): void
+    public function it_accepts_the_default_action(): void
     {
-        $this->validator->validate($this->addPaymentRequest(action: 'authorize'), new ShopPaymentRequestEligibility());
         $this->validator->validate($this->addPaymentRequest(action: null), new ShopPaymentRequestEligibility());
 
         $this->assertNoViolation();
+    }
+
+    #[Test]
+    public function it_accepts_the_authorize_action_for_a_payment_method_that_authorizes_payments(): void
+    {
+        $this->authorizeEnabled = true;
+
+        $this->validator->validate($this->addPaymentRequest(action: 'authorize'), new ShopPaymentRequestEligibility());
+
+        $this->assertNoViolation();
+    }
+
+    /** @return iterable<string, array{bool, string, string}> */
+    public static function actionsNotMatchingThePaymentMethod(): iterable
+    {
+        yield 'authorize for a payment method that captures payments' => [false, 'authorize', 'capture'];
+        yield 'capture for a payment method that authorizes payments' => [true, 'capture', 'authorize'];
+    }
+
+    #[Test]
+    #[DataProvider('actionsNotMatchingThePaymentMethod')]
+    public function it_refuses_an_action_not_matching_the_payment_method(bool $authorizeEnabled, string $action, string $expectedAction): void
+    {
+        $constraint = new ShopPaymentRequestEligibility();
+        $this->authorizeEnabled = $authorizeEnabled;
+
+        $this->validator->validate($this->addPaymentRequest(action: $action), $constraint);
+
+        $this->buildViolation($constraint->actionNotMatchingPaymentMethodMessage)
+            ->setParameter('{{ action }}', $action)
+            ->setParameter('{{ expected_action }}', $expectedAction)
+            ->atPath('property.path.action')
+            ->assertRaised()
+        ;
     }
 
     #[Test]
