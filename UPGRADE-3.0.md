@@ -153,10 +153,10 @@
 
    | Removed | Replacement |
    |---|---|
-   | `sylius_paypal.sandbox` parameter | `Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface` (`sylius_paypal.provider.active_mode`) |
-   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.sandbox` parameter | the `sandbox` key of the gateway config of each PayPal payment method (`PayPalGatewayConfig::isSandbox()`) |
+   | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getApiBaseUrlForMode()` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (`sylius_paypal.provider.host`) |
+   | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getReportsSftpHostForMode()` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (used by the `sylius_paypal_partner_js_url()` Twig function) |
    | `sylius_paypal.client.sftp` service | `Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface` (`sylius_paypal.factory.sftp_client`) |
 
@@ -196,7 +196,6 @@
     // Sylius\PayPalPlugin\Twig\PayPalExtension
     public function __construct(
    -    private readonly bool $sandbox,
-   +    private readonly ActiveModeProviderInterface $activeModeProvider,
    +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         // ...
@@ -244,8 +243,9 @@
 
    The client takes the token from `CacheAuthorizeClientApiInterface`. When PayPal answers `401`, it invalidates the
    cached token, fetches a fresh one and resends the request once. The request goes to the API of the payment
-   method's mode (`HostProviderInterface::getApiBaseUrlForMode()`), the same one its token was issued by. The token
-   request moved to `AuthorizeClientApi`.
+   method's mode (`HostProviderInterface::getApiBaseUrlForMode()`), the same one its token was issued by, and carries
+   the `PayPal-Partner-Attribution-Id` of that payment method instead of the one of the channel in the request. The
+   token request moved to `AuthorizeClientApi`.
 
    ```diff
     // Sylius\PayPalPlugin\Client\PayPalClient
@@ -254,8 +254,8 @@
    +    private ClientInterface $client, // sylius_paypal.http_client.retrying
         private LoggerInterface $logger,
         private UuidProviderInterface $uuidProvider,
-        private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
-        private ChannelContextInterface $channelContext,
+   -    private PayPalConfigurationProviderInterface $payPalConfigurationProvider,
+   -    private ChannelContextInterface $channelContext,
    +    private CacheAuthorizeClientApiInterface $authorizeClientApi,
    -    private string $baseUrl,
    +    private HostProviderInterface $hostProvider,
@@ -976,3 +976,54 @@
    -public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void;
    +public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void;
    ```
+
+1. #### The storefront takes the PayPal account of the channel or of the payment being paid.
+
+   The buttons on the product and cart pages, their Pay Later messages and express checkout use the first enabled
+   PayPal payment method of the channel by position (`PayPalPaymentMethodsResolverInterface::getInChannel()`); express
+   checkout moves a cart paid with another PayPal payment method to it. The buttons and Pay Later messages on the select
+   payment page use the PayPal payment method they are shown for: `renderPaymentPageButtonsAction` takes its code as the
+   `paymentMethodCode` attribute and passes it to `sylius_paypal_shop_create_paypal_order_from_cart` as the
+   `paymentMethod` query parameter (answered with `400` when it is not a PayPal payment method of the order's channel),
+   and `sylius_paypal_is_messaging_enabled()`, `sylius_paypal_web_sdk_script_url()` and
+   `sylius_paypal_web_sdk_instance_config()` accept an optional payment method. The payment page takes the client id,
+   partner attribution id, mode and the enabled payment sources from the payment method of the Payment Request being
+   paid.
+
+   The PayPal Web SDK can be loaded from one host per page only, so on a page that shows PayPal payment methods of
+   both modes, the buttons and Pay Later messages of the methods of the mode loaded second are not rendered.
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface
+   -public function getScriptUrl(): string;
+   +public function getScriptUrl(PaymentMethodInterface $paymentMethod): string;
+    public function getInstanceConfig(
+   -    ChannelInterface $channel,
+   +    PaymentMethodInterface $paymentMethod,
+        string $pageType,
+        array $components = self::DEFAULT_COMPONENTS,
+        ?string $locale = null,
+    ): array;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface
+   -public function provide(PaymentInterface $payment, string $locale): array;
+   +public function provide(PaymentRequestInterface $paymentRequest, string $locale): array;
+   ```
+
+   The payment page context also carries `sandbox`, `messagingEnabled` and `messagingInstanceConfig`; the
+   `sylius_is_paypal_sandbox()` Twig function has been removed, use `context.sandbox` on the payment page.
+
+   The following constructor signatures have changed:
+
+   | Class | Change |
+   |---|---|
+   | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | takes only `HostProviderInterface` and the test buyer country |
+   | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | lost `PayPalConfigurationProviderInterface`; the partner attribution id comes from the payment method |
+   | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
+   | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |

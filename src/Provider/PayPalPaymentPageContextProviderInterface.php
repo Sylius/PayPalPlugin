@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
 interface PayPalPaymentPageContextProviderInterface
 {
     /** @return array<string, mixed> */
-    public function provide(PaymentInterface $payment, string $locale): array;
+    public function provide(PaymentRequestInterface $paymentRequest, string $locale): array;
 }
