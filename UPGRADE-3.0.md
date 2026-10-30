@@ -842,15 +842,6 @@
     ) {
    ```
 
-   ```diff
-    // Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider
-    public function __construct(
-        // ...
-        private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
-   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
-    ) {
-   ```
-
 1. #### The PayPal payment method can authorize payments and capture them later.
 
    The new "Capture strategy" setting of the PayPal payment method (Immediate capture, or Authorize and capture)
@@ -1020,10 +1011,22 @@
    | Class | Change |
    |---|---|
    | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | takes only `HostProviderInterface` and the test buyer country |
-   | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | lost `PayPalConfigurationProviderInterface`; the partner attribution id comes from the payment method |
-   | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | takes only `PaymentSdkConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | takes only `PaymentSdkConfigurationProviderInterface` and `UrlGeneratorInterface`; its component and page type constants moved to `PaymentSdkConfigurationProvider` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
    | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
+
+1. #### The shop API payment configuration of a PayPal payment carries the PayPal Web SDK configuration.
+
+   `GET /api/v2/shop/orders/{tokenValue}/payments/{paymentId}/configuration` of a PayPal payment returns what the
+   payment page renders the PayPal buttons with, built by the new `Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider`
+   in the order's locale: `webSdkScriptUrl`, `webSdkInstanceConfig`, `messagingInstanceConfig`, `amount`, `currency`,
+   `countryCode`, `languageCode`, `locale`, `sandbox`, `redirectPaymentSources` and the `cardEnabled`, `googlePayEnabled`,
+   `applePayEnabled`, `venmoEnabled`, `paylaterEnabled` and `messagingEnabled` flags.
+
+   The `clientId`, `partnerAttributionId`, `orderId`, `orderToken`, `available_countries`, `cancelPayPalPaymentUrl` and
+   `errorPayPalPaymentUrl` keys have been removed; the client id and the partner attribution id are part of
+   `webSdkInstanceConfig`.
