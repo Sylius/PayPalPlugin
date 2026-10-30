@@ -197,7 +197,6 @@
     public function __construct(
    -    private readonly bool $sandbox,
    +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
-        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         // ...
    +    ?HostProviderInterface $hostProvider = null,
     ) {
@@ -1023,7 +1022,12 @@
    | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | lost `PayPalConfigurationProviderInterface`; the partner attribution id comes from the payment method |
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
-   | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
-   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
+   | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the channel |
+
+   `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` (`sylius_paypal.provider.paypal_configuration`),
+   `Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface` and
+   `Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface` have been removed; read the
+   configuration of the payment method returned by `PayPalPaymentMethodsResolverInterface::getInChannel()` instead.

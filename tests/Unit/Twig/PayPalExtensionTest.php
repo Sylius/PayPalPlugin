@@ -27,15 +27,12 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 
 final class PayPalExtensionTest extends TestCase
 {
-    private PayPalFundingSourcesConfigurationProviderInterface&MockObject $fundingSourcesConfigurationProvider;
-
     private ChannelContextInterface&MockObject $channelContext;
 
     private WebSdkConfigurationProviderInterface&MockObject $webSdkConfigurationProvider;
@@ -53,7 +50,6 @@ final class PayPalExtensionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->fundingSourcesConfigurationProvider = $this->createMock(PayPalFundingSourcesConfigurationProviderInterface::class);
         $this->channelContext = $this->createMock(ChannelContextInterface::class);
         $this->webSdkConfigurationProvider = $this->createMock(WebSdkConfigurationProviderInterface::class);
         $this->localeContext = $this->createMock(LocaleContextInterface::class);
@@ -64,7 +60,6 @@ final class PayPalExtensionTest extends TestCase
         $this->extension = new PayPalExtension(
             $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->payPalPaymentMethodsResolver,
-            $this->fundingSourcesConfigurationProvider,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
             currentLocaleProvider: new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
@@ -72,32 +67,32 @@ final class PayPalExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_whether_messaging_is_enabled_for_the_current_channel(): void
+    #[DataProvider('messagingConfigurations')]
+    public function it_returns_whether_messaging_is_enabled_for_the_paypal_payment_method_of_the_current_channel(array $config, bool $enabled): void
     {
         $channel = $this->createMock(ChannelInterface::class);
         $this->channelContext->method('getChannel')->willReturn($channel);
-        $this->fundingSourcesConfigurationProvider->method('isMessagingEnabled')->with($channel)->willReturn(true);
+        $payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $payPalPaymentMethodsResolver->method('getInChannel')->with($channel)->willReturn([$this->payPalMethod($config)]);
 
-        self::assertTrue($this->extension->isMessagingEnabled());
+        self::assertSame($enabled, $this->extensionWith($payPalPaymentMethodsResolver)->isMessagingEnabled());
     }
 
     #[Test]
     public function it_returns_false_when_no_pay_pal_payment_method_is_configured_for_the_channel(): void
     {
-        $channel = $this->createMock(ChannelInterface::class);
-        $this->channelContext->method('getChannel')->willReturn($channel);
-        $this->fundingSourcesConfigurationProvider
-            ->method('isMessagingEnabled')
-            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'));
+        $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
+        $payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([]);
 
-        self::assertFalse($this->extension->isMessagingEnabled());
+        self::assertFalse($this->extensionWith($payPalPaymentMethodsResolver)->isMessagingEnabled());
     }
 
     #[Test]
     #[DataProvider('messagingConfigurations')]
     public function it_returns_whether_messaging_is_enabled_for_the_given_payment_method(array $config, bool $enabled): void
     {
-        $this->fundingSourcesConfigurationProvider->expects(self::never())->method('isMessagingEnabled');
+        $this->payPalPaymentMethodsResolver->expects(self::never())->method('getInChannel');
 
         self::assertSame($enabled, $this->extension->isMessagingEnabled($this->payPalMethod($config)));
     }
@@ -251,13 +246,7 @@ final class PayPalExtensionTest extends TestCase
         $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
         $payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
         $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([]);
-        $extension = new PayPalExtension(
-            $this->createMock(ModeSwitchViewFactoryInterface::class),
-            $payPalPaymentMethodsResolver,
-            $this->fundingSourcesConfigurationProvider,
-            $this->channelContext,
-            $this->webSdkConfigurationProvider,
-        );
+        $extension = $this->extensionWith($payPalPaymentMethodsResolver);
 
         $this->webSdkConfigurationProvider->expects(self::never())->method('getInstanceConfig');
 
@@ -339,6 +328,16 @@ final class PayPalExtensionTest extends TestCase
         yield 'card' => [['payment_source' => 'card'], false];
         yield 'google pay' => [['payment_source' => 'google_pay'], false];
         yield 'venmo' => [['payment_source' => 'venmo'], false];
+    }
+
+    private function extensionWith(PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver): PayPalExtension
+    {
+        return new PayPalExtension(
+            $this->createMock(ModeSwitchViewFactoryInterface::class),
+            $payPalPaymentMethodsResolver,
+            $this->channelContext,
+            $this->webSdkConfigurationProvider,
+        );
     }
 
     /** @param array<string, mixed> $config */

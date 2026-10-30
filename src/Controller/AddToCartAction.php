@@ -21,13 +21,16 @@ use Sylius\Bundle\ResourceBundle\Controller\RequestConfigurationFactoryInterface
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Modifier\OrderItemQuantityModifierInterface;
 use Sylius\Component\Order\Modifier\OrderModifierInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\Resource\Metadata\MetadataInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -52,27 +55,9 @@ final readonly class AddToCartAction
         private OrderModifierInterface $orderModifier,
         private RequestConfigurationFactoryInterface $requestConfigurationFactory,
         private RouterInterface $router,
-        private ?CartStorageInterface $cartStorage = null,
-        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private CartStorageInterface $cartStorage,
+        private PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
     ) {
-        if (null === $this->cartStorage) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                CartStorageInterface::class,
-                self::class,
-            );
-        }
-        if (null === $this->fundingSourcesConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                PayPalFundingSourcesConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response
@@ -123,9 +108,7 @@ final readonly class AddToCartAction
         $this->cartManager->persist($cart);
         $this->cartManager->flush();
 
-        if (null !== $this->cartStorage) {
-            $this->cartStorage->setForChannel($cart->getChannel(), $cart);
-        }
+        $this->cartStorage->setForChannel($cart->getChannel(), $cart);
 
         $routeParameters = ['id' => $cart->getId()];
 
@@ -152,14 +135,18 @@ final readonly class AddToCartAction
     {
         /** @var ChannelInterface|null $channel */
         $channel = $cart->getChannel();
-        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+        if (null === $channel) {
             return false;
         }
 
-        try {
-            return $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel);
-        } catch (\InvalidArgumentException) {
+        /** @var PaymentMethodInterface|null $paymentMethod */
+        $paymentMethod = $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? null;
+        /** @var GatewayConfigInterface|null $gatewayConfig */
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null === $gatewayConfig) {
             return false;
         }
+
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVenmoEnabled();
     }
 }

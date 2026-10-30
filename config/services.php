@@ -111,9 +111,6 @@ use Sylius\PayPalPlugin\Provider\PaymentProvider;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
@@ -454,13 +451,6 @@ return static function (ContainerConfigurator $container) {
             param('sylius_paypal.prioritized_factory_name'),
         ]);
 
-    $services->set('sylius_paypal.provider.paypal_configuration', PayPalConfigurationProvider::class)
-        ->args([service('sylius_paypal.resolver.paypal_payment_methods')]);
-
-    $services->alias(PayPalConfigurationProviderInterface::class, 'sylius_paypal.provider.paypal_configuration');
-
-    $services->alias(PayPalFundingSourcesConfigurationProviderInterface::class, 'sylius_paypal.provider.paypal_configuration');
-
     $services->set('sylius_paypal.provider.web_sdk_configuration', WebSdkConfigurationProvider::class)
         ->args([
             service('sylius_paypal.provider.host'),
@@ -706,7 +696,6 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.factory.mode_switch_view'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius.context.channel'),
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
