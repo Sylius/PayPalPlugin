@@ -24,9 +24,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Log\LoggerInterface;
-use Sylius\Component\Channel\Context\ChannelContextInterface;
-use Sylius\Component\Channel\Context\ChannelNotFoundException;
-use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
@@ -36,7 +33,6 @@ use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalNetworkFailure;
 
@@ -47,10 +43,6 @@ final class PayPalClientTest extends TestCase
     private LoggerInterface&MockObject $logger;
 
     private UuidProviderInterface&MockObject $uuidProvider;
-
-    private PayPalConfigurationProviderInterface&MockObject $payPalConfigurationProvider;
-
-    private ChannelContextInterface&MockObject $channelContext;
 
     private RequestFactoryInterface&MockObject $requestFactory;
 
@@ -76,8 +68,6 @@ final class PayPalClientTest extends TestCase
         $this->client = $this->createMock(ClientInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->uuidProvider = $this->createMock(UuidProviderInterface::class);
-        $this->payPalConfigurationProvider = $this->createMock(PayPalConfigurationProviderInterface::class);
-        $this->channelContext = $this->createMock(ChannelContextInterface::class);
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
         $this->hostProvider = $this->createMock(HostProviderInterface::class);
@@ -85,17 +75,12 @@ final class PayPalClientTest extends TestCase
         $this->authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
         $this->authorizeClientApi->method('authorize')->willReturnCallback(fn (): string => array_shift($this->tokens) ?? 'TOKEN');
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $this->paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['sandbox' => true]]));
-
-        $channel = $this->createMock(ChannelInterface::class);
-        $this->channelContext->method('getChannel')->willReturn($channel);
+        $this->paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['sandbox' => true, 'partner_attribution_id' => 'TRACKING-ID']]));
 
         $this->payPalClient = new PayPalClient(
             $this->client,
             $this->logger,
             $this->uuidProvider,
-            $this->payPalConfigurationProvider,
-            $this->channelContext,
             $this->authorizeClientApi,
             $this->hostProvider,
             $this->requestFactory,
@@ -116,17 +101,6 @@ final class PayPalClientTest extends TestCase
         $request = $this->createMock(RequestInterface::class);
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $this->channelContext
-            ->method('getChannel')
-            ->willReturn($channel);
-
-        $this->payPalConfigurationProvider
-            ->expects(self::once())
-            ->method('getPartnerAttributionId')
-            ->with($channel)
-            ->willReturn('TRACKING-ID');
 
         $this->requestFactory
             ->expects(self::once())
@@ -168,22 +142,10 @@ final class PayPalClientTest extends TestCase
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
         $stream = $this->createMock(StreamInterface::class);
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $this->channelContext
-            ->method('getChannel')
-            ->willReturn($channel);
-
         $this->uuidProvider
             ->expects(self::once())
             ->method('provide')
             ->willReturn('REQUEST-ID');
-
-        $this->payPalConfigurationProvider
-            ->expects(self::once())
-            ->method('getPartnerAttributionId')
-            ->with($channel)
-            ->willReturn('TRACKING-ID');
 
         $this->requestFactory
             ->expects(self::once())
@@ -230,17 +192,6 @@ final class PayPalClientTest extends TestCase
         $response = $this->createMock(ResponseInterface::class);
         $body = $this->createMock(StreamInterface::class);
         $stream = $this->createMock(StreamInterface::class);
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $this->channelContext
-            ->method('getChannel')
-            ->willReturn($channel);
-
-        $this->payPalConfigurationProvider
-            ->expects(self::once())
-            ->method('getPartnerAttributionId')
-            ->with($channel)
-            ->willReturn('TRACKING-ID');
 
         $this->requestFactory
             ->expects(self::once())
@@ -284,17 +235,6 @@ final class PayPalClientTest extends TestCase
     public function it_throws_exception_if_the_request_did_not_reach_paypal(): void
     {
         $request = $this->createMock(RequestInterface::class);
-        $channel = $this->createMock(ChannelInterface::class);
-
-        $this->channelContext
-            ->method('getChannel')
-            ->willReturn($channel);
-
-        $this->payPalConfigurationProvider
-            ->expects(self::once())
-            ->method('getPartnerAttributionId')
-            ->with($channel)
-            ->willReturn('TRACKING-ID');
 
         $this->requestFactory
             ->method('createRequest')
@@ -324,36 +264,22 @@ final class PayPalClientTest extends TestCase
         $this->payPalClient->get($paymentMethod, 'v2/checkout/orders/123123');
     }
 
-    public function test_it_attributes_the_request_to_the_partner(): void
+    public function test_it_attributes_the_request_to_the_partner_attribution_id_of_the_payment_method(): void
     {
-        $channel = $this->createMock(ChannelInterface::class);
-        $this->channelContext->method('getChannel')->willReturn($channel);
-        $this->payPalConfigurationProvider->method('getPartnerAttributionId')->with($channel)->willReturn('BN_CODE');
-
-        self::assertSame('BN_CODE', $this->headersOfNextGetRequest()['PayPal-Partner-Attribution-Id'] ?? null);
+        self::assertSame('TRACKING-ID', $this->headersOfNextGetRequest()['PayPal-Partner-Attribution-Id'] ?? null);
     }
 
-    public function test_it_keeps_talking_to_paypal_when_no_channel_is_in_context(): void
+    public function test_it_keeps_talking_to_paypal_when_the_payment_method_has_no_partner_attribution_id(): void
     {
-        $this->channelContext->method('getChannel')->willThrowException(new ChannelNotFoundException());
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(GatewayConfigInterface::class, ['getConfig' => ['sandbox' => true]]));
         $this->logger->expects(self::once())->method('warning');
+        $this->paymentMethod = $paymentMethod;
 
         $headers = $this->headersOfNextGetRequest();
 
         self::assertArrayNotHasKey('PayPal-Partner-Attribution-Id', $headers);
         self::assertSame('Bearer TOKEN', $headers['Authorization']);
-    }
-
-    public function test_it_keeps_talking_to_paypal_when_the_channel_has_no_paypal_payment_method(): void
-    {
-        $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
-        $this->payPalConfigurationProvider
-            ->method('getPartnerAttributionId')
-            ->willThrowException(new \InvalidArgumentException('No PayPal payment method defined'))
-        ;
-        $this->logger->expects(self::once())->method('warning');
-
-        self::assertArrayNotHasKey('PayPal-Partner-Attribution-Id', $this->headersOfNextGetRequest());
     }
 
     public function test_it_identifies_a_post_request_with_a_fresh_request_id(): void

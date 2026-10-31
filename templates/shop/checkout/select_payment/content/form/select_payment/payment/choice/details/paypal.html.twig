@@ -4,6 +4,6 @@
     not (app.environment starts with 'test')
 %}
     <div class="mb-3" data-live-ignore>
-        {{ render(controller('sylius_paypal.controller.paypal_buttons::renderPaymentPageButtonsAction', {'orderId': hookable_metadata.context.order.id})) }}
+        {{ render(controller('sylius_paypal.controller.paypal_buttons::renderPaymentPageButtonsAction', {'orderId': hookable_metadata.context.order.id, 'paymentMethodCode': hookable_metadata.context.method.code})) }}
     </div>
 {% endif %}

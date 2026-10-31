@@ -45,6 +45,19 @@ final class PaymentPayPalContext implements Context
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
     }
 
+    #[Given('the store allows paying with :paymentMethodName through the PayPal account :clientId')]
+    public function theStoreAllowsPayingWithThroughThePayPalAccount(string $paymentMethodName, string $clientId): void
+    {
+        $this->createPaymentMethod(
+            $paymentMethodName,
+            strtoupper(str_replace(' ', '_', $paymentMethodName)),
+            'PayPal',
+            'Payment method',
+            0,
+            $clientId,
+        );
+    }
+
     #[Given('the store uses PayPal in sandbox mode')]
     public function theStoreUsesPayPalInSandboxMode(): void
     {
@@ -82,6 +95,7 @@ final class PaymentPayPalContext implements Context
         string $gatewayFactory,
         string $description,
         int $position,
+        ?string $clientId = null,
     ): void {
         $gatewayFactory = $this->findGatewayNameByTranslation($gatewayFactory, $this->gatewayFactories);
 
@@ -99,7 +113,7 @@ final class PaymentPayPalContext implements Context
 
         /** we need to send real client_id to paypal so we dont get errors while loading javascripts */
         $paymentMethod->getGatewayConfig()->setConfig([
-            'client_id' => $this->clientId,
+            'client_id' => $clientId ?? $this->clientId,
             'client_secret' => 'SECRET',
             'partner_attribution_id' => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',

@@ -23,5 +23,9 @@ interface WebhookUrlProviderInterface
 
     public function provide(PaymentMethodInterface $paymentMethod): string;
 
-    public function provideLegacy(PaymentMethodInterface $paymentMethod): string;
+    /**
+     * @return list<string> the URLs the webhook of the payment method may be registered on: the notify URLs,
+     *                      the one provide() returns first, then the legacy URLs
+     */
+    public function provideCandidates(PaymentMethodInterface $paymentMethod): array;
 }

@@ -104,7 +104,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius.order_processing.order_processor'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.verifier.order_ownership'),
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
         ]);
 
     $services->set('sylius_paypal.controller.paypal_buttons', PayPalButtonsController::class)
@@ -113,12 +112,11 @@ return static function (ContainerConfigurator $container) {
             service('router'),
             service('sylius.context.channel'),
             service('sylius.context.locale'),
-            service('sylius_paypal.provider.paypal_configuration'),
             service('sylius.repository.order'),
             service('sylius_paypal.provider.available_countries'),
             service('sylius_paypal.processor.locale'),
+            service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.provider.web_sdk_configuration'),
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.current_paypal_locale'),
         ]);
 
