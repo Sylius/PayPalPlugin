@@ -63,9 +63,11 @@ return function (ContainerConfigurator $container): void {
         ->tag('sylius.payment_request.command_provider', ['gateway_factory' => SyliusPayPalExtension::PAYPAL_FACTORY_NAME]);
 
     $services->set('sylius_paypal.command_provider.capture', CapturePaymentRequestCommandProvider::class)
+        ->args([service('sylius_paypal.provider.payment_request_return_url')])
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_CAPTURE]);
 
     $services->set('sylius_paypal.command_provider.authorize', AuthorizePaymentRequestCommandProvider::class)
+        ->args([service('sylius_paypal.provider.payment_request_return_url')])
         ->tag('sylius_paypal.command_provider', ['action' => PaymentRequestInterface::ACTION_AUTHORIZE]);
 
     $services->set('sylius_paypal.command_provider.status', StatusPaymentRequestCommandProvider::class)
@@ -142,7 +144,6 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.creator.paypal_order'),
             service('sylius_paypal.provider.paypal_payment_source'),
             service('sylius_paypal.checker.payment_source_enabled'),
-            service('sylius_paypal.provider.payment_request_return_url'),
             service('sylius_paypal.checker.payment_authorization'),
             service('sylius_abstraction.state_machine'),
         ])

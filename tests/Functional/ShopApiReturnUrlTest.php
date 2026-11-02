@@ -19,7 +19,12 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Stamp\ReceivedStamp;
+use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 
 final class ShopApiReturnUrlTest extends JsonApiTestCase
 {
@@ -51,10 +56,51 @@ final class ShopApiReturnUrlTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $content['state']);
         self::assertSame(self::PAYER_ACTION_URL, $content['responseData']['payer_action_url']);
 
-        $returnUrl = sprintf('https://headless.example.com/paypal/return/%s', $content['hash']);
+        $this->assertPayerReturnsToTheHeadlessStorefront($content['hash']);
+    }
+
+    public function test_it_sends_the_payer_back_to_the_headless_storefront_when_a_worker_creates_the_paypal_order(): void
+    {
+        $payment = $this->loadPayment();
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID', [
+            'status' => 'PAYER_ACTION_REQUIRED',
+            'links' => [['href' => self::PAYER_ACTION_URL, 'rel' => 'payer-action', 'method' => 'GET']],
+        ]);
+        $paymentRequest = $this->createPaymentRequest($payment);
+
+        /** @var RequestStack $requestStack */
+        $requestStack = $this->get('request_stack');
+        $requestStack->push(Request::create('/api/v2/shop/orders/TOKEN/payment-requests', Request::METHOD_POST));
+        $command = $this->get('sylius.command_provider.payment_request.default')->provide($paymentRequest);
+        $requestStack->pop();
+
+        $serializer = new PhpSerializer();
+        $envelope = $serializer->decode($serializer->encode(new Envelope($command)));
+        $this->get('sylius.payment_request.command_bus')->dispatch($envelope->with(new ReceivedStamp('payment_request')));
+
+        $this->assertPayerReturnsToTheHeadlessStorefront((string) $paymentRequest->getId());
+    }
+
+    private function assertPayerReturnsToTheHeadlessStorefront(string $hash): void
+    {
+        $returnUrl = sprintf('https://headless.example.com/paypal/return/%s', $hash);
         $experienceContext = $this->createOrderRequestBody()['payment_source']['trustly']['experience_context'];
         self::assertSame($returnUrl, $experienceContext['return_url']);
         self::assertSame($returnUrl . '?payer_cancelled=1', $experienceContext['cancel_url']);
+    }
+
+    private function createPaymentRequest(PaymentInterface $payment): PaymentRequestInterface
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
+        /** @var PaymentRequestInterface $paymentRequest */
+        $paymentRequest = $this->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
+        $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);
+        $paymentRequest->setPayload(['payment_source' => 'trustly']);
+        $this->getEntityManager()->persist($paymentRequest);
+        $this->getEntityManager()->flush();
+
+        return $paymentRequest;
     }
 
     private function loadPayment(): PaymentInterface
