@@ -14,3 +14,7 @@ when@test:
     sylius_payment:
         encryption:
             enabled: false
+
+    sylius_paypal:
+        shop_api:
+            return_url: 'https://headless.example.com/paypal/return/{hash}'
