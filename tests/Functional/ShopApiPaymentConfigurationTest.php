@@ -35,21 +35,29 @@ final class ShopApiPaymentConfigurationTest extends JsonApiTestCase
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
         $configuration = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
 
-        self::assertSame('https://www.paypal.com/web-sdk/v6/core', $configuration['webSdkScriptUrl']);
         self::assertSame([
-            'clientId' => 'CLIENT_ID',
-            'components' => ['paypal-payments', 'card-fields'],
-            'pageType' => 'checkout',
-            'partnerAttributionId' => 'PARTNER_ATTRIBUTION_ID',
-            'locale' => 'en-US',
-        ], $configuration['webSdkInstanceConfig']);
-        self::assertSame('0.40', $configuration['amount']);
-        self::assertSame('USD', $configuration['currency']);
-        self::assertSame(['paypal', 'card'], $configuration['paymentSources']);
-        self::assertTrue($configuration['payLaterEnabled']);
-        self::assertSame(['paypal-messages'], $configuration['messagingInstanceConfig']['components']);
-        self::assertArrayNotHasKey('locale', $configuration);
-        self::assertArrayNotHasKey('errorPayPalPaymentUrl', $configuration);
-        self::assertArrayNotHasKey('cancelPayPalPaymentUrl', $configuration);
+            'webSdkScriptUrl' => 'https://www.paypal.com/web-sdk/v6/core',
+            'webSdkInstanceConfig' => [
+                'clientId' => 'CLIENT_ID',
+                'components' => ['paypal-payments', 'card-fields'],
+                'pageType' => 'checkout',
+                'partnerAttributionId' => 'PARTNER_ATTRIBUTION_ID',
+                'locale' => 'en-US',
+            ],
+            'amount' => '0.40',
+            'currency' => 'USD',
+            'countryCode' => 'US',
+            'languageCode' => 'en',
+            'sandbox' => false,
+            'paymentSources' => ['paypal', 'card'],
+            'payLaterEnabled' => true,
+            'messagingInstanceConfig' => [
+                'clientId' => 'CLIENT_ID',
+                'components' => ['paypal-messages'],
+                'pageType' => 'checkout',
+                'partnerAttributionId' => 'PARTNER_ATTRIBUTION_ID',
+                'locale' => 'en-US',
+            ],
+        ], $configuration);
     }
 }
