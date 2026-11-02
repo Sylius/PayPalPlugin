@@ -28,7 +28,6 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
@@ -46,7 +45,6 @@ final class PayPalExtension extends AbstractExtension
     public function __construct(
         private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
-        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         private readonly ?ChannelContextInterface $channelContext = null,
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
         ?PayerActionCheckerInterface $payerActionChecker = null,
@@ -56,14 +54,6 @@ final class PayPalExtension extends AbstractExtension
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
         $this->hostProvider = $hostProvider ?? new HostProvider();
 
-        if (null === $this->fundingSourcesConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $fundingSourcesConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
-                self::class,
-            );
-        }
         if (null === $this->channelContext) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
@@ -115,25 +105,15 @@ final class PayPalExtension extends AbstractExtension
 
     public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null): bool
     {
+        $paymentMethod ??= $this->channelPaymentMethod();
         $gatewayConfig = $paymentMethod?->getGatewayConfig();
-        if (null !== $gatewayConfig) {
-            $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-
-            return $config->isPayLaterEnabled() && $config->isMessagingEnabled();
-        }
-
-        if (null === $this->fundingSourcesConfigurationProvider || null === $this->channelContext) {
+        if (null === $gatewayConfig) {
             return false;
         }
 
-        try {
-            /** @var ChannelInterface $channel */
-            $channel = $this->channelContext->getChannel();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
-            return $this->fundingSourcesConfigurationProvider->isMessagingEnabled($channel);
-        } catch (\InvalidArgumentException) {
-            return false;
-        }
+        return $config->isPayLaterEnabled() && $config->isMessagingEnabled();
     }
 
     public function getWebSdkScriptUrl(?PaymentMethodInterface $paymentMethod = null): string

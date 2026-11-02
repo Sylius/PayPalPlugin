@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Symfony\Component\BrowserKit\Cookie;
@@ -26,6 +27,21 @@ use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
 {
+    public function test_it_refuses_venmo_when_the_channel_has_no_enabled_paypal_payment_method(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        $this->enableVenmo($fixtures['paypal_config']);
+        /** @var PaymentMethodInterface $payPalPaymentMethod */
+        $payPalPaymentMethod = $fixtures['paypal'];
+        $payPalPaymentMethod->setEnabled(false);
+        $this->getEntityManager()->flush();
+
+        $this->addMugToCart($fixtures['mug'], 'venmo');
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
+    }
+
     public function test_it_passes_the_chosen_payment_source_on_to_the_create_order_request(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml']);
