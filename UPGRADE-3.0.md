@@ -1057,7 +1057,7 @@
    PayPal sends the payer back to the `return_url` and `cancel_url` of the PayPal order, which lead to the shop's
    `sylius_shop_payment_request_pay` route. Set `sylius_paypal.shop_api.return_url` to send the payer of a Payment Request
    created or restarted through the shop API to the headless storefront instead; `{hash}` is replaced with the Payment
-   Request hash, and `?payer_cancelled=1` is appended for a cancelled payment:
+   Request hash, and `payer_cancelled=1` is added to its query string for a cancelled payment:
 
    ```yaml
    sylius_paypal:

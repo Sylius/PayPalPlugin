@@ -100,7 +100,7 @@ final class CreatePayPalOrderPaymentRequestHandler
                 $hash,
                 $hash,
                 $payUrl,
-                sprintf('%s?%s=1', $payUrl, self::PAYER_CANCELLED_QUERY_PARAMETER),
+                sprintf('%s%s%s=1', $payUrl, str_contains($payUrl, '?') ? '&' : '?', self::PAYER_CANCELLED_QUERY_PARAMETER),
             );
         } catch (InvalidPayerDataException $exception) {
             $this->failWithReason($paymentRequest, $exception->getMessage());

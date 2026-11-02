@@ -47,6 +47,8 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private PaymentAuthorizationCheckerInterface&MockObject $paymentAuthorizationChecker;
 
+    private string $returnUrl = 'https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH';
+
     private CreatePayPalOrderPaymentRequestHandler $handler;
 
     protected function setUp(): void
@@ -65,7 +67,7 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         $returnUrlProvider
             ->method('getUrl')
             ->with(self::isInstanceOf(PaymentRequestInterface::class), UrlGeneratorInterface::ABSOLUTE_URL)
-            ->willReturn('https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH')
+            ->willReturnCallback(fn (): string => $this->returnUrl)
         ;
 
         $this->handler = new CreatePayPalOrderPaymentRequestHandler(
@@ -86,6 +88,16 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->payPalOrderCreator->expects(self::once())->method('create')->with($this->payment, 'card', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH', 'https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH', 'https://shop.example.com/en_US/payment-request/pay/PAYMENT_REQUEST_HASH?payer_cancelled=1')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+
+        ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_adds_the_cancellation_to_the_query_string_of_the_return_url(): void
+    {
+        $this->returnUrl = 'https://headless.example.com/paypal/return?hash=PAYMENT_REQUEST_HASH';
+        $this->paymentRequestWith(['payment_source' => 'card']);
+
+        $this->payPalOrderCreator->expects(self::once())->method('create')->with($this->payment, 'card', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH', 'https://headless.example.com/paypal/return?hash=PAYMENT_REQUEST_HASH', 'https://headless.example.com/paypal/return?hash=PAYMENT_REQUEST_HASH&payer_cancelled=1')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'));
 
         ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
