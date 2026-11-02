@@ -1,6 +1,6 @@
 {% set payment_method = hookable_metadata.context.resource ?? null %}
 {% set config = (payment_method is not null and payment_method.gatewayConfig is not null) ? payment_method.gatewayConfig.config : {} %}
-{% set sandbox = config[constant('Sylius\\PayPalPlugin\\Manager\\CredentialsManagerInterface::MODE_KEY')]|default(false) %}
+{% set sandbox = config[constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX')]|default(false) %}
 
 <div class="col-12 col-md-6">
     <div class="mb-3">

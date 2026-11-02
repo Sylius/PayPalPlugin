@@ -156,13 +156,12 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
 
     const completeUrl = modal.getAttribute('data-paypal-onboarding-complete-url');
     const sandbox = modal.getAttribute('data-paypal-onboarding-sandbox') === 'true';
-    const paymentMethodCode = modal.getAttribute('data-paypal-onboarding-payment-method-code');
     const errorBox = modal.querySelector('[data-paypal-onboarding-error]');
 
     fetch(completeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ authCode, sharedId, sandbox, paymentMethodCode }),
+        body: JSON.stringify({ authCode, sharedId, sandbox }),
         keepalive: true,
     })
         .then((response) => response.json().then((data) => ({ ok: response.ok, data })))

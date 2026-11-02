@@ -23,29 +23,20 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
-use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
-use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 {
-    private const CREDENTIALS = [
+    private const CONFIG = [
         'client_id' => 'CLIENT-ID',
         'client_secret' => 'CLIENT-SECRET',
         'merchant_id' => 'MERCHANT-ID',
-        'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
-    ];
-
-    private const STORED_CONFIG = [
-        'client_id' => 'CLIENT-ID',
-        'client_secret' => 'CLIENT-SECRET',
-        'merchant_id' => 'MERCHANT-ID',
-        'reports_sftp_password' => null,
-        'reports_sftp_username' => null,
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
+        'reports_sftp_password' => null,
+        'reports_sftp_username' => null,
+        'use_authorize' => false,
     ];
 
     private FactoryInterface&MockObject $gatewayFactory;
@@ -60,10 +51,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
     /** @var array<string, PaymentMethodInterface> */
     private array $paymentMethods = [];
 
-    private CredentialsManagerInterface&MockObject $credentialsManager;
-
-    private CachedAccessTokenRemoverInterface&MockObject $cachedAccessTokenRemover;
-
     private PayPalOnboardingPaymentMethodCreator $creator;
 
     protected function setUp(): void
@@ -76,8 +63,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->paymentMethodRepository
             ->method('findOneBy')
             ->willReturnCallback(fn (array $criteria): ?PaymentMethodInterface => $this->paymentMethods[$criteria['code']] ?? null);
-        $this->credentialsManager = $this->createMock(CredentialsManagerInterface::class);
-        $this->cachedAccessTokenRemover = $this->createMock(CachedAccessTokenRemoverInterface::class);
 
         $this->creator = new PayPalOnboardingPaymentMethodCreator(
             $this->gatewayFactory,
@@ -85,8 +70,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
             $this->entityManager,
             'sylius-ppcp4p-bn-code',
             $this->paymentMethodRepository,
-            $this->credentialsManager,
-            $this->cachedAccessTokenRemover,
         );
     }
 
@@ -103,19 +86,9 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
-        $this->credentialsManager
-            ->expects(self::once())
-            ->method('store')
-            ->with(
-                ['reports_sftp_password' => null, 'reports_sftp_username' => null, 'use_authorize' => false],
-                false,
-                self::CREDENTIALS,
-            )
-            ->willReturn(self::STORED_CONFIG);
-
         $gatewayConfig->expects(self::once())->method('setFactoryName')->with('sylius_paypal');
         $gatewayConfig->expects(self::once())->method('setGatewayName')->with('sylius_paypal');
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(self::CONFIG);
         $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
 
         $paymentMethod->expects(self::once())->method('setCode')->with('PAYPAL');
@@ -132,7 +105,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
     public function it_disables_the_payment_method_when_onboarding_status_is_incomplete(): void
     {
         [, $paymentMethod] = $this->mockFactories();
-        $this->credentialsManager->method('store')->willReturn(self::STORED_CONFIG);
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(false, true));
 
@@ -142,96 +114,24 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_production_credentials_in_the_existing_payment_method(): void
+    public function it_creates_a_sandbox_payment_method_next_to_a_production_one(): void
     {
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        [$gatewayConfig, $paymentMethod] = $this->mockFactories();
+        $this->paymentMethods['PAYPAL'] = $this->createStub(PaymentMethodInterface::class);
 
-        $existingConfig = ['sandbox' => true, 'client_id' => 'SANDBOX-CLIENT-ID'];
-        $gatewayConfig->method('getConfig')->willReturn($existingConfig);
-        $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
-        $this->paymentMethods['PAYPAL_2'] = $paymentMethod;
-
-        $this->credentialsManager->method('hasCredentials')->with($existingConfig, false)->willReturn(false);
-        $this->credentialsManager
-            ->expects(self::once())
-            ->method('store')
-            ->with($existingConfig, false, self::CREDENTIALS)
-            ->willReturn(self::STORED_CONFIG);
-
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
-        $gatewayConfig->expects(self::never())->method('setUsePayum');
-        $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
-        $paymentMethod->expects(self::never())->method('setPosition');
-        $this->cachedAccessTokenRemover->expects(self::once())->method('remove')->with($paymentMethod);
-
-        $this->gatewayFactory->expects(self::never())->method('createNew');
-        $this->paymentMethodFactory->expects(self::never())->method('createNew');
-        $this->entityManager->expects(self::never())->method('persist');
-        $this->entityManager->expects(self::never())->method('flush');
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, ['sandbox' => true]));
+        $paymentMethod->expects(self::once())->method('setCode')->with('PAYPAL_2');
+        $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
-        self::assertSame($paymentMethod, $this->creator->create($result, false, 'PAYPAL_2'));
-    }
-
-    #[Test]
-    public function it_stores_sandbox_credentials_in_the_existing_payment_method(): void
-    {
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-
-        $existingConfig = ['sandbox' => false, 'client_id' => 'PROD-CLIENT-ID'];
-        $gatewayConfig->method('getConfig')->willReturn($existingConfig);
-        $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
-        $this->paymentMethods['PAYPAL_2'] = $paymentMethod;
-
-        $this->credentialsManager->method('hasCredentials')->with($existingConfig, true)->willReturn(false);
-        $this->credentialsManager
-            ->expects(self::once())
-            ->method('store')
-            ->with($existingConfig, true, self::CREDENTIALS)
-            ->willReturn(self::STORED_CONFIG);
-
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(self::STORED_CONFIG);
-
-        $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
-
-        self::assertSame($paymentMethod, $this->creator->create($result, true, 'PAYPAL_2'));
-    }
-
-    #[Test]
-    public function it_refuses_to_replace_the_credentials_of_a_mode_the_payment_method_already_has(): void
-    {
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-
-        $existingConfig = ['sandbox' => false, 'client_id' => 'PROD-CLIENT-ID'];
-        $gatewayConfig->method('getConfig')->willReturn($existingConfig);
-        $gatewayConfig->method('getFactoryName')->willReturn('sylius_paypal');
-        $this->paymentMethods['PAYPAL_2'] = $paymentMethod;
-
-        $this->credentialsManager->method('hasCredentials')->with($existingConfig, false)->willReturn(true);
-        $this->credentialsManager->expects(self::never())->method('store');
-        $gatewayConfig->expects(self::never())->method('setConfig');
-        $paymentMethod->expects(self::never())->method('setEnabled');
-        $this->cachedAccessTokenRemover->expects(self::never())->method('remove');
-
-        $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
-
-        $this->expectException(PaymentMethodAlreadyOnboardedException::class);
-
-        $this->creator->create($result, false, 'PAYPAL_2');
+        self::assertSame($paymentMethod, $this->creator->create($result, true));
     }
 
     #[Test]
     public function it_creates_the_payment_method_of_another_paypal_account_with_the_first_free_code_and_a_matching_name(): void
     {
         [, $paymentMethod] = $this->mockFactories();
-        $this->credentialsManager->method('store')->willReturn(self::STORED_CONFIG);
         $this->paymentMethods['PAYPAL'] = $this->createStub(PaymentMethodInterface::class);
         $this->paymentMethods['PAYPAL_2'] = $this->createStub(PaymentMethodInterface::class);
 
@@ -242,24 +142,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
         self::assertSame($paymentMethod, $this->creator->create($result));
-    }
-
-    #[Test]
-    public function it_throws_an_exception_for_the_code_of_no_paypal_payment_method(): void
-    {
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gatewayConfig->method('getFactoryName')->willReturn('offline');
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-        $this->paymentMethods['CASH_ON_DELIVERY'] = $paymentMethod;
-
-        $this->credentialsManager->expects(self::never())->method('store');
-
-        $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
-
-        $this->expectException(\InvalidArgumentException::class);
-
-        $this->creator->create($result, false, 'CASH_ON_DELIVERY');
     }
 
     /** @return array{0: GatewayConfigInterface&MockObject, 1: PaymentMethodInterface&MockObject} */

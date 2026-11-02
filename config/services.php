@@ -70,8 +70,6 @@ use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
-use Sylius\PayPalPlugin\Manager\CredentialsManager;
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
@@ -343,10 +341,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.host', HostProvider::class);
 
     $services->alias(HostProviderInterface::class, 'sylius_paypal.provider.host');
-
-    $services->set('sylius_paypal.manager.credentials', CredentialsManager::class);
-
-    $services->alias(CredentialsManagerInterface::class, 'sylius_paypal.manager.credentials');
 
     $services->set('sylius_paypal.provider.available_countries', AvailableCountriesProvider::class)
         ->args([
@@ -652,8 +646,6 @@ return static function (ContainerConfigurator $container) {
             service('doctrine.orm.entity_manager'),
             param('sylius_paypal.partner_attribution_id'),
             service('sylius.repository.payment_method'),
-            service('sylius_paypal.manager.credentials'),
-            service('sylius_paypal.remover.cached_access_token'),
         ]);
 
     $services->alias(PayPalOnboardingPaymentMethodCreatorInterface::class, 'sylius_paypal.creator.onboarding_payment_method');

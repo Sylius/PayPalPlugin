@@ -51,8 +51,7 @@
    - the `SYLIUS_MERCHANT_ID` constant
    - the `syliusMerchantId()` and `hasSyliusMerchantId()` methods
 
-   `sylius_merchant_id` has also been removed from `CredentialsManagerInterface::MIRRORED_KEYS`. The key already
-   stored in the gateway config is no longer read and can be left in place.
+   The `sylius_merchant_id` key already stored in the gateway config is no longer read and can be left in place.
 
 1. #### `PayPalPaymentMethodEnabler` checks the seller's onboarding status directly with PayPal.
 
@@ -129,8 +128,7 @@
    The `sylius_paypal.sandbox` configuration option and the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable
    have been removed. Each PayPal payment method keeps its mode under the `sandbox` key of its gateway config. The
    onboarding sets it and the payment method form shows it read-only, so a store that uses both modes has a PayPal
-   payment method for each. Sandbox and production credentials are stored separately, under the
-   `sandbox_credentials` and `production_credentials` keys.
+   payment method for each, with its own credentials.
 
    A PayPal gateway config without the `sandbox` key is in production. If your store used the sandbox, set the
    `sandbox` key of its PayPal gateway config to `true`, or connect the sandbox account as a new PayPal payment

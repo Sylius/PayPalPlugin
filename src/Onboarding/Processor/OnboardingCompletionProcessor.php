@@ -18,7 +18,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
@@ -37,7 +36,7 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
     ) {
     }
 
-    public function process(string $authCode, string $sharedId, bool $sandbox, ?string $paymentMethodCode = null): OnboardingCompletionResult
+    public function process(string $authCode, string $sharedId, bool $sandbox): OnboardingCompletionResult
     {
         $sellerNonce = $this->sellerNonceManager->get($sandbox);
         if (null === $sellerNonce) {
@@ -46,12 +45,10 @@ final readonly class OnboardingCompletionProcessor implements OnboardingCompleti
 
         try {
             $sellerOnboardingResult = $this->sellerOnboardingResolver->resolve($authCode, $sharedId, $sellerNonce, $sandbox);
-            $paymentMethod = $this->onboardingPaymentMethodCreator->create($sellerOnboardingResult, $sandbox, $paymentMethodCode);
+            $paymentMethod = $this->onboardingPaymentMethodCreator->create($sellerOnboardingResult, $sandbox);
             $webhookUrlValid = $this->registerWebhook($paymentMethod);
 
             $this->entityManager->flush();
-        } catch (PaymentMethodAlreadyOnboardedException $exception) {
-            throw $exception;
         } catch (\Throwable $exception) {
             throw new OnboardingFailedException($exception);
         }

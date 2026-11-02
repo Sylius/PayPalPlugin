@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class PayPalGatewayConfig
@@ -26,6 +25,8 @@ final readonly class PayPalGatewayConfig
     public const MERCHANT_ID = 'merchant_id';
 
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
+
+    public const SANDBOX = 'sandbox';
 
     public const USE_AUTHORIZE = 'use_authorize';
 
@@ -140,7 +141,7 @@ final readonly class PayPalGatewayConfig
 
     public function isSandbox(): bool
     {
-        return $this->flag(CredentialsManagerInterface::MODE_KEY, false);
+        return $this->flag(self::SANDBOX, false);
     }
 
     public function isCardThreeDSecureAlways(): bool
