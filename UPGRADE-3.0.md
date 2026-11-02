@@ -1067,3 +1067,6 @@
 
    The storefront completes the payment with `PUT /api/v2/shop/payment-requests/{hash}`. Without the option, the payer
    returns to the shop as before.
+
+   The URL is one value for all channels and locales, so a storefront with a domain per channel or a locale in its
+   paths cannot be reached through it directly.
