@@ -102,6 +102,36 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::ACTION_AUTHORIZE, $this->paymentRequest($this->responseContent()['hash'])->getAction());
     }
 
+    public function test_it_starts_an_authorize_attempt_when_the_payment_method_switched_to_authorize_after_the_payment_page_opened(): void
+    {
+        $hash = $this->paymentRequestHash(authorizes: true);
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID');
+
+        $this->createOrder($hash, 'paypal');
+
+        $content = $this->responseContent();
+        self::assertNotSame($hash, $content['hash']);
+        self::assertSame('PAYPAL_ORDER_ID', $content['paypal_order_id']);
+        self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $this->paymentRequest($hash)->getState());
+        self::assertSame(PaymentRequestInterface::ACTION_CAPTURE, $this->paymentRequest($hash)->getAction());
+        self::assertSame(PaymentRequestInterface::ACTION_AUTHORIZE, $this->paymentRequest($content['hash'])->getAction());
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
+    }
+
+    public function test_it_starts_a_capture_attempt_when_the_payment_method_switched_to_capture_after_the_payment_page_opened(): void
+    {
+        $hash = $this->paymentRequestHash(action: PaymentRequestInterface::ACTION_AUTHORIZE, authorizes: false);
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID');
+
+        $this->createOrder($hash, 'paypal');
+
+        $content = $this->responseContent();
+        self::assertNotSame($hash, $content['hash']);
+        self::assertSame(PaymentRequestInterface::STATE_CANCELLED, $this->paymentRequest($hash)->getState());
+        self::assertSame(PaymentRequestInterface::ACTION_CAPTURE, $this->paymentRequest($content['hash'])->getAction());
+        self::assertSame(PaymentRequestInterface::STATE_PROCESSING, $this->paymentRequest($content['hash'])->getState());
+    }
+
     public function test_it_refuses_a_redirect_payment_source_when_the_payment_method_authorizes(): void
     {
         $hash = $this->paymentRequestHash(action: PaymentRequestInterface::ACTION_AUTHORIZE);
@@ -233,6 +263,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         string $paymentState = PaymentInterface::STATE_NEW,
         string $paymentRequestState = PaymentRequestInterface::STATE_NEW,
         string $action = PaymentRequestInterface::ACTION_CAPTURE,
+        ?bool $authorizes = null,
     ): string {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml']);
 
@@ -248,7 +279,7 @@ final class CreatePayPalOrderForPaymentRequestActionTest extends JsonApiTestCase
         $gatewayConfig->setUsePayum(false);
         $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [
             'trustly_enabled' => true,
-            'use_authorize' => PaymentRequestInterface::ACTION_AUTHORIZE === $action,
+            'use_authorize' => $authorizes ?? PaymentRequestInterface::ACTION_AUTHORIZE === $action,
         ]));
 
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);

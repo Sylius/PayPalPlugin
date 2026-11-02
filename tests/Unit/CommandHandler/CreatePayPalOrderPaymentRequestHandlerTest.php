@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
@@ -44,6 +45,8 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private PaymentSourceEnabledCheckerInterface&MockObject $paymentSourceEnabledChecker;
 
+    private PaymentAuthorizationCheckerInterface&MockObject $paymentAuthorizationChecker;
+
     private CreatePayPalOrderPaymentRequestHandler $handler;
 
     protected function setUp(): void
@@ -55,6 +58,8 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
 
         $this->paymentSourceEnabledChecker = $this->createMock(PaymentSourceEnabledCheckerInterface::class);
         $this->paymentSourceEnabledChecker->method('isEnabled')->willReturnCallback(static fn (string $paymentSource): bool => 'venmo' !== $paymentSource);
+
+        $this->paymentAuthorizationChecker = $this->createMock(PaymentAuthorizationCheckerInterface::class);
 
         $returnUrlProvider = $this->createMock(UrlProviderInterface::class);
         $returnUrlProvider
@@ -69,6 +74,7 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
             new PayPalPaymentSourceProvider(),
             $this->paymentSourceEnabledChecker,
             $returnUrlProvider,
+            $this->paymentAuthorizationChecker,
             $this->stateMachine,
         );
     }
@@ -90,6 +96,41 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
 
         $this->payPalOrderCreator->method('create')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID')->withPayerAction('https://www.paypal.com/payment/trustly'));
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://www.paypal.com/payment/trustly']);
+
+        ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_creates_the_paypal_order_of_an_authorize_payment_request_for_an_authorizable_payment_source(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal'], action: PaymentRequestInterface::ACTION_AUTHORIZE);
+
+        $this->paymentAuthorizationChecker->method('isAuthorizable')->willReturn(true);
+        $this->payPalOrderCreator->expects(self::once())->method('create')->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'));
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
+
+        ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_fails_a_capture_payment_request_when_the_payment_method_authorizes_the_payment_source(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal']);
+
+        $this->paymentAuthorizationChecker->method('isAuthorizable')->willReturn(true);
+        $this->payPalOrderCreator->expects(self::never())->method('create');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment method expects the "authorize" action for the requested payment source.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
+
+        ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_fails_an_authorize_payment_request_when_the_payment_method_captures_the_payment_source(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal'], action: PaymentRequestInterface::ACTION_AUTHORIZE);
+
+        $this->paymentAuthorizationChecker->method('isAuthorizable')->willReturn(false);
+        $this->payPalOrderCreator->expects(self::never())->method('create');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment method expects the "capture" action for the requested payment source.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
 
         ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
@@ -170,10 +211,14 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
-    private function paymentRequestWith(mixed $payload, string $state = PaymentRequestInterface::STATE_NEW): PaymentRequestInterface&MockObject
-    {
+    private function paymentRequestWith(
+        mixed $payload,
+        string $state = PaymentRequestInterface::STATE_NEW,
+        string $action = PaymentRequestInterface::ACTION_CAPTURE,
+    ): PaymentRequestInterface&MockObject {
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $paymentRequest->method('getAction')->willReturn($action);
         $paymentRequest->method('getState')->willReturn($state);
         $paymentRequest->method('getPayload')->willReturn($payload);
         $paymentRequest->method('getPayment')->willReturn($this->payment);
