@@ -69,8 +69,7 @@ final class ChargeVaultedPaymentRequestHandler
 
         $vaultId = $details->vaultId();
         if (null === $vaultId || '' === $vaultId) {
-            $this->failPayment($payment);
-            $this->failWith($paymentRequest, 'The payment carries no vaulted PayPal wallet.', VaultedChargeFailure::CredentialInvalid);
+            $this->failWith($paymentRequest, $payment, 'The payment carries no vaulted PayPal wallet.', VaultedChargeFailure::CredentialInvalid);
 
             return;
         }
@@ -82,9 +81,9 @@ final class ChargeVaultedPaymentRequestHandler
         } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
             throw $exception;
         } catch (PayPalApiException $exception) {
-            $this->failPayment($payment);
             $this->failWith(
                 $paymentRequest,
+                $payment,
                 'PayPal refused to charge the vaulted wallet.',
                 $this->failureResolver->resolveFromIssues($exception->getIssues()),
                 $exception->getIssues(),
@@ -110,10 +109,18 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         if (null === $capture) {
-            $this->failPayment($payment);
-            $this->failWith($paymentRequest, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($payPalOrder));
+            $this->failWith($paymentRequest, $payment, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($payPalOrder));
 
             return;
+        }
+
+        $captured = in_array($capture->status(), [PayPalCapture::STATUS_COMPLETED, PayPalCapture::STATUS_PENDING], true);
+        if (!$captured) {
+            $this->recordFailure(
+                $paymentRequest,
+                sprintf('PayPal reported the capture as %s.', $capture->status()),
+                $this->failureResolver->resolveFromPayPalOrder($payPalOrder),
+            );
         }
 
         $this->paymentSettlementProcessor->settle($payment, $payPalOrder);
@@ -121,11 +128,7 @@ final class ChargeVaultedPaymentRequestHandler
         match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => $this->complete($paymentRequest),
             PayPalCapture::STATUS_PENDING => $this->awaitCapture($paymentRequest, $payment),
-            default => $this->failWith(
-                $paymentRequest,
-                sprintf('PayPal reported the capture as %s.', $capture->status()),
-                $this->failureResolver->resolveFromPayPalOrder($payPalOrder),
-            ),
+            default => $this->failPaymentRequest($paymentRequest),
         };
     }
 
@@ -151,7 +154,20 @@ final class ChargeVaultedPaymentRequestHandler
     }
 
     /** @param array<string>|null $issues */
-    private function failWith(PaymentRequestInterface $paymentRequest, string $reason, VaultedChargeFailure $failure, ?array $issues = null): void
+    private function failWith(
+        PaymentRequestInterface $paymentRequest,
+        PaymentInterface $payment,
+        string $reason,
+        VaultedChargeFailure $failure,
+        ?array $issues = null,
+    ): void {
+        $this->recordFailure($paymentRequest, $reason, $failure, $issues);
+        $this->failPayment($payment);
+        $this->failPaymentRequest($paymentRequest);
+    }
+
+    /** @param array<string>|null $issues */
+    private function recordFailure(PaymentRequestInterface $paymentRequest, string $reason, VaultedChargeFailure $failure, ?array $issues = null): void
     {
         $responseData = [self::RESPONSE_REASON => $reason, self::RESPONSE_FAILURE => $failure->value];
         if (null !== $issues) {
@@ -159,6 +175,10 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         $paymentRequest->setResponseData($responseData);
+    }
+
+    private function failPaymentRequest(PaymentRequestInterface $paymentRequest): void
+    {
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
     }
 }
