@@ -45,26 +45,22 @@
         </td>
 
         <td class="payment-method-list__actions text-end" colspan="4">
-            {{ dropdown.list(
-                {
-                    direction: 'down-end',
-                    button: { text: 'sylius_paypal.configure'|trans, icon: 'tabler:settings' }
-                },
-                [
-                    {
-                        title: 'sylius_paypal.enable_paypal_production',
-                        url: '#',
-                        icon: 'tabler:brand-paypal-filled',
-                        attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-pay-pal' },
-                    },
-                    {
-                        title: 'sylius_paypal.enable_paypal_sandbox',
-                        url: '#',
-                        icon: 'tabler:flask',
-                        attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-paypal-sandbox' },
-                    },
-                ]
-            ) }}
+            {% set items %}
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-pay-pal">
+                    {{ ux_icon('tabler:brand-paypal-filled') }}
+                    {{ 'sylius_paypal.enable_paypal_production'|trans }}
+                </a>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-paypal-sandbox">
+                    {{ ux_icon('tabler:flask') }}
+                    {{ 'sylius_paypal.enable_paypal_sandbox'|trans }}
+                </a>
+            {% endset %}
+
+            {{ dropdown.default({
+                direction: 'down-end',
+                button: { text: 'sylius_paypal.configure'|trans, icon: 'tabler:settings' },
+                content: items,
+            }) }}
         </td>
     </tr>
 {% endif %}
