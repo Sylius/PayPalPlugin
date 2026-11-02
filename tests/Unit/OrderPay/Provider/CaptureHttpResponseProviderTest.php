@@ -58,7 +58,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
         $this->requestConfiguration->method('getRequest')->willReturn($request);
 
         $hostProvider = $this->createStub(HostProviderInterface::class);
-        $hostProvider->method('getWebUrl')->willReturn('https://www.sandbox.paypal.com');
+        $hostProvider->method('getWebUrlForMode')->willReturnMap([[true, 'https://www.sandbox.paypal.com'], [false, 'https://www.paypal.com']]);
 
         $this->provider = new CaptureHttpResponseProvider($this->twig, $this->contextProvider, $this->router, $hostProvider);
     }
@@ -83,10 +83,11 @@ final class CaptureHttpResponseProviderTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_NEW);
 
-        $this->contextProvider->method('provide')->with($paymentRequest->getPayment(), 'en_US')->willReturn(['amount' => '20.00']);
+        $this->contextProvider->method('provide')->with($paymentRequest, 'en_US')->willReturn(['amount' => '20.00', 'sandbox' => true]);
         $this->router->method('generate')->with('sylius_paypal_shop_create_paypal_order_for_payment_request', ['hash' => 'PAYMENT_REQUEST_HASH'])->willReturn('/en_US/paypal/payment-requests/PAYMENT_REQUEST_HASH/order');
         $this->twig->expects(self::once())->method('render')->with('@SyliusPayPalPlugin/pay_with_paypal.html.twig', [
             'amount' => '20.00',
+            'sandbox' => true,
             'createPayPalOrderUrl' => '/en_US/paypal/payment-requests/PAYMENT_REQUEST_HASH/order',
         ])->willReturn('PAGE');
 
@@ -100,13 +101,27 @@ final class CaptureHttpResponseProviderTest extends TestCase
         );
     }
 
+    public function test_it_allows_the_passkeys_of_the_paypal_host_of_the_mode_of_the_payment_request_method(): void
+    {
+        $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_NEW);
+        $this->contextProvider->method('provide')->willReturn(['sandbox' => false]);
+        $this->twig->method('render')->willReturn('PAGE');
+
+        $response = $this->provider->getResponse($this->requestConfiguration, $paymentRequest);
+
+        self::assertSame(
+            'publickey-credentials-get=(self "https://www.paypal.com"), publickey-credentials-create=(self "https://www.paypal.com")',
+            $response->headers->get('Permissions-Policy'),
+        );
+    }
+
     public function test_it_renders_the_payment_page_for_the_plain_request_sylius_2_3_hands_over(): void
     {
         $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_NEW);
         $request = new Request();
         $request->setLocale('pl_PL');
 
-        $this->contextProvider->expects(self::once())->method('provide')->with($paymentRequest->getPayment(), 'pl_PL')->willReturn([]);
+        $this->contextProvider->expects(self::once())->method('provide')->with($paymentRequest, 'pl_PL')->willReturn(['sandbox' => true]);
         $this->twig->method('render')->willReturn('PAGE');
 
         self::assertTrue($this->provider->supports($request, $paymentRequest));
@@ -179,7 +194,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
     {
         $paymentRequest = $this->paymentRequestIn(PaymentRequestInterface::STATE_PROCESSING, ['awaiting_payer' => true]);
         $this->router->method('generate')->willReturn('/en_US/paypal/payment-requests/PAYMENT_REQUEST_HASH/order');
-        $this->contextProvider->method('provide')->willReturn([]);
+        $this->contextProvider->method('provide')->willReturn(['sandbox' => true]);
         $this->twig->expects(self::once())->method('render')->willReturn('PAGE');
 
         self::assertTrue($this->provider->supports($this->requestConfiguration, $paymentRequest));
@@ -190,7 +205,7 @@ final class CaptureHttpResponseProviderTest extends TestCase
     public function test_it_renders_the_payment_page_for_the_payer_who_cancelled_at_the_bank(): void
     {
         $this->router->method('generate')->willReturn('/en_US/paypal/payment-requests/PAYMENT_REQUEST_HASH/order');
-        $this->contextProvider->method('provide')->willReturn([]);
+        $this->contextProvider->method('provide')->willReturn(['sandbox' => true]);
         $this->twig->expects(self::once())->method('render')->willReturn('PAGE');
         $this->requestConfiguration->getRequest()->query->set('payer_cancelled', '1');
         $this->requestConfiguration->getRequest()->query->set('errorcode', 'payment_error');

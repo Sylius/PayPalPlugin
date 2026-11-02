@@ -59,6 +59,24 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertStringNotContainsString('data-sylius--paypal-plugin--paypal-payment-apple-pay-country-code-value', (string) $response->getContent());
     }
 
+    public function test_it_shows_the_payment_page_with_the_paypal_account_of_the_method_being_paid(): void
+    {
+        $payment = $this->payPalOrder();
+        /** @var PaymentMethodInterface $firstPayPalMethod */
+        $firstPayPalMethod = $payment->getMethod();
+        $firstPayPalMethod->setPosition(0);
+        $payment->setMethod($this->secondPayPalMethod($firstPayPalMethod));
+        $this->getEntityManager()->flush();
+
+        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_NEW)));
+        $content = (string) $this->client->getResponse()->getContent();
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        self::assertStringContainsString('clientId&quot;:&quot;SECOND_CLIENT_ID&quot;', $content);
+        self::assertStringNotContainsString('clientId&quot;:&quot;CLIENT_ID&quot;', $content);
+        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-google-pay', $content);
+    }
+
     public function test_it_sends_the_payer_back_to_a_fresh_payment_page_after_an_abandoned_attempt(): void
     {
         $payment = $this->payPalOrder();
@@ -421,6 +439,36 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $this->getEntityManager()->flush();
 
         return (string) $paymentRequest->getId();
+    }
+
+    private function secondPayPalMethod(PaymentMethodInterface $firstPayPalMethod): PaymentMethodInterface
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = self::getContainer()->get('sylius.factory.gateway_config')->createNew();
+        $gatewayConfig->setGatewayName('paypal_2');
+        $gatewayConfig->setFactoryName('sylius_paypal');
+        $gatewayConfig->setUsePayum(false);
+        $gatewayConfig->setConfig([
+            'client_id' => 'SECOND_CLIENT_ID',
+            'client_secret' => 'SECOND_SECRET',
+            'merchant_id' => 'SECOND_MERCHANT_ID',
+            'partner_attribution_id' => 'PARTNER_ATTRIBUTION_ID',
+            'google_pay_enabled' => true,
+        ]);
+
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = self::getContainer()->get('sylius.factory.payment_method')->createNew();
+        $paymentMethod->setCode('PAYPAL_2');
+        $paymentMethod->setCurrentLocale('en_US');
+        $paymentMethod->setName('PayPal 2');
+        $paymentMethod->setPosition(1);
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+        foreach ($firstPayPalMethod->getChannels() as $channel) {
+            $paymentMethod->addChannel($channel);
+        }
+        $this->getEntityManager()->persist($paymentMethod);
+
+        return $paymentMethod;
     }
 
     private function shippingAddress(): AddressInterface

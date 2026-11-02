@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\ApiPlatform;
 
-use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -21,7 +20,6 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -31,25 +29,12 @@ final class PayPalPayment
 
     private AvailableCountriesProviderInterface $availableCountriesProvider;
 
-    private ?PayPalConfigurationProviderInterface $payPalConfigurationProvider;
-
     public function __construct(
         RouterInterface $router,
         AvailableCountriesProviderInterface $availableCountriesProvider,
-        ?PayPalConfigurationProviderInterface $payPalConfigurationProvider = null,
     ) {
         $this->router = $router;
         $this->availableCountriesProvider = $availableCountriesProvider;
-        $this->payPalConfigurationProvider = $payPalConfigurationProvider;
-        if (null === $this->payPalConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function supports(PaymentMethodInterface $paymentMethod): bool
@@ -71,17 +56,12 @@ final class PayPalPayment
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        /** @var ChannelInterface $channel */
-        $channel = $order->getChannel();
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-        $partnerAttributionId = null !== $this->payPalConfigurationProvider
-            ? $this->payPalConfigurationProvider->getPartnerAttributionId($channel)
-            : $config->partnerAttributionId();
 
         return [
             'clientId' => $config->clientId(),
             'cancelPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_cancel_payment', [], UrlGeneratorInterface::ABSOLUTE_URL),
-            'partnerAttributionId' => $partnerAttributionId,
+            'partnerAttributionId' => $config->partnerAttributionId(),
             'locale' => $order->getLocaleCode(),
             'orderId' => $order->getId(),
             'currency' => $order->getCurrencyCode(),

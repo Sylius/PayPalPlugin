@@ -37,6 +37,13 @@ final class PayWithPayPalPage extends SyliusPage
         return $this->hasElement('card_fields');
     }
 
+    public function getPayPalClientId(): ?string
+    {
+        $instanceConfig = $this->getElement('card_fields')->getAttribute('data-sylius--paypal-plugin--paypal-payment-card-fields-instance-config-value');
+
+        return json_decode((string) $instanceConfig, true)['clientId'] ?? null;
+    }
+
     public function isRenderedInTheShopLayout(): bool
     {
         return $this->hasElement('shop_layout_body');

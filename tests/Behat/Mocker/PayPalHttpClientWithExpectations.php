@@ -25,6 +25,8 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
 {
     public const CACHE_KEY = 'paypal_http_client_expectations';
 
+    public const ACCESS_TOKEN_CACHE_KEY = 'paypal_http_client_expected_access_token';
+
     private const CONNECTION_FAILURE = 0;
 
     public function __construct(
@@ -57,9 +59,16 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         $this->addExpectation($method, $path, [], self::CONNECTION_FAILURE);
     }
 
+    public function expectAccessToken(string $accessToken): void
+    {
+        $cacheItem = $this->cache->getItem(self::ACCESS_TOKEN_CACHE_KEY);
+        $cacheItem->set($accessToken);
+        $this->cache->save($cacheItem);
+    }
+
     public function resetExpectations(): void
     {
-        $this->cache->deleteItem(self::CACHE_KEY);
+        $this->cache->deleteItems([self::CACHE_KEY, self::ACCESS_TOKEN_CACHE_KEY]);
     }
 
     public function hasExpectations(): bool
@@ -92,7 +101,13 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
             throw new \RuntimeException(sprintf('Expected the PayPal request "%s" but got "%s".', $expectedRequest, $currentRequest));
         }
 
-        foreach ($expectation['headers'] as $header => $value) {
+        $headers = $expectation['headers'];
+        $accessToken = $this->cache->getItem(self::ACCESS_TOKEN_CACHE_KEY)->get();
+        if (is_string($accessToken)) {
+            $headers['Authorization'] = 'Bearer ' . $accessToken;
+        }
+
+        foreach ($headers as $header => $value) {
             if ($value !== $request->getHeaderLine($header)) {
                 throw new \RuntimeException(sprintf(
                     'Expected the PayPal request "%s" with the %s header "%s" but got "%s".',

@@ -135,6 +135,12 @@ final readonly class PayingWithPayPalContext implements Context
         );
     }
 
+    #[Then('the payment page should use the PayPal account :clientId')]
+    public function thePaymentPageShouldUseThePayPalAccount(string $clientId): void
+    {
+        Assert::same($this->payWithPayPalPage->getPayPalClientId(), $clientId);
+    }
+
     #[Then('the payment page should be a part of the shop')]
     public function thePaymentPageShouldBeAPartOfTheShop(): void
     {

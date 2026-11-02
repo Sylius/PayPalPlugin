@@ -136,22 +136,29 @@ final readonly class PayPalApiMocker
         $this->client->addExpectation('PATCH', 'v2/checkout/orders/' . $payPalOrderId, [], 204);
     }
 
+    /** @param list<array<string, mixed>> $refunds */
     public function mockOrderDetailsWithCapture(
         string $payPalOrderId = 'PAYPAL_ORDER_ID',
         string $captureStatus = 'COMPLETED',
         string $value = '0.20',
         string $currencyCode = 'USD',
         string $captureId = 'CAPTURE_ID',
+        array $refunds = [],
     ): void {
+        $payments = ['captures' => [[
+            'id' => $captureId,
+            'status' => $captureStatus,
+            'amount' => ['currency_code' => $currencyCode, 'value' => $value],
+        ]]];
+        if ([] !== $refunds) {
+            $payments['refunds'] = $refunds;
+        }
+
         $this->mockOrderDetails($payPalOrderId, [
             'status' => 'COMPLETED',
             'purchase_units' => [[
                 'reference_id' => 'REFERENCE_ID',
-                'payments' => ['captures' => [[
-                    'id' => $captureId,
-                    'status' => $captureStatus,
-                    'amount' => ['currency_code' => $currencyCode, 'value' => $value],
-                ]]],
+                'payments' => $payments,
             ]],
         ]);
     }

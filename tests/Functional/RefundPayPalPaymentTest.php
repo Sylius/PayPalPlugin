@@ -112,6 +112,28 @@ final class RefundPayPalPaymentTest extends JsonApiTestCase
         self::assertSame([$paymentRequests[0]->getId(), $paymentRequests[0]->getId()], DummyRefundPaymentApi::$requestIds);
     }
 
+    public function test_it_records_the_refund_paypal_already_made_without_refunding_the_payment_again(): void
+    {
+        $form = $this->refundForm();
+        $this->payPalApi()->mockOrderDetailsWithCapture(captureStatus: 'REFUNDED', refunds: [[
+            'id' => 'REFUND_ID',
+            'status' => 'COMPLETED',
+            'links' => [['rel' => 'up', 'href' => 'https://api.sandbox.paypal.com/v2/payments/captures/CAPTURE_ID']],
+        ]]);
+        $this->client->submit($form);
+
+        self::assertSame([], DummyRefundPaymentApi::$refundedPaymentIds);
+
+        $payment = $this->reloadPayment();
+        self::assertSame(PaymentInterface::STATE_REFUNDED, $payment->getState());
+        self::assertSame('REFUND_ID', PayPalPaymentDetails::fromPayment($payment)->refundId());
+
+        $paymentRequests = $this->refundPaymentRequests();
+        self::assertCount(1, $paymentRequests);
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequests[0]->getState());
+        self::assertSame(['refund_id' => 'REFUND_ID', 'refund_status' => 'COMPLETED'], $paymentRequests[0]->getResponseData());
+    }
+
     public function test_it_refunds_the_payment_through_paypal_from_the_admin_api(): void
     {
         $this->payPalApi()->mockOrderDetailsWithCapture();

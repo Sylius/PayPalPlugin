@@ -26,7 +26,6 @@ use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Symfony\Component\HttpFoundation\Request;
@@ -62,7 +61,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->action = new CompleteOnboardingAction(
             $this->onboardingCompletionProcessor,
-            new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))),
+            new OnboardingStatusMessagesProvider(new HostProvider()),
             $this->urlGenerator,
             $this->logger,
         );

@@ -16,12 +16,20 @@ namespace Tests\Sylius\PayPalPlugin\Behat\Context\Hook;
 use Behat\Behat\Context\Context;
 use Behat\Hook\AfterScenario;
 use Behat\Hook\BeforeScenario;
+use Behat\Step\Given;
 use Tests\Sylius\PayPalPlugin\Behat\Mocker\PayPalHttpClientWithExpectations;
+use Tests\Sylius\PayPalPlugin\Service\DummyAuthorizeClientApi;
 
 final readonly class PayPalHttpClientContext implements Context
 {
     public function __construct(private PayPalHttpClientWithExpectations $client)
     {
+    }
+
+    #[Given('every PayPal request is authorized by the PayPal account :clientId')]
+    public function everyPayPalRequestIsAuthorizedByThePayPalAccount(string $clientId): void
+    {
+        $this->client->expectAccessToken(DummyAuthorizeClientApi::accessTokenOf($clientId));
     }
 
     #[BeforeScenario]

@@ -27,12 +27,6 @@ interface HostProviderInterface
 
     public const PRODUCTION_WEB_URL = 'https://www.paypal.com';
 
-    public function getApiBaseUrl(): string;
-
-    public function getReportsSftpHost(): string;
-
-    public function getWebUrl(): string;
-
     public function getApiBaseUrlForMode(bool $sandbox): string;
 
     public function getReportsSftpHostForMode(bool $sandbox): string;
