@@ -231,6 +231,45 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
+    public function test_it_records_the_failure_before_failing_the_payment(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INVALID_VAULT_ID']),
+        );
+        $this->paymentRequest->method('setResponseData')->willReturnCallback(function (array $responseData): void {
+            $this->appliedTransitions[] = ['response_data', $responseData['failure']];
+        });
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            ['response_data', 'credential_invalid'],
+            [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
+            [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
+        ], $this->appliedTransitions);
+    }
+
+    public function test_it_records_the_failure_before_settling_a_declined_capture(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willReturn($this->payPalOrder('DECLINED'));
+        $this->paymentRequest->method('setResponseData')->willReturnCallback(function (array $responseData): void {
+            $this->appliedTransitions[] = ['response_data', $responseData['failure']];
+        });
+        $this->paymentSettlementProcessor->method('settle')->willReturnCallback(function (): void {
+            $this->appliedTransitions[] = [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL];
+        });
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            ['response_data', 'declined'],
+            [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
+            [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
+        ], $this->appliedTransitions);
+    }
+
     /** @return iterable<string, array{\Throwable}> */
     public static function unknownOutcomes(): iterable
     {
