@@ -20,7 +20,14 @@ final class CreatePayPalOrderPaymentRequest implements PaymentRequestHashAwareIn
 {
     use PaymentRequestHashAwareTrait;
 
-    public function __construct(protected ?string $hash)
+    public function __construct(
+        protected ?string $hash,
+        private readonly string $returnUrl,
+    ) {
+    }
+
+    public function getReturnUrl(): string
     {
+        return $this->returnUrl;
     }
 }

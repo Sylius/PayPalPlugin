@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -26,7 +25,6 @@ use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class CreatePayPalOrderPaymentRequestHandler
 {
@@ -45,7 +43,6 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly PayPalOrderCreatorInterface $payPalOrderCreator,
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
         private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
-        private readonly UrlProviderInterface $returnUrlProvider,
         private readonly PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
         StateMachineInterface $stateMachine,
     ) {
@@ -91,16 +88,16 @@ final class CreatePayPalOrderPaymentRequestHandler
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
         $hash = (string) $paymentRequest->getId();
+        $payUrl = $createPayPalOrderPaymentRequest->getReturnUrl();
 
         try {
-            $payUrl = $this->returnUrlProvider->getUrl($paymentRequest, UrlGeneratorInterface::ABSOLUTE_URL);
             $details = $this->payPalOrderCreator->create(
                 $payment,
                 $paymentSource,
                 $hash,
                 $hash,
                 $payUrl,
-                sprintf('%s?%s=1', $payUrl, self::PAYER_CANCELLED_QUERY_PARAMETER),
+                sprintf('%s%s%s=1', $payUrl, str_contains($payUrl, '?') ? '&' : '?', self::PAYER_CANCELLED_QUERY_PARAMETER),
             );
         } catch (InvalidPayerDataException $exception) {
             $this->failWithReason($paymentRequest, $exception->getMessage());
