@@ -34,3 +34,9 @@ sylius_paypal_admin_order_payment_capture_authorization:
     methods: [PUT]
     defaults:
         _controller: sylius_paypal.controller.capture_authorization
+
+sylius_paypal_admin_payment_capture_authorization:
+    path: /payments/{id}/capture-paypal-authorization
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.capture_authorization

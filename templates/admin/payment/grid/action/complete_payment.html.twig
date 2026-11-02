@@ -1,0 +1,18 @@
+{% if
+    data.state == constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_AUTHORIZED') and
+    data.method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') and
+    not sylius_sm_can(data, constant('Sylius\\Component\\Payment\\PaymentTransitions::GRAPH'), constant('Sylius\\Component\\Payment\\PaymentTransitions::TRANSITION_COMPLETE'))
+%}
+    {% set labeled = options.labeled is defined ? options.labeled : true %}
+
+    <form action="{{ path('sylius_paypal_admin_payment_capture_authorization', {'id': data.id}) }}" method="post" {{ sylius_test_html_attribute('action', action.name) }}>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token(data.id) }}">
+        <input type="hidden" name="_method" value="PUT">
+        <button class="btn {{ options.class|default }}" {% if labeled and 'btn-icon' in options.class|default %}data-bs-toggle="tooltip" data-bs-title="{{ action.label|trans }}"{% endif %}>
+            {% if action.icon %}{{ ux_icon(action.icon) }}{% endif %}
+            {% if labeled and 'btn-icon' not in options.class|default %}{{ action.label|trans }}{% endif %}
+        </button>
+    </form>
+{% else %}
+    {% include '@SyliusAdmin/shared/grid/action/apply_transition.html.twig' %}
+{% endif %}

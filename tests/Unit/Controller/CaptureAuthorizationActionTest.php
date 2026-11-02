@@ -55,7 +55,7 @@ final class CaptureAuthorizationActionTest extends TestCase
         $this->csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $router = $this->createStub(UrlGeneratorInterface::class);
         $router->method('generate')->willReturnCallback(
-            static fn (string $route, array $parameters): string => sprintf('/admin/orders/%s', (string) $parameters['id']),
+            static fn (string $route, array $parameters = []): string => 'sylius_admin_payment_index' === $route ? '/admin/payments' : sprintf('/admin/orders/%s', (string) $parameters['id']),
         );
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setFactoryName('sylius_paypal');
@@ -81,6 +81,20 @@ final class CaptureAuthorizationActionTest extends TestCase
 
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertSame('/admin/orders/3', $response->getTargetUrl());
+        self::assertSame(['sylius.payment.completed'], $request->getSession()->getFlashBag()->peek('success'));
+    }
+
+    public function test_it_takes_the_admin_back_to_the_payments_list_when_captured_from_there(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('find')->willReturnMap([['7', $this->payment]]);
+        $this->dispatcher->expects(self::once())->method('dispatch')->with($this->payment)->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_COMPLETED));
+
+        $request = $this->request(null);
+        $response = ($this->action)($request);
+
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('/admin/payments', $response->getTargetUrl());
         self::assertSame(['sylius.payment.completed'], $request->getSession()->getFlashBag()->peek('success'));
     }
 
@@ -132,6 +146,29 @@ final class CaptureAuthorizationActionTest extends TestCase
         ($this->action)($this->request());
     }
 
+    public function test_it_refuses_a_payment_that_does_not_exist(): void
+    {
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('find')->willReturn(null);
+        $this->dispatcher->expects(self::never())->method('dispatch');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        ($this->action)($this->request(null));
+    }
+
+    public function test_it_refuses_a_payment_that_is_not_authorized_when_captured_from_the_payments_list(): void
+    {
+        $this->payment->setState(PaymentInterface::STATE_NEW);
+        $this->csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $this->paymentRepository->method('find')->willReturn($this->payment);
+        $this->dispatcher->expects(self::never())->method('dispatch');
+
+        $this->expectException(NotFoundHttpException::class);
+
+        ($this->action)($this->request(null));
+    }
+
     public function test_it_refuses_a_payment_that_is_not_authorized(): void
     {
         $this->payment->setState(PaymentInterface::STATE_COMPLETED);
@@ -166,9 +203,9 @@ final class CaptureAuthorizationActionTest extends TestCase
         return $paymentRequest;
     }
 
-    private function request(): Request
+    private function request(?string $orderId = '3'): Request
     {
-        $request = new Request([], ['_csrf_token' => 'TOKEN'], ['id' => '7', 'orderId' => '3']);
+        $request = new Request([], ['_csrf_token' => 'TOKEN'], array_filter(['id' => '7', 'orderId' => $orderId]));
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         return $request;
