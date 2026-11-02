@@ -50,8 +50,6 @@ use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
 use Sylius\PayPalPlugin\EventListener\RemovePayPalPaymentDetailsListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
-use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactory;
-use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
@@ -191,10 +189,6 @@ return static function (ContainerConfigurator $container) {
         ->tag('form.type_extension');
 
     $services->set('sylius_paypal.form.type.paypal_configuration', PayPalConfigurationType::class)
-        ->args([
-            service('sylius_paypal.manager.credentials'),
-            service('translator'),
-        ])
         ->tag('form.type')
         ->tag('sylius.gateway_configuration_type', ['type' => 'sylius_paypal', 'label' => 'sylius_paypal.label']);
 
@@ -664,13 +658,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalOnboardingPaymentMethodCreatorInterface::class, 'sylius_paypal.creator.onboarding_payment_method');
 
-    $services->set('sylius_paypal.factory.mode_switch_view', ModeSwitchViewFactory::class);
-
-    $services->alias(ModeSwitchViewFactoryInterface::class, 'sylius_paypal.factory.mode_switch_view');
-
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)
         ->args([
-            service('sylius_paypal.factory.mode_switch_view'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius.context.channel'),
             service(WebSdkConfigurationProviderInterface::class),
