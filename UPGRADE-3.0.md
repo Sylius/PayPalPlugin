@@ -1001,7 +1001,6 @@
    | Class | Change |
    |---|---|
    | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | takes only `HostProviderInterface` and the test buyer country |
-   | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | takes only `PaymentSdkConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | takes only `PaymentSdkConfigurationProviderInterface` and `UrlGeneratorInterface`; its component and page type constants moved to `PaymentSdkConfigurationProvider` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
@@ -1073,3 +1072,8 @@
    The `clientId`, `partnerAttributionId`, `orderId`, `orderToken`, `available_countries`, `cancelPayPalPaymentUrl` and
    `errorPayPalPaymentUrl` keys have been removed; the client id and the partner attribution id are part of
    `webSdkInstanceConfig`.
+
+   `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` (`sylius_paypal.api_platform.paypal_payment`) has been renamed to
+   `Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider` (`sylius_paypal.api_platform.payment_configuration_provider`).
+   It implements `Sylius\Bundle\ApiBundle\Payment\PaymentConfigurationProviderInterface` and takes only
+   `PaymentSdkConfigurationProviderInterface`.

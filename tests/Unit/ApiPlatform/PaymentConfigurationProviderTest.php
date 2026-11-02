@@ -20,20 +20,20 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
+use Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
 
-final class PayPalPaymentTest extends TestCase
+final class PaymentConfigurationProviderTest extends TestCase
 {
     private PaymentSdkConfigurationProviderInterface&MockObject $paymentSdkConfigurationProvider;
 
-    private PayPalPayment $payPalPayment;
+    private PaymentConfigurationProvider $paymentConfigurationProvider;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->paymentSdkConfigurationProvider = $this->createMock(PaymentSdkConfigurationProviderInterface::class);
-        $this->payPalPayment = new PayPalPayment($this->paymentSdkConfigurationProvider);
+        $this->paymentConfigurationProvider = new PaymentConfigurationProvider($this->paymentSdkConfigurationProvider);
     }
 
     #[Test]
@@ -52,7 +52,7 @@ final class PayPalPaymentTest extends TestCase
             ->method('getFactoryName')
             ->willReturn('sylius_paypal');
 
-        $result = $this->payPalPayment->supports($paymentMethod);
+        $result = $this->paymentConfigurationProvider->supports($paymentMethod);
 
         self::assertTrue($result);
     }
@@ -75,7 +75,7 @@ final class PayPalPaymentTest extends TestCase
 
         self::assertSame(
             ['webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core'],
-            $this->payPalPayment->provideConfiguration($payment),
+            $this->paymentConfigurationProvider->provideConfiguration($payment),
         );
     }
 }

@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Payment\Model\PaymentInterface;
-use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
+use Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
@@ -214,7 +214,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PaymentRefundApplicatorInterface::class, 'sylius_paypal.applicator.payment_refund');
 
-    $services->set('sylius_paypal.api_platform.paypal_payment', PayPalPayment::class)
+    $services->set('sylius_paypal.api_platform.payment_configuration_provider', PaymentConfigurationProvider::class)
         ->args([service('sylius_paypal.provider.payment_sdk_configuration')])
         ->tag('sylius.api.payment_method_handler');
 

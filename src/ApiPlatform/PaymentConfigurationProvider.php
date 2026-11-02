@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\ApiPlatform;
 
+use Sylius\Bundle\ApiBundle\Payment\PaymentConfigurationProviderInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -20,13 +21,10 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
 
-final class PayPalPayment
+final readonly class PaymentConfigurationProvider implements PaymentConfigurationProviderInterface
 {
-    private PaymentSdkConfigurationProviderInterface $paymentSdkConfigurationProvider;
-
-    public function __construct(PaymentSdkConfigurationProviderInterface $paymentSdkConfigurationProvider)
+    public function __construct(private PaymentSdkConfigurationProviderInterface $paymentSdkConfigurationProvider)
     {
-        $this->paymentSdkConfigurationProvider = $paymentSdkConfigurationProvider;
     }
 
     public function supports(PaymentMethodInterface $paymentMethod): bool
