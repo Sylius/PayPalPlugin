@@ -16,29 +16,31 @@ namespace Sylius\PayPalPlugin\Creator;
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Remover\CachedAccessTokenRemoverInterface;
 
 final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboardingPaymentMethodCreatorInterface
 {
+    /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
     public function __construct(
         private FactoryInterface $gatewayFactory,
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
         private string $partnerAttributionId,
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+        private PaymentMethodRepositoryInterface $paymentMethodRepository,
         private CredentialsManagerInterface $credentialsManager,
         private CachedAccessTokenRemoverInterface $cachedAccessTokenRemover,
     ) {
     }
 
-    public function create(SellerOnboardingResult $result, bool $sandbox = false): PaymentMethodInterface
+    public function create(SellerOnboardingResult $result, bool $sandbox = false, ?string $paymentMethodCode = null): PaymentMethodInterface
     {
         $credentials = [
             PayPalGatewayConfig::CLIENT_ID => $result->getClientId(),
@@ -47,7 +49,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
         ];
 
-        $paymentMethod = $this->upsertPaymentMethod($credentials, $sandbox);
+        $paymentMethod = $this->upsertPaymentMethod($credentials, $sandbox, $paymentMethodCode);
         $paymentMethod->setEnabled($result->getStatus()->isComplete());
 
         return $paymentMethod;
@@ -56,12 +58,16 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
     /**
      * @param array<string, mixed> $credentials
      */
-    private function upsertPaymentMethod(array $credentials, bool $sandbox): PaymentMethodInterface
+    private function upsertPaymentMethod(array $credentials, bool $sandbox, ?string $paymentMethodCode): PaymentMethodInterface
     {
-        if ($this->payPalPaymentMethodProvider->exists()) {
-            $paymentMethod = $this->payPalPaymentMethodProvider->provide();
+        if (null !== $paymentMethodCode) {
+            $paymentMethod = $this->payPalPaymentMethod($paymentMethodCode);
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $paymentMethod->getGatewayConfig();
+            if ($this->credentialsManager->hasCredentials($gatewayConfig->getConfig(), $sandbox)) {
+                throw new PaymentMethodAlreadyOnboardedException($paymentMethodCode, $sandbox);
+            }
+
             $gatewayConfig->setConfig(
                 $this->credentialsManager->store($gatewayConfig->getConfig(), $sandbox, $credentials),
             );
@@ -100,16 +106,44 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         return $gatewayConfig;
     }
 
+    private function payPalPaymentMethod(string $code): PaymentMethodInterface
+    {
+        $paymentMethod = $this->paymentMethodRepository->findOneBy(['code' => $code]);
+        if (
+            !$paymentMethod instanceof PaymentMethodInterface ||
+            SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()
+        ) {
+            throw new \InvalidArgumentException(sprintf('There is no PayPal payment method with the "%s" code.', $code));
+        }
+
+        return $paymentMethod;
+    }
+
     private function createPaymentMethod(GatewayConfigInterface $gatewayConfig): PaymentMethodInterface
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $this->paymentMethodFactory->createNew();
         $paymentMethod->setGatewayConfig($gatewayConfig);
-        $paymentMethod->setCode(self::PAYMENT_METHOD_CODE);
-        $paymentMethod->setName(self::PAYMENT_METHOD_NAME);
+        $suffix = $this->unusedSuffix();
+        $paymentMethod->setCode(null === $suffix ? self::PAYMENT_METHOD_CODE : sprintf('%s_%d', self::PAYMENT_METHOD_CODE, $suffix));
+        $paymentMethod->setName(null === $suffix ? self::PAYMENT_METHOD_NAME : sprintf('%s %d', self::PAYMENT_METHOD_NAME, $suffix));
         $paymentMethod->setDescription(self::PAYMENT_METHOD_DESCRIPTION);
         $paymentMethod->setPosition(0);
 
         return $paymentMethod;
+    }
+
+    private function unusedSuffix(): ?int
+    {
+        if (null === $this->paymentMethodRepository->findOneBy(['code' => self::PAYMENT_METHOD_CODE])) {
+            return null;
+        }
+
+        $suffix = 2;
+        while (null !== $this->paymentMethodRepository->findOneBy(['code' => sprintf('%s_%d', self::PAYMENT_METHOD_CODE, $suffix)])) {
+            ++$suffix;
+        }
+
+        return $suffix;
     }
 }

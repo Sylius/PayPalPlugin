@@ -15,27 +15,18 @@
    method with the onboarding available on the payment methods list (or the sandbox onboarding in sandbox
    mode) instead of filling the credentials in by hand.
 
-1. #### `PayPalPaymentMethodProvider` now looks the PayPal payment method up with a dedicated query.
+   A store can connect several PayPal accounts. The onboarding started from the payment methods list creates a new
+   PayPal payment method (`PAYPAL` named "PayPal", `PAYPAL_2` named "PayPal 2", ...), the one started from the edit
+   page of a PayPal payment method stores the credentials in that payment method and is refused with the
+   `sylius_paypal.paypal_account_already_connected` flash message when that mode of the payment method already has
+   credentials. The `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
 
-   ```diff
-    final readonly class PayPalPaymentMethodProvider
-    {
-        public function __construct(
-   -        private PaymentMethodRepositoryInterface $paymentMethodRepository,
-   +        private PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery,
-        ) {
-        }
-   ```
+1. #### `PayPalPaymentMethodProvider` has been removed.
 
-   ```diff
-    $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
-        ->args([
-   -        service('sylius.repository.payment_method'),
-   +        service('sylius_paypal.repository.query.paypal_payment_method'),
-        ]);
-   ```
-
-   `PayPalPaymentMethodProviderInterface` has gained the `exists(): bool` method.
+   A store no longer has a single PayPal payment method. `Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider`,
+   its interface (`sylius_paypal.provider.paypal_payment_method`) and `Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException`
+   have been removed. Take the payment method of the payment, or the PayPal payment methods of a channel from
+   `Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface::getInChannel()`.
 
 1. #### The facilitator-based onboarding has been removed.
 
@@ -92,7 +83,7 @@
    -    private OnboardingInitiatorInterface $onboardingInitiator,
         private UrlGeneratorInterface $urlGenerator,
         private RequestStack $flashBagOrRequestStack,
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+   -    private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
    -    private bool $isSandbox = false,
     ) {
    ```
@@ -197,7 +188,6 @@
     public function __construct(
    -    private readonly bool $sandbox,
    +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
-        private readonly ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
         // ...
    +    ?HostProviderInterface $hostProvider = null,
     ) {
@@ -1023,7 +1013,28 @@
    | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | lost `PayPalConfigurationProviderInterface`; the partner attribution id comes from the payment method |
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
-   | `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` | takes `PayPalPaymentMethodsResolverInterface` instead of `PaymentMethodRepositoryInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
-   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface` |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
+   | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the channel |
+
+   `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` (`sylius_paypal.provider.paypal_configuration`),
+   `Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface` and
+   `Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface` have been removed; read the
+   configuration of the payment method returned by `PayPalPaymentMethodsResolverInterface::getInChannel()` instead.
+
+1. #### A PayPal Payment Request created through the shop API is validated.
+
+   `POST /api/v2/shop/orders/{tokenValue}/payment-requests` of a PayPal payment method answers `422` unless:
+
+   - the action is `status`, or `capture` or `authorize` matching the payment method: `authorize` when it authorizes
+     payments, `capture` otherwise. `notify`, which Sylius accepts on the shop API, is refused: PayPal notifies the
+     store through webhooks only;
+   - the payment method is a PayPal payment method of the order's channel;
+   - the payload is `{"payment_source": "<source>"}` with a payment source enabled for the payment method. No other key
+     is accepted. A `status` Payment Request takes no payload: it settles a `processing` payment from its PayPal
+     order, e.g. once the payer is back from the bank.
+
+   `PUT /api/v2/shop/payment-requests/{hash}` of a PayPal Payment Request answers `422` unless the payload is
+   `{"payment_source": "<source>"}` with a payment source enabled for the payment method. It is checked only while the
+   Payment Request is `new`, and not for a `status` Payment Request.
