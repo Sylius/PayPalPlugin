@@ -433,7 +433,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.web_sdk_configuration'),
             service('sylius_paypal.processor.locale'),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
-            service('sylius_paypal.checker.payment_authorization'),
+            service('sylius_paypal.checker.payment_source_enabled'),
         ]);
 
     $services->alias(PaymentSdkConfigurationProviderInterface::class, 'sylius_paypal.provider.payment_sdk_configuration');

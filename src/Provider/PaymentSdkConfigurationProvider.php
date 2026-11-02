@@ -19,7 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\AmountUtils;
-use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 
@@ -37,11 +37,18 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
 
     public const MESSAGES_COMPONENT = 'paypal-messages';
 
+    private const COMPONENTS = [
+        PayPalPaymentSourceProviderInterface::CARD => self::CARD_FIELDS_COMPONENT,
+        PayPalPaymentSourceProviderInterface::GOOGLE_PAY => self::GOOGLE_PAY_COMPONENT,
+        PayPalPaymentSourceProviderInterface::APPLE_PAY => self::APPLE_PAY_COMPONENT,
+        PayPalPaymentSourceProviderInterface::VENMO => self::VENMO_COMPONENT,
+    ];
+
     public function __construct(
         private WebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private LocaleProcessorInterface $localeProcessor,
         private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
-        private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+        private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
     ) {
     }
 
@@ -58,6 +65,7 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         $channel = $order->getChannel();
 
         $messagingEnabled = $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+        $enabledPaymentSources = $this->enabledPaymentSources($paymentMethod);
 
         try {
             $processedLocale = $this->localeProcessor->process($locale);
@@ -67,11 +75,11 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
 
         return [
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),
-            'applePayEnabled' => $this->isApplePayEnabled($config, $paymentMethod),
+            'applePayEnabled' => $enabledPaymentSources[PayPalPaymentSourceProviderInterface::APPLE_PAY],
             'countryCode' => $channel->getShopBillingData()?->getCountryCode(),
             'currency' => $order->getCurrencyCode(),
-            'cardEnabled' => $this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::CARD, $paymentMethod),
-            'googlePayEnabled' => $this->isGooglePayEnabled($config, $paymentMethod),
+            'cardEnabled' => $enabledPaymentSources[PayPalPaymentSourceProviderInterface::CARD],
+            'googlePayEnabled' => $enabledPaymentSources[PayPalPaymentSourceProviderInterface::GOOGLE_PAY],
             'languageCode' => $this->languageCode($locale),
             'locale' => $processedLocale,
             'messagingEnabled' => $messagingEnabled,
@@ -81,11 +89,11 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
             'paylaterEnabled' => $config->isPayLaterEnabled(),
             'redirectPaymentSources' => $this->redirectPaymentSources($payment),
             'sandbox' => $config->isSandbox(),
-            'venmoEnabled' => $this->isVenmoEnabled($config, $paymentMethod),
+            'venmoEnabled' => $enabledPaymentSources[PayPalPaymentSourceProviderInterface::VENMO],
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $paymentMethod,
                 self::PAGE_TYPE,
-                $this->components($config, $paymentMethod),
+                $this->components($enabledPaymentSources),
                 $processedLocale,
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod),
@@ -109,51 +117,31 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         return strtolower(preg_split('/[_-]/', trim($locale))[0] ?? '');
     }
 
-    /** @return array<int, string> */
-    private function components(PayPalGatewayConfig $config, PaymentMethodInterface $paymentMethod): array
+    /** @return array<string, bool> */
+    private function enabledPaymentSources(PaymentMethodInterface $paymentMethod): array
+    {
+        $enabledPaymentSources = [];
+        foreach (array_keys(self::COMPONENTS) as $paymentSource) {
+            $enabledPaymentSources[$paymentSource] = $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
+        }
+
+        return $enabledPaymentSources;
+    }
+
+    /**
+     * @param array<string, bool> $enabledPaymentSources
+     *
+     * @return array<int, string>
+     */
+    private function components(array $enabledPaymentSources): array
     {
         $components = WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
-
-        if ($this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::CARD, $paymentMethod)) {
-            $components[] = self::CARD_FIELDS_COMPONENT;
-        }
-
-        if ($this->isGooglePayEnabled($config, $paymentMethod)) {
-            $components[] = self::GOOGLE_PAY_COMPONENT;
-        }
-
-        if ($this->isApplePayEnabled($config, $paymentMethod)) {
-            $components[] = self::APPLE_PAY_COMPONENT;
-        }
-
-        if ($this->isVenmoEnabled($config, $paymentMethod)) {
-            $components[] = self::VENMO_COMPONENT;
+        foreach (self::COMPONENTS as $paymentSource => $component) {
+            if ($enabledPaymentSources[$paymentSource]) {
+                $components[] = $component;
+            }
         }
 
         return $components;
-    }
-
-    private function isGooglePayEnabled(PayPalGatewayConfig $config, PaymentMethodInterface $paymentMethod): bool
-    {
-        return
-            $config->isGooglePayEnabled() &&
-            $this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::GOOGLE_PAY, $paymentMethod)
-        ;
-    }
-
-    private function isApplePayEnabled(PayPalGatewayConfig $config, PaymentMethodInterface $paymentMethod): bool
-    {
-        return
-            $config->isApplePayEnabled() &&
-            $this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::APPLE_PAY, $paymentMethod)
-        ;
-    }
-
-    private function isVenmoEnabled(PayPalGatewayConfig $config, PaymentMethodInterface $paymentMethod): bool
-    {
-        return
-            $config->isVenmoEnabled() &&
-            $this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::VENMO, $paymentMethod)
-        ;
     }
 }
