@@ -39,12 +39,9 @@ final class PayPalPayment
 
     public function provideConfiguration(PaymentInterface $payment): array
     {
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $payment->getMethod();
-
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        return $this->paymentSdkConfigurationProvider->provide($payment, $paymentMethod, (string) $order->getLocaleCode());
+        return $this->paymentSdkConfigurationProvider->provide($payment, (string) $order->getLocaleCode());
     }
 }

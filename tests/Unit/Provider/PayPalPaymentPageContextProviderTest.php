@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
@@ -35,8 +34,6 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     private OrderInterface&Stub $order;
 
     private PaymentInterface&Stub $payment;
-
-    private PaymentMethodInterface&Stub $paymentMethod;
 
     private AddressInterface&Stub $billingAddress;
 
@@ -56,8 +53,6 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($this->order);
 
-        $this->paymentMethod = $this->createStub(PaymentMethodInterface::class);
-
         $this->provider = new PayPalPaymentPageContextProvider($this->paymentSdkConfigurationProvider, $router);
     }
 
@@ -71,7 +66,7 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
         $this->paymentSdkConfigurationProvider
             ->expects(self::once())
             ->method('provide')
-            ->with($this->payment, $this->paymentMethod, 'en_US')
+            ->with($this->payment, 'en_US')
             ->willReturn(['currency' => 'USD', 'sandbox' => true])
         ;
 
@@ -106,7 +101,6 @@ final class PayPalPaymentPageContextProviderTest extends TestCase
     {
         $paymentRequest = $this->createStub(PaymentRequestInterface::class);
         $paymentRequest->method('getPayment')->willReturn($this->payment);
-        $paymentRequest->method('getMethod')->willReturn($this->paymentMethod);
 
         return $paymentRequest;
     }

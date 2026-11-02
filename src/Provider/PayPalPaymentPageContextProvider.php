@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -31,12 +30,10 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
     {
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
-        /** @var PaymentMethodInterface $paymentMethod */
-        $paymentMethod = $paymentRequest->getMethod();
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        return array_merge($this->paymentSdkConfigurationProvider->provide($payment, $paymentMethod, $locale), [
+        return array_merge($this->paymentSdkConfigurationProvider->provide($payment, $locale), [
             'billingAddress' => $order->getBillingAddress(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
             'order' => $order,

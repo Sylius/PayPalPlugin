@@ -60,18 +60,16 @@ final class PayPalPaymentTest extends TestCase
     #[Test]
     public function it_provides_the_sdk_configuration_of_the_payment_in_the_order_locale(): void
     {
-        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
         $order = $this->createStub(OrderInterface::class);
         $order->method('getLocaleCode')->willReturn('en_US');
 
         $payment = $this->createStub(PaymentInterface::class);
-        $payment->method('getMethod')->willReturn($paymentMethod);
         $payment->method('getOrder')->willReturn($order);
 
         $this->paymentSdkConfigurationProvider
             ->expects(self::once())
             ->method('provide')
-            ->with($payment, $paymentMethod, 'en_US')
+            ->with($payment, 'en_US')
             ->willReturn(['webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core'])
         ;
 

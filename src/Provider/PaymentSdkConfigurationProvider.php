@@ -45,8 +45,10 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
     ) {
     }
 
-    public function provide(PaymentInterface $payment, PaymentMethodInterface $paymentMethod, string $locale): array
+    public function provide(PaymentInterface $payment, string $locale): array
     {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $payment->getMethod();
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);

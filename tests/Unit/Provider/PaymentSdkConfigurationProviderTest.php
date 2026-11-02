@@ -90,6 +90,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         $this->payment = $this->createStub(PaymentInterface::class);
         $this->payment->method('getOrder')->willReturn($order);
         $this->payment->method('getAmount')->willReturn(12345);
+        $this->payment->method('getMethod')->willReturnCallback(fn (): PaymentMethodInterface => $this->paymentMethod());
 
         $this->eligibleRedirectPaymentSourcesProvider = $this->createStub(EligibleRedirectPaymentSourcesProviderInterface::class);
         $this->eligibleRedirectPaymentSourcesProvider->method('provide')->willReturn([]);
@@ -113,14 +114,14 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
 
     public function test_it_provides_the_currency_of_the_order(): void
     {
-        self::assertSame('USD', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['currency']);
+        self::assertSame('USD', $this->provider->provide($this->payment, 'en_US')['currency']);
     }
 
     public function test_it_provides_whether_pay_later_is_enabled_for_the_channel(): void
     {
         $this->paymentMethodConfig['pay_later_enabled'] = true;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertTrue($context['paylaterEnabled']);
     }
@@ -129,7 +130,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
     {
         $this->paymentMethodConfig['pay_later_enabled'] = false;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertFalse($context['paylaterEnabled']);
     }
@@ -143,7 +144,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertSame(['clientId' => 'CLIENT_ID'], $context['webSdkInstanceConfig']);
         self::assertSame(self::SCRIPT_URL, $context['webSdkScriptUrl']);
@@ -151,7 +152,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
 
     public function test_it_provides_the_amount_google_pay_shows_the_buyer(): void
     {
-        self::assertSame('123.45', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['amount']);
+        self::assertSame('123.45', $this->provider->provide($this->payment, 'en_US')['amount']);
     }
 
     public function test_it_provides_the_amount_without_decimals_for_a_zero_decimal_currency(): void
@@ -164,22 +165,23 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
         $payment->method('getAmount')->willReturn(123400);
+        $payment->method('getMethod')->willReturnCallback(fn (): PaymentMethodInterface => $this->paymentMethod());
 
-        self::assertSame('1234', $this->provider->provide($payment, $this->paymentMethod(), 'en_US')['amount']);
+        self::assertSame('1234', $this->provider->provide($payment, 'en_US')['amount']);
     }
 
     public function test_it_tells_the_page_whether_the_channel_has_google_pay_enabled(): void
     {
         $this->paymentMethodConfig['google_pay_enabled'] = true;
 
-        self::assertTrue($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['googlePayEnabled']);
+        self::assertTrue($this->provider->provide($this->payment, 'en_US')['googlePayEnabled']);
     }
 
     public function test_it_tells_the_page_whether_the_channel_has_apple_pay_enabled(): void
     {
         $this->paymentMethodConfig['apple_pay_enabled'] = true;
 
-        self::assertTrue($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['applePayEnabled']);
+        self::assertTrue($this->provider->provide($this->payment, 'en_US')['applePayEnabled']);
     }
 
     public function test_it_takes_the_country_apple_pay_needs_from_the_shop_billing_data(): void
@@ -188,31 +190,31 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         $shopBillingData->method('getCountryCode')->willReturn('DE');
         $this->channel->method('getShopBillingData')->willReturn($shopBillingData);
 
-        self::assertSame('DE', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['countryCode']);
+        self::assertSame('DE', $this->provider->provide($this->payment, 'en_US')['countryCode']);
     }
 
     public function test_it_never_takes_the_country_apple_pay_needs_from_the_buyer(): void
     {
         $this->billingAddress->method('getCountryCode')->willReturn('FR');
 
-        self::assertNull($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['countryCode']);
+        self::assertNull($this->provider->provide($this->payment, 'en_US')['countryCode']);
     }
 
     public function test_it_provides_the_language_the_shop_is_being_browsed_in(): void
     {
-        self::assertSame('en', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['languageCode']);
-        self::assertSame('pl', $this->provider->provide($this->payment, $this->paymentMethod(), 'pl_PL')['languageCode']);
-        self::assertSame('de', $this->provider->provide($this->payment, $this->paymentMethod(), 'de')['languageCode']);
+        self::assertSame('en', $this->provider->provide($this->payment, 'en_US')['languageCode']);
+        self::assertSame('pl', $this->provider->provide($this->payment, 'pl_PL')['languageCode']);
+        self::assertSame('de', $this->provider->provide($this->payment, 'de')['languageCode']);
     }
 
     public function test_it_provides_no_locale_when_paypal_does_not_support_it(): void
     {
-        self::assertNull($this->provider->provide($this->payment, $this->paymentMethod(), 'es_MX')['locale']);
+        self::assertNull($this->provider->provide($this->payment, 'es_MX')['locale']);
     }
 
     public function test_it_provides_the_processed_locale(): void
     {
-        self::assertSame('en_US', $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['locale']);
+        self::assertSame('en_US', $this->provider->provide($this->payment, 'en_US')['locale']);
     }
 
     public function test_it_asks_for_the_google_pay_component_only_when_the_channel_has_it_enabled(): void
@@ -226,7 +228,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturn([])
         ;
 
-        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $this->provider->provide($this->payment, 'en_US');
     }
 
     public function test_it_asks_for_the_apple_pay_component_only_when_the_channel_has_it_enabled(): void
@@ -240,7 +242,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturn([])
         ;
 
-        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $this->provider->provide($this->payment, 'en_US');
     }
 
     public function test_it_asks_for_both_wallet_components_when_the_channel_has_both_enabled(): void
@@ -260,14 +262,14 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturn([])
         ;
 
-        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $this->provider->provide($this->payment, 'en_US');
     }
 
     public function test_it_provides_whether_venmo_is_enabled_for_the_channel(): void
     {
         $this->paymentMethodConfig['venmo_enabled'] = true;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertTrue($context['venmoEnabled']);
     }
@@ -276,7 +278,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
     {
         $this->paymentMethodConfig['venmo_enabled'] = false;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertFalse($context['venmoEnabled']);
     }
@@ -291,7 +293,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
-        $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $this->provider->provide($this->payment, 'en_US');
     }
 
     public function test_it_builds_the_pay_later_message_from_the_payment_method_when_its_messaging_is_enabled(): void
@@ -303,7 +305,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturnCallback(static fn ($paymentMethod, string $pageType, array $components): array => ['components' => $components])
         ;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertTrue($context['messagingEnabled']);
         self::assertSame(['components' => ['paypal-messages']], $context['messagingInstanceConfig']);
@@ -311,11 +313,11 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
 
     public function test_it_tells_the_page_whether_the_payment_method_is_in_sandbox(): void
     {
-        self::assertTrue($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['sandbox']);
+        self::assertTrue($this->provider->provide($this->payment, 'en_US')['sandbox']);
 
         $this->paymentMethodConfig['sandbox'] = false;
 
-        self::assertFalse($this->provider->provide($this->payment, $this->paymentMethod(), 'en_US')['sandbox']);
+        self::assertFalse($this->provider->provide($this->payment, 'en_US')['sandbox']);
     }
 
     private function paymentMethod(): PaymentMethodInterface
@@ -334,7 +336,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         $this->paymentMethodConfig['google_pay_enabled'] = true;
         $this->paymentMethodConfig['apple_pay_enabled'] = true;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertTrue($context['cardEnabled']);
         self::assertTrue($context['venmoEnabled']);
@@ -355,7 +357,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             ->willReturn(['clientId' => 'CLIENT_ID'])
         ;
 
-        $context = $this->provider->provide($this->payment, $this->paymentMethod(), 'en_US');
+        $context = $this->provider->provide($this->payment, 'en_US');
 
         self::assertFalse($context['cardEnabled']);
         self::assertFalse($context['venmoEnabled']);
