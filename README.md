@@ -29,6 +29,8 @@
 📖 Full documentation is available here:
 👉 [PayPal Plugin Documentation](https://docs.sylius.com/paypal-plugin)
 
+Paying with PayPal on a headless storefront through the shop API: [Headless checkout](docs/headless-checkout.md)
+
 ## Security issues
 
 If you think that you have found a security issue, please do not use the issue tracker and do not post it publicly.
