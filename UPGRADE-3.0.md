@@ -15,27 +15,18 @@
    method with the onboarding available on the payment methods list (or the sandbox onboarding in sandbox
    mode) instead of filling the credentials in by hand.
 
-1. #### `PayPalPaymentMethodProvider` now looks the PayPal payment method up with a dedicated query.
+   A store can connect several PayPal accounts. The onboarding started from the payment methods list creates a new
+   PayPal payment method (`PAYPAL` named "PayPal", `PAYPAL_2` named "PayPal 2", ...), the one started from the edit
+   page of a PayPal payment method stores the credentials in that payment method and is refused with the
+   `sylius_paypal.paypal_account_already_connected` flash message when that mode of the payment method already has
+   credentials. The `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
 
-   ```diff
-    final readonly class PayPalPaymentMethodProvider
-    {
-        public function __construct(
-   -        private PaymentMethodRepositoryInterface $paymentMethodRepository,
-   +        private PayPalPaymentMethodQueryInterface $payPalPaymentMethodQuery,
-        ) {
-        }
-   ```
+1. #### `PayPalPaymentMethodProvider` has been removed.
 
-   ```diff
-    $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
-        ->args([
-   -        service('sylius.repository.payment_method'),
-   +        service('sylius_paypal.repository.query.paypal_payment_method'),
-        ]);
-   ```
-
-   `PayPalPaymentMethodProviderInterface` has gained the `exists(): bool` method.
+   A store no longer has a single PayPal payment method. `Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider`,
+   its interface (`sylius_paypal.provider.paypal_payment_method`) and `Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException`
+   have been removed. Take the payment method of the payment, or the PayPal payment methods of a channel from
+   `Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface::getInChannel()`.
 
 1. #### The facilitator-based onboarding has been removed.
 
@@ -92,7 +83,7 @@
    -    private OnboardingInitiatorInterface $onboardingInitiator,
         private UrlGeneratorInterface $urlGenerator,
         private RequestStack $flashBagOrRequestStack,
-        private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
+   -    private PayPalPaymentMethodProviderInterface $payPalPaymentMethodProvider,
    -    private bool $isSandbox = false,
     ) {
    ```

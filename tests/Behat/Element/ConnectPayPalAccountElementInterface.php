@@ -11,12 +11,9 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Exception;
+namespace Tests\Sylius\PayPalPlugin\Behat\Element;
 
-final class PayPalPaymentMethodAlreadyExistsException extends \Exception
+interface ConnectPayPalAccountElementInterface
 {
-    public function __construct()
-    {
-        parent::__construct('PayPal payment method already exists');
-    }
+    public function canConnectAnotherPayPalAccount(): bool;
 }

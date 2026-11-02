@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Onboarding\Checker\SellerOnboardedCheckerInterface;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
@@ -28,8 +27,6 @@ final class PayPalOnboardingModalComponentTest extends TestCase
 
     private SellerNonceManagerInterface&MockObject $sellerNonceManager;
 
-    private SellerOnboardedCheckerInterface&MockObject $sellerOnboardedChecker;
-
     private LoggerInterface&MockObject $logger;
 
     private PayPalOnboardingModalComponent $payPalOnboardingModalComponent;
@@ -39,13 +36,11 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         parent::setUp();
         $this->onboardingUrlProvider = $this->createMock(PayPalOnboardingUrlProviderInterface::class);
         $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
-        $this->sellerOnboardedChecker = $this->createMock(SellerOnboardedCheckerInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->payPalOnboardingModalComponent = new PayPalOnboardingModalComponent(
             $this->onboardingUrlProvider,
             $this->sellerNonceManager,
-            $this->sellerOnboardedChecker,
             $this->logger,
         );
     }
@@ -79,20 +74,6 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         );
         self::assertFalse($this->payPalOnboardingModalComponent->loading);
         self::assertFalse($this->payPalOnboardingModalComponent->failed);
-    }
-
-    #[Test]
-    public function it_does_not_load_the_onboarding_url_when_a_sandbox_seller_is_already_onboarded_in_sandbox_mode(): void
-    {
-        $this->payPalOnboardingModalComponent->sandbox = true;
-        $this->sellerOnboardedChecker->method('isOnboarded')->with(true)->willReturn(true);
-
-        $this->sellerNonceManager->expects(self::never())->method('generate');
-        $this->onboardingUrlProvider->expects(self::never())->method('generate');
-
-        $this->payPalOnboardingModalComponent->loadOnboardingUrl();
-
-        self::assertTrue($this->payPalOnboardingModalComponent->sellerAlreadyOnboarded);
     }
 
     #[Test]
@@ -131,32 +112,14 @@ final class PayPalOnboardingModalComponentTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_load_the_onboarding_url_when_a_production_seller_is_already_onboarded(): void
+    public function it_marks_the_modal_as_opened_once_it_loads_the_onboarding_url(): void
     {
-        $this->sellerOnboardedChecker->method('isOnboarded')->with(false)->willReturn(true);
-
-        $this->sellerNonceManager->expects(self::never())->method('generate');
-        $this->onboardingUrlProvider->expects(self::never())->method('generate');
-
-        $this->payPalOnboardingModalComponent->loadOnboardingUrl();
-
-        self::assertSame('', $this->payPalOnboardingModalComponent->onboardingUrl);
-        self::assertFalse($this->payPalOnboardingModalComponent->loading);
-        self::assertFalse($this->payPalOnboardingModalComponent->failed);
-        self::assertTrue($this->payPalOnboardingModalComponent->sellerAlreadyOnboarded);
-    }
-
-    #[Test]
-    public function it_loads_the_onboarding_url_when_no_production_seller_is_onboarded(): void
-    {
-        $this->sellerOnboardedChecker->method('isOnboarded')->willReturn(false);
         $this->sellerNonceManager->method('generate')->willReturn('SELLER-NONCE');
         $this->onboardingUrlProvider->method('generate')->with('SELLER-NONCE', false)->willReturn('https://www.paypal.com/onboarding');
 
         $this->payPalOnboardingModalComponent->loadOnboardingUrl();
 
         self::assertSame('https://www.paypal.com/onboarding', $this->payPalOnboardingModalComponent->onboardingUrl);
-        self::assertFalse($this->payPalOnboardingModalComponent->sellerAlreadyOnboarded);
         self::assertTrue($this->payPalOnboardingModalComponent->opened);
     }
 }
