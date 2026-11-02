@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\PayPalPlugin\OrderPay\Provider\ShopApiReturnUrlProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -82,7 +83,13 @@ final class Configuration implements ConfigurationInterface
                 ->arrayNode('shop_api')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->scalarNode('return_url')->defaultNull()->end()
+                        ->scalarNode('return_url')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $returnUrl): bool => null !== $returnUrl && !str_contains((string) $returnUrl, ShopApiReturnUrlProvider::HASH_PLACEHOLDER))
+                                ->thenInvalid('The shop API return URL %s must contain the ' . ShopApiReturnUrlProvider::HASH_PLACEHOLDER . ' placeholder.')
+                            ->end()
+                        ->end()
                     ->end()
                 ->end()
                 ->arrayNode('tracking')

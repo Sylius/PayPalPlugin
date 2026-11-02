@@ -18,7 +18,6 @@ use Sylius\Bundle\CoreBundle\OrderPay\Provider\UrlProviderInterface;
 use Sylius\Bundle\CoreBundle\SectionResolver\SectionProviderInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Webmozart\Assert\Assert;
 
 final readonly class ShopApiReturnUrlProvider implements UrlProviderInterface
 {
@@ -29,9 +28,6 @@ final readonly class ShopApiReturnUrlProvider implements UrlProviderInterface
         private SectionProviderInterface $sectionProvider,
         private ?string $shopApiReturnUrl,
     ) {
-        if (null !== $shopApiReturnUrl) {
-            Assert::contains($shopApiReturnUrl, self::HASH_PLACEHOLDER);
-        }
     }
 
     public function getUrl(

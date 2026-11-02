@@ -91,14 +91,6 @@ final class ShopApiReturnUrlProviderTest extends TestCase
         self::assertSame(self::SHOP_URL, $this->provider(null)->getUrl($this->paymentRequest, UrlGeneratorInterface::ABSOLUTE_URL));
     }
 
-    #[Test]
-    public function it_requires_the_hash_placeholder_in_the_configured_url(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        $this->provider('https://headless.example.com/paypal/return');
-    }
-
     private function provider(?string $shopApiReturnUrl): ShopApiReturnUrlProvider
     {
         return new ShopApiReturnUrlProvider($this->decoratedUrlProvider, $this->sectionProvider, $shopApiReturnUrl);

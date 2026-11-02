@@ -96,6 +96,14 @@ final class ConfigurationTest extends TestCase
         self::assertSame('https://headless.example.com/paypal/return/{hash}', $config['shop_api']['return_url']);
     }
 
+    public function test_it_rejects_a_shop_api_return_url_without_the_hash_placeholder(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('must contain the {hash} placeholder');
+
+        $this->process([['shop_api' => ['return_url' => 'https://headless.example.com/paypal/return']]]);
+    }
+
     /**
      * @param array<array-key, array<string, mixed>> $configs
      *
