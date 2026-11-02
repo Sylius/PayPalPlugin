@@ -49,6 +49,9 @@
         "symfony/web-profiler-bundle": "^6.4 || ^7.4 || ^8.0",
         "symfony/webpack-encore-bundle": "^2.2"
     },
+    "conflict": {
+        "symfony/http-client": "6.4.49 || 7.4.22 || 8.1.10"
+    },
     "autoload": {
         "psr-4": {
             "Sylius\\PayPalPlugin\\": "src/",
