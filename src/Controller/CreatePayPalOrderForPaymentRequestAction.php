@@ -22,6 +22,7 @@ use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -53,6 +54,7 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         private StateMachineInterface $stateMachine,
         private UrlProviderInterface $paymentRequestPayUrlProvider,
         private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
+        private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
     ) {
     }
 
@@ -80,6 +82,8 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
             return new JsonResponse([self::RESPONSE_ERROR => self::PAYMENT_SOURCE_NOT_AVAILABLE], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $action = $this->resolveAction($paymentSource, $paymentRequest);
+
         if (PaymentRequestInterface::STATE_PROCESSING === $paymentRequest->getState()) {
             if ($paymentSource === $this->requestedPaymentSource($paymentRequest)) {
                 return $this->respond($paymentRequest);
@@ -89,9 +93,11 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
                 return $this->attemptClosed();
             }
 
-            $paymentRequest = $this->startAnotherAttempt($paymentRequest);
+            $paymentRequest = $this->startAnotherAttempt($paymentRequest, $action);
         } elseif (PaymentRequestInterface::STATE_NEW !== $paymentRequest->getState()) {
             return $this->attemptClosed();
+        } elseif ($action !== $paymentRequest->getAction()) {
+            $paymentRequest = $this->startAnotherAttempt($paymentRequest, $action);
         }
 
         $paymentRequest->setPayload([CreatePayPalOrderPaymentRequestHandler::PAYLOAD_PAYMENT_SOURCE => $paymentSource]);
@@ -125,6 +131,14 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         return is_string($paymentSource) ? $paymentSource : null;
     }
 
+    private function resolveAction(string $paymentSource, PaymentRequestInterface $paymentRequest): string
+    {
+        return $this->paymentAuthorizationChecker->isAuthorizable($paymentSource, $paymentRequest->getMethod())
+            ? PaymentRequestInterface::ACTION_AUTHORIZE
+            : PaymentRequestInterface::ACTION_CAPTURE
+        ;
+    }
+
     private function requestedPaymentSource(PaymentRequestInterface $paymentRequest): mixed
     {
         $payload = $paymentRequest->getPayload();
@@ -144,14 +158,14 @@ final readonly class CreatePayPalOrderForPaymentRequestAction
         return PaymentInterface::STATE_NEW !== $paymentRequest->getPayment()->getState();
     }
 
-    private function startAnotherAttempt(PaymentRequestInterface $paymentRequest): PaymentRequestInterface
+    private function startAnotherAttempt(PaymentRequestInterface $paymentRequest, string $action): PaymentRequestInterface
     {
         if ($this->stateMachine->can($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL)) {
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
         }
 
         $anotherAttempt = $this->paymentRequestFactory->createFromPaymentRequest($paymentRequest);
-        $anotherAttempt->setAction($paymentRequest->getAction());
+        $anotherAttempt->setAction($action);
 
         return $anotherAttempt;
     }

@@ -92,6 +92,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_abstraction.state_machine'),
             service('sylius_shop.provider.order_pay.payment_request_pay_url'),
             service('sylius_paypal.checker.payment_source_enabled'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->set('sylius_paypal.controller.create_paypal_order_from_cart', CreatePayPalOrderFromCartAction::class)

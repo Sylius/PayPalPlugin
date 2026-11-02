@@ -19,6 +19,7 @@ use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
@@ -45,6 +46,7 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly PayPalPaymentSourceProviderInterface $paymentSourceProvider,
         private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
         private readonly UrlProviderInterface $returnUrlProvider,
+        private readonly PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -72,6 +74,16 @@ final class CreatePayPalOrderPaymentRequestHandler
 
         if (!$this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentRequest->getMethod())) {
             $this->failWithReason($paymentRequest, 'The requested payment source is not enabled for this payment method.');
+
+            return;
+        }
+
+        $expectedAction = $this->paymentAuthorizationChecker->isAuthorizable($paymentSource, $paymentRequest->getMethod())
+            ? PaymentRequestInterface::ACTION_AUTHORIZE
+            : PaymentRequestInterface::ACTION_CAPTURE
+        ;
+        if ($expectedAction !== $paymentRequest->getAction()) {
+            $this->failWithReason($paymentRequest, sprintf('The payment method expects the "%s" action for the requested payment source.', $expectedAction));
 
             return;
         }
