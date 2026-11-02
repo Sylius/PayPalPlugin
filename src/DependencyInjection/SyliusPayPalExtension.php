@@ -141,7 +141,6 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     {
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
         $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
-        $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
         $container->setParameter('sylius_paypal.partner_attribution_id', self::PARTNER_ATTRIBUTION_ID);
         $container->setParameter('sylius_paypal.partner_credentials.partner_id', self::PAYPAL_PARTNER_ID);
         $container->setParameter('sylius_paypal.partner_credentials.partner_client_id', self::PAYPAL_PARTNER_CLIENT_ID);
