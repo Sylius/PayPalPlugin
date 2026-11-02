@@ -45,9 +45,10 @@ final class ShopApiPaymentConfigurationTest extends JsonApiTestCase
         ], $configuration['webSdkInstanceConfig']);
         self::assertSame('0.40', $configuration['amount']);
         self::assertSame('USD', $configuration['currency']);
-        self::assertTrue($configuration['cardEnabled']);
-        self::assertTrue($configuration['paylaterEnabled']);
-        self::assertFalse($configuration['googlePayEnabled']);
+        self::assertSame(['paypal', 'card'], $configuration['paymentSources']);
+        self::assertTrue($configuration['payLaterEnabled']);
+        self::assertSame(['paypal-messages'], $configuration['messagingInstanceConfig']['components']);
+        self::assertArrayNotHasKey('locale', $configuration);
         self::assertArrayNotHasKey('errorPayPalPaymentUrl', $configuration);
         self::assertArrayNotHasKey('cancelPayPalPaymentUrl', $configuration);
     }

@@ -1063,11 +1063,12 @@
 
 1. #### The shop API payment configuration of a PayPal payment carries the PayPal Web SDK configuration.
 
-   `GET /api/v2/shop/orders/{tokenValue}/payments/{paymentId}/configuration` of a PayPal payment returns what the
-   payment page renders the PayPal buttons with, built by the new `Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider`
-   in the order's locale: `webSdkScriptUrl`, `webSdkInstanceConfig`, `messagingInstanceConfig`, `amount`, `currency`,
-   `countryCode`, `languageCode`, `locale`, `sandbox`, `redirectPaymentSources` and the `cardEnabled`, `googlePayEnabled`,
-   `applePayEnabled`, `venmoEnabled`, `paylaterEnabled` and `messagingEnabled` flags.
+   `GET /api/v2/shop/orders/{tokenValue}/payments/{paymentId}/configuration` of a PayPal payment returns what a
+   headless storefront needs to render the PayPal buttons, in the order's locale: `webSdkScriptUrl`,
+   `webSdkInstanceConfig`, `amount`, `currency`, `countryCode`, `languageCode`, `sandbox`, `paymentSources` (the
+   `payment_source` values `POST /api/v2/shop/orders/{tokenValue}/payment-requests` accepts for the payment),
+   `payLaterEnabled` and `messagingInstanceConfig` (`null` when the Pay Later messaging is disabled). It is built from
+   the new `Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider`, which the payment page uses as well.
 
    The `clientId`, `partnerAttributionId`, `orderId`, `orderToken`, `available_countries`, `cancelPayPalPaymentUrl` and
    `errorPayPalPaymentUrl` keys have been removed; the client id and the partner attribution id are part of

@@ -58,7 +58,52 @@ final class PaymentConfigurationProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_provides_the_sdk_configuration_of_the_payment_in_the_order_locale(): void
+    public function it_provides_the_sdk_configuration_of_the_payment_in_the_order_locale_for_a_headless_storefront(): void
+    {
+        $payment = $this->payment();
+
+        $this->paymentSdkConfigurationProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($payment, 'en_US')
+            ->willReturn($this->sdkConfiguration([
+                'cardEnabled' => true,
+                'googlePayEnabled' => true,
+                'applePayEnabled' => true,
+                'venmoEnabled' => true,
+                'redirectPaymentSources' => ['trustly' => 'https://example.com/trustly.svg'],
+                'messagingEnabled' => true,
+                'messagingInstanceConfig' => ['clientId' => 'CLIENT_ID', 'components' => ['paypal-messages']],
+            ]))
+        ;
+
+        self::assertSame([
+            'webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core',
+            'webSdkInstanceConfig' => ['clientId' => 'CLIENT_ID'],
+            'amount' => '12.34',
+            'currency' => 'USD',
+            'countryCode' => 'US',
+            'languageCode' => 'en',
+            'sandbox' => true,
+            'paymentSources' => ['paypal', 'card', 'venmo', 'google_pay', 'apple_pay', 'trustly'],
+            'payLaterEnabled' => true,
+            'messagingInstanceConfig' => ['clientId' => 'CLIENT_ID', 'components' => ['paypal-messages']],
+        ], $this->paymentConfigurationProvider->provideConfiguration($payment));
+    }
+
+    #[Test]
+    public function it_offers_only_paypal_and_no_messaging_when_nothing_else_is_enabled(): void
+    {
+        $payment = $this->payment();
+        $this->paymentSdkConfigurationProvider->method('provide')->willReturn($this->sdkConfiguration());
+
+        $configuration = $this->paymentConfigurationProvider->provideConfiguration($payment);
+
+        self::assertSame(['paypal'], $configuration['paymentSources']);
+        self::assertNull($configuration['messagingInstanceConfig']);
+    }
+
+    private function payment(): PaymentInterface
     {
         $order = $this->createStub(OrderInterface::class);
         $order->method('getLocaleCode')->willReturn('en_US');
@@ -66,16 +111,33 @@ final class PaymentConfigurationProviderTest extends TestCase
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getOrder')->willReturn($order);
 
-        $this->paymentSdkConfigurationProvider
-            ->expects(self::once())
-            ->method('provide')
-            ->with($payment, 'en_US')
-            ->willReturn(['webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core'])
-        ;
+        return $payment;
+    }
 
-        self::assertSame(
-            ['webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core'],
-            $this->paymentConfigurationProvider->provideConfiguration($payment),
-        );
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function sdkConfiguration(array $overrides = []): array
+    {
+        return array_merge([
+            'amount' => '12.34',
+            'applePayEnabled' => false,
+            'countryCode' => 'US',
+            'currency' => 'USD',
+            'cardEnabled' => false,
+            'googlePayEnabled' => false,
+            'languageCode' => 'en',
+            'locale' => 'en_US',
+            'messagingEnabled' => false,
+            'messagingInstanceConfig' => [],
+            'paylaterEnabled' => true,
+            'redirectPaymentSources' => [],
+            'sandbox' => true,
+            'venmoEnabled' => false,
+            'webSdkInstanceConfig' => ['clientId' => 'CLIENT_ID'],
+            'webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core',
+        ], $overrides);
     }
 }
