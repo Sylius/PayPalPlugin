@@ -1038,3 +1038,16 @@
    `PUT /api/v2/shop/payment-requests/{hash}` of a PayPal Payment Request answers `422` unless the payload is
    `{"payment_source": "<source>"}` with a payment source enabled for the payment method. It is checked only while the
    Payment Request is `new`, and not for a `status` Payment Request.
+
+1. #### PayPal is no longer promoted in the checkout.
+
+   The checkout lists and preselects the PayPal payment methods by their position, like any other payment method.
+   The following have been removed without a replacement; give a PayPal payment method a lower position to show it
+   first. A PayPal payment method created by the onboarding is placed at position 0.
+
+   | Removed class / parameter | Removed service id |
+   |---|---|
+   | `Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver` | `sylius_paypal.resolver.payment_method.paypal_prioritising` |
+   | `Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver` | `sylius_paypal.resolver.payment_method.paypal` |
+   | `sylius_paypal.prioritize_paypal_as_default_method` parameter | |
+   | `sylius_paypal.prioritized_factory_name` parameter | |
