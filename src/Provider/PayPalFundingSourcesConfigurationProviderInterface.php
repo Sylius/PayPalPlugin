@@ -17,6 +17,8 @@ use Sylius\Component\Core\Model\ChannelInterface;
 
 interface PayPalFundingSourcesConfigurationProviderInterface
 {
+    public function isExpressCheckoutEnabled(ChannelInterface $channel): bool;
+
     public function isPayLaterEnabled(ChannelInterface $channel): bool;
 
     public function isMessagingEnabled(ChannelInterface $channel): bool;
