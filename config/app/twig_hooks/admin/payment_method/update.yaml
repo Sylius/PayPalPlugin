@@ -6,8 +6,8 @@ sylius_twig_hooks:
                 priority: -100
 
         'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal':
-            sandbox_mode:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/sandbox_mode.html.twig'
+            mode:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/mode.html.twig'
                 priority: 100
             capture_strategy:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/capture_strategy.html.twig'
