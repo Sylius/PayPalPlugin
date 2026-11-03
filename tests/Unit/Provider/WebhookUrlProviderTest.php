@@ -104,6 +104,14 @@ final class WebhookUrlProviderTest extends TestCase
         }
     }
 
+    public function test_it_gives_paypal_an_https_url_when_the_configured_base_url_is_on_http(): void
+    {
+        self::assertSame(
+            'https://sylius.ngrok.dev/payment-methods/PAYPAL',
+            (new WebhookUrlProvider($this->urlGenerator, $this->console, 'http://sylius.ngrok.dev'))->provide($this->paymentMethod('shop.example.com')),
+        );
+    }
+
     public function test_it_lists_the_notify_urls_and_then_the_legacy_urls_on_every_host_the_webhook_may_be_registered_on(): void
     {
         $paymentMethod = $this->paymentMethod('shop.example.com', 'www.shop.example.com', 'localhost');
