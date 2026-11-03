@@ -34,6 +34,20 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->get('messaging_enabled')->getData());
     }
 
+    public function test_the_express_checkout_toggle_defaults_to_checked_for_a_new_payment_method(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertTrue($form->get('express_checkout_enabled')->getData());
+    }
+
+    public function test_the_express_checkout_toggle_stays_false_for_a_payment_method_it_was_turned_off_for(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['express_checkout_enabled' => false]));
+
+        self::assertFalse($form->get('express_checkout_enabled')->getData());
+    }
+
     public function test_the_google_pay_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
@@ -117,6 +131,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form->submit($this->submittedFields());
 
         self::assertTrue($form->isValid());
+        self::assertFalse($form->getData()['express_checkout_enabled']);
         self::assertFalse($form->getData()['pay_later_enabled']);
         self::assertFalse($form->getData()['venmo_enabled']);
         self::assertFalse($form->getData()['messaging_enabled']);
@@ -132,12 +147,14 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
         $form->submit(array_merge($this->submittedFields(), [
+            'express_checkout_enabled' => '1',
             'pay_later_enabled' => '1',
             'venmo_enabled' => '1',
             'messaging_enabled' => '1',
         ]));
 
         self::assertTrue($form->isValid());
+        self::assertTrue($form->getData()['express_checkout_enabled']);
         self::assertTrue($form->getData()['pay_later_enabled']);
         self::assertTrue($form->getData()['venmo_enabled']);
         self::assertTrue($form->getData()['messaging_enabled']);
