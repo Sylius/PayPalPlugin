@@ -35,7 +35,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
     ) {
     }
 
-    public function create(SellerOnboardingResult $result, bool $sandbox = false): PaymentMethodInterface
+    public function create(SellerOnboardingResult $result, bool $sandbox): PaymentMethodInterface
     {
         $paymentMethod = $this->createPaymentMethod($this->createGatewayConfig($result, $sandbox));
         $paymentMethod->setEnabled($result->getStatus()->isComplete());

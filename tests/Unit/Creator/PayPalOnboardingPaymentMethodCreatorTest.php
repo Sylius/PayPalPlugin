@@ -98,7 +98,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->entityManager->expects(self::once())->method('persist')->with($paymentMethod);
         $this->entityManager->expects(self::never())->method('flush');
 
-        self::assertSame($paymentMethod, $this->creator->create($result));
+        self::assertSame($paymentMethod, $this->creator->create($result, false));
     }
 
     #[Test]
@@ -110,7 +110,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
         $paymentMethod->expects(self::once())->method('setEnabled')->with(false);
 
-        self::assertSame($paymentMethod, $this->creator->create($result));
+        self::assertSame($paymentMethod, $this->creator->create($result, false));
     }
 
     #[Test]
@@ -141,7 +141,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
-        self::assertSame($paymentMethod, $this->creator->create($result));
+        self::assertSame($paymentMethod, $this->creator->create($result, false));
     }
 
     /** @return array{0: GatewayConfigInterface&MockObject, 1: PaymentMethodInterface&MockObject} */
