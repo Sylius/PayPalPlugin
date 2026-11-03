@@ -90,7 +90,7 @@ function findOnboardingModal() {
     return activeOnboardingModal ?? document.querySelector('[data-paypal-onboarding-complete-url]');
 }
 
-const MINI_BROWSER_SELECTOR = '.isu-minibrowser-component';
+const MINI_BROWSER_CLOSE_TIMEOUT = 1000;
 
 let onboardingRedirectUrl = null;
 let miniBrowserUpdatedParentWindow = false;
@@ -113,28 +113,38 @@ function wrapMiniBrowserParentWindowUpdate() {
     miniBrowser.updateParentWindow = wrappedUpdateParentWindow;
 }
 
-function redirectOnceMiniBrowserIsClosed(redirectUrl) {
-    onboardingRedirectUrl = redirectUrl;
+function closeMiniBrowsers() {
+    const component = window.PAYPAL?.apps?.Signup?.MiniBrowser?.component;
+    const instances = Array.isArray(component?.instances) ? [...component.instances] : [];
+    const closing = instances.map((instance) => Promise.resolve().then(() => instance.close()));
 
-    const redirect = () => {
-        if (!miniBrowserUpdatedParentWindow) {
-            window.location.href = redirectUrl;
-        }
-    };
+    return Promise.race([
+        Promise.allSettled(closing),
+        new Promise((resolve) => {
+            setTimeout(resolve, MINI_BROWSER_CLOSE_TIMEOUT);
+        }),
+    ]);
+}
 
-    if (null === document.querySelector(MINI_BROWSER_SELECTOR)) {
-        redirect();
+function showOnboardingSuccess(modal, redirectUrl) {
+    const successBox = modal.querySelector('[data-paypal-onboarding-success]');
 
+    if (successBox === null) {
         return;
     }
 
-    const observer = new MutationObserver(() => {
-        if (null === document.querySelector(MINI_BROWSER_SELECTOR)) {
-            observer.disconnect();
-            redirect();
+    successBox.querySelector('[data-paypal-onboarding-success-link]')?.setAttribute('href', redirectUrl);
+    successBox.classList.remove('d-none');
+}
+
+function finishOnboarding(redirectUrl) {
+    onboardingRedirectUrl = redirectUrl;
+
+    closeMiniBrowsers().then(() => {
+        if (!miniBrowserUpdatedParentWindow) {
+            window.location.href = redirectUrl;
         }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, sharedId) {
@@ -155,9 +165,13 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         keepalive: true,
     })
         .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
-        .then(({ data }) => {
+        .then(({ ok, data }) => {
             if (data && data.redirectUrl) {
-                redirectOnceMiniBrowserIsClosed(data.redirectUrl);
+                if (ok) {
+                    showOnboardingSuccess(modal, data.redirectUrl);
+                }
+
+                finishOnboarding(data.redirectUrl);
 
                 return;
             }
