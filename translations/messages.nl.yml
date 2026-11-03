@@ -41,7 +41,7 @@ sylius_paypal:
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
     report: 'Rapporteren'
-    sandbox_on_production_warning: "Waarschuwing: u schakelt PayPal Sandbox in op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen. Ga alleen verder als dit de bedoeling is."
+    sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     sftp_password: 'SFTP wachtwoord'
     sftp_username: 'SFTP gebruikersnaam'
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
