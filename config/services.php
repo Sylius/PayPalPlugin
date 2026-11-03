@@ -145,10 +145,8 @@ use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolver;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolver;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver;
 use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolver;
 use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
@@ -180,7 +178,6 @@ return static function (ContainerConfigurator $container) {
     $parameters = $container->parameters();
     $container->import('services/**/*.php');
 
-    $parameters->set('sylius_paypal.prioritize_paypal_as_default_method', true);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.cancellable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
@@ -423,21 +420,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(CurrentPayPalLocaleProviderInterface::class, 'sylius_paypal.provider.current_paypal_locale');
-
-    $services->set('sylius_paypal.resolver.payment_method.paypal', PayPalDefaultPaymentMethodResolver::class)
-        ->decorate('sylius.resolver.payment_method.default')
-        ->args([
-            service('.inner'),
-            service('sylius.repository.payment_method'),
-            param('sylius_paypal.prioritize_paypal_as_default_method'),
-        ]);
-
-    $services->set('sylius_paypal.resolver.payment_method.paypal_prioritising', PayPalPrioritisingPaymentMethodsResolver::class)
-        ->decorate('sylius.resolver.payment_methods')
-        ->args([
-            service('.inner'),
-            param('sylius_paypal.prioritized_factory_name'),
-        ]);
 
     $services->set('sylius_paypal.provider.web_sdk_configuration', WebSdkConfigurationProvider::class)
         ->args([

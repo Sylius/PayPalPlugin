@@ -49,13 +49,13 @@ final readonly class CaptureAuthorizationAction
             throw new AccessDeniedHttpException('Invalid CSRF token.');
         }
 
-        $payment = $this->paymentRepository->findOneByOrderId($paymentId, $orderId);
+        $payment = null === $orderId ? $this->paymentRepository->find($paymentId) : $this->paymentRepository->findOneByOrderId($paymentId, $orderId);
         if (
             null === $payment ||
             PaymentInterface::STATE_AUTHORIZED !== $payment->getState() ||
             SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $payment->getMethod()?->getGatewayConfig()?->getFactoryName()
         ) {
-            throw new NotFoundHttpException(sprintf('Authorized PayPal payment #%s of order #%s not found.', $paymentId, (string) $orderId));
+            throw new NotFoundHttpException(sprintf('Authorized PayPal payment #%s not found.', $paymentId));
         }
 
         $paymentRequest = $this->captureAuthorizationPaymentRequestDispatcher->dispatch($payment);
@@ -72,6 +72,8 @@ final readonly class CaptureAuthorizationAction
             default => $flashBag->add('info', 'sylius_paypal.payment_capture_pending'),
         };
 
-        return new RedirectResponse($this->router->generate('sylius_admin_order_show', ['id' => $orderId]));
+        return new RedirectResponse(
+            null === $orderId ? $this->router->generate('sylius_admin_payment_index') : $this->router->generate('sylius_admin_order_show', ['id' => $orderId]),
+        );
     }
 }

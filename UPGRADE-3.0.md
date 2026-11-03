@@ -1038,3 +1038,35 @@
    `PUT /api/v2/shop/payment-requests/{hash}` of a PayPal Payment Request answers `422` unless the payload is
    `{"payment_source": "<source>"}` with a payment source enabled for the payment method. It is checked only while the
    Payment Request is `new`, and not for a `status` Payment Request.
+
+1. #### PayPal is no longer promoted in the checkout.
+
+   The checkout lists and preselects the PayPal payment methods by their position, like any other payment method.
+   The following have been removed without a replacement; give a PayPal payment method a lower position to show it
+   first. A PayPal payment method created by the onboarding is placed at position 0.
+
+   | Removed class / parameter | Removed service id |
+   |---|---|
+   | `Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver` | `sylius_paypal.resolver.payment_method.paypal_prioritising` |
+   | `Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver` | `sylius_paypal.resolver.payment_method.paypal` |
+   | `sylius_paypal.prioritize_paypal_as_default_method` parameter | |
+   | `sylius_paypal.prioritized_factory_name` parameter | |
+
+1. #### The payer of a PayPal Payment Request created through the shop API can return to the headless storefront.
+
+   PayPal sends the payer back to the `return_url` and `cancel_url` of the PayPal order, which lead to the shop's
+   `sylius_shop_payment_request_pay` route. Set `sylius_paypal.shop_api.return_url` to send the payer of a Payment Request
+   created or restarted through the shop API to the headless storefront instead. The URL must contain `{hash}`, which is
+   replaced with the Payment Request hash, and `payer_cancelled=1` is added to its query string for a cancelled payment:
+
+   ```yaml
+   sylius_paypal:
+       shop_api:
+           return_url: 'https://headless.example.com/paypal/return/{hash}'
+   ```
+
+   The storefront completes the payment with `PUT /api/v2/shop/payment-requests/{hash}`. Without the option, the payer
+   returns to the shop as before.
+
+   The URL is one value for all channels and locales, so a storefront with a domain per channel or a locale in its
+   paths cannot be reached through it directly.
