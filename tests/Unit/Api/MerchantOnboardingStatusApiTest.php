@@ -85,6 +85,62 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         self::assertFalse($status->isComplete());
     }
 
+    #[Test]
+    public function it_reads_the_vaulting_capability_status(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn([
+            'payments_receivable' => true,
+            'primary_email_confirmed' => true,
+            'capabilities' => [
+                ['name' => 'APPLE_PAY', 'status' => 'ACTIVE'],
+                ['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'ACTIVE'],
+            ],
+        ]);
+
+        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true);
+
+        self::assertSame('ACTIVE', $status->getVaultingCapabilityStatus());
+        self::assertTrue($status->isVaultingEnabled());
+    }
+
+    #[Test]
+    public function it_treats_an_inactive_vaulting_capability_as_disabled(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn([
+            'capabilities' => [['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'NEED_DATA']],
+        ]);
+
+        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true);
+
+        self::assertSame('NEED_DATA', $status->getVaultingCapabilityStatus());
+        self::assertFalse($status->isVaultingEnabled());
+    }
+
+    #[Test]
+    public function it_has_no_vaulting_capability_status_when_the_capability_is_missing(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn([
+            'capabilities' => [['name' => 'APPLE_PAY', 'status' => 'ACTIVE']],
+        ]);
+
+        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true);
+
+        self::assertNull($status->getVaultingCapabilityStatus());
+        self::assertFalse($status->isVaultingEnabled());
+    }
+
     private function hostProvider(): HostProviderInterface
     {
         $hostProvider = $this->createStub(HostProviderInterface::class);

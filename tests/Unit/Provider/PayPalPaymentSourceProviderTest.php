@@ -23,8 +23,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 
 final class PayPalPaymentSourceProviderTest extends TestCase
 {
@@ -55,6 +57,40 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertSame(
             ['paypal' => ['experience_context' => $experienceContext]],
             $this->provider->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, $experienceContext),
+        );
+    }
+
+    public function test_it_asks_paypal_to_vault_the_wallet_when_the_payment_needs_it(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('provide')->with($this->order, null)->willReturn(
+            new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription'),
+        );
+
+        self::assertSame(
+            ['paypal' => [
+                'experience_context' => ['locale' => 'en-US'],
+                'attributes' => ['vault' => [
+                    'store_in_vault' => 'ON_SUCCESS',
+                    'usage_type' => 'MERCHANT',
+                    'customer_type' => 'CONSUMER',
+                    'usage_pattern' => 'SUBSCRIPTION_PREPAID',
+                    'permit_multiple_payment_tokens' => false,
+                    'description' => 'Monthly subscription',
+                ]],
+            ]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, ['locale' => 'en-US']),
+        );
+    }
+
+    public function test_it_does_not_vault_the_wallet_when_the_payment_does_not_need_it(): void
+    {
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('provide')->willReturn(null);
+
+        self::assertSame(
+            ['paypal' => ['experience_context' => ['locale' => 'en-US']]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, ['locale' => 'en-US']),
         );
     }
 

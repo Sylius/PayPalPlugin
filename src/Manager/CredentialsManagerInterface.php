@@ -32,6 +32,7 @@ interface CredentialsManagerInterface
         'webhook_id',
         'reports_sftp_username',
         'reports_sftp_password',
+        'vaulting_enabled',
     ];
 
     /**

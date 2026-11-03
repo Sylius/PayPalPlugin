@@ -45,6 +45,7 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         private LocaleProcessorInterface $localeProcessor,
         private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
         private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
     }
 
@@ -62,23 +63,24 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        $messagingEnabled = $config->isPayLaterEnabled() && $config->isMessagingEnabled();
-
         try {
             $processedLocale = $this->localeProcessor->process($locale);
         } catch (\UnexpectedValueException) {
             $processedLocale = null;
         }
 
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $paymentMethod);
+        $messagingEnabled = !$vaultRequired && $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+
         return [
             'amount' => AmountUtils::toPayPalValue((int) $payment->getAmount(), (string) $order->getCurrencyCode()),
-            'applePayEnabled' => $this->isApplePayEnabled($config, $paymentMethod),
+            'applePayEnabled' => !$vaultRequired && $this->isApplePayEnabled($config, $paymentMethod),
             'billingAddress' => $order->getBillingAddress(),
             'countryCode' => $channel->getShopBillingData()?->getCountryCode(),
             'currency' => $order->getCurrencyCode(),
             'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
-            'cardEnabled' => $this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::CARD, $paymentMethod),
-            'googlePayEnabled' => $this->isGooglePayEnabled($config, $paymentMethod),
+            'cardEnabled' => !$vaultRequired && $this->paymentAuthorizationChecker->isAllowed(PayPalPaymentSourceProviderInterface::CARD, $paymentMethod),
+            'googlePayEnabled' => !$vaultRequired && $this->isGooglePayEnabled($config, $paymentMethod),
             'languageCode' => $this->languageCode($locale),
             'locale' => $processedLocale,
             'order' => $order,
@@ -87,14 +89,15 @@ final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPa
             'messagingInstanceConfig' => $messagingEnabled
                 ? $this->webSdkConfigurationProvider->getInstanceConfig($paymentMethod, self::PAGE_TYPE, [self::MESSAGES_COMPONENT], $processedLocale)
                 : [],
-            'paylaterEnabled' => $config->isPayLaterEnabled(),
-            'redirectPaymentSources' => $this->redirectPaymentSources($payment),
+            'paylaterEnabled' => !$vaultRequired && $config->isPayLaterEnabled(),
+            'redirectPaymentSources' => $vaultRequired ? [] : $this->redirectPaymentSources($payment),
             'sandbox' => $config->isSandbox(),
-            'venmoEnabled' => $this->isVenmoEnabled($config, $paymentMethod),
+            'vaultRequired' => $vaultRequired,
+            'venmoEnabled' => !$vaultRequired && $this->isVenmoEnabled($config, $paymentMethod),
             'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                 $paymentMethod,
                 self::PAGE_TYPE,
-                $this->components($config, $paymentMethod),
+                $vaultRequired ? WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS : $this->components($config, $paymentMethod),
                 $processedLocale,
             ),
             'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod),
