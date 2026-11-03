@@ -17,6 +17,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Production'
     expiration_date: 'Date d''expiration'
+    go_to_payment_method: 'Aller au moyen de paiement'
     invalid_form: 'Le formulaire est invalide'
     label: 'PayPal'
     merchant_id: 'ID marchand'
@@ -26,6 +27,7 @@ sylius_paypal:
     mode_not_configured: "Les identifiants pour ce mode ne sont pas encore configurés. Veuillez les configurer avant de changer de mode."
     missing_billing_address_content: 'Merci de renseignez votre adresse'
     missing_billing_address_header: 'Impossible de récupérer une adresse de facturation depuis PayPal'
+    onboarding_completed: 'Votre compte PayPal a été connecté.'
     onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
