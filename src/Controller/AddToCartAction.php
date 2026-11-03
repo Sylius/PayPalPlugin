@@ -80,7 +80,7 @@ final readonly class AddToCartAction
         /** @var OrderInterface $cart */
         $cart = $this->cartContext->getCart();
 
-        if (!$this->isPaymentSourceOffered($request, $cart)) {
+        if (!$this->isExpressCheckoutEnabled($cart) || !$this->isPaymentSourceOffered($request, $cart)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -160,6 +160,21 @@ final readonly class AddToCartAction
             return $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel);
         } catch (\InvalidArgumentException) {
             return false;
+        }
+    }
+
+    private function isExpressCheckoutEnabled(OrderInterface $order): bool
+    {
+        /** @var ChannelInterface|null $channel */
+        $channel = $order->getChannel();
+        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+            return true;
+        }
+
+        try {
+            return $this->fundingSourcesConfigurationProvider->isExpressCheckoutEnabled($channel);
+        } catch (\InvalidArgumentException) {
+            return true;
         }
     }
 }

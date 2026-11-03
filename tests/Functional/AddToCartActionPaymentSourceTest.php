@@ -28,7 +28,7 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
 {
     public function test_it_passes_the_chosen_payment_source_on_to_the_create_order_request(): void
     {
-        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml']);
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
         $this->enableVenmo($fixtures['paypal_config']);
 
         $this->addMugToCart($fixtures['mug'], 'venmo');
@@ -55,6 +55,24 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
         self::assertSame(['sylius_paypal.payment_source_not_available'], $session->getFlashBag()->peek('error'));
     }
 
+    public function test_it_keeps_the_cart_and_tells_the_customer_when_express_checkout_is_disabled(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        $this->disableExpressCheckout($fixtures['paypal_config']);
+        /** @var OrderInterface $cart */
+        $cart = $fixtures['new_cart'];
+        $this->seedCurrentCart($cart);
+        $itemCount = $cart->getItems()->count();
+
+        $this->addMugToCart($fixtures['mug'], 'paypal');
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
+
+        $this->getEntityManager()->clear();
+        self::assertSame($itemCount, self::getContainer()->get('sylius.repository.order')->find($cart->getId())->getItems()->count());
+    }
+
     private function addMugToCart(ProductInterface $product, string $paymentSource): void
     {
         $this->client->enableProfiler();
@@ -68,6 +86,12 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
     private function enableVenmo(GatewayConfigInterface $gatewayConfig): void
     {
         $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['venmo_enabled' => true]));
+        $this->getEntityManager()->flush();
+    }
+
+    private function disableExpressCheckout(GatewayConfigInterface $gatewayConfig): void
+    {
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['express_checkout_enabled' => false]));
         $this->getEntityManager()->flush();
     }
 

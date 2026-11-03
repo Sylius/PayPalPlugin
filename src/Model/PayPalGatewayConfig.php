@@ -35,6 +35,8 @@ final readonly class PayPalGatewayConfig
 
     public const REPORTS_SFTP_PASSWORD = 'reports_sftp_password';
 
+    public const EXPRESS_CHECKOUT_ENABLED = 'express_checkout_enabled';
+
     public const PAY_LATER_ENABLED = 'pay_later_enabled';
 
     public const MESSAGING_ENABLED = 'messaging_enabled';
@@ -106,6 +108,11 @@ final readonly class PayPalGatewayConfig
     public function webhookId(): ?string
     {
         return $this->optional(self::WEBHOOK_ID);
+    }
+
+    public function isExpressCheckoutEnabled(): bool
+    {
+        return $this->flag(self::EXPRESS_CHECKOUT_ENABLED, true);
     }
 
     public function isPayLaterEnabled(): bool

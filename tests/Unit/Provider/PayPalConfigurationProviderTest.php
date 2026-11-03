@@ -50,6 +50,20 @@ final class PayPalConfigurationProviderTest extends TestCase
         self::assertInstanceOf(PayPalFundingSourcesConfigurationProviderInterface::class, $this->payPalConfigurationProvider);
     }
 
+    public function test_it_considers_express_checkout_enabled_by_default_when_the_config_key_is_absent(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig([]);
+
+        self::assertTrue($this->payPalConfigurationProvider->isExpressCheckoutEnabled($channel));
+    }
+
+    public function test_it_considers_express_checkout_disabled_when_explicitly_set_to_false(): void
+    {
+        $channel = $this->configurePayPalPaymentMethodConfig(['express_checkout_enabled' => false]);
+
+        self::assertFalse($this->payPalConfigurationProvider->isExpressCheckoutEnabled($channel));
+    }
+
     #[Test]
     public function it_considers_pay_later_enabled_by_default_when_the_config_key_is_absent(): void
     {
