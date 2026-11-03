@@ -267,7 +267,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
     public function it_stores_the_vaulting_flag_when_the_vaulting_capability_is_active(): void
     {
         $this->mockFactories();
-        $this->payPalPaymentMethodProvider->method('exists')->willReturn(false);
 
         $this->credentialsManager
             ->expects(self::once())

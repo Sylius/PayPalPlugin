@@ -22,6 +22,7 @@ use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction;
 use Sylius\PayPalPlugin\Payum\Request\CompleteOrder;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
@@ -91,10 +92,10 @@ final class CompleteOrderActionTest extends TestCase
                 $this->calls[] = 'lock';
             })
         ;
-        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(function (): array {
+        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(function (): PayPalOrderDetails {
             $this->calls[] = 'capture';
 
-            return [];
+            return (new PayPalOrderDetailsMapper())->map([]);
         });
 
         $this->completeOrderAction->execute($this->completeOrderOf($payment));
@@ -109,10 +110,10 @@ final class CompleteOrderActionTest extends TestCase
         $payment->method('getDetails')->willReturnCallback(static function () use (&$details): array {
             return $details;
         });
-        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(static function () use (&$details): array {
+        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(static function () use (&$details): PayPalOrderDetails {
             $details['vault_id'] = 'VAULT_ID';
 
-            return [];
+            return (new PayPalOrderDetailsMapper())->map([]);
         });
 
         $this->eventDispatcher
@@ -130,6 +131,7 @@ final class CompleteOrderActionTest extends TestCase
     public function test_it_does_not_announce_a_vault_token_the_payment_already_carried(): void
     {
         $payment = $this->paymentWith(['paypal_order_id' => '123123', 'payment_source' => 'paypal', 'vault_id' => 'VAULT_ID']);
+        $this->paymentCaptureProcessor->method('capture')->willReturn((new PayPalOrderDetailsMapper())->map([]));
 
         $this->eventDispatcher->expects(self::never())->method('dispatch');
 
