@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sylius\Component\Payment\Model\PaymentInterface;
-use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
+use Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface;
 use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
@@ -111,6 +111,8 @@ use Sylius\PayPalPlugin\Provider\PaymentProvider;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
@@ -212,11 +214,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PaymentRefundApplicatorInterface::class, 'sylius_paypal.applicator.payment_refund');
 
-    $services->set('sylius_paypal.api_platform.paypal_payment', PayPalPayment::class)
-        ->args([
-            service('router'),
-            service('sylius_paypal.provider.available_countries'),
-        ])
+    $services->set('sylius_paypal.api_platform.payment_configuration_provider', PaymentConfigurationProvider::class)
+        ->args([service('sylius_paypal.provider.payment_sdk_configuration')])
         ->tag('sylius.api.payment_method_handler');
 
     $services->set('sylius_paypal.listener.paypal_payment_method', PayPalPaymentMethodListener::class)
@@ -429,13 +428,20 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(WebSdkConfigurationProviderInterface::class, 'sylius_paypal.provider.web_sdk_configuration');
 
-    $services->set('sylius_paypal.provider.paypal_payment_page_context', PayPalPaymentPageContextProvider::class)
+    $services->set('sylius_paypal.provider.payment_sdk_configuration', PaymentSdkConfigurationProvider::class)
         ->args([
             service('sylius_paypal.provider.web_sdk_configuration'),
-            service('router'),
             service('sylius_paypal.processor.locale'),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
-            service('sylius_paypal.checker.payment_authorization'),
+            service('sylius_paypal.checker.payment_source_enabled'),
+        ]);
+
+    $services->alias(PaymentSdkConfigurationProviderInterface::class, 'sylius_paypal.provider.payment_sdk_configuration');
+
+    $services->set('sylius_paypal.provider.paypal_payment_page_context', PayPalPaymentPageContextProvider::class)
+        ->args([
+            service('sylius_paypal.provider.payment_sdk_configuration'),
+            service('router'),
         ]);
 
     $services->alias(PayPalPaymentPageContextProviderInterface::class, 'sylius_paypal.provider.paypal_payment_page_context');

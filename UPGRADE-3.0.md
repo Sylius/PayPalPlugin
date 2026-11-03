@@ -832,15 +832,6 @@
     ) {
    ```
 
-   ```diff
-    // Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider
-    public function __construct(
-        // ...
-        private EligibleRedirectPaymentSourcesProviderInterface $eligibleRedirectPaymentSourcesProvider,
-   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
-    ) {
-   ```
-
 1. #### The PayPal payment method can authorize payments and capture them later.
 
    The new "Capture strategy" setting of the PayPal payment method (Immediate capture, or Authorize and capture)
@@ -1010,8 +1001,7 @@
    | Class | Change |
    |---|---|
    | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | takes only `HostProviderInterface` and the test buyer country |
-   | `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` | lost `PayPalConfigurationProviderInterface`; the partner attribution id comes from the payment method |
-   | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | takes only `PaymentSdkConfigurationProviderInterface` and `UrlGeneratorInterface`; its component and page type constants moved to `PaymentSdkConfigurationProvider` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
    | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
@@ -1070,3 +1060,21 @@
 
    The URL is one value for all channels and locales, so a storefront with a domain per channel or a locale in its
    paths cannot be reached through it directly.
+
+1. #### The shop API payment configuration of a PayPal payment carries the PayPal Web SDK configuration.
+
+   `GET /api/v2/shop/orders/{tokenValue}/payments/{paymentId}/configuration` of a PayPal payment returns what a
+   headless storefront needs to render the PayPal buttons, in the order's locale: `webSdkScriptUrl`,
+   `webSdkInstanceConfig`, `amount`, `currency`, `countryCode`, `languageCode`, `sandbox`, `paymentSources` (the
+   `payment_source` values `POST /api/v2/shop/orders/{tokenValue}/payment-requests` accepts for the payment),
+   `payLaterEnabled` and `messagingInstanceConfig` (`null` when the Pay Later messaging is disabled). It is built from
+   the new `Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider`, which the payment page uses as well.
+
+   The `clientId`, `partnerAttributionId`, `orderId`, `orderToken`, `available_countries`, `cancelPayPalPaymentUrl` and
+   `errorPayPalPaymentUrl` keys have been removed; the client id and the partner attribution id are part of
+   `webSdkInstanceConfig`.
+
+   `Sylius\PayPalPlugin\ApiPlatform\PayPalPayment` (`sylius_paypal.api_platform.paypal_payment`) has been renamed to
+   `Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider` (`sylius_paypal.api_platform.payment_configuration_provider`).
+   It implements `Sylius\Bundle\ApiBundle\Payment\PaymentConfigurationProviderInterface` and takes only
+   `PaymentSdkConfigurationProviderInterface`.
