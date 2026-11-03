@@ -27,6 +27,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Productie'
     expiration_date: 'Vervaldatum'
+    go_to_payment_method: 'Ga naar de betaalmethode'
     invalid_form: 'Formulier is ongeldig'
     label: 'PayPal'
     merchant_id: 'Merchant ID'
@@ -36,6 +37,7 @@ sylius_paypal:
     mode_not_configured: "De inloggegevens voor deze modus zijn nog niet geconfigureerd. Configureer ze voordat u wisselt."
     missing_billing_address_content: 'Ga alstublief terug naar de "adressering" en vul deze aan.'
     missing_billing_address_header: 'We konden geen facturatie adres ophalen van PayPal'
+    onboarding_completed: 'Uw PayPal-account is gekoppeld.'
     onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
