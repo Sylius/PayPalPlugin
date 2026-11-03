@@ -692,10 +692,12 @@
       release goes live; with an atomic deployment, from the new release before switching to it. For every PayPal
       payment method it finds the webhook registered on its notify URL or on `/paypal-webhook/api/`, points it at
       `/payment-methods/{code}` through a PATCH, so its id stays the same, subscribes it to the events above and
-      stores its id. It registers a new webhook only when it finds none, so it can be run again.
+      stores its id. It registers a new webhook only when it finds none, and leaves a webhook already pointing at
+      `/payment-methods/{code}` with all these events as it is, so it can be run again.
    3. Check that it reports `Updated webhook <id> of "<code>" to point at <url>.` (or `Registered webhook <id> of
-      "<code>" at <url>.` for a new one) with the public URL of the shop for every PayPal payment method and exits
-      with `0`. A webhook it could not update stays where it was: fix the URL and run it again.
+      "<code>" at <url>.` for a new one, or `Webhook <id> of "<code>" is already up to date at <url>.`) with the
+      public URL of the shop for every PayPal payment method and exits with `0`. A webhook it could not update stays
+      where it was: fix the URL and run it again.
 
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
    it made: the webhook id, its URL and whether it was registered anew.
@@ -729,7 +731,10 @@
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
    and stores the id of the webhook it updates or registers in the gateway config through
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
-   `PersistingWebhookIdProvider` now takes instead of the object manager.
+   `PersistingWebhookIdProvider` now takes instead of the object manager. It also takes
+   `Sylius\PayPalPlugin\Api\GenericApiInterface` and `Sylius\PayPalPlugin\Provider\HostProviderInterface` to read the
+   webhook it found and skips the update when the webhook already points at the notify URL with every event;
+   `WebhookRegistration::isUpToDate()` tells such a registration apart.
 
    The onboarding stores the id of the webhook it registers the same way:
 

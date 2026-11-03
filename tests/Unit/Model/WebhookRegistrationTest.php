@@ -27,4 +27,10 @@ final class WebhookRegistrationTest extends TestCase
         self::assertTrue($registration->isNew());
         self::assertFalse((new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false))->isNew());
     }
+
+    public function test_it_tells_whether_the_webhook_was_already_up_to_date(): void
+    {
+        self::assertFalse((new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false))->isUpToDate());
+        self::assertTrue((new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false, true))->isUpToDate());
+    }
 }

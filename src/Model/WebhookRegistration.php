@@ -19,6 +19,7 @@ final readonly class WebhookRegistration
         private string $id,
         private string $url,
         private bool $new,
+        private bool $upToDate = false,
     ) {
     }
 
@@ -35,5 +36,10 @@ final readonly class WebhookRegistration
     public function isNew(): bool
     {
         return $this->new;
+    }
+
+    public function isUpToDate(): bool
+    {
+        return $this->upToDate;
     }
 }

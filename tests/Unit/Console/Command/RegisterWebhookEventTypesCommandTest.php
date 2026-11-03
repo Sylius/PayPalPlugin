@@ -76,6 +76,18 @@ final class RegisterWebhookEventTypesCommandTest extends TestCase
         );
     }
 
+    public function test_it_reports_a_webhook_that_is_already_up_to_date(): void
+    {
+        $this->paymentMethodRepository->method('findAll')->willReturn([$this->paymentMethod('sylius_paypal')]);
+        $this->registrar->method('register')->willReturn(new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false, true));
+
+        self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
+        self::assertStringContainsString(
+            'Webhook WH-123 of "PAYPAL" is already up to date at https://shop.example.com/payment-methods/PAYPAL.',
+            $this->normalizedDisplay(),
+        );
+    }
+
     public function test_it_leaves_other_gateways_alone(): void
     {
         $this->paymentMethodRepository->method('findAll')->willReturn([$this->paymentMethod('stripe')]);

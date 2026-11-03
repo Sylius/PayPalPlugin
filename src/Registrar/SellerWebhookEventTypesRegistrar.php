@@ -14,12 +14,16 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Registrar;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
@@ -32,6 +36,8 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         private WebhookApiInterface $webhookApi,
         private WebhookUrlProviderInterface $webhookUrlProvider,
         private WebhookIdUpdaterInterface $webhookIdUpdater,
+        private GenericApiInterface $genericApi,
+        private HostProviderInterface $hostProvider,
     ) {
     }
 
@@ -41,6 +47,12 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         $webhookId = $this->webhookIdProvider->refresh($paymentMethod);
 
         if (null !== $webhookId) {
+            if ($this->isUpToDate($paymentMethod, $webhookId, $webhookUrl)) {
+                $this->webhookIdUpdater->update($paymentMethod, $webhookId);
+
+                return new WebhookRegistration($webhookId, $webhookUrl, false, true);
+            }
+
             $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
             $this->webhookIdUpdater->update($paymentMethod, $webhookId);
 
@@ -60,5 +72,35 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         $this->webhookIdUpdater->update($paymentMethod, (string) $response['id']);
 
         return new WebhookRegistration((string) $response['id'], $webhookUrl, true);
+    }
+
+    private function isUpToDate(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): bool
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $sandbox = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
+
+        $webhook = $this->genericApi->get(
+            $paymentMethod,
+            $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/notifications/webhooks/' . $webhookId,
+        );
+
+        /** @var list<array{name?: string}> $registeredEventTypes */
+        $registeredEventTypes = $webhook['event_types'] ?? [];
+        $eventTypes = array_column($registeredEventTypes, 'name');
+        $expectedEventTypes = WebhookApi::EVENT_TYPES;
+        sort($eventTypes);
+        sort($expectedEventTypes);
+
+        return
+            is_string($webhook['url'] ?? null) &&
+            $this->withoutScheme($webhook['url']) === $this->withoutScheme($webhookUrl) &&
+            $eventTypes === $expectedEventTypes
+        ;
+    }
+
+    private function withoutScheme(string $url): string
+    {
+        return strtolower((string) parse_url($url, \PHP_URL_HOST)) . rtrim((string) parse_url($url, \PHP_URL_PATH), '/');
     }
 }
