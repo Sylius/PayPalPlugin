@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,8 +36,6 @@ use Twig\Environment;
 
 final readonly class PayPalButtonsController
 {
-    private const VENMO_COMPONENT = 'venmo-payments';
-
     private CurrentPayPalLocaleProviderInterface $currentLocaleProvider;
 
     /** @param OrderRepositoryInterface<OrderInterface> $orderRepository */
@@ -197,7 +196,7 @@ final readonly class PayPalButtonsController
         $components = WebSdkConfigurationProviderInterface::DEFAULT_COMPONENTS;
 
         if ($venmoEnabled) {
-            $components[] = self::VENMO_COMPONENT;
+            $components[] = PaymentSdkConfigurationProvider::VENMO_COMPONENT;
         }
 
         return $components;
