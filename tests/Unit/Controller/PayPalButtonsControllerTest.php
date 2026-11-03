@@ -64,6 +64,8 @@ final class PayPalButtonsControllerTest extends TestCase
 
     private string $currentLocale = 'pl_PL';
 
+    private bool $expressCheckoutEnabled = true;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -89,6 +91,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
             return $locale;
         });
+        $this->fundingSourcesConfigurationProvider->method('isExpressCheckoutEnabled')->willReturnCallback(fn (): bool => $this->expressCheckoutEnabled);
         $this->availableCountriesProvider->method('provide')->willReturn([]);
         $this->router->method('generate')->willReturn('/some-url');
         $this->webSdkConfigurationProvider->method('getScriptUrl')->willReturn('https://www.paypal.com/web-sdk/v6/core');
@@ -311,6 +314,27 @@ final class PayPalButtonsControllerTest extends TestCase
             self::assertSame('<buttons>', $response->getContent());
         }
         self::assertNull($this->capturedInstanceConfigArgs[3]);
+    }
+
+    public function test_it_renders_no_product_or_cart_buttons_when_express_checkout_is_disabled(): void
+    {
+        $this->expressCheckoutEnabled = false;
+        $this->twig->expects(self::never())->method('render');
+
+        self::assertSame('', $this->controller->renderProductPageButtonsAction(Request::create('/'))->getContent());
+        self::assertSame('', $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]))->getContent());
+    }
+
+    public function test_it_still_renders_the_payment_page_buttons_when_express_checkout_is_disabled(): void
+    {
+        $this->expressCheckoutEnabled = false;
+        $order = $this->createMock(OrderInterface::class);
+        $order->method('getCurrencyCode')->willReturn('USD');
+        $order->method('getTotal')->willReturn(3000);
+        $this->orderRepository->method('find')->willReturn($order);
+        $this->twig->method('render')->with('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', self::isType('array'))->willReturn('<buttons>');
+
+        self::assertSame('<buttons>', $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]))->getContent());
     }
 
     #[Test]

@@ -46,6 +46,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
+            ->add(PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.express_checkout_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::MESSAGING_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::VENMO_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.venmo_enabled', 'required' => false])
@@ -59,6 +60,7 @@ final class PayPalConfigurationType extends AbstractType
             $data = $event->getData();
             if (is_array($data)) {
                 $originalData = $data;
+                $data[PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED] ??= true;
                 $data[PayPalGatewayConfig::PAY_LATER_ENABLED] ??= true;
                 $data[PayPalGatewayConfig::MESSAGING_ENABLED] ??= true;
                 $data[PayPalGatewayConfig::VENMO_ENABLED] ??= false;

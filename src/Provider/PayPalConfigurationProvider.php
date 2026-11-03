@@ -38,6 +38,11 @@ final readonly class PayPalConfigurationProvider implements PayPalConfigurationP
         return $this->getPayPalPaymentMethodConfig($channel)->partnerAttributionId();
     }
 
+    public function isExpressCheckoutEnabled(ChannelInterface $channel): bool
+    {
+        return $this->getPayPalPaymentMethodConfig($channel)->isExpressCheckoutEnabled();
+    }
+
     public function isPayLaterEnabled(ChannelInterface $channel): bool
     {
         return $this->getPayPalPaymentMethodConfig($channel)->isPayLaterEnabled();

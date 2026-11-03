@@ -86,10 +86,11 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertSame('WEBHOOK_ID', $config->webhookId());
     }
 
-    public function test_it_opts_a_gateway_into_pay_later_and_messaging_until_told_otherwise(): void
+    public function test_it_opts_a_gateway_into_express_checkout_pay_later_and_messaging_until_told_otherwise(): void
     {
         $config = PayPalGatewayConfig::fromArray([]);
 
+        self::assertTrue($config->isExpressCheckoutEnabled());
         self::assertTrue($config->isPayLaterEnabled());
         self::assertTrue($config->isMessagingEnabled());
     }
@@ -108,6 +109,7 @@ final class PayPalGatewayConfigTest extends TestCase
     public function test_it_reads_every_funding_source_flag_the_gateway_carries(): void
     {
         $config = PayPalGatewayConfig::fromArray([
+            'express_checkout_enabled' => false,
             'pay_later_enabled' => false,
             'messaging_enabled' => false,
             'venmo_enabled' => true,
@@ -117,6 +119,7 @@ final class PayPalGatewayConfigTest extends TestCase
             'card_three_d_secure_always' => true,
         ]);
 
+        self::assertFalse($config->isExpressCheckoutEnabled());
         self::assertFalse($config->isPayLaterEnabled());
         self::assertFalse($config->isMessagingEnabled());
         self::assertTrue($config->isVenmoEnabled());

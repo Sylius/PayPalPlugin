@@ -124,16 +124,30 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         }
     }
 
-    private function seededCart(bool $venmoEnabled = false): OrderInterface
+    public function test_it_rejects_the_cart_when_express_checkout_is_disabled_on_the_channel(): void
+    {
+        $order = $this->seededCart(expressCheckoutEnabled: false);
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
+        $this->assertNull($this->recordedPaymentSource($order));
+    }
+
+    private function seededCart(bool $venmoEnabled = false, bool $expressCheckoutEnabled = true): OrderInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
         /** @var OrderInterface $order */
         $order = $fixtures['new_cart'];
 
-        if ($venmoEnabled) {
+        if ($venmoEnabled || !$expressCheckoutEnabled) {
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $fixtures['paypal_config'];
-            $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['venmo_enabled' => true]));
+            $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [
+                'venmo_enabled' => $venmoEnabled,
+                'express_checkout_enabled' => $expressCheckoutEnabled,
+            ]));
             $this->getEntityManager()->flush();
         }
 

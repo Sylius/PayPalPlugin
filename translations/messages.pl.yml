@@ -16,6 +16,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Produkcja'
     expiration_date: 'Data ważności'
+    express_checkout_enabled: 'Włącz Express Checkout'
     finish_the_payment: 'Dokończ płatność'
     google_pay_enabled: 'Włącz Google Pay'
     invalid_form: 'Formularz jest nieprawidłowy'
