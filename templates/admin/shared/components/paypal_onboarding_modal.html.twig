@@ -21,6 +21,10 @@
                 <div class="modal-body">
                     <p>{{ 'sylius_paypal.onboarding_modal_description'|trans }}</p>
                     <div class="alert alert-danger d-none" data-paypal-onboarding-error></div>
+                    <div class="alert alert-success d-none" data-paypal-onboarding-success>
+                        <p>{{ 'sylius_paypal.onboarding_completed'|trans }}</p>
+                        <a href="#" class="btn btn-success" data-paypal-onboarding-success-link>{{ 'sylius_paypal.go_to_payment_method'|trans }}</a>
+                    </div>
                     {% if failed %}
                         <div class="alert alert-danger" data-paypal-onboarding-load-error>
                             {{ 'sylius_paypal.could_not_load_onboarding_url'|trans }}
