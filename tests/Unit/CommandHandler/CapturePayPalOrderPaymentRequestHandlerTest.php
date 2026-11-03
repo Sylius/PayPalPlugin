@@ -380,7 +380,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
         $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
 
-        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(function () use (&$details, $recordedByCapture): array {
+        $this->paymentCaptureProcessor->method('capture')->willReturnCallback(function () use (&$details, $recordedByCapture): PayPalOrderDetails {
             $details = array_merge($details, $recordedByCapture);
 
             return $this->capturedOrder('COMPLETED');

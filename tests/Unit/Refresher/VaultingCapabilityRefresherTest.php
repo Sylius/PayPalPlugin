@@ -56,7 +56,7 @@ final class VaultingCapabilityRefresherTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)
-            ->willReturn(new OnboardingStatus(true, true, 'ACTIVE'))
+            ->willReturn(new OnboardingStatus(true, true, [], 'ACTIVE'))
         ;
 
         self::assertTrue($this->refresher->refresh($paymentMethod));
@@ -66,7 +66,7 @@ final class VaultingCapabilityRefresherTest extends TestCase
     public function test_it_records_a_vaulting_capability_paypal_has_taken_away(): void
     {
         $paymentMethod = $this->paymentMethod(true);
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, 'SUSPENDED'));
+        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, [], 'SUSPENDED'));
 
         self::assertFalse($this->refresher->refresh($paymentMethod));
         self::assertFalse($paymentMethod->getGatewayConfig()?->getConfig()['vaulting_enabled']);
@@ -77,7 +77,7 @@ final class VaultingCapabilityRefresherTest extends TestCase
         $paymentMethod = $this->paymentMethod(false);
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $gatewayConfig?->setConfig(array_diff_key($gatewayConfig->getConfig(), ['vaulting_enabled' => true]));
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, 'PENDING'));
+        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, [], 'PENDING'));
 
         self::assertFalse($this->refresher->refresh($paymentMethod));
         self::assertArrayNotHasKey('vaulting_enabled', $gatewayConfig?->getConfig() ?? []);

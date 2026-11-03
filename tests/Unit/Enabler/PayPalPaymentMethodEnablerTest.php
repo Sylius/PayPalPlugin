@@ -93,7 +93,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', false)
-            ->willReturn(new OnboardingStatus(true, true, 'ACTIVE'));
+            ->willReturn(new OnboardingStatus(true, true, [], 'ACTIVE'));
 
         $gatewayConfig
             ->expects(self::once())
