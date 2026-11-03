@@ -92,6 +92,7 @@ Return `responseData.paypal_order_id` from the SDK's `createOrder` callback. Kee
 | Redirect, e.g. `trustly` | Send the payer to `responseData.payer_action_url`. PayPal sends them back to the configured `return_url`. |
 
 A payer who cancels at the bank comes back to the `return_url` with `payer_cancelled=1` added to its query string.
+Let them choose how to pay again and create a new Payment Request (step 2).
 
 ## 4. Capture or authorize the payment
 
@@ -111,7 +112,14 @@ The plugin reads the PayPal order and captures or authorizes it. Read the outcom
 | `cancelled` | `reason` | The payer did not approve the PayPal order, or has to repeat 3D Secure (`three_d_secure: retry`). The payment can be paid again. |
 | `failed` | `reason` | PayPal declined the payment, or 3D Secure failed (`three_d_secure: declined`). |
 
-To let the payer try again after `cancelled`, create a new Payment Request (step 2).
+After `cancelled` or `failed`, read the order (`GET /api/v2/shop/orders/{tokenValue}`) and create a new Payment
+Request (step 2) for the last of its `payments`. When the payment itself failed (a declined 3D Secure, capture or
+authorization), Sylius adds a new payment with a new id at the end of `payments`.
+
+If the `PUT` never comes, e.g. the payer approves and closes the tab, the `CHECKOUT.ORDER.APPROVED` webhook of the
+payment method captures or authorizes the approved PayPal order and the `PAYMENT.CAPTURE.*` webhooks settle a pending
+capture, so make sure the webhooks are registered. Schedule `bin/console sylius-paypal:settle-payments` to settle
+payments left `processing` or `authorized` when a webhook does not arrive.
 
 ## Validation
 
