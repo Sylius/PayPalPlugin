@@ -1,0 +1,14 @@
+{% set form = hookable_metadata.context.form.gatewayConfig.config %}
+
+<div class="col-12 col-md-6">
+    <div class="mb-3">
+        <label class="form-label required" for="{{ form.use_authorize.vars.id }}">
+            {{ form.use_authorize.vars.label|trans }}
+            <span class="text-muted" data-bs-toggle="tooltip" data-bs-title="{{ 'sylius_paypal.capture_strategy_help'|trans }}">
+                {{ ux_icon('tabler:info-circle', {class: 'icon'}) }}
+            </span>
+        </label>
+        {{ form_widget(form.use_authorize, sylius_test_form_attribute('capture-strategy')) }}
+        {{ form_errors(form.use_authorize) }}
+    </div>
+</div>

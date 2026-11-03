@@ -14,10 +14,11 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
-use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,8 @@ use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 {
+    use MocksPayPalApiTrait;
+
     /** @test */
     public function it_creates_paypal_order_from_cart_and_returns_its_data(): void
     {
@@ -35,6 +38,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
 
         $response = $this->client->getResponse();
@@ -55,6 +59,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $orderId = $order->getId();
         $this->seedCurrentCart($order);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $orderId);
 
         $response = $this->client->getResponse();
@@ -64,6 +69,63 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
+    }
+
+    public function test_it_creates_the_paypal_order_with_the_first_paypal_payment_method_of_the_channel(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentMethodInterface $firstPayPalMethod */
+        $firstPayPalMethod = $fixtures['paypal'];
+        $firstPayPalMethod->setPosition(0);
+        $order->getLastPayment(PaymentInterface::STATE_CART)?->setMethod($this->secondPayPalMethod($firstPayPalMethod));
+        $this->getEntityManager()->flush();
+        $this->seedCurrentCart($order);
+
+        $this->payPalApi()->mockCreateOrder();
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->getEntityManager()->clear();
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $this->assertSame('PAYPAL', $order->getLastPayment(PaymentInterface::STATE_CART)?->getMethod()?->getCode());
+    }
+
+    public function test_it_creates_the_paypal_order_with_the_paypal_payment_method_the_buttons_were_shown_for(): void
+    {
+        $order = $this->cartWithTwoPayPalMethods(['venmo_enabled' => true]);
+
+        $this->payPalApi()->mockCreateOrder();
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=PAYPAL_2&paymentSource=venmo');
+
+        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $this->getEntityManager()->clear();
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $this->assertSame('PAYPAL_2', $payment?->getMethod()?->getCode());
+        $this->assertSame('venmo', $payment?->getDetails()['payment_source'] ?? null);
+    }
+
+    public function test_it_rejects_venmo_when_the_paypal_payment_method_the_buttons_were_shown_for_does_not_enable_it(): void
+    {
+        $order = $this->cartWithTwoPayPalMethods(['venmo_enabled' => false], firstMethodConfig: ['venmo_enabled' => true]);
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=PAYPAL_2&paymentSource=venmo');
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+    }
+
+    public function test_it_does_not_create_the_paypal_order_for_a_code_of_no_paypal_payment_method_of_the_channel(): void
+    {
+        $order = $this->cartWithTwoPayPalMethods();
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=CASH_ON_DELIVERY');
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertNull($this->recordedPaymentSource($order));
     }
 
     /** @test */
@@ -84,6 +146,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $order = $this->seededCart();
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
 
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
@@ -95,6 +158,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     {
         $order = $this->seededCart(venmoEnabled: true);
 
+        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=venmo');
 
         $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
@@ -140,6 +204,60 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->seedCurrentCart($order);
 
         return $order;
+    }
+
+    /**
+     * @param array<string, mixed> $secondMethodConfig
+     * @param array<string, mixed> $firstMethodConfig
+     */
+    private function cartWithTwoPayPalMethods(array $secondMethodConfig = [], array $firstMethodConfig = []): OrderInterface
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        /** @var PaymentMethodInterface $firstPayPalMethod */
+        $firstPayPalMethod = $fixtures['paypal'];
+        $firstPayPalMethod->setPosition(0);
+        /** @var GatewayConfigInterface $firstGatewayConfig */
+        $firstGatewayConfig = $firstPayPalMethod->getGatewayConfig();
+        $firstGatewayConfig->setConfig(array_merge($firstGatewayConfig->getConfig(), $firstMethodConfig));
+        $secondPayPalMethod = $this->secondPayPalMethod($firstPayPalMethod);
+        /** @var GatewayConfigInterface $secondGatewayConfig */
+        $secondGatewayConfig = $secondPayPalMethod->getGatewayConfig();
+        $secondGatewayConfig->setConfig(array_merge($secondGatewayConfig->getConfig(), $secondMethodConfig));
+        $this->getEntityManager()->flush();
+        $this->seedCurrentCart($order);
+
+        return $order;
+    }
+
+    private function secondPayPalMethod(PaymentMethodInterface $firstPayPalMethod): PaymentMethodInterface
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = self::getContainer()->get('sylius.factory.gateway_config')->createNew();
+        $gatewayConfig->setGatewayName('paypal_2');
+        $gatewayConfig->setFactoryName('sylius_paypal');
+        $gatewayConfig->setConfig([
+            'client_id' => 'SECOND_CLIENT_ID',
+            'client_secret' => 'SECOND_SECRET',
+            'merchant_id' => 'SECOND_MERCHANT_ID',
+            'sylius_merchant_id' => 'SECOND_SYLIUS_MERCHANT_ID',
+            'partner_attribution_id' => 'SECOND_BN',
+        ]);
+
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = self::getContainer()->get('sylius.factory.payment_method')->createNew();
+        $paymentMethod->setCode('PAYPAL_2');
+        $paymentMethod->setCurrentLocale('en_US');
+        $paymentMethod->setName('PayPal 2');
+        $paymentMethod->setPosition(1);
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+        foreach ($firstPayPalMethod->getChannels() as $channel) {
+            $paymentMethod->addChannel($channel);
+        }
+        $this->getEntityManager()->persist($paymentMethod);
+
+        return $paymentMethod;
     }
 
     private function recordedPaymentSource(OrderInterface $order): ?string

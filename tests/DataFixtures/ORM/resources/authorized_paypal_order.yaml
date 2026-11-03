@@ -1,0 +1,55 @@
+Sylius\Component\Core\Model\AdminUser:
+    admin:
+        username: "sylius"
+        email: "sylius@example.com"
+        plainPassword: "sylius"
+        enabled: true
+        localeCode: "en_US"
+        roles: ["ROLE_ADMINISTRATION_ACCESS"]
+
+Sylius\Component\Core\Model\Order:
+    authorized_order:
+        channel: "@channel_web"
+        items: ["@authorized_mug_item"]
+        shipments: ["@authorized_shipment"]
+        currencyCode: "USD"
+        localeCode: "en_US"
+        customer: "@customer_oliver"
+        number: "000000043"
+        state: "new"
+        checkoutState: "completed"
+        paymentState: "authorized"
+        shippingState: "ready"
+        tokenValue: "AUTHORIZED_TOKEN"
+        payments: ["@authorized_paypal_payment"]
+
+Sylius\Component\Core\Model\OrderItem:
+    authorized_mug_item:
+        units: ["@authorized_mug_item_unit"]
+        variant: "@mug_sw"
+        order: "@authorized_order"
+
+Sylius\Component\Core\Model\OrderItemUnit:
+    authorized_mug_item_unit:
+        __construct: ["@authorized_mug_item"]
+        shipment: "@authorized_shipment"
+
+Sylius\Component\Core\Model\Shipment:
+    authorized_shipment:
+        method: "@shipping_method_standard"
+        order: "@authorized_order"
+        state: "ready"
+
+Sylius\Component\Core\Model\Payment:
+    authorized_paypal_payment:
+        method: "@paypal"
+        currencyCode: "USD"
+        amount: 20
+        state: "authorized"
+        details:
+            status: "AUTHORIZED"
+            paypal_order_id: "PAYPAL_ORDER_ID"
+            reference_id: "REFERENCE_ID"
+            payment_source: "paypal"
+            authorization_id: "AUTHORIZATION_ID"
+            authorization_status: "CREATED"

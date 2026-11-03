@@ -33,10 +33,13 @@ final class PayPalConfigurationType extends AbstractType
     private const HIDDEN_FIELDS = [
         PayPalGatewayConfig::MERCHANT_ID,
         PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
-        PayPalGatewayConfig::USE_AUTHORIZE,
     ];
 
     private const SANDBOX_MODE_FIELD = 'sandbox_mode';
+
+    private const CAPTURE = 'capture';
+
+    private const AUTHORIZE = 'authorize';
 
     public function __construct(
         private readonly CredentialsManagerInterface $credentialsManager,
@@ -60,12 +63,20 @@ final class PayPalConfigurationType extends AbstractType
                 ],
                 'choice_value' => static fn (?bool $mode): string => (true === $mode ? Mode::Sandbox : Mode::Production)->value,
             ])
+            ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
+                'label' => 'sylius_paypal.capture_strategy',
+                'expanded' => false,
+                'multiple' => false,
+                'choices' => [
+                    'sylius_paypal.capture_strategy_capture' => false,
+                    'sylius_paypal.capture_strategy_authorize' => true,
+                ],
+                'choice_value' => static fn (?bool $authorize): string => true === $authorize ? self::AUTHORIZE : self::CAPTURE,
+            ])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
             ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
-            // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
-            ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
@@ -88,6 +99,7 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
+                $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
                 $event->setData($data);
             }
         });
@@ -119,6 +131,8 @@ final class PayPalConfigurationType extends AbstractType
             if (!is_array($config)) {
                 return;
             }
+
+            $config[PayPalGatewayConfig::USE_AUTHORIZE] = true === ($config[PayPalGatewayConfig::USE_AUTHORIZE] ?? false);
 
             $event->setData($this->applyModeSwitch($event, $config));
         });

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Creator;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Exception\PaymentMethodAlreadyOnboardedException;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
 interface PayPalOnboardingPaymentMethodCreatorInterface
@@ -26,5 +27,6 @@ interface PayPalOnboardingPaymentMethodCreatorInterface
 
     public const PAYMENT_METHOD_DESCRIPTION = 'Pay with PayPal';
 
-    public function create(SellerOnboardingResult $result, bool $sandbox = false): PaymentMethodInterface;
+    /** @throws PaymentMethodAlreadyOnboardedException */
+    public function create(SellerOnboardingResult $result, bool $sandbox = false, ?string $paymentMethodCode = null): PaymentMethodInterface;
 }

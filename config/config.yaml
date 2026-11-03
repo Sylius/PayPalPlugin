@@ -24,11 +24,17 @@ sylius_core:
 sylius_grid:
     templates:
         action:
+            complete_payment: "@SyliusPayPalPlugin/admin/payment/grid/action/complete_payment.html.twig"
             download_report: "@SyliusPayPalPlugin/admin/payment_method/grid/action/download_report.html.twig"
             enable_paypal: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig"
             enable_seller: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_seller.html.twig"
             ship_with_tracking_code: "@SyliusPayPalPlugin/admin/shipment/grid/action/ship_with_tracking_code.html.twig"
     grids:
+        sylius_admin_payment:
+            actions:
+                item:
+                    complete:
+                        type: complete_payment
         sylius_admin_payment_method:
             fields:
                 name:

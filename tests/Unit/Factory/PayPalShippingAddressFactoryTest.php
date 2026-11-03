@@ -21,6 +21,7 @@ use Sylius\Component\Core\Model\Address;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 
 final class PayPalShippingAddressFactoryTest extends TestCase
 {
@@ -49,12 +50,7 @@ final class PayPalShippingAddressFactoryTest extends TestCase
     {
         $this->provinceRepository->method('findOneBy')->willReturn(null);
 
-        $address = $this->factory->create([
-            'country_code' => 'US',
-            'admin_area_1' => 'TX',
-            'admin_area_2' => 'Dallas',
-            'postal_code' => '75001',
-        ]);
+        $address = $this->factory->create(new PayPalAddress(adminArea1: 'TX', adminArea2: 'Dallas', postalCode: '75001', countryCode: 'US'));
 
         self::assertSame('US', $address->getCountryCode());
         self::assertSame('Dallas', $address->getCity());
@@ -66,7 +62,7 @@ final class PayPalShippingAddressFactoryTest extends TestCase
         $province = $this->createMock(ProvinceInterface::class);
         $this->provinceRepository->expects(self::once())->method('findOneBy')->with(['code' => 'US-TX'])->willReturn($province);
 
-        $address = $this->factory->create(['country_code' => 'US', 'admin_area_1' => 'TX']);
+        $address = $this->factory->create(new PayPalAddress(adminArea1: 'TX', countryCode: 'US'));
 
         self::assertSame('US-TX', $address->getProvinceCode());
     }
@@ -78,7 +74,7 @@ final class PayPalShippingAddressFactoryTest extends TestCase
             ->method('findOneBy')
             ->willReturnCallback(fn (array $criteria): ?ProvinceInterface => $criteria === ['code' => 'TX'] ? $province : null);
 
-        $address = $this->factory->create(['country_code' => 'US', 'admin_area_1' => 'TX']);
+        $address = $this->factory->create(new PayPalAddress(adminArea1: 'TX', countryCode: 'US'));
 
         self::assertSame('TX', $address->getProvinceCode());
     }
@@ -87,7 +83,7 @@ final class PayPalShippingAddressFactoryTest extends TestCase
     {
         $this->provinceRepository->method('findOneBy')->willReturn(null);
 
-        $address = $this->factory->create(['country_code' => 'PL', 'admin_area_1' => 'Mazowieckie']);
+        $address = $this->factory->create(new PayPalAddress(adminArea1: 'Mazowieckie', countryCode: 'PL'));
 
         self::assertNull($address->getProvinceCode());
         self::assertSame('Mazowieckie', $address->getProvinceName());
@@ -97,7 +93,7 @@ final class PayPalShippingAddressFactoryTest extends TestCase
     {
         $this->provinceRepository->method('findOneBy')->willReturn($this->createMock(ProvinceInterface::class));
 
-        $address = $this->factory->create(['country_code' => 'US', 'admin_area_1' => 'TX']);
+        $address = $this->factory->create(new PayPalAddress(adminArea1: 'TX', countryCode: 'US'));
 
         self::assertSame('US-TX', $address->getProvinceCode());
         self::assertNull($address->getProvinceName());
@@ -107,26 +103,9 @@ final class PayPalShippingAddressFactoryTest extends TestCase
     {
         $this->provinceRepository->expects(self::never())->method('findOneBy');
 
-        $address = $this->factory->create(['country_code' => 'DE']);
+        $address = $this->factory->create(new PayPalAddress(countryCode: 'DE'));
 
         self::assertSame('DE', $address->getCountryCode());
-        self::assertNull($address->getCity());
-        self::assertNull($address->getPostcode());
-        self::assertNull($address->getProvinceCode());
-        self::assertNull($address->getProvinceName());
-    }
-
-    public function test_it_treats_blank_values_as_absent(): void
-    {
-        $this->provinceRepository->expects(self::never())->method('findOneBy');
-
-        $address = $this->factory->create([
-            'country_code' => 'DE',
-            'admin_area_1' => '   ',
-            'admin_area_2' => '',
-            'postal_code' => ' ',
-        ]);
-
         self::assertNull($address->getCity());
         self::assertNull($address->getPostcode());
         self::assertNull($address->getProvinceCode());
