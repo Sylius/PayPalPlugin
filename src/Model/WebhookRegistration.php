@@ -15,12 +15,32 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class WebhookRegistration
 {
-    public function __construct(
+    private const REGISTERED = 'registered';
+
+    private const UPDATED = 'updated';
+
+    private const UP_TO_DATE = 'up_to_date';
+
+    private function __construct(
         private string $id,
         private string $url,
-        private bool $new,
-        private bool $upToDate = false,
+        private string $outcome,
     ) {
+    }
+
+    public static function registered(string $id, string $url): self
+    {
+        return new self($id, $url, self::REGISTERED);
+    }
+
+    public static function updated(string $id, string $url): self
+    {
+        return new self($id, $url, self::UPDATED);
+    }
+
+    public static function upToDate(string $id, string $url): self
+    {
+        return new self($id, $url, self::UP_TO_DATE);
     }
 
     public function id(): string
@@ -35,11 +55,11 @@ final readonly class WebhookRegistration
 
     public function isNew(): bool
     {
-        return $this->new;
+        return self::REGISTERED === $this->outcome;
     }
 
     public function isUpToDate(): bool
     {
-        return $this->upToDate;
+        return self::UP_TO_DATE === $this->outcome;
     }
 }

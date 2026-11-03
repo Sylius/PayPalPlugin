@@ -700,7 +700,8 @@
       where it was: fix the URL and run it again.
 
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
-   it made: the webhook id, its URL and whether it was registered anew.
+   it made, created through `WebhookRegistration::registered()`, `updated()` or `upToDate()`: the webhook id, its URL and
+   whether it was registered anew (`isNew()`) or was already up to date (`isUpToDate()`).
 
    Until the command runs, PayPal gets a `404` from `/paypal-webhook/api/` for every event. A webhook moved before
    the new release is live gets an error from `/payment-methods/{code}` until it is, as the old release has no PayPal

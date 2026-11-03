@@ -59,7 +59,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
 
         $this->webhookIdUpdater->update($paymentMethod, (string) $response['id']);
 
-        return new WebhookRegistration((string) $response['id'], $webhookUrl, true);
+        return WebhookRegistration::registered((string) $response['id'], $webhookUrl);
     }
 
     private function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): WebhookRegistration
@@ -71,9 +71,9 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
                 throw $exception;
             }
 
-            return new WebhookRegistration($webhookId, $webhookUrl, false, true);
+            return WebhookRegistration::upToDate($webhookId, $webhookUrl);
         }
 
-        return new WebhookRegistration($webhookId, $webhookUrl, false);
+        return WebhookRegistration::updated($webhookId, $webhookUrl);
     }
 }

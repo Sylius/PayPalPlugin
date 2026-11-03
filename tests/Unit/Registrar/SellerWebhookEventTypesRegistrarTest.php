@@ -84,7 +84,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         self::assertEquals(
-            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', false),
+            WebhookRegistration::updated('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
             $this->registrar->register($this->paymentMethod),
         );
     }
@@ -103,7 +103,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         self::assertEquals(
-            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', true),
+            WebhookRegistration::registered('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
             $this->registrar->register($this->paymentMethod),
         );
     }
@@ -152,7 +152,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         self::assertEquals(
-            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', false, true),
+            WebhookRegistration::upToDate('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
             $this->registrar->register($this->paymentMethod),
         );
     }
