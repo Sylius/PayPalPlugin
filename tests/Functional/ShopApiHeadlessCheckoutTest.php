@@ -98,19 +98,30 @@ final class ShopApiHeadlessCheckoutTest extends JsonApiTestCase
         self::assertSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
     }
 
-    public function test_it_does_not_pay_with_a_card_whose_3d_secure_authentication_failed(): void
+    public function test_it_pays_with_the_new_payment_of_the_order_after_3d_secure_declined_the_card(): void
     {
         $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml']);
         [$token, $paymentId] = $this->checkOut();
 
         $this->payPalApi()->mockCreateOrder();
-        $paymentRequest = $this->requestPayment($token, $paymentId, 'card');
+        $failedPaymentRequest = $this->requestPayment($token, $paymentId, 'card');
         $this->payPalApi()->mockCardOrderDetails(authenticationStatus: 'N');
+        $failedPaymentRequest = $this->completePayment($failedPaymentRequest['hash']);
+
+        self::assertSame(PaymentRequestInterface::STATE_FAILED, $failedPaymentRequest['state']);
+        self::assertSame('declined', $failedPaymentRequest['responseData']['three_d_secure']);
+        self::assertNotSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
+
+        $newPaymentId = $this->lastPaymentId($token);
+        self::assertNotSame($paymentId, $newPaymentId);
+
+        $this->payPalApi()->mockCreateOrder();
+        $paymentRequest = $this->requestPayment($token, $newPaymentId, 'paypal');
+        $this->mockCapture($paymentRequest['hash']);
         $paymentRequest = $this->completePayment($paymentRequest['hash']);
 
-        self::assertSame(PaymentRequestInterface::STATE_FAILED, $paymentRequest['state']);
-        self::assertArrayHasKey('reason', $paymentRequest['responseData']);
-        self::assertNotSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest['state']);
+        self::assertSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
     }
 
     public function test_it_pays_with_trustly_once_the_payer_is_back_from_the_bank(): void
@@ -242,6 +253,15 @@ final class ShopApiHeadlessCheckoutTest extends JsonApiTestCase
         self::assertResponseIsSuccessful();
 
         return $this->responseContent()['paymentState'];
+    }
+
+    private function lastPaymentId(string $token): int
+    {
+        $this->client->request('GET', sprintf('/api/v2/shop/orders/%s', $token), server: $this->headers());
+        self::assertResponseIsSuccessful();
+        $payments = $this->responseContent()['payments'];
+
+        return end($payments)['id'];
     }
 
     private function mockCapture(string $hash): void
