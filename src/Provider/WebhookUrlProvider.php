@@ -74,7 +74,7 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
     {
         $parameters = ['code' => (string) $paymentMethod->getCode()];
         if (null === $baseUrl) {
-            return $this->urlGenerator->generate(self::ROUTE, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
+            return (string) preg_replace('/^http:/i', 'https:', $this->urlGenerator->generate(self::ROUTE, $parameters, UrlGeneratorInterface::ABSOLUTE_URL));
         }
 
         return rtrim($baseUrl, '/') .
