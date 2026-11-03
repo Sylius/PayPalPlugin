@@ -16,7 +16,6 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -29,7 +28,6 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
     {
         $paymentMethod = $this->loadShop();
         $this->mockRegisteredWebhooks($paymentMethod);
-        $this->mockWebhookDetails('https://paypal-shop.example.com/paypal-webhook/api/', WebhookApi::EVENT_TYPES);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
@@ -47,7 +45,6 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $cache->save($cache->getItem('sylius_paypal_webhook_id_refresh_' . hash('sha256', 'PAYPAL'))->set(true));
 
         $this->mockRegisteredWebhooks($paymentMethod);
-        $this->mockWebhookDetails('https://paypal-shop.example.com/paypal-webhook/api/', WebhookApi::EVENT_TYPES);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
@@ -76,39 +73,31 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
             ['id' => 'WH-LEGACY', 'url' => 'https://paypal-shop.example.com/paypal-webhook/api/'],
         ]]);
-        $this->mockWebhookDetails('https://paypal-shop.example.com/paypal-webhook/api/', WebhookApi::EVENT_TYPES);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', ['id' => 'WH-LEGACY']);
 
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
     }
 
-    public function test_it_leaves_a_webhook_that_is_already_up_to_date_as_it_is_when_run_again(): void
+    public function test_it_reports_a_webhook_paypal_found_nothing_to_change_in_as_already_up_to_date(): void
     {
         $paymentMethod = $this->loadShop();
         /** @var WebhookUrlProviderInterface $webhookUrlProvider */
         $webhookUrlProvider = self::getContainer()->get('sylius_paypal.provider.webhook_url');
-        $notifyUrl = $webhookUrlProvider->provide($paymentMethod);
 
         $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
-            ['id' => 'WH-LEGACY', 'url' => $notifyUrl],
+            ['id' => 'WH-LEGACY', 'url' => $webhookUrlProvider->provide($paymentMethod)],
         ]]);
-        $this->mockWebhookDetails($notifyUrl, WebhookApi::EVENT_TYPES);
+        $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', [
+            'name' => 'WEBHOOK_PATCH_REQUEST_NO_CHANGE',
+            'message' => 'No change in webhook',
+            'debug_id' => 'DEBUG_ID',
+        ], 400);
 
         $commandTester = $this->commandTester();
 
         self::assertSame(Command::SUCCESS, $commandTester->execute([]));
         self::assertStringContainsString('Webhook WH-LEGACY of "PAYPAL" is already up to date', $commandTester->getDisplay());
         self::assertSame('WH-LEGACY', $this->storedWebhookId());
-    }
-
-    /** @param list<string> $eventTypes */
-    private function mockWebhookDetails(string $url, array $eventTypes): void
-    {
-        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-LEGACY', [
-            'id' => 'WH-LEGACY',
-            'url' => $url,
-            'event_types' => array_map(static fn (string $name): array => ['name' => $name], $eventTypes),
-        ]);
     }
 
     private function storedWebhookId(): mixed

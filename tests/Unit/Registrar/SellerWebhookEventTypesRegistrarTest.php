@@ -15,16 +15,13 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Registrar;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
-use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
@@ -41,8 +38,6 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
 
     private WebhookIdUpdaterInterface&MockObject $webhookIdUpdater;
 
-    private GenericApiInterface&MockObject $genericApi;
-
     private PaymentMethodInterface&MockObject $paymentMethod;
 
     private SellerWebhookEventTypesRegistrar $registrar;
@@ -54,7 +49,6 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->updateWebhookApi = $this->createMock(UpdateWebhookApiInterface::class);
         $this->webhookApi = $this->createMock(WebhookApiInterface::class);
         $this->webhookIdUpdater = $this->createMock(WebhookIdUpdaterInterface::class);
-        $this->genericApi = $this->createMock(GenericApiInterface::class);
 
         $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
         $webhookUrlProvider->method('provide')->willReturnCallback(
@@ -63,9 +57,6 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
 
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->paymentMethod->method('getCode')->willReturn('PAYPAL');
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setConfig(['sandbox' => true]);
-        $this->paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
         $this->registrar = new SellerWebhookEventTypesRegistrar(
             $this->webhookIdProvider,
@@ -73,8 +64,6 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             $this->webhookApi,
             $webhookUrlProvider,
             $this->webhookIdUpdater,
-            $this->genericApi,
-            new HostProvider(),
         );
     }
 
@@ -86,7 +75,6 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
     public function test_it_points_the_registered_webhook_at_the_notify_url_and_subscribes_it_to_every_event_the_plugin_handles(): void
     {
         $this->webhookIdProvider->method('refresh')->with($this->paymentMethod)->willReturn('WEBHOOK_ID');
-        $this->mockRegisteredWebhook('https://shop.example.com/paypal-webhook/api/', WebhookApi::EVENT_TYPES);
 
         $this->updateWebhookApi
             ->expects(self::once())
@@ -144,12 +132,22 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->registrar->register($this->paymentMethod);
     }
 
-    public function test_it_leaves_a_webhook_already_pointing_at_the_notify_url_with_every_event_as_it_is(): void
+    public function test_it_updates_rather_than_registers_when_a_webhook_already_exists(): void
     {
         $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
-        $this->mockRegisteredWebhook('https://shop.example.com/payment-methods/PAYPAL', array_reverse(WebhookApi::EVENT_TYPES));
 
-        $this->updateWebhookApi->expects(self::never())->method('update');
+        $this->webhookApi->expects(self::never())->method('register');
+
+        $this->registrar->register($this->paymentMethod);
+    }
+
+    public function test_it_reports_a_webhook_paypal_found_nothing_to_change_in_as_already_up_to_date(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $this->updateWebhookApi->method('update')->willThrowException(
+            new PayPalApiRequestException('PATCH', 'v1/notifications/webhooks/WEBHOOK_ID', 400, 'WEBHOOK_PATCH_REQUEST_NO_CHANGE'),
+        );
+
         $this->webhookApi->expects(self::never())->method('register');
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
@@ -159,38 +157,17 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         );
     }
 
-    public function test_it_updates_a_webhook_pointing_at_the_notify_url_without_every_event(): void
+    public function test_it_rethrows_any_other_error_paypal_answers_the_update_with(): void
     {
         $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
-        $this->mockRegisteredWebhook('https://shop.example.com/payment-methods/PAYPAL', array_slice(WebhookApi::EVENT_TYPES, 1));
+        $this->updateWebhookApi->method('update')->willThrowException(
+            new PayPalApiRequestException('PATCH', 'v1/notifications/webhooks/WEBHOOK_ID', 400, 'VALIDATION_ERROR'),
+        );
 
-        $this->updateWebhookApi->expects(self::once())->method('update');
+        $this->webhookIdUpdater->expects(self::never())->method('update');
 
-        self::assertFalse($this->registrar->register($this->paymentMethod)->isUpToDate());
-    }
-
-    public function test_it_updates_rather_than_registers_when_a_webhook_already_exists(): void
-    {
-        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
-        $this->mockRegisteredWebhook('https://shop.example.com/paypal-webhook/api/', WebhookApi::EVENT_TYPES);
-
-        $this->webhookApi->expects(self::never())->method('register');
+        $this->expectException(PayPalApiRequestException::class);
 
         $this->registrar->register($this->paymentMethod);
-    }
-
-    /** @param list<string> $eventTypes */
-    private function mockRegisteredWebhook(string $url, array $eventTypes): void
-    {
-        $this->genericApi
-            ->expects(self::once())
-            ->method('get')
-            ->with($this->paymentMethod, 'https://api.sandbox.paypal.com/v1/notifications/webhooks/WEBHOOK_ID')
-            ->willReturn([
-                'id' => 'WEBHOOK_ID',
-                'url' => $url,
-                'event_types' => array_map(static fn (string $name): array => ['name' => $name], $eventTypes),
-            ])
-        ;
     }
 }

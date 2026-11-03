@@ -731,10 +731,9 @@
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
    and stores the id of the webhook it updates or registers in the gateway config through
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
-   `PersistingWebhookIdProvider` now takes instead of the object manager. It also takes
-   `Sylius\PayPalPlugin\Api\GenericApiInterface` and `Sylius\PayPalPlugin\Provider\HostProviderInterface` to read the
-   webhook it found and skips the update when the webhook already points at the notify URL with every event;
-   `WebhookRegistration::isUpToDate()` tells such a registration apart.
+   `PersistingWebhookIdProvider` now takes instead of the object manager. When PayPal answers the update with
+   `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores the id as well and returns a registration whose
+   `WebhookRegistration::isUpToDate()` is `true`.
 
    The onboarding stores the id of the webhook it registers the same way:
 
