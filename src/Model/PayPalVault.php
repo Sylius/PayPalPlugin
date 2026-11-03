@@ -26,7 +26,15 @@ final readonly class PayPalVault
     /** @param array<string, mixed> $payPalOrderDetails */
     public static function fromPayPalOrder(array $payPalOrderDetails): ?self
     {
-        $paypal = $payPalOrderDetails['payment_source']['paypal'] ?? null;
+        $paymentSource = $payPalOrderDetails['payment_source'] ?? null;
+
+        return is_array($paymentSource) ? self::fromPaymentSource($paymentSource) : null;
+    }
+
+    /** @param array<string, mixed> $paymentSource */
+    public static function fromPaymentSource(array $paymentSource): ?self
+    {
+        $paypal = $paymentSource['paypal'] ?? null;
         if (!is_array($paypal)) {
             return null;
         }

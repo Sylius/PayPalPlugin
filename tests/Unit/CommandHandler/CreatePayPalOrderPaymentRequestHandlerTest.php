@@ -246,7 +246,6 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider->method('provide')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
 
-
         return new CreatePayPalOrderPaymentRequestHandler(
             $this->paymentRequestProvider,
             $this->payPalOrderCreator,

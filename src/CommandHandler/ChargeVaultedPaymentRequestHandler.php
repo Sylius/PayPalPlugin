@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
@@ -47,6 +48,7 @@ final class ChargeVaultedPaymentRequestHandler
         private readonly ChargeVaultedOrderApiInterface $chargeVaultedOrderApi,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private readonly VaultedChargeFailureResolverInterface $failureResolver,
+        private readonly PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -123,7 +125,7 @@ final class ChargeVaultedPaymentRequestHandler
             );
         }
 
-        $this->paymentSettlementProcessor->settle($payment, $payPalOrder);
+        $this->paymentSettlementProcessor->settle($payment, $this->payPalOrderDetailsMapper->map($payPalOrder));
 
         match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => $this->complete($paymentRequest),

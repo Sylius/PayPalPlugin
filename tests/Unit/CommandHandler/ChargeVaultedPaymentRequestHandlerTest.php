@@ -28,6 +28,7 @@ use Sylius\PayPalPlugin\CommandHandler\ChargeVaultedPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolver;
 
@@ -75,6 +76,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             $this->chargeVaultedOrderApi,
             $this->paymentSettlementProcessor,
             new VaultedChargeFailureResolver(),
+            new PayPalOrderDetailsMapper(),
             $this->stateMachine,
         );
     }
@@ -101,7 +103,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             ->with($this->payment, 'VAULT_ID', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
             ->willReturn($payPalOrder)
         ;
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, $payPalOrder);
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, (new PayPalOrderDetailsMapper())->map($payPalOrder));
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -136,7 +138,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $payPalOrder = $this->payPalOrder('DECLINED');
         $this->chargeVaultedOrderApi->method('charge')->willReturn($payPalOrder);
 
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, $payPalOrder);
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, (new PayPalOrderDetailsMapper())->map($payPalOrder));
         $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'PayPal reported the capture as DECLINED.', 'failure' => 'declined']);
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
