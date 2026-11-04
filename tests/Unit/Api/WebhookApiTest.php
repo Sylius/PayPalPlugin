@@ -61,16 +61,4 @@ final class WebhookApiTest extends TestCase
 
         self::assertSame(['id' => 'WEBHOOK_ID'], $this->webhookApi->register($this->paymentMethod, 'https://shop.example.com/payment-methods/PAYPAL'));
     }
-
-    public function test_it_registers_the_webhook_over_https(): void
-    {
-        $this->client
-            ->expects(self::once())
-            ->method('post')
-            ->with($this->paymentMethod, 'v1/notifications/webhooks', self::callback(static fn (array $data): bool => 'https://shop.example.com/payment-methods/PAYPAL' === $data['url']))
-            ->willReturn([])
-        ;
-
-        $this->webhookApi->register($this->paymentMethod, 'http://shop.example.com/payment-methods/PAYPAL');
-    }
 }

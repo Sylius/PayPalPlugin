@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Model;
 
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
 use Webmozart\Assert\Assert;
 
 final readonly class PayPalGatewayConfig
@@ -27,6 +26,8 @@ final readonly class PayPalGatewayConfig
 
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
 
+    public const SANDBOX = 'sandbox';
+
     public const USE_AUTHORIZE = 'use_authorize';
 
     public const WEBHOOK_ID = 'webhook_id';
@@ -34,6 +35,8 @@ final readonly class PayPalGatewayConfig
     public const REPORTS_SFTP_USERNAME = 'reports_sftp_username';
 
     public const REPORTS_SFTP_PASSWORD = 'reports_sftp_password';
+
+    public const EXPRESS_CHECKOUT_ENABLED = 'express_checkout_enabled';
 
     public const PAY_LATER_ENABLED = 'pay_later_enabled';
 
@@ -108,6 +111,11 @@ final readonly class PayPalGatewayConfig
         return $this->optional(self::WEBHOOK_ID);
     }
 
+    public function isExpressCheckoutEnabled(): bool
+    {
+        return $this->flag(self::EXPRESS_CHECKOUT_ENABLED, true);
+    }
+
     public function isPayLaterEnabled(): bool
     {
         return $this->flag(self::PAY_LATER_ENABLED, true);
@@ -140,7 +148,7 @@ final readonly class PayPalGatewayConfig
 
     public function isSandbox(): bool
     {
-        return $this->flag(CredentialsManagerInterface::MODE_KEY, false);
+        return $this->flag(self::SANDBOX, false);
     }
 
     public function isCardThreeDSecureAlways(): bool

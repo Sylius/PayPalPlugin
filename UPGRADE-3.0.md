@@ -15,11 +15,9 @@
    method with the onboarding available on the payment methods list (or the sandbox onboarding in sandbox
    mode) instead of filling the credentials in by hand.
 
-   A store can connect several PayPal accounts. The onboarding started from the payment methods list creates a new
-   PayPal payment method (`PAYPAL` named "PayPal", `PAYPAL_2` named "PayPal 2", ...), the one started from the edit
-   page of a PayPal payment method stores the credentials in that payment method and is refused with the
-   `sylius_paypal.paypal_account_already_connected` flash message when that mode of the payment method already has
-   credentials. The `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
+   A store can connect several PayPal accounts. Each onboarding creates a new PayPal payment method (`PAYPAL` named
+   "PayPal", `PAYPAL_2` named "PayPal 2", ...) in the mode it was started in. The
+   `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
 
 1. #### `PayPalPaymentMethodProvider` has been removed.
 
@@ -47,14 +45,13 @@
    The `Sylius\PayPalPlugin\Model\PayPalGatewayConfig::ONBOARDING_ID` constant has been removed. The `onboarding_id`
    key stored in the gateway config by the facilitator-based onboarding is no longer read and can be left in place.
 
-   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written,
-   mirrored between the sandbox and production credentials, or part of the PayPal configuration form. The following
+   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written or
+   part of the PayPal configuration form. The following
    have been removed from `Sylius\PayPalPlugin\Model\PayPalGatewayConfig`:
    - the `SYLIUS_MERCHANT_ID` constant
    - the `syliusMerchantId()` and `hasSyliusMerchantId()` methods
 
-   `sylius_merchant_id` has also been removed from `CredentialsManagerInterface::MIRRORED_KEYS`. The key already
-   stored in the gateway config is no longer read and can be left in place.
+   The `sylius_merchant_id` key already stored in the gateway config is no longer read and can be left in place.
 
 1. #### `PayPalPaymentMethodEnabler` checks the seller's onboarding status directly with PayPal.
 
@@ -126,19 +123,16 @@
    +public function __construct(string $message = 'Could not load data from PayPal')
    ```
 
-1. #### The sandbox mode is stored in the PayPal gateway config and switched in the admin panel.
+1. #### The mode of a PayPal payment method is stored in its gateway config and set by the onboarding.
 
    The `sylius_paypal.sandbox` configuration option and the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable
-   have been removed. The mode is kept under the `sandbox` key of the PayPal gateway config and switched with
-   the "Mode" field of the PayPal payment method form. Sandbox and production credentials are stored separately,
-   under the `sandbox_credentials` and `production_credentials` keys, so switching does not require onboarding
-   again.
+   have been removed. Each PayPal payment method keeps its mode under the `sandbox` key of its gateway config. The
+   onboarding sets it and the payment method form shows it read-only, so a store that uses both modes has a PayPal
+   payment method for each, with its own credentials.
 
-   Run the migrations: the existing PayPal gateway config gets the `sandbox` key set from the
-   `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable available while migrating, or to `true` when it is not set,
-   as `sylius_paypal.sandbox` defaulted to `true`. If you disabled the sandbox through the `sylius_paypal.sandbox`
-   option only, either run the migrations with `SYLIUS_PAYPAL_SANDBOX_ENABLED=false` or switch the payment method
-   to "Production" in the admin panel afterwards.
+   A PayPal gateway config without the `sandbox` key is in production. If your store used the sandbox, set the
+   `sandbox` key of its PayPal gateway config to `true`, or connect the sandbox account as a new PayPal payment
+   method through the onboarding.
 
    The following parameters and services have been removed:
 
@@ -176,18 +170,9 @@
    ```
 
    ```diff
-    // Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType
-   +public function __construct(
-   +    private readonly CredentialsManagerInterface $credentialsManager,
-   +    private readonly TranslatorInterface $translator,
-   +)
-   ```
-
-   ```diff
     // Sylius\PayPalPlugin\Twig\PayPalExtension
     public function __construct(
    -    private readonly bool $sandbox,
-   +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         // ...
    +    ?HostProviderInterface $hostProvider = null,
     ) {
@@ -692,13 +677,16 @@
       release goes live; with an atomic deployment, from the new release before switching to it. For every PayPal
       payment method it finds the webhook registered on its notify URL or on `/paypal-webhook/api/`, points it at
       `/payment-methods/{code}` through a PATCH, so its id stays the same, subscribes it to the events above and
-      stores its id. It registers a new webhook only when it finds none, so it can be run again.
+      stores its id. It registers a new webhook only when it finds none, and leaves a webhook already pointing at
+      `/payment-methods/{code}` with all these events as it is, so it can be run again.
    3. Check that it reports `Updated webhook <id> of "<code>" to point at <url>.` (or `Registered webhook <id> of
-      "<code>" at <url>.` for a new one) with the public URL of the shop for every PayPal payment method and exits
-      with `0`. A webhook it could not update stays where it was: fix the URL and run it again.
+      "<code>" at <url>.` for a new one, or `Webhook <id> of "<code>" is already up to date at <url>.`) with the
+      public URL of the shop for every PayPal payment method and exits with `0`. A webhook it could not update stays
+      where it was: fix the URL and run it again.
 
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
-   it made: the webhook id, its URL and whether it was registered anew.
+   it made, created through `WebhookRegistration::registered()`, `updated()` or `upToDate()`: the webhook id, its URL and
+   whether it was registered anew (`isNew()`) or was already up to date (`isUpToDate()`).
 
    Until the command runs, PayPal gets a `404` from `/paypal-webhook/api/` for every event. A webhook moved before
    the new release is live gets an error from `/payment-methods/{code}` until it is, as the old release has no PayPal
@@ -717,7 +705,8 @@
    request, and on the console the hostname of the first enabled channel of the payment method that has one other
    than `localhost`, so the command does not register `localhost`; only without such a channel does the console fall
    back to the request context (`framework.router.default_uri`). `WebhookUrlProvider` takes the `request_stack` for
-   that.
+   that. It always gives an `https` URL, switching an `http` base URL or request context to `https`;
+   `WebhookApi::register()` and `UpdateWebhookApi::update()` send the URL they are given as it is.
 
    `WebhookIdProvider` looks the webhook up by the notify URL on every host it may have been registered on and only then
    by `/paypal-webhook/api/` on them (`WebhookUrlProviderInterface::provideCandidates()`): the configured base URL, the
@@ -729,7 +718,9 @@
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
    and stores the id of the webhook it updates or registers in the gateway config through
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
-   `PersistingWebhookIdProvider` now takes instead of the object manager.
+   `PersistingWebhookIdProvider` now takes instead of the object manager. When PayPal answers the update with
+   `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores the id as well and returns a registration whose
+   `WebhookRegistration::isUpToDate()` is `true`.
 
    The onboarding stores the id of the webhook it registers the same way:
 
@@ -1004,7 +995,7 @@
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | takes only `PaymentSdkConfigurationProviderInterface` and `UrlGeneratorInterface`; its component and page type constants moved to `PaymentSdkConfigurationProvider` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
-   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` as its first argument; lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
    | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the channel |
 

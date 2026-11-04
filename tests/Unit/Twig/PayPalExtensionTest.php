@@ -24,7 +24,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -58,7 +57,6 @@ final class PayPalExtensionTest extends TestCase
         $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
         $this->payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod]);
         $this->extension = new PayPalExtension(
-            $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->payPalPaymentMethodsResolver,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
@@ -109,7 +107,6 @@ final class PayPalExtensionTest extends TestCase
     public function it_returns_false_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->payPalPaymentMethodsResolver,
         );
 
@@ -144,7 +141,6 @@ final class PayPalExtensionTest extends TestCase
     public function it_returns_an_empty_script_url_when_constructed_without_the_new_dependency(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->payPalPaymentMethodsResolver,
         );
 
@@ -258,7 +254,6 @@ final class PayPalExtensionTest extends TestCase
     public function it_returns_an_empty_instance_config_when_constructed_without_the_new_dependencies(): void
     {
         $extension = new PayPalExtension(
-            $this->createMock(ModeSwitchViewFactoryInterface::class),
             $this->payPalPaymentMethodsResolver,
         );
 
@@ -333,7 +328,6 @@ final class PayPalExtensionTest extends TestCase
     private function extensionWith(PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver): PayPalExtension
     {
         return new PayPalExtension(
-            $this->createMock(ModeSwitchViewFactoryInterface::class),
             $payPalPaymentMethodsResolver,
             $this->channelContext,
             $this->webSdkConfigurationProvider,

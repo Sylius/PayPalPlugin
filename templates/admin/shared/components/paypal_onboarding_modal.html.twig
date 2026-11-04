@@ -8,7 +8,6 @@
         {% if opened %}style="display: block;" aria-modal="true" role="dialog"{% else %}aria-hidden="true"{% endif %}
         data-paypal-onboarding-complete-url="{{ path('sylius_paypal_admin_complete_onboarding') }}"
         data-paypal-onboarding-sandbox="{{ sandbox ? 'true' : 'false' }}"
-        {% if paymentMethodCode is not null %}data-paypal-onboarding-payment-method-code="{{ paymentMethodCode }}"{% endif %}
         data-paypal-onboarding-partner-js-url="{{ sylius_paypal_partner_js_url(sandbox) }}"
         data-action="paypal:onboarding-open->live#action"
         data-live-action-param="loadOnboardingUrl"

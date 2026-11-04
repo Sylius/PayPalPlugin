@@ -79,9 +79,13 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
 
         try {
-            $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel);
             $config = $this->getConfig($paymentMethod);
+            if (!$config->isExpressCheckoutEnabled()) {
+                return new Response('');
+            }
+
+            $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
@@ -116,9 +120,13 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
-            $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel);
             $config = $this->getConfig($paymentMethod);
+            if (!$config->isExpressCheckoutEnabled()) {
+                return new Response('');
+            }
+
+            $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [

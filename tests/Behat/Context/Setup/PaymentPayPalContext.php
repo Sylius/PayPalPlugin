@@ -20,7 +20,7 @@ use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPageInterface;
 use Webmozart\Assert\Assert;
@@ -65,7 +65,7 @@ final class PaymentPayPalContext implements Context
         $paymentMethod = $this->sharedStorage->get('payment_method');
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [CredentialsManagerInterface::MODE_KEY => true]));
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [PayPalGatewayConfig::SANDBOX => true]));
 
         $this->paymentMethodRepository->add($paymentMethod);
     }

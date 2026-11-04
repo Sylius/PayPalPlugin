@@ -51,7 +51,11 @@ final class RegisterWebhookEventTypesCommand extends Command
             try {
                 $registration = $this->registrar->register($paymentMethod);
                 $io->success(sprintf(
-                    $registration->isNew() ? 'Registered webhook %s of "%s" at %s.' : 'Updated webhook %s of "%s" to point at %s.',
+                    match (true) {
+                        $registration->isNew() => 'Registered webhook %s of "%s" at %s.',
+                        $registration->isUpToDate() => 'Webhook %s of "%s" is already up to date at %s.',
+                        default => 'Updated webhook %s of "%s" to point at %s.',
+                    },
                     $registration->id(),
                     (string) $paymentMethod->getCode(),
                     $registration->url(),

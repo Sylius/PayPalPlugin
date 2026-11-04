@@ -28,7 +28,7 @@ final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
             [
                 'op' => 'replace',
                 'path' => '/url',
-                'value' => preg_replace('/^http:/i', 'https:', $webhookUrl),
+                'value' => $webhookUrl,
             ],
             [
                 'op' => 'replace',
