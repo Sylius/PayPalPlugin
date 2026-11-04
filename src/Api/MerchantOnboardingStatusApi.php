@@ -43,6 +43,24 @@ final readonly class MerchantOnboardingStatusApi implements MerchantOnboardingSt
         return new OnboardingStatus(
             (bool) ($content['payments_receivable'] ?? false),
             (bool) ($content['primary_email_confirmed'] ?? false),
+            $this->activeCapabilities($content['capabilities'] ?? []),
         );
+    }
+
+    /** @return list<string> */
+    private function activeCapabilities(mixed $capabilities): array
+    {
+        if (!is_array($capabilities)) {
+            return [];
+        }
+
+        $active = [];
+        foreach ($capabilities as $capability) {
+            if (is_array($capability) && isset($capability['name']) && 'ACTIVE' === ($capability['status'] ?? null)) {
+                $active[] = (string) $capability['name'];
+            }
+        }
+
+        return $active;
     }
 }

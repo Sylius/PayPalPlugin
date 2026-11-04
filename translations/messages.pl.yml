@@ -9,6 +9,7 @@ sylius_paypal:
     awaiting_payer_action: 'Czekamy, aż Twój bank prześle pieniądze. Zamówienie potwierdzimy, gdy tylko dotrą.'
     back_to_store: 'Wróć do sklepu'
     billing_info: 'Adres rozliczeniowy taki sam jak w zamówieniu'
+    capability_not_active: 'Ta metoda płatności nie jest jeszcze aktywna na Twoim koncie PayPal.'
     capture_strategy: 'Strategia pobierania środków'
     capture_strategy_authorize: 'Autoryzacja i późniejsze pobranie'
     capture_strategy_capture: 'Natychmiastowe pobranie'

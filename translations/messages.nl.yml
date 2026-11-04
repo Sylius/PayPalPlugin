@@ -7,6 +7,7 @@ sylius_paypal:
     add_paypal_account: 'PayPal-account toevoegen'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
+    capability_not_active: 'Deze betaalmethode is nog niet actief op uw PayPal-account.'
     capture_strategy: 'Incassostrategie'
     capture_strategy_authorize: 'Autoriseren en incasseren'
     capture_strategy_capture: 'Onmiddellijk incasseren'

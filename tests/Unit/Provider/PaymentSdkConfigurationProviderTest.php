@@ -25,6 +25,7 @@ use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Model\ShopBillingDataInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
@@ -104,7 +105,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
             $this->webSdkConfigurationProvider,
             $localeProcessor,
             $this->eligibleRedirectPaymentSourcesProvider,
-            new PaymentSourceEnabledChecker($this->paymentAuthorizationChecker),
+            new PaymentSourceEnabledChecker($this->paymentAuthorizationChecker, $this->availablePaymentSourceCapabilities()),
         );
     }
 
@@ -364,5 +365,13 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         self::assertFalse($context['venmoEnabled']);
         self::assertTrue($context['googlePayEnabled']);
         self::assertFalse($context['applePayEnabled']);
+    }
+
+    private function availablePaymentSourceCapabilities(): PaymentSourceCapabilityCheckerInterface
+    {
+        $paymentSourceCapabilityChecker = $this->createStub(PaymentSourceCapabilityCheckerInterface::class);
+        $paymentSourceCapabilityChecker->method('isAvailable')->willReturn(true);
+
+        return $paymentSourceCapabilityChecker;
     }
 }

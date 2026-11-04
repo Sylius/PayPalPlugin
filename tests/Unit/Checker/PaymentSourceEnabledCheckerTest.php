@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 
@@ -67,9 +68,34 @@ final class PaymentSourceEnabledCheckerTest extends TestCase
         self::assertFalse($checker->isEnabled('card', $paymentMethod));
     }
 
+    public function test_it_hides_apple_pay_and_google_pay_while_the_paypal_account_lacks_their_capability(): void
+    {
+        $paymentSourceCapabilityChecker = $this->createMock(PaymentSourceCapabilityCheckerInterface::class);
+        $paymentSourceCapabilityChecker->expects(self::exactly(2))->method('isAvailable')->willReturn(false);
+
+        $checker = new PaymentSourceEnabledChecker(new PaymentAuthorizationChecker(['paypal', 'venmo']), $paymentSourceCapabilityChecker);
+        $paymentMethod = $this->paymentMethodConfiguredWith(['apple_pay_enabled' => true, 'google_pay_enabled' => true]);
+
+        self::assertFalse($checker->isEnabled('apple_pay', $paymentMethod));
+        self::assertFalse($checker->isEnabled('google_pay', $paymentMethod));
+    }
+
+    public function test_it_does_not_check_the_capability_of_a_payment_source_turned_off(): void
+    {
+        $paymentSourceCapabilityChecker = $this->createMock(PaymentSourceCapabilityCheckerInterface::class);
+        $paymentSourceCapabilityChecker->expects(self::never())->method('isAvailable');
+
+        $checker = new PaymentSourceEnabledChecker(new PaymentAuthorizationChecker(['paypal', 'venmo']), $paymentSourceCapabilityChecker);
+
+        self::assertFalse($checker->isEnabled('apple_pay', $this->paymentMethodConfiguredWith([])));
+    }
+
     private function checker(): PaymentSourceEnabledChecker
     {
-        return new PaymentSourceEnabledChecker(new PaymentAuthorizationChecker(['paypal', 'venmo']));
+        $paymentSourceCapabilityChecker = $this->createStub(PaymentSourceCapabilityCheckerInterface::class);
+        $paymentSourceCapabilityChecker->method('isAvailable')->willReturn(true);
+
+        return new PaymentSourceEnabledChecker(new PaymentAuthorizationChecker(['paypal', 'venmo']), $paymentSourceCapabilityChecker);
     }
 
     /** @param array<string, mixed> $config */

@@ -9,6 +9,7 @@ sylius_paypal:
     awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
+    capability_not_active: 'Your PayPal account does not have this payment method active yet.'
     capture_strategy: 'Capture strategy'
     capture_strategy_authorize: 'Authorize and capture'
     capture_strategy_capture: 'Immediate capture'

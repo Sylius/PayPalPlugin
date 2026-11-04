@@ -21,8 +21,10 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class PaymentSourceEnabledChecker implements PaymentSourceEnabledCheckerInterface
 {
-    public function __construct(private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker)
-    {
+    public function __construct(
+        private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
+        private PaymentSourceCapabilityCheckerInterface $paymentSourceCapabilityChecker,
+    ) {
     }
 
     public function isEnabled(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
@@ -42,8 +44,8 @@ final readonly class PaymentSourceEnabledChecker implements PaymentSourceEnabled
 
         return match ($paymentSource) {
             PayPalPaymentSourceProviderInterface::VENMO => $config->isVenmoEnabled(),
-            PayPalPaymentSourceProviderInterface::GOOGLE_PAY => $config->isGooglePayEnabled(),
-            PayPalPaymentSourceProviderInterface::APPLE_PAY => $config->isApplePayEnabled(),
+            PayPalPaymentSourceProviderInterface::GOOGLE_PAY => $config->isGooglePayEnabled() && $this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $config),
+            PayPalPaymentSourceProviderInterface::APPLE_PAY => $config->isApplePayEnabled() && $this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $config),
             default => true,
         };
     }

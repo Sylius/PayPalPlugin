@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -34,6 +36,15 @@ final class PayPalConfigurationType extends AbstractType
     private const CAPTURE = 'capture';
 
     private const AUTHORIZE = 'authorize';
+
+    private const CAPABILITY_TOGGLES = [
+        PayPalGatewayConfig::GOOGLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+        PayPalGatewayConfig::APPLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::APPLE_PAY,
+    ];
+
+    public function __construct(private readonly PaymentSourceCapabilityCheckerInterface $paymentSourceCapabilityChecker)
+    {
+    }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -78,8 +89,21 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
-                $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
+                $config = PayPalGatewayConfig::fromArray($data);
+                $data[PayPalGatewayConfig::USE_AUTHORIZE] = $config->isAuthorizeEnabled();
                 $event->setData($data);
+
+                $form = $event->getForm();
+                foreach (self::CAPABILITY_TOGGLES as $field => $paymentSource) {
+                    if (!$this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $config)) {
+                        $form->add($field, CheckboxType::class, [
+                            'label' => $form->get($field)->getConfig()->getOption('label'),
+                            'required' => false,
+                            'disabled' => true,
+                            'help' => 'sylius_paypal.capability_not_active',
+                        ]);
+                    }
+                }
             }
         });
 

@@ -14,15 +14,58 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Form\Type;
 
 use PHPUnit\Framework\Attributes\Test;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 
 final class PayPalConfigurationTypeTest extends TypeTestCase
 {
+    /** @var list<string> */
+    private array $paymentSourcesWithoutCapability = [];
+
     protected function getExtensions(): array
     {
-        return [new PreloadedExtension([new PayPalConfigurationType()], [])];
+        $paymentSourceCapabilityChecker = $this->createStub(PaymentSourceCapabilityCheckerInterface::class);
+        $paymentSourceCapabilityChecker
+            ->method('isAvailable')
+            ->willReturnCallback(fn (string $paymentSource, PayPalGatewayConfig $config): bool => !in_array($paymentSource, $this->paymentSourcesWithoutCapability, true));
+
+        return [new PreloadedExtension([new PayPalConfigurationType($paymentSourceCapabilityChecker)], [])];
+    }
+
+    public function test_it_disables_the_apple_pay_and_google_pay_toggles_while_the_paypal_account_lacks_their_capability(): void
+    {
+        $this->paymentSourcesWithoutCapability = ['apple_pay', 'google_pay'];
+
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertTrue($form->get('apple_pay_enabled')->isDisabled());
+        self::assertTrue($form->get('google_pay_enabled')->isDisabled());
+        self::assertSame('sylius_paypal.capability_not_active', $form->get('apple_pay_enabled')->getConfig()->getOption('help'));
+        self::assertSame('sylius_paypal.apple_pay_enabled', $form->get('apple_pay_enabled')->getConfig()->getOption('label'));
+        self::assertFalse($form->get('venmo_enabled')->isDisabled());
+    }
+
+    public function test_it_keeps_the_stored_value_of_a_toggle_disabled_for_a_missing_capability(): void
+    {
+        $this->paymentSourcesWithoutCapability = ['apple_pay'];
+
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['apple_pay_enabled' => true]));
+
+        $form->submit($this->submittedFields());
+
+        self::assertTrue($form->isValid());
+        self::assertTrue($form->getData()['apple_pay_enabled']);
+    }
+
+    public function test_it_leaves_the_apple_pay_and_google_pay_toggles_enabled_when_the_paypal_account_has_their_capability(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->get('apple_pay_enabled')->isDisabled());
+        self::assertFalse($form->get('google_pay_enabled')->isDisabled());
     }
 
     #[Test]

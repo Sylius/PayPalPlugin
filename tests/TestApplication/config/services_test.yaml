@@ -20,3 +20,7 @@ services:
     sylius_paypal.provider.webhook_id:
         class: Tests\Sylius\PayPalPlugin\Service\DummyWebhookIdProvider
         arguments: []
+
+    sylius_paypal.api.merchant_onboarding_status:
+        class: Tests\Sylius\PayPalPlugin\Service\FakeMerchantOnboardingStatusApi
+        arguments: []
