@@ -21,8 +21,6 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Factory\ModeSwitchViewFactoryInterface;
-use Sylius\PayPalPlugin\Model\ModeSwitchView;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
@@ -43,7 +41,6 @@ final class PayPalExtension extends AbstractExtension
     private readonly HostProviderInterface $hostProvider;
 
     public function __construct(
-        private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         private readonly PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
         private readonly ?ChannelContextInterface $channelContext = null,
         private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
@@ -91,16 +88,7 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_paypal_payer_action_url', [$this, 'getPayerActionUrl']),
             new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
             new TwigFunction('sylius_paypal_partner_js_url', [$this, 'getPartnerJsUrl']),
-            new TwigFunction('sylius_paypal_mode_switch_view', [$this, 'getModeSwitchView']),
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     */
-    public function getModeSwitchView(array $config): ModeSwitchView
-    {
-        return $this->modeSwitchViewFactory->createFromConfig($config);
     }
 
     public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null): bool

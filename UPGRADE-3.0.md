@@ -15,11 +15,9 @@
    method with the onboarding available on the payment methods list (or the sandbox onboarding in sandbox
    mode) instead of filling the credentials in by hand.
 
-   A store can connect several PayPal accounts. The onboarding started from the payment methods list creates a new
-   PayPal payment method (`PAYPAL` named "PayPal", `PAYPAL_2` named "PayPal 2", ...), the one started from the edit
-   page of a PayPal payment method stores the credentials in that payment method and is refused with the
-   `sylius_paypal.paypal_account_already_connected` flash message when that mode of the payment method already has
-   credentials. The `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
+   A store can connect several PayPal accounts. Each onboarding creates a new PayPal payment method (`PAYPAL` named
+   "PayPal", `PAYPAL_2` named "PayPal 2", ...) in the mode it was started in. The
+   `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
 
 1. #### `PayPalPaymentMethodProvider` has been removed.
 
@@ -47,14 +45,13 @@
    The `Sylius\PayPalPlugin\Model\PayPalGatewayConfig::ONBOARDING_ID` constant has been removed. The `onboarding_id`
    key stored in the gateway config by the facilitator-based onboarding is no longer read and can be left in place.
 
-   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written,
-   mirrored between the sandbox and production credentials, or part of the PayPal configuration form. The following
+   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written or
+   part of the PayPal configuration form. The following
    have been removed from `Sylius\PayPalPlugin\Model\PayPalGatewayConfig`:
    - the `SYLIUS_MERCHANT_ID` constant
    - the `syliusMerchantId()` and `hasSyliusMerchantId()` methods
 
-   `sylius_merchant_id` has also been removed from `CredentialsManagerInterface::MIRRORED_KEYS`. The key already
-   stored in the gateway config is no longer read and can be left in place.
+   The `sylius_merchant_id` key already stored in the gateway config is no longer read and can be left in place.
 
 1. #### `PayPalPaymentMethodEnabler` checks the seller's onboarding status directly with PayPal.
 
@@ -126,19 +123,16 @@
    +public function __construct(string $message = 'Could not load data from PayPal')
    ```
 
-1. #### The sandbox mode is stored in the PayPal gateway config and switched in the admin panel.
+1. #### The mode of a PayPal payment method is stored in its gateway config and set by the onboarding.
 
    The `sylius_paypal.sandbox` configuration option and the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable
-   have been removed. The mode is kept under the `sandbox` key of the PayPal gateway config and switched with
-   the "Mode" field of the PayPal payment method form. Sandbox and production credentials are stored separately,
-   under the `sandbox_credentials` and `production_credentials` keys, so switching does not require onboarding
-   again.
+   have been removed. Each PayPal payment method keeps its mode under the `sandbox` key of its gateway config. The
+   onboarding sets it and the payment method form shows it read-only, so a store that uses both modes has a PayPal
+   payment method for each, with its own credentials.
 
-   Run the migrations: the existing PayPal gateway config gets the `sandbox` key set from the
-   `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable available while migrating, or to `true` when it is not set,
-   as `sylius_paypal.sandbox` defaulted to `true`. If you disabled the sandbox through the `sylius_paypal.sandbox`
-   option only, either run the migrations with `SYLIUS_PAYPAL_SANDBOX_ENABLED=false` or switch the payment method
-   to "Production" in the admin panel afterwards.
+   A PayPal gateway config without the `sandbox` key is in production. If your store used the sandbox, set the
+   `sandbox` key of its PayPal gateway config to `true`, or connect the sandbox account as a new PayPal payment
+   method through the onboarding.
 
    The following parameters and services have been removed:
 
@@ -176,18 +170,9 @@
    ```
 
    ```diff
-    // Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType
-   +public function __construct(
-   +    private readonly CredentialsManagerInterface $credentialsManager,
-   +    private readonly TranslatorInterface $translator,
-   +)
-   ```
-
-   ```diff
     // Sylius\PayPalPlugin\Twig\PayPalExtension
     public function __construct(
    -    private readonly bool $sandbox,
-   +    private readonly ModeSwitchViewFactoryInterface $modeSwitchViewFactory,
         // ...
    +    ?HostProviderInterface $hostProvider = null,
     ) {
@@ -1004,7 +989,7 @@
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | takes only `PaymentSdkConfigurationProviderInterface` and `UrlGeneratorInterface`; its component and page type constants moved to `PaymentSdkConfigurationProvider` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
-   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` right after `ModeSwitchViewFactoryInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` as its first argument; lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
    | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the channel |
 

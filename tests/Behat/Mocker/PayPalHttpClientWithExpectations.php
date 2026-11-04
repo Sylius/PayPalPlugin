@@ -42,8 +42,14 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
      * @param array<string, mixed> $body
      * @param array<string, string> $headers
      */
-    public function addExpectation(string $method, string $path, array $body = [], int $statusCode = 200, array $headers = []): void
-    {
+    public function addExpectation(
+        string $method,
+        string $path,
+        array $body = [],
+        int $statusCode = 200,
+        array $headers = [],
+        ?string $host = null,
+    ): void {
         $expectations = $this->getExpectations();
         $expectations[] = [
             'method' => strtoupper($method),
@@ -51,6 +57,7 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
             'body' => $body,
             'statusCode' => $statusCode,
             'headers' => $headers,
+            'host' => $host,
         ];
 
         $this->saveExpectations($expectations);
@@ -78,10 +85,10 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         return [] !== $this->getExpectations();
     }
 
-    /** @return list<array{method: string, path: string, body: array<string, mixed>, statusCode: int, headers: array<string, string>}> */
+    /** @return list<array{method: string, path: string, body: array<string, mixed>, statusCode: int, headers: array<string, string>, host?: string|null}> */
     public function getExpectations(): array
     {
-        /** @var list<array{method: string, path: string, body: array<string, mixed>, statusCode: int, headers: array<string, string>}> $expectations */
+        /** @var list<array{method: string, path: string, body: array<string, mixed>, statusCode: int, headers: array<string, string>, host?: string|null}> $expectations */
         $expectations = $this->getCacheItem()->get() ?? [];
 
         return $expectations;
@@ -111,6 +118,16 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         $expectedRequest = $expectation['method'] . ' ' . $expectation['path'];
         if ($expectedRequest !== $currentRequest) {
             throw new \RuntimeException(sprintf('Expected the PayPal request "%s" but got "%s".', $expectedRequest, $currentRequest));
+        }
+
+        $expectedHost = $expectation['host'] ?? null;
+        if (null !== $expectedHost && $expectedHost !== $request->getUri()->getHost()) {
+            throw new \RuntimeException(sprintf(
+                'Expected the PayPal request "%s" on %s but it was sent to %s.',
+                $currentRequest,
+                $expectedHost,
+                $request->getUri()->getHost(),
+            ));
         }
 
         $headers = $expectation['headers'];
@@ -144,7 +161,7 @@ final readonly class PayPalHttpClientWithExpectations implements ClientInterface
         ;
     }
 
-    /** @param list<array{method: string, path: string, body: array<string, mixed>, statusCode: int, headers: array<string, string>}> $expectations */
+    /** @param list<array{method: string, path: string, body: array<string, mixed>, statusCode: int, headers: array<string, string>, host?: string|null}> $expectations */
     private function saveExpectations(array $expectations): void
     {
         $cacheItem = $this->getCacheItem();
