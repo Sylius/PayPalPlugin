@@ -68,7 +68,7 @@ sylius_paypal:
     webhook_not_registered: 'Webhook not registered'
     webhook_out_of_date: 'Webhook out of date'
     webhook_points_elsewhere: 'PayPal sends the events to %url%.'
-    webhook_update_hint: 'Run <code>%command%</code> to update it.'
+    webhook_update_hint: 'Run this command to update it:'
     carrier:
         AMAZON_MCF: 'Amazon Logistics (MCF)'
         ARAMEX: 'Aramex'

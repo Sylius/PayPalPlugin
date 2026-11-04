@@ -53,4 +53,4 @@ sylius_paypal:
     webhook_not_registered: "Webhook niet geregistreerd"
     webhook_out_of_date: "Webhook verouderd"
     webhook_points_elsewhere: "PayPal stuurt de events naar %url%."
-    webhook_update_hint: "Voer <code>%command%</code> uit om hem bij te werken."
+    webhook_update_hint: "Voer deze opdracht uit om hem bij te werken:"
