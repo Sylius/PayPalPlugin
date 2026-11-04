@@ -88,6 +88,8 @@ final class WebhookStateTest extends JsonApiTestCase
 
     private function webhookState(string $variant): TestLiveComponent
     {
+        $this->client->getContainer()->get('router')->getContext()->setParameter('_locale', 'en_US');
+
         return $this->createLiveComponent(
             'sylius_paypal:webhook_state',
             ['paymentMethodId' => $this->paymentMethod->getId(), 'variant' => $variant],
