@@ -65,7 +65,7 @@ final readonly class AddToCartAction
         /** @var OrderInterface $cart */
         $cart = $this->cartContext->getCart();
 
-        if (!$this->isPaymentSourceOffered($request, $cart)) {
+        if (!$this->isExpressCheckoutEnabled($cart) || !$this->isPaymentSourceOffered($request, $cart)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -120,6 +120,11 @@ final readonly class AddToCartAction
         return new RedirectResponse($this->router->generate('sylius_paypal_shop_create_paypal_order_from_cart', $routeParameters));
     }
 
+    private function isExpressCheckoutEnabled(OrderInterface $cart): bool
+    {
+        return $this->getConfig($cart)?->isExpressCheckoutEnabled() ?? true;
+    }
+
     private function isPaymentSourceOffered(Request $request, OrderInterface $cart): bool
     {
         $paymentSource = $request->query->get('paymentSource');
@@ -128,15 +133,15 @@ final readonly class AddToCartAction
             return true;
         }
 
-        return PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($cart);
+        return PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && ($this->getConfig($cart)?->isVenmoEnabled() ?? false);
     }
 
-    private function isVenmoEnabled(OrderInterface $cart): bool
+    private function getConfig(OrderInterface $cart): ?PayPalGatewayConfig
     {
         /** @var ChannelInterface|null $channel */
         $channel = $cart->getChannel();
         if (null === $channel) {
-            return false;
+            return null;
         }
 
         /** @var PaymentMethodInterface|null $paymentMethod */
@@ -144,9 +149,9 @@ final readonly class AddToCartAction
         /** @var GatewayConfigInterface|null $gatewayConfig */
         $gatewayConfig = $paymentMethod?->getGatewayConfig();
         if (null === $gatewayConfig) {
-            return false;
+            return null;
         }
 
-        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVenmoEnabled();
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
     }
 }
