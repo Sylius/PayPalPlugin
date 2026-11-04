@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Model\WebhookState;
 use Sylius\PayPalPlugin\Provider\HostProvider;
+use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 
 final class WebhookStateCheckerTest extends TestCase
@@ -35,6 +36,8 @@ final class WebhookStateCheckerTest extends TestCase
 
     private GenericApiInterface&MockObject $genericApi;
 
+    private WebhookIdProviderInterface&MockObject $webhookIdProvider;
+
     private PaymentMethodInterface&MockObject $paymentMethod;
 
     private WebhookStateChecker $checker;
@@ -42,6 +45,7 @@ final class WebhookStateCheckerTest extends TestCase
     protected function setUp(): void
     {
         $this->genericApi = $this->createMock(GenericApiInterface::class);
+        $this->webhookIdProvider = $this->createMock(WebhookIdProviderInterface::class);
 
         $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
         $webhookUrlProvider->method('provideCandidates')->willReturn([
@@ -53,7 +57,7 @@ final class WebhookStateCheckerTest extends TestCase
 
         $this->configure(['sandbox' => true, 'webhook_id' => 'WH-1']);
 
-        $this->checker = new WebhookStateChecker($this->genericApi, new HostProvider(), $webhookUrlProvider);
+        $this->checker = new WebhookStateChecker($this->genericApi, new HostProvider(), $webhookUrlProvider, $this->webhookIdProvider);
     }
 
     public function test_it_implements_the_webhook_state_checker_interface(): void
@@ -102,9 +106,31 @@ final class WebhookStateCheckerTest extends TestCase
         self::assertTrue($this->checker->check($this->paymentMethod)->pointsElsewhere());
     }
 
-    public function test_it_finds_no_webhook_registered_without_a_stored_webhook_id(): void
+    public function test_it_does_not_look_the_webhook_up_by_its_url_when_its_id_is_stored(): void
+    {
+        $this->mockWebhook(self::NOTIFY_URL, WebhookApi::EVENT_TYPES);
+
+        $this->webhookIdProvider->expects(self::never())->method('provide');
+
+        $this->checker->check($this->paymentMethod);
+    }
+
+    public function test_it_looks_the_webhook_up_by_its_url_when_no_id_is_stored(): void
     {
         $this->configure(['sandbox' => true]);
+        $this->webhookIdProvider->method('provide')->with($this->paymentMethod)->willReturn('WH-1');
+        $this->mockWebhook('https://shop.example.com/paypal-webhook/api/', WebhookApi::EVENT_TYPES);
+
+        self::assertEquals(
+            WebhookState::outdated('https://shop.example.com/paypal-webhook/api/', true, []),
+            $this->checker->check($this->paymentMethod),
+        );
+    }
+
+    public function test_it_finds_no_webhook_registered_when_none_is_stored_or_found_by_its_url(): void
+    {
+        $this->configure(['sandbox' => true]);
+        $this->webhookIdProvider->method('provide')->willReturn(null);
 
         $this->genericApi->expects(self::never())->method('get');
 

@@ -70,7 +70,25 @@ final class WebhookStateTest extends JsonApiTestCase
 
     public function test_it_flags_a_payment_method_without_a_webhook(): void
     {
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => []]);
+
         self::assertStringContainsString('data-test-paypal-webhook-state="not-registered"', (string) $this->webhookState('badge')->render());
+    }
+
+    public function test_it_flags_a_webhook_found_on_the_legacy_path_for_a_payment_method_without_a_stored_webhook_id(): void
+    {
+        $legacyUrl = 'https://localhost/paypal-webhook/api/';
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [['id' => 'WH-1', 'url' => $legacyUrl]]]);
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', [
+            'id' => 'WH-1',
+            'url' => $legacyUrl,
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], WebhookApi::EVENT_TYPES),
+        ]);
+
+        $rendered = (string) $this->webhookState('alert')->render();
+
+        self::assertStringContainsString('data-test-paypal-webhook-state="out-of-date"', $rendered);
+        self::assertStringContainsString($legacyUrl, $rendered);
     }
 
     public function test_it_shows_nothing_for_a_webhook_that_is_up_to_date_and_asks_paypal_only_once(): void

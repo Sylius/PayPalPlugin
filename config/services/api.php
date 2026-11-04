@@ -259,6 +259,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.generic'),
             service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.webhook_url'),
+            service('sylius_paypal.provider.webhook_id.lookup'),
         ]);
 
     $services->set('sylius_paypal.checker.webhook_state', CachingWebhookStateChecker::class)

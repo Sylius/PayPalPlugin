@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\WebhookState;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
+use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 
 final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
@@ -31,6 +32,7 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         private GenericApiInterface $genericApi,
         private HostProviderInterface $hostProvider,
         private WebhookUrlProviderInterface $webhookUrlProvider,
+        private WebhookIdProviderInterface $webhookIdProvider,
     ) {
     }
 
@@ -41,6 +43,10 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
         $webhookId = $config->webhookId();
         if (null === $webhookId || '' === $webhookId) {
+            $webhookId = $this->webhookIdProvider->provide($paymentMethod);
+        }
+
+        if (null === $webhookId) {
             return WebhookState::notRegistered();
         }
 
