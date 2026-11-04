@@ -25,7 +25,7 @@ class PayPalCredentials implements PayPalCredentialsInterface
     private string $id;
 
     #[ORM\ManyToOne(targetEntity: PaymentMethodInterface::class)]
-    #[ORM\JoinColumn(name: 'payment_method_id', referencedColumnName: 'id')]
+    #[ORM\JoinColumn(name: 'payment_method_id', referencedColumnName: 'id', unique: true)]
     private PaymentMethodInterface $paymentMethod;
 
     #[ORM\Column(name: 'access_token', type: 'string')]
@@ -46,9 +46,19 @@ class PayPalCredentials implements PayPalCredentialsInterface
     ) {
         $this->id = $id;
         $this->paymentMethod = $paymentMethod;
+        $this->refresh($accessToken, $creationTime, $expiresIn);
+    }
+
+    public function refresh(string $accessToken, \DateTime $creationTime, int $expiresIn): void
+    {
         $this->accessToken = $accessToken;
         $this->creationTime = $creationTime;
         $this->expirationTime = (clone $creationTime)->modify('+' . $expiresIn . ' seconds');
+    }
+
+    public function expire(): void
+    {
+        $this->expirationTime = clone $this->creationTime;
     }
 
     public function id(): string
@@ -76,8 +86,8 @@ class PayPalCredentials implements PayPalCredentialsInterface
         return $this->expirationTime;
     }
 
-    public function isExpired(): bool
+    public function isExpired(\DateTimeInterface $now): bool
     {
-        return new \DateTime() > $this->expirationTime;
+        return $now >= $this->expirationTime;
     }
 }

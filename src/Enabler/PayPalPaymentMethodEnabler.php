@@ -17,11 +17,12 @@ use Doctrine\Persistence\ObjectManager;
 use JsonException;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Http\Client\ClientExceptionInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
@@ -47,14 +48,14 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         $sandbox = $config->isSandbox();
 
         try {
-            $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox);
+            $token = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox)->value();
             $status = $sandbox ? null : $this->merchantOnboardingStatusApi->get(
                 $token,
                 $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId(),
                 $config->merchantId(),
                 $sandbox,
             );
-        } catch (PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
+        } catch (PayPalApiException|PayPalPluginException|ClientExceptionInterface|JsonException|InvalidArgumentException) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
 

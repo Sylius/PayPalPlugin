@@ -1,6 +1,16 @@
+sylius:
+    ui:
+        capture_authorization: 'Autorisatie vastleggen'
+        refund_late_capture: 'Late vastlegging terugbetalen'
+        void_authorization: 'Autorisatie intrekken'
 sylius_paypal:
+    add_paypal_account: 'PayPal-account toevoegen'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
+    capture_strategy: 'Incassostrategie'
+    capture_strategy_authorize: 'Autoriseren en incasseren'
+    capture_strategy_capture: 'Onmiddellijk incasseren'
+    capture_strategy_help: 'Autoriseren reserveert het geld van de koper. Voltooi de betaling in de bestelling om te incasseren, of annuleer de bestelling om de autorisatie in te trekken. Alleen PayPal, Pay Later, Venmo, kaarten, Apple Pay en Google Pay worden aangeboden, andere betaalmethoden worden verborgen.'
     card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'
     card_number: 'Credit Card nummer'
     card_three_d_secure_always: 'Altijd 3D Secure aanvragen voor kaartbetalingen'
@@ -24,7 +34,6 @@ sylius_paypal:
     mode: 'Modus'
     mode_production: 'Productie'
     mode_sandbox: 'Sandbox'
-    mode_not_configured: "De inloggegevens voor deze modus zijn nog niet geconfigureerd. Configureer ze voordat u wisselt."
     missing_billing_address_content: 'Ga alstublief terug naar de "adressering" en vul deze aan.'
     missing_billing_address_header: 'We konden geen facturatie adres ophalen van PayPal'
     onboarding_completed: 'Uw PayPal-account is gekoppeld.'
@@ -32,9 +41,7 @@ sylius_paypal:
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
     report: 'Rapporteren'
-    sandbox_on_production_warning: "Waarschuwing: u schakelt PayPal Sandbox in op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen. Ga alleen verder als dit de bedoeling is."
-    set_up_production: 'Productie instellen'
-    set_up_sandbox: 'Sandbox instellen'
+    sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     sftp_password: 'SFTP wachtwoord'
     sftp_username: 'SFTP gebruikersnaam'
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"

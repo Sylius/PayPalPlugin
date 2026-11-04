@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackAmountProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
@@ -41,6 +42,7 @@ final readonly class ShippingCallbackAction
         private CallbackSignatureVerifierInterface $signatureVerifier,
         private PaypalPaymentQueryInterface $paypalPaymentQuery,
         private ChannelAvailableCountriesProviderInterface $availableCountriesProvider,
+        private PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
         private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
         private ShippingOptionsResolverInterface $shippingOptionsResolver,
         private ShippingCallbackResponseFactoryInterface $responseFactory,
@@ -60,8 +62,9 @@ final readonly class ShippingCallbackAction
         }
 
         $payPalOrderId = (string) ($payload['id'] ?? '');
-        /** @var array<string, mixed> $payPalShippingAddress */
-        $payPalShippingAddress = (array) ($payload['shipping_address'] ?? []);
+        /** @var array<string, mixed> $payPalShippingAddressData */
+        $payPalShippingAddressData = (array) ($payload['shipping_address'] ?? []);
+        $payPalShippingAddress = $this->payPalOrderDetailsMapper->mapAddress($payPalShippingAddressData);
         /** @var array<int, mixed> $purchaseUnits */
         $purchaseUnits = (array) ($payload['purchase_units'] ?? []);
 
@@ -78,7 +81,7 @@ final readonly class ShippingCallbackAction
             return $this->unprocessable(self::ISSUE_ADDRESS_ERROR);
         }
 
-        $countryCode = (string) ($payPalShippingAddress['country_code'] ?? '');
+        $countryCode = (string) $payPalShippingAddress->countryCode();
         if (!in_array($countryCode, $this->availableCountriesProvider->provideForChannel($channel), true)) {
             return $this->unprocessable(self::ISSUE_COUNTRY_ERROR);
         }
