@@ -62,6 +62,6 @@ final class UpdateWebhookApiTest extends TestCase
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->update($this->paymentMethod, 'WEBHOOK_ID', 'http://shop.example.com/payment-methods/PAYPAL', ['A', 'B']));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->update($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', ['A', 'B']));
     }
 }

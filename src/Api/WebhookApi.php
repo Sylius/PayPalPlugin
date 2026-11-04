@@ -39,7 +39,7 @@ final readonly class WebhookApi implements WebhookApiInterface
     public function register(PaymentMethodInterface $paymentMethod, string $webhookUrl): array
     {
         return $this->client->post($paymentMethod, 'v1/notifications/webhooks', [
-            'url' => preg_replace('/^http:/i', 'https:', $webhookUrl),
+            'url' => $webhookUrl,
             'event_types' => array_map(
                 static fn (string $eventType): array => ['name' => $eventType],
                 self::EVENT_TYPES,

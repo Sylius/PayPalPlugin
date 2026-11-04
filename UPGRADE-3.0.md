@@ -705,7 +705,8 @@
    request, and on the console the hostname of the first enabled channel of the payment method that has one other
    than `localhost`, so the command does not register `localhost`; only without such a channel does the console fall
    back to the request context (`framework.router.default_uri`). `WebhookUrlProvider` takes the `request_stack` for
-   that.
+   that. It always gives an `https` URL, switching an `http` base URL or request context to `https`;
+   `WebhookApi::register()` and `UpdateWebhookApi::update()` send the URL they are given as it is.
 
    `WebhookIdProvider` looks the webhook up by the notify URL on every host it may have been registered on and only then
    by `/paypal-webhook/api/` on them (`WebhookUrlProviderInterface::provideCandidates()`): the configured base URL, the

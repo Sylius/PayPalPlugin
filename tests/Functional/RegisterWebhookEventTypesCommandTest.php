@@ -24,6 +24,27 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
 {
     use MocksPayPalApiTrait;
 
+    public function test_it_reports_the_https_url_paypal_refused_to_register_the_webhook_at(): void
+    {
+        $paymentMethod = $this->loadShop();
+        $paymentMethod->getChannels()->first()->setHostname(null);
+        $this->getEntityManager()->flush();
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => []]);
+        $this->payPalHttpClient()->addExpectation('POST', 'v1/notifications/webhooks', [
+            'name' => 'VALIDATION_ERROR',
+            'message' => 'Invalid data provided',
+            'debug_id' => 'DEBUG_ID',
+        ], 400);
+
+        /** @var Command $command */
+        $command = self::getContainer()->get('sylius_paypal.console.command.register_webhook_event_types');
+        $commandTester = new CommandTester($command);
+
+        self::assertSame(Command::FAILURE, $commandTester->execute([]));
+        self::assertStringContainsString('"https://localhost/payment-methods/PAYPAL"', preg_replace('/\s+/', ' ', $commandTester->getDisplay()) ?? '');
+    }
+
     public function test_it_points_the_webhook_registered_on_the_legacy_url_at_the_notify_url_of_the_payment_method(): void
     {
         $paymentMethod = $this->loadShop();
