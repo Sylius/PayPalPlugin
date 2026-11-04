@@ -19,11 +19,9 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\WebhookState;
-use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-#[AsLiveComponent('sylius_paypal_webhook_state', template: '@SyliusPayPalPlugin/admin/shared/components/webhook_state.html.twig')]
 final class WebhookStateComponent
 {
     use DefaultActionTrait;
