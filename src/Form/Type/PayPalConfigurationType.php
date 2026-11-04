@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
-use Sylius\PayPalPlugin\Manager\CredentialsManagerInterface;
-use Sylius\PayPalPlugin\Model\Mode;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Symfony\Component\Form\AbstractType;
@@ -23,49 +21,39 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PayPalConfigurationType extends AbstractType
 {
     private const HIDDEN_FIELDS = [
         PayPalGatewayConfig::MERCHANT_ID,
         PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
-        PayPalGatewayConfig::USE_AUTHORIZE,
     ];
 
-    private const SANDBOX_MODE_FIELD = 'sandbox_mode';
+    private const CAPTURE = 'capture';
 
-    public function __construct(
-        private readonly CredentialsManagerInterface $credentialsManager,
-        private readonly TranslatorInterface $translator,
-    ) {
-    }
+    private const AUTHORIZE = 'authorize';
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $originalData = [];
 
         $builder
-            ->add(self::SANDBOX_MODE_FIELD, ChoiceType::class, [
-                'label' => 'sylius_paypal.mode',
-                'mapped' => false,
+            ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
+                'label' => 'sylius_paypal.capture_strategy',
                 'expanded' => false,
                 'multiple' => false,
                 'choices' => [
-                    'sylius_paypal.mode_production' => false,
-                    'sylius_paypal.mode_sandbox' => true,
+                    'sylius_paypal.capture_strategy_capture' => false,
+                    'sylius_paypal.capture_strategy_authorize' => true,
                 ],
-                'choice_value' => static fn (?bool $mode): string => (true === $mode ? Mode::Sandbox : Mode::Production)->value,
+                'choice_value' => static fn (?bool $authorize): string => true === $authorize ? self::AUTHORIZE : self::CAPTURE,
             ])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
             ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
-            // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
-            ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
             ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add(PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.express_checkout_enabled', 'required' => false])
@@ -90,14 +78,8 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
+                $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
                 $event->setData($data);
-            }
-        });
-
-        $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
-            $data = $event->getData();
-            if (is_array($data)) {
-                $event->getForm()->get(self::SANDBOX_MODE_FIELD)->setData(PayPalGatewayConfig::fromArray($data)->isSandbox());
             }
         });
 
@@ -122,33 +104,9 @@ final class PayPalConfigurationType extends AbstractType
                 return;
             }
 
-            $event->setData($this->applyModeSwitch($event, $config));
+            $config[PayPalGatewayConfig::USE_AUTHORIZE] = true === ($config[PayPalGatewayConfig::USE_AUTHORIZE] ?? false);
+
+            $event->setData($config);
         });
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     *
-     * @return array<string, mixed>
-     */
-    private function applyModeSwitch(FormEvent $event, array $config): array
-    {
-        $currentSandbox = PayPalGatewayConfig::fromArray($config)->isSandbox();
-        $requestedSandbox = (bool) $event->getForm()->get(self::SANDBOX_MODE_FIELD)->getData();
-        $config = $this->credentialsManager->store($config, $currentSandbox, $config);
-
-        if ($requestedSandbox === $currentSandbox) {
-            return $config;
-        }
-
-        if (!$this->credentialsManager->hasCredentials($config, $requestedSandbox)) {
-            $event->getForm()->get(self::SANDBOX_MODE_FIELD)->addError(
-                new FormError($this->translator->trans('sylius_paypal.mode_not_configured')),
-            );
-
-            return $config;
-        }
-
-        return $this->credentialsManager->switchTo($config, $requestedSandbox);
     }
 }

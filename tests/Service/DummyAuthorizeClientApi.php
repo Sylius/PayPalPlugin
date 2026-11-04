@@ -14,11 +14,17 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Service;
 
 use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
+use Sylius\PayPalPlugin\Model\AccessToken;
 
 final class DummyAuthorizeClientApi implements AuthorizeClientApiInterface
 {
-    public function authorize(string $clientId, string $clientSecret, bool $sandbox): string
+    public function authorize(string $clientId, string $clientSecret, bool $sandbox): AccessToken
     {
-        return 'TOKEN';
+        return new AccessToken(self::accessTokenOf($clientId), 32400);
+    }
+
+    public static function accessTokenOf(string $clientId): string
+    {
+        return 'TOKEN-' . $clientId;
     }
 }

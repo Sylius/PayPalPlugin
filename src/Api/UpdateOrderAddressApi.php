@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\AddressInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Provider\PayPalRegionProvider;
 
@@ -25,7 +26,7 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
     }
 
     public function update(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $orderId,
         string $referenceId,
         AddressInterface $shippingAddress,
@@ -43,8 +44,8 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
         }
 
         $this->client->patch(
+            $paymentMethod,
             sprintf('v2/checkout/orders/%s', $orderId),
-            $token,
             [
                 [
                     'op' => 'replace',
@@ -55,8 +56,8 @@ final class UpdateOrderAddressApi implements UpdateOrderAddressApiInterface
         );
 
         $this->client->patch(
+            $paymentMethod,
             sprintf('v2/checkout/orders/%s', $orderId),
-            $token,
             [
                 [
                     'op' => 'replace',

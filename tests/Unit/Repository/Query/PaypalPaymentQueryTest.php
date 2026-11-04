@@ -44,7 +44,6 @@ final class PaypalPaymentQueryTest extends TestCase
             $this->paymentRepository,
             [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING],
             [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED],
-            [PaymentInterface::STATE_COMPLETED],
         );
     }
 
@@ -52,16 +51,16 @@ final class PaypalPaymentQueryTest extends TestCase
     {
         $paypalOrderId = 'PAYPAL123';
         $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => $paypalOrderId]);
 
         $query = $this->createMock(Query::class);
-        $query->method('getOneOrNullResult')->willReturn($payment);
+        $query->method('toIterable')->willReturn([$payment]);
 
         $queryBuilder = $this->createMock(QueryBuilder::class);
         $queryBuilder->method('innerJoin')->willReturnSelf();
         $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('setParameter')->willReturnSelf();
         $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('setMaxResults')->willReturnSelf();
         $queryBuilder->method('getQuery')->willReturn($query);
 
         $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
@@ -185,16 +184,16 @@ final class PaypalPaymentQueryTest extends TestCase
     {
         $paypalOrderId = 'PAYPAL123';
         $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => $paypalOrderId]);
 
         $query = $this->createMock(Query::class);
-        $query->method('getOneOrNullResult')->willReturn($payment);
+        $query->method('toIterable')->willReturn([$payment]);
 
         $queryBuilder = $this->createMock(QueryBuilder::class);
         $queryBuilder->method('innerJoin')->willReturnSelf();
         $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('setParameter')->willReturnSelf();
         $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('setMaxResults')->willReturnSelf();
         $queryBuilder->method('getQuery')->willReturn($query);
 
         $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
@@ -204,33 +203,6 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->entityManager->method('getConfiguration')->willReturn($configuration);
 
         $result = $this->query->getForCancellationByOrderId($paypalOrderId);
-
-        $this->assertSame($payment, $result);
-    }
-
-    public function testGetForRefundingByOrderIdReturnsPaymentWithRefundableStates(): void
-    {
-        $paypalOrderId = 'PAYPAL123';
-        $payment = $this->createMock(PaymentInterface::class);
-
-        $query = $this->createMock(Query::class);
-        $query->method('getOneOrNullResult')->willReturn($payment);
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('innerJoin')->willReturnSelf();
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('setMaxResults')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-
-        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
-
-        $configuration = $this->createMock(Configuration::class);
-        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn('SomeFunction');
-        $this->entityManager->method('getConfiguration')->willReturn($configuration);
-
-        $result = $this->query->getForRefundingByOrderId($paypalOrderId);
 
         $this->assertSame($payment, $result);
     }
@@ -258,31 +230,6 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->expectException(PaymentNotFoundException::class);
 
         $this->query->getForCancellationByOrderId($paypalOrderId);
-    }
-
-    public function testGetForRefundingByOrderIdThrowsExceptionWhenNoPaymentFound(): void
-    {
-        $paypalOrderId = 'PAYPAL123';
-
-        $query = $this->createMock(Query::class);
-        $query->method('toIterable')->willReturn([]);
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('innerJoin')->willReturnSelf();
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->method('setParameter')->willReturnSelf();
-        $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-
-        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
-
-        $configuration = $this->createMock(Configuration::class);
-        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn(null);
-        $this->entityManager->method('getConfiguration')->willReturn($configuration);
-
-        $this->expectException(PaymentNotFoundException::class);
-
-        $this->query->getForRefundingByOrderId($paypalOrderId);
     }
 
     public function testGetForUpdateByOrderIdUsesCorrectStates(): void
@@ -361,53 +308,16 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->query->getForCancellationByOrderId($paypalOrderId);
     }
 
-    public function testGetForRefundingByOrderIdUsesCorrectStates(): void
-    {
-        $paypalOrderId = 'PAYPAL123';
-
-        $query = $this->createMock(Query::class);
-        $query->method('toIterable')->willReturn([]);
-
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->method('innerJoin')->willReturnSelf();
-        $queryBuilder->method('andWhere')->willReturnSelf();
-        $queryBuilder->expects($this->exactly(2))
-            ->method('setParameter')
-            ->willReturnCallback(function (string $param, $value) use ($queryBuilder) {
-                if ($param === 'states') {
-                    $this->assertEquals([PaymentInterface::STATE_COMPLETED], $value);
-                } elseif ($param === 'factoryName') {
-                    $this->assertEquals(SyliusPayPalExtension::PAYPAL_FACTORY_NAME, $value);
-                }
-
-                return $queryBuilder;
-            });
-        $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('getQuery')->willReturn($query);
-
-        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
-
-        $configuration = $this->createMock(Configuration::class);
-        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn(null);
-        $this->entityManager->method('getConfiguration')->willReturn($configuration);
-
-        $this->expectException(PaymentNotFoundException::class);
-
-        $this->query->getForRefundingByOrderId($paypalOrderId);
-    }
-
     public function testConstructorAcceptsCustomStates(): void
     {
         $customUpdatableStates = [PaymentInterface::STATE_NEW];
         $customCancellableStates = [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW];
-        $customRefundableStates = [PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_REFUNDED];
 
         $query = new PaypalPaymentQuery(
             $this->entityManager,
             $this->paymentRepository,
             $customUpdatableStates,
             $customCancellableStates,
-            $customRefundableStates,
         );
 
         $this->assertInstanceOf(PaypalPaymentQuery::class, $query);
@@ -417,21 +327,22 @@ final class PaypalPaymentQueryTest extends TestCase
     {
         $paypalOrderId = 'PAYPAL123';
         $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => $paypalOrderId]);
 
         $query = $this->createMock(Query::class);
-        $query->method('getOneOrNullResult')->willReturn($payment);
+        $query->method('toIterable')->willReturn([$payment]);
 
         $queryBuilder = $this->createMock(QueryBuilder::class);
         $queryBuilder->method('innerJoin')->willReturnSelf();
         $queryBuilder->method('andWhere')->willReturnSelf();
         $queryBuilder->method('addOrderBy')->willReturnSelf();
-        $queryBuilder->method('setMaxResults')->willReturnSelf();
         $queryBuilder->method('getQuery')->willReturn($query);
         $queryBuilder
             ->method('setParameter')
             ->willReturnCallback(function (string $name, mixed $value) use ($queryBuilder): QueryBuilder {
                 if ('states' === $name) {
                     self::assertSame([
+                        PaymentInterface::STATE_NEW,
                         PaymentInterface::STATE_PROCESSING,
                         PaymentInterface::STATE_COMPLETED,
                         PaymentInterface::STATE_CANCELLED,
@@ -450,5 +361,81 @@ final class PaypalPaymentQueryTest extends TestCase
         $this->entityManager->method('getConfiguration')->willReturn($configuration);
 
         self::assertSame($payment, $this->query->getForSettlementByOrderId($paypalOrderId));
+    }
+
+    public function test_it_finds_a_payment_for_settlement_by_a_paypal_order_another_attempt_superseded(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'CURRENT', 'superseded_paypal_orders' => ['SUPERSEDED' => 'trustly']]);
+
+        $this->paymentsMatchingWithCast([$payment]);
+
+        self::assertSame($payment, $this->query->getForSettlementByOrderId('SUPERSEDED'));
+    }
+
+    public function test_it_does_not_cancel_a_payment_by_a_paypal_order_another_attempt_superseded(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'CURRENT', 'superseded_paypal_orders' => ['SUPERSEDED' => 'paypal']]);
+
+        $this->paymentsMatchingWithCast([$payment]);
+
+        $this->expectException(PaymentNotFoundException::class);
+
+        $this->query->getForCancellationByOrderId('SUPERSEDED');
+    }
+
+    public function test_it_finds_a_payment_for_settlement_by_its_capture_id(): void
+    {
+        $other = $this->createMock(PaymentInterface::class);
+        $other->method('getDetails')->willReturn(['paypal_order_id' => 'OTHER', 'transaction_id' => 'CAPTURE-OTHER']);
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'ORDER', 'transaction_id' => 'CAPTURE']);
+
+        $this->paymentsMatchingWithCast([$other, $payment]);
+
+        self::assertSame($payment, $this->query->getForSettlementByCaptureId('CAPTURE'));
+    }
+
+    public function test_it_finds_a_payment_for_settlement_by_the_id_of_its_late_capture(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'ORDER', 'paypal_late_capture' => ['id' => 'LATE-CAPTURE']]);
+
+        $this->paymentsMatchingWithCast([$payment]);
+
+        self::assertSame($payment, $this->query->getForSettlementByCaptureId('LATE-CAPTURE'));
+    }
+
+    public function test_it_does_not_find_a_payment_for_settlement_by_a_capture_id_it_does_not_carry(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'CAPTURE', 'transaction_id' => 'OTHER']);
+
+        $this->paymentsMatchingWithCast([$payment]);
+
+        $this->expectException(PaymentNotFoundException::class);
+
+        $this->query->getForSettlementByCaptureId('CAPTURE');
+    }
+
+    /** @param list<PaymentInterface> $payments */
+    private function paymentsMatchingWithCast(array $payments): void
+    {
+        $query = $this->createMock(Query::class);
+        $query->method('toIterable')->willReturn($payments);
+
+        $queryBuilder = $this->createMock(QueryBuilder::class);
+        $queryBuilder->method('innerJoin')->willReturnSelf();
+        $queryBuilder->method('andWhere')->willReturnSelf();
+        $queryBuilder->method('setParameter')->willReturnSelf();
+        $queryBuilder->method('addOrderBy')->willReturnSelf();
+        $queryBuilder->method('getQuery')->willReturn($query);
+
+        $this->paymentRepository->method('createQueryBuilder')->willReturn($queryBuilder);
+
+        $configuration = $this->createMock(Configuration::class);
+        $configuration->method('getCustomStringFunction')->with('CAST')->willReturn('SomeFunction');
+        $this->entityManager->method('getConfiguration')->willReturn($configuration);
     }
 }

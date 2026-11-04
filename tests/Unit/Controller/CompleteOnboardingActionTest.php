@@ -21,12 +21,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
-use Sylius\PayPalPlugin\Provider\ActiveModeProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Symfony\Component\HttpFoundation\Request;
@@ -62,7 +60,7 @@ final class CompleteOnboardingActionTest extends TestCase
 
         $this->action = new CompleteOnboardingAction(
             $this->onboardingCompletionProcessor,
-            new OnboardingStatusMessagesProvider(new HostProvider($this->createStub(ActiveModeProviderInterface::class))),
+            new OnboardingStatusMessagesProvider(new HostProvider()),
             $this->urlGenerator,
             $this->logger,
         );
@@ -112,19 +110,6 @@ final class CompleteOnboardingActionTest extends TestCase
             ]],
             $this->flashBag($request)->all(),
         );
-    }
-
-    #[Test]
-    public function it_returns_bad_request_when_a_paypal_payment_method_already_exists(): void
-    {
-        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
-
-        $this->onboardingCompletionProcessor->method('process')->willThrowException(new PayPalPaymentMethodAlreadyExistsException());
-
-        $response = ($this->action)($request);
-
-        self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-        self::assertSame(['error' => ['sylius_paypal.more_than_one_seller_not_allowed']], $this->flashBag($request)->all());
     }
 
     #[Test]

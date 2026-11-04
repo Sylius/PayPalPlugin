@@ -25,5 +25,9 @@ interface PayPalCredentialsInterface
 
     public function expirationTime(): \DateTime;
 
-    public function isExpired(): bool;
+    public function refresh(string $accessToken, \DateTime $creationTime, int $expiresIn): void;
+
+    public function expire(): void;
+
+    public function isExpired(\DateTimeInterface $now): bool;
 }

@@ -51,6 +51,8 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
         $container->setParameter('sylius_paypal.supported_locales', $config['supported_locales']);
         $container->setParameter('sylius_paypal.tracking.carriers', $config['tracking']['carriers']);
+        $container->setParameter('sylius_paypal.authorize.payment_sources', $config['authorize']['payment_sources']);
+        $container->setParameter('sylius_paypal.shop_api.return_url', $config['shop_api']['return_url']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
 
@@ -140,7 +142,6 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     {
         $container->setParameter('sylius_paypal.logging.increased', (bool) $config['logging']['increased']);
         $container->setParameter('sylius_paypal.test_buyer_country', $config['test_buyer_country']);
-        $container->setParameter('sylius_paypal.prioritized_factory_name', self::PAYPAL_FACTORY_NAME);
         $container->setParameter('sylius_paypal.partner_attribution_id', self::PARTNER_ATTRIBUTION_ID);
         $container->setParameter('sylius_paypal.partner_credentials.partner_id', self::PAYPAL_PARTNER_ID);
         $container->setParameter('sylius_paypal.partner_credentials.partner_client_id', self::PAYPAL_PARTNER_CLIENT_ID);

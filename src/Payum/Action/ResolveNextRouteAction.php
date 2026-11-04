@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Payum\Action;
 
 use Payum\Core\Action\ActionInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Bundle\PayumBundle\Request\ResolveNextRoute;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 final class ResolveNextRouteAction implements ActionInterface
@@ -31,15 +31,6 @@ final class ResolveNextRouteAction implements ActionInterface
 
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
-
-        if ($payment->getState() === PaymentInterface::STATE_NEW) {
-            $request->setRouteName('sylius_paypal_shop_pay_with_paypal_form');
-            $request->setRouteParameters(
-                ['orderToken' => $order->getTokenValue(), 'paymentId' => $payment->getId()],
-            );
-
-            return;
-        }
 
         if ($payment->getState() === PaymentInterface::STATE_COMPLETED) {
             $request->setRouteName('sylius_shop_order_thank_you');

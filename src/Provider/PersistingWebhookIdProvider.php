@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Doctrine\Persistence\ObjectManager;
 use Psr\Cache\CacheItemPoolInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
 final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInterface
 {
     public function __construct(
         private WebhookIdProviderInterface $webhookIdProvider,
-        private ObjectManager $paymentMethodManager,
+        private WebhookIdUpdaterInterface $webhookIdUpdater,
         private CacheItemPoolInterface $cache,
         private int $refreshCooldown,
     ) {
@@ -42,7 +42,7 @@ final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInt
 
         $webhookId = $this->webhookIdProvider->provide($paymentMethod);
         if (null !== $webhookId) {
-            $this->store($paymentMethod, $webhookId);
+            $this->webhookIdUpdater->update($paymentMethod, $webhookId);
         }
 
         return $webhookId;
@@ -56,7 +56,7 @@ final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInt
 
         $webhookId = $this->webhookIdProvider->refresh($paymentMethod);
         if (null !== $webhookId) {
-            $this->store($paymentMethod, $webhookId);
+            $this->webhookIdUpdater->update($paymentMethod, $webhookId);
         }
 
         return $webhookId;
@@ -75,18 +75,5 @@ final readonly class PersistingWebhookIdProvider implements WebhookIdProviderInt
         $this->cache->save($item);
 
         return true;
-    }
-
-    private function store(PaymentMethodInterface $paymentMethod, string $webhookId): void
-    {
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        if (null === $gatewayConfig) {
-            return;
-        }
-
-        $config = $gatewayConfig->getConfig();
-        $config[PayPalGatewayConfig::WEBHOOK_ID] = $webhookId;
-        $gatewayConfig->setConfig($config);
-        $this->paymentMethodManager->flush();
     }
 }

@@ -18,19 +18,37 @@ use Doctrine\ORM\QueryBuilder;
 use Sylius\Bundle\ResourceBundle\Doctrine\ORM\EntityRepository;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
+use Symfony\Bridge\Doctrine\Types\UuidType;
 
-final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface
+final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface, PaypalPaymentBatchQueryInterface
 {
     /** @param PaymentRepositoryInterface<PaymentInterface>&EntityRepository $paymentRepository */
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PaymentRepositoryInterface&EntityRepository $paymentRepository,
-        private readonly array $updatableStates = ['cart', 'new', 'processing'],
-        private readonly array $cancellableStates = ['cart', 'new', 'processing', 'completed'],
-        private readonly array $refundableStates = ['completed'],
-        private readonly array $settleableStates = ['processing', 'completed', 'cancelled', 'failed'],
+        private readonly array $updatableStates = [
+            PaymentInterface::STATE_CART,
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+        ],
+        private readonly array $cancellableStates = [
+            PaymentInterface::STATE_CART,
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+            PaymentInterface::STATE_COMPLETED,
+        ],
+        private readonly array $settleableStates = [
+            PaymentInterface::STATE_NEW,
+            PaymentInterface::STATE_PROCESSING,
+            PaymentInterface::STATE_COMPLETED,
+            PaymentInterface::STATE_CANCELLED,
+            PaymentInterface::STATE_FAILED,
+        ],
     ) {
     }
 
@@ -56,17 +74,6 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
-    public function getForRefundingByOrderId(string $paypalOrderId): PaymentInterface
-    {
-        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
-            ->andWhere('o.state IN (:states)')
-            ->setParameter('states', $this->refundableStates)
-            ->addOrderBy('o.updatedAt', 'DESC')
-        ;
-
-        return $this->doGetPayment($queryBuilder, $paypalOrderId);
-    }
-
     public function getForSettlementByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()
@@ -75,39 +82,99 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
             ->addOrderBy('o.updatedAt', 'DESC')
         ;
 
-        return $this->doGetPayment($queryBuilder, $paypalOrderId);
+        return $this->doGetPayment($queryBuilder, $paypalOrderId, includingSuperseded: true);
     }
 
-    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId): PaymentInterface
+    public function getForSettlementByCaptureId(string $captureId): PaymentInterface
     {
-        if ($this->isCastAvailable()) {
-            $payment = $queryBuilder
-                ->andWhere('CAST(o.details AS text) LIKE :orderId')
-                ->setParameter('orderId', '%"' . $paypalOrderId . '"%')
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult()
-            ;
-            if (null !== $payment) {
-                return $payment;
-            }
-
-            throw new PaymentNotFoundException();
-        }
-
-        $payments = $queryBuilder
-            ->getQuery()
-            ->toIterable()
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $this->settleableStates)
+            ->addOrderBy('o.updatedAt', 'DESC')
         ;
 
-        foreach ($payments as $payment) {
-            $details = $payment->getDetails();
-            if (isset($details['paypal_order_id']) && $details['paypal_order_id'] === $paypalOrderId) {
+        $this->filterByDetailsValue($queryBuilder, $captureId);
+
+        /** @var PaymentInterface $payment */
+        foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
+            $lateCapture = $payment->getDetails()[PayPalPaymentSettlementProcessor::LATE_CAPTURE] ?? null;
+            if (
+                $captureId === PayPalPaymentDetails::fromPayment($payment)->transactionId() ||
+                (is_array($lateCapture) && $captureId === ($lateCapture['id'] ?? null))
+            ) {
                 return $payment;
             }
         }
 
         throw new PaymentNotFoundException();
+    }
+
+    public function findInStates(array $states, int $limit, ?int $afterId = null): array
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder()
+            ->andWhere('o.state IN (:states)')
+            ->setParameter('states', $states)
+            ->orderBy('o.id', 'ASC')
+            ->setMaxResults($limit)
+        ;
+
+        if (null !== $afterId) {
+            $queryBuilder
+                ->andWhere('o.id > :afterId')
+                ->setParameter('afterId', $afterId)
+            ;
+        }
+
+        /** @var list<PaymentInterface> $payments */
+        $payments = $queryBuilder->getQuery()->getResult();
+
+        return $payments;
+    }
+
+    public function getByPaymentRequestHash(string $paymentRequestHash): PaymentInterface
+    {
+        $payment = $this->paymentRepository
+            ->createQueryBuilder('o')
+            ->innerJoin(PaymentRequestInterface::class, 'paymentRequest', 'WITH', 'paymentRequest.payment = o')
+            ->andWhere('paymentRequest.hash = :paymentRequestHash')
+            ->setParameter('paymentRequestHash', $paymentRequestHash, UuidType::NAME)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+
+        if (!$payment instanceof PaymentInterface) {
+            throw new PaymentNotFoundException();
+        }
+
+        return $payment;
+    }
+
+    private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface
+    {
+        $this->filterByDetailsValue($queryBuilder, $paypalOrderId);
+
+        /** @var PaymentInterface $payment */
+        foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
+            $details = PayPalPaymentDetails::fromPayment($payment);
+            if (
+                $paypalOrderId === $details->payPalOrderId() ||
+                ($includingSuperseded && $details->isSupersededPayPalOrder($paypalOrderId))
+            ) {
+                return $payment;
+            }
+        }
+
+        throw new PaymentNotFoundException();
+    }
+
+    private function filterByDetailsValue(QueryBuilder $queryBuilder, string $value): void
+    {
+        if ($this->isCastAvailable()) {
+            $queryBuilder
+                ->andWhere('CAST(o.details AS text) LIKE :detailsValue')
+                ->setParameter('detailsValue', '%"' . $value . '"%')
+            ;
+        }
     }
 
     private function getPaypalPaymentQueryBuilder(): QueryBuilder

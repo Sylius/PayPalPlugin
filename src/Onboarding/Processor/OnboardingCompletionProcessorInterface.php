@@ -15,13 +15,11 @@ namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Model\OnboardingCompletionResult;
 
 interface OnboardingCompletionProcessorInterface
 {
     /**
-     * @throws PayPalPaymentMethodAlreadyExistsException
      * @throws OnboardingSessionExpiredException
      * @throws OnboardingFailedException
      */

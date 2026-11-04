@@ -18,6 +18,8 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Request\Authorize;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 
 final class AuthorizeAction implements ActionInterface
 {
@@ -29,7 +31,7 @@ final class AuthorizeAction implements ActionInterface
         /** @var PaymentInterface $payment */
         $payment = $request->getModel();
 
-        $payment->setDetails(['status' => StatusAction::STATUS_CREATED]);
+        $payment->setDetails(PayPalPaymentDetails::create()->withStatus(PayPalPaymentStatus::Created)->toArray());
     }
 
     public function supports($request): bool

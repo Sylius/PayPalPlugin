@@ -23,5 +23,6 @@ interface PurchaseUnitFactoryInterface
         string $referenceId,
         ?string $merchantId = null,
         bool $withItemTaxes = true,
+        ?string $customId = null,
     ): PayPalPurchaseUnit;
 }

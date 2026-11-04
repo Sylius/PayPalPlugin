@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Controller;
 use Psr\Log\LoggerInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodAlreadyExistsException;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -60,11 +59,11 @@ final readonly class CompleteOnboardingAction
         }
 
         try {
-            $result = $this->onboardingCompletionProcessor->process($data['authCode'], $data['sharedId'], $data['sandbox']);
-        } catch (PayPalPaymentMethodAlreadyExistsException) {
-            $flashBag->add('error', 'sylius_paypal.more_than_one_seller_not_allowed');
-
-            return new JsonResponse(['redirectUrl' => $indexUrl], Response::HTTP_BAD_REQUEST);
+            $result = $this->onboardingCompletionProcessor->process(
+                $data['authCode'],
+                $data['sharedId'],
+                $data['sandbox'],
+            );
         } catch (OnboardingSessionExpiredException) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
 

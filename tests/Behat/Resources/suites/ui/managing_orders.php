@@ -16,6 +16,7 @@ use Behat\Config\Filter\TagFilter;
 use Behat\Config\Profile;
 use Behat\Config\Suite;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Admin\ManagingOrdersContext;
+use Tests\Sylius\PayPalPlugin\Behat\Context\Hook\PayPalHttpClientContext;
 use Tests\Sylius\PayPalPlugin\Behat\Context\Setup\PaymentPayPalContext;
 
 return (new Config())
@@ -26,6 +27,7 @@ return (new Config())
             ->withContexts(
                 'sylius.behat.context.hook.calendar',
                 'sylius.behat.context.hook.doctrine_orm',
+                PayPalHttpClientContext::class,
                 'sylius.behat.context.hook.mailer',
             )
             ->withContexts(

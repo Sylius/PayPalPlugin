@@ -4,7 +4,7 @@
     <div>
         <i>{{ 'sylius_paypal.awaiting_payer_action'|trans }}</i>
     </div>
-    <a href="{{ payment.details.payer_action_url }}" class="btn btn-sm btn-outline-secondary mt-2">
+    <a href="{{ sylius_paypal_payer_action_url(payment) }}" class="btn btn-sm btn-outline-secondary mt-2">
         {{ 'sylius_paypal.finish_the_payment'|trans }}
     </a>
 {% endif %}

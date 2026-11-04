@@ -1,0 +1,16 @@
+{% set order = hookable_metadata.context.resource %}
+{% set payment = hookable_metadata.context.payment %}
+
+{% if
+    payment.state == constant('Sylius\\Component\\Core\\Model\\PaymentInterface::STATE_COMPLETED') and
+    payment.method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') and
+    not sylius_sm_can(payment, constant('Sylius\\Component\\Payment\\PaymentTransitions::GRAPH'), constant('Sylius\\Component\\Payment\\PaymentTransitions::TRANSITION_REFUND'))
+%}
+    <form action="{{ path('sylius_paypal_admin_order_payment_refund', {'orderId': order.id, 'id': payment.id}) }}" method="POST" novalidate>
+        <input type="hidden" name="_method" value="PUT">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token(payment.id) }}" />
+        <button type="submit" class="btn" {{ sylius_test_html_attribute('refund-payment', payment.id) }}>
+            {{ ux_icon('tabler:arrow-back-up-double') }} {{ 'sylius.ui.refund'|trans }}
+        </button>
+    </form>
+{% endif %}
