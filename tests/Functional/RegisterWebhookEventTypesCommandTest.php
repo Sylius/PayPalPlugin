@@ -78,6 +78,28 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         self::assertSame(Command::SUCCESS, $this->registerWebhookEventTypes());
     }
 
+    public function test_it_reports_a_webhook_paypal_found_nothing_to_change_in_as_already_up_to_date(): void
+    {
+        $paymentMethod = $this->loadShop();
+        /** @var WebhookUrlProviderInterface $webhookUrlProvider */
+        $webhookUrlProvider = self::getContainer()->get('sylius_paypal.provider.webhook_url');
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
+            ['id' => 'WH-LEGACY', 'url' => $webhookUrlProvider->provide($paymentMethod)],
+        ]]);
+        $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-LEGACY', [
+            'name' => 'WEBHOOK_PATCH_REQUEST_NO_CHANGE',
+            'message' => 'No change in webhook',
+            'debug_id' => 'DEBUG_ID',
+        ], 400);
+
+        $commandTester = $this->commandTester();
+
+        self::assertSame(Command::SUCCESS, $commandTester->execute([]));
+        self::assertStringContainsString('Webhook WH-LEGACY of "PAYPAL" is already up to date', $commandTester->getDisplay());
+        self::assertSame('WH-LEGACY', $this->storedWebhookId());
+    }
+
     private function storedWebhookId(): mixed
     {
         self::getContainer()->get('sylius.manager.payment_method')->clear();
@@ -107,9 +129,14 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
 
     private function registerWebhookEventTypes(): int
     {
+        return $this->commandTester()->execute([]);
+    }
+
+    private function commandTester(): CommandTester
+    {
         /** @var Command $command */
         $command = self::getContainer()->get('sylius_paypal.console.command.register_webhook_event_types');
 
-        return (new CommandTester($command))->execute([]);
+        return new CommandTester($command);
     }
 }

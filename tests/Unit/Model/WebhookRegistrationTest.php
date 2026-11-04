@@ -18,13 +18,35 @@ use Sylius\PayPalPlugin\Model\WebhookRegistration;
 
 final class WebhookRegistrationTest extends TestCase
 {
-    public function test_it_tells_which_webhook_was_pointed_at_which_url_and_whether_it_is_new(): void
+    public function test_it_tells_which_webhook_was_pointed_at_which_url(): void
     {
-        $registration = new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', true);
+        $registration = WebhookRegistration::updated('WH-123', 'https://shop.example.com/payment-methods/PAYPAL');
 
         self::assertSame('WH-123', $registration->id());
         self::assertSame('https://shop.example.com/payment-methods/PAYPAL', $registration->url());
+    }
+
+    public function test_it_tells_a_registered_webhook_apart(): void
+    {
+        $registration = WebhookRegistration::registered('WH-123', 'https://shop.example.com/payment-methods/PAYPAL');
+
         self::assertTrue($registration->isNew());
-        self::assertFalse((new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false))->isNew());
+        self::assertFalse($registration->isUpToDate());
+    }
+
+    public function test_it_tells_an_updated_webhook_apart(): void
+    {
+        $registration = WebhookRegistration::updated('WH-123', 'https://shop.example.com/payment-methods/PAYPAL');
+
+        self::assertFalse($registration->isNew());
+        self::assertFalse($registration->isUpToDate());
+    }
+
+    public function test_it_tells_a_webhook_already_up_to_date_apart(): void
+    {
+        $registration = WebhookRegistration::upToDate('WH-123', 'https://shop.example.com/payment-methods/PAYPAL');
+
+        self::assertFalse($registration->isNew());
+        self::assertTrue($registration->isUpToDate());
     }
 }

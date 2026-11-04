@@ -41,10 +41,10 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         $webhookId = $this->webhookIdProvider->refresh($paymentMethod);
 
         if (null !== $webhookId) {
-            $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
+            $registration = $this->update($paymentMethod, $webhookId, $webhookUrl);
             $this->webhookIdUpdater->update($paymentMethod, $webhookId);
 
-            return new WebhookRegistration($webhookId, $webhookUrl, false);
+            return $registration;
         }
 
         try {
@@ -59,6 +59,21 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
 
         $this->webhookIdUpdater->update($paymentMethod, (string) $response['id']);
 
-        return new WebhookRegistration((string) $response['id'], $webhookUrl, true);
+        return WebhookRegistration::registered((string) $response['id'], $webhookUrl);
+    }
+
+    private function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): WebhookRegistration
+    {
+        try {
+            $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
+        } catch (PayPalApiException $exception) {
+            if ('WEBHOOK_PATCH_REQUEST_NO_CHANGE' !== $exception->getErrorName()) {
+                throw $exception;
+            }
+
+            return WebhookRegistration::upToDate($webhookId, $webhookUrl);
+        }
+
+        return WebhookRegistration::updated($webhookId, $webhookUrl);
     }
 }

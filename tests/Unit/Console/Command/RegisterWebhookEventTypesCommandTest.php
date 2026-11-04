@@ -54,7 +54,7 @@ final class RegisterWebhookEventTypesCommandTest extends TestCase
             ->expects(self::once())
             ->method('register')
             ->with($paymentMethod)
-            ->willReturn(new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false))
+            ->willReturn(WebhookRegistration::updated('WH-123', 'https://shop.example.com/payment-methods/PAYPAL'))
         ;
 
         self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
@@ -67,11 +67,23 @@ final class RegisterWebhookEventTypesCommandTest extends TestCase
     public function test_it_reports_the_webhook_it_registered(): void
     {
         $this->paymentMethodRepository->method('findAll')->willReturn([$this->paymentMethod('sylius_paypal')]);
-        $this->registrar->method('register')->willReturn(new WebhookRegistration('WH-NEW', 'https://shop.example.com/payment-methods/PAYPAL', true));
+        $this->registrar->method('register')->willReturn(WebhookRegistration::registered('WH-NEW', 'https://shop.example.com/payment-methods/PAYPAL'));
 
         self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
         self::assertStringContainsString(
             'Registered webhook WH-NEW of "PAYPAL" at https://shop.example.com/payment-methods/PAYPAL.',
+            $this->normalizedDisplay(),
+        );
+    }
+
+    public function test_it_reports_a_webhook_that_is_already_up_to_date(): void
+    {
+        $this->paymentMethodRepository->method('findAll')->willReturn([$this->paymentMethod('sylius_paypal')]);
+        $this->registrar->method('register')->willReturn(WebhookRegistration::upToDate('WH-123', 'https://shop.example.com/payment-methods/PAYPAL'));
+
+        self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
+        self::assertStringContainsString(
+            'Webhook WH-123 of "PAYPAL" is already up to date at https://shop.example.com/payment-methods/PAYPAL.',
             $this->normalizedDisplay(),
         );
     }
@@ -98,7 +110,7 @@ final class RegisterWebhookEventTypesCommandTest extends TestCase
                     throw new PayPalWebhookNotRegisteredException('PAYPAL_OLD');
                 }
 
-                return new WebhookRegistration('WH-123', 'https://shop.example.com/payment-methods/PAYPAL', false);
+                return WebhookRegistration::updated('WH-123', 'https://shop.example.com/payment-methods/PAYPAL');
             })
         ;
 

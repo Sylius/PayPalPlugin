@@ -84,7 +84,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         self::assertEquals(
-            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', false),
+            WebhookRegistration::updated('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
             $this->registrar->register($this->paymentMethod),
         );
     }
@@ -103,7 +103,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
 
         self::assertEquals(
-            new WebhookRegistration('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', true),
+            WebhookRegistration::registered('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
             $this->registrar->register($this->paymentMethod),
         );
     }
@@ -137,6 +137,36 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
 
         $this->webhookApi->expects(self::never())->method('register');
+
+        $this->registrar->register($this->paymentMethod);
+    }
+
+    public function test_it_reports_a_webhook_paypal_found_nothing_to_change_in_as_already_up_to_date(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $this->updateWebhookApi->method('update')->willThrowException(
+            new PayPalApiRequestException('PATCH', 'v1/notifications/webhooks/WEBHOOK_ID', 400, 'WEBHOOK_PATCH_REQUEST_NO_CHANGE'),
+        );
+
+        $this->webhookApi->expects(self::never())->method('register');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+
+        self::assertEquals(
+            WebhookRegistration::upToDate('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
+            $this->registrar->register($this->paymentMethod),
+        );
+    }
+
+    public function test_it_rethrows_any_other_error_paypal_answers_the_update_with(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $this->updateWebhookApi->method('update')->willThrowException(
+            new PayPalApiRequestException('PATCH', 'v1/notifications/webhooks/WEBHOOK_ID', 400, 'VALIDATION_ERROR'),
+        );
+
+        $this->webhookIdUpdater->expects(self::never())->method('update');
+
+        $this->expectException(PayPalApiRequestException::class);
 
         $this->registrar->register($this->paymentMethod);
     }
