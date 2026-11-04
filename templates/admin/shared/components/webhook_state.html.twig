@@ -1,6 +1,6 @@
 {% set state = this.state %}
 
-<span {{ attributes }}>
+<div {{ attributes }}>
     {% if state is not null and not state.isUpToDate() %}
         {% set problem = state.isRegistered() ? 'sylius_paypal.webhook_out_of_date' : 'sylius_paypal.webhook_not_registered' %}
 
@@ -21,4 +21,4 @@
             <span class="badge bg-red-lt" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', state.isRegistered() ? 'out-of-date' : 'not-registered') }}>{{ problem|trans }}</span>
         {% endif %}
     {% endif %}
-</span>
+</div>
