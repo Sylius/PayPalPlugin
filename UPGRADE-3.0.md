@@ -720,7 +720,9 @@
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
    `PersistingWebhookIdProvider` now takes instead of the object manager. When PayPal answers the update with
    `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores the id as well and returns a registration whose
-   `WebhookRegistration::isUpToDate()` is `true`.
+   `WebhookRegistration::isUpToDate()` is `true`. It then forgets the webhook state the admin cached for the payment
+   method through `Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface` (`sylius_paypal.checker.webhook_state`), its
+   last constructor argument.
 
    The onboarding stores the id of the webhook it registers the same way:
 

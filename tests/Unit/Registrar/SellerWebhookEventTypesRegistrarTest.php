@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
+use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
@@ -38,6 +39,8 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
 
     private WebhookIdUpdaterInterface&MockObject $webhookIdUpdater;
 
+    private WebhookStateCacheInterface&MockObject $webhookStateCache;
+
     private PaymentMethodInterface&MockObject $paymentMethod;
 
     private SellerWebhookEventTypesRegistrar $registrar;
@@ -49,6 +52,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->updateWebhookApi = $this->createMock(UpdateWebhookApiInterface::class);
         $this->webhookApi = $this->createMock(WebhookApiInterface::class);
         $this->webhookIdUpdater = $this->createMock(WebhookIdUpdaterInterface::class);
+        $this->webhookStateCache = $this->createMock(WebhookStateCacheInterface::class);
 
         $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
         $webhookUrlProvider->method('provide')->willReturnCallback(
@@ -64,6 +68,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             $this->webhookApi,
             $webhookUrlProvider,
             $this->webhookIdUpdater,
+            $this->webhookStateCache,
         );
     }
 
@@ -82,6 +87,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
         ;
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+        $this->webhookStateCache->expects(self::once())->method('forget')->with($this->paymentMethod);
 
         self::assertEquals(
             WebhookRegistration::updated('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
@@ -101,6 +107,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+        $this->webhookStateCache->expects(self::once())->method('forget')->with($this->paymentMethod);
 
         self::assertEquals(
             WebhookRegistration::registered('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
@@ -112,6 +119,8 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
     {
         $this->webhookIdProvider->method('refresh')->willReturn(null);
         $this->webhookApi->method('register')->willThrowException(new PayPalApiRequestException('POST', 'v1/notifications/webhooks', 400, 'VALIDATION_ERROR', debugId: 'DEBUG_ID'));
+
+        $this->webhookStateCache->expects(self::never())->method('forget');
 
         $this->expectException(PayPalWebhookNotRegisteredException::class);
         $this->expectExceptionMessage('"https://shop.example.com/payment-methods/PAYPAL": VALIDATION_ERROR (debug id: DEBUG_ID).');
@@ -125,6 +134,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->webhookApi->method('register')->willReturn([]);
 
         $this->webhookIdUpdater->expects(self::never())->method('update');
+        $this->webhookStateCache->expects(self::never())->method('forget');
 
         $this->expectException(PayPalWebhookNotRegisteredException::class);
         $this->expectExceptionMessage('PayPal answered without a webhook id');
@@ -150,6 +160,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
 
         $this->webhookApi->expects(self::never())->method('register');
         $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+        $this->webhookStateCache->expects(self::once())->method('forget')->with($this->paymentMethod);
 
         self::assertEquals(
             WebhookRegistration::upToDate('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
@@ -165,6 +176,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         );
 
         $this->webhookIdUpdater->expects(self::never())->method('update');
+        $this->webhookStateCache->expects(self::never())->method('forget');
 
         $this->expectException(PayPalApiRequestException::class);
 

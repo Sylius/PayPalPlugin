@@ -20,7 +20,7 @@ use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\WebhookState;
 
-final readonly class CachingWebhookStateChecker implements WebhookStateCheckerInterface
+final readonly class CachingWebhookStateChecker implements WebhookStateCheckerInterface, WebhookStateCacheInterface
 {
     public function __construct(
         private WebhookStateCheckerInterface $webhookStateChecker,
@@ -46,6 +46,11 @@ final readonly class CachingWebhookStateChecker implements WebhookStateCheckerIn
         $this->cache->save($item);
 
         return $state;
+    }
+
+    public function forget(PaymentMethodInterface $paymentMethod): void
+    {
+        $this->cache->deleteItem($this->key($paymentMethod));
     }
 
     private function key(PaymentMethodInterface $paymentMethod): string

@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\CachingWebhookStateChecker;
+use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Model\WebhookState;
@@ -56,6 +57,21 @@ final class CachingWebhookStateCheckerTest extends TestCase
         $this->checker->check($this->paymentMethod('PAYPAL', 'WH-1'));
         $this->checker->check($this->paymentMethod('PAYPAL_2', 'WH-1'));
         $this->checker->check($this->paymentMethod('PAYPAL', 'WH-2'));
+    }
+
+    public function test_it_asks_paypal_again_once_the_state_of_a_payment_method_is_forgotten(): void
+    {
+        $this->webhookStateChecker
+            ->expects(self::exactly(2))
+            ->method('check')
+            ->willReturnOnConsecutiveCalls(WebhookState::notRegistered(), WebhookState::upToDate('https://shop.example.com/payment-methods/PAYPAL'))
+        ;
+
+        self::assertInstanceOf(WebhookStateCacheInterface::class, $this->checker);
+        $this->checker->check($this->paymentMethod('PAYPAL', 'WH-1'));
+        $this->checker->forget($this->paymentMethod('PAYPAL', 'WH-1'));
+
+        self::assertTrue($this->checker->check($this->paymentMethod('PAYPAL', 'WH-1'))->isUpToDate());
     }
 
     public function test_it_does_not_cache_an_error(): void

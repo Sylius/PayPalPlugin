@@ -54,6 +54,7 @@ use Sylius\PayPalPlugin\Api\WebhookResourceApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
 use Sylius\PayPalPlugin\Checker\CachingWebhookStateChecker;
+use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateChecker;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\Client\LoggingHttpClient;
@@ -268,6 +269,8 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(WebhookStateCheckerInterface::class, 'sylius_paypal.checker.webhook_state');
+
+    $services->alias(WebhookStateCacheInterface::class, 'sylius_paypal.checker.webhook_state');
 
     $services->set('sylius_paypal.updater.webhook_id', WebhookIdUpdater::class)
         ->args([service('sylius.manager.payment_method')]);
