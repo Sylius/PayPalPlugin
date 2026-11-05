@@ -1,4 +1,55 @@
-# UPGRADE FROM 2.1 to 3.0
+# UPGRADE FROM 2.2 to 3.0
+
+1. #### PayPal payment methods no longer use Payum.
+
+   PayPal payments go through Sylius Payment Requests. To move the PayPal payment methods of a 2.x store over:
+
+   1. Generate the key Sylius encrypts payment data with, unless the store already has one, and point
+      `SYLIUS_PAYMENT_ENCRYPTION_KEY_PATH` at it:
+
+      ```bash
+      bin/console sylius:payment:generate-key
+      ```
+
+   2. Run the migrations. `Version20261104120000` (MySQL) and `Version20261104120001` (PostgreSQL) set `use_payum`
+      to `false` on every PayPal gateway config still on Payum, together with its `use_authorize` key. 2.x always
+      saved `use_authorize` as `true`, but it never meant a PayPal authorization; in 3.0 it makes the payment method
+      authorize, so the migrations keep these payment methods capturing. A PayPal gateway config already off Payum
+      keeps its strategy. Until the migrations run, a PayPal payment method still on Payum has no payment page.
+
+   3. Encrypt the PayPal gateway configs:
+
+      ```bash
+      bin/console sylius-paypal:encrypt-gateway-configs
+      ```
+
+      Sylius encrypts the gateway config of a payment method that does not use Payum, but the configs saved under
+      Payum are in plain text. Sylius still reads them unless `sylius_payment.encryption.strict_mode` is enabled,
+      and would encrypt each of them only the next time it is saved; the command encrypts them all at once. It
+      skips the configs that are already encrypted and does nothing when `sylius_payment.encryption.enabled` is
+      `false` or `sylius_payment.encryption.disabled_for_factories` lists `sylius_paypal`. Without the encryption key
+      it stops and leaves the configs as they were. A config Payum encrypted
+      (`payum.dynamic_gateways.encryption.defuse_secret_key`) is decrypted with the Payum key first, so keep that key
+      configured until the command has run. Make any change to a PayPal gateway config in the database, such as
+      setting its `sandbox` key, before this step.
+
+   4. Move the PayPal webhooks to the `/payment-methods/{code}` endpoint:
+
+      ```bash
+      bin/console sylius-paypal:register-webhook-event-types
+      ```
+
+      See "PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method" for
+      what to set up before running it and what it reports.
+
+   5. Settle the payments that were in progress:
+
+      ```bash
+      bin/console sylius-paypal:settle-payments
+      ```
+
+      A payment whose capture was pending, or a Trustly payment whose payer was at the bank, is completed once PayPal
+      has captured it. A payment the buyer had not paid yet gets a new PayPal order on the payment page.
 
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 
@@ -850,9 +901,8 @@
    ```
 
    In 2.x `use_authorize` was a hidden, always `true` flag that made Payum postpone creating the PayPal order; it
-   never meant a PayPal authorization. Gateways still on Payum keep it, every other PayPal gateway config is saved with
-   the strategy the merchant chose. Set `use_authorize` to `false` on the PayPal gateway configs you upgrade, or they
-   will start authorizing instead of capturing.
+   never meant a PayPal authorization. The migrations described in "PayPal payment methods no longer use Payum" set
+   it to `false` on the PayPal gateway configs saved by 2.x, so they keep capturing.
 
 1. #### An authorized PayPal payment is captured, voided and settled through Payment Requests, webhooks and a command.
 
