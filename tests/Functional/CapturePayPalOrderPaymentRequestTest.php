@@ -21,7 +21,6 @@ use Doctrine\DBAL\Exception\LockWaitTimeoutException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\ORM\EntityManagerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
@@ -207,9 +206,6 @@ final class CapturePayPalOrderPaymentRequestTest extends JsonApiTestCase
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setUsePayum(false);
 
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
         $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);

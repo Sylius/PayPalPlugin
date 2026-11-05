@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -62,7 +61,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::USE_AUTHORIZE => false,
         ]);
 
-        if ($gatewayConfig instanceof PayumGatewayConfigInterface) {
+        if (method_exists($gatewayConfig, 'setUsePayum')) {
             $gatewayConfig->setUsePayum(false);
         }
 

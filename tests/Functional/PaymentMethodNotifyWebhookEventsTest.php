@@ -540,7 +540,6 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         $paymentMethod = $payment->getMethod();
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setUsePayum(false);
         $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['use_authorize' => PaymentRequestInterface::ACTION_AUTHORIZE === $action]));
 
         /** @var PaymentRequestInterface $paymentRequest */

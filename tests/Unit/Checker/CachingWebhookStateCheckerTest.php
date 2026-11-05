@@ -15,8 +15,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Checker;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Checker\CachingWebhookStateChecker;
 use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;

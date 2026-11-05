@@ -17,9 +17,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
+use Sylius\Component\Payment\Model\GatewayConfig;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
@@ -89,7 +90,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $gatewayConfig->expects(self::once())->method('setFactoryName')->with('sylius_paypal');
         $gatewayConfig->expects(self::once())->method('setGatewayName')->with('sylius_paypal');
         $gatewayConfig->expects(self::once())->method('setConfig')->with(self::CONFIG);
-        $gatewayConfig->expects(self::once())->method('setUsePayum')->with(false);
 
         $paymentMethod->expects(self::once())->method('setCode')->with('PAYPAL');
         $paymentMethod->expects(self::once())->method('setName')->with('PayPal');
@@ -142,6 +142,25 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
         self::assertSame($paymentMethod, $this->creator->create($result, false));
+    }
+
+    #[Test]
+    public function it_takes_the_gateway_config_off_payum_when_the_store_still_ships_payum(): void
+    {
+        $gatewayConfig = new class() extends GatewayConfig {
+            public bool $usePayum = true;
+
+            public function setUsePayum(bool $usePayum): void
+            {
+                $this->usePayum = $usePayum;
+            }
+        };
+        $this->gatewayFactory->method('createNew')->willReturn($gatewayConfig);
+        $this->paymentMethodFactory->method('createNew')->willReturn($this->createMock(PaymentMethodInterface::class));
+
+        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true)), false);
+
+        self::assertFalse($gatewayConfig->usePayum);
     }
 
     /** @return array{0: GatewayConfigInterface&MockObject, 1: PaymentMethodInterface&MockObject} */

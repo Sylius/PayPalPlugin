@@ -15,9 +15,9 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider;
 
