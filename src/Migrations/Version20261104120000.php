@@ -16,8 +16,6 @@ namespace Sylius\PayPalPlugin\Migrations;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Schema;
 use Sylius\Bundle\CoreBundle\Doctrine\Migrations\AbstractMigration;
-use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 final class Version20261104120000 extends AbstractMigration
 {
@@ -30,14 +28,14 @@ final class Version20261104120000 extends AbstractMigration
     {
         $gatewayConfigs = $this->connection->fetchAllAssociative(
             'SELECT id, config FROM sylius_gateway_config WHERE factory_name = ? AND use_payum = ?',
-            [SyliusPayPalExtension::PAYPAL_FACTORY_NAME, true],
+            ['sylius_paypal', true],
             [ParameterType::STRING, ParameterType::BOOLEAN],
         );
 
         foreach ($gatewayConfigs as $gatewayConfig) {
             $config = json_decode((string) $gatewayConfig['config'], true, 512, \JSON_THROW_ON_ERROR);
             $config = is_array($config) ? $config : [];
-            $config[PayPalGatewayConfig::USE_AUTHORIZE] = false;
+            $config['use_authorize'] = false;
 
             $this->addSql(
                 'UPDATE sylius_gateway_config SET use_payum = ?, config = ? WHERE id = ?',
