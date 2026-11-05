@@ -16,6 +16,8 @@
       saved `use_authorize` as `true`, but it never meant a PayPal authorization; in 3.0 it makes the payment method
       authorize, so the migrations keep these payment methods capturing. A PayPal gateway config already off Payum
       keeps its strategy. Until the migrations run, a PayPal payment method still on Payum has no payment page.
+      The migrations also drop the `reports_sftp_username` and `reports_sftp_password` keys of these configs (see
+      "The SFTP payouts report download has been removed").
 
    3. Encrypt the PayPal gateway configs:
 
@@ -160,6 +162,47 @@
    - `Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType` and `Sylius\PayPalPlugin\Model\PayPalSandboxCredentials`
    - the `sylius_paypal.invalid_paypal_sandbox_credentials` flash message
 
+1. #### The SFTP payouts report download has been removed.
+
+   The "Report" action of the payment methods list logged into `reports.paypal.com` (or `reports.sandbox.paypal.com`)
+   with the SFTP credentials of the gateway config and downloaded yesterday's
+   `PYT.<Ymd>.<partner_attribution_id>.R.0.2.0.CSV`. PYT is PayPal's Payouts Reconciliation report: a partner report,
+   named after the partner's BN code, that reconciles the payouts a partner makes to its sellers. The plugin always
+   looked for the Sylius one on the merchant's own SFTP account. A merchant paid through PayPal Complete Payments
+   receives the funds directly, so Sylius makes no payouts and the merchant never receives that file. The download
+   could only fail with `PayPalReportDownloadException`.
+
+   For reconciliation, use the reports PayPal provides for your own account, such as the Activity, Settlement and
+   Transaction Detail reports, in the PayPal dashboard or on your SFTP account.
+
+   The following classes, interfaces and services have been removed without a replacement:
+
+   | Removed class / interface | Removed service id / alias |
+   |---|---|
+   | `Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction` | `sylius_paypal.controller.download_payouts_report` |
+   | `Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader` | `sylius_paypal.downloader.report` |
+   | `Sylius\PayPalPlugin\Downloader\PayoutsReportDownloaderInterface` | `Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface` alias of `sylius_paypal.downloader.report` |
+   | `Sylius\PayPalPlugin\Exception\PayPalReportDownloadException` | |
+   | `Sylius\PayPalPlugin\Model\Report` | |
+
+   The following have been removed as well:
+   - the `sylius_paypal_admin_download_payouts_report` route (`GET /admin/download/payouts-report/{id}`)
+   - the `download_report` item action of the `sylius_admin_payment_method` grid, its
+     `@SyliusPayPalPlugin/admin/payment_method/grid/action/download_report.html.twig` template and the
+     `sylius_paypal.report` translation
+   - the `sylius_paypal.client.sftp` service (`phpseclib3\Net\SFTP`) and the `sylius_paypal.reports_sftp_host` parameter
+   - the `reports_sftp_username` and `reports_sftp_password` fields of `Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType`,
+     their `reports_sftp_username` and `reports_sftp_password` hooks under
+     `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal`, their
+     `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_{username,password}.html.twig`
+     templates and the `sylius_paypal.sftp_username` and `sylius_paypal.sftp_password` translations
+   - the `REPORTS_SFTP_USERNAME` and `REPORTS_SFTP_PASSWORD` constants and the `reportsSftpUsername()` and
+     `reportsSftpPassword()` methods of `Sylius\PayPalPlugin\Model\PayPalGatewayConfig`
+   - the `phpseclib/phpseclib` dependency; require it in your application if your code uses it
+
+   The onboarding no longer stores the `reports_sftp_username` and `reports_sftp_password` keys, and the upgrade
+   migrations drop them from the gateway configs saved by 2.x.
+
 1. #### The following signatures have gained new optional arguments.
 
    ```diff
@@ -192,9 +235,7 @@
    | `sylius_paypal.sandbox` parameter | the `sandbox` key of the gateway config of each PayPal payment method (`PayPalGatewayConfig::isSandbox()`) |
    | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getApiBaseUrlForMode()` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.reports_sftp_host` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getReportsSftpHostForMode()` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (used by the `sylius_paypal_partner_js_url()` Twig function) |
-   | `sylius_paypal.client.sftp` service | `Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface` (`sylius_paypal.factory.sftp_client`) |
 
    The following constructor signatures have changed:
 
@@ -209,15 +250,6 @@
    +    private HostProviderInterface $hostProvider,
    +    private WebhookUrlProviderInterface $webhookUrlProvider,
     ) {
-   ```
-
-   ```diff
-    // Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader
-   -public function __construct(private SFTP $sftp)
-   +public function __construct(
-   +    private SftpClientFactoryInterface $sftpClientFactory,
-   +    private HostProviderInterface $hostProvider,
-   +)
    ```
 
    ```diff
