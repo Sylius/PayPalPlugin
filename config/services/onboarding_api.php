@@ -88,8 +88,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.merchant_integration_status.lookup', MerchantIntegrationStatusProvider::class)
         ->args([
-            service('sylius_paypal.api.authorize_client'),
-            service('sylius_paypal.api.merchant_onboarding_status'),
+            service('sylius_paypal.api.generic'),
+            service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.partner_credentials'),
             service('monolog.logger.paypal'),
         ]);

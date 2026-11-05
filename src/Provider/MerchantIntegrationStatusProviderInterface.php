@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 interface MerchantIntegrationStatusProviderInterface
 {
-    public function provide(PayPalGatewayConfig $config): ?OnboardingStatus;
+    public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus;
 }

@@ -15,43 +15,43 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Log\LoggerInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
 final readonly class MerchantIntegrationStatusProvider implements MerchantIntegrationStatusProviderInterface
 {
     public function __construct(
-        private AuthorizeClientApiInterface $authorizeClientApi,
-        private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
+        private GenericApiInterface $genericApi,
+        private HostProviderInterface $hostProvider,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
         private LoggerInterface $logger,
     ) {
     }
 
-    public function provide(PayPalGatewayConfig $config): ?OnboardingStatus
+    public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus
     {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
         if (!$config->hasClientId()) {
             return null;
         }
 
         $sandbox = $config->isSandbox();
 
-        try {
-            $sellerToken = $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox)->value();
-        } catch (PayPalApiException|PayPalPluginException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
-            $this->logger->warning('Could not read the PayPal merchant integration status: {message}', ['message' => $exception->getMessage()]);
-
-            return null;
-        }
-
         foreach ($this->partnerIds($config, $sandbox) as $partnerId) {
             try {
-                return $this->merchantOnboardingStatusApi->get($sellerToken, $partnerId, $config->merchantId(), $sandbox);
-            } catch (PayPalApiException|PayPalPluginException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
+                return OnboardingStatus::fromMerchantIntegration($this->genericApi->get(
+                    $paymentMethod,
+                    sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $config->merchantId()),
+                ));
+            } catch (PayPalApiException|PayPalPluginException|UntrustedPayPalUrlException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
                 $this->logger->warning('Could not read the PayPal merchant integration status for partner {partner_id}: {message}', [
                     'partner_id' => $partnerId,
                     'message' => $exception->getMessage(),

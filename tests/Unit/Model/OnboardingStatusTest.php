@@ -38,4 +38,29 @@ final class OnboardingStatusTest extends TestCase
 
         self::assertEquals($status, OnboardingStatus::fromArray($status->toArray()));
     }
+
+    public function test_it_is_read_from_a_merchant_integration_with_only_its_active_capabilities(): void
+    {
+        $status = OnboardingStatus::fromMerchantIntegration([
+            'payments_receivable' => true,
+            'primary_email_confirmed' => true,
+            'capabilities' => [
+                ['name' => 'APPLE_PAY', 'status' => 'ACTIVE'],
+                ['name' => 'GOOGLE_PAY', 'status' => 'NEED_DATA'],
+                ['status' => 'ACTIVE'],
+                'CUSTOM_CARD_PROCESSING',
+            ],
+        ]);
+
+        self::assertTrue($status->isComplete());
+        self::assertSame(['APPLE_PAY'], $status->activeCapabilities());
+    }
+
+    public function test_it_reads_an_empty_merchant_integration_as_incomplete_without_capabilities(): void
+    {
+        $status = OnboardingStatus::fromMerchantIntegration(['capabilities' => 'unexpected']);
+
+        self::assertFalse($status->isComplete());
+        self::assertSame([], $status->activeCapabilities());
+    }
 }

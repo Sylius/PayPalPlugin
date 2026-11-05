@@ -13,17 +13,18 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Service;
 
-use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 
-final class FakeMerchantOnboardingStatusApi implements MerchantOnboardingStatusApiInterface
+final class FakeMerchantIntegrationStatusProvider implements MerchantIntegrationStatusProviderInterface
 {
     public const ACTIVE_CAPABILITIES = ['APPLE_PAY', 'GOOGLE_PAY'];
 
     /** @var list<string> */
     public static array $activeCapabilities = self::ACTIVE_CAPABILITIES;
 
-    public function get(string $sellerToken, string $partnerId, string $merchantId, bool $sandbox): OnboardingStatus
+    public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus
     {
         return new OnboardingStatus(true, true, self::$activeCapabilities);
     }

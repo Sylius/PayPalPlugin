@@ -15,8 +15,10 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\CachingMerchantIntegrationStatusProvider;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -43,17 +45,17 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
         $status = new OnboardingStatus(true, true, ['APPLE_PAY']);
         $this->merchantIntegrationStatusProvider->expects(self::once())->method('provide')->willReturn($status);
 
-        self::assertEquals($status, $this->provider->provide($this->config('CLIENT-1', true)));
-        self::assertEquals($status, $this->provider->provide($this->config('CLIENT-1', true)));
+        self::assertEquals($status, $this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+        self::assertEquals($status, $this->provider->provide($this->paymentMethod('CLIENT-1', true)));
     }
 
     public function test_it_asks_about_every_paypal_account_and_mode_on_its_own(): void
     {
         $this->merchantIntegrationStatusProvider->expects(self::exactly(3))->method('provide')->willReturn(new OnboardingStatus(true, true));
 
-        $this->provider->provide($this->config('CLIENT-1', true));
-        $this->provider->provide($this->config('CLIENT-2', true));
-        $this->provider->provide($this->config('CLIENT-1', false));
+        $this->provider->provide($this->paymentMethod('CLIENT-1', true));
+        $this->provider->provide($this->paymentMethod('CLIENT-2', true));
+        $this->provider->provide($this->paymentMethod('CLIENT-1', false));
     }
 
     public function test_it_does_not_cache_an_unknown_status(): void
@@ -65,19 +67,31 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
             ->willReturnOnConsecutiveCalls(null, $status)
         ;
 
-        self::assertNull($this->provider->provide($this->config('CLIENT-1', true)));
-        self::assertEquals($status, $this->provider->provide($this->config('CLIENT-1', true)));
+        self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+        self::assertEquals($status, $this->provider->provide($this->paymentMethod('CLIENT-1', true)));
     }
 
     public function test_it_does_not_ask_about_a_payment_method_without_credentials(): void
     {
         $this->merchantIntegrationStatusProvider->expects(self::never())->method('provide');
 
-        self::assertNull($this->provider->provide(PayPalGatewayConfig::fromArray([])));
+        self::assertNull($this->provider->provide($this->paymentMethodWithConfig([])));
     }
 
-    private function config(string $clientId, bool $sandbox): PayPalGatewayConfig
+    private function paymentMethod(string $clientId, bool $sandbox): PaymentMethodInterface
     {
-        return PayPalGatewayConfig::fromArray(['client_id' => $clientId, 'client_secret' => 'SECRET', 'merchant_id' => 'MERCHANT-ID', 'sandbox' => $sandbox]);
+        return $this->paymentMethodWithConfig(['client_id' => $clientId, 'client_secret' => 'SECRET', 'merchant_id' => 'MERCHANT-ID', 'sandbox' => $sandbox]);
+    }
+
+    /** @param array<string, mixed> $config */
+    private function paymentMethodWithConfig(array $config): PaymentMethodInterface
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig($config);
+
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        return $paymentMethod;
     }
 }

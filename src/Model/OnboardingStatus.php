@@ -33,6 +33,16 @@ final readonly class OnboardingStatus
         );
     }
 
+    /** @param array<array-key, mixed> $content */
+    public static function fromMerchantIntegration(array $content): self
+    {
+        return new self(
+            (bool) ($content['payments_receivable'] ?? false),
+            (bool) ($content['primary_email_confirmed'] ?? false),
+            self::activeCapabilitiesOf($content['capabilities'] ?? []),
+        );
+    }
+
     public function arePaymentsReceivable(): bool
     {
         return $this->paymentsReceivable;
@@ -67,5 +77,22 @@ final readonly class OnboardingStatus
             'primary_email_confirmed' => $this->primaryEmailConfirmed,
             'active_capabilities' => $this->activeCapabilities,
         ];
+    }
+
+    /** @return list<string> */
+    private static function activeCapabilitiesOf(mixed $capabilities): array
+    {
+        if (!is_array($capabilities)) {
+            return [];
+        }
+
+        $active = [];
+        foreach ($capabilities as $capability) {
+            if (is_array($capability) && isset($capability['name']) && 'ACTIVE' === ($capability['status'] ?? null)) {
+                $active[] = (string) $capability['name'];
+            }
+        }
+
+        return $active;
     }
 }

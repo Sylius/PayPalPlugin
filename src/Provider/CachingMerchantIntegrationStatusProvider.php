@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
@@ -26,8 +28,11 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
     ) {
     }
 
-    public function provide(PayPalGatewayConfig $config): ?OnboardingStatus
+    public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus
     {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
         if (!$config->hasClientId()) {
             return null;
         }
@@ -40,7 +45,7 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
             return OnboardingStatus::fromArray($cached);
         }
 
-        $status = $this->decorated->provide($config);
+        $status = $this->decorated->provide($paymentMethod);
         if (null === $status) {
             return null;
         }

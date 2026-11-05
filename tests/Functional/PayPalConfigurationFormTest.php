@@ -18,7 +18,7 @@ use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
-use Tests\Sylius\PayPalPlugin\Service\FakeMerchantOnboardingStatusApi;
+use Tests\Sylius\PayPalPlugin\Service\FakeMerchantIntegrationStatusProvider;
 
 final class PayPalConfigurationFormTest extends JsonApiTestCase
 {
@@ -42,7 +42,7 @@ final class PayPalConfigurationFormTest extends JsonApiTestCase
 
     protected function tearDown(): void
     {
-        FakeMerchantOnboardingStatusApi::$activeCapabilities = FakeMerchantOnboardingStatusApi::ACTIVE_CAPABILITIES;
+        FakeMerchantIntegrationStatusProvider::$activeCapabilities = FakeMerchantIntegrationStatusProvider::ACTIVE_CAPABILITIES;
         self::getContainer()->get('sylius_paypal.cache')->clear();
 
         parent::tearDown();
@@ -50,7 +50,7 @@ final class PayPalConfigurationFormTest extends JsonApiTestCase
 
     public function test_it_disables_the_toggle_of_a_payment_source_the_paypal_account_has_no_capability_for(): void
     {
-        FakeMerchantOnboardingStatusApi::$activeCapabilities = ['GOOGLE_PAY'];
+        FakeMerchantIntegrationStatusProvider::$activeCapabilities = ['GOOGLE_PAY'];
 
         $crawler = $this->editPage();
 
@@ -69,7 +69,7 @@ final class PayPalConfigurationFormTest extends JsonApiTestCase
 
     public function test_it_turns_off_on_save_a_toggle_of_a_payment_source_the_paypal_account_has_no_capability_for(): void
     {
-        FakeMerchantOnboardingStatusApi::$activeCapabilities = ['GOOGLE_PAY'];
+        FakeMerchantIntegrationStatusProvider::$activeCapabilities = ['GOOGLE_PAY'];
         $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
         $gatewayConfig = $entityManager->find($this->paymentMethod::class, $this->paymentMethod->getId())->getGatewayConfig();
         $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['apple_pay_enabled' => true, 'google_pay_enabled' => true]));

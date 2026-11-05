@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
@@ -25,6 +26,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 final class PayPalConfigurationType extends AbstractType
 {
@@ -90,14 +92,14 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
-                $config = PayPalGatewayConfig::fromArray($data);
-                $data[PayPalGatewayConfig::USE_AUTHORIZE] = $config->isAuthorizeEnabled();
+                $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
                 $event->setData($data);
 
                 $form = $event->getForm();
                 $togglesWithoutCapability = [];
+                $paymentMethod = $this->paymentMethodOf($form);
                 foreach (self::CAPABILITY_TOGGLES as $field => $paymentSource) {
-                    if (!$this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $config)) {
+                    if (null !== $paymentMethod && !$this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $paymentMethod)) {
                         $togglesWithoutCapability[] = $field;
                         $form->add($field, CheckboxType::class, [
                             'label' => $form->get($field)->getConfig()->getOption('label'),
@@ -138,5 +140,12 @@ final class PayPalConfigurationType extends AbstractType
 
             $event->setData($config);
         });
+    }
+
+    private function paymentMethodOf(FormInterface $form): ?PaymentMethodInterface
+    {
+        $paymentMethod = $form->getParent()?->getParent()?->getData();
+
+        return $paymentMethod instanceof PaymentMethodInterface ? $paymentMethod : null;
     }
 }

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Checker;
 
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
@@ -28,14 +28,14 @@ final readonly class PaymentSourceCapabilityChecker implements PaymentSourceCapa
     {
     }
 
-    public function isAvailable(string $paymentSource, PayPalGatewayConfig $config): bool
+    public function isAvailable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool
     {
         $capability = self::REQUIRED_CAPABILITIES[$paymentSource] ?? null;
         if (null === $capability) {
             return true;
         }
 
-        $status = $this->merchantIntegrationStatusProvider->provide($config);
+        $status = $this->merchantIntegrationStatusProvider->provide($paymentMethod);
 
         return null === $status || $status->hasActiveCapability($capability);
     }
