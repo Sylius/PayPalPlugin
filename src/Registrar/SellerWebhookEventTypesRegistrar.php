@@ -14,12 +14,15 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Registrar;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
+use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
@@ -34,6 +37,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         private WebhookUrlProviderInterface $webhookUrlProvider,
         private WebhookIdUpdaterInterface $webhookIdUpdater,
         private WebhookStateCacheInterface $webhookStateCache,
+        private WebhookStateCheckerInterface $webhookStateChecker,
     ) {
     }
 
@@ -68,6 +72,10 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
 
     private function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): WebhookRegistration
     {
+        if ($this->isUpToDate($paymentMethod, $webhookId, $webhookUrl)) {
+            return WebhookRegistration::upToDate($webhookId, $webhookUrl);
+        }
+
         try {
             $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
         } catch (PayPalApiException $exception) {
@@ -79,5 +87,22 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         }
 
         return WebhookRegistration::updated($webhookId, $webhookUrl);
+    }
+
+    private function isUpToDate(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): bool
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        if ($webhookId !== PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->webhookId()) {
+            return false;
+        }
+
+        try {
+            $state = $this->webhookStateChecker->check($paymentMethod);
+        } catch (PayPalApiException) {
+            return false;
+        }
+
+        return $state->isUpToDate() && $webhookUrl === $state->registeredUrl();
     }
 }
