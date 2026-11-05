@@ -152,6 +152,7 @@ use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
+use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -561,6 +562,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),
             service('sylius_paypal.updater.webhook_id'),
+            service('sylius_paypal.checker.webhook_state'),
         ]);
 
     $services->alias(SellerWebhookEventTypesRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook_event_types');
@@ -675,6 +677,14 @@ return static function (ContainerConfigurator $container) {
             service('monolog.logger.paypal'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
+
+    $services->set('sylius_paypal.twig.component.webhook_state', WebhookStateComponent::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.checker.webhook_state'),
+            service('monolog.logger.paypal'),
+        ])
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:webhook_state', 'template' => '@SyliusPayPalPlugin/admin/shared/components/webhook_state.html.twig']);
 
     $services->set('sylius_paypal.verifier.payment_amount', PaymentAmountVerifier::class);
 
