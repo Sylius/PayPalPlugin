@@ -54,7 +54,6 @@ sylius_paypal:
     privacy_notice: 'By paying with your card, you acknowledge that PayPal will process your data according to the PayPal Privacy Statement available at PayPal.com.'
     privacy_statement: 'PayPal Privacy Statement'
     refund_late_capture: 'Refund the extra %amount%'
-    report: 'Report'
     sandbox_on_production_warning: 'Warning: this payment method uses PayPal Sandbox on a production environment. Sandbox uses test credentials and will not process real payments.'
     sftp_password: 'SFTP Password'
     sftp_username: 'SFTP Username'

@@ -42,8 +42,6 @@ use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
-use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
-use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
@@ -59,8 +57,6 @@ use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
-use Sylius\PayPalPlugin\Factory\SftpClientFactory;
-use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactory;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
@@ -436,18 +432,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.uuid', UuidProvider::class);
 
     $services->alias(UuidProviderInterface::class, 'sylius_paypal.provider.uuid');
-
-    $services->set('sylius_paypal.factory.sftp_client', SftpClientFactory::class);
-
-    $services->alias(SftpClientFactoryInterface::class, 'sylius_paypal.factory.sftp_client');
-
-    $services->set('sylius_paypal.downloader.report', SftpPayoutsReportDownloader::class)
-        ->args([
-            service('sylius_paypal.factory.sftp_client'),
-            service('sylius_paypal.provider.host'),
-        ]);
-
-    $services->alias(ReportDownloaderInterface::class, 'sylius_paypal.downloader.report');
 
     $services->set('sylius_paypal.processor.paypal_address', PayPalAddressProcessor::class)
         ->args([service('doctrine.orm.entity_manager')])
