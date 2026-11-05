@@ -48,10 +48,15 @@ sylius_paypal:
     suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
     tender_type_original_payment_method: 'Teruggestort via de oorspronkelijke betaalmethode'
+    update_webhook: "Webhook bijwerken"
+    webhook_already_up_to_date: "Webhook %id% is al up-to-date op %url%."
     webhook_missing_event_types: "Ontbrekende events:"
+    webhook_not_updated: "De webhook kon niet worden bijgewerkt: %reason%"
     webhook_out_of_date: "Webhook verouderd"
     webhook_points_elsewhere: "PayPal stuurt de events naar %url%."
+    webhook_registered: "Webhook %id% geregistreerd op %url%."
     webhook_state_unknown: "Webhookstatus onbekend"
     webhook_state_unknown_details: "De plugin heeft de URL en de events van deze webhook nog niet opgeslagen."
+    webhook_updated: "Webhook %id% verwijst nu naar %url%."
     webhook_url: "Webhook-URL"
     webhook_url_unknown: "Onbekend"

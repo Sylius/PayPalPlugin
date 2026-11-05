@@ -95,6 +95,71 @@ final class WebhookStateTest extends JsonApiTestCase
         self::assertStringContainsString('data-test-paypal-webhook-url="unknown"', $this->editPage());
     }
 
+    public function test_it_updates_an_outdated_webhook_from_the_edit_page_and_shows_it_up_to_date_afterwards(): void
+    {
+        $this->storeWebhook($this->notifyUrl(), array_slice(WebhookApi::EVENT_TYPES, 1));
+        $missingOne = $this->webhook('WH-1', array_slice(WebhookApi::EVENT_TYPES, 1));
+
+        $component = $this->webhookState('alert');
+        self::assertStringContainsString('data-test-paypal-webhook-update-button', (string) $component->render());
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [$missingOne]]);
+        $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-1', ['id' => 'WH-1']);
+
+        $rendered = (string) $component->call('updateWebhook')->render();
+
+        self::assertStringContainsString('data-test-paypal-webhook-update="success"', $rendered);
+        self::assertStringNotContainsString('data-test-paypal-webhook-state', $rendered);
+        self::assertSame(WebhookApi::EVENT_TYPES, array_column($this->sentPatch()[1]['value'], 'name'));
+    }
+
+    public function test_it_tells_why_paypal_refused_to_update_the_webhook(): void
+    {
+        $this->storeWebhook($this->notifyUrl(), array_slice(WebhookApi::EVENT_TYPES, 1));
+        $missingOne = $this->webhook('WH-1', array_slice(WebhookApi::EVENT_TYPES, 1));
+        $component = $this->webhookState('alert');
+        $component->render();
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [$missingOne]]);
+        $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-1', [
+            'name' => 'VALIDATION_ERROR',
+            'message' => 'Invalid data provided',
+            'debug_id' => 'DEBUG_ID',
+        ], 400);
+
+        $rendered = (string) $component->call('updateWebhook')->render();
+
+        self::assertStringContainsString('data-test-paypal-webhook-update="error"', $rendered);
+        self::assertStringContainsString('VALIDATION_ERROR', $rendered);
+        self::assertStringContainsString('data-test-paypal-webhook-state="out-of-date"', $rendered);
+    }
+
+    /**
+     * @param list<string> $eventTypes
+     *
+     * @return array<string, mixed>
+     */
+    private function webhook(string $id, array $eventTypes): array
+    {
+        return [
+            'id' => $id,
+            'url' => $this->notifyUrl(),
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], $eventTypes),
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function sentPatch(): array
+    {
+        foreach ($this->payPalHttpClient()->getSentRequests() as $sentRequest) {
+            if ('PATCH' === $sentRequest['method']) {
+                return $sentRequest['body'];
+            }
+        }
+
+        self::fail('No PATCH was sent to PayPal.');
+    }
+
     private function editPage(): string
     {
         $this->client->loginUser($this->admin, 'admin');
