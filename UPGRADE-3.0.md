@@ -562,6 +562,30 @@
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.create_paypal_order_from_payment_page`), route `sylius_paypal_shop_create_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/create`) | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction`, route `sylius_paypal_shop_create_paypal_order_from_cart` |
    | `Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.complete_paypal_order_from_payment_page`), route `sylius_paypal_shop_complete_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/complete`) | `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`, route `sylius_paypal_shop_complete_express_checkout` |
 
+1. #### The buyer can no longer change the payment method of a `processing` payment.
+
+   The plugin no longer configures `sylius_core.checkout.payment.allowed_states`, which it used to extend with
+   `processing`, so the Sylius default (`new` and `cart`) applies again, to every payment method of the store. It was added for the PayPal buttons on
+   the select payment step, which no longer move the payment to `processing`. Since then it only let a buyer pay
+   again for a payment still being processed, such as a PayPal payment whose capture is pending, which could charge
+   them twice.
+
+   The order page and the thank-you page offer the payment method change only when the order awaits payment and has
+   a payment in one of the allowed states, through the new `sylius_paypal_can_change_payment_method(order)` Twig
+   function (`Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension`). Otherwise the order page says that the payment
+   method can no longer be changed, instead of showing a payment form with no payment to pay, and the buyer whose
+   bank payment is still on its way keeps the link back to the bank.
+
+   To let buyers change the payment method of a `processing` payment again, add the state back in your configuration;
+   the order page and the thank-you page follow it:
+
+   ```yaml
+   sylius_core:
+       checkout:
+           payment:
+               allowed_states: [new, cart, processing]
+   ```
+
 1. #### Completing the checkout no longer captures a PayPal payment.
 
    Every PayPal order is now captured through a `capture` Payment Request after the order is placed, so nothing
