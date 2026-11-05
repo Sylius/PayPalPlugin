@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Twig;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Order;
 use Sylius\Component\Core\Model\OrderInterface;
@@ -23,35 +24,26 @@ use Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension;
 
 final class ChangePaymentMethodExtensionTest extends TestCase
 {
-    public function test_it_lets_the_buyer_change_the_payment_method_of_an_order_awaiting_a_payment_in_an_allowed_state(): void
+    /** @return iterable<string, array{string, list<string>, bool}> */
+    public static function orders(): iterable
     {
-        $order = $this->order(OrderPaymentStates::STATE_AWAITING_PAYMENT, PaymentInterface::STATE_FAILED, PaymentInterface::STATE_NEW);
-
-        self::assertTrue((new ChangePaymentMethodExtension(['new', 'cart']))->canChangePaymentMethod($order));
+        yield 'a new payment after a failed one' => [OrderPaymentStates::STATE_AWAITING_PAYMENT, [PaymentInterface::STATE_FAILED, PaymentInterface::STATE_NEW], true];
+        yield 'a processing payment' => [OrderPaymentStates::STATE_AWAITING_PAYMENT, [PaymentInterface::STATE_PROCESSING], false];
+        yield 'a processing payment next to a new one' => [OrderPaymentStates::STATE_AWAITING_PAYMENT, [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_NEW], true];
+        yield 'an order no longer awaiting payment' => [OrderPaymentStates::STATE_PAID, [PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CART], false];
     }
 
-    public function test_it_does_not_let_the_buyer_change_the_payment_method_while_the_payment_is_processing(): void
+    /** @param list<string> $paymentStates */
+    #[DataProvider('orders')]
+    public function test_it_tells_whether_the_buyer_can_change_the_payment_method(string $orderPaymentState, array $paymentStates, bool $expected): void
     {
-        $order = $this->order(OrderPaymentStates::STATE_AWAITING_PAYMENT, PaymentInterface::STATE_PROCESSING);
+        $extension = new ChangePaymentMethodExtension([PaymentInterface::STATE_NEW, PaymentInterface::STATE_CART]);
 
-        self::assertFalse((new ChangePaymentMethodExtension(['new', 'cart']))->canChangePaymentMethod($order));
+        self::assertSame($expected, $extension->canChangePaymentMethod($this->order($orderPaymentState, $paymentStates)));
     }
 
-    public function test_it_follows_the_payment_states_the_store_allows(): void
-    {
-        $order = $this->order(OrderPaymentStates::STATE_AWAITING_PAYMENT, PaymentInterface::STATE_PROCESSING);
-
-        self::assertTrue((new ChangePaymentMethodExtension(['new', 'cart', 'processing']))->canChangePaymentMethod($order));
-    }
-
-    public function test_it_does_not_let_the_buyer_change_the_payment_method_of_an_order_no_longer_awaiting_payment(): void
-    {
-        $order = $this->order(OrderPaymentStates::STATE_PAID, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CART);
-
-        self::assertFalse((new ChangePaymentMethodExtension(['new', 'cart']))->canChangePaymentMethod($order));
-    }
-
-    private function order(string $paymentState, string ...$paymentStates): OrderInterface
+    /** @param list<string> $paymentStates */
+    private function order(string $paymentState, array $paymentStates): OrderInterface
     {
         $order = new Order();
         $order->setPaymentState($paymentState);
