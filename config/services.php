@@ -35,6 +35,7 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
+use Sylius\PayPalPlugin\Console\Command\EncryptGatewayConfigsCommand;
 use Sylius\PayPalPlugin\Console\Command\PruneWebhookEventsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
@@ -604,6 +605,16 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius_paypal.repository.query.paypal_payment'),
             service('doctrine.orm.entity_manager'),
+        ])
+        ->tag('console.command');
+
+    $services->set('sylius_paypal.console.command.encrypt_gateway_configs', EncryptGatewayConfigsCommand::class)
+        ->args([
+            service('doctrine.dbal.default_connection'),
+            service('sylius.factory.gateway_config'),
+            service('sylius.checker.gateway_config_encryption')->nullOnInvalid(),
+            service('sylius.encrypter.gateway_config')->nullOnInvalid(),
+            service('payum.dynamic_gateways.cypher')->nullOnInvalid(),
         ])
         ->tag('console.command');
 
