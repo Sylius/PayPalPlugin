@@ -117,8 +117,6 @@ final class PaymentPayPalContext implements Context
             'client_secret' => 'SECRET',
             'partner_attribution_id' => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',
-            'reports_sftp_username' => 'USERNAME',
-            'reports_sftp_password' => 'PASSWORD',
         ]);
 
         $paymentMethod->setPosition((int) $position);

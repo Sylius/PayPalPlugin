@@ -41,8 +41,6 @@ sylius_paypal:
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
     sandbox_on_production_warning: "Attention : ce moyen de paiement utilise le Sandbox PayPal sur un environnement de production. Le Sandbox utilise des identifiants de test et ne traitera pas de vrais paiements."
-    sftp_password: 'Mot de passe SFTP'
-    sftp_username: 'Identifiant SFTP'
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
     suggested: 'Suggéré'
     suggested_payment_method_description: 'Acceptez les paiements PayPal, carte de crédit et carte de débit dans votre boutique.'

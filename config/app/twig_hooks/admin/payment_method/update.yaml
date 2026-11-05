@@ -21,12 +21,6 @@ sylius_twig_hooks:
             client_secret:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/client_secret.html.twig'
                 priority: -200
-            reports_sftp_username:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_username.html.twig'
-                priority: -300
-            reports_sftp_password:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_password.html.twig'
-                priority: -400
             express_checkout_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/express_checkout_enabled.html.twig'
                 priority: -500

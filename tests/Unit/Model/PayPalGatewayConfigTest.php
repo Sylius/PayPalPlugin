@@ -59,26 +59,14 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertTrue(PayPalGatewayConfig::fromArray(['partner_attribution_id' => 'BN'])->hasPartnerAttributionId());
     }
 
-    public function test_it_reads_the_optional_values_as_null_when_they_are_not_set(): void
+    public function test_it_reads_the_webhook_id_as_null_when_it_is_not_set(): void
     {
-        $config = PayPalGatewayConfig::fromArray([]);
-
-        self::assertNull($config->reportsSftpUsername());
-        self::assertNull($config->reportsSftpPassword());
-        self::assertNull($config->webhookId());
+        self::assertNull(PayPalGatewayConfig::fromArray([])->webhookId());
     }
 
-    public function test_it_reads_the_optional_values_when_they_are_set(): void
+    public function test_it_reads_the_webhook_id_when_it_is_set(): void
     {
-        $config = PayPalGatewayConfig::fromArray([
-            'reports_sftp_username' => 'USERNAME',
-            'reports_sftp_password' => 'PASSWORD',
-            'webhook_id' => 'WEBHOOK_ID',
-        ]);
-
-        self::assertSame('USERNAME', $config->reportsSftpUsername());
-        self::assertSame('PASSWORD', $config->reportsSftpPassword());
-        self::assertSame('WEBHOOK_ID', $config->webhookId());
+        self::assertSame('WEBHOOK_ID', PayPalGatewayConfig::fromArray(['webhook_id' => 'WEBHOOK_ID'])->webhookId());
     }
 
     public function test_it_opts_a_gateway_into_express_checkout_pay_later_and_messaging_until_told_otherwise(): void
