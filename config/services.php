@@ -596,13 +596,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.console.command.complete_paid_payments', CompletePaidPaymentsCommand::class)
         ->args([
-            service('sylius.repository.payment'),
-            null,
-            null,
-            null,
-            null,
-            service('sylius_paypal.processor.payment_settlement'),
             service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius_paypal.dispatcher.status_payment_request'),
             service('doctrine.orm.entity_manager'),
         ])
         ->tag('console.command');
