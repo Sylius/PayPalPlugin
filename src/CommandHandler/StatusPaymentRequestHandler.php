@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\CommandHandler;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\PayPalPlugin\Command\StatusPaymentRequest;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
@@ -27,6 +28,8 @@ use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 final class StatusPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
+
+    public const PAYLOAD_SETTLE_AUTHORIZED = 'settle_authorized';
 
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
@@ -49,7 +52,7 @@ final class StatusPaymentRequestHandler
             return;
         }
 
-        if (PaymentInterface::STATE_PROCESSING === $payment->getState()) {
+        if ($this->shouldSettle($payment, $paymentRequest)) {
             try {
                 $this->paymentSettlementProcessor->settle($payment);
             } catch (PayPalApiConnectionException|PayPalApiServerException) {
@@ -64,5 +67,20 @@ final class StatusPaymentRequestHandler
         }
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+    }
+
+    private function shouldSettle(PaymentInterface $payment, PaymentRequestInterface $paymentRequest): bool
+    {
+        if (PaymentInterface::STATE_PROCESSING === $payment->getState()) {
+            return true;
+        }
+
+        $payload = $paymentRequest->getPayload();
+
+        return
+            PaymentInterface::STATE_AUTHORIZED === $payment->getState() &&
+            is_array($payload) &&
+            true === ($payload[self::PAYLOAD_SETTLE_AUTHORIZED] ?? false)
+        ;
     }
 }

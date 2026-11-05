@@ -16,8 +16,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Updater;
 use Doctrine\Persistence\ObjectManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 

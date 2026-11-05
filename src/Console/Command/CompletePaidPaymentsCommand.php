@@ -14,18 +14,10 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Console\Command;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ObjectManager;
-use Psr\Log\NullLogger;
-use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
-use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
-use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
-use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler;
+use Sylius\PayPalPlugin\Dispatcher\StatusPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -44,51 +36,12 @@ final class CompletePaidPaymentsCommand extends Command
 
     private const SETTLEABLE_STATES = [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED];
 
-    /**
-     * @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository
-     *
-     * @deprecated the $paymentManager, $authorizeClientApi, $orderDetailsApi and $stateMachine arguments are
-     *             deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
-     *             Pass a $paymentSettlementProcessor instead.
-     */
     public function __construct(
-        private readonly PaymentRepositoryInterface $paymentRepository,
-        private readonly ?ObjectManager $paymentManager = null,
-        private readonly ?CacheAuthorizeClientApiInterface $authorizeClientApi = null,
-        private readonly ?OrderDetailsApiInterface $orderDetailsApi = null,
-        private readonly ?StateMachineInterface $stateMachine = null,
-        private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
-        private readonly ?PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery = null,
-        private readonly ?EntityManagerInterface $entityManager = null,
+        private readonly PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery,
+        private readonly StatusPaymentRequestDispatcherInterface $statusPaymentRequestDispatcher,
+        private readonly EntityManagerInterface $entityManager,
     ) {
         parent::__construct();
-
-        foreach ([
-            ObjectManager::class => $this->paymentManager,
-            CacheAuthorizeClientApiInterface::class => $this->authorizeClientApi,
-            OrderDetailsApiInterface::class => $this->orderDetailsApi,
-            StateMachineInterface::class => $this->stateMachine,
-        ] as $class => $argument) {
-            if (null !== $argument) {
-                trigger_deprecation(
-                    'sylius/paypal-plugin',
-                    '2.2',
-                    'Passing an instance of "%s" to "%s" constructor is deprecated and will be prohibited in 3.0.',
-                    $class,
-                    self::class,
-                );
-            }
-        }
-
-        if (null === $this->paymentSettlementProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
-                PaymentSettlementProcessorInterface::class,
-                self::class,
-            );
-        }
     }
 
     protected function configure(): void
@@ -98,35 +51,21 @@ final class CompletePaidPaymentsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $paymentSettlementProcessor = $this->paymentSettlementProcessor ?? $this->buildPaymentSettlementProcessor();
-
-        if (null === $paymentSettlementProcessor) {
-            $output->writeln(sprintf(
-                '<error>No %s was given, so no payment can be settled.</error>',
-                PaymentSettlementProcessorInterface::class,
-            ));
-
-            return Command::FAILURE;
-        }
-
         $failed = false;
 
         foreach ($this->findSettleablePayments(max(1, (int) $input->getOption('batch-size'))) as $payment) {
-            if (!$this->isPayPalPayment($payment)) {
+            $reason = $this->settle($payment);
+            if (null === $reason) {
                 continue;
             }
 
-            try {
-                $paymentSettlementProcessor->settle($payment);
-            } catch (\Exception $exception) {
-                $failed = true;
-                $output->writeln(sprintf(
-                    '<error>Payment #%s of order #%s could not be settled: %s</error>',
-                    (string) $payment->getId(),
-                    (string) $payment->getOrder()?->getNumber(),
-                    $exception->getMessage(),
-                ));
-            }
+            $failed = true;
+            $output->writeln(sprintf(
+                '<error>Payment #%s of order #%s could not be settled: %s</error>',
+                (string) $payment->getId(),
+                (string) $payment->getOrder()?->getNumber(),
+                $reason,
+            ));
         }
 
         return $failed ? Command::FAILURE : Command::SUCCESS;
@@ -135,12 +74,6 @@ final class CompletePaidPaymentsCommand extends Command
     /** @return iterable<PaymentInterface> */
     private function findSettleablePayments(int $batchSize): iterable
     {
-        if (null === $this->paypalPaymentBatchQuery) {
-            yield from $this->paymentRepository->findBy(['state' => self::SETTLEABLE_STATES]);
-
-            return;
-        }
-
         $lastId = null;
 
         while ([] !== $payments = $this->paypalPaymentBatchQuery->findInStates(self::SETTLEABLE_STATES, $batchSize, $lastId)) {
@@ -151,41 +84,25 @@ final class CompletePaidPaymentsCommand extends Command
                 yield $payment;
             }
 
-            $this->entityManager?->clear();
+            $this->entityManager->clear();
         }
     }
 
-    private function buildPaymentSettlementProcessor(): ?PaymentSettlementProcessorInterface
+    private function settle(PaymentInterface $payment): ?string
     {
-        if (
-            null === $this->authorizeClientApi ||
-            null === $this->orderDetailsApi ||
-            null === $this->stateMachine ||
-            null === $this->paymentManager
-        ) {
+        try {
+            $paymentRequest = $this->statusPaymentRequestDispatcher->dispatch($payment);
+        } catch (\Exception $exception) {
+            return $exception->getMessage();
+        }
+
+        if (PaymentRequestInterface::STATE_FAILED !== $paymentRequest->getState()) {
             return null;
         }
 
-        return new PayPalPaymentSettlementProcessor(
-            $this->orderDetailsApi,
-            $this->stateMachine,
-            $this->paymentManager,
-            new NullLogger(),
-        );
-    }
+        $responseData = $paymentRequest->getResponseData();
+        $reason = $responseData[StatusPaymentRequestHandler::RESPONSE_REASON] ?? null;
 
-    private function isPayPalPayment(PaymentInterface $payment): bool
-    {
-        $paymentMethod = $payment->getMethod();
-        if (!$paymentMethod instanceof PaymentMethodInterface) {
-            return false;
-        }
-
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-
-        return
-            $gatewayConfig instanceof GatewayConfigInterface &&
-            $gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME
-        ;
+        return is_string($reason) ? $reason : 'the status Payment Request failed.';
     }
 }

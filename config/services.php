@@ -65,7 +65,6 @@ use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactory;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface;
-use Sylius\PayPalPlugin\Form\Extension\GatewayConfigTypeExtension;
 use Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator;
@@ -184,9 +183,6 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
 
     $services->set('sylius_paypal.form.extension.payment_method', PaymentMethodTypeExtension::class)
-        ->tag('form.type_extension');
-
-    $services->set('sylius_paypal.form.extension.gateway_config', GatewayConfigTypeExtension::class)
         ->tag('form.type_extension');
 
     $services->set('sylius_paypal.form.type.paypal_configuration', PayPalConfigurationType::class)
@@ -598,13 +594,8 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.console.command.complete_paid_payments', CompletePaidPaymentsCommand::class)
         ->args([
-            service('sylius.repository.payment'),
-            null,
-            null,
-            null,
-            null,
-            service('sylius_paypal.processor.payment_settlement'),
             service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius_paypal.dispatcher.status_payment_request'),
             service('doctrine.orm.entity_manager'),
         ])
         ->tag('console.command');
