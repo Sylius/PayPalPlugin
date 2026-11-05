@@ -152,6 +152,7 @@ use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
+use Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
@@ -675,6 +676,10 @@ return static function (ContainerConfigurator $container) {
         ->tag('twig.extension');
 
     $services->set('sylius_paypal.twig.extension.order_address', OrderAddressExtension::class)
+        ->tag('twig.extension');
+
+    $services->set('sylius_paypal.twig.extension.change_payment_method', ChangePaymentMethodExtension::class)
+        ->args(['%sylius_core.checkout.payment.allowed_states%'])
         ->tag('twig.extension');
 
     $services->set('sylius_paypal.twig.extension.enabled_payment_sources', EnabledPaymentSourcesExtension::class)

@@ -13,14 +13,6 @@ sylius_admin:
             excluded_gateways:
                 - !php/const Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension::PAYPAL_FACTORY_NAME
 
-sylius_core:
-    checkout:
-        payment:
-            allowed_states:
-                - new
-                - cart
-                - processing
-
 sylius_grid:
     templates:
         action:
