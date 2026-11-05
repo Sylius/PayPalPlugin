@@ -1,0 +1,35 @@
+{% import '@SyliusPayPalPlugin/admin/shared/helper/payment_method_icon.html.twig' as payment_method_icon %}
+
+{% set configuration = hookable_metadata.configuration %}
+{% set inline = configuration.inline|default(false) %}
+
+{% set icons %}
+    <div class="d-flex flex-wrap gap-2">
+        {% for icon in configuration.icons %}
+            <span class="payment-method-list__method d-inline-flex align-items-center justify-content-center">
+                {{ payment_method_icon.image(icon) }}
+            </span>
+        {% endfor %}
+    </div>
+{% endset %}
+
+<div class="col-12 col-md-6 col-xl-4">
+    <div class="border rounded-3 p-3 h-100" {{ sylius_test_html_attribute('paypal-payment-method', configuration.code) }}>
+        {% if inline %}
+            <div class="d-flex align-items-center gap-3 h-100">
+                {{ icons }}
+                <span class="fw-semibold flex-grow-1">{{ configuration.label|trans }}</span>
+                {% hook configuration.code %}
+            </div>
+        {% else %}
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                {{ icons }}
+                <span class="fw-semibold">{{ configuration.label|trans }}</span>
+            </div>
+
+            <div class="d-flex flex-column gap-2 mt-3">
+                {% hook configuration.code %}
+            </div>
+        {% endif %}
+    </div>
+</div>
