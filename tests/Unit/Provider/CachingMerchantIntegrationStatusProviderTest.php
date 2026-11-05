@@ -15,6 +15,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Provider;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfig;
@@ -22,7 +24,6 @@ use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Provider\CachingMerchantIntegrationStatusProvider;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
-use Symfony\Component\Clock\MockClock;
 
 final class CachingMerchantIntegrationStatusProviderTest extends TestCase
 {
@@ -59,23 +60,27 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
         $this->provider->provide($this->paymentMethod('CLIENT-1', false));
     }
 
+    public function test_it_answers_an_unknown_status_from_the_cache(): void
+    {
+        $this->merchantIntegrationStatusProvider->expects(self::once())->method('provide')->willReturn(null);
+
+        self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+        self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+    }
+
     public function test_it_keeps_an_unknown_status_for_a_shorter_while(): void
     {
-        $status = new OnboardingStatus(true, true);
-        $this->merchantIntegrationStatusProvider
-            ->expects(self::exactly(2))
-            ->method('provide')
-            ->willReturnOnConsecutiveCalls(null, $status)
-        ;
-        $clock = new MockClock();
-        $this->provider = new CachingMerchantIntegrationStatusProvider($this->merchantIntegrationStatusProvider, new ArrayAdapter(clock: $clock), 3600, 300);
+        $this->merchantIntegrationStatusProvider->method('provide')->willReturn(null);
+        $item = $this->createMock(CacheItemInterface::class);
+        $item->method('isHit')->willReturn(false);
+        $item->expects(self::once())->method('set')->with(null);
+        $item->expects(self::once())->method('expiresAfter')->with(300);
+        $cache = $this->createMock(CacheItemPoolInterface::class);
+        $cache->method('getItem')->willReturn($item);
+        $cache->expects(self::once())->method('save')->with($item);
+        $provider = new CachingMerchantIntegrationStatusProvider($this->merchantIntegrationStatusProvider, $cache, 3600, 300);
 
-        self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
-        self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
-
-        $clock->sleep(301);
-
-        self::assertEquals($status, $this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+        self::assertNull($provider->provide($this->paymentMethod('CLIENT-1', true)));
     }
 
     public function test_it_does_not_ask_about_a_payment_method_without_credentials(): void
