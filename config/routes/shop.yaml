@@ -24,12 +24,6 @@ sylius_paypal_shop_cancel_order:
     defaults:
         _controller: sylius_paypal.controller.cancel_paypal_order
 
-sylius_paypal_shop_cancel_payment:
-    path: /cancel-pay-pal-payment
-    methods: [POST]
-    defaults:
-        _controller: sylius_paypal.controller.cancel_paypal_payment
-
 sylius_paypal_shop_payment_error:
     path: /pay-pal-payment-error
     methods: [POST]
