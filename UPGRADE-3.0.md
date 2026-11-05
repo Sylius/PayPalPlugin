@@ -759,6 +759,10 @@
       public URL of the shop for every PayPal payment method and exits with `0`. A webhook it could not update stays
       where it was: fix the URL and run it again.
 
+   Run the command again on the deployment of every release that adds event types. The edit page of a PayPal payment
+   method flags a webhook that is not registered, misses event types or points elsewhere, and updates it with the same
+   registrar as the command.
+
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
    it made, created through `WebhookRegistration::registered()`, `updated()` or `upToDate()`: the webhook id, its URL and
    whether it was registered anew (`isNew()`) or was already up to date (`isUpToDate()`).

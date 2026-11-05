@@ -21,7 +21,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Model\WebhookState;
+use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 
 final class WebhookStateComponentTest extends TestCase
@@ -31,6 +34,8 @@ final class WebhookStateComponentTest extends TestCase
 
     private WebhookStateCheckerInterface&MockObject $webhookStateChecker;
 
+    private SellerWebhookEventTypesRegistrarInterface&MockObject $registrar;
+
     private LoggerInterface&MockObject $logger;
 
     private WebhookStateComponent $component;
@@ -39,9 +44,15 @@ final class WebhookStateComponentTest extends TestCase
     {
         $this->paymentMethodRepository = $this->createMock(PaymentMethodRepositoryInterface::class);
         $this->webhookStateChecker = $this->createMock(WebhookStateCheckerInterface::class);
+        $this->registrar = $this->createMock(SellerWebhookEventTypesRegistrarInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->component = new WebhookStateComponent($this->paymentMethodRepository, $this->webhookStateChecker, $this->logger);
+        $this->component = new WebhookStateComponent(
+            $this->paymentMethodRepository,
+            $this->webhookStateChecker,
+            $this->registrar,
+            $this->logger,
+        );
         $this->component->paymentMethodId = 1;
     }
 
@@ -78,6 +89,43 @@ final class WebhookStateComponentTest extends TestCase
         $this->logger->expects(self::once())->method('error')->with(self::stringContains('"PAYPAL"'));
 
         self::assertNull($this->component->getState());
+    }
+
+    public function test_it_updates_the_webhook(): void
+    {
+        $paymentMethod = $this->paymentMethod('sylius_paypal');
+        $this->paymentMethodRepository->method('find')->willReturn($paymentMethod);
+        $registration = WebhookRegistration::updated('WH-1', 'https://shop.example.com/payment-methods/PAYPAL');
+
+        $this->registrar->expects(self::once())->method('register')->with($paymentMethod)->willReturn($registration);
+
+        $this->component->updateWebhook();
+
+        self::assertSame($registration, $this->component->registration);
+        self::assertNull($this->component->updateError);
+    }
+
+    public function test_it_tells_why_the_webhook_could_not_be_updated(): void
+    {
+        $paymentMethod = $this->paymentMethod('sylius_paypal');
+        $this->paymentMethodRepository->method('find')->willReturn($paymentMethod);
+        $this->registrar->method('register')->willThrowException(new PayPalWebhookNotRegisteredException('PAYPAL', 'https://localhost/payment-methods/PAYPAL', 'VALIDATION_ERROR'));
+
+        $this->logger->expects(self::once())->method('error')->with(self::stringContains('"PAYPAL"'));
+
+        $this->component->updateWebhook();
+
+        self::assertNull($this->component->registration);
+        self::assertStringContainsString('VALIDATION_ERROR', (string) $this->component->updateError);
+    }
+
+    public function test_it_does_not_update_the_webhook_of_another_gateway(): void
+    {
+        $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod('offline'));
+
+        $this->registrar->expects(self::never())->method('register');
+
+        $this->component->updateWebhook();
     }
 
     private function paymentMethod(string $factoryName): PaymentMethodInterface

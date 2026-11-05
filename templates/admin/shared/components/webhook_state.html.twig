@@ -1,6 +1,24 @@
 {% set state = this.state %}
 
 <div {{ attributes }}>
+    {% if variant == 'alert' and registration is not null %}
+        <div class="alert alert-success" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'success') }}>
+            {% if registration.isNew() %}
+                {{ 'sylius_paypal.webhook_registered'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+            {% elseif registration.isUpToDate() %}
+                {{ 'sylius_paypal.webhook_already_up_to_date'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+            {% else %}
+                {{ 'sylius_paypal.webhook_updated'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if variant == 'alert' and updateError is not null %}
+        <div class="alert alert-danger" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'error') }}>
+            {{ 'sylius_paypal.webhook_not_updated'|trans({'%reason%': updateError}) }}
+        </div>
+    {% endif %}
+
     {% if state is not null and not state.isUpToDate() %}
         {% set problem = state.isRegistered() ? 'sylius_paypal.webhook_out_of_date' : 'sylius_paypal.webhook_not_registered' %}
 
@@ -15,6 +33,16 @@
                         <div>{{ 'sylius_paypal.webhook_missing_event_types'|trans }} <code>{{ state.missingEventTypes()|join(', ') }}</code></div>
                     {% endif %}
                     <div class="mt-2">{{ 'sylius_paypal.webhook_update_hint'|trans }} <code>bin/console sylius-paypal:register-webhook-event-types</code></div>
+                    <button
+                        type="button"
+                        class="btn btn-warning mt-2"
+                        data-action="live#action"
+                        data-live-action-param="updateWebhook"
+                        data-loading="addAttribute(disabled)"
+                        {{ sylius_test_html_attribute('paypal-webhook-update-button') }}
+                    >
+                        {{ 'sylius_paypal.update_webhook'|trans }}
+                    </button>
                 </div>
             </div>
         {% else %}

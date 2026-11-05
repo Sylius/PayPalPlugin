@@ -49,8 +49,13 @@ sylius_paypal:
     suggested_payment_method_description: 'Acceptez les paiements PayPal, carte de crédit et carte de débit dans votre boutique.'
     tender_type: 'Remboursé sur le porte-monnaie PayPal'
     tender_type_original_payment_method: "Remboursé sur le moyen de paiement d'origine"
+    update_webhook: "Mettre à jour le webhook"
+    webhook_already_up_to_date: "Le webhook %id% est déjà à jour à %url%."
     webhook_missing_event_types: "Événements manquants :"
     webhook_not_registered: "Webhook non enregistré"
+    webhook_not_updated: "Impossible de mettre à jour le webhook : %reason%"
     webhook_out_of_date: "Webhook obsolète"
     webhook_points_elsewhere: "PayPal envoie les événements à %url%."
-    webhook_update_hint: "Exécutez cette commande pour le mettre à jour :"
+    webhook_registered: "Webhook %id% enregistré à %url%."
+    webhook_update_hint: "Mettez-le à jour ci-dessous, ou exécutez cette commande lors du déploiement de chaque version qui ajoute des types d'événements :"
+    webhook_updated: "Le webhook %id% pointe maintenant vers %url%."
