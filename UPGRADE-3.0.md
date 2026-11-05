@@ -811,10 +811,7 @@
 
    ```diff
     // Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker
-   +public function __construct(
-   +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
-   +    private PaymentSourceCapabilityCheckerInterface $paymentSourceCapabilityChecker,
-   +) {
+   +public function __construct(private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker)
    ```
 
    ```diff
@@ -827,17 +824,18 @@
     ) {
    ```
 
-1. #### Apple Pay and Google Pay are offered only when the merchant's PayPal account has them active.
+1. #### Apple Pay and Google Pay can be enabled only when the merchant's PayPal account has them active.
 
    `Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface` (`sylius_paypal.checker.payment_source_capability`)
    tells whether the PayPal account of a payment method has the capability a payment source needs (`APPLE_PAY`,
    `GOOGLE_PAY`). It reads the active capabilities from `GET v1/customer/partners/{partner_id}/merchant-integrations/{merchant_id}`
    with the seller's own token, through `Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface`
    (`sylius_paypal.provider.merchant_integration_status`), cached for `%sylius_paypal.merchant_integration_status_lifetime%`
-   seconds (3600 by default). When the status cannot be read, nothing is hidden.
+   seconds (3600 by default).
 
-   The payment page hides Apple Pay and Google Pay while the capability is not active, and the PayPal configuration form
-   disables their toggles.
+   Only the PayPal configuration form uses it: it disables the Apple Pay and Google Pay toggles while the capability is
+   not active, and saves a toggle disabled this way as off. When the status cannot be read, the toggles stay enabled.
+   The shop reads only the stored toggles and asks PayPal about no capability.
 
    ```diff
     // Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType

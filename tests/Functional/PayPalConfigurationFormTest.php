@@ -67,6 +67,26 @@ final class PayPalConfigurationFormTest extends JsonApiTestCase
         self::assertNull($crawler->filter('[data-test-google-pay-enabled]')->attr('disabled'));
     }
 
+    public function test_it_turns_off_on_save_a_toggle_of_a_payment_source_the_paypal_account_has_no_capability_for(): void
+    {
+        FakeMerchantOnboardingStatusApi::$activeCapabilities = ['GOOGLE_PAY'];
+        $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
+        $gatewayConfig = $entityManager->find($this->paymentMethod::class, $this->paymentMethod->getId())->getGatewayConfig();
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['apple_pay_enabled' => true, 'google_pay_enabled' => true]));
+        $entityManager->flush();
+
+        $crawler = $this->editPage();
+        self::assertStringContainsString('It will be turned off when you save.', $crawler->text());
+
+        $this->client->submit($crawler->filter('form[name="sylius_admin_payment_method"]')->form());
+        self::assertSame(Response::HTTP_FOUND, $this->client->getResponse()->getStatusCode());
+
+        $entityManager->clear();
+        $config = $entityManager->find($this->paymentMethod::class, $this->paymentMethod->getId())->getGatewayConfig()->getConfig();
+        self::assertFalse($config['apple_pay_enabled']);
+        self::assertTrue($config['google_pay_enabled']);
+    }
+
     private function editPage(): Crawler
     {
         $this->client->loginUser($this->admin, 'admin');

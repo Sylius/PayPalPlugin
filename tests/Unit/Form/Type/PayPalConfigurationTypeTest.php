@@ -48,16 +48,30 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertFalse($form->get('venmo_enabled')->isDisabled());
     }
 
-    public function test_it_keeps_the_stored_value_of_a_toggle_disabled_for_a_missing_capability(): void
+    public function test_it_turns_off_on_save_a_toggle_disabled_for_a_missing_capability(): void
     {
         $this->paymentSourcesWithoutCapability = ['apple_pay'];
 
         $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['apple_pay_enabled' => true]));
 
+        self::assertSame('sylius_paypal.capability_not_active_turned_off_on_save', $form->get('apple_pay_enabled')->getConfig()->getOption('help'));
+
         $form->submit($this->submittedFields());
 
         self::assertTrue($form->isValid());
-        self::assertTrue($form->getData()['apple_pay_enabled']);
+        self::assertFalse($form->getData()['apple_pay_enabled']);
+    }
+
+    public function test_it_leaves_a_toggle_with_its_capability_as_submitted(): void
+    {
+        $this->paymentSourcesWithoutCapability = ['apple_pay'];
+
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit(array_merge($this->submittedFields(), ['google_pay_enabled' => '1']));
+
+        self::assertFalse($form->getData()['apple_pay_enabled']);
+        self::assertTrue($form->getData()['google_pay_enabled']);
     }
 
     public function test_it_leaves_the_apple_pay_and_google_pay_toggles_enabled_when_the_paypal_account_has_their_capability(): void

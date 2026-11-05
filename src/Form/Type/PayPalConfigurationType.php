@@ -49,6 +49,7 @@ final class PayPalConfigurationType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $originalData = [];
+        $togglesWithoutCapability = [];
 
         $builder
             ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
@@ -77,7 +78,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS, CheckboxType::class, ['label' => 'sylius_paypal.card_three_d_secure_always', 'required' => false])
         ;
 
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData): void {
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData, &$togglesWithoutCapability): void {
             $data = $event->getData();
             if (is_array($data)) {
                 $originalData = $data;
@@ -94,13 +95,15 @@ final class PayPalConfigurationType extends AbstractType
                 $event->setData($data);
 
                 $form = $event->getForm();
+                $togglesWithoutCapability = [];
                 foreach (self::CAPABILITY_TOGGLES as $field => $paymentSource) {
                     if (!$this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $config)) {
+                        $togglesWithoutCapability[] = $field;
                         $form->add($field, CheckboxType::class, [
                             'label' => $form->get($field)->getConfig()->getOption('label'),
                             'required' => false,
                             'disabled' => true,
-                            'help' => 'sylius_paypal.capability_not_active',
+                            'help' => true === $data[$field] ? 'sylius_paypal.capability_not_active_turned_off_on_save' : 'sylius_paypal.capability_not_active',
                         ]);
                     }
                 }
@@ -122,13 +125,16 @@ final class PayPalConfigurationType extends AbstractType
             $event->setData($submitted);
         });
 
-        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event): void {
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) use (&$togglesWithoutCapability): void {
             $config = $event->getData();
             if (!is_array($config)) {
                 return;
             }
 
             $config[PayPalGatewayConfig::USE_AUTHORIZE] = true === ($config[PayPalGatewayConfig::USE_AUTHORIZE] ?? false);
+            foreach ($togglesWithoutCapability as $field) {
+                $config[$field] = false;
+            }
 
             $event->setData($config);
         });

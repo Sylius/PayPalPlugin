@@ -10,6 +10,7 @@ sylius_paypal:
     back_to_store: 'Wróć do sklepu'
     billing_info: 'Adres rozliczeniowy taki sam jak w zamówieniu'
     capability_not_active: 'Ta metoda płatności nie jest jeszcze aktywna na Twoim koncie PayPal.'
+    capability_not_active_turned_off_on_save: 'Ta metoda płatności nie jest jeszcze aktywna na Twoim koncie PayPal. Zostanie wyłączona po zapisaniu.'
     capture_strategy: 'Strategia pobierania środków'
     capture_strategy_authorize: 'Autoryzacja i późniejsze pobranie'
     capture_strategy_capture: 'Natychmiastowe pobranie'

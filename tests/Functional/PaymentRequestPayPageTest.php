@@ -23,19 +23,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Tests\Sylius\PayPalPlugin\Service\FakeMerchantOnboardingStatusApi;
 
 final class PaymentRequestPayPageTest extends JsonApiTestCase
 {
     use MocksPayPalApiTrait;
-
-    protected function tearDown(): void
-    {
-        FakeMerchantOnboardingStatusApi::$activeCapabilities = FakeMerchantOnboardingStatusApi::ACTIVE_CAPABILITIES;
-        self::getContainer()->get('sylius_paypal.cache')->clear();
-
-        parent::tearDown();
-    }
 
     public function test_it_shows_the_paypal_payment_page_of_the_order_it_pays(): void
     {
@@ -66,20 +57,6 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-apple-pay', (string) $response->getContent());
         self::assertStringNotContainsString('data-sylius--paypal-plugin--paypal-payment-apple-pay-country-code-value', (string) $response->getContent());
-    }
-
-    public function test_it_hides_apple_pay_and_google_pay_while_the_paypal_account_lacks_their_capability(): void
-    {
-        FakeMerchantOnboardingStatusApi::$activeCapabilities = ['GOOGLE_PAY'];
-        $payment = $this->payPalOrder();
-        self::getContainer()->get('sylius_paypal.cache')->clear();
-
-        $this->client->request('GET', sprintf('/en_US/payment-request/pay/%s', $this->paymentRequestHash($payment, PaymentRequestInterface::STATE_NEW)));
-        $content = (string) $this->client->getResponse()->getContent();
-
-        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        self::assertStringNotContainsString('sylius--paypal-plugin--paypal-payment-apple-pay', $content);
-        self::assertStringContainsString('sylius--paypal-plugin--paypal-payment-google-pay', $content);
     }
 
     public function test_it_shows_the_payment_page_with_the_paypal_account_of_the_method_being_paid(): void

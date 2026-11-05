@@ -503,10 +503,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
 
     $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class)
-        ->args([
-            service('sylius_paypal.checker.payment_authorization'),
-            service('sylius_paypal.checker.payment_source_capability'),
-        ]);
+        ->args([service('sylius_paypal.checker.payment_authorization')]);
 
     $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
 
