@@ -21,7 +21,7 @@ final class Version20261104120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Move PayPal gateway configs off Payum and keep them capturing';
+        return 'Move PayPal gateway configs off Payum, keep them capturing and drop their SFTP credentials';
     }
 
     public function up(Schema $schema): void
@@ -36,6 +36,7 @@ final class Version20261104120000 extends AbstractMigration
             $config = json_decode((string) $gatewayConfig['config'], true, 512, \JSON_THROW_ON_ERROR);
             $config = is_array($config) ? $config : [];
             $config['use_authorize'] = false;
+            unset($config['reports_sftp_username'], $config['reports_sftp_password']);
 
             $this->addSql(
                 'UPDATE sylius_gateway_config SET use_payum = ?, config = ? WHERE id = ?',

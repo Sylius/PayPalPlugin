@@ -40,14 +40,30 @@ final class GatewayConfigsLeavePayumMigrationTest extends JsonApiTestCase
         );
     }
 
-    public function test_it_keeps_the_strategy_of_a_paypal_gateway_config_already_off_payum(): void
+    public function test_it_drops_the_sftp_credentials_of_a_paypal_gateway_config_leaving_payum(): void
     {
         $gatewayConfigId = $this->loadPayPalGatewayConfigId();
-        $this->storeGatewayConfig($gatewayConfigId, false, ['client_id' => 'CLIENT_ID', 'use_authorize' => true]);
+        $this->storeGatewayConfig($gatewayConfigId, true, [
+            'client_id' => 'CLIENT_ID',
+            'reports_sftp_password' => 'PASSWORD',
+            'reports_sftp_username' => 'USERNAME',
+            'use_authorize' => true,
+        ]);
 
         $this->migrate();
 
-        self::assertSame([false, ['client_id' => 'CLIENT_ID', 'use_authorize' => true]], $this->storedGatewayConfig($gatewayConfigId));
+        self::assertSame([false, ['client_id' => 'CLIENT_ID', 'use_authorize' => false]], $this->storedGatewayConfig($gatewayConfigId));
+    }
+
+    public function test_it_leaves_a_paypal_gateway_config_already_off_payum_untouched(): void
+    {
+        $gatewayConfigId = $this->loadPayPalGatewayConfigId();
+        $config = ['client_id' => 'CLIENT_ID', 'reports_sftp_password' => 'PASSWORD', 'reports_sftp_username' => 'USERNAME', 'use_authorize' => true];
+        $this->storeGatewayConfig($gatewayConfigId, false, $config);
+
+        $this->migrate();
+
+        self::assertSame([false, $config], $this->storedGatewayConfig($gatewayConfigId));
     }
 
     public function test_it_leaves_gateway_configs_of_other_factories_on_payum(): void
