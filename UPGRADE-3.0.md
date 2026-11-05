@@ -831,7 +831,8 @@
    `GOOGLE_PAY`). It reads the active capabilities from `GET v1/customer/partners/{partner_id}/merchant-integrations/{merchant_id}`
    with the access token the payment method uses for its other PayPal calls, through
    `Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface` (`sylius_paypal.provider.merchant_integration_status`),
-   cached for `%sylius_paypal.merchant_integration_status_lifetime%` seconds (3600 by default).
+   cached for `%sylius_paypal.merchant_integration_status_lifetime%` seconds (3600 by default), or for
+   `%sylius_paypal.merchant_integration_status_unknown_lifetime%` seconds (300 by default) when it cannot be read.
 
    Only the PayPal configuration form uses it: it disables the Apple Pay and Google Pay toggles while the capability is
    not active, and saves a toggle disabled this way as off. When the status cannot be read, the toggles stay enabled.

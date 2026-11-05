@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Provider\CachingMerchantIntegrationStatusProvider;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Clock\MockClock;
 
 final class CachingMerchantIntegrationStatusProviderTest extends TestCase
 {
@@ -32,7 +33,7 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
     protected function setUp(): void
     {
         $this->merchantIntegrationStatusProvider = $this->createMock(MerchantIntegrationStatusProviderInterface::class);
-        $this->provider = new CachingMerchantIntegrationStatusProvider($this->merchantIntegrationStatusProvider, new ArrayAdapter(), 3600);
+        $this->provider = new CachingMerchantIntegrationStatusProvider($this->merchantIntegrationStatusProvider, new ArrayAdapter(), 3600, 300);
     }
 
     public function test_it_implements_the_merchant_integration_status_provider_interface(): void
@@ -58,7 +59,7 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
         $this->provider->provide($this->paymentMethod('CLIENT-1', false));
     }
 
-    public function test_it_does_not_cache_an_unknown_status(): void
+    public function test_it_keeps_an_unknown_status_for_a_shorter_while(): void
     {
         $status = new OnboardingStatus(true, true);
         $this->merchantIntegrationStatusProvider
@@ -66,8 +67,14 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
             ->method('provide')
             ->willReturnOnConsecutiveCalls(null, $status)
         ;
+        $clock = new MockClock();
+        $this->provider = new CachingMerchantIntegrationStatusProvider($this->merchantIntegrationStatusProvider, new ArrayAdapter(clock: $clock), 3600, 300);
 
         self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+        self::assertNull($this->provider->provide($this->paymentMethod('CLIENT-1', true)));
+
+        $clock->sleep(301);
+
         self::assertEquals($status, $this->provider->provide($this->paymentMethod('CLIENT-1', true)));
     }
 

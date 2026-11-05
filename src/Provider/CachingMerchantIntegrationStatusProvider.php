@@ -25,6 +25,7 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
         private MerchantIntegrationStatusProviderInterface $decorated,
         private CacheItemPoolInterface $cache,
         private int $lifetime,
+        private int $unknownLifetime,
     ) {
     }
 
@@ -39,19 +40,16 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
 
         $item = $this->cache->getItem($this->key($config));
         if ($item->isHit()) {
-            /** @var array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>} $cached */
+            /** @var array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>}|null $cached */
             $cached = $item->get();
 
-            return OnboardingStatus::fromArray($cached);
+            return null === $cached ? null : OnboardingStatus::fromArray($cached);
         }
 
         $status = $this->decorated->provide($paymentMethod);
-        if (null === $status) {
-            return null;
-        }
 
-        $item->set($status->toArray());
-        $item->expiresAfter($this->lifetime);
+        $item->set($status?->toArray());
+        $item->expiresAfter(null === $status ? $this->unknownLifetime : $this->lifetime);
         $this->cache->save($item);
 
         return $status;
