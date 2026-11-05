@@ -1,5 +1,5 @@
 {% set form = hookable_metadata.context.form.gatewayConfig.config %}
 
-<div class="col-12 col-md-6">
-    {{ form_row(form.express_checkout_enabled, sylius_test_form_attribute('express-checkout-enabled')) }}
+<div class="col-12 mb-3">
+    {{ form_row(form.express_checkout_enabled, sylius_test_form_attribute('express-checkout-enabled')|merge({ label_attr: { class: 'checkbox-switch' }, row_attr: { class: 'mb-0' } })) }}
 </div>

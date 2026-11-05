@@ -1,0 +1,9 @@
+{% set configuration = hookable_metadata.configuration %}
+
+<div class="mb-2" {{ sylius_test_html_attribute('paypal-configuration-group', configuration.code) }}>
+    <h5 class="mb-3">{{ configuration.label|trans }}</h5>
+
+    <div class="row">
+        {% hook configuration.code %}
+    </div>
+</div>
