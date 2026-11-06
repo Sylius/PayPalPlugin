@@ -1,0 +1,11 @@
+{% if sylius_is_paypal_sandbox() %}
+    <span class="badge bg-orange-lt fs-5 d-inline-flex align-items-center gap-1 px-3 py-2" {{ sylius_test_html_attribute('paypal-mode', 'sandbox') }}>
+        {{ ux_icon('tabler:flask', { class: 'icon' }) }}
+        {{ 'sylius_paypal.mode_sandbox_description'|trans }}
+    </span>
+{% else %}
+    <span class="badge bg-green-lt fs-5 d-inline-flex align-items-center gap-1 px-3 py-2" {{ sylius_test_html_attribute('paypal-mode', 'production') }}>
+        {{ ux_icon('tabler:circle-check', { class: 'icon' }) }}
+        {{ 'sylius_paypal.mode_production_description'|trans }}
+    </span>
+{% endif %}

@@ -1,5 +1,6 @@
 {% set form = hookable_metadata.context.form.gatewayConfig.config %}
 
-<div class="col-12 col-md-6">
-    {{ form_row(form.messaging_enabled, sylius_test_form_attribute('messaging-enabled')) }}
+<div class="d-flex align-items-center justify-content-between gap-3">
+    <label class="form-label mb-0" for="{{ form.messaging_enabled.vars.id }}">{{ form.messaging_enabled.vars.label|trans }}</label>
+    {{ form_widget(form.messaging_enabled, sylius_test_form_attribute('messaging-enabled')|merge({ label: false, label_attr: { class: 'checkbox-switch' } })) }}
 </div>

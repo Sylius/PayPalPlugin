@@ -1,0 +1,6 @@
+{% set form = hookable_metadata.context.form.gatewayConfig.config %}
+
+<div class="col-12 col-md-6 mb-3">
+    <label class="form-label" for="paypal-merchant-id">{{ 'sylius_paypal.merchant_id'|trans }}</label>
+    <input type="text" id="paypal-merchant-id" class="form-control" value="{{ form.merchant_id.vars.value }}" disabled {{ sylius_test_html_attribute('merchant-id') }}>
+</div>

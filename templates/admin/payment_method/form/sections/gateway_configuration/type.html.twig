@@ -1,0 +1,9 @@
+{% set form = hookable_metadata.context.form %}
+
+{% if form.vars.data.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    <div class="col-12">
+        {{ form_row(form.gatewayConfig.factoryName, sylius_test_form_attribute('factory-name')) }}
+    </div>
+{% else %}
+    {% include '@SyliusAdmin/payment_method/form/sections/gateway_configuration/type.html.twig' %}
+{% endif %}
