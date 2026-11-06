@@ -194,8 +194,10 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     public function test_it_keeps_a_redirect_attempt_processing_while_the_payer_is_still_at_the_bank(): void
     {
-        $paymentRequest = $this->paymentRequestWith(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'trustly']);
-        $paymentRequest->method('getResponseData')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
+        $paymentRequest = $this->paymentRequestWith(
+            ['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'trustly'],
+            responseData: ['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank'],
+        );
         $this->paymentCaptureProcessor->method('capture')->willReturn((new PayPalOrderDetailsMapper())->map(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']));
 
         $paymentRequest->expects(self::once())->method('setResponseData')->with(['awaiting_payer' => true, 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
@@ -254,9 +256,22 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
+    public function test_it_completes_an_attempt_whose_payment_its_paypal_order_has_already_paid(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(responseData: ['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_COMPLETED);
+
+        $this->paymentCaptureProcessor->expects(self::never())->method('capture');
+        $paymentRequest->expects(self::never())->method('setResponseData');
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
+    }
+
     public function test_it_cancels_an_attempt_whose_payment_another_paypal_order_has_already_paid(): void
     {
-        $paymentRequest = $this->paymentRequestWith();
+        $paymentRequest = $this->paymentRequestWith(responseData: ['paypal_order_id' => 'OTHER_PAYPAL_ORDER_ID']);
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_COMPLETED);
 
         $this->paymentCaptureProcessor->expects(self::never())->method('capture');
@@ -308,6 +323,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     private function paymentRequestWith(
         array $details = ['paypal_order_id' => 'PAYPAL_ORDER_ID'],
         string $state = PaymentRequestInterface::STATE_PROCESSING,
+        array $responseData = [],
     ): PaymentRequestInterface&MockObject {
         $this->payment->method('getDetails')->willReturn($details);
 
@@ -315,6 +331,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $paymentRequest->method('getState')->willReturn($state);
         $paymentRequest->method('getPayment')->willReturn($this->payment);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $paymentRequest->method('getResponseData')->willReturn($responseData);
 
         $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
 

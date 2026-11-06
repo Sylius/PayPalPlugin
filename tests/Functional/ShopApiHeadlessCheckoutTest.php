@@ -15,10 +15,12 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use PHPUnit\Framework\Attributes\Before;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderPaymentStates;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 final class ShopApiHeadlessCheckoutTest extends JsonApiTestCase
@@ -151,6 +153,34 @@ final class ShopApiHeadlessCheckoutTest extends JsonApiTestCase
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest['state']);
         self::assertSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
+    }
+
+    public function test_it_completes_a_trustly_payment_a_webhook_settled_before_the_payer_was_back(): void
+    {
+        $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/shipping.yaml']);
+        $this->configurePayPal(['trustly_enabled' => true]);
+        [$token, $paymentId] = $this->checkOut();
+
+        $this->payPalApi()->mockCreateOrder('PAYPAL_ORDER_ID', [
+            'status' => 'PAYER_ACTION_REQUIRED',
+            'links' => [['href' => self::PAYER_ACTION_URL, 'rel' => 'payer-action', 'method' => 'GET']],
+        ]);
+        $paymentRequest = $this->requestPayment($token, $paymentId, 'trustly');
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', ['status' => 'PAYER_ACTION_REQUIRED']);
+        $this->completePayment($paymentRequest['hash']);
+
+        $this->payPalApi()->mockOrderDetailsWithCapture(value: self::ORDER_TOTAL);
+        /** @var PaymentInterface $payment */
+        $payment = self::getContainer()->get('sylius.repository.payment')->find($paymentId);
+        /** @var PaymentSettlementProcessorInterface $paymentSettlementProcessor */
+        $paymentSettlementProcessor = self::getContainer()->get('sylius_paypal.processor.payment_settlement');
+        $paymentSettlementProcessor->settle($payment, payPalOrderId: 'PAYPAL_ORDER_ID');
+        self::assertSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
+
+        $paymentRequest = $this->completePayment($paymentRequest['hash']);
+
+        self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest['state']);
+        self::assertArrayNotHasKey('reason', $paymentRequest['responseData']);
     }
 
     public function test_it_authorizes_a_paypal_payment_of_a_payment_method_that_authorizes_payments(): void
