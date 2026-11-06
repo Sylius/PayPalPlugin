@@ -442,7 +442,15 @@ unchanged.
    - the `template` prop of `sylius_admin.order.show.content.sections.shipments.item.actions` → `ship`, now
      `@SyliusPayPalPlugin/admin/shipment/component/ship_gate.html.twig`;
    - the `ship_with_tracking_code` grid action template (`sylius_grid.templates.action`);
-   - `sylius_shop.order.show.content` → `form`, now `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`.
+   - `sylius_shop.order.show.content` → `form`, now `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`;
+   - `sylius_admin.payment_method.update.content.form.sections` → `gateway_configuration`, now
+     `@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration.html.twig`. It renders the
+     same card as the core template, with `gateway_configuration.header` and
+     `gateway_configuration.<gateway>.header` hooks in the card header.
+   - `sylius_admin.payment_method.update.content.form.sections.gateway_configuration` → `type` and `use_payum`,
+     now `@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration/type.html.twig` and
+     `use_payum.html.twig`. For a PayPal payment method the type field spans the full width and the Use Payum
+     switch is not rendered; every other gateway gets the core templates.
 
 1. **The admin ship form for PayPal orders.**
 
@@ -470,20 +478,21 @@ unchanged.
 
    Moved hookables:
 
-   | Hookable                | 2.1 hook (priority)    | 2.2 hook (priority)                          |
-   |-------------------------|------------------------|----------------------------------------------|
-   | `client_id`             | `sylius_paypal` (-100) | `sylius_paypal.configuration.account` (200)  |
-   | `client_secret`         | `sylius_paypal` (-200) | `sylius_paypal.configuration.account` (100)  |
-   | `reports_sftp_username` | `sylius_paypal` (-300) | `sylius_paypal.configuration.reports` (200)  |
-   | `reports_sftp_password` | `sylius_paypal` (-400) | `sylius_paypal.configuration.reports` (100)  |
+   | Hookable                | 2.1 hook (priority)    | 2.2 hook (priority)                         |
+   |-------------------------|------------------------|---------------------------------------------|
+   | `client_id`             | `sylius_paypal` (-100) | `sylius_paypal.account` (100)               |
+   | `client_secret`         | `sylius_paypal` (-200) | `sylius_paypal.account` (0)                 |
+   | `reports_sftp_username` | `sylius_paypal` (-300) | `sylius_paypal.configuration.reports` (100) |
+   | `reports_sftp_password` | `sylius_paypal` (-400) | `sylius_paypal.configuration.reports` (0)   |
 
    The full structure, with priorities:
 
-   - `sylius_paypal`: `payment_methods` (100), `configuration` (0);
+   - `sylius_paypal.header` (in the card header): `mode`, the sandbox or production badge;
+   - `sylius_paypal`: `payment_methods` (200), `configuration` (100), `account` (0);
    - `sylius_paypal.payment_methods`: one tile per payment method, rendered by
      `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/payment_methods/method.html.twig`
-     from its `code`, `label`, `icons` and `inline` configuration: `pay_later` (600), `cards` (500),
-     `venmo` (400), `google_pay` (300), `apple_pay` (200), `trustly` (100). An `inline` tile is a quarter-width
+     from its `code`, `label`, `icons` and `inline` configuration: `pay_later` (500), `cards` (400),
+     `venmo` (300), `google_pay` (200), `apple_pay` (100), `trustly` (0). An `inline` tile is a quarter-width
      row with its hook next to the name. Any other tile is half-width, with a `<code>.header` hook next to the
      name and a `<code>` hook below it for the method's settings;
    - `sylius_paypal.payment_methods.pay_later.header`: `pay_later_enabled`;
@@ -493,13 +502,12 @@ unchanged.
      `google_pay_enabled`, `apple_pay_enabled` and `trustly_enabled`;
    - `sylius_paypal.configuration`: one group per area, rendered by
      `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/configuration/group.html.twig`:
-     `account` (300), `checkout` (200), `reports` (100);
-   - `sylius_paypal.configuration.account`: `mode` (400), `merchant_id` (300), `client_id` (200),
-     `client_secret` (100);
+     `checkout` (100), `reports` (0). A group without a `label` renders no heading;
    - `sylius_paypal.configuration.checkout`: `express_checkout_enabled`;
-   - `sylius_paypal.configuration.reports`: `reports_sftp_username` (200), `reports_sftp_password` (100).
+   - `sylius_paypal.configuration.reports`: `reports_sftp_username` (100), `reports_sftp_password` (0);
+   - `sylius_paypal.account`: `merchant_id` (200), `client_id` (100), `client_secret` (0).
 
-   `mode` shows the global sandbox or production mode, and `merchant_id` shows the merchant id; both are read
+   `mode` shows the global sandbox or production mode and `merchant_id` shows the merchant id; both are read
    only. The client id field is now disabled, so a submitted value is ignored and the stored one is kept.
 
    To migrate, move each override to its new hook. For example, this hides the client secret field in 2.1:
@@ -517,7 +525,7 @@ unchanged.
    ```yaml
    sylius_twig_hooks:
        hooks:
-           'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.account':
+           'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.account':
                client_secret:
                    enabled: false
    ```

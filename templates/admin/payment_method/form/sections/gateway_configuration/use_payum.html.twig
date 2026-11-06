@@ -1,0 +1,4 @@
+{#- PayPal does not run on Payum, and the field is disabled once the gateway config exists, so it is not shown for PayPal. -#}
+{% if hookable_metadata.context.form.vars.data.gatewayConfig.factoryName|default('') != constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    {% include '@SyliusAdmin/payment_method/form/sections/gateway_configuration/use_payum.html.twig' %}
+{% endif %}
