@@ -43,11 +43,17 @@ sylius_paypal:
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
     permissions:
+        label: 'PayPal-machtigingen'
         state:
             missing: 'Ontbrekende machtigingen:'
             out_of_date: 'PayPal-machtigingen verouderd'
             unknown: 'PayPal-machtigingen onbekend'
             unknown_details: 'De plugin heeft de machtigingen waarmee dit PayPal-account is gekoppeld niet opgeslagen.'
+        update:
+            button: 'PayPal-machtigingen bijwerken'
+            completed: 'Uw PayPal-machtigingen zijn bijgewerkt.'
+            help: 'Verleen de machtigingen die een nieuwere versie van de plugin heeft toegevoegd, bijv. Apple Pay of Google Pay, zonder het account opnieuw te verbinden.'
+            modal_description: 'U wordt gevraagd in te loggen bij PayPal met het account van deze betaalmethode en de machtigingen te verlenen die de plugin nodig heeft. De betaalmethode behoudt haar inloggegevens en webhook.'
     sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     suggested: 'Voorgesteld'

@@ -1,5 +1,10 @@
 sylius_twig_hooks:
     hooks:
+        'sylius_admin.payment_method.update.content':
+            paypal_permissions_modal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/update/permissions_modal.html.twig'
+                priority: -100
+
         sylius_admin.payment_method.update.content.header.title_block:
             paypal_logo:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/header/paypal_logo.html.twig'
@@ -15,6 +20,9 @@ sylius_twig_hooks:
             mode:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/mode.html.twig'
                 priority: 100
+            permissions:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/permissions.html.twig'
+                priority: 90
             capture_strategy:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/capture_strategy.html.twig'
                 priority: 50

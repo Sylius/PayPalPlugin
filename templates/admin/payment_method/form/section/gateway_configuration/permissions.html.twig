@@ -1,0 +1,22 @@
+{% set payment_method = hookable_metadata.context.resource ?? null %}
+
+{% if payment_method is not null and payment_method.id is not null %}
+    <div class="col-12 col-md-6">
+        <div class="mb-3">
+            <label class="form-label">{{ 'sylius_paypal.permissions.label'|trans }}</label>
+            <div>
+                <button
+                    type="button"
+                    class="btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#confirmation-modal-update-paypal-permissions"
+                    {{ sylius_test_html_attribute('update-paypal-permissions') }}
+                >
+                    {{ ux_icon('tabler:refresh') }}
+                    {{ 'sylius_paypal.permissions.update.button'|trans }}
+                </button>
+            </div>
+            <div class="form-hint">{{ 'sylius_paypal.permissions.update.help'|trans }}</div>
+        </div>
+    </div>
+{% endif %}
