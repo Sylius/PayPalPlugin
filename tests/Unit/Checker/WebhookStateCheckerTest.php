@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Checker;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Checker\WebhookStateChecker;
@@ -31,12 +32,9 @@ final class WebhookStateCheckerTest extends TestCase
     protected function setUp(): void
     {
         $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
-        $webhookUrlProvider->method('provideCandidates')->willReturn([
-            'https://admin.example.com/payment-methods/PAYPAL',
-            self::NOTIFY_URL,
-            'https://admin.example.com/paypal-webhook/api/',
-            'https://shop.example.com/paypal-webhook/api/',
-        ]);
+        $webhookUrlProvider->method('isNotifyUrl')->willReturnCallback(
+            static fn (PaymentMethodInterface $paymentMethod, string $url): bool => in_array($url, [self::NOTIFY_URL, 'http://SHOP.example.com/payment-methods/PAYPAL/'], true),
+        );
 
         $this->checker = new WebhookStateChecker($webhookUrlProvider);
     }

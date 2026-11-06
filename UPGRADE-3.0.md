@@ -823,7 +823,9 @@
 
    Run the command again on the deployment of every release that adds event types. The edit page of a PayPal payment
    method flags a webhook whose state is unknown, that misses event types or points elsewhere, and updates it with the
-   same registrar as the command.
+   same registrar as the command. The registrar keeps a webhook on the notify URL it is registered on, whichever host of
+   `WebhookUrlProviderInterface::isNotifyUrl()` that is, and points only a webhook on the legacy path or another host
+   at the URL `provide()` gives.
 
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
    it made, created through `WebhookRegistration::registered()`, `updated()` or `upToDate()`: the webhook id, its URL and
@@ -895,6 +897,7 @@
    +public function provide(PaymentMethodInterface $paymentMethod): string;
    +/** @return list<string> */
    +public function provideCandidates(PaymentMethodInterface $paymentMethod): array;
+   +public function isNotifyUrl(PaymentMethodInterface $paymentMethod, string $url): bool;
    ```
 
    ```diff

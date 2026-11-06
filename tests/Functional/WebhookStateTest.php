@@ -104,6 +104,7 @@ final class WebhookStateTest extends JsonApiTestCase
         self::assertStringContainsString('data-test-paypal-webhook-update-button', (string) $component->render());
 
         $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [$missingOne]]);
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', $missingOne);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-1', ['id' => 'WH-1']);
 
         $rendered = (string) $component->call('updateWebhook')->render();
@@ -111,6 +112,25 @@ final class WebhookStateTest extends JsonApiTestCase
         self::assertStringContainsString('data-test-paypal-webhook-update="success"', $rendered);
         self::assertStringNotContainsString('data-test-paypal-webhook-state', $rendered);
         self::assertSame(WebhookApi::EVENT_TYPES, array_column($this->sentPatch()[1]['value'], 'name'));
+    }
+
+    public function test_it_keeps_the_webhook_on_the_channel_hostname_when_updating_it_from_another_host(): void
+    {
+        $this->paymentMethod->getChannels()->first()->setHostname('paypal-shop.example.com');
+        $channelUrl = 'https://paypal-shop.example.com/payment-methods/PAYPAL';
+        $this->storeWebhook($channelUrl, array_slice(WebhookApi::EVENT_TYPES, 1));
+        $missingOne = ['url' => $channelUrl] + $this->webhook('WH-1', array_slice(WebhookApi::EVENT_TYPES, 1));
+        $component = $this->webhookState('alert');
+        $component->render();
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [$missingOne]]);
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', $missingOne);
+        $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-1', ['id' => 'WH-1']);
+
+        $rendered = (string) $component->call('updateWebhook')->render();
+
+        self::assertStringContainsString('data-test-paypal-webhook-update="success"', $rendered);
+        self::assertSame($channelUrl, $this->sentPatch()[0]['value']);
     }
 
     public function test_it_tells_why_paypal_refused_to_update_the_webhook(): void
@@ -121,6 +141,7 @@ final class WebhookStateTest extends JsonApiTestCase
         $component->render();
 
         $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [$missingOne]]);
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', $missingOne);
         $this->payPalHttpClient()->addExpectation('PATCH', 'v1/notifications/webhooks/WH-1', [
             'name' => 'VALIDATION_ERROR',
             'message' => 'Invalid data provided',

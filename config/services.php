@@ -542,6 +542,8 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.webhook_id.lookup'),
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
+            service('sylius_paypal.api.generic'),
+            service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.webhook_url'),
             service('sylius_paypal.updater.webhook_id'),
         ]);

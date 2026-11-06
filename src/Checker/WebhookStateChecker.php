@@ -38,7 +38,7 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
             return WebhookState::unknown();
         }
 
-        $pointsElsewhere = !$this->pointsAtNotifyUrl($paymentMethod, $registeredUrl);
+        $pointsElsewhere = !$this->webhookUrlProvider->isNotifyUrl($paymentMethod, $registeredUrl);
         $missingEventTypes = array_values(array_diff(WebhookApi::EVENT_TYPES, $registeredEventTypes));
 
         if (!$pointsElsewhere && [] === $missingEventTypes) {
@@ -46,25 +46,5 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         }
 
         return WebhookState::outdated($registeredUrl, $pointsElsewhere, $missingEventTypes);
-    }
-
-    private function pointsAtNotifyUrl(PaymentMethodInterface $paymentMethod, string $registeredUrl): bool
-    {
-        foreach ($this->webhookUrlProvider->provideCandidates($paymentMethod) as $candidate) {
-            if (str_ends_with(rtrim($candidate, '/'), rtrim(WebhookUrlProviderInterface::LEGACY_PATH, '/'))) {
-                continue;
-            }
-
-            if ($this->withoutScheme($candidate) === $this->withoutScheme($registeredUrl)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function withoutScheme(string $url): string
-    {
-        return strtolower((string) parse_url($url, \PHP_URL_HOST)) . rtrim((string) parse_url($url, \PHP_URL_PATH), '/');
     }
 }
