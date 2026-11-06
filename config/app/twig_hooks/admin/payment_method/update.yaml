@@ -61,13 +61,15 @@ sylius_twig_hooks:
                     inline: true
                 priority: 100
 
-        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.payment_methods.pay_later':
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.payment_methods.pay_later.header':
             pay_later_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/paylater_enabled.html.twig'
-                priority: 200
+                configuration:
+                    label_hidden: true
+
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.payment_methods.pay_later':
             messaging_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/messaging_enabled.html.twig'
-                priority: 100
 
         'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.payment_methods.cards':
             card_three_d_secure_always:

@@ -483,8 +483,11 @@ unchanged.
    - `sylius_paypal.payment_methods`: one tile per payment method, rendered by
      `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/payment_methods/method.html.twig`
      from its `code`, `label`, `icons` and `inline` configuration: `pay_later` (600), `cards` (500),
-     `venmo` (400), `google_pay` (300), `apple_pay` (200), `trustly` (100);
-   - `sylius_paypal.payment_methods.pay_later`: `pay_later_enabled` (200), `messaging_enabled` (100);
+     `venmo` (400), `google_pay` (300), `apple_pay` (200), `trustly` (100). An `inline` tile is a quarter-width
+     row with its hook next to the name. Any other tile is half-width, with a `<code>.header` hook next to the
+     name and a `<code>` hook below it for the method's settings;
+   - `sylius_paypal.payment_methods.pay_later.header`: `pay_later_enabled`;
+   - `sylius_paypal.payment_methods.pay_later`: `messaging_enabled`;
    - `sylius_paypal.payment_methods.cards`: `card_three_d_secure_always`;
    - `sylius_paypal.payment_methods.venmo`, `.google_pay`, `.apple_pay` and `.trustly`: `venmo_enabled`,
      `google_pay_enabled`, `apple_pay_enabled` and `trustly_enabled`;
