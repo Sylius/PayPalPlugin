@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Form\Type;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -38,11 +38,6 @@ final class PayPalConfigurationType extends AbstractType
     private const CAPTURE = 'capture';
 
     private const AUTHORIZE = 'authorize';
-
-    private const CAPABILITY_TOGGLES = [
-        PayPalGatewayConfig::GOOGLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
-        PayPalGatewayConfig::APPLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::APPLE_PAY,
-    ];
 
     public function __construct(private readonly PaymentSourceCapabilityCheckerInterface $paymentSourceCapabilityChecker)
     {
@@ -96,7 +91,7 @@ final class PayPalConfigurationType extends AbstractType
                 $form = $event->getForm();
                 $togglesWithoutCapability = [];
                 $paymentMethod = $this->paymentMethodOf($form);
-                foreach (self::CAPABILITY_TOGGLES as $field => $paymentSource) {
+                foreach (PaymentSourceCapabilityChecker::TOGGLES as $field => $paymentSource) {
                     if (null !== $paymentMethod && !$this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $paymentMethod)) {
                         $togglesWithoutCapability[] = $field;
                         $form->add($field, CheckboxType::class, [

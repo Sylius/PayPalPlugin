@@ -47,6 +47,9 @@ final class PayPalOnboardingModalComponent
     #[LiveProp]
     public bool $sandbox = false;
 
+    #[LiveProp]
+    public ?int $paymentMethodId = null;
+
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceManagerInterface $sellerNonceManager,

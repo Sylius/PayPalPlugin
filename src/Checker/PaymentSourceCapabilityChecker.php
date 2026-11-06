@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Checker;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
@@ -22,6 +23,11 @@ final readonly class PaymentSourceCapabilityChecker implements PaymentSourceCapa
     public const REQUIRED_CAPABILITIES = [
         PayPalPaymentSourceProviderInterface::APPLE_PAY => 'APPLE_PAY',
         PayPalPaymentSourceProviderInterface::GOOGLE_PAY => 'GOOGLE_PAY',
+    ];
+
+    public const TOGGLES = [
+        PayPalGatewayConfig::GOOGLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+        PayPalGatewayConfig::APPLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::APPLE_PAY,
     ];
 
     public function __construct(private MerchantIntegrationStatusProviderInterface $merchantIntegrationStatusProvider)

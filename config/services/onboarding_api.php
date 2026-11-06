@@ -16,6 +16,7 @@ use Sylius\PayPalPlugin\Client\LoggingHttpClient;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Provider\CachingMerchantIntegrationStatusProvider;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusCacheInterface;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProvider;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Symfony\Component\HttpClient\HttpClient;
@@ -104,6 +105,8 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(MerchantIntegrationStatusProviderInterface::class, 'sylius_paypal.provider.merchant_integration_status');
+
+    $services->alias(MerchantIntegrationStatusCacheInterface::class, 'sylius_paypal.provider.merchant_integration_status');
 
     $services->set('sylius_paypal.onboarding.resolver.seller', SellerOnboardingResolver::class)
         ->args([

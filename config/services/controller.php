@@ -28,6 +28,7 @@ use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
+use Sylius\PayPalPlugin\Controller\UpdatePermissionsAction;
 use Sylius\PayPalPlugin\Controller\Webhook\PaymentMethodNotifyAction;
 
 return static function (ContainerConfigurator $container) {
@@ -61,6 +62,15 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.controller.complete_onboarding', CompleteOnboardingAction::class)
         ->args([
             service('sylius_paypal.onboarding.processor.completion'),
+            service('sylius_paypal.provider.onboarding_status_messages'),
+            service('router'),
+            service('monolog.logger.paypal'),
+        ]);
+
+    $services->set('sylius_paypal.controller.update_permissions', UpdatePermissionsAction::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.onboarding.processor.permissions_update'),
             service('sylius_paypal.provider.onboarding_status_messages'),
             service('router'),
             service('monolog.logger.paypal'),

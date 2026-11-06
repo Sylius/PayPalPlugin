@@ -19,7 +19,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
-final readonly class CachingMerchantIntegrationStatusProvider implements MerchantIntegrationStatusProviderInterface
+final readonly class CachingMerchantIntegrationStatusProvider implements MerchantIntegrationStatusProviderInterface, MerchantIntegrationStatusCacheInterface
 {
     public function __construct(
         private MerchantIntegrationStatusProviderInterface $decorated,
@@ -31,9 +31,7 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
 
     public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus
     {
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+        $config = $this->configOf($paymentMethod);
         if (!$config->hasClientId()) {
             return null;
         }
@@ -53,6 +51,22 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
         $this->cache->save($item);
 
         return $status;
+    }
+
+    public function forget(PaymentMethodInterface $paymentMethod): void
+    {
+        $config = $this->configOf($paymentMethod);
+        if ($config->hasClientId()) {
+            $this->cache->deleteItem($this->key($config));
+        }
+    }
+
+    private function configOf(PaymentMethodInterface $paymentMethod): PayPalGatewayConfig
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
     }
 
     private function key(PayPalGatewayConfig $config): string

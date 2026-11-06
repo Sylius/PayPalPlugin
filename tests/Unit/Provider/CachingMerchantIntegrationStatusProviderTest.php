@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Provider\CachingMerchantIntegrationStatusProvider;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusCacheInterface;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -40,6 +41,11 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
     public function test_it_implements_the_merchant_integration_status_provider_interface(): void
     {
         self::assertInstanceOf(MerchantIntegrationStatusProviderInterface::class, $this->provider);
+    }
+
+    public function test_it_implements_the_merchant_integration_status_cache_interface(): void
+    {
+        self::assertInstanceOf(MerchantIntegrationStatusCacheInterface::class, $this->provider);
     }
 
     public function test_it_asks_paypal_once_and_then_answers_from_the_cache(): void
@@ -81,6 +87,32 @@ final class CachingMerchantIntegrationStatusProviderTest extends TestCase
         $provider = new CachingMerchantIntegrationStatusProvider($this->merchantIntegrationStatusProvider, $cache, 3600, 300);
 
         self::assertNull($provider->provide($this->paymentMethod('CLIENT-1', true)));
+    }
+
+    public function test_it_asks_paypal_again_about_a_payment_method_whose_status_it_forgot(): void
+    {
+        $this->merchantIntegrationStatusProvider->expects(self::exactly(2))->method('provide')->willReturn(new OnboardingStatus(true, true));
+
+        $this->provider->provide($this->paymentMethod('CLIENT-1', true));
+        $this->provider->forget($this->paymentMethod('CLIENT-1', true));
+        $this->provider->provide($this->paymentMethod('CLIENT-1', true));
+    }
+
+    public function test_it_keeps_the_status_of_other_paypal_accounts_when_it_forgets_one(): void
+    {
+        $this->merchantIntegrationStatusProvider->expects(self::exactly(2))->method('provide')->willReturn(new OnboardingStatus(true, true));
+
+        $this->provider->provide($this->paymentMethod('CLIENT-1', true));
+        $this->provider->provide($this->paymentMethod('CLIENT-2', true));
+        $this->provider->forget($this->paymentMethod('CLIENT-2', true));
+        $this->provider->provide($this->paymentMethod('CLIENT-1', true));
+    }
+
+    public function test_it_forgets_nothing_for_a_payment_method_without_credentials(): void
+    {
+        $this->provider->forget($this->paymentMethodWithConfig([]));
+
+        $this->addToAssertionCount(1);
     }
 
     public function test_it_does_not_ask_about_a_payment_method_without_credentials(): void
