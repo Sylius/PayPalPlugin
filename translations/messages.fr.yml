@@ -58,5 +58,4 @@ sylius_paypal:
     webhook_out_of_date: "Webhook obsolète"
     webhook_points_elsewhere: "PayPal envoie les événements à %url%."
     webhook_registered: "Webhook %id% enregistré à %url%."
-    webhook_update_hint: "Mettez-le à jour ci-dessous, ou exécutez cette commande lors du déploiement de chaque version qui ajoute des types d'événements :"
     webhook_updated: "Le webhook %id% pointe maintenant vers %url%."

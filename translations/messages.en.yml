@@ -74,7 +74,6 @@ sylius_paypal:
     webhook_out_of_date: 'Webhook out of date'
     webhook_points_elsewhere: 'PayPal sends the events to %url%.'
     webhook_registered: 'Registered webhook %id% at %url%.'
-    webhook_update_hint: 'Update it below, or run this command on the deployment of every release that adds event types:'
     webhook_updated: 'Updated webhook %id% to point at %url%.'
     carrier:
         AMAZON_MCF: 'Amazon Logistics (MCF)'
