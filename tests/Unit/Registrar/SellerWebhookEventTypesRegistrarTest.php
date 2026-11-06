@@ -15,7 +15,9 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Registrar;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Bundle\PayumBundle\Model\GatewayConfig;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
@@ -23,6 +25,7 @@ use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
@@ -41,6 +44,8 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
 
     private WebhookStateCacheInterface&MockObject $webhookStateCache;
 
+    private WebhookUrlProviderInterface $webhookUrlProvider;
+
     private PaymentMethodInterface&MockObject $paymentMethod;
 
     private SellerWebhookEventTypesRegistrar $registrar;
@@ -58,18 +63,22 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $webhookUrlProvider->method('provide')->willReturnCallback(
             fn (PaymentMethodInterface $paymentMethod): string => 'https://shop.example.com/payment-methods/' . $paymentMethod->getCode(),
         );
+        $webhookUrlProvider->method('isNotifyUrl')->willReturnCallback(
+            fn (PaymentMethodInterface $paymentMethod, string $url): bool => in_array($url, ['https://shop.example.com/payment-methods/PAYPAL', 'https://channel.example.com/payment-methods/PAYPAL'], true),
+        );
+        $this->webhookUrlProvider = $webhookUrlProvider;
+
+        $genericApi = $this->createStub(GenericApiInterface::class);
+        $genericApi->method('get')->willReturn(['id' => 'WEBHOOK_ID', 'url' => 'https://old-shop.example.com/payment-methods/PAYPAL']);
+
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig(['sandbox' => true]);
 
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->paymentMethod->method('getCode')->willReturn('PAYPAL');
+        $this->paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
-        $this->registrar = new SellerWebhookEventTypesRegistrar(
-            $this->webhookIdProvider,
-            $this->updateWebhookApi,
-            $this->webhookApi,
-            $webhookUrlProvider,
-            $this->webhookIdUpdater,
-            $this->webhookStateCache,
-        );
+        $this->registrar = $this->registrar($genericApi);
     }
 
     public function test_it_implements_seller_webhook_event_types_registrar_interface(): void
@@ -93,6 +102,44 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             WebhookRegistration::updated('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
             $this->registrar->register($this->paymentMethod),
         );
+    }
+
+    public function test_it_keeps_the_webhook_on_the_notify_url_it_is_already_registered_on(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $genericApi = $this->createMock(GenericApiInterface::class);
+        $genericApi
+            ->expects(self::once())
+            ->method('get')
+            ->with($this->paymentMethod, 'https://api.sandbox.paypal.com/v1/notifications/webhooks/WEBHOOK_ID')
+            ->willReturn(['id' => 'WEBHOOK_ID', 'url' => 'https://channel.example.com/payment-methods/PAYPAL'])
+        ;
+
+        $this->updateWebhookApi
+            ->expects(self::once())
+            ->method('update')
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+        ;
+
+        self::assertEquals(
+            WebhookRegistration::updated('WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL'),
+            $this->registrar($genericApi)->register($this->paymentMethod),
+        );
+    }
+
+    public function test_it_moves_a_webhook_on_the_legacy_path_to_the_notify_url(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $genericApi = $this->createStub(GenericApiInterface::class);
+        $genericApi->method('get')->willReturn(['id' => 'WEBHOOK_ID', 'url' => 'https://channel.example.com/paypal-webhook/api/']);
+
+        $this->updateWebhookApi
+            ->expects(self::once())
+            ->method('update')
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+        ;
+
+        $this->registrar($genericApi)->register($this->paymentMethod);
     }
 
     public function test_it_registers_a_webhook_for_a_shop_that_has_none(): void
@@ -181,5 +228,19 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->expectException(PayPalApiRequestException::class);
 
         $this->registrar->register($this->paymentMethod);
+    }
+
+    private function registrar(GenericApiInterface $genericApi): SellerWebhookEventTypesRegistrar
+    {
+        return new SellerWebhookEventTypesRegistrar(
+            $this->webhookIdProvider,
+            $this->updateWebhookApi,
+            $this->webhookApi,
+            $genericApi,
+            new HostProvider(),
+            $this->webhookUrlProvider,
+            $this->webhookIdUpdater,
+            $this->webhookStateCache,
+        );
     }
 }

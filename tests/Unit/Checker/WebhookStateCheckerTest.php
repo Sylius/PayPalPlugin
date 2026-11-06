@@ -48,12 +48,9 @@ final class WebhookStateCheckerTest extends TestCase
         $this->webhookIdProvider = $this->createMock(WebhookIdProviderInterface::class);
 
         $webhookUrlProvider = $this->createStub(WebhookUrlProviderInterface::class);
-        $webhookUrlProvider->method('provideCandidates')->willReturn([
-            'https://admin.example.com/payment-methods/PAYPAL',
-            self::NOTIFY_URL,
-            'https://admin.example.com/paypal-webhook/api/',
-            'https://shop.example.com/paypal-webhook/api/',
-        ]);
+        $webhookUrlProvider->method('isNotifyUrl')->willReturnCallback(
+            static fn (PaymentMethodInterface $paymentMethod, string $url): bool => in_array($url, [self::NOTIFY_URL, 'http://SHOP.example.com/payment-methods/PAYPAL/'], true),
+        );
 
         $this->configure(['sandbox' => true, 'webhook_id' => 'WH-1']);
 

@@ -550,6 +550,8 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.webhook_id.lookup'),
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
+            service('sylius_paypal.api.generic'),
+            service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.webhook_url'),
             service('sylius_paypal.updater.webhook_id'),
             service('sylius_paypal.checker.webhook_state'),
@@ -681,6 +683,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment_method'),
             service('sylius_paypal.checker.webhook_state'),
+            service('sylius_paypal.registrar.seller_webhook_event_types'),
             service('monolog.logger.paypal'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:webhook_state', 'template' => '@SyliusPayPalPlugin/admin/shared/components/webhook_state.html.twig']);
