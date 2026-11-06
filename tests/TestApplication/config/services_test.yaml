@@ -17,3 +17,7 @@ services:
     sylius_paypal.provider.webhook_id:
         class: Tests\Sylius\PayPalPlugin\Service\DummyWebhookIdProvider
         arguments: []
+
+    sylius_paypal.provider.merchant_integration_status.lookup:
+        class: Tests\Sylius\PayPalPlugin\Service\FakeMerchantIntegrationStatusProvider
+        arguments: []

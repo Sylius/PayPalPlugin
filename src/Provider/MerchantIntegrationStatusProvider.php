@@ -1,0 +1,82 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Provider;
+
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Log\LoggerInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Api\GenericApiInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Exception\PayPalPluginException;
+use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
+use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+
+final readonly class MerchantIntegrationStatusProvider implements MerchantIntegrationStatusProviderInterface
+{
+    public function __construct(
+        private GenericApiInterface $genericApi,
+        private HostProviderInterface $hostProvider,
+        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
+        private LoggerInterface $logger,
+    ) {
+    }
+
+    public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+        if (!$config->hasClientId()) {
+            return null;
+        }
+
+        $sandbox = $config->isSandbox();
+
+        foreach ($this->partnerIds($config, $sandbox) as $partnerId) {
+            try {
+                return OnboardingStatus::fromMerchantIntegration($this->genericApi->get(
+                    $paymentMethod,
+                    sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $config->merchantId()),
+                ));
+            } catch (PayPalApiException|PayPalPluginException|UntrustedPayPalUrlException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
+                $this->logger->warning('Could not read the PayPal merchant integration status for partner {partner_id}: {message}', [
+                    'partner_id' => $partnerId,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<string> */
+    private function partnerIds(PayPalGatewayConfig $config, bool $sandbox): array
+    {
+        $partnerIds = [];
+
+        $facilitatorPartnerId = $config->facilitatorPartnerId();
+        if (null !== $facilitatorPartnerId && '' !== $facilitatorPartnerId) {
+            $partnerIds[] = $facilitatorPartnerId;
+        }
+
+        try {
+            $partnerIds[] = $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId();
+        } catch (PayPalPluginException) {
+        }
+
+        return array_values(array_unique($partnerIds));
+    }
+}

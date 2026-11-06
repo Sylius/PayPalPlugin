@@ -104,7 +104,8 @@
    - the `SYLIUS_MERCHANT_ID` constant
    - the `syliusMerchantId()` and `hasSyliusMerchantId()` methods
 
-   The `sylius_merchant_id` key already stored in the gateway config is no longer read and can be left in place.
+   The `sylius_merchant_id` key already stored in the gateway config is read only as the partner id under which the
+   facilitator onboarded the merchant, to check the capabilities of the merchant's PayPal account, and must be left in place.
 
 1. #### `PayPalPaymentMethodEnabler` checks the seller's onboarding status directly with PayPal.
 
@@ -961,6 +962,27 @@
    +    private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
     ) {
    ```
+
+1. #### Apple Pay and Google Pay can be enabled only when the merchant's PayPal account has them active.
+
+   `Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface` (`sylius_paypal.checker.payment_source_capability`)
+   tells whether the PayPal account of a payment method has the capability a payment source needs (`APPLE_PAY`,
+   `GOOGLE_PAY`). It reads the active capabilities from `GET v1/customer/partners/{partner_id}/merchant-integrations/{merchant_id}`
+   with the access token the payment method uses for its other PayPal calls, through
+   `Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface` (`sylius_paypal.provider.merchant_integration_status`),
+   cached for `%sylius_paypal.merchant_integration_status_lifetime%` seconds (3600 by default), or for
+   `%sylius_paypal.merchant_integration_status_unknown_lifetime%` seconds (300 by default) when it cannot be read.
+
+   Only the PayPal configuration form uses it: it disables the Apple Pay and Google Pay toggles while the capability is
+   not active, and saves a toggle disabled this way as off. When the status cannot be read, the toggles stay enabled.
+   The shop reads only the stored toggles and asks PayPal about no capability.
+
+   ```diff
+    // Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType
+   +public function __construct(private readonly PaymentSourceCapabilityCheckerInterface $paymentSourceCapabilityChecker)
+   ```
+
+   `Sylius\PayPalPlugin\Model\OnboardingStatus` carries the active capabilities of the PayPal account.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 

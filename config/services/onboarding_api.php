@@ -15,6 +15,9 @@ use Sylius\PayPalPlugin\Api\SellerCredentialsApiInterface;
 use Sylius\PayPalPlugin\Client\LoggingHttpClient;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolver;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
+use Sylius\PayPalPlugin\Provider\CachingMerchantIntegrationStatusProvider;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProvider;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -24,6 +27,8 @@ return static function (ContainerConfigurator $container) {
     $parameters = $container->parameters();
     $parameters->set('sylius_paypal.onboarding.http_client.timeout', 10);
     $parameters->set('sylius_paypal.onboarding.http_client.max_duration', 30);
+    $parameters->set('sylius_paypal.merchant_integration_status_lifetime', 3600);
+    $parameters->set('sylius_paypal.merchant_integration_status_unknown_lifetime', 300);
 
     $services->set('sylius_paypal.http_client.onboarding', HttpClientInterface::class)
         ->private()
@@ -81,6 +86,24 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(MerchantOnboardingStatusApiInterface::class, 'sylius_paypal.api.merchant_onboarding_status');
+
+    $services->set('sylius_paypal.provider.merchant_integration_status.lookup', MerchantIntegrationStatusProvider::class)
+        ->args([
+            service('sylius_paypal.api.generic'),
+            service('sylius_paypal.provider.host'),
+            service('sylius_paypal.provider.partner_credentials'),
+            service('monolog.logger.paypal'),
+        ]);
+
+    $services->set('sylius_paypal.provider.merchant_integration_status', CachingMerchantIntegrationStatusProvider::class)
+        ->args([
+            service('sylius_paypal.provider.merchant_integration_status.lookup'),
+            service('sylius_paypal.cache'),
+            param('sylius_paypal.merchant_integration_status_lifetime'),
+            param('sylius_paypal.merchant_integration_status_unknown_lifetime'),
+        ]);
+
+    $services->alias(MerchantIntegrationStatusProviderInterface::class, 'sylius_paypal.provider.merchant_integration_status');
 
     $services->set('sylius_paypal.onboarding.resolver.seller', SellerOnboardingResolver::class)
         ->args([
