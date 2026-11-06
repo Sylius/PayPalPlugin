@@ -6,7 +6,7 @@
         id="{{ modalId }}"
         tabindex="-1"
         {% if opened %}style="display: block;" aria-modal="true" role="dialog"{% else %}aria-hidden="true"{% endif %}
-        data-paypal-onboarding-complete-url="{{ path('sylius_paypal_admin_complete_onboarding') }}"
+        data-paypal-onboarding-complete-url="{{ paymentMethodId is null ? path('sylius_paypal_admin_complete_onboarding') : path('sylius_paypal_admin_update_permissions', {id: paymentMethodId}) }}"
         data-paypal-onboarding-sandbox="{{ sandbox ? 'true' : 'false' }}"
         data-paypal-onboarding-partner-js-url="{{ sylius_paypal_partner_js_url(sandbox) }}"
         data-action="paypal:onboarding-open->live#action"
@@ -18,10 +18,10 @@
                     <h1 class="modal-title py-5">{{ 'sylius_paypal.share_data_consent_confirmation'|trans }}</h1>
                 </div>
                 <div class="modal-body">
-                    <p>{{ 'sylius_paypal.onboarding_modal_description'|trans }}</p>
+                    <p>{{ (paymentMethodId is null ? 'sylius_paypal.onboarding_modal_description' : 'sylius_paypal.permissions_modal_description')|trans }}</p>
                     <div class="alert alert-danger d-none" data-paypal-onboarding-error></div>
                     <div class="alert alert-success d-none" data-paypal-onboarding-success>
-                        <p>{{ 'sylius_paypal.onboarding_completed'|trans }}</p>
+                        <p>{{ (paymentMethodId is null ? 'sylius_paypal.onboarding_completed' : 'sylius_paypal.permissions_update_completed')|trans }}</p>
                         <a href="#" class="btn btn-success" data-paypal-onboarding-success-link>{{ 'sylius_paypal.go_to_payment_method'|trans }}</a>
                     </div>
                     {% if failed %}

@@ -42,12 +42,17 @@ sylius_paypal:
     onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
+    permissions: 'PayPal-machtigingen'
+    permissions_modal_description: 'U wordt gevraagd in te loggen bij PayPal met het account van deze betaalmethode en de machtigingen te verlenen die de plugin nodig heeft. De betaalmethode behoudt haar inloggegevens en webhook.'
+    permissions_update_completed: 'Uw PayPal-machtigingen zijn bijgewerkt.'
     sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     suggested: 'Voorgesteld'
     suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
     tender_type_original_payment_method: 'Teruggestort via de oorspronkelijke betaalmethode'
+    update_paypal_permissions: 'PayPal-machtigingen bijwerken'
+    update_paypal_permissions_help: 'Verleen de machtigingen die een nieuwere versie van de plugin heeft toegevoegd, bijv. Apple Pay of Google Pay, zonder het account opnieuw te verbinden.'
     webhook_missing_event_types: "Ontbrekende events:"
     webhook_not_registered: "Webhook niet geregistreerd"
     webhook_out_of_date: "Webhook verouderd"
