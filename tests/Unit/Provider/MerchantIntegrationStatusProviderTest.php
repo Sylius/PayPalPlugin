@@ -78,31 +78,12 @@ final class MerchantIntegrationStatusProviderTest extends TestCase
         self::assertSame(['APPLE_PAY'], $status->activeCapabilities());
     }
 
-    public function test_it_asks_under_the_facilitator_partner_first_and_falls_back_to_the_configured_one(): void
-    {
-        $this->partnerCredentialsProvider->method('provide')->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
-        $this->genericApi
-            ->expects(self::exactly(2))
-            ->method('get')
-            ->willReturnCallback(fn (PaymentMethodInterface $paymentMethod, string $url): array => str_contains($url, 'partners/PARTNER-ID/')
-                ? $this->merchantIntegration()
-                : throw new PayPalApiNotFoundException('GET', 'v1/customer/partners/FACILITATOR-PARTNER-ID/merchant-integrations/MERCHANT-ID', 404))
-        ;
-
-        self::assertSame(['APPLE_PAY'], $this->provider->provide($this->paymentMethod(['sylius_merchant_id' => 'FACILITATOR-PARTNER-ID']))?->activeCapabilities());
-    }
-
-    public function test_it_reads_the_status_of_a_facilitator_onboarded_merchant_under_the_facilitator_partner(): void
+    public function test_it_returns_no_status_when_the_partner_is_not_configured(): void
     {
         $this->partnerCredentialsProvider->method('provide')->willThrowException(new PayPalPluginException('partner_id/partner_client_id is not configured'));
-        $this->genericApi
-            ->expects(self::once())
-            ->method('get')
-            ->with(self::anything(), self::API_BASE_URL . 'v1/customer/partners/FACILITATOR-PARTNER-ID/merchant-integrations/MERCHANT-ID')
-            ->willReturn($this->merchantIntegration())
-        ;
+        $this->genericApi->expects(self::never())->method('get');
 
-        self::assertNotNull($this->provider->provide($this->paymentMethod(['sylius_merchant_id' => 'FACILITATOR-PARTNER-ID'])));
+        self::assertNull($this->provider->provide($this->paymentMethod()));
     }
 
     public function test_it_returns_no_status_when_paypal_refuses_the_seller_credentials(): void
