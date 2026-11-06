@@ -6,6 +6,8 @@ use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManager;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessor;
+use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
@@ -58,4 +60,13 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(OnboardingCompletionProcessorInterface::class, 'sylius_paypal.onboarding.processor.completion');
+
+    $services->set('sylius_paypal.onboarding.processor.permissions_update', PermissionsUpdateProcessor::class)
+        ->args([
+            service('sylius_paypal.manager.seller_nonce'),
+            service('sylius_paypal.onboarding.resolver.seller'),
+            service('doctrine.orm.entity_manager'),
+        ]);
+
+    $services->alias(PermissionsUpdateProcessorInterface::class, 'sylius_paypal.onboarding.processor.permissions_update');
 };
