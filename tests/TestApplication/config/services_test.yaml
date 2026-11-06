@@ -1,7 +1,4 @@
 services:
-    sylius_paypal.downloader.report:
-        class: Tests\Sylius\PayPalPlugin\Service\DummyPayoutsReportDownloader
-
     sylius_paypal.api.authorize_client:
         class: Tests\Sylius\PayPalPlugin\Service\DummyAuthorizeClientApi
 

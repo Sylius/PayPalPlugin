@@ -35,8 +35,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'merchant_id' => 'MERCHANT-ID',
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
-        'reports_sftp_password' => null,
-        'reports_sftp_username' => null,
         'use_authorize' => false,
     ];
 

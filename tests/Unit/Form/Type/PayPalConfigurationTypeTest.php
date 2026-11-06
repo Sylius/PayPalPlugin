@@ -209,17 +209,13 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         return [
             'client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'merchant_id' => 'MERCHANT_ID',
             'partner_attribution_id' => 'bn', 'use_authorize' => 1,
-            'reports_sftp_username' => null, 'reports_sftp_password' => null,
         ];
     }
 
     /** @return array<string, mixed> */
     private function submittedFields(): array
     {
-        return [
-            'client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET',
-            'reports_sftp_username' => '', 'reports_sftp_password' => '',
-        ];
+        return ['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET'];
     }
 
     #[Test]
@@ -253,7 +249,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         return [
             'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
             'partner_attribution_id' => 'bn', 'use_authorize' => 1,
-            'reports_sftp_username' => null, 'reports_sftp_password' => null, 'webhook_id' => 'WH', 'sandbox' => true,
+            'webhook_id' => 'WH', 'sandbox' => true,
         ];
     }
 }
