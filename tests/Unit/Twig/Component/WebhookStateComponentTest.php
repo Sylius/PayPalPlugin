@@ -84,9 +84,10 @@ final class WebhookStateComponentTest extends TestCase
     public function test_it_logs_a_failed_check_and_gives_no_state(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod('sylius_paypal'));
-        $this->webhookStateChecker->method('check')->willThrowException(new PayPalApiRequestException('GET', 'v1/notifications/webhooks/WH-1', 500));
+        $exception = new PayPalApiRequestException('GET', 'v1/notifications/webhooks/WH-1', 500);
+        $this->webhookStateChecker->method('check')->willThrowException($exception);
 
-        $this->logger->expects(self::once())->method('error')->with(self::stringContains('"PAYPAL"'));
+        $this->logger->expects(self::once())->method('error')->with(self::stringContains('"PAYPAL"'), ['exception' => $exception]);
 
         self::assertNull($this->component->getState());
     }
@@ -140,9 +141,10 @@ final class WebhookStateComponentTest extends TestCase
     public function test_it_keeps_the_reason_of_any_other_failure_in_the_log(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod('sylius_paypal'));
-        $this->registrar->method('register')->willThrowException(new \RuntimeException('SQLSTATE[HY000]: General error'));
+        $exception = new \RuntimeException('SQLSTATE[HY000]: General error');
+        $this->registrar->method('register')->willThrowException($exception);
 
-        $this->logger->expects(self::once())->method('error')->with(self::stringContains('SQLSTATE[HY000]'));
+        $this->logger->expects(self::once())->method('error')->with(self::stringContains('SQLSTATE[HY000]'), ['exception' => $exception]);
 
         $this->component->updateWebhook();
 

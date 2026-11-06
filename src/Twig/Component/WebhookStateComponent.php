@@ -70,7 +70,7 @@ final class WebhookStateComponent
                 'Could not check the webhook of the "%s" payment method: %s',
                 (string) $paymentMethod->getCode(),
                 $exception->getMessage(),
-            ));
+            ), ['exception' => $exception]);
 
             return null;
         }
@@ -103,7 +103,7 @@ final class WebhookStateComponent
             'Could not update the webhook of the "%s" payment method: %s',
             (string) $paymentMethod->getCode(),
             $exception->getMessage(),
-        ));
+        ), ['exception' => $exception]);
     }
 
     private function payPalPaymentMethod(): ?PaymentMethodInterface
