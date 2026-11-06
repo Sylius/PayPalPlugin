@@ -54,6 +54,7 @@ sylius_paypal:
     webhook_missing_event_types: "Événements manquants :"
     webhook_not_registered: "Webhook non enregistré"
     webhook_not_updated: "Impossible de mettre à jour le webhook : %reason%"
+    webhook_not_updated_check_logs: "Impossible de mettre à jour le webhook. Consultez les journaux pour plus de détails."
     webhook_out_of_date: "Webhook obsolète"
     webhook_points_elsewhere: "PayPal envoie les événements à %url%."
     webhook_registered: "Webhook %id% enregistré à %url%."

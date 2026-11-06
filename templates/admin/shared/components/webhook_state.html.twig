@@ -13,9 +13,13 @@
         </div>
     {% endif %}
 
-    {% if variant == 'alert' and updateError is not null %}
+    {% if variant == 'alert' and updateFailed %}
         <div class="alert alert-danger" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'error') }}>
-            {{ 'sylius_paypal.webhook_not_updated'|trans({'%reason%': updateError}) }}
+            {% if updateError is null %}
+                {{ 'sylius_paypal.webhook_not_updated_check_logs'|trans }}
+            {% else %}
+                {{ 'sylius_paypal.webhook_not_updated'|trans({'%reason%': updateError}) }}
+            {% endif %}
         </div>
     {% endif %}
 

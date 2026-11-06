@@ -18,6 +18,8 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Model\WebhookState;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
@@ -40,6 +42,8 @@ final class WebhookStateComponent
     public string $variant = self::VARIANT_BADGE;
 
     public ?WebhookRegistration $registration = null;
+
+    public bool $updateFailed = false;
 
     public ?string $updateError = null;
 
@@ -82,14 +86,24 @@ final class WebhookStateComponent
 
         try {
             $this->registration = $this->webhookEventTypesRegistrar->register($paymentMethod);
+        } catch (PayPalWebhookNotRegisteredException $exception) {
+            $this->failUpdate($paymentMethod, $exception, $exception->getDescription());
+        } catch (PayPalApiException $exception) {
+            $this->failUpdate($paymentMethod, $exception, $exception->getDescription());
         } catch (\Throwable $exception) {
-            $this->updateError = $exception->getMessage();
-            $this->logger->error(sprintf(
-                'Could not update the webhook of the "%s" payment method: %s',
-                (string) $paymentMethod->getCode(),
-                $exception->getMessage(),
-            ));
+            $this->failUpdate($paymentMethod, $exception, null);
         }
+    }
+
+    private function failUpdate(PaymentMethodInterface $paymentMethod, \Throwable $exception, ?string $reason): void
+    {
+        $this->updateFailed = true;
+        $this->updateError = $reason;
+        $this->logger->error(sprintf(
+            'Could not update the webhook of the "%s" payment method: %s',
+            (string) $paymentMethod->getCode(),
+            $exception->getMessage(),
+        ));
     }
 
     private function payPalPaymentMethod(): ?PaymentMethodInterface
