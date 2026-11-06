@@ -130,9 +130,10 @@ final class WebhookStateComponentTest extends TestCase
     public function test_it_keeps_the_reason_of_any_other_failure_in_the_log(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod('sylius_paypal'));
-        $this->registrar->method('register')->willThrowException(new \RuntimeException('SQLSTATE[HY000]: General error'));
+        $exception = new \RuntimeException('SQLSTATE[HY000]: General error');
+        $this->registrar->method('register')->willThrowException($exception);
 
-        $this->logger->expects(self::once())->method('error')->with(self::stringContains('SQLSTATE[HY000]'));
+        $this->logger->expects(self::once())->method('error')->with(self::stringContains('SQLSTATE[HY000]'), ['exception' => $exception]);
 
         $this->component->updateWebhook();
 
