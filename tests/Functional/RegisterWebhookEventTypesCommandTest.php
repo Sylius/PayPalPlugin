@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -119,6 +120,32 @@ final class RegisterWebhookEventTypesCommandTest extends JsonApiTestCase
         self::assertSame(Command::SUCCESS, $commandTester->execute([]));
         self::assertStringContainsString('Webhook WH-LEGACY of "PAYPAL" is already up to date', $commandTester->getDisplay());
         self::assertSame('WH-LEGACY', $this->storedWebhookId());
+    }
+
+    public function test_it_leaves_a_webhook_already_up_to_date_without_asking_paypal_to_change_it(): void
+    {
+        $paymentMethod = $this->loadShop();
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $gatewayConfig->setConfig(['webhook_id' => 'WH-1'] + $gatewayConfig->getConfig());
+        $this->getEntityManager()->flush();
+        /** @var WebhookUrlProviderInterface $webhookUrlProvider */
+        $webhookUrlProvider = self::getContainer()->get('sylius_paypal.provider.webhook_url');
+        $webhookUrl = $webhookUrlProvider->provide($paymentMethod);
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [
+            ['id' => 'WH-1', 'url' => $webhookUrl],
+        ]]);
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', [
+            'id' => 'WH-1',
+            'url' => $webhookUrl,
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], WebhookApi::EVENT_TYPES),
+        ]);
+
+        $commandTester = $this->commandTester();
+
+        self::assertSame(Command::SUCCESS, $commandTester->execute([]));
+        self::assertStringContainsString('Webhook WH-1 of "PAYPAL" is already up to date', $commandTester->getDisplay());
+        self::assertSame('WH-1', $this->storedWebhookId());
     }
 
     private function storedWebhookId(): mixed
