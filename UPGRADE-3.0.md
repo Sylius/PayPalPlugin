@@ -72,6 +72,15 @@
    "PayPal", `PAYPAL_2` named "PayPal 2", ...) in the mode it was started in. The
    `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
 
+   The edit page of a PayPal payment method offers "Update PayPal permissions", which runs the same onboarding for
+   the PayPal account of that payment method, e.g. to grant Apple Pay or Google Pay to an account connected before
+   the plugin asked for them. The onboarding completes on `sylius_paypal_admin_update_permissions`
+   (`POST /admin/payment-methods/{id}/paypal-permissions`) through
+   `Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface`
+   (`sylius_paypal.onboarding.processor.permissions_update`). It refuses another PayPal account and keeps the payment
+   method with its credentials and webhook: PayPal issues new credentials on every onboarding, but the webhook belongs
+   to the credentials it was registered with.
+
 1. #### `PayPalPaymentMethodProvider` has been removed.
 
    A store no longer has a single PayPal payment method. `Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider`,
