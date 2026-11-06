@@ -63,6 +63,12 @@ final class AuthorizePayPalOrderPaymentRequestHandler
         }
 
         if (in_array($payment->getState(), self::SETTLED_PAYMENT_STATES, true)) {
+            if ($this->isPaidByItsPayPalOrder($paymentRequest, $payment)) {
+                $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+
+                return;
+            }
+
             $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
 
@@ -129,5 +135,12 @@ final class AuthorizePayPalOrderPaymentRequestHandler
         }
 
         $this->failWithReason($paymentRequest, sprintf('PayPal reported the authorization as %s.', $authorization->status()));
+    }
+
+    private function isPaidByItsPayPalOrder(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): bool
+    {
+        $payPalOrderId = $paymentRequest->getResponseData()[CreatePayPalOrderPaymentRequestHandler::RESPONSE_PAYPAL_ORDER_ID] ?? null;
+
+        return is_string($payPalOrderId) && $payPalOrderId === PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
     }
 }

@@ -230,9 +230,22 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         ], $this->appliedTransitions);
     }
 
+    public function test_it_completes_the_request_of_a_payment_its_paypal_order_has_already_authorized(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(responseData: ['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
+
+        $this->paymentAuthorizationProcessor->expects(self::never())->method('authorize');
+        $paymentRequest->expects(self::never())->method('setResponseData');
+
+        ($this->handler)(new AuthorizePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
+    }
+
     public function test_it_cancels_the_request_of_a_payment_another_attempt_has_already_authorized(): void
     {
-        $paymentRequest = $this->paymentRequestWith();
+        $paymentRequest = $this->paymentRequestWith(responseData: ['paypal_order_id' => 'OTHER_PAYPAL_ORDER_ID']);
         $this->payment->method('getState')->willReturn(PaymentInterface::STATE_AUTHORIZED);
 
         $this->paymentAuthorizationProcessor->expects(self::never())->method('authorize');
@@ -270,6 +283,7 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
     private function paymentRequestWith(
         array $details = ['paypal_order_id' => 'PAYPAL_ORDER_ID'],
         string $state = PaymentRequestInterface::STATE_PROCESSING,
+        array $responseData = [],
     ): PaymentRequestInterface&MockObject {
         $this->payment->method('getDetails')->willReturn($details);
 
@@ -277,6 +291,7 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         $paymentRequest->method('getState')->willReturn($state);
         $paymentRequest->method('getPayment')->willReturn($this->payment);
         $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $paymentRequest->method('getResponseData')->willReturn($responseData);
 
         $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
 
