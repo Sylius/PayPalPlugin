@@ -1,4 +1,55 @@
-# UPGRADE FROM 2.1 to 3.0
+# UPGRADE FROM 2.2 to 3.0
+
+1. #### PayPal payment methods no longer use Payum.
+
+   PayPal payments go through Sylius Payment Requests. To move the PayPal payment methods of a 2.x store over:
+
+   1. Generate the key Sylius encrypts payment data with, unless the store already has one, and point
+      `SYLIUS_PAYMENT_ENCRYPTION_KEY_PATH` at it:
+
+      ```bash
+      bin/console sylius:payment:generate-key
+      ```
+
+   2. Run the migrations. `Version20261104120000` (MySQL) and `Version20261104120001` (PostgreSQL) set `use_payum`
+      to `false` on every PayPal gateway config still on Payum, together with its `use_authorize` key. 2.x always
+      saved `use_authorize` as `true`, but it never meant a PayPal authorization; in 3.0 it makes the payment method
+      authorize, so the migrations keep these payment methods capturing. A PayPal gateway config already off Payum
+      keeps its strategy. Until the migrations run, a PayPal payment method still on Payum has no payment page.
+
+   3. Encrypt the PayPal gateway configs:
+
+      ```bash
+      bin/console sylius-paypal:encrypt-gateway-configs
+      ```
+
+      Sylius encrypts the gateway config of a payment method that does not use Payum, but the configs saved under
+      Payum are in plain text. Sylius still reads them unless `sylius_payment.encryption.strict_mode` is enabled,
+      and would encrypt each of them only the next time it is saved; the command encrypts them all at once. It
+      skips the configs that are already encrypted and does nothing when `sylius_payment.encryption.enabled` is
+      `false` or `sylius_payment.encryption.disabled_for_factories` lists `sylius_paypal`. Without the encryption key
+      it stops and leaves the configs as they were. A config Payum encrypted
+      (`payum.dynamic_gateways.encryption.defuse_secret_key`) is decrypted with the Payum key first, so keep that key
+      configured until the command has run. Make any change to a PayPal gateway config in the database, such as
+      setting its `sandbox` key, before this step.
+
+   4. Move the PayPal webhooks to the `/payment-methods/{code}` endpoint:
+
+      ```bash
+      bin/console sylius-paypal:register-webhook-event-types
+      ```
+
+      See "PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method" for
+      what to set up before running it and what it reports.
+
+   5. Settle the payments that were in progress:
+
+      ```bash
+      bin/console sylius-paypal:settle-payments
+      ```
+
+      A payment whose capture was pending, or a Trustly payment whose payer was at the bank, is completed once PayPal
+      has captured it. A payment the buyer had not paid yet gets a new PayPal order on the payment page.
 
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 
@@ -562,6 +613,30 @@
    | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.create_paypal_order_from_payment_page`), route `sylius_paypal_shop_create_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/create`) | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction`, route `sylius_paypal_shop_create_paypal_order_from_cart` |
    | `Sylius\PayPalPlugin\Controller\CompletePayPalOrderFromPaymentPageAction` (`sylius_paypal.controller.complete_paypal_order_from_payment_page`), route `sylius_paypal_shop_complete_paypal_order_from_payment_page` (`/pay-pal-order-payment-page/{id}/complete`) | `Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction`, route `sylius_paypal_shop_complete_express_checkout` |
 
+1. #### The buyer can no longer change the payment method of a `processing` payment.
+
+   The plugin no longer configures `sylius_core.checkout.payment.allowed_states`, which it used to extend with
+   `processing`, so the Sylius default (`new` and `cart`) applies again, to every payment method of the store. It was added for the PayPal buttons on
+   the select payment step, which no longer move the payment to `processing`. Since then it only let a buyer pay
+   again for a payment still being processed, such as a PayPal payment whose capture is pending, which could charge
+   them twice.
+
+   The order page and the thank-you page offer the payment method change only when the order awaits payment and has
+   a payment in one of the allowed states, through the new `sylius_paypal_can_change_payment_method(order)` Twig
+   function (`Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension`). Otherwise the order page says that the payment
+   method can no longer be changed, instead of showing a payment form with no payment to pay, and the buyer whose
+   bank payment is still on its way keeps the link back to the bank.
+
+   To let buyers change the payment method of a `processing` payment again, add the state back in your configuration;
+   the order page and the thank-you page follow it:
+
+   ```yaml
+   sylius_core:
+       checkout:
+           payment:
+               allowed_states: [new, cart, processing]
+   ```
+
 1. #### Completing the checkout no longer captures a PayPal payment.
 
    Every PayPal order is now captured through a `capture` Payment Request after the order is placed, so nothing
@@ -579,6 +654,36 @@
 
    The `sylius_paypal.repository.query.pay_pal_payment.updatable_states` parameter is now `[cart]`: only the payment of
    an order that is not placed yet has its PayPal order updated.
+
+1. #### The Payum gateway of PayPal has been removed.
+
+   Every PayPal flow runs through Payment Requests, so the plugin no longer registers a Payum gateway factory for
+   `sylius_paypal` and no longer refers to Payum or PayumBundle. A PayPal gateway config that still uses Payum has
+   no payment page; the upgrade migration moves the configs saved by 2.x off Payum. Sylius itself turns `use_payum`
+   off in the payment method form, as no Payum gateway is registered for PayPal, and the onboarding turns it off on
+   the gateway config it creates. The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Payum\Factory\PayPalGatewayFactory` (`sylius_paypal.gateway_factory_builder`) | the `sylius_paypal` Payment Request command provider (`sylius_paypal.command_provider`) |
+   | `Sylius\PayPalPlugin\Payum\Action\AuthorizeAction` (`sylius_paypal.payum.action.authorize`) | none, the PayPal order is created by the `capture` or `authorize` Payment Request |
+   | `Sylius\PayPalPlugin\Payum\Action\CaptureAction` (`sylius_paypal.payum.action.capture`) | `Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction` (`sylius_paypal.payum.action.complete_order`) and `Sylius\PayPalPlugin\Payum\Request\CompleteOrder` | `Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Payum\Action\StatusAction` | `Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler` |
+   | `Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction` (`sylius_paypal.payum.action.resolve_next_route`) | `Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider` |
+   | `Sylius\PayPalPlugin\Form\Extension\GatewayConfigTypeExtension` (`sylius_paypal.form.extension.gateway_config`) | none, Sylius turns `use_payum` off for PayPal |
+
+   `PaymentAuthorizationChecker::isAuthorizeEnabled()` no longer treats a PayPal gateway config still on Payum as
+   capturing: `use_authorize` alone decides.
+
+1. #### The PayPal payment cancellation endpoint has been removed.
+
+   `Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction` (`sylius_paypal.controller.cancel_paypal_payment`) and
+   its route `sylius_paypal_shop_cancel_payment` (`POST /cancel-pay-pal-payment`) have been removed. They cancelled
+   the payment of a PayPal order and gave the order a new one. The shop buttons close the wallet through
+   `sylius_paypal_shop_cancel_order`, and the shop API payment configuration no longer hands the URL to headless
+   clients. A headless client whose buyer closes the wallet calls nothing: the payment stays `new`, and the next
+   `capture` Payment Request creates another PayPal order.
 
 1. #### A PayPal payment is refunded through a refund Payment Request.
 
@@ -720,7 +825,9 @@
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
    `PersistingWebhookIdProvider` now takes instead of the object manager. When PayPal answers the update with
    `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores the id as well and returns a registration whose
-   `WebhookRegistration::isUpToDate()` is `true`.
+   `WebhookRegistration::isUpToDate()` is `true`. It then forgets the webhook state the admin cached for the payment
+   method through `Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface` (`sylius_paypal.checker.webhook_state`), its
+   last constructor argument.
 
    The onboarding stores the id of the webhook it registers the same way:
 
@@ -850,9 +957,8 @@
    ```
 
    In 2.x `use_authorize` was a hidden, always `true` flag that made Payum postpone creating the PayPal order; it
-   never meant a PayPal authorization. Gateways still on Payum keep it, every other PayPal gateway config is saved with
-   the strategy the merchant chose. Set `use_authorize` to `false` on the PayPal gateway configs you upgrade, or they
-   will start authorizing instead of capturing.
+   never meant a PayPal authorization. The migrations described in "PayPal payment methods no longer use Payum" set
+   it to `false` on the PayPal gateway configs saved by 2.x, so they keep capturing.
 
 1. #### An authorized PayPal payment is captured, voided and settled through Payment Requests, webhooks and a command.
 
@@ -919,6 +1025,32 @@
 
    `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED` join the webhook event types the plugin
    registers. Subscribe a webhook registered before with `bin/console sylius-paypal:register-webhook-event-types`.
+
+   The command settles each payment through a `status` Payment Request, dispatched by the new
+   `Sylius\PayPalPlugin\Dispatcher\StatusPaymentRequestDispatcherInterface`
+   (`sylius_paypal.dispatcher.status_payment_request`), and reports the payments whose request failed with its
+   reason. `StatusPaymentRequestHandler` reads a `processing` payment from PayPal, and an `authorized` one only when
+   the payload of the Payment Request carries `settle_authorized: true`
+   (`StatusPaymentRequestHandler::PAYLOAD_SETTLE_AUTHORIZED`), as the dispatcher sets it. The `status` Payment
+   Request Sylius creates when the buyer comes back carries no payload, so a payment just authorized is not read from
+   PayPal a second time. The constructor arguments deprecated in 2.2 have been removed:
+
+   ```diff
+    // Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand
+    public function __construct(
+   -    private readonly PaymentRepositoryInterface $paymentRepository,
+   -    private readonly ?ObjectManager $paymentManager = null,
+   -    private readonly ?CacheAuthorizeClientApiInterface $authorizeClientApi = null,
+   -    private readonly ?OrderDetailsApiInterface $orderDetailsApi = null,
+   -    private readonly ?StateMachineInterface $stateMachine = null,
+   -    private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
+   -    private readonly ?PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery = null,
+   -    private readonly ?EntityManagerInterface $entityManager = null,
+   +    private readonly PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery,
+   +    private readonly StatusPaymentRequestDispatcherInterface $statusPaymentRequestDispatcher,
+   +    private readonly EntityManagerInterface $entityManager,
+    ) {
+   ```
 
 1. #### `OrderDetailsApiInterface::get()` returns a `PayPalOrderDetails` object.
 

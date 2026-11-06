@@ -15,12 +15,12 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderPaymentStates;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -414,7 +414,6 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $paymentMethod = $payment->getMethod();
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setUsePayum(false);
         $gatewayConfig->setConfig(array_merge(
             array_diff_key($gatewayConfig->getConfig(), ['use_authorize' => true]),
             ['venmo_enabled' => true, 'google_pay_enabled' => true, 'apple_pay_enabled' => true, 'trustly_enabled' => true],
@@ -447,7 +446,9 @@ final class PaymentRequestPayPageTest extends JsonApiTestCase
         $gatewayConfig = self::getContainer()->get('sylius.factory.gateway_config')->createNew();
         $gatewayConfig->setGatewayName('paypal_2');
         $gatewayConfig->setFactoryName('sylius_paypal');
-        $gatewayConfig->setUsePayum(false);
+        if (method_exists($gatewayConfig, 'setUsePayum')) {
+            $gatewayConfig->setUsePayum(false);
+        }
         $gatewayConfig->setConfig([
             'client_id' => 'SECOND_CLIENT_ID',
             'client_secret' => 'SECOND_SECRET',

@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 
@@ -54,13 +54,14 @@ final class SandboxAndProductionPaymentMethodsTest extends JsonApiTestCase
         $production = $fixtures['paypal'];
         /** @var GatewayConfigInterface $productionGatewayConfig */
         $productionGatewayConfig = $production->getGatewayConfig();
-        $productionGatewayConfig->setUsePayum(false);
 
         /** @var GatewayConfigInterface $sandboxGatewayConfig */
         $sandboxGatewayConfig = self::getContainer()->get('sylius.factory.gateway_config')->createNew();
         $sandboxGatewayConfig->setFactoryName($productionGatewayConfig->getFactoryName());
         $sandboxGatewayConfig->setGatewayName('paypal_sandbox');
-        $sandboxGatewayConfig->setUsePayum(false);
+        if (method_exists($sandboxGatewayConfig, 'setUsePayum')) {
+            $sandboxGatewayConfig->setUsePayum(false);
+        }
         $sandboxGatewayConfig->setConfig(array_merge($productionGatewayConfig->getConfig(), [
             PayPalGatewayConfig::CLIENT_ID => 'SANDBOX_CLIENT_ID',
             PayPalGatewayConfig::SANDBOX => true,

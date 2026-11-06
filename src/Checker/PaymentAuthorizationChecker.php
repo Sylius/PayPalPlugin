@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Checker;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
@@ -29,10 +28,6 @@ final readonly class PaymentAuthorizationChecker implements PaymentAuthorization
     {
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         if (!$gatewayConfig instanceof GatewayConfigInterface) {
-            return false;
-        }
-
-        if ($gatewayConfig instanceof PayumGatewayConfigInterface && $gatewayConfig->getUsePayum()) {
             return false;
         }
 

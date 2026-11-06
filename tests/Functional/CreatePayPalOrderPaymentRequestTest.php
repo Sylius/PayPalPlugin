@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -74,9 +73,6 @@ final class CreatePayPalOrderPaymentRequestTest extends JsonApiTestCase
 
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var GatewayConfigInterface $gatewayConfig */
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        $gatewayConfig->setUsePayum(false);
 
         $paymentRequest = self::getContainer()->get('sylius.factory.payment_request')->create($payment, $paymentMethod);
         $paymentRequest->setAction(PaymentRequestInterface::ACTION_CAPTURE);

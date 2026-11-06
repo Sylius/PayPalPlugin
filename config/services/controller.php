@@ -17,7 +17,6 @@ use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\Component\Resource\Metadata\MetadataInterface;
 use Sylius\PayPalPlugin\Controller\AddToCartAction;
 use Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction;
-use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\CaptureAuthorizationAction;
 use Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
@@ -51,16 +50,6 @@ return static function (ContainerConfigurator $container) {
             null,
             null,
             service('request_stack'),
-        ]);
-
-    $services->set('sylius_paypal.controller.cancel_paypal_payment', CancelPayPalPaymentAction::class)
-        ->args([
-            service('sylius_paypal.provider.payment'),
-            service('doctrine.orm.entity_manager'),
-            service('request_stack'),
-            service('sylius_abstraction.state_machine'),
-            service('sylius.order_processing.order_payment_processor.checkout'),
-            service('sylius_paypal.repository.query.paypal_payment'),
         ]);
 
     $services->set('sylius_paypal.controller.download_payouts_report', DownloadPayoutsReportAction::class)

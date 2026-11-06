@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -40,6 +41,21 @@ final class CompletePaidPaymentsCommandTest extends JsonApiTestCase
         $payment = $this->reloadedPayment();
         self::assertSame(PaymentInterface::STATE_COMPLETED, $payment->getState());
         self::assertSame('CAPTURED', $payment->getDetails()['authorization_status']);
+    }
+
+    public function test_it_settles_the_payment_through_a_status_payment_request(): void
+    {
+        $this->payPalApi()->mockOrderDetailsWithCapturedAuthorization();
+
+        self::assertSame(Command::SUCCESS, $this->completePayments());
+
+        $payment = $this->reloadedPayment();
+        /** @var list<PaymentRequestInterface> $paymentRequests */
+        $paymentRequests = self::getContainer()->get('sylius.repository.payment_request')->findBy(['payment' => $payment]);
+        self::assertSame(
+            [[PaymentRequestInterface::ACTION_STATUS, PaymentRequestInterface::STATE_COMPLETED]],
+            array_map(static fn (PaymentRequestInterface $paymentRequest): array => [$paymentRequest->getAction(), $paymentRequest->getState()], $paymentRequests),
+        );
     }
 
     public function test_it_cancels_an_authorized_payment_whose_authorization_was_voided_at_paypal(): void

@@ -35,6 +35,7 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
+use Sylius\PayPalPlugin\Console\Command\EncryptGatewayConfigsCommand;
 use Sylius\PayPalPlugin\Console\Command\PruneWebhookEventsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
@@ -64,7 +65,6 @@ use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactory;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface;
-use Sylius\PayPalPlugin\Form\Extension\GatewayConfigTypeExtension;
 use Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator;
@@ -151,7 +151,9 @@ use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
+use Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
+use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -181,9 +183,6 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
 
     $services->set('sylius_paypal.form.extension.payment_method', PaymentMethodTypeExtension::class)
-        ->tag('form.type_extension');
-
-    $services->set('sylius_paypal.form.extension.gateway_config', GatewayConfigTypeExtension::class)
         ->tag('form.type_extension');
 
     $services->set('sylius_paypal.form.type.paypal_configuration', PayPalConfigurationType::class)
@@ -561,6 +560,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),
             service('sylius_paypal.updater.webhook_id'),
+            service('sylius_paypal.checker.webhook_state'),
         ]);
 
     $services->alias(SellerWebhookEventTypesRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook_event_types');
@@ -594,14 +594,19 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.console.command.complete_paid_payments', CompletePaidPaymentsCommand::class)
         ->args([
-            service('sylius.repository.payment'),
-            null,
-            null,
-            null,
-            null,
-            service('sylius_paypal.processor.payment_settlement'),
             service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius_paypal.dispatcher.status_payment_request'),
             service('doctrine.orm.entity_manager'),
+        ])
+        ->tag('console.command');
+
+    $services->set('sylius_paypal.console.command.encrypt_gateway_configs', EncryptGatewayConfigsCommand::class)
+        ->args([
+            service('doctrine.dbal.default_connection'),
+            service('sylius.factory.gateway_config'),
+            service('sylius.checker.gateway_config_encryption')->nullOnInvalid(),
+            service('sylius.encrypter.gateway_config')->nullOnInvalid(),
+            service('payum.dynamic_gateways.cypher')->nullOnInvalid(),
         ])
         ->tag('console.command');
 
@@ -664,6 +669,10 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.twig.extension.order_address', OrderAddressExtension::class)
         ->tag('twig.extension');
 
+    $services->set('sylius_paypal.twig.extension.change_payment_method', ChangePaymentMethodExtension::class)
+        ->args(['%sylius_core.checkout.payment.allowed_states%'])
+        ->tag('twig.extension');
+
     $services->set('sylius_paypal.twig.extension.enabled_payment_sources', EnabledPaymentSourcesExtension::class)
         ->args([service('sylius_paypal.provider.enabled_payment_sources')])
         ->tag('twig.extension');
@@ -675,6 +684,14 @@ return static function (ContainerConfigurator $container) {
             service('monolog.logger.paypal'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
+
+    $services->set('sylius_paypal.twig.component.webhook_state', WebhookStateComponent::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.checker.webhook_state'),
+            service('monolog.logger.paypal'),
+        ])
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:webhook_state', 'template' => '@SyliusPayPalPlugin/admin/shared/components/webhook_state.html.twig']);
 
     $services->set('sylius_paypal.verifier.payment_amount', PaymentAmountVerifier::class);
 

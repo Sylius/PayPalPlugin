@@ -44,6 +44,8 @@ use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatch
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\RefundPayPalPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Dispatcher\StatusPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Dispatcher\StatusPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcher;
 use Sylius\PayPalPlugin\Dispatcher\VoidAuthorizationPaymentRequestDispatcherInterface;
 use Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider;
@@ -232,6 +234,16 @@ return function (ContainerConfigurator $container): void {
         ]);
 
     $services->alias(CaptureAuthorizationPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.capture_authorization_payment_request');
+
+    $services->set('sylius_paypal.dispatcher.status_payment_request', StatusPaymentRequestDispatcher::class)
+        ->args([
+            service('sylius.factory.payment_request'),
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.payment_request.command_bus'),
+        ]);
+
+    $services->alias(StatusPaymentRequestDispatcherInterface::class, 'sylius_paypal.dispatcher.status_payment_request');
 
     $services->set('sylius_paypal.command_handler.void_authorization', VoidAuthorizationPaymentRequestHandler::class)
         ->args([

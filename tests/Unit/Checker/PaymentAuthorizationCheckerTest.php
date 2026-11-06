@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Checker;
 
 use PHPUnit\Framework\TestCase;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface as PayumGatewayConfigInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
@@ -34,18 +33,6 @@ final class PaymentAuthorizationCheckerTest extends TestCase
         self::assertTrue($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith(['use_authorize' => true])));
         self::assertFalse($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith(['use_authorize' => false])));
         self::assertFalse($checker->isAuthorizeEnabled($this->paymentMethodConfiguredWith([])));
-    }
-
-    public function test_it_does_not_authorize_on_a_payum_gateway_that_uses_the_flag_to_postpone_the_order(): void
-    {
-        $gatewayConfig = $this->createMock(PayumGatewayConfigInterface::class);
-        $gatewayConfig->method('getConfig')->willReturn(['use_authorize' => true]);
-        $gatewayConfig->method('getUsePayum')->willReturn(true);
-
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
-
-        self::assertFalse($this->checker()->isAuthorizeEnabled($paymentMethod));
     }
 
     public function test_it_does_not_authorize_without_a_gateway_config(): void

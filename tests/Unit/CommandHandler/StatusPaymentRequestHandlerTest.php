@@ -66,6 +66,26 @@ final class StatusPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new StatusPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
 
+    public function test_it_reads_an_authorized_payment_from_paypal_when_the_payment_request_asks_to_settle_it(): void
+    {
+        $paymentRequest = $this->paymentRequestFor(['paypal_order_id' => 'PAYPAL_ORDER_ID'], PaymentInterface::STATE_AUTHORIZED, ['settle_authorized' => true]);
+
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($paymentRequest->getPayment());
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+
+        ($this->handler)(new StatusPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_read_an_authorized_payment_from_paypal_when_the_payment_request_does_not_ask_to_settle_it(): void
+    {
+        $paymentRequest = $this->paymentRequestFor(['paypal_order_id' => 'PAYPAL_ORDER_ID'], PaymentInterface::STATE_AUTHORIZED);
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+
+        ($this->handler)(new StatusPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
     public function test_it_fails_the_payment_request_when_paypal_cannot_be_reached(): void
     {
         $paymentRequest = $this->paymentRequestFor(['paypal_order_id' => 'PAYPAL_ORDER_ID'], PaymentInterface::STATE_PROCESSING);
@@ -100,7 +120,7 @@ final class StatusPaymentRequestHandlerTest extends TestCase
     }
 
     /** @param array<string, mixed> $details */
-    private function paymentRequestFor(array $details, string $paymentState): PaymentRequestInterface&MockObject
+    private function paymentRequestFor(array $details, string $paymentState, mixed $payload = null): PaymentRequestInterface&MockObject
     {
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getDetails')->willReturn($details);
@@ -108,6 +128,7 @@ final class StatusPaymentRequestHandlerTest extends TestCase
 
         $paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $paymentRequest->method('getPayment')->willReturn($payment);
+        $paymentRequest->method('getPayload')->willReturn($payload);
 
         $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
 
