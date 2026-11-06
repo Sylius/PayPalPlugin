@@ -134,6 +134,15 @@ final class LoggingHttpClientTest extends TestCase
         ], $this->logs[0]['context']['response']['body']);
     }
 
+    public function test_it_masks_the_primary_email_of_the_seller(): void
+    {
+        $this->client->method('sendRequest')->willReturn($this->response(200, '{"merchant_id": "MERCHANT_ID", "primary_email": "seller@example.com", "primary_email_confirmed": true}'));
+
+        $this->loggingHttpClient->sendRequest($this->request('GET'));
+
+        self::assertSame(['merchant_id' => 'MERCHANT_ID', 'primary_email' => '***', 'primary_email_confirmed' => true], $this->logs[0]['context']['response']['body']);
+    }
+
     public function test_it_leaves_the_response_body_readable_for_the_caller(): void
     {
         $this->client->method('sendRequest')->willReturn($this->response(200, '{"id": "ORDER_ID"}'));

@@ -570,8 +570,8 @@
    `sylius_paypal.psr18_client.onboarding.logging`) logs every attempt of a PayPal API call, the onboarding ones
    included, on the `paypal` channel: the method, URL, status and `PayPal-Debug-Id` in the message, the request and
    response headers and bodies in the context. A successful call is logged as `info`, a call PayPal rejected or that
-   never reached it as `error`. Credentials (authorization headers, tokens, client credentials) and the payer's
-   personal data (name, contact details, address, card data) are masked.
+   never reached it as `error`. Credentials (authorization headers, tokens, client credentials), the payer's
+   personal data (name, contact details, address, card data) and the seller's primary email are masked.
 
    PayPal asks to keep the logs of failed calls for at least two weeks, as it purges its own after that. Route the
    `paypal` channel accordingly, for example:
