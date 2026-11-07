@@ -15,10 +15,32 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class OnboardingStatus
 {
+    /** @param list<string> $activeCapabilities */
     public function __construct(
         private bool $paymentsReceivable,
         private bool $primaryEmailConfirmed,
+        private array $activeCapabilities = [],
     ) {
+    }
+
+    /** @param array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>} $data */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            $data['payments_receivable'] ?? false,
+            $data['primary_email_confirmed'] ?? false,
+            $data['active_capabilities'] ?? [],
+        );
+    }
+
+    /** @param array<array-key, mixed> $content */
+    public static function fromMerchantIntegration(array $content): self
+    {
+        return new self(
+            (bool) ($content['payments_receivable'] ?? false),
+            (bool) ($content['primary_email_confirmed'] ?? false),
+            self::activeCapabilitiesOf($content['capabilities'] ?? []),
+        );
     }
 
     public function arePaymentsReceivable(): bool
@@ -34,5 +56,43 @@ final readonly class OnboardingStatus
     public function isComplete(): bool
     {
         return $this->paymentsReceivable && $this->primaryEmailConfirmed;
+    }
+
+    /** @return list<string> */
+    public function activeCapabilities(): array
+    {
+        return $this->activeCapabilities;
+    }
+
+    public function hasActiveCapability(string $capability): bool
+    {
+        return in_array($capability, $this->activeCapabilities, true);
+    }
+
+    /** @return array{payments_receivable: bool, primary_email_confirmed: bool, active_capabilities: list<string>} */
+    public function toArray(): array
+    {
+        return [
+            'payments_receivable' => $this->paymentsReceivable,
+            'primary_email_confirmed' => $this->primaryEmailConfirmed,
+            'active_capabilities' => $this->activeCapabilities,
+        ];
+    }
+
+    /** @return list<string> */
+    private static function activeCapabilitiesOf(mixed $capabilities): array
+    {
+        if (!is_array($capabilities)) {
+            return [];
+        }
+
+        $active = [];
+        foreach ($capabilities as $capability) {
+            if (is_array($capability) && isset($capability['name']) && 'ACTIVE' === ($capability['status'] ?? null)) {
+                $active[] = (string) $capability['name'];
+            }
+        }
+
+        return $active;
     }
 }

@@ -20,11 +20,6 @@ final readonly class HostProvider implements HostProviderInterface
         return $sandbox ? self::SANDBOX_API_BASE_URL : self::PRODUCTION_API_BASE_URL;
     }
 
-    public function getReportsSftpHostForMode(bool $sandbox): string
-    {
-        return $sandbox ? self::SANDBOX_REPORTS_SFTP_HOST : self::PRODUCTION_REPORTS_SFTP_HOST;
-    }
-
     public function getWebUrlForMode(bool $sandbox): string
     {
         return $sandbox ? self::SANDBOX_WEB_URL : self::PRODUCTION_WEB_URL;

@@ -56,8 +56,6 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::MERCHANT_ID => $result->getMerchantId(),
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
             PayPalGatewayConfig::SANDBOX => $sandbox,
-            PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
-            PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
             PayPalGatewayConfig::USE_AUTHORIZE => false,
         ]);
 

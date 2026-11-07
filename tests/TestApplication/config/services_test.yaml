@@ -1,7 +1,4 @@
 services:
-    sylius_paypal.downloader.report:
-        class: Tests\Sylius\PayPalPlugin\Service\DummyPayoutsReportDownloader
-
     sylius_paypal.api.authorize_client:
         class: Tests\Sylius\PayPalPlugin\Service\DummyAuthorizeClientApi
 
@@ -19,4 +16,8 @@ services:
 
     sylius_paypal.provider.webhook_id:
         class: Tests\Sylius\PayPalPlugin\Service\DummyWebhookIdProvider
+        arguments: []
+
+    sylius_paypal.provider.merchant_integration_status.lookup:
+        class: Tests\Sylius\PayPalPlugin\Service\FakeMerchantIntegrationStatusProvider
         arguments: []

@@ -30,6 +30,8 @@ use Sylius\PayPalPlugin\Checker\PaymentCompletionChecker;
 use Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
 use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityChecker;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
@@ -42,8 +44,6 @@ use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
-use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
-use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
@@ -59,8 +59,6 @@ use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
-use Sylius\PayPalPlugin\Factory\SftpClientFactory;
-use Sylius\PayPalPlugin\Factory\SftpClientFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactory;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
@@ -186,6 +184,7 @@ return static function (ContainerConfigurator $container) {
         ->tag('form.type_extension');
 
     $services->set('sylius_paypal.form.type.paypal_configuration', PayPalConfigurationType::class)
+        ->args([service('sylius_paypal.checker.payment_source_capability')])
         ->tag('form.type')
         ->tag('sylius.gateway_configuration_type', ['type' => 'sylius_paypal', 'label' => 'sylius_paypal.label']);
 
@@ -437,18 +436,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(UuidProviderInterface::class, 'sylius_paypal.provider.uuid');
 
-    $services->set('sylius_paypal.factory.sftp_client', SftpClientFactory::class);
-
-    $services->alias(SftpClientFactoryInterface::class, 'sylius_paypal.factory.sftp_client');
-
-    $services->set('sylius_paypal.downloader.report', SftpPayoutsReportDownloader::class)
-        ->args([
-            service('sylius_paypal.factory.sftp_client'),
-            service('sylius_paypal.provider.host'),
-        ]);
-
-    $services->alias(ReportDownloaderInterface::class, 'sylius_paypal.downloader.report');
-
     $services->set('sylius_paypal.processor.paypal_address', PayPalAddressProcessor::class)
         ->args([service('doctrine.orm.entity_manager')])
         ->deprecate('sylius/paypal-plugin', '1.7', 'The "%service_id%" service is deprecated since 1.7 and will be removed in 3.0.');
@@ -502,6 +489,11 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.checker.payment_authorization')]);
 
     $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
+
+    $services->set('sylius_paypal.checker.payment_source_capability', PaymentSourceCapabilityChecker::class)
+        ->args([service('sylius_paypal.provider.merchant_integration_status')]);
+
+    $services->alias(PaymentSourceCapabilityCheckerInterface::class, 'sylius_paypal.checker.payment_source_capability');
 
     $services->set('sylius_paypal.checker.payment_authorization', PaymentAuthorizationChecker::class)
         ->args([param('sylius_paypal.authorize.payment_sources')]);

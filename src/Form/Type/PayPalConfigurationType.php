@@ -13,8 +13,11 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Form\Type;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -23,6 +26,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 final class PayPalConfigurationType extends AbstractType
 {
@@ -35,9 +39,19 @@ final class PayPalConfigurationType extends AbstractType
 
     private const AUTHORIZE = 'authorize';
 
+    private const CAPABILITY_TOGGLES = [
+        PayPalGatewayConfig::GOOGLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+        PayPalGatewayConfig::APPLE_PAY_ENABLED => PayPalPaymentSourceProviderInterface::APPLE_PAY,
+    ];
+
+    public function __construct(private readonly PaymentSourceCapabilityCheckerInterface $paymentSourceCapabilityChecker)
+    {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $originalData = [];
+        $togglesWithoutCapability = [];
 
         $builder
             ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
@@ -54,8 +68,6 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
             ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
-            ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
-            ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add(PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.express_checkout_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::MESSAGING_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
@@ -66,7 +78,7 @@ final class PayPalConfigurationType extends AbstractType
             ->add(PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS, CheckboxType::class, ['label' => 'sylius_paypal.card_three_d_secure_always', 'required' => false])
         ;
 
-        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData): void {
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$originalData, &$togglesWithoutCapability): void {
             $data = $event->getData();
             if (is_array($data)) {
                 $originalData = $data;
@@ -80,6 +92,21 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
                 $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
                 $event->setData($data);
+
+                $form = $event->getForm();
+                $togglesWithoutCapability = [];
+                $paymentMethod = $this->paymentMethodOf($form);
+                foreach (self::CAPABILITY_TOGGLES as $field => $paymentSource) {
+                    if (null !== $paymentMethod && !$this->paymentSourceCapabilityChecker->isAvailable($paymentSource, $paymentMethod)) {
+                        $togglesWithoutCapability[] = $field;
+                        $form->add($field, CheckboxType::class, [
+                            'label' => $form->get($field)->getConfig()->getOption('label'),
+                            'required' => false,
+                            'disabled' => true,
+                            'help' => true === $data[$field] ? 'sylius_paypal.capability_not_active_turned_off_on_save' : 'sylius_paypal.capability_not_active',
+                        ]);
+                    }
+                }
             }
         });
 
@@ -98,15 +125,25 @@ final class PayPalConfigurationType extends AbstractType
             $event->setData($submitted);
         });
 
-        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event): void {
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event) use (&$togglesWithoutCapability): void {
             $config = $event->getData();
             if (!is_array($config)) {
                 return;
             }
 
             $config[PayPalGatewayConfig::USE_AUTHORIZE] = true === ($config[PayPalGatewayConfig::USE_AUTHORIZE] ?? false);
+            foreach ($togglesWithoutCapability as $field) {
+                $config[$field] = false;
+            }
 
             $event->setData($config);
         });
+    }
+
+    private function paymentMethodOf(FormInterface $form): ?PaymentMethodInterface
+    {
+        $paymentMethod = $form->getParent()?->getParent()?->getData();
+
+        return $paymentMethod instanceof PaymentMethodInterface ? $paymentMethod : null;
     }
 }
