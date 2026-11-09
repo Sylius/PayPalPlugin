@@ -7,8 +7,6 @@ sylius_paypal:
     add_paypal_account: 'Ajouter un compte PayPal'
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
-    capability_not_active: 'Ce moyen de paiement n''est pas encore actif sur votre compte PayPal.'
-    capability_not_active_turned_off_on_save: 'Ce moyen de paiement n''est pas encore actif sur votre compte PayPal. Il sera désactivé à l''enregistrement.'
     capture_strategy: 'Stratégie d''encaissement'
     capture_strategy_authorize: 'Autorisation et encaissement'
     capture_strategy_capture: 'Encaissement immédiat'

@@ -23,16 +23,6 @@ final readonly class OnboardingStatus
     ) {
     }
 
-    /** @param array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>} $data */
-    public static function fromArray(array $data): self
-    {
-        return new self(
-            $data['payments_receivable'] ?? false,
-            $data['primary_email_confirmed'] ?? false,
-            $data['active_capabilities'] ?? [],
-        );
-    }
-
     /** @param array<array-key, mixed> $content */
     public static function fromMerchantIntegration(array $content): self
     {
@@ -67,16 +57,6 @@ final readonly class OnboardingStatus
     public function hasActiveCapability(string $capability): bool
     {
         return in_array($capability, $this->activeCapabilities, true);
-    }
-
-    /** @return array{payments_receivable: bool, primary_email_confirmed: bool, active_capabilities: list<string>} */
-    public function toArray(): array
-    {
-        return [
-            'payments_receivable' => $this->paymentsReceivable,
-            'primary_email_confirmed' => $this->primaryEmailConfirmed,
-            'active_capabilities' => $this->activeCapabilities,
-        ];
     }
 
     /** @return list<string> */

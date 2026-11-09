@@ -32,13 +32,6 @@ final class OnboardingStatusTest extends TestCase
         self::assertSame([], (new OnboardingStatus(true, true))->activeCapabilities());
     }
 
-    public function test_it_is_restored_from_its_array_form(): void
-    {
-        $status = new OnboardingStatus(true, false, ['APPLE_PAY', 'GOOGLE_PAY']);
-
-        self::assertEquals($status, OnboardingStatus::fromArray($status->toArray()));
-    }
-
     public function test_it_is_read_from_a_merchant_integration_with_only_its_active_capabilities(): void
     {
         $status = OnboardingStatus::fromMerchantIntegration([
