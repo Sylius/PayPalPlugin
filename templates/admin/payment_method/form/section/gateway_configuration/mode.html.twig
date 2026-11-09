@@ -1,12 +1,21 @@
 {% set payment_method = hookable_metadata.context.resource ?? null %}
 {% set config = (payment_method is not null and payment_method.gatewayConfig is not null) ? payment_method.gatewayConfig.config : {} %}
-{% set sandbox = config[constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX')]|default(false) %}
+{% set sandbox_key = constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX') %}
+{% set sandbox = config[sandbox_key]|default(false) %}
+{% set mode_unknown = payment_method is not null and payment_method.id is not null and config[sandbox_key] is not defined %}
 
 <div class="col-12 col-md-6">
     <div class="mb-3">
         <label class="form-label" for="paypal-mode">{{ 'sylius_paypal.mode'|trans }}</label>
-        <input type="text" id="paypal-mode" class="form-control" value="{{ (sandbox ? 'sylius_paypal.mode_sandbox' : 'sylius_paypal.mode_production')|trans }}" disabled {{ sylius_test_html_attribute('paypal-mode', sandbox ? 'sandbox' : 'production') }}>
+        <input type="text" id="paypal-mode" class="form-control" value="{{ (mode_unknown ? 'sylius_paypal.mode_unknown' : (sandbox ? 'sylius_paypal.mode_sandbox' : 'sylius_paypal.mode_production'))|trans }}" disabled {{ sylius_test_html_attribute('paypal-mode', mode_unknown ? 'unknown' : (sandbox ? 'sandbox' : 'production')) }}>
     </div>
+
+    {% if mode_unknown %}
+        <div class="alert alert-warning d-flex align-items-center" role="alert" {{ sylius_test_html_attribute('paypal-mode-unknown') }}>
+            {{ ux_icon('tabler:alert-triangle-filled', {class: 'me-2 flex-shrink-0', width: 24, height: 24}) }}
+            <span>{{ 'sylius_paypal.mode_unknown_warning'|trans }}</span>
+        </div>
+    {% endif %}
 
     {% if sandbox and app.environment == 'prod' %}
         <div class="alert alert-danger d-flex align-items-center" role="alert">

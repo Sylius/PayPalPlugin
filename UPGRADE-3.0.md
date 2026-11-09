@@ -32,8 +32,9 @@
       `false` or `sylius_payment.encryption.disabled_for_factories` lists `sylius_paypal`. Without the encryption key
       it stops and leaves the configs as they were. A config Payum encrypted
       (`payum.dynamic_gateways.encryption.defuse_secret_key`) is decrypted with the Payum key first, so keep that key
-      configured until the command has run. Make any change to a PayPal gateway config in the database, such as
-      setting its `sandbox` key, before this step.
+      configured until the command has run. Make any change to a PayPal gateway config in the database before this
+      step; the migrations of step 2 already store its mode (see "The mode of a PayPal payment method is stored in its
+      gateway config and set by the onboarding").
 
    4. Move the PayPal webhooks to the `/payment-methods/{code}` endpoint:
 
@@ -217,14 +218,20 @@
 
 1. #### The mode of a PayPal payment method is stored in its gateway config and set by the onboarding.
 
-   The `sylius_paypal.sandbox` configuration option and the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable
-   have been removed. Each PayPal payment method keeps its mode under the `sandbox` key of its gateway config. The
-   onboarding sets it and the payment method form shows it read-only, so a store that uses both modes has a PayPal
-   payment method for each, with its own credentials.
+   Each PayPal payment method keeps its mode under the `sandbox` key of its gateway config. The onboarding sets it
+   and the payment method form shows it read-only, so a store that uses both modes has a PayPal payment method for
+   each, with its own credentials.
 
-   A PayPal gateway config without the `sandbox` key is in production. If your store used the sandbox, set the
-   `sandbox` key of its PayPal gateway config to `true`, or connect the sandbox account as a new PayPal payment
-   method through the onboarding.
+   The `Version20261109120000` (MySQL) and `Version20261109120001` (PostgreSQL) migrations store the mode of 2.x in
+   every PayPal gateway config without the `sandbox` key: the `sylius_paypal.sandbox` configuration option, `true`
+   by default and overridden by the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable. Keep the option or the
+   variable as it was in 2.x until the migrations have run. The option is deprecated, is read only by these
+   migrations and will be removed in 4.0.
+
+   A gateway config Sylius has already encrypted cannot be changed by the migrations, so they log a warning about it
+   and leave it without the `sandbox` key. Such a payment method is used in production, and the payment methods
+   list and its form show its mode as unknown. Set its `sandbox` key, or connect the PayPal account again through
+   the onboarding.
 
    The following parameters and services have been removed:
 
