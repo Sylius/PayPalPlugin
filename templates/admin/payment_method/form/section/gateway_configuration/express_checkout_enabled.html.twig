@@ -1,11 +1,13 @@
 {% set form = hookable_metadata.context.form.gatewayConfig.config %}
 
-<div class="col-12 mb-3 pb-3 border-bottom">
-    <div class="d-flex align-items-center justify-content-between gap-3">
-        <div>
-            <label class="form-label fw-semibold mb-0" for="{{ form.express_checkout_enabled.vars.id }}">{{ form.express_checkout_enabled.vars.label|trans }}</label>
-            <div class="text-secondary small">{{ 'sylius_paypal.express_checkout_enabled_help'|trans }}</div>
+<div class="list-group-item py-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="flex-grow-1">
+            <label class="fw-medium" for="{{ form.express_checkout_enabled.vars.id }}">{{ form.express_checkout_enabled.vars.label|trans }}</label>
+            <div class="text-muted small">{{ 'sylius_paypal.express_checkout_enabled_help'|trans }}</div>
         </div>
-        {{ form_widget(form.express_checkout_enabled, sylius_test_form_attribute('express-checkout-enabled')|merge({ label: false, label_attr: { class: 'checkbox-switch' } })) }}
+        <div class="flex-shrink-0">
+            {{ form_widget(form.express_checkout_enabled, sylius_test_form_attribute('express-checkout-enabled')|merge({ label: false, label_attr: { class: 'checkbox-switch' } })) }}
+        </div>
     </div>
 </div>
