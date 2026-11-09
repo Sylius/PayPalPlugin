@@ -83,7 +83,8 @@
    mode) instead of filling the credentials in by hand.
 
    A store can connect several PayPal accounts. Each onboarding creates a new PayPal payment method (`PAYPAL` named
-   "PayPal", `PAYPAL_2` named "PayPal 2", ...) in the mode it was started in. The
+   "PayPal", `PAYPAL_2` named "PayPal 2", ...) in the mode it was started in, with Google Pay and Apple Pay turned on
+   when the PayPal account has their capability active. Existing payment methods keep these toggles as they are. The
    `sylius_paypal.more_than_one_seller_not_allowed` flash message has been removed.
 
 1. #### `PayPalPaymentMethodProvider` has been removed.

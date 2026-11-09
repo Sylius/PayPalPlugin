@@ -58,6 +58,8 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
             PayPalGatewayConfig::SANDBOX => $sandbox,
             PayPalGatewayConfig::USE_AUTHORIZE => false,
+            PayPalGatewayConfig::GOOGLE_PAY_ENABLED => $result->getStatus()->hasActiveCapability('GOOGLE_PAY'),
+            PayPalGatewayConfig::APPLE_PAY_ENABLED => $result->getStatus()->hasActiveCapability('APPLE_PAY'),
             PayPalGatewayConfig::ONBOARDING_SCOPE => OnboardingScope::current()->toArray(),
         ]);
 

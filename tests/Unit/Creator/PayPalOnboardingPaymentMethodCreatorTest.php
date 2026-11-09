@@ -38,6 +38,8 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
         'use_authorize' => false,
+        'google_pay_enabled' => false,
+        'apple_pay_enabled' => false,
         'onboarding_scope' => [
             'product' => OnboardingScope::PRODUCT_PPCP,
             'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
@@ -148,6 +150,29 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
         self::assertSame($paymentMethod, $this->creator->create($result, false));
+    }
+
+    #[Test]
+    public function it_turns_on_google_pay_and_apple_pay_when_the_paypal_account_has_their_capabilities_active(): void
+    {
+        [$gatewayConfig] = $this->mockFactories();
+
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, [
+            'google_pay_enabled' => true,
+            'apple_pay_enabled' => true,
+        ]));
+
+        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'ACTIVE'])), false);
+    }
+
+    #[Test]
+    public function it_turns_on_only_the_wallet_whose_capability_is_active(): void
+    {
+        [$gatewayConfig] = $this->mockFactories();
+
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, ['apple_pay_enabled' => true]));
+
+        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE'])), false);
     }
 
     #[Test]
