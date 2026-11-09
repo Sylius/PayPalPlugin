@@ -112,6 +112,8 @@ sylius_paypal:
     mode_sandbox_description: 'Płatności są symulowane: nic nie jest pobierane ani wypłacane.'
     mode_sandbox_go_live: 'Aby przyjmować prawdziwe płatności, wybierz "Utwórz" > "PayPal (Produkcja)" na liście metod płatności i połącz swoje produkcyjne konto PayPal. Powstanie z niego nowa metoda płatności.'
     mode_sandbox_title: 'Tryb sandbox.'
+    mode_unknown: 'Nieznany'
+    mode_unknown_warning: 'Tryb tej metody płatności nie jest ustawiony, więc działa ona w trybie produkcyjnym. Jeśli to konto sandbox, ustaw klucz "sandbox" jej konfiguracji bramki na true albo połącz je ponownie przez onboarding.'
     onboarding_completed: 'Twoje konto PayPal zostało połączone.'
     onboarding_modal_description: 'Poprosimy Cię o zalogowanie się lub założenie konta PayPal, aby połączyć je z Twoim sklepem.'
     pay_later: 'Pay Later'

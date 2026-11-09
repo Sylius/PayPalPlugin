@@ -79,6 +79,12 @@ final readonly class ManagingPaymentMethodsContext implements Context
         Assert::same($this->paymentMethodListElement->getMode($paymentMethodName), $mode);
     }
 
+    #[Then('the :paymentMethodName payment method should be marked as having an unknown mode')]
+    public function thePaymentMethodShouldBeMarkedAsHavingAnUnknownMode(string $paymentMethodName): void
+    {
+        Assert::same($this->paymentMethodListElement->getMode($paymentMethodName), 'unknown');
+    }
+
     #[Then('I should not see PayPal suggested as a payment method')]
     public function iShouldNotSeePayPalSuggestedAsAPaymentMethod(): void
     {

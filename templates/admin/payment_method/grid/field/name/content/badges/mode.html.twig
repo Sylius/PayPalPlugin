@@ -1,6 +1,9 @@
 {% set gateway_config = hookable_metadata.context.payment_method.gatewayConfig %}
+{% set sandbox_key = constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX') %}
 
-{% if gateway_config.config[constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX')]|default(false) %}
+{% if gateway_config.config[sandbox_key] is not defined %}
+    <span class="badge bg-red-lt" title="{{ 'sylius_paypal.mode_unknown_warning'|trans }}" {{ sylius_test_html_attribute('paypal-mode', 'unknown') }}>{{ 'sylius_paypal.mode'|trans }}: {{ 'sylius_paypal.mode_unknown'|trans }}</span>
+{% elseif gateway_config.config[sandbox_key] %}
     <span class="badge bg-orange-lt" {{ sylius_test_html_attribute('paypal-mode', 'sandbox') }}>{{ 'sylius_paypal.mode_sandbox'|trans }}</span>
 {% else %}
     <span class="badge bg-green-lt" {{ sylius_test_html_attribute('paypal-mode', 'production') }}>{{ 'sylius_paypal.mode_production'|trans }}</span>

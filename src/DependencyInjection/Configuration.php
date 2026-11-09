@@ -56,6 +56,14 @@ final class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
+                ->booleanNode('sandbox')
+                    ->defaultTrue()
+                    ->setDeprecated(
+                        'sylius/paypal-plugin',
+                        '3.0',
+                        'The "%path%.%node%" option is deprecated and only read by the migration that stores the mode of the PayPal payment methods in their gateway config. It will be removed in 4.0.',
+                    )
+                ->end()
                 ->scalarNode('test_buyer_country')->defaultNull()->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()

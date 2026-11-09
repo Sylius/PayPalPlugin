@@ -112,6 +112,8 @@ sylius_paypal:
     mode_sandbox_description: 'Payments are simulated: nothing is charged and no payout is made.'
     mode_sandbox_go_live: 'To accept real payments, choose "Create" > "PayPal (Production)" on the payment methods list and connect your live PayPal account. It becomes a new payment method.'
     mode_sandbox_title: 'Sandbox mode.'
+    mode_unknown: 'Unknown'
+    mode_unknown_warning: 'The mode of this payment method is not set, so it is used in production. If it is a sandbox account, set the "sandbox" key of its gateway config to true or connect it again through the onboarding.'
     onboarding_completed: 'Your PayPal account has been connected.'
     onboarding_modal_description: 'You will be asked to log in or create a PayPal account to connect it with your store.'
     pay_later: 'Pay Later'
