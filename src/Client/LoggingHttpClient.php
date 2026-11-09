@@ -30,7 +30,7 @@ final readonly class LoggingHttpClient implements ClientInterface
 
     private const SENSITIVE_KEYS = [
         'access_token', 'refresh_token', 'id_token', 'client_token', 'client_id', 'client_secret', 'code', 'code_verifier', 'nonce', 'payer_id',
-        'given_name', 'surname', 'full_name', 'email_address', 'phone', 'phone_number', 'national_number', 'birth_date', 'tax_info', 'address',
+        'given_name', 'surname', 'full_name', 'email_address', 'primary_email', 'phone', 'phone_number', 'national_number', 'birth_date', 'tax_info', 'address',
         'number', 'security_code', 'expiry',
     ];
 
