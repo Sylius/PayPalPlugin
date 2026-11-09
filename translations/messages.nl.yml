@@ -5,6 +5,7 @@ sylius:
         void_authorization: 'Autorisatie intrekken'
 sylius_paypal:
     add_paypal_account: 'PayPal-account toevoegen'
+    apple_pay_enabled_help: 'Apple Pay moet actief zijn op uw PayPal-account.'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
     capture_strategy: 'Incassostrategie'
@@ -28,6 +29,7 @@ sylius_paypal:
     enable_paypal_production: 'Productie'
     expiration_date: 'Vervaldatum'
     go_to_payment_method: 'Ga naar de betaalmethode'
+    google_pay_enabled_help: 'Google Pay moet actief zijn op uw PayPal-account.'
     invalid_form: 'Formulier is ongeldig'
     label: 'PayPal'
     merchant_id: 'Merchant ID'

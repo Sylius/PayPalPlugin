@@ -6,6 +6,7 @@ sylius:
 sylius_paypal:
     add_paypal_account: 'Add PayPal account'
     apple_pay_enabled: 'Enable Apple Pay'
+    apple_pay_enabled_help: 'Apple Pay has to be active in your PayPal account.'
     awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
@@ -33,6 +34,7 @@ sylius_paypal:
     finish_the_payment: 'Finish the payment'
     go_to_payment_method: 'Go to the payment method'
     google_pay_enabled: 'Enable Google Pay'
+    google_pay_enabled_help: 'Google Pay has to be active in your PayPal account.'
     invalid_form: 'Form is invalid'
     label: 'PayPal'
     late_capture: 'PayPal captured %amount% for a payment attempt that had already been closed.'
