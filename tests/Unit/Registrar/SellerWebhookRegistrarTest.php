@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
@@ -59,14 +60,14 @@ final class SellerWebhookRegistrarTest extends TestCase
         self::assertInstanceOf(SellerWebhookRegistrarInterface::class, $this->sellerWebhookRegistrar);
     }
 
-    public function test_it_registers_the_webhook_and_stores_its_id(): void
+    public function test_it_registers_the_webhook_and_stores_its_id_url_and_event_types(): void
     {
         $this->webhookApi
             ->expects(self::once())
             ->method('register')
             ->with($this->paymentMethod, 'https://webhook-url.com')
             ->willReturn(['id' => 'WH-123', 'url' => 'https://webhook-url.com']);
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WH-123');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WH-123', 'https://webhook-url.com', WebhookApi::EVENT_TYPES);
 
         $this->sellerWebhookRegistrar->register($this->paymentMethod);
     }

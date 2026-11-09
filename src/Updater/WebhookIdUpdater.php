@@ -23,7 +23,7 @@ final readonly class WebhookIdUpdater implements WebhookIdUpdaterInterface
     {
     }
 
-    public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, ?string $webhookUrl = null, ?array $eventTypes = null): void
     {
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         if (null === $gatewayConfig) {
@@ -32,6 +32,12 @@ final readonly class WebhookIdUpdater implements WebhookIdUpdaterInterface
 
         $config = $gatewayConfig->getConfig();
         $config[PayPalGatewayConfig::WEBHOOK_ID] = $webhookId;
+        if (null === $webhookUrl || null === $eventTypes) {
+            unset($config[PayPalGatewayConfig::WEBHOOK_URL], $config[PayPalGatewayConfig::WEBHOOK_EVENT_TYPES]);
+        } else {
+            $config[PayPalGatewayConfig::WEBHOOK_URL] = $webhookUrl;
+            $config[PayPalGatewayConfig::WEBHOOK_EVENT_TYPES] = $eventTypes;
+        }
         $gatewayConfig->setConfig($config);
         $this->paymentMethodManager->flush();
     }

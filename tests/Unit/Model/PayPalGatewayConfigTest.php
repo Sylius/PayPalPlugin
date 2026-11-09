@@ -69,6 +69,25 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertSame('WEBHOOK_ID', PayPalGatewayConfig::fromArray(['webhook_id' => 'WEBHOOK_ID'])->webhookId());
     }
 
+    public function test_it_reads_the_webhook_url_and_event_types_as_null_when_they_are_not_set(): void
+    {
+        $config = PayPalGatewayConfig::fromArray([]);
+
+        self::assertNull($config->webhookUrl());
+        self::assertNull($config->webhookEventTypes());
+    }
+
+    public function test_it_reads_the_webhook_url_and_event_types_when_they_are_set(): void
+    {
+        $config = PayPalGatewayConfig::fromArray([
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => ['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'],
+        ]);
+
+        self::assertSame('https://shop.example.com/payment-methods/PAYPAL', $config->webhookUrl());
+        self::assertSame(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'], $config->webhookEventTypes());
+    }
+
     public function test_it_opts_a_gateway_into_express_checkout_pay_later_and_messaging_until_told_otherwise(): void
     {
         $config = PayPalGatewayConfig::fromArray([]);

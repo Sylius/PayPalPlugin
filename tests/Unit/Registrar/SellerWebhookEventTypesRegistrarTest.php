@@ -86,7 +86,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->method('update')
             ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
         ;
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
         $this->webhookStateCache->expects(self::once())->method('forget')->with($this->paymentMethod);
 
         self::assertEquals(
@@ -106,7 +106,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->with($this->paymentMethod, 'https://shop.example.com/payment-methods/PAYPAL')
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
         $this->webhookStateCache->expects(self::once())->method('forget')->with($this->paymentMethod);
 
         self::assertEquals(
@@ -159,7 +159,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         );
 
         $this->webhookApi->expects(self::never())->method('register');
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
         $this->webhookStateCache->expects(self::once())->method('forget')->with($this->paymentMethod);
 
         self::assertEquals(

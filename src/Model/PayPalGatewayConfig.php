@@ -32,6 +32,10 @@ final readonly class PayPalGatewayConfig
 
     public const WEBHOOK_ID = 'webhook_id';
 
+    public const WEBHOOK_URL = 'webhook_url';
+
+    public const WEBHOOK_EVENT_TYPES = 'webhook_event_types';
+
     public const EXPRESS_CHECKOUT_ENABLED = 'express_checkout_enabled';
 
     public const PAY_LATER_ENABLED = 'pay_later_enabled';
@@ -95,6 +99,22 @@ final readonly class PayPalGatewayConfig
     public function webhookId(): ?string
     {
         return $this->optional(self::WEBHOOK_ID);
+    }
+
+    public function webhookUrl(): ?string
+    {
+        return $this->optional(self::WEBHOOK_URL);
+    }
+
+    /** @return list<string>|null */
+    public function webhookEventTypes(): ?array
+    {
+        $eventTypes = $this->config[self::WEBHOOK_EVENT_TYPES] ?? null;
+        if (!is_array($eventTypes)) {
+            return null;
+        }
+
+        return array_values(array_map(strval(...), $eventTypes));
     }
 
     public function isExpressCheckoutEnabled(): bool

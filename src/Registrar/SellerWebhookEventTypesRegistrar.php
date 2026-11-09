@@ -44,7 +44,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
 
         if (null !== $webhookId) {
             $registration = $this->update($paymentMethod, $webhookId, $webhookUrl);
-            $this->webhookIdUpdater->update($paymentMethod, $webhookId);
+            $this->webhookIdUpdater->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
             $this->webhookStateCache->forget($paymentMethod);
 
             return $registration;
@@ -60,7 +60,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
             throw new PayPalWebhookNotRegisteredException((string) $paymentMethod->getCode(), $webhookUrl, 'PayPal answered without a webhook id');
         }
 
-        $this->webhookIdUpdater->update($paymentMethod, (string) $response['id']);
+        $this->webhookIdUpdater->update($paymentMethod, (string) $response['id'], $webhookUrl, WebhookApi::EVENT_TYPES);
         $this->webhookStateCache->forget($paymentMethod);
 
         return WebhookRegistration::registered((string) $response['id'], $webhookUrl);

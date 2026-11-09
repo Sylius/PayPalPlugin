@@ -17,5 +17,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 interface WebhookIdUpdaterInterface
 {
-    public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void;
+    /** @param list<string>|null $eventTypes */
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, ?string $webhookUrl = null, ?array $eventTypes = null): void;
 }
