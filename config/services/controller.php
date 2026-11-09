@@ -22,7 +22,6 @@ use Sylius\PayPalPlugin\Controller\CompleteExpressCheckoutAction;
 use Sylius\PayPalPlugin\Controller\CompleteOnboardingAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderForPaymentRequestAction;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
-use Sylius\PayPalPlugin\Controller\DownloadPayoutsReportAction;
 use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
@@ -50,12 +49,6 @@ return static function (ContainerConfigurator $container) {
             null,
             null,
             service('request_stack'),
-        ]);
-
-    $services->set('sylius_paypal.controller.download_payouts_report', DownloadPayoutsReportAction::class)
-        ->args([
-            service('sylius_paypal.downloader.report'),
-            service('sylius.repository.payment_method'),
         ]);
 
     $services->set('sylius_paypal.controller.enable_seller', EnableSellerAction::class)

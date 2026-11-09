@@ -11,14 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Factory;
+namespace Sylius\PayPalPlugin\Checker;
 
-use phpseclib3\Net\SFTP;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 
-final class SftpClientFactory implements SftpClientFactoryInterface
+interface PaymentSourceCapabilityCheckerInterface
 {
-    public function createForHost(string $host): SFTP
-    {
-        return new SFTP($host);
-    }
+    public function isAvailable(string $paymentSource, PaymentMethodInterface $paymentMethod): bool;
 }

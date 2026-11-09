@@ -40,9 +40,6 @@ final readonly class MerchantOnboardingStatusApi implements MerchantOnboardingSt
 
         $content = $this->requestExecutor->execute($request, 'Onboarding status');
 
-        return new OnboardingStatus(
-            (bool) ($content['payments_receivable'] ?? false),
-            (bool) ($content['primary_email_confirmed'] ?? false),
-        );
+        return OnboardingStatus::fromMerchantIntegration($content);
     }
 }

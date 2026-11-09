@@ -85,6 +85,43 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         self::assertFalse($status->isComplete());
     }
 
+    #[Test]
+    public function it_returns_the_active_capabilities_of_the_merchant(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn([
+            'payments_receivable' => true,
+            'primary_email_confirmed' => true,
+            'capabilities' => [
+                ['name' => 'APPLE_PAY', 'status' => 'ACTIVE'],
+                ['name' => 'GOOGLE_PAY', 'status' => 'SUSPENDED'],
+                ['name' => 'CUSTOM_CARD_PROCESSING', 'status' => 'ACTIVE'],
+                ['status' => 'ACTIVE'],
+            ],
+        ]);
+
+        $status = $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true);
+
+        self::assertSame(['APPLE_PAY', 'CUSTOM_CARD_PROCESSING'], $status->activeCapabilities());
+        self::assertTrue($status->hasActiveCapability('APPLE_PAY'));
+        self::assertFalse($status->hasActiveCapability('GOOGLE_PAY'));
+    }
+
+    #[Test]
+    public function it_returns_no_active_capabilities_when_paypal_lists_none(): void
+    {
+        $request = $this->createMock(RequestInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn(['payments_receivable' => true]);
+
+        self::assertSame([], $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)->activeCapabilities());
+    }
+
     private function hostProvider(): HostProviderInterface
     {
         $hostProvider = $this->createStub(HostProviderInterface::class);

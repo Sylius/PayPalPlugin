@@ -32,10 +32,6 @@ final readonly class PayPalGatewayConfig
 
     public const WEBHOOK_ID = 'webhook_id';
 
-    public const REPORTS_SFTP_USERNAME = 'reports_sftp_username';
-
-    public const REPORTS_SFTP_PASSWORD = 'reports_sftp_password';
-
     public const EXPRESS_CHECKOUT_ENABLED = 'express_checkout_enabled';
 
     public const PAY_LATER_ENABLED = 'pay_later_enabled';
@@ -49,6 +45,8 @@ final readonly class PayPalGatewayConfig
     public const APPLE_PAY_ENABLED = 'apple_pay_enabled';
 
     public const CARD_THREE_D_SECURE_ALWAYS = 'card_three_d_secure_always';
+
+    private const FACILITATOR_PARTNER_ID = 'sylius_merchant_id';
 
     /** @param array<string, mixed> $config */
     private function __construct(private array $config)
@@ -86,6 +84,11 @@ final readonly class PayPalGatewayConfig
         return $this->required(self::MERCHANT_ID);
     }
 
+    public function facilitatorPartnerId(): ?string
+    {
+        return $this->optional(self::FACILITATOR_PARTNER_ID);
+    }
+
     public function partnerAttributionId(): string
     {
         return $this->required(self::PARTNER_ATTRIBUTION_ID);
@@ -94,16 +97,6 @@ final readonly class PayPalGatewayConfig
     public function hasPartnerAttributionId(): bool
     {
         return isset($this->config[self::PARTNER_ATTRIBUTION_ID]);
-    }
-
-    public function reportsSftpUsername(): ?string
-    {
-        return $this->optional(self::REPORTS_SFTP_USERNAME);
-    }
-
-    public function reportsSftpPassword(): ?string
-    {
-        return $this->optional(self::REPORTS_SFTP_PASSWORD);
     }
 
     public function webhookId(): ?string

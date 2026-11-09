@@ -19,17 +19,11 @@ interface HostProviderInterface
 
     public const PRODUCTION_API_BASE_URL = 'https://api.paypal.com/';
 
-    public const SANDBOX_REPORTS_SFTP_HOST = 'reports.sandbox.paypal.com';
-
-    public const PRODUCTION_REPORTS_SFTP_HOST = 'reports.paypal.com';
-
     public const SANDBOX_WEB_URL = 'https://www.sandbox.paypal.com';
 
     public const PRODUCTION_WEB_URL = 'https://www.paypal.com';
 
     public function getApiBaseUrlForMode(bool $sandbox): string;
-
-    public function getReportsSftpHostForMode(bool $sandbox): string;
 
     public function getWebUrlForMode(bool $sandbox): string;
 }

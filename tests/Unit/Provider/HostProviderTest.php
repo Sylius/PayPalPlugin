@@ -26,8 +26,6 @@ final class HostProviderTest extends TestCase
 
         self::assertSame('https://api.sandbox.paypal.com/', $hostProvider->getApiBaseUrlForMode(true));
         self::assertSame('https://api.paypal.com/', $hostProvider->getApiBaseUrlForMode(false));
-        self::assertSame('reports.sandbox.paypal.com', $hostProvider->getReportsSftpHostForMode(true));
-        self::assertSame('reports.paypal.com', $hostProvider->getReportsSftpHostForMode(false));
         self::assertSame('https://www.sandbox.paypal.com', $hostProvider->getWebUrlForMode(true));
         self::assertSame('https://www.paypal.com', $hostProvider->getWebUrlForMode(false));
     }
