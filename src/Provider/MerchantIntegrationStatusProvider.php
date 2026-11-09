@@ -45,38 +45,19 @@ final readonly class MerchantIntegrationStatusProvider implements MerchantIntegr
 
         $sandbox = $config->isSandbox();
 
-        foreach ($this->partnerIds($config, $sandbox) as $partnerId) {
-            try {
-                return OnboardingStatus::fromMerchantIntegration($this->genericApi->get(
-                    $paymentMethod,
-                    sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $config->merchantId()),
-                ));
-            } catch (PayPalApiException|PayPalPluginException|UntrustedPayPalUrlException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
-                $this->logger->warning('Could not read the PayPal merchant integration status for partner {partner_id}: {message}', [
-                    'partner_id' => $partnerId,
-                    'message' => $exception->getMessage(),
-                ]);
-            }
+        try {
+            $partnerId = $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId();
+
+            return OnboardingStatus::fromMerchantIntegration($this->genericApi->get(
+                $paymentMethod,
+                sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $config->merchantId()),
+            ));
+        } catch (PayPalApiException|PayPalPluginException|UntrustedPayPalUrlException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
+            $this->logger->warning('Could not read the PayPal merchant integration status: {message}', [
+                'message' => $exception->getMessage(),
+            ]);
         }
 
         return null;
-    }
-
-    /** @return list<string> */
-    private function partnerIds(PayPalGatewayConfig $config, bool $sandbox): array
-    {
-        $partnerIds = [];
-
-        $facilitatorPartnerId = $config->facilitatorPartnerId();
-        if (null !== $facilitatorPartnerId && '' !== $facilitatorPartnerId) {
-            $partnerIds[] = $facilitatorPartnerId;
-        }
-
-        try {
-            $partnerIds[] = $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId();
-        } catch (PayPalPluginException) {
-        }
-
-        return array_values(array_unique($partnerIds));
     }
 }
