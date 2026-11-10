@@ -748,7 +748,9 @@
    The `refund` transition of a PayPal payment that PayPal has not confirmed as refunded is blocked by
    `PaymentRefundGuardListener` (on `workflow.sylius_payment.guard.refund`) or the `paypal_refund_confirmed` guard
    of the `sylius_payment` winzou state machine, so the core "Refund" button is hidden for such a payment and
-   `PATCH /api/v2/admin/payments/{id}/refund` answers `422`.
+   `PATCH /api/v2/admin/payments/{id}/refund` answers `422`. The listener has the priority `-100`, so it runs after
+   the refund guards of other payment plugins, which may let the transition through with `setBlocked(false)` and
+   would otherwise lift its block.
 
    The following have been removed:
 
