@@ -22,7 +22,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.listener.workflow.payment_refund_guard', PaymentRefundGuardListener::class)
         ->args([service('sylius_paypal.checker.payment_refund')])
-        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.guard.refund']);
+        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.guard.refund', 'priority' => -100]);
 
     $services->set('sylius_paypal.listener.workflow.void_cancelled_authorization', VoidCancelledAuthorizationListener::class)
         ->public()
