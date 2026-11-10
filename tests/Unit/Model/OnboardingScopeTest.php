@@ -20,15 +20,16 @@ final class OnboardingScopeTest extends TestCase
 {
     public function test_it_turns_into_an_array_and_back(): void
     {
-        $scope = new OnboardingScope('ppcp', ['payment_methods'], ['APPLE_PAY'], ['payment', 'refund']);
-
-        self::assertSame([
+        $array = [
             'product' => 'ppcp',
             'secondary_products' => ['payment_methods'],
             'capabilities' => ['APPLE_PAY'],
             'features' => ['payment', 'refund'],
-        ], $scope->toArray());
-        self::assertEquals($scope, OnboardingScope::fromArray($scope->toArray()));
+        ];
+        $scope = new OnboardingScope($array['product'], $array['secondary_products'], $array['capabilities'], $array['features']);
+
+        self::assertSame($array, $scope->toArray());
+        self::assertEquals($scope, OnboardingScope::fromArray($array));
     }
 
     public function test_it_reads_a_partial_or_malformed_array_as_an_empty_scope_where_it_lacks_data(): void
