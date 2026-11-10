@@ -2,23 +2,21 @@
 
 <div {{ attributes }}>
     {% if state is not null and not state.isUpToDate() %}
-        {% set problem = state.isKnown() ? 'sylius_paypal.permissions_out_of_date' : 'sylius_paypal.permissions_state_unknown' %}
-        {% set test_state = state.isKnown() ? 'out-of-date' : 'unknown' %}
+        {% set status = state.status().value %}
 
         {% if variant == constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_ALERT') %}
-            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-permissions-state', test_state) }}>
+            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>
                 <div>
-                    <div class="fw-bold">{{ problem|trans }}</div>
-                    {% if not state.isKnown() %}
-                        <div>{{ 'sylius_paypal.permissions_state_unknown_details'|trans }}</div>
-                    {% endif %}
-                    {% if state.missing() is not empty %}
-                        <div>{{ 'sylius_paypal.permissions_missing'|trans }} <code>{{ state.missing()|join(', ') }}</code></div>
+                    <div class="fw-bold">{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</div>
+                    {% if state.isKnown() %}
+                        <div>{{ 'sylius_paypal.permissions.state.missing'|trans }} <code>{{ state.missing()|join(', ') }}</code></div>
+                    {% else %}
+                        <div>{{ 'sylius_paypal.permissions.state.unknown_details'|trans }}</div>
                     {% endif %}
                 </div>
             </div>
         {% else %}
-            <span class="badge bg-red-lt" title="{{ state.missing()|join(', ') }}" {{ sylius_test_html_attribute('paypal-permissions-state', test_state) }}>{{ problem|trans }}</span>
+            <span class="badge bg-red-lt" title="{{ state.missing()|join(', ') }}" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</span>
         {% endif %}
     {% endif %}
 </div>

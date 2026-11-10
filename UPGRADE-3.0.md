@@ -980,13 +980,14 @@
 
    The payment method list and edit page compare it with the current scope without asking PayPal, through
    `Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface` (`sylius_paypal.checker.permissions_state`), which
-   returns a `Sylius\PayPalPlugin\Model\PermissionsState`:
+   returns a `Sylius\PayPalPlugin\Model\PermissionsState` whose `status()` is a
+   `Sylius\PayPalPlugin\Model\PermissionsStatus`:
 
-   - up to date (`isUpToDate()`): the stored scope has everything the current one asks for, and nothing is shown,
-   - out of date: the stored scope misses part of the current one (`missing()`, e.g. `GOOGLE_PAY`), and the payment
+   - `UpToDate`: the stored scope has everything the current one asks for, and nothing is shown,
+   - `OutOfDate`: the stored scope misses part of the current one (`missing()`, e.g. `GOOGLE_PAY`), and the payment
      method gets a "PayPal permissions out of date" badge and an alert listing what it misses,
-   - unknown (`isKnown()` is `false`): no scope is stored, as for a payment method onboarded on 2.x, and the payment
-     method gets a "PayPal permissions unknown" badge and alert.
+   - `Unknown`: no scope is stored, as for a payment method onboarded on 2.x, and the payment method gets a
+     "PayPal permissions unknown" badge and alert.
 
    The `sylius_paypal:permissions_state` component renders the badge and the alert in the
    `sylius_paypal.admin.payment_method.grid.field.name.content.badges` and

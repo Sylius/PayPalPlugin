@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Model\PermissionsState;
+use Sylius\PayPalPlugin\Model\PermissionsStatus;
 
 final class PermissionsStateTest extends TestCase
 {
@@ -23,6 +24,7 @@ final class PermissionsStateTest extends TestCase
         $state = PermissionsState::upToDate();
 
         self::assertTrue($state->isUpToDate());
+        self::assertSame(PermissionsStatus::UpToDate, $state->status());
         self::assertTrue($state->isKnown());
         self::assertSame([], $state->missing());
     }
@@ -32,6 +34,7 @@ final class PermissionsStateTest extends TestCase
         $state = PermissionsState::unknown();
 
         self::assertFalse($state->isUpToDate());
+        self::assertSame(PermissionsStatus::Unknown, $state->status());
         self::assertFalse($state->isKnown());
         self::assertSame([], $state->missing());
     }
@@ -41,6 +44,7 @@ final class PermissionsStateTest extends TestCase
         $state = PermissionsState::outdated(['GOOGLE_PAY']);
 
         self::assertFalse($state->isUpToDate());
+        self::assertSame(PermissionsStatus::OutOfDate, $state->status());
         self::assertTrue($state->isKnown());
         self::assertSame(['GOOGLE_PAY'], $state->missing());
     }

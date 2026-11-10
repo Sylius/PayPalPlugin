@@ -17,35 +17,40 @@ final readonly class PermissionsState
 {
     /** @param list<string> $missing */
     private function __construct(
-        private bool $known,
+        private PermissionsStatus $status,
         private array $missing,
     ) {
     }
 
     public static function upToDate(): self
     {
-        return new self(true, []);
+        return new self(PermissionsStatus::UpToDate, []);
     }
 
     public static function unknown(): self
     {
-        return new self(false, []);
+        return new self(PermissionsStatus::Unknown, []);
     }
 
-    /** @param list<string> $missing */
+    /** @param non-empty-list<string> $missing */
     public static function outdated(array $missing): self
     {
-        return new self(true, $missing);
+        return new self(PermissionsStatus::OutOfDate, $missing);
+    }
+
+    public function status(): PermissionsStatus
+    {
+        return $this->status;
     }
 
     public function isUpToDate(): bool
     {
-        return $this->known && [] === $this->missing;
+        return PermissionsStatus::UpToDate === $this->status;
     }
 
     public function isKnown(): bool
     {
-        return $this->known;
+        return PermissionsStatus::Unknown !== $this->status;
     }
 
     /** @return list<string> */

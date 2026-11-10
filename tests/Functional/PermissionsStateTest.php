@@ -60,7 +60,7 @@ final class PermissionsStateTest extends JsonApiTestCase
 
         $rendered = (string) $this->permissionsState(PermissionsStateComponent::VARIANT_ALERT)->render();
 
-        self::assertStringContainsString('data-test-paypal-permissions-state="out-of-date"', $rendered);
+        self::assertStringContainsString('data-test-paypal-permissions-state="out_of_date"', $rendered);
         self::assertStringContainsString('GOOGLE_PAY', $rendered);
     }
 
