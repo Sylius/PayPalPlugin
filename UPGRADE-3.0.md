@@ -79,7 +79,9 @@
    `Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface`
    (`sylius_paypal.onboarding.processor.permissions_update`). It refuses another PayPal account and keeps the payment
    method with its credentials and webhook: PayPal issues new credentials on every onboarding, but the webhook belongs
-   to the credentials it was registered with.
+   to the credentials it was registered with. It stores `OnboardingScope::current()` as the scope of the payment
+   method, so the admin stops flagging its PayPal permissions (see "The scope a PayPal payment method is onboarded with
+   is stored in its gateway config").
 
 1. #### `PayPalPaymentMethodProvider` has been removed.
 

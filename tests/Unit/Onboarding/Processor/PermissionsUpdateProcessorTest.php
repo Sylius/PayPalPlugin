@@ -22,6 +22,7 @@ use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
@@ -65,7 +66,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
         self::assertInstanceOf(PermissionsUpdateProcessorInterface::class, $this->processor);
     }
 
-    public function test_it_keeps_the_stored_credentials_and_refreshes_the_status_of_the_same_paypal_account(): void
+    public function test_it_keeps_the_stored_credentials_and_stores_the_current_onboarding_scope_of_the_same_paypal_account(): void
     {
         $paymentMethod = $this->paymentMethod(self::CONFIG);
         $status = new OnboardingStatus(true, true, ['APPLE_PAY', 'GOOGLE_PAY']);
@@ -81,7 +82,10 @@ final class PermissionsUpdateProcessorTest extends TestCase
         $this->sellerNonceManager->expects(self::once())->method('remove')->with(true);
 
         self::assertSame($status, $this->processor->process($paymentMethod, 'AUTH_CODE', 'SHARED_ID'));
-        self::assertSame(self::CONFIG, $paymentMethod->getGatewayConfig()?->getConfig());
+        self::assertSame(
+            self::CONFIG + ['onboarding_scope' => OnboardingScope::current()->toArray()],
+            $paymentMethod->getGatewayConfig()?->getConfig(),
+        );
     }
 
     public function test_it_refuses_another_paypal_account_and_changes_nothing(): void
