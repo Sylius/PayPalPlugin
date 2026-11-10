@@ -80,6 +80,17 @@ final readonly class OnboardingScope
         return $this->features;
     }
 
+    /** @return list<string> */
+    public function notCoveredBy(self $scope): array
+    {
+        return array_merge(
+            $this->product === $scope->product ? [] : [$this->product],
+            array_diff($this->secondaryProducts, $scope->secondaryProducts),
+            array_diff($this->capabilities, $scope->capabilities),
+            array_diff($this->features, $scope->features),
+        );
+    }
+
     /** @return array{product: string, secondary_products: list<string>, capabilities: list<string>, features: list<string>} */
     public function toArray(): array
     {

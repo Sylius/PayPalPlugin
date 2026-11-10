@@ -42,6 +42,10 @@ sylius_paypal:
     onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
+    permissions_missing: 'Ontbrekende machtigingen:'
+    permissions_out_of_date: 'PayPal-machtigingen verouderd'
+    permissions_state_unknown: 'PayPal-machtigingen onbekend'
+    permissions_state_unknown_details: 'De plugin heeft de machtigingen waarmee dit PayPal-account is gekoppeld niet opgeslagen.'
     sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     suggested: 'Voorgesteld'

@@ -9,6 +9,9 @@ sylius_twig_hooks:
             webhook_state:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/webhook_state.html.twig'
                 priority: 200
+            permissions_state:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/permissions_state.html.twig'
+                priority: 150
             mode:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/mode.html.twig'
                 priority: 100

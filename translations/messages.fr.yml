@@ -42,6 +42,10 @@ sylius_paypal:
     onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
+    permissions_missing: 'Autorisations manquantes :'
+    permissions_out_of_date: 'Autorisations PayPal obsolètes'
+    permissions_state_unknown: 'Autorisations PayPal inconnues'
+    permissions_state_unknown_details: 'Le plugin n''a pas enregistré les autorisations avec lesquelles ce compte PayPal a été connecté.'
     sandbox_on_production_warning: "Attention : ce moyen de paiement utilise le Sandbox PayPal sur un environnement de production. Le Sandbox utilise des identifiants de test et ne traitera pas de vrais paiements."
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
     suggested: 'Suggéré'

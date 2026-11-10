@@ -1,0 +1,24 @@
+{% set state = this.state %}
+
+<div {{ attributes }}>
+    {% if state is not null and not state.isUpToDate() %}
+        {% set problem = state.isKnown() ? 'sylius_paypal.permissions_out_of_date' : 'sylius_paypal.permissions_state_unknown' %}
+        {% set test_state = state.isKnown() ? 'out-of-date' : 'unknown' %}
+
+        {% if variant == 'alert' %}
+            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-permissions-state', test_state) }}>
+                <div>
+                    <div class="fw-bold">{{ problem|trans }}</div>
+                    {% if not state.isKnown() %}
+                        <div>{{ 'sylius_paypal.permissions_state_unknown_details'|trans }}</div>
+                    {% endif %}
+                    {% if state.missing() is not empty %}
+                        <div>{{ 'sylius_paypal.permissions_missing'|trans }} <code>{{ state.missing()|join(', ') }}</code></div>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <span class="badge bg-red-lt" title="{{ state.missing()|join(', ') }}" {{ sylius_test_html_attribute('paypal-permissions-state', test_state) }}>{{ problem|trans }}</span>
+        {% endif %}
+    {% endif %}
+</div>
