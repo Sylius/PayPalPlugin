@@ -49,6 +49,8 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
 
         $this->setCommunicationParameters($container, $config);
 
+        $container->setParameter('.sylius_paypal.sandbox', (bool) $config['sandbox']);
+
         $container->setParameter('sylius_paypal.supported_locales', $config['supported_locales']);
         $container->setParameter('sylius_paypal.tracking.carriers', $config['tracking']['carriers']);
         $container->setParameter('sylius_paypal.authorize.payment_sources', $config['authorize']['payment_sources']);
@@ -153,6 +155,11 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
     private function processEnvConfig(array $configs): array
     {
         $envConfig = [];
+
+        $sandboxEnv = $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] ?? null;
+        if ($sandboxEnv !== null) {
+            $envConfig['sandbox'] = filter_var($sandboxEnv, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE) ?? false;
+        }
 
         $testBuyerCountryEnv = $_ENV['SYLIUS_PAYPAL_TEST_BUYER_COUNTRY'] ?? null;
         if ($testBuyerCountryEnv !== null) {

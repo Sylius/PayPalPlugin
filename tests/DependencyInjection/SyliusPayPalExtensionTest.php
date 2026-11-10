@@ -18,7 +18,10 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
 {
-    private ?string $originalLoggingEnv = null;
+    private const ENV_VARS = ['SYLIUS_PAYPAL_LOGGING_INCREASED', 'SYLIUS_PAYPAL_SANDBOX_ENABLED'];
+
+    /** @var array<string, string> */
+    private array $originalEnvVars = [];
 
     protected function setUp(): void
     {
@@ -55,6 +58,42 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         $this->assertContainerBuilderHasParameter('sylius_paypal.logging.increased', true);
     }
 
+    public function test_it_resolves_the_sandbox_mode_of_2_x_to_sandbox_by_default(): void
+    {
+        $this->load();
+
+        $this->assertContainerBuilderHasParameter('.sylius_paypal.sandbox', true);
+    }
+
+    public function test_it_resolves_the_sandbox_mode_from_the_configuration(): void
+    {
+        $this->loadCollectingDeprecations(['sandbox' => false]);
+
+        $this->assertContainerBuilderHasParameter('.sylius_paypal.sandbox', false);
+    }
+
+    public function test_it_resolves_the_sandbox_mode_from_the_env_over_the_configuration(): void
+    {
+        $this->setEnvVar('SYLIUS_PAYPAL_SANDBOX_ENABLED', 'false');
+
+        $this->loadCollectingDeprecations(['sandbox' => true]);
+
+        $this->assertContainerBuilderHasParameter('.sylius_paypal.sandbox', false);
+    }
+
+    public function test_it_deprecates_the_sandbox_option(): void
+    {
+        $deprecations = $this->loadCollectingDeprecations(['sandbox' => true]);
+
+        self::assertCount(1, $deprecations);
+        self::assertStringContainsString('"sylius_paypal.sandbox" option is deprecated', $deprecations[0]);
+    }
+
+    public function test_it_does_not_deprecate_anything_without_the_sandbox_option(): void
+    {
+        self::assertSame([], $this->loadCollectingDeprecations());
+    }
+
     public function test_it_sets_the_production_and_sandbox_partner_credentials(): void
     {
         $this->load();
@@ -67,22 +106,47 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         );
     }
 
+    /** @param array<string, mixed> $config */
+    private function loadCollectingDeprecations(array $config = []): array
+    {
+        $deprecations = [];
+        set_error_handler(static function (int $errno, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $this->load($config);
+        } finally {
+            restore_error_handler();
+        }
+
+        return $deprecations;
+    }
+
     private function saveEnvVars(): void
     {
-        $this->originalLoggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;
+        foreach (self::ENV_VARS as $name) {
+            if (isset($_ENV[$name])) {
+                $this->originalEnvVars[$name] = $_ENV[$name];
+            }
+        }
     }
 
     private function clearEnvVars(): void
     {
-        unset($_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
+        foreach (self::ENV_VARS as $name) {
+            unset($_ENV[$name]);
+        }
     }
 
     private function restoreEnvVars(): void
     {
-        if ($this->originalLoggingEnv !== null) {
-            $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] = $this->originalLoggingEnv;
-        } else {
-            unset($_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
+        $this->clearEnvVars();
+
+        foreach ($this->originalEnvVars as $name => $value) {
+            $_ENV[$name] = $value;
         }
     }
 

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin;
 
 use Sylius\Bundle\CoreBundle\Application\SyliusPluginTrait;
+use Sylius\PayPalPlugin\DependencyInjection\Compiler\SandboxModeAwareMigrationFactoryPass;
 use Sylius\Telemetry\TelemetryCompilerPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
@@ -38,5 +39,6 @@ final class SyliusPayPalPlugin extends Bundle
     {
         parent::build($container);
         $container->addCompilerPass(new TelemetryCompilerPass());
+        $container->addCompilerPass(new SandboxModeAwareMigrationFactoryPass());
     }
 }
