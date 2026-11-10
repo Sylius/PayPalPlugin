@@ -46,8 +46,6 @@ sylius_paypal:
     mode: 'Mode'
     mode_production: 'Production'
     mode_sandbox: 'Sandbox'
-    mode_unknown: 'Unknown'
-    mode_unknown_warning: 'The mode of this payment method is not set, so it is used in production. If it is a sandbox account, set the "sandbox" key of its gateway config to true or connect it again through the onboarding.'
     onboarding_completed: 'Your PayPal account has been connected.'
     onboarding_modal_description: 'You will be asked to log in or create a PayPal account to connect it with your store.'
     paylater_enabled: 'Enable Pay Later'

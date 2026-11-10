@@ -30,11 +30,6 @@ Feature: Browsing PayPal payment methods
         And the "PayPal" payment method should be marked as working in production mode
 
     @ui
-    Scenario: Seeing a PayPal payment method without a mode
-        When I browse payment methods
-        Then the "PayPal" payment method should be marked as having an unknown mode
-
-    @ui
     Scenario: Seeing the payment sources beyond the first six under "and more"
         Given the store allows paying with Venmo through PayPal
         And the store allows paying with Apple Pay through PayPal
