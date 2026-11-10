@@ -673,7 +673,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.repository.payment_method'),
             service('sylius_paypal.checker.permissions_state'),
         ])
-        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:permissions_state', 'template' => '@SyliusPayPalPlugin/admin/shared/components/permissions_state.html.twig']);
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:permissions_state', 'template' => '@SyliusPayPalPlugin/admin/payment_method/component/permissions_state.html.twig']);
 
     $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
         ->args([
