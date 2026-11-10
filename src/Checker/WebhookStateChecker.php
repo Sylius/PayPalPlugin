@@ -39,7 +39,7 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         }
 
         $pointsElsewhere = !$this->webhookUrlProvider->isNotifyUrl($paymentMethod, $registeredUrl);
-        $missingEventTypes = array_values(array_diff(WebhookApi::EVENT_TYPES, $registeredEventTypes));
+        $missingEventTypes = WebhookApi::missingEventTypes($registeredEventTypes);
 
         if (!$pointsElsewhere && [] === $missingEventTypes) {
             return WebhookState::upToDate($registeredUrl);

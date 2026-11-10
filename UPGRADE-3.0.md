@@ -825,7 +825,9 @@
    method flags a webhook whose state is unknown, that misses event types or points elsewhere, and updates it with the
    same registrar as the command. The registrar keeps a webhook on the notify URL it is registered on, whichever host of
    `WebhookUrlProviderInterface::isNotifyUrl()` that is, and points only a webhook on the legacy path or another host
-   at the URL `provide()` gives.
+   at the URL `provide()` gives. It reads the webhook from PayPal first and sends no PATCH for one already on a notify
+   URL with all the event types above: it only stores its URL and event types, so "Update webhook" on a payment
+   method onboarded on 2.x whose webhook is up to date changes nothing at PayPal.
 
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
    it made, created through `WebhookRegistration::registered()`, `updated()` or `upToDate()`: the webhook id, its URL and
@@ -863,8 +865,8 @@
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
    `PersistingWebhookIdProvider` now takes instead of the object manager, together with the URL and the event types
    it registered the webhook with (the `webhook_url` and `webhook_event_types` keys, read through
-   `PayPalGatewayConfig::webhookUrl()` and `webhookEventTypes()`). When PayPal answers the update with
-   `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores them as well and returns a registration whose
+   `PayPalGatewayConfig::webhookUrl()` and `webhookEventTypes()`). For a webhook it leaves as it is, or when PayPal
+   answers the update with `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores them as well and returns a registration whose
    `WebhookRegistration::isUpToDate()` is `true`. `PersistingWebhookIdProvider` stores only the id of a webhook it
    looks up and removes the URL and the event types stored before, as it does not know them:
 

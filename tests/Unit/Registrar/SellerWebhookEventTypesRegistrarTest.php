@@ -123,6 +123,47 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         );
     }
 
+    public function test_it_leaves_a_webhook_on_the_notify_url_with_every_event_the_plugin_handles_as_it_is_and_stores_it(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $genericApi = $this->createStub(GenericApiInterface::class);
+        $genericApi->method('get')->willReturn([
+            'id' => 'WEBHOOK_ID',
+            'url' => 'https://channel.example.com/payment-methods/PAYPAL',
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], [...WebhookApi::EVENT_TYPES, 'VAULT.PAYMENT-TOKEN.CREATED']),
+        ]);
+
+        $this->updateWebhookApi->expects(self::never())->method('update');
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
+
+        self::assertEquals(
+            WebhookRegistration::upToDate('WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL'),
+            $this->registrar($genericApi)->register($this->paymentMethod),
+        );
+    }
+
+    public function test_it_updates_a_webhook_on_the_notify_url_that_misses_an_event_the_plugin_handles(): void
+    {
+        $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');
+        $genericApi = $this->createStub(GenericApiInterface::class);
+        $genericApi->method('get')->willReturn([
+            'id' => 'WEBHOOK_ID',
+            'url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], array_slice(WebhookApi::EVENT_TYPES, 1)),
+        ]);
+
+        $this->updateWebhookApi
+            ->expects(self::once())
+            ->method('update')
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+        ;
+
+        self::assertEquals(
+            WebhookRegistration::updated('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
+            $this->registrar($genericApi)->register($this->paymentMethod),
+        );
+    }
+
     public function test_it_moves_a_webhook_on_the_legacy_path_to_the_notify_url(): void
     {
         $this->webhookIdProvider->method('refresh')->willReturn('WEBHOOK_ID');

@@ -46,8 +46,12 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         $webhookId = $this->webhookIdProvider->refresh($paymentMethod);
 
         if (null !== $webhookId) {
-            $webhookUrl = $this->registeredNotifyUrl($paymentMethod, $webhookId) ?? $this->webhookUrlProvider->provide($paymentMethod);
-            $registration = $this->update($paymentMethod, $webhookId, $webhookUrl);
+            $webhook = $this->webhook($paymentMethod, $webhookId);
+            $registeredNotifyUrl = $this->registeredNotifyUrl($paymentMethod, $webhook);
+            $webhookUrl = $registeredNotifyUrl ?? $this->webhookUrlProvider->provide($paymentMethod);
+            $registration = null !== $registeredNotifyUrl && $this->hasAllEventTypes($webhook)
+                ? WebhookRegistration::upToDate($webhookId, $webhookUrl)
+                : $this->update($paymentMethod, $webhookId, $webhookUrl);
             $this->webhookIdUpdater->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
 
             return $registration;
@@ -70,19 +74,37 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         return WebhookRegistration::registered((string) $response['id'], $webhookUrl);
     }
 
-    private function registeredNotifyUrl(PaymentMethodInterface $paymentMethod, string $webhookId): ?string
+    /** @return array<array-key, mixed> */
+    private function webhook(PaymentMethodInterface $paymentMethod, string $webhookId): array
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $sandbox = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
 
-        $webhook = $this->genericApi->get(
+        return $this->genericApi->get(
             $paymentMethod,
             $this->hostProvider->getApiBaseUrlForMode($sandbox) . 'v1/notifications/webhooks/' . $webhookId,
         );
+    }
+
+    /** @param array<array-key, mixed> $webhook */
+    private function registeredNotifyUrl(PaymentMethodInterface $paymentMethod, array $webhook): ?string
+    {
         $registeredUrl = $webhook['url'] ?? null;
 
         return is_string($registeredUrl) && $this->webhookUrlProvider->isNotifyUrl($paymentMethod, $registeredUrl) ? $registeredUrl : null;
+    }
+
+    /** @param array<array-key, mixed> $webhook */
+    private function hasAllEventTypes(array $webhook): bool
+    {
+        $eventTypes = is_array($webhook['event_types'] ?? null) ? $webhook['event_types'] : [];
+        $names = array_filter(array_map(
+            static fn (mixed $eventType): mixed => is_array($eventType) ? ($eventType['name'] ?? null) : null,
+            $eventTypes,
+        ), is_string(...));
+
+        return [] === WebhookApi::missingEventTypes($names);
     }
 
     private function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): WebhookRegistration

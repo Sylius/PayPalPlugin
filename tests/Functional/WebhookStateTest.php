@@ -114,6 +114,24 @@ final class WebhookStateTest extends JsonApiTestCase
         self::assertSame(WebhookApi::EVENT_TYPES, array_column($this->sentPatch()[1]['value'], 'name'));
     }
 
+    public function test_it_stores_a_webhook_of_unknown_state_that_is_up_to_date_at_paypal_without_changing_it(): void
+    {
+        $upToDate = $this->webhook('WH-1', WebhookApi::EVENT_TYPES);
+
+        $component = $this->webhookState('alert');
+        self::assertStringContainsString('data-test-paypal-webhook-state="unknown"', (string) $component->render());
+
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [$upToDate]]);
+        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', $upToDate);
+
+        $rendered = (string) $component->call('updateWebhook')->render();
+
+        self::assertStringContainsString('data-test-paypal-webhook-update="success"', $rendered);
+        self::assertStringContainsString('is already up to date', $rendered);
+        self::assertStringNotContainsString('data-test-paypal-webhook-state', $rendered);
+        self::assertSame([], array_filter($this->payPalHttpClient()->getSentRequests(), static fn (array $request): bool => 'PATCH' === $request['method']));
+    }
+
     public function test_it_keeps_the_webhook_on_the_channel_hostname_when_updating_it_from_another_host(): void
     {
         $this->paymentMethod->getChannels()->first()->setHostname('paypal-shop.example.com');

@@ -36,6 +36,16 @@ final readonly class WebhookApi implements WebhookApiInterface
     {
     }
 
+    /**
+     * @param array<array-key, string> $eventTypes
+     *
+     * @return list<string>
+     */
+    public static function missingEventTypes(array $eventTypes): array
+    {
+        return array_values(array_diff(self::EVENT_TYPES, $eventTypes));
+    }
+
     public function register(PaymentMethodInterface $paymentMethod, string $webhookUrl): array
     {
         return $this->client->post($paymentMethod, 'v1/notifications/webhooks', [
