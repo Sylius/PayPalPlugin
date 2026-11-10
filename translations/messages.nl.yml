@@ -54,3 +54,5 @@ sylius_paypal:
     webhook_state_unknown: "Webhookstatus onbekend"
     webhook_state_unknown_details: "De plugin heeft de URL en de events van deze webhook nog niet opgeslagen."
     webhook_update_hint: "Voer deze opdracht uit om hem bij te werken:"
+    webhook_url: "Webhook-URL"
+    webhook_url_unknown: "Onbekend"

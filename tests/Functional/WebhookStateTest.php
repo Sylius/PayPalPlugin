@@ -46,11 +46,7 @@ final class WebhookStateTest extends JsonApiTestCase
 
     public function test_it_shows_the_webhook_state_of_a_paypal_payment_method_on_its_edit_page_without_asking_paypal(): void
     {
-        $this->client->loginUser($this->admin, 'admin');
-        $this->client->request('GET', sprintf('/admin/payment-methods/%d/edit', (int) $this->paymentMethod->getId()));
-
-        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString('data-test-paypal-webhook-state="unknown"', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('data-test-paypal-webhook-state="unknown"', $this->editPage());
     }
 
     public function test_it_flags_a_stored_webhook_that_misses_an_event_type_the_plugin_handles(): void
@@ -85,6 +81,28 @@ final class WebhookStateTest extends JsonApiTestCase
 
         self::assertStringNotContainsString('paypal-webhook-state', (string) $this->webhookState('badge')->render());
         self::assertStringNotContainsString('paypal-webhook-state', (string) $this->webhookState('alert')->render());
+    }
+
+    public function test_it_shows_the_stored_webhook_url_on_the_edit_page(): void
+    {
+        $this->storeWebhook('https://shop.example.com/paypal/webhook', WebhookApi::EVENT_TYPES);
+
+        self::assertStringContainsString('data-test-paypal-webhook-url="https://shop.example.com/paypal/webhook"', $this->editPage());
+    }
+
+    public function test_it_shows_an_unknown_webhook_url_on_the_edit_page_when_none_is_stored(): void
+    {
+        self::assertStringContainsString('data-test-paypal-webhook-url="unknown"', $this->editPage());
+    }
+
+    private function editPage(): string
+    {
+        $this->client->loginUser($this->admin, 'admin');
+        $this->client->request('GET', sprintf('/admin/payment-methods/%d/edit', (int) $this->paymentMethod->getId()));
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+
+        return (string) $this->client->getResponse()->getContent();
     }
 
     private function webhookState(string $variant): TestLiveComponent

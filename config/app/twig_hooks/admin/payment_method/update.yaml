@@ -21,6 +21,9 @@ sylius_twig_hooks:
             client_secret:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/client_secret.html.twig'
                 priority: -200
+            webhook_url:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/webhook_url.html.twig'
+                priority: -300
             express_checkout_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/express_checkout_enabled.html.twig'
                 priority: -500

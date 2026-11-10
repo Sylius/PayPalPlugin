@@ -66,6 +66,8 @@ sylius_paypal:
     webhook_state_unknown: 'Stan webhooka nieznany'
     webhook_state_unknown_details: 'Plugin nie zapisał jeszcze adresu URL ani zdarzeń tego webhooka.'
     webhook_update_hint: 'Uruchom to polecenie, aby go zaktualizować:'
+    webhook_url: 'Adres URL webhooka'
+    webhook_url_unknown: 'Nieznany'
     carrier:
         AMAZON_MCF: 'Amazon Logistics (MCF)'
         ARAMEX: 'Aramex'
