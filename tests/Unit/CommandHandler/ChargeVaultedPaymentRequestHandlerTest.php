@@ -13,12 +13,15 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\CommandHandler;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\Payment;
+use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
@@ -40,6 +43,10 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
+    private EntityManagerInterface&MockObject $paymentManager;
+
+    private EntityManagerInterface&MockObject $paymentRequestManager;
+
     private StateMachineInterface&MockObject $stateMachine;
 
     private Payment $payment;
@@ -52,6 +59,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
     protected function setUp(): void
     {
         $this->payment = new Payment();
+        $this->payment->setState(PaymentInterface::STATE_NEW);
         $this->payment->setAmount(1500);
         $this->payment->setDetails(['vault_id' => 'VAULT_ID', 'vault_customer_id' => 'CUSTOMER_ID']);
 
@@ -65,6 +73,9 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->chargeVaultedOrderApi = $this->createMock(ChargeVaultedOrderApiInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
 
+        $this->paymentManager = $this->createMock(EntityManagerInterface::class);
+        $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
+
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->stateMachine->method('can')->willReturn(true);
         $this->stateMachine->method('apply')->willReturnCallback(function (object $subject, string $graph, string $transition): void {
@@ -77,6 +88,8 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             $this->paymentSettlementProcessor,
             new VaultedChargeFailureResolver(),
             new PayPalOrderDetailsMapper(),
+            $this->paymentManager,
+            $this->paymentRequestManager,
             $this->stateMachine,
         );
     }
@@ -90,6 +103,66 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([], $this->appliedTransitions);
+    }
+
+    public function test_it_locks_the_payment_and_the_request_before_reading_their_states(): void
+    {
+        $calls = [];
+        $this->paymentRequest
+            ->method('getState')
+            ->willReturnCallback(static function () use (&$calls): string {
+                $calls[] = 'read request state';
+
+                return PaymentRequestInterface::STATE_COMPLETED;
+            })
+        ;
+
+        $this->paymentManager
+            ->expects(self::once())
+            ->method('refresh')
+            ->with($this->payment, LockMode::PESSIMISTIC_WRITE)
+            ->willReturnCallback(static function () use (&$calls): void {
+                $calls[] = 'lock payment';
+            })
+        ;
+        $this->paymentRequestManager
+            ->expects(self::once())
+            ->method('refresh')
+            ->with($this->paymentRequest, LockMode::PESSIMISTIC_WRITE)
+            ->willReturnCallback(static function () use (&$calls): void {
+                $calls[] = 'lock request';
+            })
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame(['lock payment', 'lock request', 'read request state'], $calls);
+    }
+
+    #[DataProvider('provideNoLongerNewPaymentStates')]
+    public function test_it_cancels_the_request_without_charging_when_the_payment_is_no_longer_new(string $paymentState): void
+    {
+        $this->payment->setState($paymentState);
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+
+        $this->chargeVaultedOrderApi->expects(self::never())->method('charge');
+        $this->paymentRequest
+            ->expects(self::once())
+            ->method('setResponseData')
+            ->with([ChargeVaultedPaymentRequestHandler::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted wallet is not charged again.', $paymentState)])
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL]], $this->appliedTransitions);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function provideNoLongerNewPaymentStates(): iterable
+    {
+        yield 'completed' => [PaymentInterface::STATE_COMPLETED];
+        yield 'processing' => [PaymentInterface::STATE_PROCESSING];
+        yield 'failed' => [PaymentInterface::STATE_FAILED];
     }
 
     public function test_it_charges_the_vaulted_wallet_and_completes_the_request_once_paypal_captured_it(): void
