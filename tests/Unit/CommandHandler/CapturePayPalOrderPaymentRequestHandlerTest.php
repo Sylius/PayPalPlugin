@@ -23,9 +23,9 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Command\AnnouncePayPalPaymentToken;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
@@ -52,7 +52,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 
     private EntityManagerInterface&MockObject $paymentRequestManager;
 
-    private MessageBusInterface&MockObject $commandBus;
+    private MessageBusInterface&MockObject $eventBus;
 
     private StateMachineInterface&MockObject $stateMachine;
 
@@ -71,7 +71,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
         $this->paymentManager = $this->createMock(EntityManagerInterface::class);
         $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
-        $this->commandBus = $this->createMock(MessageBusInterface::class);
+        $this->eventBus = $this->createMock(MessageBusInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
 
@@ -86,7 +86,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentSettlementProcessor,
             $this->paymentManager,
             $this->paymentRequestManager,
-            $this->commandBus,
+            $this->eventBus,
             $this->stateMachine,
         );
     }
@@ -317,14 +317,14 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $this->paymentRequestWhoseCaptureRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID'], ['vault_id' => 'VAULT_ID']);
 
-        $this->commandBus
+        $this->eventBus
             ->expects(self::once())
             ->method('dispatch')
             ->with(
-                self::callback(static fn (AnnouncePayPalPaymentToken $command): bool => 7 === $command->paymentId && 'VAULT_ID' === $command->vaultId),
+                self::callback(static fn (PayPalPaymentTokenCreated $event): bool => 7 === $event->paymentId && 'VAULT_ID' === $event->vaultId),
                 self::callback(static fn (array $stamps): bool => [new DispatchAfterCurrentBusStamp()] == $stamps),
             )
-            ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
+            ->willReturnCallback(static fn (object $event): Envelope => new Envelope($event))
         ;
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
@@ -334,11 +334,14 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $this->paymentRequestWhoseCaptureRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'OLD_VAULT_ID'], ['vault_id' => 'VAULT_ID']);
 
-        $this->commandBus
+        $this->eventBus
             ->expects(self::once())
             ->method('dispatch')
-            ->with(self::callback(static fn (AnnouncePayPalPaymentToken $command): bool => 'VAULT_ID' === $command->vaultId))
-            ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
+            ->with(
+                self::callback(static fn (PayPalPaymentTokenCreated $event): bool => 7 === $event->paymentId && 'VAULT_ID' === $event->vaultId),
+                self::callback(static fn (array $stamps): bool => [new DispatchAfterCurrentBusStamp()] == $stamps),
+            )
+            ->willReturnCallback(static fn (object $event): Envelope => new Envelope($event))
         ;
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
@@ -348,7 +351,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $this->paymentRequestWhoseCaptureRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'VAULT_ID'], []);
 
-        $this->commandBus->expects(self::never())->method('dispatch');
+        $this->eventBus->expects(self::never())->method('dispatch');
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }
@@ -358,7 +361,7 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentRequestWith();
         $this->paymentCaptureProcessor->method('capture')->willThrowException(new PayPalApiConnectionException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID'));
 
-        $this->commandBus->expects(self::never())->method('dispatch');
+        $this->eventBus->expects(self::never())->method('dispatch');
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
     }

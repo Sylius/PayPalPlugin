@@ -16,8 +16,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sylius\Bundle\PaymentBundle\CommandProvider\ActionsCommandProvider;
 use Sylius\Bundle\PaymentBundle\Provider\ActionsHttpResponseProvider;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
-use Sylius\PayPalPlugin\CommandHandler\AnnouncePayPalPaymentTokenDeletionHandler;
-use Sylius\PayPalPlugin\CommandHandler\AnnouncePayPalPaymentTokenHandler;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CaptureAuthorizationPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler;
@@ -171,20 +169,9 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius.manager.payment'),
             service('sylius.manager.payment_request'),
-            service('sylius.payment_request.command_bus'),
+            service('sylius.event_bus'),
             service('sylius_abstraction.state_machine'),
         ])
-        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
-
-    $services->set('sylius_paypal.command_handler.announce_paypal_payment_token', AnnouncePayPalPaymentTokenHandler::class)
-        ->args([
-            service('sylius.repository.payment'),
-            service('event_dispatcher'),
-        ])
-        ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
-
-    $services->set('sylius_paypal.command_handler.announce_paypal_payment_token_deletion', AnnouncePayPalPaymentTokenDeletionHandler::class)
-        ->args([service('event_dispatcher')])
         ->tag('messenger.message_handler', ['bus' => 'sylius.payment_request.command_bus']);
 
     $services->set('sylius_paypal.command_handler.authorize_paypal_order', AuthorizePayPalOrderPaymentRequestHandler::class)
@@ -374,14 +361,14 @@ return function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.processor.webhook_event.payment_token_created', PaymentTokenCreatedWebhookEventProcessor::class)
         ->args([
             service('sylius.manager.payment'),
-            service('sylius.payment_request.command_bus'),
+            service('sylius.event_bus'),
         ])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => PaymentTokenCreatedWebhookEventProcessor::EVENT_TYPE]);
 
     $services->set('sylius_paypal.processor.webhook_event.payment_token_deleted', PaymentTokenDeletedWebhookEventProcessor::class)
         ->args([
             service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius.payment_request.command_bus'),
+            service('sylius.event_bus'),
         ])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => PaymentTokenDeletedWebhookEventProcessor::EVENT_TYPE]);
 

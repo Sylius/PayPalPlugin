@@ -21,8 +21,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Command\AnnouncePayPalPaymentToken;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
@@ -56,7 +56,7 @@ final class CapturePayPalOrderPaymentRequestHandler
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private readonly EntityManagerInterface $paymentManager,
         private readonly EntityManagerInterface $paymentRequestManager,
-        private readonly MessageBusInterface $commandBus,
+        private readonly MessageBusInterface $eventBus,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -134,8 +134,8 @@ final class CapturePayPalOrderPaymentRequestHandler
             return;
         }
 
-        $this->commandBus->dispatch(
-            new AnnouncePayPalPaymentToken($payment->getId(), $vaultId),
+        $this->eventBus->dispatch(
+            new PayPalPaymentTokenCreated($payment->getId(), $vaultId),
             [new DispatchAfterCurrentBusStamp()],
         );
     }

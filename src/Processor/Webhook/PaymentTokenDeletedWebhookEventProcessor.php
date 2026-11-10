@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Processor\Webhook;
 
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Command\AnnouncePayPalPaymentTokenDeletion;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenDeleted;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Repository\Query\VaultedPaypalPaymentQueryInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -26,7 +26,7 @@ final readonly class PaymentTokenDeletedWebhookEventProcessor implements Payload
 
     public function __construct(
         private VaultedPaypalPaymentQueryInterface $paypalPaymentQuery,
-        private MessageBusInterface $commandBus,
+        private MessageBusInterface $eventBus,
     ) {
     }
 
@@ -41,8 +41,8 @@ final readonly class PaymentTokenDeletedWebhookEventProcessor implements Payload
             $vaultedPayment->setDetails(PayPalPaymentDetails::fromPayment($vaultedPayment)->withVaultDeleted()->toArray());
         }
 
-        $this->commandBus->dispatch(
-            new AnnouncePayPalPaymentTokenDeletion($vaultId),
+        $this->eventBus->dispatch(
+            new PayPalPaymentTokenDeleted($vaultId),
             [new DispatchAfterCurrentBusStamp()],
         );
     }
