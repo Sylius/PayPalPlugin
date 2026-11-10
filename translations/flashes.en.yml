@@ -17,6 +17,7 @@ sylius_paypal:
     payment_pending: 'Your payment is on its way. We will confirm your order as soon as your bank has sent the money.'
     payment_refund_pending: 'PayPal is processing the refund. The payment will be marked as refunded once PayPal confirms it.'
     payment_source_not_available: 'The selected payment method is not available. Please choose another one.'
+    paypal_wallet_required: 'This order can only be paid with your PayPal account. Please use the PayPal button.'
     permissions:
         update:
             another_account: 'You connected another PayPal account. Sign in to PayPal with the account of this payment method to update its permissions.'

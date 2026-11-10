@@ -17,6 +17,7 @@ sylius_paypal:
     payment_pending: 'Uw betaling is onderweg. We bevestigen uw bestelling zodra uw bank het geld heeft overgemaakt.'
     payment_refund_pending: 'PayPal verwerkt de terugbetaling. De betaling wordt als terugbetaald gemarkeerd zodra PayPal deze bevestigt.'
     payment_source_not_available: 'De gekozen betaalmethode is niet beschikbaar. Kies een andere.'
+    paypal_wallet_required: 'Deze bestelling kan alleen met uw PayPal-account worden betaald. Gebruik de PayPal-knop.'
     permissions:
         update:
             another_account: 'U heeft een ander PayPal-account verbonden. Log in bij PayPal met het account van deze betaalmethode om de machtigingen bij te werken.'

@@ -97,8 +97,7 @@ final readonly class PayPalButtonsController
             }
 
             $locale = $this->currentLocaleProvider->provide();
-            $vaultPossible = true === $this->vaultRequestProvider?->isVaultingEnabledInChannel($channel);
-            $venmoEnabled = !$vaultPossible && $config->isVenmoEnabled();
+            $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_product_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -115,7 +114,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => !$vaultPossible && $config->isPayLaterEnabled(),
+                'paylaterEnabled' => $config->isPayLaterEnabled(),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -135,6 +134,10 @@ final readonly class PayPalButtonsController
             $paymentMethod = $this->getPaymentMethod($channel);
             $config = $this->getConfig($paymentMethod);
             if (!$config->isExpressCheckoutEnabled()) {
+                return new Response('');
+            }
+
+            if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
                 return new Response('');
             }
 
@@ -179,6 +182,10 @@ final readonly class PayPalButtonsController
         try {
             $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel, $request->attributes->getString('paymentMethodCode'));
+            if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+                return new Response('');
+            }
+
             $config = $this->getConfig($paymentMethod);
             $vaultRequired = $this->isVaultRequired($order, $paymentMethod);
             $venmoEnabled = !$vaultRequired && $config->isVenmoEnabled();

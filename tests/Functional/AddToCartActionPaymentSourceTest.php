@@ -53,6 +53,16 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
         self::assertMatchesRegularExpression('#/en_US/create-pay-pal-order-from-cart/\d+\?paymentSource=venmo$#', $location);
     }
 
+    public function test_it_passes_pay_later_on_to_the_create_order_request(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml']);
+
+        $this->addMugToCart($fixtures['mug'], 'paylater');
+
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertMatchesRegularExpression('#/en_US/create-pay-pal-order-from-cart/\d+\?paymentSource=paylater$#', $location);
+    }
+
     public function test_it_keeps_the_cart_and_tells_the_customer_when_the_payment_source_is_not_available(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);

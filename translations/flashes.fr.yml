@@ -17,6 +17,7 @@ sylius_paypal:
     payment_pending: 'Votre paiement est en cours. Nous confirmerons votre commande dès que votre banque aura envoyé les fonds.'
     payment_refund_pending: 'PayPal traite le remboursement. Le paiement sera marqué comme remboursé dès que PayPal l''aura confirmé.'
     payment_source_not_available: 'Le moyen de paiement choisi n''est pas disponible. Veuillez en choisir un autre.'
+    paypal_wallet_required: 'Cette commande ne peut être payée qu''avec votre compte PayPal. Veuillez utiliser le bouton PayPal.'
     permissions:
         update:
             another_account: 'Vous avez connecté un autre compte PayPal. Connectez-vous à PayPal avec le compte de ce mode de paiement pour mettre à jour ses autorisations.'
