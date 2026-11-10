@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
@@ -112,6 +113,14 @@ final readonly class CreatePayPalOrderFromCartAction
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
+        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.vaulting_not_available');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
         $paymentSource = $this->resolvePaymentSource($request, $order, $paymentMethod);
         if (null === $paymentSource || !$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
             /** @var FlashBagInterface $flashBag */
@@ -148,7 +157,7 @@ final readonly class CreatePayPalOrderFromCartAction
     private function getPayment(OrderInterface $order, ?PaymentMethodInterface $channelPayPalMethod): PaymentInterface
     {
         /** @var PaymentInterface $payment */
-        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $payment = $order->getLastPayment(BasePaymentInterface::STATE_CART);
         /** @var PaymentMethodInterface|null $paymentMethod */
         $paymentMethod = $payment->getMethod();
         $factoryName = $paymentMethod?->getGatewayConfig()?->getFactoryName();

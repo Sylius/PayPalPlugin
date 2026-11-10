@@ -50,11 +50,29 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
             return null;
         }
 
-        if (!$gatewayConfig->isVaultingEnabled() && !$this->vaultingCapabilityRefresher->refresh($paymentMethod)) {
+        if (!$this->canVault($gatewayConfig, $paymentMethod)) {
             return null;
         }
 
         return $vaultRequest;
+    }
+
+    public function isVaultingRequirementMet(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool
+    {
+        if (null === $paymentMethod) {
+            return true;
+        }
+
+        $gatewayConfig = $this->payPalGatewayConfig($paymentMethod);
+        if (null === $gatewayConfig) {
+            return true;
+        }
+
+        if (null === $this->vaultRequestResolver->resolve($order)) {
+            return true;
+        }
+
+        return $this->canVault($gatewayConfig, $paymentMethod);
     }
 
     public function provideForCart(OrderInterface $order): ?PayPalVaultRequest
@@ -75,6 +93,11 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
         }
 
         return false;
+    }
+
+    private function canVault(PayPalGatewayConfig $gatewayConfig, PaymentMethodInterface $paymentMethod): bool
+    {
+        return $gatewayConfig->isVaultingEnabled() || $this->vaultingCapabilityRefresher->refresh($paymentMethod);
     }
 
     private function payPalGatewayConfig(PaymentMethodInterface $paymentMethod): ?PayPalGatewayConfig

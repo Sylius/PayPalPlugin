@@ -50,6 +50,7 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $payPalMethodsResolver->method('getInChannel')->with($channel)->willReturn([$payPalPaymentMethod]);
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn(true);
         $vaultRequestProvider
             ->expects(self::once())
             ->method('provide')
@@ -77,5 +78,49 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $request->setSession(new Session(new MockArraySessionStorage()));
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $action($request)->getStatusCode());
+    }
+
+    public function test_it_refuses_the_paypal_wallet_for_a_cart_that_needs_vaulting_the_merchant_cannot_do(): void
+    {
+        $channel = $this->createStub(ChannelInterface::class);
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($channel);
+
+        $orderProvider = $this->createStub(OrderProviderInterface::class);
+        $orderProvider->method('provideOrderById')->willReturn($order);
+
+        $payPalPaymentMethod = $this->createStub(PaymentMethodInterface::class);
+        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+        $payPalMethodsResolver->method('getInChannel')->willReturn([$payPalPaymentMethod]);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider
+            ->expects(self::once())
+            ->method('isVaultingRequirementMet')
+            ->with($order, $payPalPaymentMethod)
+            ->willReturn(false)
+        ;
+
+        $capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
+        $capturePaymentResolver->expects(self::never())->method('resolve');
+
+        $action = new CreatePayPalOrderFromCartAction(
+            $this->createStub(ObjectManager::class),
+            $orderProvider,
+            $capturePaymentResolver,
+            $this->createStub(OrderPaymentsRemoverInterface::class),
+            $this->createStub(OrderProcessorInterface::class),
+            $payPalMethodsResolver,
+            $this->createStub(OrderOwnershipVerifierInterface::class),
+            $vaultRequestProvider,
+        );
+
+        $session = new Session(new MockArraySessionStorage());
+        $request = Request::create('/create-pay-pal-order-from-cart/1', 'POST');
+        $request->attributes->set('id', 1);
+        $request->setSession($session);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $action($request)->getStatusCode());
+        self::assertSame(['sylius_paypal.vaulting_not_available'], $session->getFlashBag()->get('error'));
     }
 }
