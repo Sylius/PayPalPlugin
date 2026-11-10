@@ -9,7 +9,7 @@
                     type="button"
                     class="btn"
                     data-bs-toggle="modal"
-                    data-bs-target="#confirmation-modal-update-paypal-permissions"
+                    data-bs-target="#{{ constant('Sylius\\PayPalPlugin\\Twig\\Component\\PayPalOnboardingModalComponent::PERMISSIONS_UPDATE_MODAL_ID') }}"
                     {{ sylius_test_html_attribute('update-paypal-permissions') }}
                 >
                     {{ ux_icon('tabler:refresh') }}

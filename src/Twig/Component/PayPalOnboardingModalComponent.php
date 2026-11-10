@@ -31,6 +31,8 @@ final class PayPalOnboardingModalComponent
 {
     use DefaultActionTrait;
 
+    public const PERMISSIONS_UPDATE_MODAL_ID = 'confirmation-modal-update-paypal-permissions';
+
     #[LiveProp]
     public ?string $modalId = null;
 

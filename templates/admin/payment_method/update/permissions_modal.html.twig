@@ -7,7 +7,7 @@
     payment_method.gatewayConfig.factoryName == 'sylius_paypal'
 %}
     {% component 'sylius_paypal:live_onboarding_modal' with {
-        modalId: 'confirmation-modal-update-paypal-permissions',
+        modalId: constant('Sylius\\PayPalPlugin\\Twig\\Component\\PayPalOnboardingModalComponent::PERMISSIONS_UPDATE_MODAL_ID'),
         type: 'update-paypal-permissions',
         sandbox: payment_method.gatewayConfig.config[constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX')]|default(false),
         paymentMethodId: payment_method.id

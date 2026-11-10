@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
+use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
@@ -110,7 +111,7 @@ final class PermissionsVerificationTest extends JsonApiTestCase
         return $this->createLiveComponent(
             'sylius_paypal:live_onboarding_modal',
             [
-                'modalId' => 'confirmation-modal-update-paypal-permissions',
+                'modalId' => PayPalOnboardingModalComponent::PERMISSIONS_UPDATE_MODAL_ID,
                 'type' => 'update-paypal-permissions',
                 'sandbox' => false,
                 'paymentMethodId' => $this->paymentMethod->getId(),
