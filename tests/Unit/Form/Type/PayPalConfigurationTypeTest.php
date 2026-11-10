@@ -227,7 +227,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     }
 
     #[Test]
-    public function it_keeps_the_mode_and_the_credentials_of_the_payment_method_on_submit(): void
+    public function it_keeps_the_mode_the_credentials_and_the_onboarding_scope_of_the_payment_method_on_submit(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->sandboxConfig());
         $form->submit(array_merge($this->submittedFields(), ['client_id' => 'OTHER', 'client_secret' => 'OTHERS']));
@@ -239,6 +239,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertSame('SB', $data['client_id']);
         self::assertSame('SBS', $data['client_secret']);
         self::assertSame('SBM', $data['merchant_id']);
+        self::assertSame(['product' => 'ppcp'], $data['onboarding_scope']);
     }
 
     /**
@@ -249,7 +250,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         return [
             'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
             'partner_attribution_id' => 'bn', 'use_authorize' => 1,
-            'webhook_id' => 'WH', 'sandbox' => true,
+            'webhook_id' => 'WH', 'sandbox' => true, 'onboarding_scope' => ['product' => 'ppcp'],
         ];
     }
 }

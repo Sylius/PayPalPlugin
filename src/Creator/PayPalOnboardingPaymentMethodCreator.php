@@ -19,6 +19,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
@@ -57,6 +58,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
             PayPalGatewayConfig::SANDBOX => $sandbox,
             PayPalGatewayConfig::USE_AUTHORIZE => false,
+            PayPalGatewayConfig::ONBOARDING_SCOPE => OnboardingScope::current()->toArray(),
         ]);
 
         if (method_exists($gatewayConfig, 'setUsePayum')) {

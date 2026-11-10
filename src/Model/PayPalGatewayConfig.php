@@ -26,6 +26,8 @@ final readonly class PayPalGatewayConfig
 
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
 
+    public const ONBOARDING_SCOPE = 'onboarding_scope';
+
     public const SANDBOX = 'sandbox';
 
     public const USE_AUTHORIZE = 'use_authorize';
@@ -145,6 +147,13 @@ final readonly class PayPalGatewayConfig
     public function isRedirectPaymentSourceEnabled(RedirectPaymentSource $paymentSource): bool
     {
         return $this->flag($paymentSource->configurationKey(), false);
+    }
+
+    public function onboardingScope(): ?OnboardingScope
+    {
+        $scope = $this->config[self::ONBOARDING_SCOPE] ?? null;
+
+        return is_array($scope) ? OnboardingScope::fromArray($scope) : null;
     }
 
     private function required(string $key): string

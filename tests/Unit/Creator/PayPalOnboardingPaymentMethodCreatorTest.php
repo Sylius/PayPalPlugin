@@ -36,6 +36,12 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
         'use_authorize' => false,
+        'onboarding_scope' => [
+            'product' => 'ppcp',
+            'secondary_products' => ['payment_methods'],
+            'capabilities' => ['APPLE_PAY', 'GOOGLE_PAY'],
+            'features' => ['payment', 'refund', 'access_merchant_information'],
+        ],
     ];
 
     private FactoryInterface&MockObject $gatewayFactory;

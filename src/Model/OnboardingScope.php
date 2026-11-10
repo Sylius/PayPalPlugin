@@ -15,6 +15,14 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class OnboardingScope
 {
+    private const PRODUCT = 'product';
+
+    private const SECONDARY_PRODUCTS = 'secondary_products';
+
+    private const CAPABILITIES = 'capabilities';
+
+    private const FEATURES = 'features';
+
     /**
      * @param list<string> $secondaryProducts
      * @param list<string> $capabilities
@@ -26,6 +34,17 @@ final readonly class OnboardingScope
         private array $capabilities,
         private array $features,
     ) {
+    }
+
+    /** @param array<array-key, mixed> $scope */
+    public static function fromArray(array $scope): self
+    {
+        return new self(
+            is_string($scope[self::PRODUCT] ?? null) ? $scope[self::PRODUCT] : '',
+            self::listOf($scope[self::SECONDARY_PRODUCTS] ?? []),
+            self::listOf($scope[self::CAPABILITIES] ?? []),
+            self::listOf($scope[self::FEATURES] ?? []),
+        );
     }
 
     public static function current(): self
@@ -59,5 +78,26 @@ final readonly class OnboardingScope
     public function features(): array
     {
         return $this->features;
+    }
+
+    /** @return array{product: string, secondary_products: list<string>, capabilities: list<string>, features: list<string>} */
+    public function toArray(): array
+    {
+        return [
+            self::PRODUCT => $this->product,
+            self::SECONDARY_PRODUCTS => $this->secondaryProducts,
+            self::CAPABILITIES => $this->capabilities,
+            self::FEATURES => $this->features,
+        ];
+    }
+
+    /** @return list<string> */
+    private static function listOf(mixed $values): array
+    {
+        if (!is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_map(strval(...), array_filter($values, is_scalar(...))));
     }
 }
