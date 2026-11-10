@@ -69,7 +69,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
     public function test_it_keeps_the_stored_credentials_and_stores_the_current_onboarding_scope_of_the_same_paypal_account(): void
     {
         $paymentMethod = $this->paymentMethod(self::CONFIG);
-        $status = new OnboardingStatus(true, true, ['APPLE_PAY', 'GOOGLE_PAY']);
+        $status = new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'ACTIVE']);
         $this->sellerNonceManager->method('get')->with(true)->willReturn('NONCE');
         $this->sellerOnboardingResolver
             ->expects(self::once())
