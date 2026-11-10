@@ -974,8 +974,8 @@
 1. #### The scope a PayPal payment method is onboarded with is stored in its gateway config.
 
    `Sylius\PayPalPlugin\Model\OnboardingScope::current()` gives the product, the secondary products, the capabilities
-   and the features the onboarding asks the seller to consent to, and `PayPalOnboardingUrlProvider` builds the
-   onboarding URL from it. The onboarding stores it in the gateway config of the payment method it creates, under the
+   (named by the `Sylius\PayPalPlugin\Model\Capability` constants) and the features the onboarding asks the seller to
+   consent to, and `PayPalOnboardingUrlProvider` builds the onboarding URL from it. The onboarding stores it in the gateway config of the payment method it creates, under the
    `onboarding_scope` key, read through `PayPalGatewayConfig::onboardingScope()`.
 
    The payment method list and edit page compare it with the current scope without asking PayPal, through

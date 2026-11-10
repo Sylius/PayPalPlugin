@@ -24,6 +24,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
@@ -39,7 +40,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'onboarding_scope' => [
             'product' => 'ppcp',
             'secondary_products' => ['payment_methods'],
-            'capabilities' => ['APPLE_PAY', 'GOOGLE_PAY'],
+            'capabilities' => [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
             'features' => ['payment', 'refund', 'access_merchant_information'],
         ],
     ];

@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Functional;
 use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Twig\Component\PermissionsStateComponent;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,12 +57,12 @@ final class PermissionsStateTest extends JsonApiTestCase
     public function test_it_flags_a_stored_scope_that_lacks_a_capability_the_onboarding_asks_for(): void
     {
         $current = OnboardingScope::current();
-        $this->storeScope(new OnboardingScope($current->product(), $current->secondaryProducts(), ['APPLE_PAY'], $current->features()));
+        $this->storeScope(new OnboardingScope($current->product(), $current->secondaryProducts(), [Capability::APPLE_PAY], $current->features()));
 
         $rendered = (string) $this->permissionsState(PermissionsStateComponent::VARIANT_ALERT)->render();
 
         self::assertStringContainsString('data-test-paypal-permissions-state="out_of_date"', $rendered);
-        self::assertStringContainsString('GOOGLE_PAY', $rendered);
+        self::assertStringContainsString(Capability::GOOGLE_PAY, $rendered);
     }
 
     public function test_it_shows_nothing_for_a_stored_scope_that_is_up_to_date(): void

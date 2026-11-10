@@ -52,7 +52,7 @@ final readonly class OnboardingScope
         return new self(
             'ppcp',
             ['payment_methods'],
-            ['APPLE_PAY', 'GOOGLE_PAY'],
+            [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
             ['payment', 'refund', 'access_merchant_information'],
         );
     }

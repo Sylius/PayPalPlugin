@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Checker\PermissionsStateChecker;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PermissionsState;
 
@@ -33,10 +34,10 @@ final class PermissionsStateCheckerTest extends TestCase
     public function test_it_finds_the_permissions_outdated_with_what_the_stored_scope_lacks(): void
     {
         $current = OnboardingScope::current();
-        $stored = new OnboardingScope($current->product(), $current->secondaryProducts(), ['APPLE_PAY'], $current->features());
+        $stored = new OnboardingScope($current->product(), $current->secondaryProducts(), [Capability::APPLE_PAY], $current->features());
 
         self::assertEquals(
-            PermissionsState::outdated(['GOOGLE_PAY']),
+            PermissionsState::outdated([Capability::GOOGLE_PAY]),
             (new PermissionsStateChecker())->check($this->paymentMethod(['onboarding_scope' => $stored->toArray()])),
         );
     }
