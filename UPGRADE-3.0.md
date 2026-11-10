@@ -233,8 +233,9 @@
 
    A gateway config Sylius has already encrypted cannot be changed by the migrations, so they log a warning about it
    and leave it without the `sandbox` key. Such a payment method is used in production, and the payment methods
-   list and its form show its mode as unknown. Set its `sandbox` key, or connect the PayPal account again through
-   the onboarding.
+   list and its form show its mode as unknown. If it is a sandbox account, connect it again through the onboarding,
+   which creates a new PayPal payment method, and disable this one. Do not add the `sandbox` key to it in the
+   database: Sylius cannot decrypt a config with a plain value in it.
 
    The following parameters and services have been removed:
 

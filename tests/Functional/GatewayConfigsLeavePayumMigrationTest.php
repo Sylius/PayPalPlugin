@@ -157,7 +157,7 @@ final class GatewayConfigsLeavePayumMigrationTest extends JsonApiTestCase
 
         self::assertSame([false, $config], $this->storedGatewayConfig($gatewayConfigId));
         self::assertCount(1, $logger->messages);
-        self::assertStringContainsString('The PayPal gateway config "paypal" is encrypted', $logger->messages[0]);
+        self::assertStringContainsString('The PayPal gateway config "paypal" is encrypted, so its mode could not be stored and it is used in production.', $logger->messages[0]);
     }
 
     public function test_it_stops_when_the_sandbox_mode_was_not_passed_in(): void
