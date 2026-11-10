@@ -80,21 +80,6 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
         return $this->provide($order, $this->cartPaymentMethod($order));
     }
 
-    public function isVaultingEnabledInChannel(ChannelInterface $channel): bool
-    {
-        if (!$this->vaultRequestResolver->vaultsInChannel($channel)) {
-            return false;
-        }
-
-        foreach ($this->payPalMethodsResolver->getInChannel($channel) as $paymentMethod) {
-            if (true === $this->payPalGatewayConfig($paymentMethod)?->isVaultingEnabled()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function canVault(PayPalGatewayConfig $gatewayConfig, PaymentMethodInterface $paymentMethod): bool
     {
         return $gatewayConfig->isVaultingEnabled() || $this->vaultingCapabilityChecker->isVaultingActive($paymentMethod);

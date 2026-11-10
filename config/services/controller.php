@@ -158,6 +158,7 @@ return static function (ContainerConfigurator $container) {
             service('router'),
             service(CartStorageInterface::class),
             service('sylius_paypal.resolver.paypal_payment_methods'),
+            service('sylius_paypal.provider.vault_request'),
         ]);
 
     $services->set('sylius_paypal.controller.refund_late_capture', RefundPayPalLateCaptureAction::class)

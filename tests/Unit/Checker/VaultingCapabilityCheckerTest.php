@@ -49,7 +49,7 @@ final class VaultingCapabilityCheckerTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)
-            ->willReturn(new OnboardingStatus(true, true, 'ACTIVE'))
+            ->willReturn(new OnboardingStatus(true, true, [], 'ACTIVE'))
         ;
 
         self::assertTrue($this->checker->isVaultingActive($this->paymentMethod()));
@@ -57,7 +57,7 @@ final class VaultingCapabilityCheckerTest extends TestCase
 
     public function test_it_tells_vaulting_is_not_active_when_paypal_reports_another_status(): void
     {
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, 'NEED_DATA'));
+        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, [], 'NEED_DATA'));
 
         self::assertFalse($this->checker->isVaultingActive($this->paymentMethod()));
     }
@@ -66,7 +66,7 @@ final class VaultingCapabilityCheckerTest extends TestCase
     {
         $paymentMethod = $this->paymentMethod();
         $config = $paymentMethod->getGatewayConfig()?->getConfig();
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, 'ACTIVE'));
+        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, [], 'ACTIVE'));
 
         $this->checker->isVaultingActive($paymentMethod);
 

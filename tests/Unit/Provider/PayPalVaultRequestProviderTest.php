@@ -105,39 +105,6 @@ final class PayPalVaultRequestProviderTest extends TestCase
         self::assertSame($vaultRequest, (new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $this->createStub(VaultingCapabilityCheckerInterface::class)))->provideForCart($order));
     }
 
-    public function test_it_tells_a_channel_vaults_when_any_of_its_paypal_methods_can_vault(): void
-    {
-        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalMethodsResolver->method('getInChannel')->willReturn([
-            $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]),
-            $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true]),
-        ]);
-
-        $resolver = $this->createStub(VaultRequestResolverInterface::class);
-        $resolver->method('vaultsInChannel')->willReturn(true);
-
-        self::assertTrue((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $this->createStub(VaultingCapabilityCheckerInterface::class)))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
-    }
-
-    public function test_it_tells_a_channel_no_integration_vaults_in_does_not_vault(): void
-    {
-        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true])]);
-
-        self::assertFalse((new PayPalVaultRequestProvider(new NullVaultRequestResolver(), $payPalMethodsResolver, $this->createStub(VaultingCapabilityCheckerInterface::class)))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
-    }
-
-    public function test_it_tells_a_channel_without_a_paypal_method_that_can_vault_does_not_vault(): void
-    {
-        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false])]);
-
-        $resolver = $this->createStub(VaultRequestResolverInterface::class);
-        $resolver->method('vaultsInChannel')->willReturn(true);
-
-        self::assertFalse((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $this->createStub(VaultingCapabilityCheckerInterface::class)))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
-    }
-
     public function test_it_asks_paypal_again_whether_a_method_can_vault_once_the_order_needs_vaulting(): void
     {
         $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]);
@@ -161,20 +128,6 @@ final class PayPalVaultRequestProviderTest extends TestCase
         $vaultingCapabilityChecker->expects(self::never())->method('isVaultingActive');
 
         self::assertNull((new PayPalVaultRequestProvider(new NullVaultRequestResolver(), $this->createStub(PayPalPaymentMethodsResolverInterface::class), $vaultingCapabilityChecker))->provide($this->cartWith($paymentMethod), $paymentMethod));
-    }
-
-    public function test_it_never_asks_paypal_whether_a_channel_vaults(): void
-    {
-        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false])]);
-
-        $resolver = $this->createStub(VaultRequestResolverInterface::class);
-        $resolver->method('vaultsInChannel')->willReturn(true);
-
-        $vaultingCapabilityChecker = $this->createMock(VaultingCapabilityCheckerInterface::class);
-        $vaultingCapabilityChecker->expects(self::never())->method('isVaultingActive');
-
-        self::assertFalse((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $vaultingCapabilityChecker))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
     }
 
     public function test_it_tells_the_vaulting_requirement_is_not_met_when_the_order_needs_it_and_paypal_still_cannot_vault_for_the_merchant(): void
