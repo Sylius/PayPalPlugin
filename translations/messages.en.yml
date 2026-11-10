@@ -69,7 +69,6 @@ sylius_paypal:
     webhook_points_elsewhere: 'PayPal sends the events to %url%.'
     webhook_state_unknown: 'Webhook state unknown'
     webhook_state_unknown_details: 'The plugin has not stored the URL and the events of this webhook yet.'
-    webhook_update_hint: 'Run this command to update it:'
     webhook_url: 'Webhook URL'
     webhook_url_unknown: 'Unknown'
     carrier:

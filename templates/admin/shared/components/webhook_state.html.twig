@@ -18,7 +18,6 @@
                     {% if state.missingEventTypes() is not empty %}
                         <div>{{ 'sylius_paypal.webhook_missing_event_types'|trans }} <code>{{ state.missingEventTypes()|join(', ') }}</code></div>
                     {% endif %}
-                    <div class="mt-2">{{ 'sylius_paypal.webhook_update_hint'|trans }} <code>bin/console sylius-paypal:register-webhook-event-types</code></div>
                 </div>
             </div>
         {% else %}
