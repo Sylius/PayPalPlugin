@@ -17,7 +17,9 @@
       authorize, so the migrations keep these payment methods capturing. A PayPal gateway config already off Payum
       keeps its strategy. Until the migrations run, a PayPal payment method still on Payum has no payment page.
       The migrations also drop the `reports_sftp_username` and `reports_sftp_password` keys of these configs (see
-      "The SFTP payouts report download has been removed").
+      "The SFTP payouts report download has been removed") and store the mode of every PayPal gateway config
+      without the `sandbox` key (see "The mode of a PayPal payment method is stored in its gateway config and set by
+      the onboarding").
 
    3. Encrypt the PayPal gateway configs:
 
@@ -222,11 +224,12 @@
    and the payment method form shows it read-only, so a store that uses both modes has a PayPal payment method for
    each, with its own credentials.
 
-   The `Version20261109120000` (MySQL) and `Version20261109120001` (PostgreSQL) migrations store the mode of 2.x in
+   The `Version20261104120000` (MySQL) and `Version20261104120001` (PostgreSQL) migrations store the mode of 2.x in
    every PayPal gateway config without the `sandbox` key: the `sylius_paypal.sandbox` configuration option, `true`
    by default and overridden by the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable. Keep the option or the
    variable as it was in 2.x until the migrations have run. The option is deprecated, is read only by these
-   migrations and will be removed in 4.0.
+   migrations and will be removed in 4.0. Run the migrations through the console of the application, so the mode
+   can be read; when it cannot, they stop instead of guessing it.
 
    A gateway config Sylius has already encrypted cannot be changed by the migrations, so they log a warning about it
    and leave it without the `sandbox` key. Such a payment method is used in production, and the payment methods

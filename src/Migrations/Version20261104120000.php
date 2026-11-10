@@ -16,27 +16,63 @@ namespace Sylius\PayPalPlugin\Migrations;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Schema;
 use Sylius\Bundle\CoreBundle\Doctrine\Migrations\AbstractMigration;
+use Sylius\Component\Payment\Encryption\EncryptionCheckTrait;
+use Sylius\PayPalPlugin\Doctrine\Migrations\SandboxModeAwareMigrationInterface;
 
-final class Version20261104120000 extends AbstractMigration
+final class Version20261104120000 extends AbstractMigration implements SandboxModeAwareMigrationInterface
 {
+    use EncryptionCheckTrait;
+
+    private ?bool $sandbox = null;
+
+    public function setSandbox(bool $sandbox): void
+    {
+        $this->sandbox = $sandbox;
+    }
+
     public function getDescription(): string
     {
-        return 'Move PayPal gateway configs off Payum, keep them capturing and drop their SFTP credentials';
+        return 'Move PayPal gateway configs off Payum, keep them capturing, drop their SFTP credentials and store their sandbox mode';
     }
 
     public function up(Schema $schema): void
     {
         $gatewayConfigs = $this->connection->fetchAllAssociative(
-            'SELECT id, config FROM sylius_gateway_config WHERE factory_name = ? AND use_payum = ?',
-            ['sylius_paypal', true],
-            [ParameterType::STRING, ParameterType::BOOLEAN],
+            'SELECT id, gateway_name, use_payum, config FROM sylius_gateway_config WHERE factory_name = ?',
+            ['sylius_paypal'],
+            [ParameterType::STRING],
         );
 
         foreach ($gatewayConfigs as $gatewayConfig) {
             $config = json_decode((string) $gatewayConfig['config'], true, 512, \JSON_THROW_ON_ERROR);
             $config = is_array($config) ? $config : [];
-            $config['use_authorize'] = false;
-            unset($config['reports_sftp_username'], $config['reports_sftp_password']);
+            $changed = false;
+
+            if ((bool) $gatewayConfig['use_payum']) {
+                $config['use_authorize'] = false;
+                unset($config['reports_sftp_username'], $config['reports_sftp_password']);
+                $changed = true;
+            }
+
+            if (!array_key_exists('sandbox', $config)) {
+                if ([] !== $config && $this->isEncrypted(current($config))) {
+                    $this->warnIf(true, sprintf(
+                        'The PayPal gateway config "%s" is encrypted, so its mode could not be stored. Set its "sandbox" key or connect the PayPal account again through the onboarding.',
+                        (string) $gatewayConfig['gateway_name'],
+                    ));
+                } else {
+                    $this->abortIf(
+                        null === $this->sandbox,
+                        'The PayPal sandbox mode was not passed to this migration. Run it through the console of an application with the PayPal plugin registered, so the "sylius_paypal.sandbox" option or the SYLIUS_PAYPAL_SANDBOX_ENABLED environment variable can be read.',
+                    );
+                    $config['sandbox'] = $this->sandbox;
+                    $changed = true;
+                }
+            }
+
+            if (!$changed) {
+                continue;
+            }
 
             $this->addSql(
                 'UPDATE sylius_gateway_config SET use_payum = ?, config = ? WHERE id = ?',
