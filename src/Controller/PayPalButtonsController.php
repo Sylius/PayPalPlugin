@@ -74,8 +74,8 @@ final readonly class PayPalButtonsController
         if (null === $this->vaultRequestProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
                 PayPalVaultRequestProviderInterface::class,
                 self::class,
             );
