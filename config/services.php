@@ -680,6 +680,8 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.onboarding_url'),
             service('sylius_paypal.manager.seller_nonce'),
             service('monolog.logger.paypal'),
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.verifier.permissions'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
 

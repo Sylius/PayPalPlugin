@@ -50,10 +50,13 @@ sylius_paypal:
             unknown: 'PayPal-machtigingen onbekend'
             unknown_details: 'De plugin heeft de machtigingen waarmee dit PayPal-account is gekoppeld niet opgeslagen.'
         update:
+            already_up_to_date: 'De PayPal-machtigingen van deze betaalmethode zijn al up-to-date.'
+            awaiting_paypal: 'PayPal heeft deze mogelijkheden van het account nog niet geactiveerd. Controleer het PayPal-account van deze betaalmethode:'
             button: 'PayPal-machtigingen bijwerken'
             completed: 'Uw PayPal-machtigingen zijn bijgewerkt.'
             help: 'Verleen de machtigingen die een nieuwere versie van de plugin heeft toegevoegd, bijv. Apple Pay of Google Pay, zonder het account opnieuw te verbinden.'
             modal_description: 'U wordt gevraagd in te loggen bij PayPal met het account van deze betaalmethode en de machtigingen te verlenen die de plugin nodig heeft. De betaalmethode behoudt haar inloggegevens en webhook.'
+            verification_failed: 'De PayPal-machtigingen van deze betaalmethode konden niet worden gecontroleerd. U kunt ze nog steeds bijwerken.'
     sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     suggested: 'Voorgesteld'

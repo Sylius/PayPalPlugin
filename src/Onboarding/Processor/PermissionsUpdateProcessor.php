@@ -13,24 +13,23 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Onboarding\Processor;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
+use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
 
 final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProcessorInterface
 {
     public function __construct(
         private SellerNonceManagerInterface $sellerNonceManager,
         private SellerOnboardingResolverInterface $sellerOnboardingResolver,
-        private EntityManagerInterface $entityManager,
+        private OnboardingScopeUpdaterInterface $onboardingScopeUpdater,
     ) {
     }
 
@@ -56,10 +55,7 @@ final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProc
             throw new OnboardingAccountMismatchException($config->merchantId(), $sellerOnboardingResult->getMerchantId());
         }
 
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [
-            PayPalGatewayConfig::ONBOARDING_SCOPE => OnboardingScope::current()->toArray(),
-        ]));
-        $this->entityManager->flush();
+        $this->onboardingScopeUpdater->update($paymentMethod);
         $this->sellerNonceManager->remove($sandbox);
 
         return $sellerOnboardingResult->getStatus();

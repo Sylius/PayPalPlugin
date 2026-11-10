@@ -80,8 +80,18 @@
    (`sylius_paypal.onboarding.processor.permissions_update`). It refuses another PayPal account and keeps the payment
    method with its credentials and webhook: PayPal issues new credentials on every onboarding, but the webhook belongs
    to the credentials it was registered with. It stores `OnboardingScope::current()` as the scope of the payment
-   method, so the admin stops flagging its PayPal permissions (see "The scope a PayPal payment method is onboarded with
-   is stored in its gateway config").
+   method through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface` (`sylius_paypal.updater.onboarding_scope`),
+   so the admin stops flagging its PayPal permissions (see "The scope a PayPal payment method is onboarded with is
+   stored in its gateway config").
+
+   Before it offers the consent, the modal asks PayPal for the merchant integration status of the account through
+   `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`), which returns a
+   `Sylius\PayPalPlugin\Model\PermissionsVerification`. When every capability of the current scope is `ACTIVE`, it
+   stores the scope and tells the permissions are up to date; when the account has all of them but PayPal has not
+   activated some yet (e.g. `PENDING` or `NEED_DATA`), it lists them, as a new consent would not change that. Only a
+   capability the account does not have, or an account the configured partner does not know, leads to the consent; a
+   status that cannot be read is logged and the consent is offered anyway. The products and the features of the scope
+   are not compared, as the merchant integration status does not return them in the shape the onboarding asks for them.
 
 1. #### `PayPalPaymentMethodProvider` has been removed.
 

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Onboarding\Processor;
 
-use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
@@ -22,13 +21,13 @@ use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessor;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
+use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
 
 final class PermissionsUpdateProcessorTest extends TestCase
 {
@@ -44,7 +43,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
 
     private SellerOnboardingResolverInterface&MockObject $sellerOnboardingResolver;
 
-    private EntityManagerInterface&MockObject $entityManager;
+    private OnboardingScopeUpdaterInterface&MockObject $onboardingScopeUpdater;
 
     private PermissionsUpdateProcessor $processor;
 
@@ -52,12 +51,12 @@ final class PermissionsUpdateProcessorTest extends TestCase
     {
         $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
         $this->sellerOnboardingResolver = $this->createMock(SellerOnboardingResolverInterface::class);
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->onboardingScopeUpdater = $this->createMock(OnboardingScopeUpdaterInterface::class);
 
         $this->processor = new PermissionsUpdateProcessor(
             $this->sellerNonceManager,
             $this->sellerOnboardingResolver,
-            $this->entityManager,
+            $this->onboardingScopeUpdater,
         );
     }
 
@@ -66,7 +65,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
         self::assertInstanceOf(PermissionsUpdateProcessorInterface::class, $this->processor);
     }
 
-    public function test_it_keeps_the_stored_credentials_and_stores_the_current_onboarding_scope_of_the_same_paypal_account(): void
+    public function test_it_keeps_the_stored_credentials_and_updates_the_onboarding_scope_of_the_same_paypal_account(): void
     {
         $paymentMethod = $this->paymentMethod(self::CONFIG);
         $status = new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'ACTIVE']);
@@ -78,14 +77,11 @@ final class PermissionsUpdateProcessorTest extends TestCase
             ->willReturn(new SellerOnboardingResult('NEW_CLIENT_ID', 'NEW_CLIENT_SECRET', 'MERCHANT_ID', $status))
         ;
 
-        $this->entityManager->expects(self::once())->method('flush');
+        $this->onboardingScopeUpdater->expects(self::once())->method('update')->with($paymentMethod);
         $this->sellerNonceManager->expects(self::once())->method('remove')->with(true);
 
         self::assertSame($status, $this->processor->process($paymentMethod, 'AUTH_CODE', 'SHARED_ID'));
-        self::assertSame(
-            self::CONFIG + ['onboarding_scope' => OnboardingScope::current()->toArray()],
-            $paymentMethod->getGatewayConfig()?->getConfig(),
-        );
+        self::assertSame(self::CONFIG, $paymentMethod->getGatewayConfig()?->getConfig());
     }
 
     public function test_it_refuses_another_paypal_account_and_changes_nothing(): void
@@ -94,7 +90,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
         $this->sellerNonceManager->method('get')->willReturn('NONCE');
         $this->sellerOnboardingResolver->method('resolve')->willReturn($this->sellerOnboardingResult('ANOTHER_MERCHANT_ID'));
 
-        $this->entityManager->expects(self::never())->method('flush');
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
         $this->sellerNonceManager->expects(self::never())->method('remove');
 
         $this->expectException(OnboardingAccountMismatchException::class);
@@ -118,7 +114,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
         $this->sellerNonceManager->method('get')->willReturn('NONCE');
         $this->sellerOnboardingResolver->method('resolve')->willThrowException(new \RuntimeException('PayPal is down'));
 
-        $this->entityManager->expects(self::never())->method('flush');
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
 
         $this->expectException(OnboardingFailedException::class);
 

@@ -61,10 +61,13 @@ sylius_paypal:
             unknown: 'PayPal permissions unknown'
             unknown_details: 'The plugin has not stored the permissions this PayPal account was connected with.'
         update:
+            already_up_to_date: 'The PayPal permissions of this payment method are already up to date.'
+            awaiting_paypal: 'PayPal has not activated these capabilities of the account yet. Check the PayPal account of this payment method:'
             button: 'Update PayPal permissions'
             completed: 'Your PayPal permissions have been updated.'
             help: 'Grant the permissions added by a newer version of the plugin, e.g. Apple Pay or Google Pay, without connecting the account again.'
             modal_description: 'You will be asked to log in to PayPal with the account of this payment method and to grant the permissions the plugin needs. The payment method keeps its credentials and webhook.'
+            verification_failed: 'Could not check the PayPal permissions of this payment method. You can still update them.'
     privacy_notice: 'By paying with your card, you acknowledge that PayPal will process your data according to the PayPal Privacy Statement available at PayPal.com.'
     privacy_statement: 'PayPal Privacy Statement'
     refund_late_capture: 'Refund the extra %amount%'

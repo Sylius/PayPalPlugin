@@ -24,7 +24,22 @@
                         <p>{{ (paymentMethodId is null ? 'sylius_paypal.onboarding_completed' : 'sylius_paypal.permissions.update.completed')|trans }}</p>
                         <a href="#" class="btn btn-success" data-paypal-onboarding-success-link>{{ 'sylius_paypal.go_to_payment_method'|trans }}</a>
                     </div>
-                    {% if failed %}
+                    {% if verificationFailed %}
+                        <div class="alert alert-warning" {{ sylius_test_html_attribute('paypal-permissions-verification', 'failed') }}>
+                            {{ 'sylius_paypal.permissions.update.verification_failed'|trans }}
+                        </div>
+                    {% endif %}
+                    {% if verification is not null and verification.isUpToDate() %}
+                        <div class="alert alert-success" {{ sylius_test_html_attribute('paypal-permissions-verification', 'up_to_date') }}>
+                            <p>{{ 'sylius_paypal.permissions.update.already_up_to_date'|trans }}</p>
+                            <a href="{{ path('sylius_admin_payment_method_update', {id: paymentMethodId}) }}" class="btn btn-success">{{ 'sylius_paypal.go_to_payment_method'|trans }}</a>
+                        </div>
+                    {% elseif verification is not null and verification.isAwaitingPayPal() %}
+                        <div class="alert alert-info" {{ sylius_test_html_attribute('paypal-permissions-verification', 'awaiting_paypal') }}>
+                            {{ 'sylius_paypal.permissions.update.awaiting_paypal'|trans }}
+                            <code>{{ verification.pendingCapabilities()|map((status, capability) => capability ~ ': ' ~ status)|join(', ') }}</code>
+                        </div>
+                    {% elseif failed %}
                         <div class="alert alert-danger" data-paypal-onboarding-load-error>
                             {{ 'sylius_paypal.could_not_load_onboarding_url'|trans }}
                         </div>
