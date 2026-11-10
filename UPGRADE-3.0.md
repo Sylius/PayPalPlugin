@@ -975,8 +975,11 @@
 
    `Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface` (`sylius_paypal.provider.merchant_integration_status`)
    reads `GET v1/customer/partners/{partner_id}/merchant-integrations/{merchant_id}` under the configured partner, with
-   the access token the payment method uses for its other PayPal calls, and returns `null` when the status cannot be
-   read. Nothing reads it when the admin or the shop is visited: the Apple Pay and Google Pay toggles of the PayPal
+   the access token the payment method uses for its other PayPal calls. It returns `null` for a payment method without
+   a PayPal account yet and when the configured partner does not know the account (PayPal answers `404`, as for an
+   account connected through the 2.x facilitator), and throws
+   `Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException` when the status cannot be read.
+   Nothing reads it when the admin or the shop is visited: the Apple Pay and Google Pay toggles of the PayPal
    configuration form are stored as they are submitted, and the shop reads only the stored toggles.
 
    `Sylius\PayPalPlugin\Model\OnboardingStatus` carries the status PayPal gives each capability of the account
