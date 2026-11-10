@@ -961,8 +961,8 @@
    `sylius_paypal.admin.payment_method.grid.field.name.content.badges` and
    `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal` hooks.
 
-   The edit page also shows the stored webhook URL next to the credentials, read-only, or "Unknown" when none is
-   stored.
+   The edit page also shows the stored webhook URL next to the credentials, read-only, or "Not stored yet" when none
+   is stored.
 
 1. #### `PaymentCaptureProcessor` brings the approved PayPal order up to date through `ApprovedPayPalOrderUpdater`.
 

@@ -4,7 +4,7 @@
 
 <div class="col-12">
     <div class="mb-3">
-        <label class="form-label" for="paypal-webhook-url">{{ 'sylius_paypal.webhook_url'|trans }}</label>
-        <input type="text" id="paypal-webhook-url" class="form-control" value="{{ webhook_url }}" placeholder="{{ 'sylius_paypal.webhook_url_unknown'|trans }}" disabled {{ sylius_test_html_attribute('paypal-webhook-url', webhook_url ?? 'unknown') }}>
+        <label class="form-label" for="paypal-webhook-url">{{ 'sylius_paypal.webhook.url.label'|trans }}</label>
+        <input type="text" id="paypal-webhook-url" class="form-control" value="{{ webhook_url }}" placeholder="{{ 'sylius_paypal.webhook.url.not_stored'|trans }}" disabled {{ sylius_test_html_attribute('paypal-webhook-url', webhook_url ?? 'unknown') }}>
     </div>
 </div>
