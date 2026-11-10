@@ -69,6 +69,13 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
             // the webhook is already registered from a previous attempt; nothing to do
         }
 
+        if (null !== $status) {
+            $gatewayConfig->setConfig(array_merge(
+                $gatewayConfig->getConfig(),
+                [PayPalGatewayConfig::VAULTING_ENABLED => $status->isVaultingEnabled()],
+            ));
+        }
+
         $paymentMethod->setEnabled(true);
         $this->paymentMethodManager->flush();
     }
