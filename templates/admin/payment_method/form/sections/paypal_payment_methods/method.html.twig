@@ -1,4 +1,5 @@
 {% import '@SyliusPayPalPlugin/admin/shared/helper/payment_method_icon.html.twig' as payment_method_icon %}
+{% import '@SyliusPayPalPlugin/admin/shared/helper/info_tooltip.html.twig' as info_tooltip %}
 
 {% set configuration = hookable_metadata.configuration %}
 {% set options %}{% hook configuration.code ~ '.options' %}{% endset %}
@@ -15,6 +16,7 @@
         <div class="flex-grow-1">
             <div class="fw-medium">
                 {{ configuration.label|trans }}
+                {%- if configuration.help|default(null) is not null %}{{ info_tooltip.icon(configuration.help, configuration.label, configuration.code) }}{% endif %}
                 {% if configuration.badge|default(null) is not null %}
                     <span class="badge bg-body-secondary text-body ms-1">{{ configuration.badge|trans }}</span>
                 {% endif %}

@@ -74,6 +74,7 @@ sylius_twig_hooks:
                     label: sylius_paypal.pay_later
                     icon: 'pay_later'
                     description: sylius_paypal.pay_later_description
+                    help: sylius_paypal.pay_later_info
                 priority: 0
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.paypal.paypal':
