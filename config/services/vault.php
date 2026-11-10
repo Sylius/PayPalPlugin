@@ -27,6 +27,7 @@ use Sylius\PayPalPlugin\Resolver\NullVaultRequestResolver;
 use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolver;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolverInterface;
+use Sylius\PayPalPlugin\Resolver\VaultingAwarePaymentMethodsResolver;
 
 return static function (ContainerConfigurator $container): void {
     $parameters = $container->parameters();
@@ -91,4 +92,11 @@ return static function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.resolver.vaulted_charge_failure', VaultedChargeFailureResolver::class);
 
     $services->alias(VaultedChargeFailureResolverInterface::class, 'sylius_paypal.resolver.vaulted_charge_failure');
+
+    $services->set('sylius_paypal.resolver.payment_methods.vaulting_aware', VaultingAwarePaymentMethodsResolver::class)
+        ->decorate('sylius.resolver.payment_methods.channel_based')
+        ->args([
+            service('.inner'),
+            service('sylius_paypal.provider.vault_request'),
+        ]);
 };

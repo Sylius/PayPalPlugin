@@ -177,6 +177,71 @@ final class PayPalVaultRequestProviderTest extends TestCase
         self::assertFalse((new PayPalVaultRequestProvider($resolver, $payPalMethodsResolver, $refresher))->isVaultingEnabledInChannel($this->createStub(ChannelInterface::class)));
     }
 
+    public function test_it_tells_the_vaulting_requirement_is_not_met_when_the_order_needs_it_and_paypal_still_cannot_vault_for_the_merchant(): void
+    {
+        $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]);
+
+        $refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
+        $refresher->expects(self::once())->method('refresh')->with($paymentMethod)->willReturn(false);
+
+        self::assertFalse($this->provider($this->vaultingResolver(), $refresher)->isVaultingRequirementMet($this->cartWith($paymentMethod), $paymentMethod));
+    }
+
+    public function test_it_tells_the_vaulting_requirement_is_met_once_paypal_activates_vaulting_for_the_merchant(): void
+    {
+        $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]);
+
+        $refresher = $this->createStub(VaultingCapabilityRefresherInterface::class);
+        $refresher->method('refresh')->willReturn(true);
+
+        self::assertTrue($this->provider($this->vaultingResolver(), $refresher)->isVaultingRequirementMet($this->cartWith($paymentMethod), $paymentMethod));
+    }
+
+    public function test_it_tells_the_vaulting_requirement_is_met_for_a_merchant_that_can_vault_without_asking_paypal(): void
+    {
+        $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => true]);
+
+        $refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
+        $refresher->expects(self::never())->method('refresh');
+
+        self::assertTrue($this->provider($this->vaultingResolver(), $refresher)->isVaultingRequirementMet($this->cartWith($paymentMethod), $paymentMethod));
+    }
+
+    public function test_it_tells_the_vaulting_requirement_is_met_for_an_order_that_needs_no_vaulting(): void
+    {
+        $paymentMethod = $this->paymentMethod('sylius_paypal', ['vaulting_enabled' => false]);
+
+        $refresher = $this->createMock(VaultingCapabilityRefresherInterface::class);
+        $refresher->expects(self::never())->method('refresh');
+
+        self::assertTrue($this->provider(new NullVaultRequestResolver(), $refresher)->isVaultingRequirementMet($this->cartWith($paymentMethod), $paymentMethod));
+    }
+
+    public function test_it_tells_the_vaulting_requirement_is_met_for_a_gateway_that_is_not_paypal(): void
+    {
+        $paymentMethod = $this->paymentMethod('offline', []);
+
+        self::assertTrue($this->provider($this->vaultingResolver(), $this->createStub(VaultingCapabilityRefresherInterface::class))->isVaultingRequirementMet($this->cartWith($paymentMethod), $paymentMethod));
+    }
+
+    public function test_it_tells_the_vaulting_requirement_is_met_without_a_payment_method(): void
+    {
+        self::assertTrue($this->provider($this->vaultingResolver(), $this->createStub(VaultingCapabilityRefresherInterface::class))->isVaultingRequirementMet($this->createStub(OrderInterface::class), null));
+    }
+
+    private function provider(VaultRequestResolverInterface $resolver, VaultingCapabilityRefresherInterface $refresher): PayPalVaultRequestProvider
+    {
+        return new PayPalVaultRequestProvider($resolver, $this->createStub(PayPalPaymentMethodsResolverInterface::class), $refresher);
+    }
+
+    private function vaultingResolver(): VaultRequestResolverInterface
+    {
+        $resolver = $this->createStub(VaultRequestResolverInterface::class);
+        $resolver->method('resolve')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
+
+        return $resolver;
+    }
+
     private function cartWith(PaymentMethodInterface $paymentMethod): OrderInterface
     {
         $payment = $this->createStub(PaymentInterface::class);

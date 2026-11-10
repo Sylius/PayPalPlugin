@@ -239,12 +239,24 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         ($this->handlerVaulting())(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH', self::RETURN_URL));
     }
 
-    private function handlerVaulting(): CreatePayPalOrderPaymentRequestHandler
+    public function test_it_fails_the_payment_request_instead_of_paying_once_when_the_payment_needs_vaulting_the_merchant_cannot_do(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal']);
+
+        $this->payPalOrderCreator->expects(self::never())->method('create');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'This payment needs a PayPal wallet saved for later charges, but the merchant cannot save PayPal wallets yet.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
+
+        ($this->handlerVaulting(vaultingRequirementMet: false))(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH', self::RETURN_URL));
+    }
+
+    private function handlerVaulting(bool $vaultingRequirementMet = true): CreatePayPalOrderPaymentRequestHandler
     {
         $this->payment->method('getOrder')->willReturn($this->createStub(OrderInterface::class));
 
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('provide')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
+        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn($vaultingRequirementMet);
+        $vaultRequestProvider->method('provide')->willReturn($vaultingRequirementMet ? new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID) : null);
 
         return new CreatePayPalOrderPaymentRequestHandler(
             $this->paymentRequestProvider,

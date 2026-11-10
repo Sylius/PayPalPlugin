@@ -24,5 +24,7 @@ interface PayPalVaultRequestProviderInterface
 
     public function provideForCart(OrderInterface $order): ?PayPalVaultRequest;
 
+    public function isVaultingRequirementMet(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool;
+
     public function isVaultingEnabledInChannel(ChannelInterface $channel): bool;
 }

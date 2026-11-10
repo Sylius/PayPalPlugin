@@ -26,4 +26,5 @@ sylius_paypal:
     something_went_wrong: 'Something went wrong. Please, try again.'
     three_d_secure_declined: 'Your card could not be authenticated. Please use another payment method.'
     three_d_secure_retry: 'Card authentication could not be completed. Please, try again.'
+    vaulting_not_available: 'PayPal cannot be used for this order yet. Please choose another payment method.'
     webhook_url_not_valid: 'PayPal could not verify provided webhook url. Make sure it is https and try again'

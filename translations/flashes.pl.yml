@@ -26,4 +26,5 @@ sylius_paypal:
     something_went_wrong: 'Coś poszło nie tak. Spróbuj ponownie.'
     three_d_secure_declined: 'Nie udało się uwierzytelnić karty. Wybierz inną metodę płatności.'
     three_d_secure_retry: 'Nie udało się dokończyć uwierzytelnienia karty. Spróbuj ponownie.'
+    vaulting_not_available: 'PayPal nie może jeszcze zostać użyty dla tego zamówienia. Wybierz inną metodę płatności.'
     webhook_url_not_valid: 'PayPal nie mógł zweryfikować podanego adresu webhooka. Upewnij się, że używa https, i spróbuj ponownie'

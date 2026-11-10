@@ -93,6 +93,12 @@ final class CreatePayPalOrderPaymentRequestHandler
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
+        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $payment->getMethod())) {
+            $this->failWithReason($paymentRequest, 'This payment needs a PayPal wallet saved for later charges, but the merchant cannot save PayPal wallets yet.');
+
+            return;
+        }
+
         if (
             PayPalPaymentSourceProviderInterface::PAYPAL !== $paymentSource &&
             null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod())
