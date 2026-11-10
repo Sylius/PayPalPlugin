@@ -53,6 +53,20 @@
       A payment whose capture was pending, or a Trustly payment whose payer was at the bank, is completed once PayPal
       has captured it. A payment the buyer had not paid yet gets a new PayPal order on the payment page.
 
+   6. Update the PayPal permissions of every PayPal payment method in the admin.
+
+      Every PayPal payment method connected on 2.x is flagged with "PayPal permissions unknown" on the payment method
+      list, as the plugin has not stored the scope it was onboarded with. On its edit page, click "Update PayPal
+      permissions" in that alert. The plugin first reads the merchant integration status of the account: when Apple Pay
+      and Google Pay are already active, it only stores the scope; when PayPal is still reviewing one of them, it says
+      so. Otherwise the seller logs in to PayPal with the account of that payment method and grants every permission the
+      plugin asks for at once. The payment method keeps its credentials and webhook.
+
+      There is no command and no link to send the seller for this step: PayPal asks for the consent in the onboarding
+      window the admin opens from the payment method. The payment methods keep working with the permissions they had
+      until then, but Apple Pay and Google Pay need their capability to be active in the account. See "The scope a
+      PayPal payment method is onboarded with is stored in its gateway config".
+
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 
    The BN code is not sandbox specific: it is sent as the `PayPal-Partner-Attribution-Id` header in production
@@ -81,9 +95,9 @@
    (`sylius_paypal.onboarding.processor.permissions_update`). It refuses another PayPal account and keeps the payment
    method with its credentials and webhook: PayPal issues new credentials on every onboarding, but the webhook belongs
    to the credentials it was registered with. It stores `OnboardingScope::current()` as the scope of the payment
-   method through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface` (`sylius_paypal.updater.onboarding_scope`),
-   so the admin stops flagging its PayPal permissions (see "The scope a PayPal payment method is onboarded with is
-   stored in its gateway config").
+   method through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface`
+   (`sylius_paypal.updater.onboarding_scope`), so the admin stops flagging its PayPal permissions (see "The scope a
+   PayPal payment method is onboarded with is stored in its gateway config").
 
    Before it offers the consent, the modal asks PayPal for the merchant integration status of the account through
    `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`), which returns a
@@ -1001,8 +1015,9 @@
 
    `Sylius\PayPalPlugin\Model\OnboardingScope::current()` gives the product, the secondary products, the capabilities
    (named by the `Sylius\PayPalPlugin\Model\Capability` constants) and the features the onboarding asks the seller to
-   consent to, and `PayPalOnboardingUrlProvider` builds the onboarding URL from it. The onboarding stores it in the gateway config of the payment method it creates, under the
-   `onboarding_scope` key, read through `PayPalGatewayConfig::onboardingScope()`.
+   consent to, and `PayPalOnboardingUrlProvider` builds the onboarding URL from it. The onboarding stores it in the
+   gateway config of the payment method it creates, under the `onboarding_scope` key, read through
+   `PayPalGatewayConfig::onboardingScope()`.
 
    The payment method list and edit page compare it with the current scope without asking PayPal, through
    `Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface` (`sylius_paypal.checker.permissions_state`), which
