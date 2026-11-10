@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Dispatcher;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
@@ -36,6 +38,8 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
     /** @var PaymentRequestRepositoryInterface<PaymentRequestInterface>&MockObject */
     private PaymentRequestRepositoryInterface&MockObject $paymentRequestRepository;
 
+    private EntityManagerInterface&MockObject $paymentManager;
+
     private StateMachineInterface&MockObject $stateMachine;
 
     private MessageBusInterface&MockObject $commandBus;
@@ -44,12 +48,23 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
 
     private Payment $payment;
 
+    /** @var list<string> */
+    private array $calls = [];
+
     private ChargeVaultedPaymentRequestDispatcher $dispatcher;
 
     protected function setUp(): void
     {
         $this->paymentRequestFactory = $this->createMock(PaymentRequestFactoryInterface::class);
         $this->paymentRequestRepository = $this->createMock(PaymentRequestRepositoryInterface::class);
+        $this->paymentManager = $this->createMock(EntityManagerInterface::class);
+        $this->paymentManager->method('wrapInTransaction')->willReturnCallback(function (callable $function): mixed {
+            $this->calls[] = 'begin';
+            $result = $function();
+            $this->calls[] = 'commit';
+
+            return $result;
+        });
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->commandBus = $this->createMock(MessageBusInterface::class);
         $this->paymentMethod = new PaymentMethod();
@@ -59,6 +74,7 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         $this->dispatcher = new ChargeVaultedPaymentRequestDispatcher(
             $this->paymentRequestFactory,
             $this->paymentRequestRepository,
+            $this->paymentManager,
             $this->stateMachine,
             $this->commandBus,
         );
@@ -105,6 +121,78 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         $this->expectChargeDispatchedFor('NEW_CHARGE_REQUEST_HASH');
 
         self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment));
+    }
+
+    public function test_it_looks_for_the_open_charge_request_under_the_payment_lock_and_dispatches_after_the_commit(): void
+    {
+        $paymentRequest = $this->paymentRequest(ChargeVaultedPaymentRequestCommandProvider::ACTION, 'OPEN_CHARGE_REQUEST_HASH');
+        $this->paymentRequestRepository
+            ->method('findByPaymentIdAndStates')
+            ->willReturnCallback(function () use ($paymentRequest): array {
+                $this->calls[] = 'lookup';
+
+                return [$paymentRequest];
+            })
+        ;
+
+        $this->expectPaymentLocked();
+        $this->recordDispatch();
+
+        $this->dispatcher->dispatch($this->payment);
+
+        self::assertSame(['begin', 'lock', 'lookup', 'commit', 'dispatch'], $this->calls);
+    }
+
+    public function test_it_creates_the_charge_request_under_the_payment_lock_and_dispatches_after_the_commit(): void
+    {
+        $paymentRequest = $this->paymentRequest(ChargeVaultedPaymentRequestCommandProvider::ACTION, 'CHARGE_REQUEST_HASH');
+        $this->paymentRequestRepository
+            ->method('findByPaymentIdAndStates')
+            ->willReturnCallback(function (): array {
+                $this->calls[] = 'lookup';
+
+                return [];
+            })
+        ;
+        $this->paymentRequestFactory->method('create')->willReturn($paymentRequest);
+        $this->paymentRequestRepository
+            ->method('add')
+            ->willReturnCallback(function (): void {
+                $this->calls[] = 'add';
+            })
+        ;
+
+        $this->expectPaymentLocked();
+        $this->recordDispatch();
+
+        $this->dispatcher->dispatch($this->payment);
+
+        self::assertSame(['begin', 'lock', 'lookup', 'add', 'commit', 'dispatch'], $this->calls);
+    }
+
+    private function expectPaymentLocked(): void
+    {
+        $this->paymentManager->expects(self::never())->method('refresh');
+        $this->paymentManager
+            ->expects(self::once())
+            ->method('lock')
+            ->with($this->payment, LockMode::PESSIMISTIC_WRITE)
+            ->willReturnCallback(function (): void {
+                $this->calls[] = 'lock';
+            })
+        ;
+    }
+
+    private function recordDispatch(): void
+    {
+        $this->commandBus
+            ->method('dispatch')
+            ->willReturnCallback(function (object $command): Envelope {
+                $this->calls[] = 'dispatch';
+
+                return new Envelope($command);
+            })
+        ;
     }
 
     private function paymentRequest(string $action, string $hash, string $state = PaymentRequestInterface::STATE_PROCESSING): PaymentRequestInterface&MockObject

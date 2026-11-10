@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Dispatcher;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
@@ -33,6 +35,7 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
     public function __construct(
         private PaymentRequestFactoryInterface $paymentRequestFactory,
         private PaymentRequestRepositoryInterface $paymentRequestRepository,
+        private EntityManagerInterface $paymentManager,
         private StateMachineInterface $stateMachine,
         private MessageBusInterface $commandBus,
     ) {
@@ -40,7 +43,11 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
 
     public function dispatch(PaymentInterface $payment): PaymentRequestInterface
     {
-        $paymentRequest = $this->openPaymentRequest($payment) ?? $this->createPaymentRequest($payment);
+        $paymentRequest = $this->paymentManager->wrapInTransaction(function () use ($payment): PaymentRequestInterface {
+            $this->paymentManager->lock($payment, LockMode::PESSIMISTIC_WRITE);
+
+            return $this->openPaymentRequest($payment) ?? $this->createPaymentRequest($payment);
+        });
 
         $this->commandBus->dispatch(new ChargeVaultedPaymentRequest($paymentRequest->getId()));
 

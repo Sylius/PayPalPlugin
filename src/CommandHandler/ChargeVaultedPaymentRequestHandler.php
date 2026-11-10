@@ -13,9 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\CommandHandler;
 
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Exception\ORMException;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
@@ -49,24 +53,37 @@ final class ChargeVaultedPaymentRequestHandler
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private readonly VaultedChargeFailureResolverInterface $failureResolver,
         private readonly PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
+        private readonly EntityManagerInterface $paymentManager,
+        private readonly EntityManagerInterface $paymentRequestManager,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
     }
 
     /**
-     * @throws PayPalApiConnectionException|PayPalApiServerException
+     * @throws PayPalApiConnectionException
+     * @throws PayPalApiServerException
+     * @throws ORMException
      */
     public function __invoke(ChargeVaultedPaymentRequest $chargeVaultedPaymentRequest): void
     {
         $paymentRequest = $this->paymentRequestProvider->provide($chargeVaultedPaymentRequest);
+        /** @var PaymentInterface $payment */
+        $payment = $paymentRequest->getPayment();
+        $this->paymentManager->refresh($payment, LockMode::PESSIMISTIC_WRITE);
+        $this->paymentRequestManager->refresh($paymentRequest, LockMode::PESSIMISTIC_WRITE);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
             return;
         }
 
-        /** @var PaymentInterface $payment */
-        $payment = $paymentRequest->getPayment();
+        if (BasePaymentInterface::STATE_NEW !== $payment->getState()) {
+            $paymentRequest->setResponseData([self::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted wallet is not charged again.', $payment->getState())]);
+            $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+
+            return;
+        }
+
         $details = PayPalPaymentDetails::fromPayment($payment);
 
         $vaultId = $details->vaultId();
