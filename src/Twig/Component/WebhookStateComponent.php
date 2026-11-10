@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Twig\Component;
 
-use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
@@ -40,7 +39,6 @@ final class WebhookStateComponent
     public function __construct(
         private readonly PaymentMethodRepositoryInterface $paymentMethodRepository,
         private readonly WebhookStateCheckerInterface $webhookStateChecker,
-        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -51,16 +49,6 @@ final class WebhookStateComponent
             return null;
         }
 
-        try {
-            return $this->webhookStateChecker->check($paymentMethod);
-        } catch (\Throwable $exception) {
-            $this->logger->error(sprintf(
-                'Could not check the webhook of the "%s" payment method: %s',
-                (string) $paymentMethod->getCode(),
-                $exception->getMessage(),
-            ));
-
-            return null;
-        }
+        return $this->webhookStateChecker->check($paymentMethod);
     }
 }

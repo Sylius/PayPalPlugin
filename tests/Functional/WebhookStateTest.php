@@ -42,25 +42,20 @@ final class WebhookStateTest extends JsonApiTestCase
         ]);
         $this->paymentMethod = $fixtures['paypal'];
         $this->admin = $fixtures['admin'];
-        self::getContainer()->get('sylius_paypal.cache')->clear();
     }
 
-    public function test_it_loads_the_webhook_state_of_a_paypal_payment_method_lazily_on_its_edit_page(): void
+    public function test_it_shows_the_webhook_state_of_a_paypal_payment_method_on_its_edit_page_without_asking_paypal(): void
     {
         $this->client->loginUser($this->admin, 'admin');
         $this->client->request('GET', sprintf('/admin/payment-methods/%d/edit', (int) $this->paymentMethod->getId()));
+
         self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        self::assertStringContainsString('sylius_paypal:webhook_state', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('data-test-paypal-webhook-state="unknown"', (string) $this->client->getResponse()->getContent());
     }
 
-    public function test_it_flags_a_webhook_that_misses_an_event_type_the_plugin_handles(): void
+    public function test_it_flags_a_stored_webhook_that_misses_an_event_type_the_plugin_handles(): void
     {
-        $this->storeWebhookId('WH-1');
-        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', [
-            'id' => 'WH-1',
-            'url' => $this->notifyUrl(),
-            'event_types' => array_map(static fn (string $name): array => ['name' => $name], array_slice(WebhookApi::EVENT_TYPES, 1)),
-        ]);
+        $this->storeWebhook($this->notifyUrl(), array_slice(WebhookApi::EVENT_TYPES, 1));
 
         $rendered = (string) $this->webhookState('alert')->render();
 
@@ -68,22 +63,15 @@ final class WebhookStateTest extends JsonApiTestCase
         self::assertStringContainsString(WebhookApi::EVENT_TYPES[0], $rendered);
     }
 
-    public function test_it_flags_a_payment_method_without_a_webhook(): void
+    public function test_it_flags_a_payment_method_whose_webhook_was_stored_without_its_url_and_event_types(): void
     {
-        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => []]);
-
-        self::assertStringContainsString('data-test-paypal-webhook-state="not-registered"', (string) $this->webhookState('badge')->render());
+        self::assertStringContainsString('data-test-paypal-webhook-state="unknown"', (string) $this->webhookState('badge')->render());
     }
 
-    public function test_it_flags_a_webhook_found_on_the_legacy_path_for_a_payment_method_without_a_stored_webhook_id(): void
+    public function test_it_flags_a_stored_webhook_on_the_legacy_path(): void
     {
         $legacyUrl = 'https://localhost/paypal-webhook/api/';
-        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks', ['webhooks' => [['id' => 'WH-1', 'url' => $legacyUrl]]]);
-        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', [
-            'id' => 'WH-1',
-            'url' => $legacyUrl,
-            'event_types' => array_map(static fn (string $name): array => ['name' => $name], WebhookApi::EVENT_TYPES),
-        ]);
+        $this->storeWebhook($legacyUrl, WebhookApi::EVENT_TYPES);
 
         $rendered = (string) $this->webhookState('alert')->render();
 
@@ -91,14 +79,9 @@ final class WebhookStateTest extends JsonApiTestCase
         self::assertStringContainsString($legacyUrl, $rendered);
     }
 
-    public function test_it_shows_nothing_for_a_webhook_that_is_up_to_date_and_asks_paypal_only_once(): void
+    public function test_it_shows_nothing_for_a_stored_webhook_that_is_up_to_date(): void
     {
-        $this->storeWebhookId('WH-1');
-        $this->payPalHttpClient()->addExpectation('GET', 'v1/notifications/webhooks/WH-1', [
-            'id' => 'WH-1',
-            'url' => $this->notifyUrl(),
-            'event_types' => array_map(static fn (string $name): array => ['name' => $name], WebhookApi::EVENT_TYPES),
-        ]);
+        $this->storeWebhook($this->notifyUrl(), WebhookApi::EVENT_TYPES);
 
         self::assertStringNotContainsString('paypal-webhook-state', (string) $this->webhookState('badge')->render());
         self::assertStringNotContainsString('paypal-webhook-state', (string) $this->webhookState('alert')->render());
@@ -115,11 +98,16 @@ final class WebhookStateTest extends JsonApiTestCase
         )->actingAs($this->admin, 'admin');
     }
 
-    private function storeWebhookId(string $webhookId): void
+    /** @param list<string> $eventTypes */
+    private function storeWebhook(string $webhookUrl, array $eventTypes): void
     {
         $gatewayConfig = $this->paymentMethod->getGatewayConfig();
         self::assertNotNull($gatewayConfig);
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['sandbox' => true, 'webhook_id' => $webhookId]));
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [
+            'webhook_id' => 'WH-1',
+            'webhook_url' => $webhookUrl,
+            'webhook_event_types' => $eventTypes,
+        ]));
         $this->getEntityManager()->flush();
     }
 

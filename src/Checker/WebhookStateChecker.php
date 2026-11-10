@@ -15,25 +15,15 @@ namespace Sylius\PayPalPlugin\Checker;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookApi;
-use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\WebhookState;
-use Sylius\PayPalPlugin\Provider\HostProviderInterface;
-use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 
 final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
 {
-    private const ALL_EVENT_TYPES = '*';
-
-    public function __construct(
-        private GenericApiInterface $genericApi,
-        private HostProviderInterface $hostProvider,
-        private WebhookUrlProviderInterface $webhookUrlProvider,
-        private WebhookIdProviderInterface $webhookIdProvider,
-    ) {
+    public function __construct(private WebhookUrlProviderInterface $webhookUrlProvider)
+    {
     }
 
     public function check(PaymentMethodInterface $paymentMethod): WebhookState
@@ -41,27 +31,15 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-        $webhookId = $config->webhookId();
-        if (null === $webhookId || '' === $webhookId) {
-            $webhookId = $this->webhookIdProvider->provide($paymentMethod);
+        $registeredUrl = $config->webhookUrl();
+        $registeredEventTypes = $config->webhookEventTypes();
+
+        if (null === $registeredUrl || null === $registeredEventTypes) {
+            return WebhookState::unknown();
         }
 
-        if (null === $webhookId) {
-            return WebhookState::notRegistered();
-        }
-
-        try {
-            $webhook = $this->genericApi->get(
-                $paymentMethod,
-                $this->hostProvider->getApiBaseUrlForMode($config->isSandbox()) . 'v1/notifications/webhooks/' . $webhookId,
-            );
-        } catch (PayPalApiNotFoundException) {
-            return WebhookState::notRegistered();
-        }
-
-        $registeredUrl = is_string($webhook['url'] ?? null) ? $webhook['url'] : '';
         $pointsElsewhere = !$this->pointsAtNotifyUrl($paymentMethod, $registeredUrl);
-        $missingEventTypes = $this->missingEventTypes($webhook['event_types'] ?? []);
+        $missingEventTypes = array_values(array_diff(WebhookApi::EVENT_TYPES, $registeredEventTypes));
 
         if (!$pointsElsewhere && [] === $missingEventTypes) {
             return WebhookState::upToDate($registeredUrl);
@@ -83,17 +61,6 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         }
 
         return false;
-    }
-
-    /** @return list<string> */
-    private function missingEventTypes(mixed $registeredEventTypes): array
-    {
-        $names = is_array($registeredEventTypes) ? array_column($registeredEventTypes, 'name') : [];
-        if (in_array(self::ALL_EVENT_TYPES, $names, true)) {
-            return [];
-        }
-
-        return array_values(array_diff(WebhookApi::EVENT_TYPES, $names));
     }
 
     private function withoutScheme(string $url): string

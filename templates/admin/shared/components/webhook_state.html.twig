@@ -2,12 +2,16 @@
 
 <div {{ attributes }}>
     {% if state is not null and not state.isUpToDate() %}
-        {% set problem = state.isRegistered() ? 'sylius_paypal.webhook_out_of_date' : 'sylius_paypal.webhook_not_registered' %}
+        {% set problem = state.isKnown() ? 'sylius_paypal.webhook_out_of_date' : 'sylius_paypal.webhook_state_unknown' %}
+        {% set test_state = state.isKnown() ? 'out-of-date' : 'unknown' %}
 
         {% if variant == 'alert' %}
-            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-webhook-state', state.isRegistered() ? 'out-of-date' : 'not-registered') }}>
+            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>
                 <div>
                     <div class="fw-bold">{{ problem|trans }}</div>
+                    {% if not state.isKnown() %}
+                        <div>{{ 'sylius_paypal.webhook_state_unknown_details'|trans }}</div>
+                    {% endif %}
                     {% if state.pointsElsewhere() %}
                         <div>{{ 'sylius_paypal.webhook_points_elsewhere'|trans({'%url%': state.registeredUrl()}) }}</div>
                     {% endif %}
@@ -18,7 +22,7 @@
                 </div>
             </div>
         {% else %}
-            <span class="badge bg-red-lt" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', state.isRegistered() ? 'out-of-date' : 'not-registered') }}>{{ problem|trans }}</span>
+            <span class="badge bg-red-lt" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>{{ problem|trans }}</span>
         {% endif %}
     {% endif %}
 </div>
