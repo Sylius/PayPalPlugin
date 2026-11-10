@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Enabler;
 
 use Doctrine\Persistence\ObjectManager;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -25,6 +26,7 @@ use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
 use Sylius\PayPalPlugin\Exception\PayPalApiAuthenticationException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 use Sylius\PayPalPlugin\Model\AccessToken;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PartnerCredentials;
@@ -93,7 +95,12 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
             ->expects(self::once())
             ->method('get')
             ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', false)
-            ->willReturn(new OnboardingStatus(true, true));
+            ->willReturn(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE']));
+
+        $gatewayConfig
+            ->expects(self::once())
+            ->method('setConfig')
+            ->with(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET', 'vaulting_enabled' => true]);
 
         $this->sellerWebhookRegistrar
             ->expects(self::once())
@@ -125,6 +132,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
 
         $this->partnerCredentialsProvider->expects(self::never())->method('provide');
         $this->merchantOnboardingStatusApi->expects(self::never())->method('get');
+        $gatewayConfig->expects(self::never())->method('setConfig');
 
         $this->sellerWebhookRegistrar
             ->expects(self::once())
@@ -135,6 +143,39 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
         $this->paymentMethodManager->expects(self::once())->method('flush');
 
         $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    /** @param array<string, string> $capabilityStatuses */
+    #[Test]
+    #[DataProvider('provideInactiveVaultingCapabilities')]
+    public function it_turns_vaulting_off_when_the_vaulting_capability_is_no_longer_active(array $capabilityStatuses): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig
+            ->method('getConfig')
+            ->willReturn(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET', 'vaulting_enabled' => true]);
+
+        $this->authorizeClientApi->method('authorize')->willReturn(new AccessToken('SELLER-TOKEN', 32400));
+        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, $capabilityStatuses));
+
+        $gatewayConfig
+            ->expects(self::once())
+            ->method('setConfig')
+            ->with(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET', 'vaulting_enabled' => false]);
+
+        $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    /** @return iterable<string, array{array<string, string>}> */
+    public static function provideInactiveVaultingCapabilities(): iterable
+    {
+        yield 'capability not active yet' => [['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA']];
+        yield 'capability not requested' => [['APPLE_PAY' => 'ACTIVE']];
     }
 
     #[Test]
@@ -152,6 +193,7 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
         $status = new OnboardingStatus(false, true);
         $this->merchantOnboardingStatusApi->method('get')->willReturn($status);
 
+        $gatewayConfig->expects(self::never())->method('setConfig');
         $this->sellerWebhookRegistrar->expects(self::never())->method('register');
         $paymentMethod->expects(self::never())->method('setEnabled');
         $this->paymentMethodManager->expects(self::never())->method('flush');
@@ -167,16 +209,40 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
     public function test_it_does_not_enable_the_payment_method_when_paypal_rejects_its_credentials(): void
     {
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($this->createConfiguredStub(GatewayConfigInterface::class, [
-            'getConfig' => ['sandbox' => true, 'merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET'],
-        ]));
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig
+            ->method('getConfig')
+            ->willReturn(['sandbox' => true, 'merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
 
         $this->authorizeClientApi->method('authorize')->willThrowException(new PayPalApiAuthenticationException('POST', 'v1/oauth2/token', 401, 'invalid_client'));
 
+        $gatewayConfig->expects(self::never())->method('setConfig');
         $this->sellerWebhookRegistrar->expects(self::never())->method('register');
         $paymentMethod->expects(self::never())->method('setEnabled');
 
         $this->expectException(PaymentMethodCouldNotBeEnabledException::class);
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    public function test_it_does_not_store_the_vaulting_flag_when_paypal_rejects_the_webhook_url(): void
+    {
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $gatewayConfig
+            ->method('getConfig')
+            ->willReturn(['merchant_id' => 'MERCHANT-ID', 'client_id' => 'CLIENT-ID', 'client_secret' => 'SECRET']);
+
+        $this->authorizeClientApi->method('authorize')->willReturn(new AccessToken('SELLER-TOKEN', 32400));
+        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE']));
+        $this->sellerWebhookRegistrar->method('register')->willThrowException(new PayPalWebhookUrlNotValidException());
+
+        $gatewayConfig->expects(self::never())->method('setConfig');
+        $paymentMethod->expects(self::never())->method('setEnabled');
+
+        $this->expectException(PayPalWebhookUrlNotValidException::class);
 
         $this->payPalPaymentMethodEnabler->enable($paymentMethod);
     }

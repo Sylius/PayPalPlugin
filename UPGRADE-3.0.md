@@ -968,8 +968,37 @@
    read. Nothing reads it when the admin or the shop is visited: the Apple Pay and Google Pay toggles of the PayPal
    configuration form are stored as they are submitted, and the shop reads only the stored toggles.
 
-   `Sylius\PayPalPlugin\Model\OnboardingStatus` carries the active capabilities of the PayPal account
-   (`activeCapabilities()`, `hasActiveCapability()`).
+   `Sylius\PayPalPlugin\Model\OnboardingStatus` carries the status of every capability of the PayPal account
+   (`capabilityStatus()`) and tells which of them are active (`activeCapabilities()`, `hasActiveCapability()`).
+   Its third constructor argument maps each capability name to its status, as `array<string, string>`:
+
+   ```php
+   new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'NEED_DATA']);
+   ```
+
+   When the merchant integration lists a capability more than once, its last status is kept. Capabilities whose
+   name or status is not a string are skipped.
+
+1. #### The onboarding asks PayPal for vaulting the PayPal wallet.
+
+   The onboarding link requests the `advanced_vaulting` secondary product, the `PAYPAL_WALLET_VAULTING_ADVANCED`
+   capability and the `billing_agreement` and `vault` features. `OnboardingStatus::VAULTING_CAPABILITY` names that
+   capability and `OnboardingStatus::isVaultingEnabled()` tells whether it is active.
+
+   The onboarding and `PayPalPaymentMethodEnabler` store whether it is active in the `vaulting_enabled` key of the
+   gateway config (`Sylius\PayPalPlugin\Model\PayPalGatewayConfig::VAULTING_ENABLED`, read with
+   `PayPalGatewayConfig::isVaultingEnabled()`). The key keeps the status read at that moment: it is not refreshed
+   when PayPal activates the capability later. In sandbox mode the enabler does not read the onboarding status, so it
+   leaves the key as it is.
+
+   When PayPal reports the capability with a status other than `ACTIVE`, the
+   `sylius_paypal.seller_onboarding_vaulting_not_active` message is shown with that status after the onboarding.
+   When the payment method cannot be enabled because the onboarding is incomplete, the message is listed after the
+   blocking reasons. Enabling the payment method does not depend on the vaulting status and shows no vaulting message
+   when it succeeds. Nothing is shown when PayPal does not list the capability at all.
+
+   A PayPal account connected before the upgrade was not asked for vaulting. Connect it again through the
+   onboarding to request it.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 

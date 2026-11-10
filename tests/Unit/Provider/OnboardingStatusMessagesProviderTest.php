@@ -80,4 +80,40 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
             (new OnboardingStatusMessagesProvider(new HostProvider()))->provide(new OnboardingStatus(true, false), true),
         );
     }
+
+    #[Test]
+    public function it_provides_the_vaulting_not_active_message_with_the_capability_status(): void
+    {
+        self::assertSame(
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => ['%status%' => 'NEED_DATA'],
+            ]],
+            (new OnboardingStatusMessagesProvider(new HostProvider()))->provide(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA'])),
+        );
+    }
+
+    #[Test]
+    public function it_provides_no_vaulting_message_when_the_vaulting_capability_is_active(): void
+    {
+        self::assertSame([], (new OnboardingStatusMessagesProvider(new HostProvider()))->provide(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE'])));
+    }
+
+    #[Test]
+    public function it_provides_the_vaulting_not_active_message_after_the_blocking_ones(): void
+    {
+        self::assertSame(
+            [
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
+                    'parameters' => ['%paypal_url%' => 'https://www.paypal.com'],
+                ],
+                [
+                    'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                    'parameters' => ['%status%' => 'IN_REVIEW'],
+                ],
+            ],
+            (new OnboardingStatusMessagesProvider(new HostProvider()))->provide(new OnboardingStatus(false, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'IN_REVIEW'])),
+        );
+    }
 }
