@@ -18,7 +18,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\Payment;
-use Sylius\PayPalPlugin\Command\AnnouncePayPalPaymentToken;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Processor\Webhook\PayloadResourceWebhookEventProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\PaymentTokenCreatedWebhookEventProcessor;
 use Symfony\Component\Messenger\Envelope;
@@ -29,16 +29,16 @@ final class PaymentTokenCreatedWebhookEventProcessorTest extends TestCase
 {
     private EntityManagerInterface&MockObject $paymentManager;
 
-    private MessageBusInterface&MockObject $commandBus;
+    private MessageBusInterface&MockObject $eventBus;
 
     private PaymentTokenCreatedWebhookEventProcessor $processor;
 
     protected function setUp(): void
     {
         $this->paymentManager = $this->createMock(EntityManagerInterface::class);
-        $this->commandBus = $this->createMock(MessageBusInterface::class);
+        $this->eventBus = $this->createMock(MessageBusInterface::class);
 
-        $this->processor = new PaymentTokenCreatedWebhookEventProcessor($this->paymentManager, $this->commandBus);
+        $this->processor = new PaymentTokenCreatedWebhookEventProcessor($this->paymentManager, $this->eventBus);
     }
 
     public function test_it_processes_the_token_from_the_signed_payload(): void
@@ -49,17 +49,18 @@ final class PaymentTokenCreatedWebhookEventProcessorTest extends TestCase
     public function test_it_records_the_token_paypal_saved_during_the_payment_and_announces_it_once_stored(): void
     {
         $payment = new Payment();
+        (new \ReflectionProperty(Payment::class, 'id'))->setValue($payment, 7);
         $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_status' => 'APPROVED', 'vault_customer_id' => 'CUSTOMER_ID', 'payer_email' => 'buyer@example.com']);
 
         $this->paymentManager->expects(self::once())->method('refresh')->with($payment, LockMode::PESSIMISTIC_WRITE);
-        $this->commandBus
+        $this->eventBus
             ->expects(self::once())
             ->method('dispatch')
             ->with(
-                self::callback(static fn (AnnouncePayPalPaymentToken $command): bool => 'VAULT_ID' === $command->vaultId),
+                self::callback(static fn (PayPalPaymentTokenCreated $event): bool => 7 === $event->paymentId && 'VAULT_ID' === $event->vaultId),
                 self::callback(static fn (array $stamps): bool => [new DispatchAfterCurrentBusStamp()] == $stamps),
             )
-            ->willReturnCallback(static fn (object $command): Envelope => new Envelope($command))
+            ->willReturnCallback(static fn (object $event): Envelope => new Envelope($event))
         ;
 
         $this->processor->process(PaymentTokenCreatedWebhookEventProcessor::EVENT_TYPE, ['id' => 'VAULT_ID', 'customer' => ['id' => 'CUSTOMER_ID']], $payment);
@@ -81,7 +82,7 @@ final class PaymentTokenCreatedWebhookEventProcessorTest extends TestCase
             $payment->setDetails(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'CAPTURED_VAULT_ID', 'vault_status' => 'VAULTED']);
         });
 
-        $this->commandBus->expects(self::never())->method('dispatch');
+        $this->eventBus->expects(self::never())->method('dispatch');
 
         $this->processor->process(PaymentTokenCreatedWebhookEventProcessor::EVENT_TYPE, ['id' => 'VAULT_ID'], $payment);
 
@@ -91,7 +92,7 @@ final class PaymentTokenCreatedWebhookEventProcessorTest extends TestCase
     public function test_it_ignores_an_event_without_a_token_id(): void
     {
         $this->paymentManager->expects(self::never())->method('refresh');
-        $this->commandBus->expects(self::never())->method('dispatch');
+        $this->eventBus->expects(self::never())->method('dispatch');
 
         $this->processor->process(PaymentTokenCreatedWebhookEventProcessor::EVENT_TYPE, [], new Payment());
     }

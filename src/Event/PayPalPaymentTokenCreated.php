@@ -13,12 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Event;
 
-use Sylius\Component\Core\Model\PaymentInterface;
-
 final readonly class PayPalPaymentTokenCreated
 {
     public function __construct(
-        public PaymentInterface $payment,
+        public mixed $paymentId,
         public string $vaultId,
     ) {
     }

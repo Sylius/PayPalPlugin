@@ -16,7 +16,7 @@ namespace Sylius\PayPalPlugin\Processor\Webhook;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\PayPalPlugin\Command\AnnouncePayPalPaymentToken;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalVault;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -30,7 +30,7 @@ final readonly class PaymentTokenCreatedWebhookEventProcessor implements Payload
 
     public function __construct(
         private EntityManagerInterface $paymentManager,
-        private MessageBusInterface $commandBus,
+        private MessageBusInterface $eventBus,
     ) {
     }
 
@@ -56,8 +56,8 @@ final readonly class PaymentTokenCreatedWebhookEventProcessor implements Payload
             $details->payerEmail(),
         ))->toArray());
 
-        $this->commandBus->dispatch(
-            new AnnouncePayPalPaymentToken($payment->getId(), $vaultId),
+        $this->eventBus->dispatch(
+            new PayPalPaymentTokenCreated($payment->getId(), $vaultId),
             [new DispatchAfterCurrentBusStamp()],
         );
     }
