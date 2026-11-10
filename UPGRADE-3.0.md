@@ -971,6 +971,27 @@
    `Sylius\PayPalPlugin\Model\OnboardingStatus` carries the active capabilities of the PayPal account
    (`activeCapabilities()`, `hasActiveCapability()`).
 
+1. #### The scope a PayPal payment method is onboarded with is stored in its gateway config.
+
+   `Sylius\PayPalPlugin\Model\OnboardingScope::current()` gives the product, the secondary products, the capabilities
+   and the features the onboarding asks the seller to consent to, and `PayPalOnboardingUrlProvider` builds the
+   onboarding URL from it. The onboarding stores it in the gateway config of the payment method it creates, under the
+   `onboarding_scope` key, read through `PayPalGatewayConfig::onboardingScope()`.
+
+   The payment method list and edit page compare it with the current scope without asking PayPal, through
+   `Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface` (`sylius_paypal.checker.permissions_state`), which
+   returns a `Sylius\PayPalPlugin\Model\PermissionsState`:
+
+   - up to date (`isUpToDate()`): the stored scope has everything the current one asks for, and nothing is shown,
+   - out of date: the stored scope misses part of the current one (`missing()`, e.g. `GOOGLE_PAY`), and the payment
+     method gets a "PayPal permissions out of date" badge and an alert listing what it misses,
+   - unknown (`isKnown()` is `false`): no scope is stored, as for a payment method onboarded on 2.x, and the payment
+     method gets a "PayPal permissions unknown" badge and alert.
+
+   The `sylius_paypal:permissions_state` component renders the badge and the alert in the
+   `sylius_paypal.admin.payment_method.grid.field.name.content.badges` and
+   `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal` hooks.
+
 1. #### The PayPal payment method can authorize payments and capture them later.
 
    The new "Capture strategy" setting of the PayPal payment method (Immediate capture, or Authorize and capture)
