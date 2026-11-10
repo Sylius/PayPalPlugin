@@ -98,14 +98,11 @@
    The `Sylius\PayPalPlugin\Model\PayPalGatewayConfig::ONBOARDING_ID` constant has been removed. The `onboarding_id`
    key stored in the gateway config by the facilitator-based onboarding is no longer read and can be left in place.
 
-   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written or
-   part of the PayPal configuration form. The following
+   The `sylius_merchant_id` gateway config key, the merchant id assigned by the facilitator, is no longer written,
+   read or part of the PayPal configuration form, and can be left in place. The following
    have been removed from `Sylius\PayPalPlugin\Model\PayPalGatewayConfig`:
    - the `SYLIUS_MERCHANT_ID` constant
    - the `syliusMerchantId()` and `hasSyliusMerchantId()` methods
-
-   The `sylius_merchant_id` key already stored in the gateway config is read only as the partner id under which the
-   facilitator onboarded the merchant, to check the capabilities of the merchant's PayPal account, and must be left in place.
 
 1. #### `PayPalPaymentMethodEnabler` checks the seller's onboarding status directly with PayPal.
 
@@ -570,8 +567,8 @@
    `sylius_paypal.psr18_client.onboarding.logging`) logs every attempt of a PayPal API call, the onboarding ones
    included, on the `paypal` channel: the method, URL, status and `PayPal-Debug-Id` in the message, the request and
    response headers and bodies in the context. A successful call is logged as `info`, a call PayPal rejected or that
-   never reached it as `error`. Credentials (authorization headers, tokens, client credentials) and the payer's
-   personal data (name, contact details, address, card data) are masked.
+   never reached it as `error`. Credentials (authorization headers, tokens, client credentials), the payer's
+   personal data (name, contact details, address, card data) and the seller's primary email are masked.
 
    PayPal asks to keep the logs of failed calls for at least two weeks, as it purges its own after that. Route the
    `paypal` channel accordingly, for example:
