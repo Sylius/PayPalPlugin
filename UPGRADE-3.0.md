@@ -863,17 +863,18 @@
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
    and stores the id of the webhook it updates or registers in the gateway config through
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
-   `PersistingWebhookIdProvider` now takes instead of the object manager, together with the URL and the event types
-   it registered the webhook with (the `webhook_url` and `webhook_event_types` keys, read through
-   `PayPalGatewayConfig::webhookUrl()` and `webhookEventTypes()`). For a webhook it leaves as it is, or when PayPal
-   answers the update with `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores them as well and returns a registration whose
-   `WebhookRegistration::isUpToDate()` is `true`. `PersistingWebhookIdProvider` stores only the id of a webhook it
-   looks up and removes the URL and the event types stored before, as it does not know them:
+   `PersistingWebhookIdProvider` now takes instead of the object manager. `updateRegistered()` stores the id and the
+   URL of the `WebhookRegistration` together with `WebhookEventTypes::HANDLED` (the `webhook_url` and
+   `webhook_event_types` keys, read through `PayPalGatewayConfig::webhookUrl()` and `webhookEventTypes()`). For a
+   webhook it leaves as it is, or when PayPal answers the update with `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, the registrar
+   stores them as well and returns a registration whose `WebhookRegistration::isUpToDate()` is `true`.
+   `PersistingWebhookIdProvider` stores only the id of a webhook it looks up through `update()`, which removes the URL
+   and the event types stored before, as it does not know them:
 
    ```php
     // Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface
-    /** @param list<string>|null $eventTypes */
-    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, ?string $webhookUrl = null, ?array $eventTypes = null): void;
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void;
+    public function updateRegistered(PaymentMethodInterface $paymentMethod, WebhookRegistration $registration): void;
    ```
 
    The onboarding stores the id, the URL and the event types of the webhook it registers the same way:

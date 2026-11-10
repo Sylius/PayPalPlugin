@@ -16,6 +16,8 @@ namespace Sylius\PayPalPlugin\Updater;
 use Doctrine\Persistence\ObjectManager;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 
 final readonly class WebhookIdUpdater implements WebhookIdUpdaterInterface
 {
@@ -23,7 +25,22 @@ final readonly class WebhookIdUpdater implements WebhookIdUpdaterInterface
     {
     }
 
-    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, ?string $webhookUrl = null, ?array $eventTypes = null): void
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void
+    {
+        $this->store($paymentMethod, [PayPalGatewayConfig::WEBHOOK_ID => $webhookId]);
+    }
+
+    public function updateRegistered(PaymentMethodInterface $paymentMethod, WebhookRegistration $registration): void
+    {
+        $this->store($paymentMethod, [
+            PayPalGatewayConfig::WEBHOOK_ID => $registration->id(),
+            PayPalGatewayConfig::WEBHOOK_URL => $registration->url(),
+            PayPalGatewayConfig::WEBHOOK_EVENT_TYPES => WebhookEventTypes::HANDLED,
+        ]);
+    }
+
+    /** @param array<string, mixed> $webhook */
+    private function store(PaymentMethodInterface $paymentMethod, array $webhook): void
     {
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         if (null === $gatewayConfig) {
@@ -31,14 +48,8 @@ final readonly class WebhookIdUpdater implements WebhookIdUpdaterInterface
         }
 
         $config = $gatewayConfig->getConfig();
-        $config[PayPalGatewayConfig::WEBHOOK_ID] = $webhookId;
-        if (null === $webhookUrl || null === $eventTypes) {
-            unset($config[PayPalGatewayConfig::WEBHOOK_URL], $config[PayPalGatewayConfig::WEBHOOK_EVENT_TYPES]);
-        } else {
-            $config[PayPalGatewayConfig::WEBHOOK_URL] = $webhookUrl;
-            $config[PayPalGatewayConfig::WEBHOOK_EVENT_TYPES] = $eventTypes;
-        }
-        $gatewayConfig->setConfig($config);
+        unset($config[PayPalGatewayConfig::WEBHOOK_URL], $config[PayPalGatewayConfig::WEBHOOK_EVENT_TYPES]);
+        $gatewayConfig->setConfig(array_merge($config, $webhook));
         $this->paymentMethodManager->flush();
     }
 }

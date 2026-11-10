@@ -18,7 +18,7 @@ use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
-use Sylius\PayPalPlugin\Model\WebhookEventTypes;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
@@ -48,7 +48,7 @@ final readonly class SellerWebhookRegistrar implements SellerWebhookRegistrarInt
         }
 
         if (isset($response['id'])) {
-            $this->webhookIdUpdater->update($paymentMethod, (string) $response['id'], $webhookUrl, WebhookEventTypes::HANDLED);
+            $this->webhookIdUpdater->updateRegistered($paymentMethod, WebhookRegistration::registered((string) $response['id'], $webhookUrl));
         }
     }
 }

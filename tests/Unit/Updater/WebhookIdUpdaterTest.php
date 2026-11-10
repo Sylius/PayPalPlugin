@@ -18,6 +18,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Payment\Model\GatewayConfig;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
@@ -52,20 +54,22 @@ final class WebhookIdUpdaterTest extends TestCase
         self::assertSame(['client_id' => 'CLIENT_ID', 'webhook_id' => 'WH-CURRENT'], $gatewayConfig->getConfig());
     }
 
-    public function test_it_stores_the_url_and_the_event_types_the_webhook_is_registered_with(): void
+    public function test_it_stores_the_id_and_the_url_of_a_registered_webhook_with_the_event_types_the_plugin_handles(): void
     {
         $gatewayConfig = new GatewayConfig();
         $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID']);
         $paymentMethod = new PaymentMethod();
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
-        $this->updater->update($paymentMethod, 'WH-CURRENT', 'https://shop.example.com/payment-methods/PAYPAL', ['PAYMENT.CAPTURE.COMPLETED']);
+        $this->paymentMethodManager->expects(self::once())->method('flush');
+
+        $this->updater->updateRegistered($paymentMethod, WebhookRegistration::updated('WH-CURRENT', 'https://shop.example.com/payment-methods/PAYPAL'));
 
         self::assertSame([
             'client_id' => 'CLIENT_ID',
             'webhook_id' => 'WH-CURRENT',
             'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
-            'webhook_event_types' => ['PAYMENT.CAPTURE.COMPLETED'],
+            'webhook_event_types' => WebhookEventTypes::HANDLED,
         ], $gatewayConfig->getConfig());
     }
 
@@ -90,5 +94,6 @@ final class WebhookIdUpdaterTest extends TestCase
         $this->paymentMethodManager->expects(self::never())->method('flush');
 
         $this->updater->update(new PaymentMethod(), 'WH-CURRENT');
+        $this->updater->updateRegistered(new PaymentMethod(), WebhookRegistration::registered('WH-CURRENT', 'https://shop.example.com/payment-methods/PAYPAL'));
     }
 }
