@@ -57,7 +57,7 @@ final class Version20261104120001 extends AbstractPostgreSQLMigration implements
             if (!array_key_exists('sandbox', $config)) {
                 if ([] !== $config && $this->isEncrypted(current($config))) {
                     $this->warnIf(true, sprintf(
-                        'The PayPal gateway config "%s" is encrypted, so its mode could not be stored. Set its "sandbox" key or connect the PayPal account again through the onboarding.',
+                        'The PayPal gateway config "%s" is encrypted, so its mode could not be stored and it is used in production. If it is a sandbox account, connect it again through the onboarding and disable this payment method.',
                         (string) $gatewayConfig['gateway_name'],
                     ));
                 } else {
