@@ -13,12 +13,14 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sylius\PayPalPlugin\Checker\CachedVaultingCapabilityChecker;
+use Sylius\PayPalPlugin\Checker\VaultingCapabilityChecker;
+use Sylius\PayPalPlugin\Checker\VaultingCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Console\Command\RefreshVaultingCapabilityCommand;
 use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessor;
 use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProvider;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
-use Sylius\PayPalPlugin\Refresher\ThrottledVaultingCapabilityRefresher;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresher;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
@@ -31,7 +33,8 @@ use Sylius\PayPalPlugin\Resolver\VaultingAwarePaymentMethodsResolver;
 
 return static function (ContainerConfigurator $container): void {
     $parameters = $container->parameters();
-    $parameters->set('sylius_paypal.vaulting_capability_refresh_cooldown', 3600);
+    $parameters->set('sylius_paypal.vaulting_capability_check_cooldown', 3600);
+    $parameters->set('sylius_paypal.vaulting_capability_check_retry_cooldown', 300);
 
     $services = $container->services();
 
@@ -51,27 +54,35 @@ return static function (ContainerConfigurator $container): void {
         ->args([
             service('sylius_paypal.resolver.vault_request'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
-            service('sylius_paypal.refresher.vaulting_capability.throttled'),
+            service('sylius_paypal.checker.vaulting_capability.cached'),
         ]);
 
     $services->alias(PayPalVaultRequestProviderInterface::class, 'sylius_paypal.provider.vault_request');
 
-    $services->set('sylius_paypal.refresher.vaulting_capability', VaultingCapabilityRefresher::class)
+    $services->set('sylius_paypal.checker.vaulting_capability', VaultingCapabilityChecker::class)
         ->args([
             service('sylius_paypal.api.authorize_client'),
             service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius_paypal.provider.partner_credentials'),
         ]);
 
-    $services->alias(VaultingCapabilityRefresherInterface::class, 'sylius_paypal.refresher.vaulting_capability');
+    $services->alias(VaultingCapabilityCheckerInterface::class, 'sylius_paypal.checker.vaulting_capability');
 
-    $services->set('sylius_paypal.refresher.vaulting_capability.throttled', ThrottledVaultingCapabilityRefresher::class)
+    $services->set('sylius_paypal.checker.vaulting_capability.cached', CachedVaultingCapabilityChecker::class)
         ->args([
-            service('sylius_paypal.refresher.vaulting_capability'),
+            service('sylius_paypal.checker.vaulting_capability'),
             service('sylius_paypal.cache'),
             service('monolog.logger.paypal'),
-            param('sylius_paypal.vaulting_capability_refresh_cooldown'),
+            param('sylius_paypal.vaulting_capability_check_cooldown'),
+            param('sylius_paypal.vaulting_capability_check_retry_cooldown'),
         ]);
+
+    $services->set('sylius_paypal.refresher.vaulting_capability', VaultingCapabilityRefresher::class)
+        ->args([
+            service('sylius_paypal.checker.vaulting_capability'),
+        ]);
+
+    $services->alias(VaultingCapabilityRefresherInterface::class, 'sylius_paypal.refresher.vaulting_capability');
 
     $services->set('sylius_paypal.console.command.refresh_vaulting_capability', RefreshVaultingCapabilityCommand::class)
         ->args([
