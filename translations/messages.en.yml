@@ -1,5 +1,6 @@
 sylius_paypal:
     apple_pay_enabled: 'Enable Apple Pay'
+    apple_pay_enabled_help: 'Apple Pay also has to be enabled in your PayPal account (Payment methods in the account settings), with every domain of the shop that shows it registered there. Until it is, the shop does not show it.'
     awaiting_payer_action: 'We are waiting for your bank to send the money. Your order will be confirmed as soon as it arrives.'
     back_to_store: 'Back to store'
     billing_info: 'Billing address same as order'
@@ -21,6 +22,7 @@ sylius_paypal:
     express_checkout_enabled: 'Enable Express Checkout'
     finish_the_payment: 'Finish the payment'
     google_pay_enabled: 'Enable Google Pay'
+    google_pay_enabled_help: 'Google Pay also has to be enabled in your PayPal account (Payment methods in the account settings). Until it is, the shop does not show it.'
     invalid_form: 'Form is invalid'
     label: 'PayPal'
     late_capture: 'PayPal captured %amount% for this attempt after it was closed.'

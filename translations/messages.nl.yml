@@ -1,4 +1,5 @@
 sylius_paypal:
+    apple_pay_enabled_help: 'Apple Pay moet ook ingeschakeld zijn in je PayPal-account (Betaalmethoden in de accountinstellingen), met elk domein van de winkel dat het toont daar geregistreerd. Tot die tijd toont de winkel het niet.'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
     card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'
@@ -16,6 +17,7 @@ sylius_paypal:
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Productie'
     expiration_date: 'Vervaldatum'
+    google_pay_enabled_help: 'Google Pay moet ook ingeschakeld zijn in je PayPal-account (Betaalmethoden in de accountinstellingen). Tot die tijd toont de winkel het niet.'
     invalid_form: 'Formulier is ongeldig'
     label: 'PayPal'
     merchant_id: 'Merchant ID'

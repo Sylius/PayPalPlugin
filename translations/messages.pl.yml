@@ -1,5 +1,6 @@
 sylius_paypal:
     apple_pay_enabled: 'Włącz Apple Pay'
+    apple_pay_enabled_help: 'Apple Pay trzeba też włączyć na koncie PayPal (Metody płatności w ustawieniach konta) i zarejestrować tam każdą domenę sklepu, która go wyświetla. Do tego czasu sklep go nie pokazuje.'
     awaiting_payer_action: 'Czekamy, aż Twój bank prześle pieniądze. Zamówienie potwierdzimy, gdy tylko dotrą.'
     back_to_store: 'Wróć do sklepu'
     billing_info: 'Adres rozliczeniowy taki sam jak w zamówieniu'
@@ -19,6 +20,7 @@ sylius_paypal:
     express_checkout_enabled: 'Włącz Express Checkout'
     finish_the_payment: 'Dokończ płatność'
     google_pay_enabled: 'Włącz Google Pay'
+    google_pay_enabled_help: 'Google Pay trzeba też włączyć na koncie PayPal (Metody płatności w ustawieniach konta). Do tego czasu sklep go nie pokazuje.'
     invalid_form: 'Formularz jest nieprawidłowy'
     label: 'PayPal'
     late_capture: 'PayPal pobrał %amount% dla tej próby już po jej zamknięciu.'

@@ -275,11 +275,18 @@ The defaults apply to existing payment methods too, whose stored config does not
 
 Prerequisites the plugin cannot handle for you:
 
-- **Google Pay**: the Google Pay capability on the PayPal account, and the CSP entries above. The button is drawn
-  by Google's SDK (`https://pay.google.com/gp/p/js/pay.js`).
+- **Google Pay**: Google Pay enabled on the PayPal account, and the CSP entries above. The onboarding does not ask
+  PayPal for it: enable it under Payment methods in the PayPal account settings
+  (`https://www.paypal.com/bizsignup/add-product?product=payment_methods&capabilities=GOOGLE_PAY`; in sandbox, the
+  Google Pay checkbox under Features of the app in the PayPal Developer Dashboard). The button is drawn by Google's
+  SDK (`https://pay.google.com/gp/p/js/pay.js`).
 - **Apple Pay**:
-  - the Apple Pay capability on the PayPal account;
-  - every domain and subdomain showing the button registered in PayPal's Apple Pay settings;
+  - Apple Pay enabled on the PayPal account. The onboarding does not ask PayPal for it: enable it under Payment
+    methods in the PayPal account settings
+    (`https://www.paypal.com/bizsignup/add-product?product=payment_methods&capabilities=APPLE_PAY`; in sandbox, the
+    Apple Pay checkbox under Features of the app in the PayPal Developer Dashboard);
+  - every domain and subdomain showing the button registered in PayPal's Apple Pay settings (Apple Pay, Manage,
+    Add Domain);
   - PayPal's domain association file served at `/.well-known/apple-developer-merchantid-domain-association`
     over HTTPS, as `application/octet-stream`, without a redirect;
   - the channel's shop billing country filled in, because Apple needs the merchant's `countryCode`. A channel
@@ -294,6 +301,10 @@ Prerequisites the plugin cannot handle for you:
   Britain, Lithuania, Latvia, the Netherlands, Norway and Sweden, in `EUR`, `DKK`, `SEK`, `GBP` or `NOK`. There
   is no vaulting, no chargebacks and no shipping callback; refunds work for up to 365 days. Trustly does not
   exist in Web SDK v6, so the tile redirects to PayPal server-side and works even without the v6 app feature.
+
+Apple Pay or Google Pay switched on in the admin but not enabled on the PayPal account does not render: the PayPal
+SDK finds it ineligible and the shop leaves its tile out without an error. The admin form says so next to both
+toggles.
 
 In the admin payment method list a PayPal payment method is rendered like the suggested PayPal row: the PayPal
 logo, the payment sources its gateway config enables and a sandbox or production badge. The plugin overrides

@@ -89,6 +89,14 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->getData()['google_pay_enabled']);
     }
 
+    public function test_the_apple_pay_and_google_pay_toggles_explain_what_to_enable_in_paypal(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertSame('sylius_paypal.apple_pay_enabled_help', $form->get('apple_pay_enabled')->getConfig()->getOption('help'));
+        self::assertSame('sylius_paypal.google_pay_enabled_help', $form->get('google_pay_enabled')->getConfig()->getOption('help'));
+    }
+
     public function test_the_apple_pay_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
