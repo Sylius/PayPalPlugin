@@ -19,10 +19,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
-use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
@@ -89,9 +89,9 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->updateWebhookApi
             ->expects(self::once())
             ->method('update')
-            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::handled())
         ;
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::HANDLED);
 
         self::assertEquals(
             WebhookRegistration::updated('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
@@ -113,9 +113,9 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->updateWebhookApi
             ->expects(self::once())
             ->method('update')
-            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookEventTypes::handled())
         ;
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookEventTypes::HANDLED);
 
         self::assertEquals(
             WebhookRegistration::updated('WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL'),
@@ -130,11 +130,11 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $genericApi->method('get')->willReturn([
             'id' => 'WEBHOOK_ID',
             'url' => 'https://channel.example.com/payment-methods/PAYPAL',
-            'event_types' => array_map(static fn (string $name): array => ['name' => $name], [...WebhookApi::EVENT_TYPES, 'VAULT.PAYMENT-TOKEN.CREATED']),
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], [...WebhookEventTypes::HANDLED, 'VAULT.PAYMENT-TOKEN.CREATED']),
         ]);
 
         $this->updateWebhookApi->expects(self::never())->method('update');
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL', WebhookEventTypes::HANDLED);
 
         self::assertEquals(
             WebhookRegistration::upToDate('WEBHOOK_ID', 'https://channel.example.com/payment-methods/PAYPAL'),
@@ -149,13 +149,13 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $genericApi->method('get')->willReturn([
             'id' => 'WEBHOOK_ID',
             'url' => 'https://shop.example.com/payment-methods/PAYPAL',
-            'event_types' => array_map(static fn (string $name): array => ['name' => $name], array_slice(WebhookApi::EVENT_TYPES, 1)),
+            'event_types' => array_map(static fn (string $name): array => ['name' => $name], array_slice(WebhookEventTypes::HANDLED, 1)),
         ]);
 
         $this->updateWebhookApi
             ->expects(self::once())
             ->method('update')
-            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::handled())
         ;
 
         self::assertEquals(
@@ -173,7 +173,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         $this->updateWebhookApi
             ->expects(self::once())
             ->method('update')
-            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES)
+            ->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::handled())
         ;
 
         $this->registrar($genericApi)->register($this->paymentMethod);
@@ -190,7 +190,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
             ->with($this->paymentMethod, 'https://shop.example.com/payment-methods/PAYPAL')
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::HANDLED);
 
         self::assertEquals(
             WebhookRegistration::registered('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),
@@ -239,7 +239,7 @@ final class SellerWebhookEventTypesRegistrarTest extends TestCase
         );
 
         $this->webhookApi->expects(self::never())->method('register');
-        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookApi::EVENT_TYPES);
+        $this->webhookIdUpdater->expects(self::once())->method('update')->with($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::HANDLED);
 
         self::assertEquals(
             WebhookRegistration::upToDate('WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL'),

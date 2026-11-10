@@ -106,15 +106,11 @@ final readonly class PayPalGatewayConfig
         return $this->optional(self::WEBHOOK_URL);
     }
 
-    /** @return list<string>|null */
-    public function webhookEventTypes(): ?array
+    public function webhookEventTypes(): ?WebhookEventTypes
     {
         $eventTypes = $this->config[self::WEBHOOK_EVENT_TYPES] ?? null;
-        if (!is_array($eventTypes)) {
-            return null;
-        }
 
-        return array_values(array_map(strval(...), $eventTypes));
+        return is_array($eventTypes) ? WebhookEventTypes::fromNames($eventTypes) : null;
     }
 
     public function isExpressCheckoutEnabled(): bool

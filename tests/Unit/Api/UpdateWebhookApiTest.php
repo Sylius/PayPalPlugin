@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApi;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
 
 final class UpdateWebhookApiTest extends TestCase
 {
@@ -62,6 +63,6 @@ final class UpdateWebhookApiTest extends TestCase
             ->willReturn(['id' => 'WEBHOOK_ID'])
         ;
 
-        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->update($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', ['A', 'B']));
+        self::assertSame(['id' => 'WEBHOOK_ID'], $this->api->update($this->paymentMethod, 'WEBHOOK_ID', 'https://shop.example.com/payment-methods/PAYPAL', WebhookEventTypes::fromNames(['A', 'B'])));
     }
 }

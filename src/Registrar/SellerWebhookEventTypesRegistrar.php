@@ -17,11 +17,11 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
 use Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface;
-use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Api\WebhookApiInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalWebhookNotRegisteredException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
 use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebhookIdProviderInterface;
@@ -49,10 +49,10 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
             $webhook = $this->webhook($paymentMethod, $webhookId);
             $registeredNotifyUrl = $this->registeredNotifyUrl($paymentMethod, $webhook);
             $webhookUrl = $registeredNotifyUrl ?? $this->webhookUrlProvider->provide($paymentMethod);
-            $registration = null !== $registeredNotifyUrl && $this->hasAllEventTypes($webhook)
+            $registration = null !== $registeredNotifyUrl && [] === WebhookEventTypes::fromPayPal($webhook['event_types'] ?? null)->missing()
                 ? WebhookRegistration::upToDate($webhookId, $webhookUrl)
                 : $this->update($paymentMethod, $webhookId, $webhookUrl);
-            $this->webhookIdUpdater->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
+            $this->webhookIdUpdater->update($paymentMethod, $webhookId, $webhookUrl, WebhookEventTypes::HANDLED);
 
             return $registration;
         }
@@ -69,7 +69,7 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
             throw new PayPalWebhookNotRegisteredException((string) $paymentMethod->getCode(), $webhookUrl, 'PayPal answered without a webhook id');
         }
 
-        $this->webhookIdUpdater->update($paymentMethod, (string) $response['id'], $webhookUrl, WebhookApi::EVENT_TYPES);
+        $this->webhookIdUpdater->update($paymentMethod, (string) $response['id'], $webhookUrl, WebhookEventTypes::HANDLED);
 
         return WebhookRegistration::registered((string) $response['id'], $webhookUrl);
     }
@@ -95,22 +95,10 @@ final readonly class SellerWebhookEventTypesRegistrar implements SellerWebhookEv
         return is_string($registeredUrl) && $this->webhookUrlProvider->isNotifyUrl($paymentMethod, $registeredUrl) ? $registeredUrl : null;
     }
 
-    /** @param array<array-key, mixed> $webhook */
-    private function hasAllEventTypes(array $webhook): bool
-    {
-        $eventTypes = is_array($webhook['event_types'] ?? null) ? $webhook['event_types'] : [];
-        $names = array_filter(array_map(
-            static fn (mixed $eventType): mixed => is_array($eventType) ? ($eventType['name'] ?? null) : null,
-            $eventTypes,
-        ), is_string(...));
-
-        return [] === WebhookApi::missingEventTypes($names);
-    }
-
     private function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl): WebhookRegistration
     {
         try {
-            $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookApi::EVENT_TYPES);
+            $this->updateWebhookApi->update($paymentMethod, $webhookId, $webhookUrl, WebhookEventTypes::handled());
         } catch (PayPalApiException $exception) {
             if ('WEBHOOK_PATCH_REQUEST_NO_CHANGE' !== $exception->getErrorName()) {
                 throw $exception;

@@ -85,7 +85,7 @@ final class PayPalGatewayConfigTest extends TestCase
         ]);
 
         self::assertSame('https://shop.example.com/payment-methods/PAYPAL', $config->webhookUrl());
-        self::assertSame(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'], $config->webhookEventTypes());
+        self::assertSame(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'], $config->webhookEventTypes()?->names());
     }
 
     public function test_it_opts_a_gateway_into_express_checkout_pay_later_and_messaging_until_told_otherwise(): void

@@ -15,7 +15,6 @@ namespace Sylius\PayPalPlugin\Checker;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
-use Sylius\PayPalPlugin\Api\WebhookApi;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\WebhookState;
 use Sylius\PayPalPlugin\Provider\WebhookUrlProviderInterface;
@@ -39,7 +38,7 @@ final readonly class WebhookStateChecker implements WebhookStateCheckerInterface
         }
 
         $pointsElsewhere = !$this->webhookUrlProvider->isNotifyUrl($paymentMethod, $registeredUrl);
-        $missingEventTypes = WebhookApi::missingEventTypes($registeredEventTypes);
+        $missingEventTypes = $registeredEventTypes->missing();
 
         if (!$pointsElsewhere && [] === $missingEventTypes) {
             return WebhookState::upToDate($registeredUrl);

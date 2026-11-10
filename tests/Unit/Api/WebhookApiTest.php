@@ -61,13 +61,4 @@ final class WebhookApiTest extends TestCase
 
         self::assertSame(['id' => 'WEBHOOK_ID'], $this->webhookApi->register($this->paymentMethod, 'https://shop.example.com/payment-methods/PAYPAL'));
     }
-
-    public function test_it_lists_the_events_the_plugin_handles_that_a_webhook_misses(): void
-    {
-        self::assertSame([], WebhookApi::missingEventTypes([...WebhookApi::EVENT_TYPES, 'VAULT.PAYMENT-TOKEN.CREATED']));
-        self::assertSame(
-            ['PAYMENT.AUTHORIZATION.CREATED', 'PAYMENT.AUTHORIZATION.VOIDED'],
-            WebhookApi::missingEventTypes(array_slice(WebhookApi::EVENT_TYPES, 0, -2)),
-        );
-    }
 }

@@ -905,8 +905,13 @@
    ```diff
     // Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface
    -public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array;
-   +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array;
+   +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, WebhookEventTypes $eventTypes): array;
    ```
+
+   The event types the plugin subscribes a webhook to are `Sylius\PayPalPlugin\Model\WebhookEventTypes::HANDLED`
+   instead of `WebhookApi::EVENT_TYPES`. `WebhookEventTypes` also reads the event types stored in the gateway config
+   (`PayPalGatewayConfig::webhookEventTypes()`) or returned by PayPal (`fromPayPal()`), tells which of the handled ones
+   they miss (`missing()`) and gives them in the shape PayPal expects (`toPayPal()`).
 
    The `sylius_paypal_webhook_refund_order` route (`/paypal-webhook/api/`) and the following have been removed:
 
@@ -942,7 +947,7 @@
    and its edit page explains why in an alert above its configuration. Neither asks PayPal:
    `Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface` (`sylius_paypal.checker.webhook_state`) compares the
    URL and the event types stored with the webhook (see above) with the notify URL of the payment method and the
-   event types the plugin handles (`WebhookApi::EVENT_TYPES`). It returns a `Sylius\PayPalPlugin\Model\WebhookState`:
+   event types the plugin handles (`WebhookEventTypes::HANDLED`). It returns a `Sylius\PayPalPlugin\Model\WebhookState`:
 
    - up to date (`isUpToDate()`): nothing is shown,
    - out of date: the webhook points elsewhere (`pointsElsewhere()`, `registeredUrl()`) or misses event types
