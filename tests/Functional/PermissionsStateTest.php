@@ -17,6 +17,7 @@ use ApiTestCase\JsonApiTestCase;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
+use Sylius\PayPalPlugin\Twig\Component\PermissionsStateComponent;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
@@ -57,7 +58,7 @@ final class PermissionsStateTest extends JsonApiTestCase
         $current = OnboardingScope::current();
         $this->storeScope(new OnboardingScope($current->product(), $current->secondaryProducts(), ['APPLE_PAY'], $current->features()));
 
-        $rendered = (string) $this->permissionsState('alert')->render();
+        $rendered = (string) $this->permissionsState(PermissionsStateComponent::VARIANT_ALERT)->render();
 
         self::assertStringContainsString('data-test-paypal-permissions-state="out-of-date"', $rendered);
         self::assertStringContainsString('GOOGLE_PAY', $rendered);
@@ -67,8 +68,8 @@ final class PermissionsStateTest extends JsonApiTestCase
     {
         $this->storeScope(OnboardingScope::current());
 
-        self::assertStringNotContainsString('paypal-permissions-state', (string) $this->permissionsState('badge')->render());
-        self::assertStringNotContainsString('paypal-permissions-state', (string) $this->permissionsState('alert')->render());
+        self::assertStringNotContainsString('paypal-permissions-state', (string) $this->permissionsState(PermissionsStateComponent::VARIANT_BADGE)->render());
+        self::assertStringNotContainsString('paypal-permissions-state', (string) $this->permissionsState(PermissionsStateComponent::VARIANT_ALERT)->render());
     }
 
     private function page(string $uri): string

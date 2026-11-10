@@ -1,4 +1,4 @@
 {{ component('sylius_paypal:permissions_state', {
     paymentMethodId: hookable_metadata.context.payment_method.id,
-    variant: 'badge',
+    variant: constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_BADGE'),
 }) }}

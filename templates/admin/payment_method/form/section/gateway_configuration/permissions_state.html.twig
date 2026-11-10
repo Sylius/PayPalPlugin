@@ -4,7 +4,7 @@
     <div class="col-12">
         {{ component('sylius_paypal:permissions_state', {
             paymentMethodId: payment_method.id,
-            variant: 'alert',
+            variant: constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_ALERT'),
         }) }}
     </div>
 {% endif %}

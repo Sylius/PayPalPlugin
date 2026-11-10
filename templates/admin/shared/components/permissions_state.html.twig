@@ -5,7 +5,7 @@
         {% set problem = state.isKnown() ? 'sylius_paypal.permissions_out_of_date' : 'sylius_paypal.permissions_state_unknown' %}
         {% set test_state = state.isKnown() ? 'out-of-date' : 'unknown' %}
 
-        {% if variant == 'alert' %}
+        {% if variant == constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_ALERT') %}
             <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-permissions-state', test_state) }}>
                 <div>
                     <div class="fw-bold">{{ problem|trans }}</div>
