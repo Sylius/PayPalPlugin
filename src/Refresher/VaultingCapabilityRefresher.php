@@ -15,18 +15,13 @@ namespace Sylius\PayPalPlugin\Refresher;
 
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
+use Sylius\PayPalPlugin\Checker\VaultingCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 
 final readonly class VaultingCapabilityRefresher implements VaultingCapabilityRefresherInterface
 {
-    public function __construct(
-        private AuthorizeClientApiInterface $authorizeClientApi,
-        private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
-        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
-    ) {
+    public function __construct(private VaultingCapabilityCheckerInterface $vaultingCapabilityChecker)
+    {
     }
 
     public function refresh(PaymentMethodInterface $paymentMethod): bool
@@ -36,18 +31,8 @@ final readonly class VaultingCapabilityRefresher implements VaultingCapabilityRe
             return false;
         }
 
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-        $sandbox = $config->isSandbox();
-
-        $status = $this->merchantOnboardingStatusApi->get(
-            $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox)->value(),
-            $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId(),
-            $config->merchantId(),
-            $sandbox,
-        );
-
-        $vaultingEnabled = $status->isVaultingEnabled();
-        if ($vaultingEnabled !== $config->isVaultingEnabled()) {
+        $vaultingEnabled = $this->vaultingCapabilityChecker->isVaultingActive($paymentMethod);
+        if ($vaultingEnabled !== PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVaultingEnabled()) {
             $gatewayConfig->setConfig(array_merge(
                 $gatewayConfig->getConfig(),
                 [PayPalGatewayConfig::VAULTING_ENABLED => $vaultingEnabled],

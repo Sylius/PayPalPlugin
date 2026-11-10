@@ -18,10 +18,10 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\VaultingCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
-use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
 
@@ -30,7 +30,7 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
     public function __construct(
         private VaultRequestResolverInterface $vaultRequestResolver,
         private PayPalPaymentMethodsResolverInterface $payPalMethodsResolver,
-        private VaultingCapabilityRefresherInterface $vaultingCapabilityRefresher,
+        private VaultingCapabilityCheckerInterface $vaultingCapabilityChecker,
     ) {
     }
 
@@ -97,7 +97,7 @@ final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestPro
 
     private function canVault(PayPalGatewayConfig $gatewayConfig, PaymentMethodInterface $paymentMethod): bool
     {
-        return $gatewayConfig->isVaultingEnabled() || $this->vaultingCapabilityRefresher->refresh($paymentMethod);
+        return $gatewayConfig->isVaultingEnabled() || $this->vaultingCapabilityChecker->isVaultingActive($paymentMethod);
     }
 
     private function payPalGatewayConfig(PaymentMethodInterface $paymentMethod): ?PayPalGatewayConfig
