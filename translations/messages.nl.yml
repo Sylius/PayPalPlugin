@@ -112,8 +112,6 @@ sylius_paypal:
     mode_sandbox_description: 'Betalingen worden gesimuleerd: er wordt niets afgeschreven en niets uitbetaald.'
     mode_sandbox_go_live: 'Om echte betalingen te ontvangen, kies je "Aanmaken" > "PayPal (Productie)" in de lijst met betaalmethoden en koppel je je live PayPal-account. Dat wordt een nieuwe betaalmethode.'
     mode_sandbox_title: 'Sandboxmodus.'
-    mode_unknown: 'Onbekend'
-    mode_unknown_warning: 'De modus van deze betaalmethode is niet ingesteld, dus wordt deze in productie gebruikt. Als het een sandbox-account is, zet de sleutel "sandbox" van de gatewayconfiguratie op true of koppel het account opnieuw via de onboarding.'
     onboarding_completed: 'Uw PayPal-account is gekoppeld.'
     onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
     pay_later: 'Pay Later'
