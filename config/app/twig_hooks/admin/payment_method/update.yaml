@@ -18,8 +18,6 @@ sylius_twig_hooks:
             paypal_checkout_experience:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_checkout_experience.html.twig'
                 priority: 300
-            gateway_configuration:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration.html.twig'
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_account':
             merchant_id:
