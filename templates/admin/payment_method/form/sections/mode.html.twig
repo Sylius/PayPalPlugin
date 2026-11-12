@@ -1,0 +1,27 @@
+{% if hookable_metadata.context.resource.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    {# the surface layer keeps the translucent alert background light on the grey page #}
+    <div class="bg-surface rounded mb-3">
+        {% if sylius_is_paypal_sandbox() %}
+            <div class="alert bg-yellow-lt border-warning-subtle mb-0" role="alert" {{ sylius_test_html_attribute('paypal-mode', 'sandbox') }}>
+                <div class="d-flex gap-2">
+                    {{ ux_icon('tabler:alert-triangle', { class: 'icon alert-icon text-orange me-1' }) }}
+                    <div class="text-body">
+                        <strong>{{ 'sylius_paypal.mode_sandbox_title'|trans }}</strong>
+                        {{ 'sylius_paypal.mode_sandbox_description'|trans }}
+                        <div class="text-muted mt-1">{{ 'sylius_paypal.mode_sandbox_go_live'|trans }}</div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert bg-green-lt border-success-subtle mb-0" role="alert" {{ sylius_test_html_attribute('paypal-mode', 'production') }}>
+                <div class="d-flex gap-2">
+                    {{ ux_icon('tabler:circle-check', { class: 'icon alert-icon text-green me-1' }) }}
+                    <div class="text-body">
+                        <strong>{{ 'sylius_paypal.mode_production_title'|trans }}</strong>
+                        {{ 'sylius_paypal.mode_production_description'|trans }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

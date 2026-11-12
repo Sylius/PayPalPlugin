@@ -1,0 +1,38 @@
+{% import '@SyliusPayPalPlugin/admin/shared/helper/payment_method_icon.html.twig' as payment_method_icon %}
+{% import '@SyliusPayPalPlugin/admin/shared/helper/info_tooltip.html.twig' as info_tooltip %}
+
+{% set configuration = hookable_metadata.configuration %}
+{% set options %}{% hook configuration.code ~ '.options' %}{% endset %}
+
+<div class="list-group-item py-3" {{ sylius_test_html_attribute('paypal-payment-method', configuration.code) }}>
+    <div class="d-flex align-items-center gap-3">
+        <span class="payment-method-list__method d-inline-flex align-items-center justify-content-center flex-shrink-0 border rounded bg-white p-0 overflow-hidden" style="width: 3.5rem; height: 2.25rem;">
+            {% if configuration.icon starts with 'tabler:' %}
+                {{ ux_icon(configuration.icon, { class: 'icon m-0' }) }}
+            {% else %}
+                {{ payment_method_icon.image(configuration.icon) }}
+            {% endif %}
+        </span>
+        <div class="flex-grow-1">
+            <div class="fw-medium">
+                {{ configuration.label|trans }}
+                {%- if configuration.help|default(null) is not null %}{{ info_tooltip.icon(configuration.help, configuration.label, configuration.code) }}{% endif %}
+                {% if configuration.badge|default(null) is not null %}
+                    <span class="badge bg-body-secondary text-body ms-1">{{ configuration.badge|trans }}</span>
+                {% endif %}
+            </div>
+            {% if configuration.description|default(null) is not null %}
+                <div class="text-muted small">{{ configuration.description|trans }}</div>
+            {% endif %}
+        </div>
+        <div class="flex-shrink-0">
+            {% hook configuration.code %}
+        </div>
+    </div>
+</div>
+{# the hook wraps its output in debug comments, so only real content counts #}
+{% if options|striptags('<input><select><textarea><button>')|trim is not empty %}
+    <div class="list-group-item py-3 bg-body" {{ sylius_test_html_attribute('paypal-payment-method-options', configuration.code) }}>
+        {{ options }}
+    </div>
+{% endif %}

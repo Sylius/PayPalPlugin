@@ -1,5 +1,16 @@
+{% import '@SyliusPayPalPlugin/admin/shared/helper/info_tooltip.html.twig' as info_tooltip %}
+
 {% set form = hookable_metadata.context.form.gatewayConfig.config %}
 
-<div class="col-12 col-md-6">
-    {{ form_row(form.messaging_enabled, sylius_test_form_attribute('messaging-enabled')) }}
+<div class="list-group-item py-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="flex-grow-1">
+            <label class="fw-medium" for="{{ form.messaging_enabled.vars.id }}">{{ form.messaging_enabled.vars.label|trans }}</label>
+            {{- info_tooltip.icon('sylius_paypal.messaging_enabled_info', form.messaging_enabled.vars.label, 'messaging_enabled') }}
+            <div class="text-muted small">{{ 'sylius_paypal.messaging_enabled_help'|trans }}</div>
+        </div>
+        <div class="flex-shrink-0">
+            {{ form_widget(form.messaging_enabled, sylius_test_form_attribute('messaging-enabled')|merge({ label: false, label_attr: { class: 'checkbox-switch' } })) }}
+        </div>
+    </div>
 </div>

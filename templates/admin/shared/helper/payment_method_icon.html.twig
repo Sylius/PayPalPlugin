@@ -1,0 +1,15 @@
+{#- Renders a payment method icon: the plugin ships its own SVGs for codes Sylius Admin does not have, everything else comes from Sylius Admin. -#}
+
+{% macro label(code) %}
+    {%- import '@SyliusAdmin/shared/helper/payment_method_icon.html.twig' as admin_icon -%}
+    {{- admin_icon.label(code) -}}
+{% endmacro %}
+
+{% macro image(code) %}
+    {%- import '@SyliusAdmin/shared/helper/payment_method_icon.html.twig' as admin_icon -%}
+    {%- if code in ['pay_later', 'trustly'] -%}
+        <img src="{{ asset('build/app/admin/images/' ~ code ~ '.svg', 'app.admin') }}" alt="{{ admin_icon.label(code)|trim }}">
+    {%- else -%}
+        {{ admin_icon.image(code) }}
+    {%- endif -%}
+{% endmacro %}

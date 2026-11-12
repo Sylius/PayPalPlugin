@@ -1,0 +1,7 @@
+<div class="col-12 mb-3" {{ sylius_test_html_attribute('paypal-configuration') }}>
+    <h4 class="mb-3">{{ 'sylius_paypal.configuration'|trans }}</h4>
+
+    <div class="border rounded-3 p-3 pb-1">
+        {% hook 'configuration' %}
+    </div>
+</div>

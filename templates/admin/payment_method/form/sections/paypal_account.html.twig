@@ -1,0 +1,28 @@
+{% set payment_method = hookable_metadata.context.resource %}
+
+{% if payment_method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    {% set paypal_account_connected = payment_method.enabled and hookable_metadata.context.form.gatewayConfig.config.merchant_id.vars.value is not empty %}
+    {% set paypal_account_url = sylius_is_paypal_sandbox() ? 'https://www.sandbox.paypal.com/businessmanage/account/aboutBusiness' : 'https://www.paypal.com/businessmanage/account/aboutBusiness' %}
+
+    <div class="card mb-3" {{ sylius_test_html_attribute('paypal-account') }}>
+        <div class="card-header">
+            <div class="card-title">{{ 'sylius_paypal.paypal_account'|trans }}</div>
+            <div class="card-actions d-flex align-items-center gap-2">
+                {% if paypal_account_connected %}
+                    <span class="badge bg-teal-lt" {{ sylius_test_html_attribute('paypal-account-status', 'connected') }}>{{ 'sylius_paypal.account_connected'|trans }}</span>
+                {% else %}
+                    <span class="badge bg-orange-lt" {{ sylius_test_html_attribute('paypal-account-status', 'not-enabled') }}>{{ 'sylius_paypal.account_not_enabled'|trans }}</span>
+                {% endif %}
+                <a href="{{ paypal_account_url }}" target="_blank" rel="noopener noreferrer" class="btn" {{ sylius_test_html_attribute('paypal-manage-account') }}>
+                    {{ 'sylius_paypal.manage_account_on_paypal'|trans }}
+                    {{ ux_icon('tabler:external-link', { class: 'icon ms-1 me-0' }) }}
+                </a>
+            </div>
+        </div>
+        <div class="card-body pb-0">
+            <div class="row">
+                {% hook 'paypal_account' %}
+            </div>
+        </div>
+    </div>
+{% endif %}

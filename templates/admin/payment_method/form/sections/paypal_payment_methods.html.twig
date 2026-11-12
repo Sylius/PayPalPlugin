@@ -1,0 +1,11 @@
+{% if hookable_metadata.context.resource.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    <div class="card mb-3" {{ sylius_test_html_attribute('paypal-payment-methods') }}>
+        <div class="card-header">
+            <div class="card-title">{{ 'sylius_paypal.payment_methods'|trans }}</div>
+            <div class="text-muted ms-3">{{ 'sylius_paypal.payment_methods_description'|trans }}</div>
+        </div>
+        <div class="card-body pb-0">
+            {% hook 'paypal_payment_methods' %}
+        </div>
+    </div>
+{% endif %}

@@ -1,0 +1,5 @@
+{% set form = hookable_metadata.context.form.gatewayConfig.config %}
+
+<div class="col-12 col-md-4">
+    {{ form_row(form.merchant_id, sylius_test_form_attribute('merchant-id')|merge({ label_attr: { class: 'fw-medium' } })) }}
+</div>
