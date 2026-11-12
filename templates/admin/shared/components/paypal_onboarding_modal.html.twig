@@ -34,7 +34,7 @@
                         </div>
                     {% endif %}
                     {% if verification is not null and verification.isUpToDate() %}
-                        <div class="alert alert-success" {{ sylius_test_html_attribute('paypal-permissions-verification', 'up_to_date') }}>
+                        <div class="alert alert-success" {{ sylius_test_html_attribute('paypal-permissions-verification', verification.outcome().value) }}>
                             <div class="alert-icon">{{ ux_icon('tabler:circle-check') }}</div>
                             <div>
                                 <div class="alert-description">{{ 'sylius_paypal.permissions.update.already_up_to_date'|trans }}</div>
@@ -42,11 +42,11 @@
                             </div>
                         </div>
                     {% elseif verification is not null and verification.isAwaitingPayPal() %}
-                        <div class="alert alert-info" {{ sylius_test_html_attribute('paypal-permissions-verification', 'awaiting_paypal') }}>
+                        <div class="alert alert-info" {{ sylius_test_html_attribute('paypal-permissions-verification', verification.outcome().value) }}>
                             <div class="alert-icon">{{ ux_icon('tabler:info-circle') }}</div>
                             <div class="alert-description">
                                 {{ 'sylius_paypal.permissions.update.awaiting_paypal'|trans }}
-                                <code>{{ verification.pendingCapabilities()|map((status, capability) => capability ~ ': ' ~ status)|join(', ') }}</code>
+                                <code>{{ verification.describedPendingCapabilities()|join(', ') }}</code>
                             </div>
                         </div>
                     {% elseif failed %}

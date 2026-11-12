@@ -15,12 +15,6 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class PermissionsVerification
 {
-    private const UP_TO_DATE = 'up_to_date';
-
-    private const AWAITING_PAYPAL = 'awaiting_paypal';
-
-    private const CONSENT_REQUIRED = 'consent_required';
-
     private const STATUSES_A_CONSENT_DOES_NOT_CHANGE = ['PENDING', 'IN_REVIEW', 'NEED_DATA', 'SUSPENDED', 'REVOKED', 'DENY'];
 
     /**
@@ -28,7 +22,7 @@ final readonly class PermissionsVerification
      * @param list<string> $capabilitiesToRequest
      */
     private function __construct(
-        private string $outcome,
+        private PermissionsVerificationOutcome $outcome,
         private array $pendingCapabilities = [],
         private array $capabilitiesToRequest = [],
     ) {
@@ -64,40 +58,55 @@ final readonly class PermissionsVerification
 
     public static function upToDate(): self
     {
-        return new self(self::UP_TO_DATE);
+        return new self(PermissionsVerificationOutcome::UpToDate);
     }
 
     /** @param non-empty-array<string, string> $pendingCapabilities */
     public static function awaitingPayPal(array $pendingCapabilities): self
     {
-        return new self(self::AWAITING_PAYPAL, $pendingCapabilities);
+        return new self(PermissionsVerificationOutcome::AwaitingPayPal, $pendingCapabilities);
     }
 
     /** @param list<string> $capabilitiesToRequest */
     public static function consentRequired(array $capabilitiesToRequest = []): self
     {
-        return new self(self::CONSENT_REQUIRED, capabilitiesToRequest: $capabilitiesToRequest);
+        return new self(PermissionsVerificationOutcome::ConsentRequired, capabilitiesToRequest: $capabilitiesToRequest);
+    }
+
+    public function outcome(): PermissionsVerificationOutcome
+    {
+        return $this->outcome;
     }
 
     public function isUpToDate(): bool
     {
-        return self::UP_TO_DATE === $this->outcome;
+        return PermissionsVerificationOutcome::UpToDate === $this->outcome;
     }
 
     public function isAwaitingPayPal(): bool
     {
-        return self::AWAITING_PAYPAL === $this->outcome;
+        return PermissionsVerificationOutcome::AwaitingPayPal === $this->outcome;
     }
 
     public function isConsentRequired(): bool
     {
-        return self::CONSENT_REQUIRED === $this->outcome;
+        return PermissionsVerificationOutcome::ConsentRequired === $this->outcome;
     }
 
     /** @return array<string, string> the capabilities a consent would not activate, with their status, e.g. PENDING or NEED_DATA */
     public function pendingCapabilities(): array
     {
         return $this->pendingCapabilities;
+    }
+
+    /** @return list<string> */
+    public function describedPendingCapabilities(): array
+    {
+        return array_map(
+            static fn (string $capability, string $status): string => $capability . ': ' . $status,
+            array_keys($this->pendingCapabilities),
+            $this->pendingCapabilities,
+        );
     }
 
     /** @return list<string> the capabilities the PayPal account does not have, or has but may get through a consent, e.g. INACTIVE */

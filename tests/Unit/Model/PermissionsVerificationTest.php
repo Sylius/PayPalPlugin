@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PermissionsVerification;
+use Sylius\PayPalPlugin\Model\PermissionsVerificationOutcome;
 
 final class PermissionsVerificationTest extends TestCase
 {
@@ -41,7 +42,9 @@ final class PermissionsVerificationTest extends TestCase
         $verification = PermissionsVerification::of($status, $this->scope);
 
         self::assertTrue($verification->isAwaitingPayPal());
+        self::assertSame(PermissionsVerificationOutcome::AwaitingPayPal, $verification->outcome());
         self::assertSame(['GOOGLE_PAY' => 'NEED_DATA', 'PAY_UPON_INVOICE' => 'PENDING'], $verification->pendingCapabilities());
+        self::assertSame(['GOOGLE_PAY: NEED_DATA', 'PAY_UPON_INVOICE: PENDING'], $verification->describedPendingCapabilities());
     }
 
     public function test_it_requires_the_consent_for_every_capability_the_account_does_not_have(): void

@@ -94,11 +94,7 @@ final readonly class UpdatePermissionsAction
         } elseif ($verification->isAwaitingPayPal()) {
             $flashBag->add('warning', [
                 'message' => 'sylius_paypal.permissions_awaiting_paypal',
-                'parameters' => ['%capabilities%' => implode(', ', array_map(
-                    static fn (string $capability, string $capabilityStatus): string => $capability . ': ' . $capabilityStatus,
-                    array_keys($verification->pendingCapabilities()),
-                    $verification->pendingCapabilities(),
-                ))],
+                'parameters' => ['%capabilities%' => implode(', ', $verification->describedPendingCapabilities())],
             ]);
         } else {
             $flashBag->add('warning', [
