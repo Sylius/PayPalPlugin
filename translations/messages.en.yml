@@ -64,11 +64,23 @@ sylius_paypal:
     tender_type_original_payment_method: 'Refunded to the original payment method'
     trustly_enabled: 'Enable Trustly'
     venmo_enabled: 'Enable Venmo'
-    webhook_missing_event_types: 'Missing events:'
-    webhook_not_registered: 'Webhook not registered'
-    webhook_out_of_date: 'Webhook out of date'
-    webhook_points_elsewhere: 'PayPal sends the events to %url%.'
-    webhook_update_hint: 'Run this command to update it:'
+    webhook:
+        state:
+            missing_event_types: 'Missing events:'
+            out_of_date: 'Webhook out of date'
+            points_elsewhere: 'PayPal sends the events to %url%.'
+            unknown: 'Webhook state unknown'
+            unknown_details: 'The plugin has not stored the URL and the events of this webhook yet.'
+        update:
+            already_up_to_date: 'Webhook %id% is already up to date at %url%.'
+            button: 'Update webhook'
+            failed: 'Could not update the webhook: %reason%'
+            failed_check_logs: 'Could not update the webhook. Check the logs for details.'
+            registered: 'Registered webhook %id% at %url%.'
+            updated: 'Updated webhook %id% to point at %url%.'
+        url:
+            label: 'Webhook URL'
+            not_stored: 'Not stored yet'
     carrier:
         AMAZON_MCF: 'Amazon Logistics (MCF)'
         ARAMEX: 'Aramex'

@@ -53,8 +53,6 @@ use Sylius\PayPalPlugin\Api\WebhookResourceApi;
 use Sylius\PayPalPlugin\Api\WebhookResourceApiInterface;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifier;
 use Sylius\PayPalPlugin\Api\WebhookSignatureVerifierInterface;
-use Sylius\PayPalPlugin\Checker\CachingWebhookStateChecker;
-use Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface;
 use Sylius\PayPalPlugin\Checker\WebhookStateChecker;
 use Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface;
 use Sylius\PayPalPlugin\Client\LoggingHttpClient;
@@ -76,7 +74,6 @@ return static function (ContainerConfigurator $container) {
     $parameters->set('sylius_paypal.api.max_attempts', 3);
     $parameters->set('sylius_paypal.webhook_base_url', '');
     $parameters->set('sylius_paypal.webhook_id_refresh_cooldown', 300);
-    $parameters->set('sylius_paypal.webhook_state_lifetime', 3600);
     $parameters->set('sylius_paypal.webhook_event_retention_days', 30);
     $parameters->set('sylius_paypal.callback_certificate_lifetime', 86400);
 
@@ -254,24 +251,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(WebhookIdProviderInterface::class, 'sylius_paypal.provider.webhook_id');
 
-    $services->set('sylius_paypal.checker.webhook_state.lookup', WebhookStateChecker::class)
-        ->args([
-            service('sylius_paypal.api.generic'),
-            service('sylius_paypal.provider.host'),
-            service('sylius_paypal.provider.webhook_url'),
-            service('sylius_paypal.provider.webhook_id.lookup'),
-        ]);
-
-    $services->set('sylius_paypal.checker.webhook_state', CachingWebhookStateChecker::class)
-        ->args([
-            service('sylius_paypal.checker.webhook_state.lookup'),
-            service('sylius_paypal.cache'),
-            param('sylius_paypal.webhook_state_lifetime'),
-        ]);
+    $services->set('sylius_paypal.checker.webhook_state', WebhookStateChecker::class)
+        ->args([service('sylius_paypal.provider.webhook_url')]);
 
     $services->alias(WebhookStateCheckerInterface::class, 'sylius_paypal.checker.webhook_state');
-
-    $services->alias(WebhookStateCacheInterface::class, 'sylius_paypal.checker.webhook_state');
 
     $services->set('sylius_paypal.updater.webhook_id', WebhookIdUpdater::class)
         ->args([service('sylius.manager.payment_method')]);

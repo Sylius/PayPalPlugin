@@ -17,7 +17,7 @@ final readonly class WebhookState
 {
     /** @param list<string> $missingEventTypes */
     private function __construct(
-        private bool $registered,
+        private bool $known,
         private ?string $registeredUrl,
         private bool $pointsElsewhere,
         private array $missingEventTypes,
@@ -29,7 +29,7 @@ final readonly class WebhookState
         return new self(true, $registeredUrl, false, []);
     }
 
-    public static function notRegistered(): self
+    public static function unknown(): self
     {
         return new self(false, null, false, []);
     }
@@ -40,31 +40,14 @@ final readonly class WebhookState
         return new self(true, $registeredUrl, $pointsElsewhere, $missingEventTypes);
     }
 
-    /** @param array{registered: bool, registered_url: ?string, points_elsewhere: bool, missing_event_types: list<string>} $data */
-    public static function fromArray(array $data): self
-    {
-        return new self($data['registered'], $data['registered_url'], $data['points_elsewhere'], $data['missing_event_types']);
-    }
-
-    /** @return array{registered: bool, registered_url: ?string, points_elsewhere: bool, missing_event_types: list<string>} */
-    public function toArray(): array
-    {
-        return [
-            'registered' => $this->registered,
-            'registered_url' => $this->registeredUrl,
-            'points_elsewhere' => $this->pointsElsewhere,
-            'missing_event_types' => $this->missingEventTypes,
-        ];
-    }
-
     public function isUpToDate(): bool
     {
-        return $this->registered && !$this->pointsElsewhere && [] === $this->missingEventTypes;
+        return $this->known && !$this->pointsElsewhere && [] === $this->missingEventTypes;
     }
 
-    public function isRegistered(): bool
+    public function isKnown(): bool
     {
-        return $this->registered;
+        return $this->known;
     }
 
     public function registeredUrl(): ?string

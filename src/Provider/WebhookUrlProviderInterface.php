@@ -28,4 +28,6 @@ interface WebhookUrlProviderInterface
      *                      the one provide() returns first, then the legacy URLs
      */
     public function provideCandidates(PaymentMethodInterface $paymentMethod): array;
+
+    public function isNotifyUrl(PaymentMethodInterface $paymentMethod, string $url): bool;
 }

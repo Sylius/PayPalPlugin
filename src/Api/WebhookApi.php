@@ -15,23 +15,10 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
 
 final readonly class WebhookApi implements WebhookApiInterface
 {
-    /** @var list<string> */
-    public const EVENT_TYPES = [
-        'CHECKOUT.ORDER.APPROVED',
-        'CHECKOUT.ORDER.COMPLETED',
-        'PAYMENT.CAPTURE.COMPLETED',
-        'PAYMENT.CAPTURE.DENIED',
-        'PAYMENT.CAPTURE.DECLINED',
-        'PAYMENT.CAPTURE.PENDING',
-        'PAYMENT.CAPTURE.REFUNDED',
-        'PAYMENT.CAPTURE.REVERSED',
-        'PAYMENT.AUTHORIZATION.CREATED',
-        'PAYMENT.AUTHORIZATION.VOIDED',
-    ];
-
     public function __construct(private PayPalClientInterface $client)
     {
     }
@@ -40,10 +27,7 @@ final readonly class WebhookApi implements WebhookApiInterface
     {
         return $this->client->post($paymentMethod, 'v1/notifications/webhooks', [
             'url' => $webhookUrl,
-            'event_types' => array_map(
-                static fn (string $eventType): array => ['name' => $eventType],
-                self::EVENT_TYPES,
-            ),
+            'event_types' => WebhookEventTypes::handled()->toPayPal(),
         ]);
     }
 }

@@ -18,6 +18,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Payment\Model\GatewayConfig;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdater;
 use Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface;
 
@@ -52,10 +54,65 @@ final class WebhookIdUpdaterTest extends TestCase
         self::assertSame(['client_id' => 'CLIENT_ID', 'webhook_id' => 'WH-CURRENT'], $gatewayConfig->getConfig());
     }
 
+    public function test_it_stores_the_id_and_the_url_of_a_registered_webhook_with_the_event_types_the_plugin_handles(): void
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID']);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        $this->paymentMethodManager->expects(self::once())->method('flush');
+
+        $this->updater->updateRegistered($paymentMethod, WebhookRegistration::updated('WH-CURRENT', 'https://shop.example.com/payment-methods/PAYPAL'));
+
+        self::assertSame([
+            'client_id' => 'CLIENT_ID',
+            'webhook_id' => 'WH-CURRENT',
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => WebhookEventTypes::HANDLED,
+        ], $gatewayConfig->getConfig());
+    }
+
+    public function test_it_forgets_the_url_and_the_event_types_when_it_stores_a_webhook_id_alone(): void
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig([
+            'webhook_id' => 'WH-STALE',
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => ['PAYMENT.CAPTURE.COMPLETED'],
+        ]);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        $this->updater->update($paymentMethod, 'WH-CURRENT');
+
+        self::assertSame(['webhook_id' => 'WH-CURRENT'], $gatewayConfig->getConfig());
+    }
+
+    public function test_it_keeps_the_url_and_the_event_types_when_the_webhook_id_has_not_changed(): void
+    {
+        $config = [
+            'webhook_id' => 'WH-CURRENT',
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => WebhookEventTypes::HANDLED,
+        ];
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig($config);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        $this->paymentMethodManager->expects(self::never())->method('flush');
+
+        $this->updater->update($paymentMethod, 'WH-CURRENT');
+
+        self::assertSame($config, $gatewayConfig->getConfig());
+    }
+
     public function test_it_does_nothing_for_a_payment_method_without_a_gateway_config(): void
     {
         $this->paymentMethodManager->expects(self::never())->method('flush');
 
         $this->updater->update(new PaymentMethod(), 'WH-CURRENT');
+        $this->updater->updateRegistered(new PaymentMethod(), WebhookRegistration::registered('WH-CURRENT', 'https://shop.example.com/payment-methods/PAYPAL'));
     }
 }

@@ -42,7 +42,9 @@
       ```
 
       See "PayPal webhooks are registered on the `/payment-methods/{code}` endpoint of their payment method" for
-      what to set up before running it and what it reports.
+      what to set up before running it and what it reports. It also stores the URL and the events of each webhook,
+      so the admin stops showing "Webhook state unknown" for the payment method (see "The admin shows the state of
+      the webhook of a PayPal payment method from its gateway config").
 
    5. Settle the payments that were in progress:
 
@@ -819,6 +821,14 @@
       public URL of the shop for every PayPal payment method and exits with `0`. A webhook it could not update stays
       where it was: fix the URL and run it again.
 
+   Run the command again on the deployment of every release that adds event types. The edit page of a PayPal payment
+   method flags a webhook whose state is unknown, that misses event types or points elsewhere, and updates it with the
+   same registrar as the command. The registrar keeps a webhook on the notify URL it is registered on, whichever host of
+   `WebhookUrlProviderInterface::isNotifyUrl()` that is, and points only a webhook on the legacy path or another host
+   at the URL `provide()` gives. It reads the webhook from PayPal first and sends no PATCH for one already on a notify
+   URL with all the event types above: it only stores its URL and event types, so "Update webhook" on a payment
+   method onboarded on 2.x whose webhook is up to date changes nothing at PayPal.
+
    `SellerWebhookEventTypesRegistrarInterface::register()` returns the `Sylius\PayPalPlugin\Model\WebhookRegistration`
    it made, created through `WebhookRegistration::registered()`, `updated()` or `upToDate()`: the webhook id, its URL and
    whether it was registered anew (`isNew()`) or was already up to date (`isUpToDate()`).
@@ -853,13 +863,22 @@
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
    and stores the id of the webhook it updates or registers in the gateway config through
    `Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface` (`sylius_paypal.updater.webhook_id`), which
-   `PersistingWebhookIdProvider` now takes instead of the object manager. When PayPal answers the update with
-   `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, it stores the id as well and returns a registration whose
-   `WebhookRegistration::isUpToDate()` is `true`. It then forgets the webhook state the admin cached for the payment
-   method through `Sylius\PayPalPlugin\Checker\WebhookStateCacheInterface` (`sylius_paypal.checker.webhook_state`), its
-   last constructor argument.
+   `PersistingWebhookIdProvider` now takes instead of the object manager. `updateRegistered()` stores the id and the
+   URL of the `WebhookRegistration` together with `WebhookEventTypes::HANDLED` (the `webhook_url` and
+   `webhook_event_types` keys, read through `PayPalGatewayConfig::webhookUrl()` and `webhookEventTypes()`). For a
+   webhook it leaves as it is, or when PayPal answers the update with `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, the registrar
+   stores them as well and returns a registration whose `WebhookRegistration::isUpToDate()` is `true`.
+   `PersistingWebhookIdProvider` stores only the id of a webhook it looks up through `update()`, which leaves the
+   gateway config as it is when the id has not changed and otherwise removes the URL and the event types stored
+   before, as they belong to another webhook:
 
-   The onboarding stores the id of the webhook it registers the same way:
+   ```php
+    // Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void;
+    public function updateRegistered(PaymentMethodInterface $paymentMethod, WebhookRegistration $registration): void;
+   ```
+
+   The onboarding stores the id, the URL and the event types of the webhook it registers the same way:
 
    ```diff
     // Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar
@@ -882,13 +901,19 @@
    +public function provide(PaymentMethodInterface $paymentMethod): string;
    +/** @return list<string> */
    +public function provideCandidates(PaymentMethodInterface $paymentMethod): array;
+   +public function isNotifyUrl(PaymentMethodInterface $paymentMethod, string $url): bool;
    ```
 
    ```diff
     // Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface
    -public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array;
-   +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array;
+   +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, WebhookEventTypes $eventTypes): array;
    ```
+
+   The event types the plugin subscribes a webhook to are `Sylius\PayPalPlugin\Model\WebhookEventTypes::HANDLED`
+   instead of `WebhookApi::EVENT_TYPES`. `WebhookEventTypes` also reads the event types stored in the gateway config
+   (`PayPalGatewayConfig::webhookEventTypes()`) or returned by PayPal (`fromPayPal()`), tells which of the handled ones
+   they miss (`missing()`) and gives them in the shape PayPal expects (`toPayPal()`).
 
    The `sylius_paypal_webhook_refund_order` route (`/paypal-webhook/api/`) and the following have been removed:
 
@@ -917,6 +942,28 @@
    ```
 
    `WebhookRequestVerifier` no longer depends on `PayPalPaymentMethodProviderInterface`.
+
+1. #### The admin shows the state of the webhook of a PayPal payment method from its gateway config.
+
+   The payment method list flags a PayPal payment method whose webhook needs an update with a badge next to its name,
+   and its edit page explains why in an alert above its configuration. Neither asks PayPal:
+   `Sylius\PayPalPlugin\Checker\WebhookStateCheckerInterface` (`sylius_paypal.checker.webhook_state`) compares the
+   URL and the event types stored with the webhook (see above) with the notify URL of the payment method and the
+   event types the plugin handles (`WebhookEventTypes::HANDLED`). It returns a `Sylius\PayPalPlugin\Model\WebhookState`:
+
+   - up to date (`isUpToDate()`): nothing is shown,
+   - out of date: the webhook points elsewhere (`pointsElsewhere()`, `registeredUrl()`) or misses event types
+     (`missingEventTypes()`),
+   - unknown (`isKnown()` is `false`): the gateway config has no URL or event types stored, as for a payment method
+     onboarded on 2.x.
+
+   Run `bin/console sylius-paypal:register-webhook-event-types` to update the webhook and store its URL and event types.
+   The `sylius_paypal:webhook_state` component renders the badge and the alert in the
+   `sylius_paypal.admin.payment_method.grid.field.name.content.badges` and
+   `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal` hooks.
+
+   The edit page also shows the stored webhook URL next to the credentials, read-only, or "Not stored yet" when none
+   is stored.
 
 1. #### `PaymentCaptureProcessor` brings the approved PayPal order up to date through `ApprovedPayPalOrderUpdater`.
 

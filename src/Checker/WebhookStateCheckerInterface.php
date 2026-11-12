@@ -14,11 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Checker;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\WebhookState;
 
 interface WebhookStateCheckerInterface
 {
-    /** @throws PayPalApiException */
     public function check(PaymentMethodInterface $paymentMethod): WebhookState;
 }

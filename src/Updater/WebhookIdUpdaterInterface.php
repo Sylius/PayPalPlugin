@@ -14,8 +14,11 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Updater;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\WebhookRegistration;
 
 interface WebhookIdUpdaterInterface
 {
     public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void;
+
+    public function updateRegistered(PaymentMethodInterface $paymentMethod, WebhookRegistration $registration): void;
 }
