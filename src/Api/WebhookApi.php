@@ -30,6 +30,9 @@ final readonly class WebhookApi implements WebhookApiInterface
         'PAYMENT.CAPTURE.REVERSED',
         'PAYMENT.AUTHORIZATION.CREATED',
         'PAYMENT.AUTHORIZATION.VOIDED',
+        'VAULT.PAYMENT-TOKEN.CREATED',
+        'VAULT.PAYMENT-TOKEN.DELETED',
+        'CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED',
     ];
 
     public function __construct(private PayPalClientInterface $client)

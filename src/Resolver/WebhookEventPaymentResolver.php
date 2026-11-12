@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventNotification;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Repository\Query\VaultedPaypalPaymentQueryInterface;
 use Symfony\Component\Uid\Uuid;
 
 final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentResolverInterface
@@ -25,10 +26,12 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
 
     private const RESOURCE_TYPE_CHECKOUT_ORDER = 'checkout-order';
 
+    private const RESOURCE_TYPE_PAYMENT_TOKEN = 'payment_token';
+
     private const RESOURCE_TYPE_REFUND = 'refund';
 
     public function __construct(
-        private SettleablePaypalPaymentQueryInterface $paypalPaymentQuery,
+        private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface $paypalPaymentQuery,
     ) {
     }
 
@@ -60,6 +63,10 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
             }
         }
 
+        if (self::RESOURCE_TYPE_PAYMENT_TOKEN === $resourceType) {
+            return $this->paypalPaymentQuery->findByVaultId($notification->resourceId())[0] ?? null;
+        }
+
         return null;
     }
 
@@ -87,7 +94,7 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
             return $resourceId;
         }
 
-        $orderId = $resource['supplementary_data']['related_ids']['order_id'] ?? null;
+        $orderId = $resource['supplementary_data']['related_ids']['order_id'] ?? $resource['metadata']['order_id'] ?? null;
 
         return is_string($orderId) && '' !== $orderId ? $orderId : null;
     }

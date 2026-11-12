@@ -57,6 +57,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
             PayPalGatewayConfig::SANDBOX => $sandbox,
             PayPalGatewayConfig::USE_AUTHORIZE => false,
+            PayPalGatewayConfig::VAULTING_ENABLED => $result->getStatus()->isVaultingEnabled(),
         ]);
 
         if (method_exists($gatewayConfig, 'setUsePayum')) {

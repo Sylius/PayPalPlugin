@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\CommandHandler;
 
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
@@ -25,6 +26,7 @@ use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 
 final class CreatePayPalOrderPaymentRequestHandler
 {
@@ -45,6 +47,7 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
         private readonly PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
         StateMachineInterface $stateMachine,
+        private readonly ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         $this->stateMachine = $stateMachine;
     }
@@ -87,6 +90,24 @@ final class CreatePayPalOrderPaymentRequestHandler
 
         /** @var PaymentInterface $payment */
         $payment = $paymentRequest->getPayment();
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+
+        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $payment->getMethod())) {
+            $this->failWithReason($paymentRequest, 'This payment needs a PayPal wallet saved for later charges, but the merchant cannot save PayPal wallets yet.');
+
+            return;
+        }
+
+        if (
+            PayPalPaymentSourceProviderInterface::PAYPAL !== $paymentSource &&
+            null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod())
+        ) {
+            $this->failWithReason($paymentRequest, 'This payment can be paid only with a PayPal wallet, which PayPal saves for later charges.');
+
+            return;
+        }
+
         $hash = (string) $paymentRequest->getId();
         $payUrl = $createPayPalOrderPaymentRequest->getReturnUrl();
 

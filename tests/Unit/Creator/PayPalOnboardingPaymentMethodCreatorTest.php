@@ -36,6 +36,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
         'use_authorize' => false,
+        'vaulting_enabled' => false,
     ];
 
     private FactoryInterface&MockObject $gatewayFactory;
@@ -97,6 +98,16 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->entityManager->expects(self::never())->method('flush');
 
         self::assertSame($paymentMethod, $this->creator->create($result, false));
+    }
+
+    #[Test]
+    public function it_stores_the_vaulting_flag_when_the_vaulting_capability_is_active(): void
+    {
+        [$gatewayConfig] = $this->mockFactories();
+
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, ['vaulting_enabled' => true]));
+
+        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, [], 'ACTIVE')), false);
     }
 
     #[Test]

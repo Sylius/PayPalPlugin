@@ -24,15 +24,19 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
-final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
+final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
 {
+    public function __construct(private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null)
+    {
+    }
+
     public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext): array
     {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
         return match ($paymentSource) {
-            self::PAYPAL => [self::PAYPAL => ['experience_context' => $experienceContext]],
+            self::PAYPAL => [self::PAYPAL => $this->paypal($order, $payment, $experienceContext)],
             self::GOOGLE_PAY => [self::GOOGLE_PAY => [
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
             ]],
@@ -63,6 +67,23 @@ final class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderIn
             [self::PAYPAL, self::GOOGLE_PAY, self::APPLE_PAY, self::CARD, self::VENMO, ...RedirectPaymentSource::values()],
             true,
         );
+    }
+
+    /**
+     * @param array<string, mixed> $experienceContext
+     *
+     * @return array<string, mixed>
+     */
+    private function paypal(OrderInterface $order, PaymentInterface $payment, array $experienceContext): array
+    {
+        $paypal = ['experience_context' => $experienceContext];
+
+        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod());
+        if (null !== $vaultRequest) {
+            $paypal['attributes'] = ['vault' => $vaultRequest->toArray()];
+        }
+
+        return $paypal;
     }
 
     /**
