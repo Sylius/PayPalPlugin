@@ -13,16 +13,15 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Factory;
 
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPurchaseUnit;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
-use Webmozart\Assert\Assert;
 
 final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
 {
@@ -37,6 +36,7 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
         string $referenceId,
         ?string $merchantId = null,
         bool $withItemTaxes = true,
+        ?string $customId = null,
     ): PayPalPurchaseUnit {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
@@ -63,7 +63,7 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
             $order->isShippingRequired(),
             $order->getShippingAddress(),
             shippingDiscountValue: $shippingDiscount,
-            customId: $paymentReferenceNumber,
+            customId: $customId ?? $paymentReferenceNumber,
             withItemTaxes: $withItemTaxes,
         );
     }
@@ -76,9 +76,6 @@ final readonly class PurchaseUnitFactory implements PurchaseUnitFactoryInterface
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-        Assert::true($config->hasSyliusMerchantId());
-
-        return $config->merchantId();
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->merchantId();
     }
 }

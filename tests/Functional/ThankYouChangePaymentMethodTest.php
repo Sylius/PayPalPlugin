@@ -41,11 +41,21 @@ final class ThankYouChangePaymentMethodTest extends JsonApiTestCase
     public function test_it_offers_a_payment_method_change_for_an_order_awaiting_payment(): void
     {
         /** @var OrderInterface $order */
-        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml'])['processing_order'];
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_order.yaml'])['new_order'];
         $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
         $this->getEntityManager()->flush();
 
         self::assertStringContainsString('Change payment method', $this->thankYouPage($order));
+    }
+
+    public function test_it_offers_no_payment_method_change_while_paypal_completes_the_capture(): void
+    {
+        /** @var OrderInterface $order */
+        $order = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/processing_paypal_order.yaml'])['processing_order'];
+        $order->setPaymentState(OrderPaymentStates::STATE_AWAITING_PAYMENT);
+        $this->getEntityManager()->flush();
+
+        self::assertStringNotContainsString('Change payment method', $this->thankYouPage($order));
     }
 
     public function test_it_offers_no_payment_method_change_while_the_bank_transfer_is_on_its_way(): void

@@ -19,7 +19,8 @@ use Sylius\Behat\Service\SharedStorageInterface;
 use Sylius\Bundle\CoreBundle\Fixture\Factory\ExampleFactoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Repository\PaymentMethodRepositoryInterface;
-use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Tests\Sylius\PayPalPlugin\Behat\Page\Shop\Checkout\PayPalSelectPaymentPageInterface;
 use Webmozart\Assert\Assert;
@@ -42,6 +43,31 @@ final class PaymentPayPalContext implements Context
     public function theStoreAllowsPayingWithWithFactoryNameAtPosition(string $paymentMethodName, string $gatewayFactory, ?int $position = 0)
     {
         $this->createPaymentMethod($paymentMethodName, 'PM_' . $paymentMethodName, $gatewayFactory, 'Payment method', $position);
+    }
+
+    #[Given('the store allows paying with :paymentMethodName through the PayPal account :clientId')]
+    public function theStoreAllowsPayingWithThroughThePayPalAccount(string $paymentMethodName, string $clientId): void
+    {
+        $this->createPaymentMethod(
+            $paymentMethodName,
+            strtoupper(str_replace(' ', '_', $paymentMethodName)),
+            'PayPal',
+            'Payment method',
+            0,
+            $clientId,
+        );
+    }
+
+    #[Given('the store uses PayPal in sandbox mode')]
+    public function theStoreUsesPayPalInSandboxMode(): void
+    {
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $this->sharedStorage->get('payment_method');
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [PayPalGatewayConfig::SANDBOX => true]));
+
+        $this->paymentMethodRepository->add($paymentMethod);
     }
 
     #[Given('/^the store allows paying with (Venmo|Apple Pay|Google Pay|Trustly) through PayPal$/')]
@@ -69,6 +95,7 @@ final class PaymentPayPalContext implements Context
         string $gatewayFactory,
         string $description,
         int $position,
+        ?string $clientId = null,
     ): void {
         $gatewayFactory = $this->findGatewayNameByTranslation($gatewayFactory, $this->gatewayFactories);
 
@@ -79,18 +106,17 @@ final class PaymentPayPalContext implements Context
             'description' => $description,
             'gatewayName' => $gatewayFactory,
             'gatewayFactory' => $gatewayFactory,
+            'usePayum' => false,
             'enabled' => true,
             'channels' => ($this->sharedStorage->has('channel')) ? [$this->sharedStorage->get('channel')] : [],
         ]);
 
         /** we need to send real client_id to paypal so we dont get errors while loading javascripts */
         $paymentMethod->getGatewayConfig()->setConfig([
-            'client_id' => $this->clientId,
+            'client_id' => $clientId ?? $this->clientId,
             'client_secret' => 'SECRET',
-            'partner_attribution_id' => PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID,
+            'partner_attribution_id' => SyliusPayPalExtension::PARTNER_ATTRIBUTION_ID,
             'merchant_id' => 'MERCHANT-ID',
-            'reports_sftp_username' => 'USERNAME',
-            'reports_sftp_password' => 'PASSWORD',
         ]);
 
         $paymentMethod->setPosition((int) $position);

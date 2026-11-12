@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\DependencyInjection;
 
+use Sylius\PayPalPlugin\OrderPay\Provider\ShopApiReturnUrlProvider;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -39,6 +41,14 @@ final class Configuration implements ConfigurationInterface
         'INDIA_POST',
     ];
 
+    private const AUTHORIZABLE_PAYMENT_SOURCES = [
+        PayPalPaymentSourceProviderInterface::PAYPAL,
+        PayPalPaymentSourceProviderInterface::VENMO,
+        PayPalPaymentSourceProviderInterface::CARD,
+        PayPalPaymentSourceProviderInterface::APPLE_PAY,
+        PayPalPaymentSourceProviderInterface::GOOGLE_PAY,
+    ];
+
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('sylius_paypal');
@@ -46,7 +56,6 @@ final class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-                ->booleanNode('sandbox')->defaultTrue()->end()
                 ->scalarNode('test_buyer_country')->defaultNull()->end()
                 ->arrayNode('logging')
                     ->addDefaultsIfNotSet()
@@ -60,6 +69,28 @@ final class Configuration implements ConfigurationInterface
                     ->scalarPrototype()->end()
                     ->defaultValue(self::ALL_PAYPAL_SUPPORTED_LOCALES)
                     ->performNoDeepMerging()
+                ->end()
+                ->arrayNode('authorize')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('payment_sources')
+                            ->enumPrototype()->values(self::AUTHORIZABLE_PAYMENT_SOURCES)->end()
+                            ->defaultValue(self::AUTHORIZABLE_PAYMENT_SOURCES)
+                            ->performNoDeepMerging()
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('shop_api')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('return_url')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $returnUrl): bool => null !== $returnUrl && !str_contains((string) $returnUrl, ShopApiReturnUrlProvider::HASH_PLACEHOLDER))
+                                ->thenInvalid('The shop API return URL %s must contain the ' . ShopApiReturnUrlProvider::HASH_PLACEHOLDER . ' placeholder.')
+                            ->end()
+                        ->end()
+                    ->end()
                 ->end()
                 ->arrayNode('tracking')
                     ->addDefaultsIfNotSet()

@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
@@ -24,12 +25,12 @@ final readonly class FindEligibleMethodsApi implements FindEligibleMethodsApiInt
     {
     }
 
-    public function find(string $token, PaymentInterface $payment, array $paymentSources): array
+    public function find(PaymentMethodInterface $paymentMethod, PaymentInterface $payment, array $paymentSources): array
     {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        return $this->client->post('v2/payments/find-eligible-methods', $token, [
+        return $this->client->post($paymentMethod, 'v2/payments/find-eligible-methods', [
             'customer' => ['country_code' => $order->getBillingAddress()?->getCountryCode()],
             'purchase_units' => [
                 [

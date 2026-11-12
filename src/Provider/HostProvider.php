@@ -1,0 +1,27 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Provider;
+
+final readonly class HostProvider implements HostProviderInterface
+{
+    public function getApiBaseUrlForMode(bool $sandbox): string
+    {
+        return $sandbox ? self::SANDBOX_API_BASE_URL : self::PRODUCTION_API_BASE_URL;
+    }
+
+    public function getWebUrlForMode(bool $sandbox): string
+    {
+        return $sandbox ? self::SANDBOX_WEB_URL : self::PRODUCTION_WEB_URL;
+    }
+}

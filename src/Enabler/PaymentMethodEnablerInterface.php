@@ -15,11 +15,13 @@ namespace Sylius\PayPalPlugin\Enabler;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookUrlNotValidException;
 
 interface PaymentMethodEnablerInterface
 {
     /**
      * @throws PaymentMethodCouldNotBeEnabledException
+     * @throws PayPalWebhookUrlNotValidException
      */
     public function enable(PaymentMethodInterface $paymentMethod): void;
 }

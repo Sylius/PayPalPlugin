@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\CompleteOrderApi;
 use Sylius\PayPalPlugin\Api\CompleteOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -24,12 +25,15 @@ final class CompleteOrderApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private CompleteOrderApi $completeOrderApi;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->completeOrderApi = new CompleteOrderApi($this->client);
     }
 
@@ -45,11 +49,22 @@ final class CompleteOrderApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with('v2/checkout/orders/123123/capture', 'TOKEN')
+            ->with($this->paymentMethod, 'v2/checkout/orders/123123/capture', null, [])
             ->willReturn(['status' => 'COMPLETED', 'id' => 123]);
 
-        $result = $this->completeOrderApi->complete('TOKEN', '123123');
+        $result = $this->completeOrderApi->complete($this->paymentMethod, '123123');
 
         self::assertEquals(['status' => 'COMPLETED', 'id' => 123], $result);
+    }
+
+    public function test_it_completes_the_paypal_order_under_the_request_id_given_by_the_caller(): void
+    {
+        $this->client
+            ->expects(self::once())
+            ->method('post')
+            ->with($this->paymentMethod, 'v2/checkout/orders/123123/capture', null, ['PayPal-Request-Id' => 'PAYMENT_REQUEST_HASH-capture'])
+            ->willReturn(['status' => 'COMPLETED']);
+
+        $this->completeOrderApi->complete($this->paymentMethod, '123123', 'PAYMENT_REQUEST_HASH-capture');
     }
 }
