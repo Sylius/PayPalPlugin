@@ -54,6 +54,9 @@ final class WebhookApiTest extends TestCase
                     ['name' => 'PAYMENT.CAPTURE.REVERSED'],
                     ['name' => 'PAYMENT.AUTHORIZATION.CREATED'],
                     ['name' => 'PAYMENT.AUTHORIZATION.VOIDED'],
+                    ['name' => 'VAULT.PAYMENT-TOKEN.CREATED'],
+                    ['name' => 'VAULT.PAYMENT-TOKEN.DELETED'],
+                    ['name' => 'CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED'],
                 ],
             ])
             ->willReturn(['id' => 'WEBHOOK_ID'])

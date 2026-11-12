@@ -20,6 +20,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApi;
 use Sylius\PayPalPlugin\Api\PayPalOnboardingRequestExecutorInterface;
+use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final class MerchantOnboardingStatusApiTest extends TestCase
@@ -120,6 +121,45 @@ final class MerchantOnboardingStatusApiTest extends TestCase
         $this->requestExecutor->method('execute')->willReturn(['payments_receivable' => true]);
 
         self::assertSame([], $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)->activeCapabilities());
+    }
+
+    #[Test]
+    public function it_reads_the_vaulting_capability_status(): void
+    {
+        $status = $this->statusFor([['name' => 'APPLE_PAY', 'status' => 'ACTIVE'], ['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'ACTIVE']]);
+
+        self::assertSame('ACTIVE', $status->getVaultingCapabilityStatus());
+        self::assertTrue($status->isVaultingEnabled());
+    }
+
+    #[Test]
+    public function it_treats_an_inactive_vaulting_capability_as_disabled(): void
+    {
+        $status = $this->statusFor([['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'NEED_DATA']]);
+
+        self::assertSame('NEED_DATA', $status->getVaultingCapabilityStatus());
+        self::assertFalse($status->isVaultingEnabled());
+    }
+
+    #[Test]
+    public function it_has_no_vaulting_capability_status_when_the_capability_is_missing(): void
+    {
+        $status = $this->statusFor([['name' => 'APPLE_PAY', 'status' => 'ACTIVE']]);
+
+        self::assertNull($status->getVaultingCapabilityStatus());
+        self::assertFalse($status->isVaultingEnabled());
+    }
+
+    /** @param list<array<string, string>> $capabilities */
+    private function statusFor(array $capabilities): OnboardingStatus
+    {
+        $request = $this->createMock(RequestInterface::class);
+
+        $this->requestFactory->method('createRequest')->willReturn($request);
+        $request->method('withHeader')->willReturn($request);
+        $this->requestExecutor->method('execute')->willReturn(['capabilities' => $capabilities]);
+
+        return $this->merchantOnboardingStatusApi->get('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true);
     }
 
     private function hostProvider(): HostProviderInterface

@@ -30,6 +30,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\Resource\Metadata\MetadataInterface;
 use Symfony\Component\Form\FormError;
@@ -57,7 +58,17 @@ final readonly class AddToCartAction
         private RouterInterface $router,
         private CartStorageInterface $cartStorage,
         private PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -105,6 +116,22 @@ final readonly class AddToCartAction
 
         $this->orderModifier->addToOrder($addToCartCommand->getCart(), $addToCartCommand->getCartItem());
 
+        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($cart, $this->payPalPaymentMethod($cart))) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.vaulting_not_available');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($this->isWalletOnlyButtonRefused($request, $cart)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.paypal_wallet_required');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
         $this->cartManager->persist($cart);
         $this->cartManager->flush();
 
@@ -122,7 +149,7 @@ final readonly class AddToCartAction
 
     private function isExpressCheckoutEnabled(OrderInterface $cart): bool
     {
-        return $this->getConfig($cart)?->isExpressCheckoutEnabled() ?? true;
+        return $this->payPalGatewayConfig($cart)?->isExpressCheckoutEnabled() ?? true;
     }
 
     private function isPaymentSourceOffered(Request $request, OrderInterface $cart): bool
@@ -133,10 +160,23 @@ final readonly class AddToCartAction
             return true;
         }
 
-        return PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && ($this->getConfig($cart)?->isVenmoEnabled() ?? false);
+        return match ($paymentSource) {
+            PayPalPaymentSourceProviderInterface::VENMO => true === $this->payPalGatewayConfig($cart)?->isVenmoEnabled(),
+            CreatePayPalOrderFromCartAction::PAY_LATER_BUTTON => true === $this->payPalGatewayConfig($cart)?->isPayLaterEnabled(),
+            default => false,
+        };
     }
 
-    private function getConfig(OrderInterface $cart): ?PayPalGatewayConfig
+    private function isWalletOnlyButtonRefused(Request $request, OrderInterface $cart): bool
+    {
+        if (!in_array($request->query->get('paymentSource'), [PayPalPaymentSourceProviderInterface::VENMO, CreatePayPalOrderFromCartAction::PAY_LATER_BUTTON], true)) {
+            return false;
+        }
+
+        return null !== $this->vaultRequestProvider?->provide($cart, $this->payPalPaymentMethod($cart));
+    }
+
+    private function payPalPaymentMethod(OrderInterface $cart): ?PaymentMethodInterface
     {
         /** @var ChannelInterface|null $channel */
         $channel = $cart->getChannel();
@@ -144,10 +184,13 @@ final readonly class AddToCartAction
             return null;
         }
 
-        /** @var PaymentMethodInterface|null $paymentMethod */
-        $paymentMethod = $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? null;
+        return $this->payPalPaymentMethodsResolver->getInChannel($channel)[0] ?? null;
+    }
+
+    private function payPalGatewayConfig(OrderInterface $cart): ?PayPalGatewayConfig
+    {
         /** @var GatewayConfigInterface|null $gatewayConfig */
-        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        $gatewayConfig = $this->payPalPaymentMethod($cart)?->getGatewayConfig();
         if (null === $gatewayConfig) {
             return null;
         }

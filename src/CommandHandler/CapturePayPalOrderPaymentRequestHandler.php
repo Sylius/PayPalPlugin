@@ -22,6 +22,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
@@ -31,6 +32,8 @@ use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final class CapturePayPalOrderPaymentRequestHandler
 {
@@ -53,6 +56,7 @@ final class CapturePayPalOrderPaymentRequestHandler
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private readonly EntityManagerInterface $paymentManager,
         private readonly EntityManagerInterface $paymentRequestManager,
+        private readonly MessageBusInterface $eventBus,
         StateMachineInterface $stateMachine,
     ) {
         $this->stateMachine = $stateMachine;
@@ -77,7 +81,8 @@ final class CapturePayPalOrderPaymentRequestHandler
             return;
         }
 
-        if (!PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId()) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        if (!$details->hasPayPalOrderId()) {
             $this->failWithReason($paymentRequest, 'The payment carries no PayPal order id.');
 
             return;
@@ -97,6 +102,7 @@ final class CapturePayPalOrderPaymentRequestHandler
 
             return;
         }
+        $this->announceRevealedVaultToken($payment, $details->vaultId());
         $capture = $payPalOrder->capture();
 
         if (null !== $capture) {
@@ -119,6 +125,19 @@ final class CapturePayPalOrderPaymentRequestHandler
         }
 
         $this->complete($paymentRequest, $payment);
+    }
+
+    private function announceRevealedVaultToken(PaymentInterface $payment, ?string $knownVaultId): void
+    {
+        $vaultId = PayPalPaymentDetails::fromPayment($payment)->vaultId();
+        if (null === $vaultId || $knownVaultId === $vaultId) {
+            return;
+        }
+
+        $this->eventBus->dispatch(
+            new PayPalPaymentTokenCreated($payment->getId(), $vaultId),
+            [new DispatchAfterCurrentBusStamp()],
+        );
     }
 
     private function refusalReason(PayPalOrderDetails $payPalOrder, ?PayPalCapture $capture): ?string

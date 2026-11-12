@@ -15,21 +15,27 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class OnboardingStatus
 {
+    public const VAULTING_CAPABILITY = 'PAYPAL_WALLET_VAULTING_ADVANCED';
+
+    public const ACTIVE_CAPABILITY_STATUS = 'ACTIVE';
+
     /** @param list<string> $activeCapabilities */
     public function __construct(
         private bool $paymentsReceivable,
         private bool $primaryEmailConfirmed,
         private array $activeCapabilities = [],
+        private ?string $vaultingCapabilityStatus = null,
     ) {
     }
 
-    /** @param array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>} $data */
+    /** @param array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>, vaulting_capability_status?: string|null} $data */
     public static function fromArray(array $data): self
     {
         return new self(
             $data['payments_receivable'] ?? false,
             $data['primary_email_confirmed'] ?? false,
             $data['active_capabilities'] ?? [],
+            $data['vaulting_capability_status'] ?? null,
         );
     }
 
@@ -40,6 +46,7 @@ final readonly class OnboardingStatus
             (bool) ($content['payments_receivable'] ?? false),
             (bool) ($content['primary_email_confirmed'] ?? false),
             self::activeCapabilitiesOf($content['capabilities'] ?? []),
+            self::capabilityStatusOf($content['capabilities'] ?? [], self::VAULTING_CAPABILITY),
         );
     }
 
@@ -69,13 +76,24 @@ final readonly class OnboardingStatus
         return in_array($capability, $this->activeCapabilities, true);
     }
 
-    /** @return array{payments_receivable: bool, primary_email_confirmed: bool, active_capabilities: list<string>} */
+    public function getVaultingCapabilityStatus(): ?string
+    {
+        return $this->vaultingCapabilityStatus;
+    }
+
+    public function isVaultingEnabled(): bool
+    {
+        return self::ACTIVE_CAPABILITY_STATUS === $this->vaultingCapabilityStatus;
+    }
+
+    /** @return array{payments_receivable: bool, primary_email_confirmed: bool, active_capabilities: list<string>, vaulting_capability_status: string|null} */
     public function toArray(): array
     {
         return [
             'payments_receivable' => $this->paymentsReceivable,
             'primary_email_confirmed' => $this->primaryEmailConfirmed,
             'active_capabilities' => $this->activeCapabilities,
+            'vaulting_capability_status' => $this->vaultingCapabilityStatus,
         ];
     }
 
@@ -94,5 +112,20 @@ final readonly class OnboardingStatus
         }
 
         return $active;
+    }
+
+    private static function capabilityStatusOf(mixed $capabilities, string $name): ?string
+    {
+        if (!is_array($capabilities)) {
+            return null;
+        }
+
+        foreach ($capabilities as $capability) {
+            if (is_array($capability) && $name === ($capability['name'] ?? null)) {
+                return isset($capability['status']) ? (string) $capability['status'] : null;
+            }
+        }
+
+        return null;
     }
 }

@@ -40,7 +40,7 @@ final readonly class CachingMerchantIntegrationStatusProvider implements Merchan
 
         $item = $this->cache->getItem($this->key($config));
         if ($item->isHit()) {
-            /** @var array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>}|null $cached */
+            /** @var array{payments_receivable?: bool, primary_email_confirmed?: bool, active_capabilities?: list<string>, vaulting_capability_status?: string|null}|null $cached */
             $cached = $item->get();
 
             return null === $cached ? null : OnboardingStatus::fromArray($cached);

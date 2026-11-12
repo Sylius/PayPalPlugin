@@ -1252,3 +1252,130 @@
    `Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider` (`sylius_paypal.api_platform.payment_configuration_provider`).
    It implements `Sylius\Bundle\ApiBundle\Payment\PaymentConfigurationProviderInterface` and takes only
    `PaymentSdkConfigurationProviderInterface`.
+
+1. #### The buyer's PayPal wallet can be vaulted for charges the merchant initiates later.
+
+   Nothing is vaulted by default. To ask PayPal to vault the wallet for an order, for example one with a subscription,
+   decorate or replace `sylius_paypal.resolver.vault_request`
+   (`Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface`). The default `NullVaultRequestResolver` returns
+   `null`; return a `Sylius\PayPalPlugin\Model\PayPalVaultRequest` instead:
+
+   ```php
+   use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+
+   return new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly coffee subscription');
+   ```
+
+   The PayPal order of such an order asks PayPal to store the wallet (`payment_source.paypal.attributes.vault`), and
+   only when the merchant's PayPal account can vault: the gateway config has `vaulting_enabled: true`, or else a
+   capability check with PayPal says so (see "The vaulting capability of the PayPal account is checked and refreshed").
+   The decision is made by `sylius_paypal.provider.vault_request`
+   (`Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface`).
+
+   After the capture the vault is stored in the payment details: `vault_id`, `vault_status`, `vault_customer_id` and
+   `payer_email` (read them with `Sylius\PayPalPlugin\Model\PayPalPaymentDetails::fromPayment($payment)->vault()`).
+
+1. #### An order that needs vaulting can only be paid with the PayPal wallet.
+
+   When `sylius_paypal.resolver.vault_request` returns a vault request for an order:
+
+   - the PayPal payment method is not offered at checkout when the merchant cannot vault
+     (`sylius_paypal.resolver.payment_methods.vaulting_aware` decorates `sylius.resolver.payment_methods.channel_based`;
+     check the priority if you decorate it too);
+   - the payment page offers only the PayPal wallet: cards, Apple Pay, Google Pay, Pay Later, Venmo, PayPal messages and
+     redirect payment sources are hidden, and its `sylius_paypal.shop.pay_with_paypal.content` hook gets a new
+     `vaultRequired` variable. Pass it on if you override `@SyliusPayPalPlugin/pay_with_paypal.html.twig`. The
+     shop API payment configuration follows it: `paymentSources` holds only `paypal` and `payLaterEnabled` is `false`.
+     If you redefine `sylius_paypal.provider.paypal_payment_source` or
+     `sylius_paypal.provider.payment_sdk_configuration`, pass them `sylius_paypal.provider.vault_request`: without it
+     no vault is requested and nothing is restricted;
+   - a `capture` or `authorize` Payment Request creating the PayPal order fails when the merchant cannot vault or the
+     payment source is not `paypal`;
+   - the PayPal buttons on the cart and the select payment step render nothing when the merchant cannot vault, and show
+     neither Venmo nor Pay Later otherwise. The product page keeps them while express checkout is enabled, as it cannot
+     tell yet what the cart will hold;
+   - `sylius_paypal_shop_create_paypal_order_from_cart` and the product page's add to cart answer `400` with the
+     `sylius_paypal.vaulting_not_available` flash when the merchant cannot vault, and with the
+     `sylius_paypal.paypal_wallet_required` flash for `paymentSource=venmo` or `paymentSource=paylater`. The product
+     page does not save the cart it refuses. When express checkout is disabled on the payment method, both keep
+     answering `400` with `sylius_paypal.payment_source_not_available` before any vaulting check, and the cart and the
+     product page show no buttons.
+
+   The Pay Later button now sends `paymentSource=paylater`, which both endpoints accept when Pay Later is enabled and
+   pay with the PayPal wallet. Rebuild the shop assets.
+
+   Add the `sylius_paypal.vaulting_not_available` and `sylius_paypal.paypal_wallet_required` flash translations to your
+   own locales (`en`, `fr`, `nl` and `pl` are included).
+
+1. #### A vaulted PayPal wallet is charged through a `charge_vaulted` Payment Request.
+
+   Copy the `vault_id` of the vaulted payment onto the details of a new payment, in the `new` state and with its payment
+   method set, and dispatch it with `sylius_paypal.dispatcher.charge_vaulted_payment_request`
+   (`Sylius\PayPalPlugin\Dispatcher\ChargeVaultedPaymentRequestDispatcherInterface`):
+
+   ```php
+   $paymentRequest = $chargeVaultedPaymentRequestDispatcher->dispatch($payment);
+   ```
+
+   It reuses an open `charge_vaulted` Payment Request of the payment, or creates one, and PayPal charges the wallet
+   without the buyer (`stored_credential`: `MERCHANT`, `RECURRING`, `SUBSEQUENT`). The PayPal request id is derived from
+   the Payment Request, so sending it again does not charge twice. A payment in another state cancels the Payment
+   Request with a `reason` and charges nothing; a payment without a `vault_id` fails it as `credential_invalid`. A
+   completed capture completes the payment. A pending capture, or a completed PayPal order without a capture, moves it
+   to `processing`. Otherwise the payment and the Payment Request fail, with `reason`, `failure` and, when PayPal
+   refused the charge, `issues` in the response data of the Payment Request.
+   `failure` is a `Sylius\PayPalPlugin\Model\VaultedChargeFailure` value (`declined`, `credential_invalid`,
+   `payer_action_required`, `unknown`), resolved by the decoratable `sylius_paypal.resolver.vaulted_charge_failure`. A
+   connection or PayPal server error is rethrown, so the retry is up to the transport of
+   `sylius.payment_request.command_bus`.
+
+   A vault token is deleted at PayPal with `sylius_paypal.api.payment_token`
+   (`Sylius\PayPalPlugin\Api\PaymentTokenApiInterface::delete()`).
+
+1. #### PayPal vault token webhooks are handled and announced on `sylius.event_bus`.
+
+   The plugin subscribes to `VAULT.PAYMENT-TOKEN.CREATED`, `VAULT.PAYMENT-TOKEN.DELETED` and
+   `CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED`. Subscribe the webhooks registered before:
+
+   ```bash
+   bin/console sylius-paypal:register-webhook-event-types
+   ```
+
+   A vault token PayPal returns with the capture of a `capture` Payment Request or with the
+   `VAULT.PAYMENT-TOKEN.CREATED` webhook is stored on the payment and announced with
+   `Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated` (`paymentId`, `vaultId`). For a deleted one, every payment that
+   carries it loses its `vault_id` and gets `vault_status: DELETED`, and the deletion is announced with
+   `Sylius\PayPalPlugin\Event\PayPalPaymentTokenDeleted` (`vaultId`). Both are dispatched on `sylius.event_bus` with
+   `DispatchAfterCurrentBusStamp`, so the handlers run once the change is committed. That bus has no
+   `doctrine_transaction` middleware: flush in the handler. The same token can in rare cases be announced twice, so make
+   the handlers idempotent.
+
+1. #### The vaulting capability of the PayPal account is checked and refreshed.
+
+   Unless the gateway config has `vaulting_enabled: true`, the shop asks PayPal whether the account can vault
+   (`sylius_paypal.checker.vaulting_capability.cached`) and caches the answer in `sylius_paypal.cache`: a positive one
+   for `sylius_paypal.vaulting_capability_check_cooldown` seconds (`3600` by default), a negative one or an error for
+   `sylius_paypal.vaulting_capability_check_retry_cooldown` seconds (`300` by default). A shop request never writes the
+   flag, and writing it does not clear the cached answer.
+
+   The flag is written when the payment method is created or enabled, by the
+   `CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED` webhook, and by a new command. Run it once after the upgrade:
+
+   ```bash
+   bin/console sylius-paypal:refresh-vaulting-capability
+   ```
+
+1. #### `PayPalClientInterface` has a new `delete()` method.
+
+   ```diff
+    // Sylius\PayPalPlugin\Client\PayPalClientInterface
+   +public function delete(PaymentMethodInterface $paymentMethod, string $url): array;
+   ```
+
+   Implement it if you replaced the PayPal client.
+
+1. #### `PaypalPaymentQuery` finds the payments of a vault token.
+
+   `Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery` implements the new
+   `Sylius\PayPalPlugin\Repository\Query\VaultedPaypalPaymentQueryInterface::findByVaultId(string $vaultId): array`.
+   Implement it if you replaced `sylius_paypal.repository.query.paypal_payment`.
