@@ -868,8 +868,9 @@
    `webhook_event_types` keys, read through `PayPalGatewayConfig::webhookUrl()` and `webhookEventTypes()`). For a
    webhook it leaves as it is, or when PayPal answers the update with `WEBHOOK_PATCH_REQUEST_NO_CHANGE`, the registrar
    stores them as well and returns a registration whose `WebhookRegistration::isUpToDate()` is `true`.
-   `PersistingWebhookIdProvider` stores only the id of a webhook it looks up through `update()`, which removes the URL
-   and the event types stored before, as it does not know them:
+   `PersistingWebhookIdProvider` stores only the id of a webhook it looks up through `update()`, which leaves the
+   gateway config as it is when the id has not changed and otherwise removes the URL and the event types stored
+   before, as they belong to another webhook:
 
    ```php
     // Sylius\PayPalPlugin\Updater\WebhookIdUpdaterInterface

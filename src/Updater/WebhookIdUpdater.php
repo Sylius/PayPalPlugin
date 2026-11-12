@@ -27,6 +27,10 @@ final readonly class WebhookIdUpdater implements WebhookIdUpdaterInterface
 
     public function update(PaymentMethodInterface $paymentMethod, string $webhookId): void
     {
+        if ($webhookId === ($paymentMethod->getGatewayConfig()?->getConfig()[PayPalGatewayConfig::WEBHOOK_ID] ?? null)) {
+            return;
+        }
+
         $this->store($paymentMethod, [PayPalGatewayConfig::WEBHOOK_ID => $webhookId]);
     }
 

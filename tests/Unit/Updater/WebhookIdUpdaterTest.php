@@ -89,6 +89,25 @@ final class WebhookIdUpdaterTest extends TestCase
         self::assertSame(['webhook_id' => 'WH-CURRENT'], $gatewayConfig->getConfig());
     }
 
+    public function test_it_keeps_the_url_and_the_event_types_when_the_webhook_id_has_not_changed(): void
+    {
+        $config = [
+            'webhook_id' => 'WH-CURRENT',
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => WebhookEventTypes::HANDLED,
+        ];
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig($config);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        $this->paymentMethodManager->expects(self::never())->method('flush');
+
+        $this->updater->update($paymentMethod, 'WH-CURRENT');
+
+        self::assertSame($config, $gatewayConfig->getConfig());
+    }
+
     public function test_it_does_nothing_for_a_payment_method_without_a_gateway_config(): void
     {
         $this->paymentMethodManager->expects(self::never())->method('flush');
