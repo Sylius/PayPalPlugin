@@ -525,9 +525,8 @@ unchanged.
    - `gateway_configuration.sylius_paypal.configuration.reports`: `reports_sftp_username` (100),
      `reports_sftp_password` (0).
 
-   `merchant_id` shows the merchant id and is read only. The client id and client secret fields are now disabled,
-   so a submitted value is ignored and the stored one is kept. The client secret is no longer rendered:
-   `client_secret` shows a Stored or Missing badge instead.
+   `merchant_id` and `client_id` show the stored values in read-only fields. `client_secret` shows only a Stored
+   or Missing badge, never the secret itself.
 
    To migrate, move each override to its new hook. For example, this hides the client secret field in 2.1:
 
@@ -548,6 +547,19 @@ unchanged.
                client_secret:
                    enabled: false
    ```
+
+1. **The PayPal credentials in `PayPalConfigurationType` cannot be changed through the form.** Onboarding sets
+   them.
+
+   - `client_secret` is no longer a form field, so the secret never appears in the page source. The stored value
+     stays in the gateway config when the form is saved. Code that reads `form.client_secret` must read the
+     gateway config instead.
+   - `merchant_id` is now a disabled `TextType` labelled `sylius_paypal.merchant_id`. It was a `HiddenType` with
+     the `sylius_paypal.client_secret` label.
+   - `sylius_merchant_id` is now a disabled `HiddenType`.
+   - `client_id` stays a disabled `TextType`.
+
+   A request that submits any of these values is ignored, and the stored values are kept.
 
 1. **Priority change:** `paypal_checkout` on `sylius_shop.product.show.content.info.summary` moved from `50` to
    `75`.

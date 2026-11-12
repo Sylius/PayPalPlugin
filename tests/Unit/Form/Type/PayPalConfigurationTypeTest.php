@@ -160,12 +160,57 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->getData()['messaging_enabled']);
     }
 
+    public function test_it_has_no_client_secret_field(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->has('client_secret'));
+    }
+
+    public function test_the_merchant_id_and_client_id_are_disabled_fields_with_their_own_labels(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertTrue($form->get('merchant_id')->isDisabled());
+        self::assertSame('sylius_paypal.merchant_id', $form->get('merchant_id')->getConfig()->getOption('label'));
+        self::assertTrue($form->get('client_id')->isDisabled());
+        self::assertSame('sylius_paypal.client_id', $form->get('client_id')->getConfig()->getOption('label'));
+    }
+
+    public function test_saving_the_form_keeps_the_stored_credentials(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+        $form->submit($this->submittedFields());
+
+        self::assertTrue($form->isValid());
+        self::assertSame('CLIENT_ID', $form->getData()['client_id']);
+        self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
+        self::assertSame('MERCHANT_ID', $form->getData()['merchant_id']);
+        self::assertSame('SYLIUS_MERCHANT_ID', $form->getData()['sylius_merchant_id']);
+    }
+
+    public function test_submitted_credentials_are_ignored(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+        $form->submit(array_merge($this->submittedFields(), [
+            'client_id' => 'OTHER_CLIENT_ID',
+            'client_secret' => 'OTHER_CLIENT_SECRET',
+            'merchant_id' => 'OTHER_MERCHANT_ID',
+            'sylius_merchant_id' => 'OTHER_SYLIUS_MERCHANT_ID',
+        ]));
+
+        self::assertSame('CLIENT_ID', $form->getData()['client_id']);
+        self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
+        self::assertSame('MERCHANT_ID', $form->getData()['merchant_id']);
+        self::assertSame('SYLIUS_MERCHANT_ID', $form->getData()['sylius_merchant_id']);
+    }
+
     /** @return array<string, mixed> */
     private function baseConfig(): array
     {
         return [
             'client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'merchant_id' => 'MERCHANT_ID',
-            'sylius_merchant_id' => 'MERCHANT_ID', 'partner_attribution_id' => 'bn', 'use_authorize' => 1,
+            'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID', 'partner_attribution_id' => 'bn', 'use_authorize' => 1,
             'reports_sftp_username' => null, 'reports_sftp_password' => null,
         ];
     }
@@ -174,7 +219,6 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     private function submittedFields(): array
     {
         return [
-            'client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET',
             'reports_sftp_username' => '', 'reports_sftp_password' => '',
         ];
     }

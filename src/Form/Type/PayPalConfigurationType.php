@@ -26,8 +26,6 @@ use Symfony\Component\Form\FormEvents;
 final class PayPalConfigurationType extends AbstractType
 {
     private const HIDDEN_FIELDS = [
-        PayPalGatewayConfig::MERCHANT_ID,
-        PayPalGatewayConfig::SYLIUS_MERCHANT_ID,
         PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
         PayPalGatewayConfig::USE_AUTHORIZE,
     ];
@@ -36,11 +34,12 @@ final class PayPalConfigurationType extends AbstractType
     {
         $originalData = [];
 
+        // Onboarding sets the credentials, so they are disabled: a submitted value is ignored and the stored one is kept.
+        // The client secret has no field at all, so it never reaches the page; the stored value stays in the config.
         $builder
+            ->add(PayPalGatewayConfig::MERCHANT_ID, TextType::class, ['label' => 'sylius_paypal.merchant_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
-            ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
-            ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
-            ->add(PayPalGatewayConfig::SYLIUS_MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
+            ->add(PayPalGatewayConfig::SYLIUS_MERCHANT_ID, HiddenType::class, ['disabled' => true])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
             // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
             ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
