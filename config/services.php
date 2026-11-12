@@ -30,8 +30,6 @@ use Sylius\PayPalPlugin\Checker\PaymentCompletionChecker;
 use Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
 use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
-use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityChecker;
-use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
@@ -184,7 +182,6 @@ return static function (ContainerConfigurator $container) {
         ->tag('form.type_extension');
 
     $services->set('sylius_paypal.form.type.paypal_configuration', PayPalConfigurationType::class)
-        ->args([service('sylius_paypal.checker.payment_source_capability')])
         ->tag('form.type')
         ->tag('sylius.gateway_configuration_type', ['type' => 'sylius_paypal', 'label' => 'sylius_paypal.label']);
 
@@ -489,11 +486,6 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.checker.payment_authorization')]);
 
     $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
-
-    $services->set('sylius_paypal.checker.payment_source_capability', PaymentSourceCapabilityChecker::class)
-        ->args([service('sylius_paypal.provider.merchant_integration_status')]);
-
-    $services->alias(PaymentSourceCapabilityCheckerInterface::class, 'sylius_paypal.checker.payment_source_capability');
 
     $services->set('sylius_paypal.checker.payment_authorization', PaymentAuthorizationChecker::class)
         ->args([param('sylius_paypal.authorize.payment_sources')]);

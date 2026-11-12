@@ -1,5 +1,5 @@
 {% set form = hookable_metadata.context.form.gatewayConfig.config %}
 
 <div class="col-12 col-md-6">
-    {{ form_row(form.apple_pay_enabled, sylius_test_form_attribute('apple-pay-enabled')) }}
+    {{ form_row(form.apple_pay_enabled, sylius_test_form_attribute('apple-pay-enabled')|merge({help: 'sylius_paypal.apple_pay_enabled_help'})) }}
 </div>

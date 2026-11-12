@@ -14,86 +14,15 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Form\Type;
 
 use PHPUnit\Framework\Attributes\Test;
-use Sylius\Component\Core\Model\PaymentMethod;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfig;
-use Sylius\PayPalPlugin\Checker\PaymentSourceCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
-use Symfony\Component\Form\Extension\Core\Type\FormType;
-use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 
 final class PayPalConfigurationTypeTest extends TypeTestCase
 {
-    /** @var list<string> */
-    private array $paymentSourcesWithoutCapability = [];
-
     protected function getExtensions(): array
     {
-        $paymentSourceCapabilityChecker = $this->createStub(PaymentSourceCapabilityCheckerInterface::class);
-        $paymentSourceCapabilityChecker
-            ->method('isAvailable')
-            ->willReturnCallback(fn (string $paymentSource, PaymentMethodInterface $paymentMethod): bool => !in_array($paymentSource, $this->paymentSourcesWithoutCapability, true));
-
-        return [new PreloadedExtension([new PayPalConfigurationType($paymentSourceCapabilityChecker)], [])];
-    }
-
-    public function test_it_disables_the_apple_pay_and_google_pay_toggles_while_the_paypal_account_lacks_their_capability(): void
-    {
-        $this->paymentSourcesWithoutCapability = ['apple_pay', 'google_pay'];
-
-        $form = $this->createConfigurationFormOfPaymentMethod($this->baseConfig());
-
-        self::assertTrue($form->get('apple_pay_enabled')->isDisabled());
-        self::assertTrue($form->get('google_pay_enabled')->isDisabled());
-        self::assertSame('sylius_paypal.capability_not_active', $form->get('apple_pay_enabled')->getConfig()->getOption('help'));
-        self::assertSame('sylius_paypal.apple_pay_enabled', $form->get('apple_pay_enabled')->getConfig()->getOption('label'));
-        self::assertFalse($form->get('venmo_enabled')->isDisabled());
-    }
-
-    public function test_it_turns_off_on_save_a_toggle_disabled_for_a_missing_capability(): void
-    {
-        $this->paymentSourcesWithoutCapability = ['apple_pay'];
-
-        $form = $this->createConfigurationFormOfPaymentMethod(array_merge($this->baseConfig(), ['apple_pay_enabled' => true]));
-
-        self::assertSame('sylius_paypal.capability_not_active_turned_off_on_save', $form->get('apple_pay_enabled')->getConfig()->getOption('help'));
-
-        $form->getRoot()->submit(['gatewayConfig' => ['config' => $this->submittedFields()]]);
-
-        self::assertTrue($form->isValid());
-        self::assertFalse($form->getData()['apple_pay_enabled']);
-    }
-
-    public function test_it_leaves_a_toggle_with_its_capability_as_submitted(): void
-    {
-        $this->paymentSourcesWithoutCapability = ['apple_pay'];
-
-        $form = $this->createConfigurationFormOfPaymentMethod($this->baseConfig());
-
-        $form->getRoot()->submit(['gatewayConfig' => ['config' => array_merge($this->submittedFields(), ['google_pay_enabled' => '1'])]]);
-
-        self::assertFalse($form->getData()['apple_pay_enabled']);
-        self::assertTrue($form->getData()['google_pay_enabled']);
-    }
-
-    public function test_it_leaves_the_apple_pay_and_google_pay_toggles_enabled_when_the_paypal_account_has_their_capability(): void
-    {
-        $form = $this->createConfigurationFormOfPaymentMethod($this->baseConfig());
-
-        self::assertFalse($form->get('apple_pay_enabled')->isDisabled());
-        self::assertFalse($form->get('google_pay_enabled')->isDisabled());
-    }
-
-    public function test_it_does_not_check_the_capabilities_outside_a_payment_method_form(): void
-    {
-        $this->paymentSourcesWithoutCapability = ['apple_pay', 'google_pay'];
-
-        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
-
-        self::assertFalse($form->get('apple_pay_enabled')->isDisabled());
-        self::assertFalse($form->get('google_pay_enabled')->isDisabled());
+        return [new PreloadedExtension([new PayPalConfigurationType()], [])];
     }
 
     #[Test]
@@ -195,9 +124,9 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
 
     public function test_the_google_pay_toggle_stays_true_after_being_resubmitted(): void
     {
-        $form = $this->createConfigurationFormOfPaymentMethod($this->baseConfig());
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
 
-        $form->getRoot()->submit(['gatewayConfig' => ['config' => array_merge($this->submittedFields(), ['google_pay_enabled' => '1'])]]);
+        $form->submit(array_merge($this->submittedFields(), ['google_pay_enabled' => '1']));
 
         self::assertTrue($form->isValid());
         self::assertTrue($form->getData()['google_pay_enabled']);
@@ -272,26 +201,6 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->getData()['pay_later_enabled']);
         self::assertTrue($form->getData()['venmo_enabled']);
         self::assertTrue($form->getData()['messaging_enabled']);
-    }
-
-    /** @param array<string, mixed> $config */
-    private function createConfigurationFormOfPaymentMethod(array $config): FormInterface
-    {
-        $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setFactoryName('sylius_paypal');
-        $gatewayConfig->setConfig($config);
-
-        $paymentMethod = new PaymentMethod();
-        $paymentMethod->setGatewayConfig($gatewayConfig);
-
-        $form = $this->factory->createBuilder(FormType::class, $paymentMethod, ['data_class' => PaymentMethod::class])
-            ->add(
-                $this->factory->createNamedBuilder('gatewayConfig', FormType::class, null, ['data_class' => GatewayConfig::class, 'auto_initialize' => false])
-                    ->add('config', PayPalConfigurationType::class),
-            )
-            ->getForm();
-
-        return $form->get('gatewayConfig')->get('config');
     }
 
     /** @return array<string, mixed> */
