@@ -15,10 +15,18 @@ namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
+use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PermissionsVerification;
 
 interface PermissionsVerifierInterface
 {
-    /** @throws MerchantIntegrationStatusUnavailableException */
+    /**
+     * Reads the merchant integration status of the payment method from PayPal and verifies it through verifyStatus().
+     *
+     * @throws MerchantIntegrationStatusUnavailableException
+     */
     public function verify(PaymentMethodInterface $paymentMethod): PermissionsVerification;
+
+    /** Stores the current onboarding scope in the payment method when the status has every capability of it active. */
+    public function verifyStatus(PaymentMethodInterface $paymentMethod, OnboardingStatus $status): PermissionsVerification;
 }

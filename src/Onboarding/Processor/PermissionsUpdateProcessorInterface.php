@@ -17,7 +17,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Model\PermissionsUpdateResult;
 
 interface PermissionsUpdateProcessorInterface
 {
@@ -26,5 +26,5 @@ interface PermissionsUpdateProcessorInterface
      * @throws OnboardingFailedException
      * @throws OnboardingAccountMismatchException
      */
-    public function process(PaymentMethodInterface $paymentMethod, string $authCode, string $sharedId): OnboardingStatus;
+    public function process(PaymentMethodInterface $paymentMethod, string $authCode, string $sharedId): PermissionsUpdateResult;
 }

@@ -23,7 +23,10 @@ use Sylius\PayPalPlugin\Controller\UpdatePermissionsAction;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Model\PermissionsUpdateResult;
+use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
@@ -84,7 +87,7 @@ final class UpdatePermissionsActionTest extends TestCase
             ->expects(self::once())
             ->method('process')
             ->with($this->paymentMethod, 'AUTH_CODE', 'SHARED_ID')
-            ->willReturn(new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'ACTIVE']))
+            ->willReturn($this->updateResult(PermissionsVerification::upToDate()))
         ;
         $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
 
@@ -98,7 +101,7 @@ final class UpdatePermissionsActionTest extends TestCase
     public function test_it_tells_which_capabilities_paypal_has_not_activated_yet(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod);
-        $this->permissionsUpdateProcessor->method('process')->willReturn(new OnboardingStatus(true, true, ['APPLE_PAY' => 'PENDING', 'GOOGLE_PAY' => 'NEED_DATA']));
+        $this->permissionsUpdateProcessor->method('process')->willReturn($this->updateResult(PermissionsVerification::awaitingPayPal([Capability::APPLE_PAY => 'PENDING', Capability::GOOGLE_PAY => 'NEED_DATA'])));
         $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
 
         $response = ($this->action)($request);
@@ -113,7 +116,7 @@ final class UpdatePermissionsActionTest extends TestCase
     public function test_it_tells_which_capabilities_paypal_has_not_granted(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod);
-        $this->permissionsUpdateProcessor->method('process')->willReturn(new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE']));
+        $this->permissionsUpdateProcessor->method('process')->willReturn($this->updateResult(PermissionsVerification::consentRequired([Capability::GOOGLE_PAY])));
         $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
 
         $response = ($this->action)($request);
@@ -129,7 +132,7 @@ final class UpdatePermissionsActionTest extends TestCase
     public function test_it_warns_about_what_the_paypal_account_still_lacks(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod);
-        $this->permissionsUpdateProcessor->method('process')->willReturn(new OnboardingStatus(false, true));
+        $this->permissionsUpdateProcessor->method('process')->willReturn(new PermissionsUpdateResult(new OnboardingStatus(false, true), PermissionsVerification::upToDate()));
         $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
 
         ($this->action)($request);
@@ -210,6 +213,11 @@ final class UpdatePermissionsActionTest extends TestCase
         $this->expectException(NotFoundHttpException::class);
 
         ($this->action)($this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']));
+    }
+
+    private function updateResult(PermissionsVerification $verification): PermissionsUpdateResult
+    {
+        return new PermissionsUpdateResult(new OnboardingStatus(true, true), $verification);
     }
 
     /** @param array<string, mixed> $body */

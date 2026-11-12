@@ -18,24 +18,22 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Model\OnboardingScope;
-use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Model\PermissionsVerification;
+use Sylius\PayPalPlugin\Model\PermissionsUpdateResult;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
-use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
+use Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface;
 
 final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProcessorInterface
 {
     public function __construct(
         private SellerNonceManagerInterface $sellerNonceManager,
         private SellerOnboardingResolverInterface $sellerOnboardingResolver,
-        private OnboardingScopeUpdaterInterface $onboardingScopeUpdater,
+        private PermissionsVerifierInterface $permissionsVerifier,
     ) {
     }
 
-    public function process(PaymentMethodInterface $paymentMethod, string $authCode, string $sharedId): OnboardingStatus
+    public function process(PaymentMethodInterface $paymentMethod, string $authCode, string $sharedId): PermissionsUpdateResult
     {
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
@@ -58,12 +56,10 @@ final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProc
         }
 
         $status = $sellerOnboardingResult->getStatus();
-        if (PermissionsVerification::of($status, OnboardingScope::current())->isUpToDate()) {
-            $this->onboardingScopeUpdater->update($paymentMethod);
-        }
+        $verification = $this->permissionsVerifier->verifyStatus($paymentMethod, $status);
 
         $this->sellerNonceManager->remove($sandbox);
 
-        return $status;
+        return new PermissionsUpdateResult($status, $verification);
     }
 }

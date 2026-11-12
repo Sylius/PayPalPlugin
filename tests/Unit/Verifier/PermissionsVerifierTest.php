@@ -92,6 +92,30 @@ final class PermissionsVerifierTest extends TestCase
         $this->verifier->verify($this->paymentMethod);
     }
 
+    public function test_it_verifies_a_given_status_without_asking_paypal_and_stores_the_current_scope_when_it_is_up_to_date(): void
+    {
+        $this->merchantIntegrationStatusProvider->expects(self::never())->method('provide');
+        $this->onboardingScopeUpdater->expects(self::once())->method('update')->with($this->paymentMethod);
+
+        self::assertEquals(
+            PermissionsVerification::upToDate(),
+            $this->verifier->verifyStatus($this->paymentMethod, new OnboardingStatus(true, true, [
+                Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+                Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+            ])),
+        );
+    }
+
+    public function test_it_keeps_the_stored_scope_when_a_given_status_is_not_up_to_date(): void
+    {
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
+
+        self::assertEquals(
+            PermissionsVerification::consentRequired([Capability::GOOGLE_PAY]),
+            $this->verifier->verifyStatus($this->paymentMethod, new OnboardingStatus(true, true, [Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS])),
+        );
+    }
+
     /** @param array<string, string> $capabilityStatuses */
     private function givenStatus(array $capabilityStatuses): void
     {

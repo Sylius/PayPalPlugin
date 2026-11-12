@@ -69,7 +69,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius_paypal.manager.seller_nonce'),
             service('sylius_paypal.onboarding.resolver.seller'),
-            service('sylius_paypal.updater.onboarding_scope'),
+            service('sylius_paypal.verifier.permissions'),
         ]);
 
     $services->alias(PermissionsUpdateProcessorInterface::class, 'sylius_paypal.onboarding.processor.permissions_update');

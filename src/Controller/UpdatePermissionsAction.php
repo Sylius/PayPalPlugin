@@ -21,9 +21,7 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
-use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -73,7 +71,7 @@ final readonly class UpdatePermissionsAction
         }
 
         try {
-            $status = $this->permissionsUpdateProcessor->process($paymentMethod, $data['authCode'], $data['sharedId']);
+            $result = $this->permissionsUpdateProcessor->process($paymentMethod, $data['authCode'], $data['sharedId']);
         } catch (OnboardingSessionExpiredException) {
             $flashBag->add('error', 'sylius_paypal.onboarding_session_expired');
 
@@ -90,7 +88,7 @@ final readonly class UpdatePermissionsAction
             return new JsonResponse(['redirectUrl' => $updateUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        $verification = PermissionsVerification::of($status, OnboardingScope::current());
+        $verification = $result->verification();
         if ($verification->isUpToDate()) {
             $flashBag->add('success', 'sylius_paypal.permissions_updated');
         } elseif ($verification->isAwaitingPayPal()) {
@@ -112,7 +110,7 @@ final readonly class UpdatePermissionsAction
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $sandbox = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
-        foreach ($this->onboardingStatusMessagesProvider->provide($status, $sandbox) as $message) {
+        foreach ($this->onboardingStatusMessagesProvider->provide($result->status(), $sandbox) as $message) {
             $flashBag->add('warning', $message);
         }
 
