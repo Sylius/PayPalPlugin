@@ -204,6 +204,57 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertTrue($form->getData()['messaging_enabled']);
     }
 
+    public function test_it_has_no_client_secret_field(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->has('client_secret'));
+    }
+
+    public function test_the_merchant_id_and_client_id_are_disabled_fields_with_their_own_labels(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertTrue($form->get('merchant_id')->isDisabled());
+        self::assertSame('sylius_paypal.merchant_id', $form->get('merchant_id')->getConfig()->getOption('label'));
+        self::assertTrue($form->get('client_id')->isDisabled());
+        self::assertSame('sylius_paypal.client_id', $form->get('client_id')->getConfig()->getOption('label'));
+    }
+
+    public function test_saving_the_form_keeps_the_stored_credentials(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+        $form->submit($this->submittedFields());
+
+        self::assertTrue($form->isValid());
+        self::assertSame('CLIENT_ID', $form->getData()['client_id']);
+        self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
+        self::assertSame('MERCHANT_ID', $form->getData()['merchant_id']);
+    }
+
+    public function test_submitted_merchant_id_and_client_id_are_ignored(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+        $form->submit(array_merge($this->submittedFields(), [
+            'client_id' => 'OTHER_CLIENT_ID',
+            'merchant_id' => 'OTHER_MERCHANT_ID',
+        ]));
+
+        self::assertTrue($form->isValid());
+        self::assertSame('CLIENT_ID', $form->getData()['client_id']);
+        self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
+        self::assertSame('MERCHANT_ID', $form->getData()['merchant_id']);
+    }
+
+    public function test_a_submitted_client_secret_is_an_extra_field_and_does_not_replace_the_stored_one(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+        $form->submit(array_merge($this->submittedFields(), ['client_secret' => 'OTHER_CLIENT_SECRET']));
+
+        self::assertSame(['client_secret' => 'OTHER_CLIENT_SECRET'], $form->getExtraData());
+        self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
+    }
+
     /** @return array<string, mixed> */
     private function baseConfig(): array
     {
@@ -216,7 +267,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     /** @return array<string, mixed> */
     private function submittedFields(): array
     {
-        return ['client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET'];
+        return [];
     }
 
     #[Test]
@@ -231,7 +282,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     public function it_keeps_the_mode_the_credentials_and_the_onboarding_scope_of_the_payment_method_on_submit(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->sandboxConfig());
-        $form->submit(array_merge($this->submittedFields(), ['client_id' => 'OTHER', 'client_secret' => 'OTHERS']));
+        $form->submit(array_merge($this->submittedFields(), ['client_id' => 'OTHER', 'merchant_id' => 'OTHERM']));
 
         self::assertTrue($form->isValid());
         $data = $form->getData();

@@ -1,5 +1,4 @@
 {% set form = hookable_metadata.context.form.gatewayConfig.config %}
+{% set label_class = hookable_metadata.configuration.label_hidden|default(false) ? 'checkbox-switch visually-hidden' : 'checkbox-switch' %}
 
-<div class="col-12 col-md-6">
-    {{ form_row(form.apple_pay_enabled, sylius_test_form_attribute('apple-pay-enabled')|merge({help: 'sylius_paypal.apple_pay_enabled_help'})) }}
-</div>
+{{ form_row(form.apple_pay_enabled, sylius_test_form_attribute('apple-pay-enabled')|merge({ label_attr: { class: label_class }, row_attr: { class: 'mb-0' } })) }}

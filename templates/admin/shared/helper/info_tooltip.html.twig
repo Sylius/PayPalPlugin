@@ -1,0 +1,15 @@
+{#- Renders an "i" button next to an option label. The tooltip text and the accessible name come from translation keys. -#}
+
+{% macro icon(help, option, code = null) %}
+    <button
+        type="button"
+        class="d-inline-flex align-text-bottom p-0 ms-1 border-0 bg-transparent lh-1 text-blue"
+        data-bs-toggle="tooltip"
+        data-bs-placement="top"
+        data-bs-title="{{ help|trans }}"
+        aria-label="{{ 'sylius_paypal.more_about'|trans({ '%option%': option|trans }) }}"
+        {{ sylius_test_html_attribute('info-tooltip', code) }}
+    >
+        {{- ux_icon('tabler:info-circle-filled', { class: 'icon m-0', width: 20, height: 20 }) -}}
+    </button>
+{% endmacro %}

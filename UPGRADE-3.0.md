@@ -233,8 +233,9 @@
 
    The `sylius_paypal.sandbox` configuration option and the `SYLIUS_PAYPAL_SANDBOX_ENABLED` environment variable
    have been removed. Each PayPal payment method keeps its mode under the `sandbox` key of its gateway config. The
-   onboarding sets it and the payment method form shows it read-only, so a store that uses both modes has a PayPal
-   payment method for each, with its own credentials.
+   onboarding sets it, and the payment method form shows it in the `mode` banner at the top of the form, which turns
+   into a warning when a sandbox payment method runs in the `prod` environment. A store that uses both modes has a
+   PayPal payment method for each, with its own credentials.
 
    A PayPal gateway config without the `sandbox` key is in production. If your store used the sandbox, set the
    `sandbox` key of its PayPal gateway config to `true`, or connect the sandbox account as a new PayPal payment
@@ -972,7 +973,7 @@
    Run `bin/console sylius-paypal:register-webhook-event-types` to update the webhook and store its URL and event types.
    The `sylius_paypal:webhook_state` component renders the badge and the alert in the
    `sylius_paypal.admin.payment_method.grid.field.name.content.badges` and
-   `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal` hooks.
+   `sylius_admin.payment_method.update.content.form.sections.paypal_account` hooks.
 
    The edit page also shows the stored webhook URL next to the credentials, read-only, or "Not stored yet" when none
    is stored.
@@ -1055,7 +1056,7 @@
 
    The `sylius_paypal:permissions_state` component renders them in the
    `sylius_paypal.admin.payment_method.grid.field.name.content.badges` and
-   `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal` hooks.
+   `sylius_admin.payment_method.update.content.form.sections.paypal_account` hooks.
 
    The alert offers "Update PayPal permissions", which runs the onboarding again for the PayPal account of the payment
    method. It completes on `sylius_paypal_admin_update_permissions`
