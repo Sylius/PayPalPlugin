@@ -14,11 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Api\GenericApiInterface;
+use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 use Sylius\PayPalPlugin\Exception\PayPalPluginException;
 use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
@@ -30,7 +31,6 @@ final readonly class MerchantIntegrationStatusProvider implements MerchantIntegr
         private GenericApiInterface $genericApi,
         private HostProviderInterface $hostProvider,
         private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
-        private LoggerInterface $logger,
     ) {
     }
 
@@ -52,12 +52,10 @@ final readonly class MerchantIntegrationStatusProvider implements MerchantIntegr
                 $paymentMethod,
                 sprintf('%sv1/customer/partners/%s/merchant-integrations/%s', $this->hostProvider->getApiBaseUrlForMode($sandbox), $partnerId, $config->merchantId()),
             ));
+        } catch (PayPalApiNotFoundException) {
+            return null;
         } catch (PayPalApiException|PayPalPluginException|UntrustedPayPalUrlException|ClientExceptionInterface|\JsonException|\InvalidArgumentException $exception) {
-            $this->logger->warning('Could not read the PayPal merchant integration status: {message}', [
-                'message' => $exception->getMessage(),
-            ]);
+            throw new MerchantIntegrationStatusUnavailableException((string) $paymentMethod->getCode(), $exception);
         }
-
-        return null;
     }
 }

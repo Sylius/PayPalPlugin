@@ -6,12 +6,18 @@ use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManager;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessor;
 use Sylius\PayPalPlugin\Onboarding\Processor\OnboardingCompletionProcessorInterface;
+use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessor;
+use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProvider;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProvider;
 use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
+use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdater;
+use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
+use Sylius\PayPalPlugin\Verifier\PermissionsVerifier;
+use Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -58,4 +64,26 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->alias(OnboardingCompletionProcessorInterface::class, 'sylius_paypal.onboarding.processor.completion');
+
+    $services->set('sylius_paypal.onboarding.processor.permissions_update', PermissionsUpdateProcessor::class)
+        ->args([
+            service('sylius_paypal.manager.seller_nonce'),
+            service('sylius_paypal.onboarding.resolver.seller'),
+            service('sylius_paypal.verifier.permissions'),
+        ]);
+
+    $services->alias(PermissionsUpdateProcessorInterface::class, 'sylius_paypal.onboarding.processor.permissions_update');
+
+    $services->set('sylius_paypal.updater.onboarding_scope', OnboardingScopeUpdater::class)
+        ->args([service('sylius.manager.payment_method')]);
+
+    $services->alias(OnboardingScopeUpdaterInterface::class, 'sylius_paypal.updater.onboarding_scope');
+
+    $services->set('sylius_paypal.verifier.permissions', PermissionsVerifier::class)
+        ->args([
+            service('sylius_paypal.provider.merchant_integration_status'),
+            service('sylius_paypal.updater.onboarding_scope'),
+        ]);
+
+    $services->alias(PermissionsVerifierInterface::class, 'sylius_paypal.verifier.permissions');
 };

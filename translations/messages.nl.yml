@@ -4,7 +4,12 @@ sylius:
         refund_late_capture: 'Late vastlegging terugbetalen'
         void_authorization: 'Autorisatie intrekken'
 sylius_paypal:
+    account_connected: 'Verbonden'
+    account_not_enabled: 'Niet ingeschakeld'
     add_paypal_account: 'PayPal-account toevoegen'
+    always_on: 'Altijd aan'
+    apple_pay: 'Apple Pay'
+    apple_pay_description: 'Vereist ook domeinverificatie in je PayPal-account.'
     apple_pay_enabled_help: 'Apple Pay moet actief zijn op uw PayPal-account.'
     back_to_store: 'Terug naar de winkel'
     billing_info: 'Facturatie adres is hetzefde als de bestelling'
@@ -14,42 +19,105 @@ sylius_paypal:
     capture_strategy_help: 'Autoriseren reserveert het geld van de koper. Voltooi de betaling in de bestelling om te incasseren, of annuleer de bestelling om de autorisatie in te trekken. Alleen PayPal, Pay Later, Venmo, kaarten, Apple Pay en Google Pay worden aangeboden, andere betaalmethoden worden verborgen.'
     card_fields_invalid: 'Controleer de gemarkeerde kaartgegevens.'
     card_number: 'Credit Card nummer'
-    card_three_d_secure_always: 'Altijd 3D Secure aanvragen voor kaartbetalingen'
+    card_three_d_secure_always: 'Altijd 3D Secure aanvragen'
+    card_three_d_secure_always_help: 'Uit: 3D Secure alleen wanneer SCA-regels het vereisen, wat de conversie hoger houdt. Aan: elke kaartbetaling krijgt de extra controle.'
+    card_three_d_secure_always_info: 'Voeg sterkere kaartauthenticatie toe om de aansprakelijkheid voor chargebacks door fraude naar de kaartuitgever te verschuiven en te voldoen aan de eisen voor sterke klantauthenticatie (SCA), maar dit kan de conversie verlagen.'
     cardholder_name: 'Kaarthouder Naam'
+    cards: 'Kaarten'
+    cards_description: 'Visa · Mastercard · American Express'
+    checkout_experience: 'Afrekenervaring'
+    checkout_experience_description: 'Waar PayPal-knoppen en -berichten in de winkel verschijnen'
     client_id: 'Client ID'
     client_secret: 'Client Secret'
+    client_secret_help: 'Opgeslagen tijdens de PayPal-onboarding. Wordt nooit getoond in de beheeromgeving.'
+    client_secret_missing: 'Ontbreekt'
+    client_secret_stored: 'Opgeslagen'
+    configuration: 'Configuratie'
     configure: 'Configureren'
     could_not_load_onboarding_url: 'Kan de PayPal-verbindingslink niet laden. Sluit dit venster en probeer het opnieuw.'
     credit_card: 'Credit Card'
     credit_card_number: 'Credit Card nummer'
     cvv: 'CVV'
+    debit_and_credit_cards: 'Debet- en creditcards'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
     enable_paypal: 'PayPal inschakelen'
     enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Productie'
     expiration_date: 'Vervaldatum'
+    express_checkout_enabled_help: 'PayPal-, Pay Later- en Venmo-knoppen op product- en winkelwagenpagina''s, zodat klanten de adresstap kunnen overslaan.'
     go_to_payment_method: 'Ga naar de betaalmethode'
+    google_pay: 'Google Pay'
+    google_pay_description: 'Beschikbaar zodra PayPal het voor je account inschakelt.'
     google_pay_enabled_help: 'Google Pay moet actief zijn op uw PayPal-account.'
     invalid_form: 'Formulier is ongeldig'
     label: 'PayPal'
+    local_payment_methods: 'Lokale betaalmethoden'
+    manage_account_on_paypal: 'Account beheren bij PayPal'
     merchant_id: 'Merchant ID'
-    mode: 'Modus'
-    mode_production: 'Productie'
-    mode_sandbox: 'Sandbox'
+    messaging_enabled_help: 'Termijnberichten op product- en winkelwagenpagina''s.'
+    messaging_enabled_info: 'Toon klanten al op product- en winkelwagenpagina''s de mogelijkheden om in termijnen te betalen, voor meer conversie en hogere orderwaarde.'
     missing_billing_address_content: 'Ga alstublief terug naar de "adressering" en vul deze aan.'
     missing_billing_address_header: 'We konden geen facturatie adres ophalen van PayPal'
+    mode_production: 'Productie'
+    mode_production_description: 'Klanten betalen met echt geld.'
+    mode_production_title: 'Productiemodus.'
+    mode_sandbox: 'Sandbox'
+    mode_sandbox_description: 'Betalingen worden gesimuleerd: er wordt niets afgeschreven en niets uitbetaald.'
+    mode_sandbox_go_live: 'Om echte betalingen te ontvangen, kies je "PayPal-account toevoegen" > "Productie" in de lijst met betaalmethoden en koppel je je live PayPal-account. Dat wordt een nieuwe betaalmethode.'
+    mode_sandbox_title: 'Sandboxmodus.'
+    more_about: 'Meer over %option%'
     onboarding_completed: 'Uw PayPal-account is gekoppeld.'
     onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
+    pay_later: 'Pay Later'
+    pay_later_description: 'Pay Later-knop naast PayPal bij het afrekenen en in express checkout.'
+    pay_later_info: 'Bied flexibel betalen aan: klanten kopen nu en betalen later, jij krijgt direct betaald.'
     pay_with_card: 'Betalen met kaart'
     pay_with_paypal: 'Betalen met PayPal'
+    payment_methods: 'Betaalmethoden'
+    payment_methods_description: 'Wat klanten zien bij het afrekenen'
+    paypal: 'PayPal'
+    paypal_account: 'PayPal-account'
+    paypal_description: 'Ingeschakeld zodra deze betaalmethode is ingeschakeld.'
+    permissions:
+        state:
+            missing: 'Ontbrekende machtigingen:'
+            out_of_date: 'PayPal-machtigingen verouderd'
+            unknown: 'PayPal-machtigingen onbekend'
+            unknown_details: 'De plugin heeft de machtigingen waarmee dit PayPal-account is gekoppeld niet opgeslagen.'
+        update:
+            already_up_to_date: 'De PayPal-machtigingen van deze betaalmethode zijn al up-to-date.'
+            awaiting_paypal: 'PayPal staat het account van deze betaalmethode nog niet toe deze mogelijkheden te gebruiken. Controleer ze in het PayPal-account:'
+            button: 'PayPal-machtigingen bijwerken'
+            completed: 'Uw PayPal-machtigingen zijn bijgewerkt.'
+            modal_description: 'U wordt gevraagd in te loggen bij PayPal met het account van deze betaalmethode en de machtigingen te verlenen die de plugin nodig heeft. De betaalmethode behoudt haar inloggegevens en webhook.'
+            verification_failed: 'De PayPal-machtigingen van deze betaalmethode konden niet worden gecontroleerd. U kunt ze nog steeds bijwerken.'
     sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     suggested: 'Voorgesteld'
     suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
     tender_type_original_payment_method: 'Teruggestort via de oorspronkelijke betaalmethode'
-    webhook_missing_event_types: "Ontbrekende events:"
-    webhook_not_registered: "Webhook niet geregistreerd"
-    webhook_out_of_date: "Webhook verouderd"
-    webhook_points_elsewhere: "PayPal stuurt de events naar %url%."
-    webhook_update_hint: "Voer deze opdracht uit om hem bij te werken:"
+    trustly: 'Trustly'
+    trustly_description: 'Bankbetalingen in Scandinavië en geselecteerde EU-landen.'
+    us_only: 'Alleen VS'
+    venmo: 'Venmo'
+
+    venmo_description: 'Alleen getoond aan klanten in de VS die in USD betalen.'
+    wallets: 'Wallets'
+    webhook:
+        state:
+            missing_event_types: "Ontbrekende events:"
+            out_of_date: "Webhook verouderd"
+            points_elsewhere: "PayPal stuurt de events naar %url%."
+            unknown: "Webhookstatus onbekend"
+            unknown_details: "De plugin heeft de URL en de events van deze webhook nog niet opgeslagen."
+        update:
+            already_up_to_date: "Webhook %id% is al up-to-date op %url%."
+            button: "Webhook bijwerken"
+            failed: "De webhook kon niet worden bijgewerkt: %reason%"
+            failed_check_logs: "De webhook kon niet worden bijgewerkt. Raadpleeg de logs voor details."
+            registered: "Webhook %id% geregistreerd op %url%."
+            updated: "Webhook %id% verwijst nu naar %url%."
+        url:
+            label: "Webhook-URL"
+            not_stored: "Nog niet opgeslagen"

@@ -11,11 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Sylius\PayPalPlugin\Checker;
+namespace Sylius\PayPalPlugin\Updater;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 
-interface WebhookStateCacheInterface
+interface OnboardingScopeUpdaterInterface
 {
-    public function forget(PaymentMethodInterface $paymentMethod): void;
+    public function update(PaymentMethodInterface $paymentMethod): void;
 }

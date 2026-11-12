@@ -1,24 +1,59 @@
 {% set state = this.state %}
 
 <div {{ attributes }}>
+    {% if variant == 'alert' and registration is not null %}
+        <div class="alert alert-success" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'success') }}>
+            {% if registration.isNew() %}
+                {{ 'sylius_paypal.webhook.update.registered'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+            {% elseif registration.isUpToDate() %}
+                {{ 'sylius_paypal.webhook.update.already_up_to_date'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+            {% else %}
+                {{ 'sylius_paypal.webhook.update.updated'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if variant == 'alert' and updateFailed %}
+        <div class="alert alert-danger" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'error') }}>
+            {% if updateError is null %}
+                {{ 'sylius_paypal.webhook.update.failed_check_logs'|trans }}
+            {% else %}
+                {{ 'sylius_paypal.webhook.update.failed'|trans({'%reason%': updateError}) }}
+            {% endif %}
+        </div>
+    {% endif %}
+
     {% if state is not null and not state.isUpToDate() %}
-        {% set problem = state.isRegistered() ? 'sylius_paypal.webhook_out_of_date' : 'sylius_paypal.webhook_not_registered' %}
+        {% set problem = state.isKnown() ? 'sylius_paypal.webhook.state.out_of_date' : 'sylius_paypal.webhook.state.unknown' %}
+        {% set test_state = state.isKnown() ? 'out-of-date' : 'unknown' %}
 
         {% if variant == 'alert' %}
-            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-webhook-state', state.isRegistered() ? 'out-of-date' : 'not-registered') }}>
+            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>
                 <div>
                     <div class="fw-bold">{{ problem|trans }}</div>
+                    {% if not state.isKnown() %}
+                        <div>{{ 'sylius_paypal.webhook.state.unknown_details'|trans }}</div>
+                    {% endif %}
                     {% if state.pointsElsewhere() %}
-                        <div>{{ 'sylius_paypal.webhook_points_elsewhere'|trans({'%url%': state.registeredUrl()}) }}</div>
+                        <div>{{ 'sylius_paypal.webhook.state.points_elsewhere'|trans({'%url%': state.registeredUrl()}) }}</div>
                     {% endif %}
                     {% if state.missingEventTypes() is not empty %}
-                        <div>{{ 'sylius_paypal.webhook_missing_event_types'|trans }} <code>{{ state.missingEventTypes()|join(', ') }}</code></div>
+                        <div>{{ 'sylius_paypal.webhook.state.missing_event_types'|trans }} <code>{{ state.missingEventTypes()|join(', ') }}</code></div>
                     {% endif %}
-                    <div class="mt-2">{{ 'sylius_paypal.webhook_update_hint'|trans }} <code>bin/console sylius-paypal:register-webhook-event-types</code></div>
+                    <button
+                        type="button"
+                        class="btn btn-warning mt-2"
+                        data-action="live#action"
+                        data-live-action-param="updateWebhook"
+                        data-loading="addAttribute(disabled)"
+                        {{ sylius_test_html_attribute('paypal-webhook-update-button') }}
+                    >
+                        {{ 'sylius_paypal.webhook.update.button'|trans }}
+                    </button>
                 </div>
             </div>
         {% else %}
-            <span class="badge bg-red-lt" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', state.isRegistered() ? 'out-of-date' : 'not-registered') }}>{{ problem|trans }}</span>
+            <span class="badge bg-red-lt" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>{{ problem|trans }}</span>
         {% endif %}
     {% endif %}
 </div>

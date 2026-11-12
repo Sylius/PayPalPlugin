@@ -1,0 +1,11 @@
+{% if hookable_metadata.context.resource.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+    <div class="card mb-3" {{ sylius_test_html_attribute('paypal-checkout-experience') }}>
+        <div class="card-header">
+            <div class="card-title">{{ 'sylius_paypal.checkout_experience'|trans }}</div>
+            <div class="text-muted ms-3">{{ 'sylius_paypal.checkout_experience_description'|trans }}</div>
+        </div>
+        <div class="list-group list-group-flush">
+            {% hook 'paypal_checkout_experience' %}
+        </div>
+    </div>
+{% endif %}

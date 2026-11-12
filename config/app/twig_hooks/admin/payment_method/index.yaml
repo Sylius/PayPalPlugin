@@ -36,6 +36,9 @@ sylius_twig_hooks:
             webhook:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/badges/webhook.html.twig'
                 priority: 0
+            permissions:
+                template: '@SyliusPayPalPlugin/admin/payment_method/grid/field/name/content/badges/permissions.html.twig'
+                priority: -100
         'sylius_admin.payment_method.index.content.grid':
             confirmation_modal_create_paypal:
                 template: '@SyliusPayPalPlugin/admin/payment_method/grid/confirmation_modal_create_paypal.html.twig'

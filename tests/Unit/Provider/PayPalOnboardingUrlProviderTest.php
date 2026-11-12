@@ -71,6 +71,7 @@ final class PayPalOnboardingUrlProviderTest extends TestCase
         self::assertStringContainsString('secondaryProducts=payment_methods', $result);
         self::assertStringContainsString('capabilities=' . rawurlencode('APPLE_PAY,GOOGLE_PAY'), $result);
         self::assertStringContainsString('integrationType=FO', $result);
+        self::assertStringContainsString('features=' . rawurlencode('PAYMENT,REFUND,ACCESS_MERCHANT_INFORMATION'), $result);
         self::assertStringContainsString('displayMode=minibrowser', $result);
         self::assertStringContainsString('sellerNonce=SELLER-NONCE', $result);
         self::assertStringContainsString('partnerLogoUrl=' . rawurlencode('https://shop.example.com/logo.png'), $result);

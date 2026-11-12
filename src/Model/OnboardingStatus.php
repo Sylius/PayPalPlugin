@@ -15,12 +15,18 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class OnboardingStatus
 {
-    /** @param list<string> $activeCapabilities */
+    public const ACTIVE_CAPABILITY_STATUS = 'ACTIVE';
+
+    /** @var array<string, string> */
+    private array $capabilityStatuses;
+
+    /** @param array<string, string> $capabilityStatuses */
     public function __construct(
         private bool $paymentsReceivable,
         private bool $primaryEmailConfirmed,
-        private array $activeCapabilities = [],
+        array $capabilityStatuses = [],
     ) {
+        $this->capabilityStatuses = array_map(strtoupper(...), array_change_key_case($capabilityStatuses, \CASE_UPPER));
     }
 
     /** @param array<array-key, mixed> $content */
@@ -29,7 +35,7 @@ final readonly class OnboardingStatus
         return new self(
             (bool) ($content['payments_receivable'] ?? false),
             (bool) ($content['primary_email_confirmed'] ?? false),
-            self::activeCapabilitiesOf($content['capabilities'] ?? []),
+            self::capabilityStatusesOf($content['capabilities'] ?? []),
         );
     }
 
@@ -51,28 +57,39 @@ final readonly class OnboardingStatus
     /** @return list<string> */
     public function activeCapabilities(): array
     {
-        return $this->activeCapabilities;
+        return array_map(
+            strval(...),
+            array_keys(array_filter(
+                $this->capabilityStatuses,
+                static fn (string $status): bool => self::ACTIVE_CAPABILITY_STATUS === $status,
+            )),
+        );
     }
 
     public function hasActiveCapability(string $capability): bool
     {
-        return in_array($capability, $this->activeCapabilities, true);
+        return self::ACTIVE_CAPABILITY_STATUS === $this->capabilityStatus($capability);
     }
 
-    /** @return list<string> */
-    private static function activeCapabilitiesOf(mixed $capabilities): array
+    public function capabilityStatus(string $capability): ?string
+    {
+        return $this->capabilityStatuses[strtoupper($capability)] ?? null;
+    }
+
+    /** @return array<string, string> */
+    private static function capabilityStatusesOf(mixed $capabilities): array
     {
         if (!is_array($capabilities)) {
             return [];
         }
 
-        $active = [];
+        $statuses = [];
         foreach ($capabilities as $capability) {
-            if (is_array($capability) && isset($capability['name']) && 'ACTIVE' === ($capability['status'] ?? null)) {
-                $active[] = (string) $capability['name'];
+            if (is_array($capability) && is_string($capability['name'] ?? null) && is_string($capability['status'] ?? null)) {
+                $statuses[$capability['name']] = $capability['status'];
             }
         }
 
-        return $active;
+        return $statuses;
     }
 }

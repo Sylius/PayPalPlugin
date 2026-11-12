@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
 
 final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
 {
@@ -22,7 +23,7 @@ final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
     {
     }
 
-    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, array $eventTypes): array
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, WebhookEventTypes $eventTypes): array
     {
         return $this->client->patch($paymentMethod, sprintf('v1/notifications/webhooks/%s', $webhookId), [
             [
@@ -33,10 +34,7 @@ final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
             [
                 'op' => 'replace',
                 'path' => '/event_types',
-                'value' => array_map(
-                    static fn (string $eventType): array => ['name' => $eventType],
-                    $eventTypes,
-                ),
+                'value' => $eventTypes->toPayPal(),
             ],
         ]);
     }

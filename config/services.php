@@ -32,6 +32,8 @@ use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
 use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PermissionsStateChecker;
+use Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
@@ -149,6 +151,7 @@ use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
 use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
 use Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
+use Sylius\PayPalPlugin\Twig\Component\PermissionsStateComponent;
 use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
@@ -528,6 +531,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PaymentRefundCheckerInterface::class, 'sylius_paypal.checker.payment_refund');
 
+    $services->set('sylius_paypal.checker.permissions_state', PermissionsStateChecker::class);
+
+    $services->alias(PermissionsStateCheckerInterface::class, 'sylius_paypal.checker.permissions_state');
+
     $services->set('sylius_paypal.provider.webhook_url', WebhookUrlProvider::class)
         ->args([
             service('router'),
@@ -542,9 +549,10 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.webhook_id.lookup'),
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
+            service('sylius_paypal.api.generic'),
+            service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.webhook_url'),
             service('sylius_paypal.updater.webhook_id'),
-            service('sylius_paypal.checker.webhook_state'),
         ]);
 
     $services->alias(SellerWebhookEventTypesRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook_event_types');
@@ -661,11 +669,20 @@ return static function (ContainerConfigurator $container) {
         ->args([service('sylius_paypal.provider.enabled_payment_sources')])
         ->tag('twig.extension');
 
+    $services->set('sylius_paypal.twig.component.permissions_state', PermissionsStateComponent::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.checker.permissions_state'),
+        ])
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:permissions_state', 'template' => '@SyliusPayPalPlugin/admin/payment_method/component/permissions_state.html.twig']);
+
     $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
         ->args([
             service('sylius_paypal.provider.onboarding_url'),
             service('sylius_paypal.manager.seller_nonce'),
             service('monolog.logger.paypal'),
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.verifier.permissions'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
 
@@ -673,6 +690,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.repository.payment_method'),
             service('sylius_paypal.checker.webhook_state'),
+            service('sylius_paypal.registrar.seller_webhook_event_types'),
             service('monolog.logger.paypal'),
         ])
         ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:webhook_state', 'template' => '@SyliusPayPalPlugin/admin/shared/components/webhook_state.html.twig']);

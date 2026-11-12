@@ -142,6 +142,18 @@ final class WebhookUrlProviderTest extends TestCase
         );
     }
 
+    public function test_it_tells_a_notify_url_on_any_host_the_webhook_may_be_registered_on_whatever_its_scheme_case_and_trailing_slash(): void
+    {
+        $webhookUrlProvider = new WebhookUrlProvider($this->urlGenerator, $this->request);
+        $paymentMethod = $this->paymentMethod('shop.example.com');
+
+        self::assertTrue($webhookUrlProvider->isNotifyUrl($paymentMethod, 'https://admin.example.com/payment-methods/PAYPAL'));
+        self::assertTrue($webhookUrlProvider->isNotifyUrl($paymentMethod, 'http://SHOP.example.com/payment-methods/PAYPAL/'));
+        self::assertFalse($webhookUrlProvider->isNotifyUrl($paymentMethod, 'https://shop.example.com/paypal-webhook/api/'));
+        self::assertFalse($webhookUrlProvider->isNotifyUrl($paymentMethod, 'https://old-shop.example.com/payment-methods/PAYPAL'));
+        self::assertFalse($webhookUrlProvider->isNotifyUrl($paymentMethod, ''));
+    }
+
     public function test_it_keeps_a_non_default_port_and_the_base_path_of_the_request_context_in_the_legacy_url(): void
     {
         $urlGenerator = $this->createStub(UrlGeneratorInterface::class);

@@ -1,47 +1,207 @@
 sylius_twig_hooks:
     hooks:
+        'sylius_admin.payment_method.update.content':
+            paypal_permissions_modal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/update/permissions_modal.html.twig'
+                priority: -100
+
         sylius_admin.payment_method.update.content.header.title_block:
             paypal_logo:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/header/paypal_logo.html.twig'
                 priority: -100
 
-        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal':
+        'sylius_admin.payment_method.update.content.form.sections':
+            mode:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/mode.html.twig'
+                priority: 600
+            paypal_account:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_account.html.twig'
+                priority: 500
+            paypal_payment_methods:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods.html.twig'
+                priority: 400
+            paypal_checkout_experience:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_checkout_experience.html.twig'
+                priority: 300
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_account':
             webhook_state:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/webhook_state.html.twig'
-                priority: 200
-            mode:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/mode.html.twig'
-                priority: 100
-            capture_strategy:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/capture_strategy.html.twig'
-                priority: 50
+                priority: 500
+            permissions_state:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/permissions_state.html.twig'
+                priority: 400
+            merchant_id:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/merchant_id.html.twig'
+                priority: 300
             client_id:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/client_id.html.twig'
-                priority: -100
+                priority: 200
             client_secret:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/client_secret.html.twig'
-                priority: -200
-            express_checkout_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/express_checkout_enabled.html.twig'
-                priority: -500
+                priority: 100
+            webhook_url:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/webhook_url.html.twig'
+                priority: 0
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods':
+            paypal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/group.html.twig'
+                configuration:
+                    code: paypal
+                    label: sylius_paypal.paypal
+                priority: 300
+            cards:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/group.html.twig'
+                configuration:
+                    code: cards
+                    label: sylius_paypal.cards
+                priority: 200
+            wallets:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/group.html.twig'
+                configuration:
+                    code: wallets
+                    label: sylius_paypal.wallets
+                priority: 100
+            local_payment_methods:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/group.html.twig'
+                configuration:
+                    code: local_payment_methods
+                    label: sylius_paypal.local_payment_methods
+                priority: 0
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.paypal':
+            paypal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: paypal
+                    label: sylius_paypal.paypal
+                    icon: 'paypal'
+                    description: sylius_paypal.paypal_description
+                priority: 100
+            pay_later:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: pay_later
+                    label: sylius_paypal.pay_later
+                    icon: 'pay_later'
+                    description: sylius_paypal.pay_later_description
+                    help: sylius_paypal.pay_later_info
+                priority: 0
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.paypal.paypal':
+            always_on:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/always_on.html.twig'
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.paypal.pay_later':
             pay_later_enabled:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/paylater_enabled.html.twig'
-                priority: -600
-            messaging_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/messaging_enabled.html.twig'
-                priority: -700
-            venmo_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/venmo_enabled.html.twig'
-                priority: -800
-            google_pay_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/google_pay_enabled.html.twig'
-                priority: -900
-            apple_pay_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/apple_pay_enabled.html.twig'
-                priority: -1000
-            trustly_enabled:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/trustly_enabled.html.twig'
-                priority: -1100
+                configuration:
+                    label_hidden: true
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.cards':
+            cards:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: cards
+                    label: sylius_paypal.debit_and_credit_cards
+                    icon: 'tabler:credit-card'
+                    description: sylius_paypal.cards_description
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.cards.cards':
+            always_on:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/always_on.html.twig'
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.cards.cards.options':
             card_three_d_secure_always:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/card_three_d_secure_always.html.twig'
-                priority: -1200
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.wallets':
+            venmo:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: venmo
+                    label: sylius_paypal.venmo
+                    icon: 'venmo'
+                    description: sylius_paypal.venmo_description
+                    badge: sylius_paypal.us_only
+                priority: 200
+            apple_pay:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: apple_pay
+                    label: sylius_paypal.apple_pay
+                    icon: 'apple_pay'
+                    description: sylius_paypal.apple_pay_description
+                    help: sylius_paypal.apple_pay_enabled_help
+                priority: 100
+            google_pay:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: google_pay
+                    label: sylius_paypal.google_pay
+                    icon: 'google_pay'
+                    description: sylius_paypal.google_pay_description
+                    help: sylius_paypal.google_pay_enabled_help
+                priority: 0
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.wallets.venmo':
+            venmo_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/venmo_enabled.html.twig'
+                configuration:
+                    label_hidden: true
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.wallets.apple_pay':
+            apple_pay_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/apple_pay_enabled.html.twig'
+                configuration:
+                    label_hidden: true
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.wallets.google_pay':
+            google_pay_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/google_pay_enabled.html.twig'
+                configuration:
+                    label_hidden: true
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.local_payment_methods':
+            trustly:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
+                configuration:
+                    code: trustly
+                    label: sylius_paypal.trustly
+                    icon: 'trustly'
+                    description: sylius_paypal.trustly_description
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.local_payment_methods.trustly':
+            trustly_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/trustly_enabled.html.twig'
+                configuration:
+                    label_hidden: true
+
+        'sylius_admin.payment_method.update.content.form.sections.paypal_checkout_experience':
+            express_checkout_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/express_checkout_enabled.html.twig'
+                priority: 100
+            messaging_enabled:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/messaging_enabled.html.twig'
+                priority: 0
+
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration':
+            type:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration/type.html.twig'
+            use_payum:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration/use_payum.html.twig'
+
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal':
+            configuration:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/configuration.html.twig'
+
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration':
+            payments:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/configuration/group.html.twig'
+                configuration:
+                    code: payments
+
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.payments':
+            capture_strategy:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/capture_strategy.html.twig'

@@ -43,6 +43,17 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
         ]));
     }
 
+    public function isNotifyUrl(PaymentMethodInterface $paymentMethod, string $url): bool
+    {
+        foreach ($this->baseUrls($paymentMethod) as $baseUrl) {
+            if ($this->withoutScheme($this->notifyUrl($paymentMethod, $baseUrl)) === $this->withoutScheme($url)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @return non-empty-list<string|null> the base URLs to try, null standing for the request context */
     private function baseUrls(PaymentMethodInterface $paymentMethod): array
     {
@@ -98,5 +109,10 @@ final readonly class WebhookUrlProvider implements WebhookUrlProviderInterface
             $context->getBaseUrl(),
             self::LEGACY_PATH,
         );
+    }
+
+    private function withoutScheme(string $url): string
+    {
+        return strtolower((string) parse_url($url, \PHP_URL_HOST)) . rtrim((string) parse_url($url, \PHP_URL_PATH), '/');
     }
 }

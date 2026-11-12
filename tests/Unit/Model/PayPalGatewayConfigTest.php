@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -67,6 +68,25 @@ final class PayPalGatewayConfigTest extends TestCase
     public function test_it_reads_the_webhook_id_when_it_is_set(): void
     {
         self::assertSame('WEBHOOK_ID', PayPalGatewayConfig::fromArray(['webhook_id' => 'WEBHOOK_ID'])->webhookId());
+    }
+
+    public function test_it_reads_the_webhook_url_and_event_types_as_null_when_they_are_not_set(): void
+    {
+        $config = PayPalGatewayConfig::fromArray([]);
+
+        self::assertNull($config->webhookUrl());
+        self::assertNull($config->webhookEventTypes());
+    }
+
+    public function test_it_reads_the_webhook_url_and_event_types_when_they_are_set(): void
+    {
+        $config = PayPalGatewayConfig::fromArray([
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => ['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'],
+        ]);
+
+        self::assertSame('https://shop.example.com/payment-methods/PAYPAL', $config->webhookUrl());
+        self::assertSame(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'], $config->webhookEventTypes()?->names());
     }
 
     public function test_it_opts_a_gateway_into_express_checkout_pay_later_and_messaging_until_told_otherwise(): void
@@ -126,5 +146,18 @@ final class PayPalGatewayConfigTest extends TestCase
         ]);
 
         self::assertTrue($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
+    }
+
+    public function test_it_reads_the_onboarding_scope_as_null_when_it_is_not_stored(): void
+    {
+        self::assertNull(PayPalGatewayConfig::fromArray([])->onboardingScope());
+        self::assertNull(PayPalGatewayConfig::fromArray(['onboarding_scope' => 'ppcp'])->onboardingScope());
+    }
+
+    public function test_it_reads_the_stored_onboarding_scope(): void
+    {
+        $scope = PayPalGatewayConfig::fromArray(['onboarding_scope' => OnboardingScope::current()->toArray()])->onboardingScope();
+
+        self::assertEquals(OnboardingScope::current(), $scope);
     }
 }

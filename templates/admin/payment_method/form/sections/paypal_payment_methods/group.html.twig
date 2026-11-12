@@ -1,0 +1,8 @@
+{% set configuration = hookable_metadata.configuration %}
+
+<div class="mb-3" {{ sylius_test_html_attribute('paypal-payment-method-group', configuration.code) }}>
+    <div class="fw-medium mb-2">{{ configuration.label|trans }}</div>
+    <div class="list-group">
+        {% hook configuration.code %}
+    </div>
+</div>

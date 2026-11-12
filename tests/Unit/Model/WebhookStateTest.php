@@ -23,16 +23,16 @@ final class WebhookStateTest extends TestCase
         $state = WebhookState::upToDate('https://shop.example.com/payment-methods/PAYPAL');
 
         self::assertTrue($state->isUpToDate());
-        self::assertTrue($state->isRegistered());
+        self::assertTrue($state->isKnown());
         self::assertSame('https://shop.example.com/payment-methods/PAYPAL', $state->registeredUrl());
     }
 
-    public function test_it_tells_a_webhook_not_registered_apart(): void
+    public function test_it_tells_a_webhook_of_unknown_state_apart(): void
     {
-        $state = WebhookState::notRegistered();
+        $state = WebhookState::unknown();
 
         self::assertFalse($state->isUpToDate());
-        self::assertFalse($state->isRegistered());
+        self::assertFalse($state->isKnown());
         self::assertNull($state->registeredUrl());
     }
 
@@ -41,16 +41,8 @@ final class WebhookStateTest extends TestCase
         $state = WebhookState::outdated('https://shop.example.com/paypal-webhook/api/', true, ['PAYMENT.CAPTURE.DENIED']);
 
         self::assertFalse($state->isUpToDate());
-        self::assertTrue($state->isRegistered());
+        self::assertTrue($state->isKnown());
         self::assertTrue($state->pointsElsewhere());
         self::assertSame(['PAYMENT.CAPTURE.DENIED'], $state->missingEventTypes());
-    }
-
-    public function test_it_is_restored_from_its_array_form(): void
-    {
-        $state = WebhookState::outdated('https://shop.example.com/payment-methods/PAYPAL', false, ['PAYMENT.CAPTURE.DENIED']);
-
-        self::assertEquals($state, WebhookState::fromArray($state->toArray()));
-        self::assertEquals(WebhookState::notRegistered(), WebhookState::fromArray(WebhookState::notRegistered()->toArray()));
     }
 }

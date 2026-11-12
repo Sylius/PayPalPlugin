@@ -27,7 +27,6 @@ use Symfony\Component\Form\FormEvents;
 final class PayPalConfigurationType extends AbstractType
 {
     private const HIDDEN_FIELDS = [
-        PayPalGatewayConfig::MERCHANT_ID,
         PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
     ];
 
@@ -50,9 +49,10 @@ final class PayPalConfigurationType extends AbstractType
                 ],
                 'choice_value' => static fn (?bool $authorize): string => true === $authorize ? self::AUTHORIZE : self::CAPTURE,
             ])
+            // Onboarding sets the credentials, so they are disabled: a submitted value is ignored and the stored one is kept.
+            // The client secret has no field at all, so it never reaches the page; the stored value stays in the config.
+            ->add(PayPalGatewayConfig::MERCHANT_ID, TextType::class, ['label' => 'sylius_paypal.merchant_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
-            ->add(PayPalGatewayConfig::CLIENT_SECRET, TextType::class, ['label' => 'sylius_paypal.client_secret', 'disabled' => true])
-            ->add(PayPalGatewayConfig::MERCHANT_ID, HiddenType::class, ['label' => 'sylius_paypal.client_secret', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
             ->add(PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.express_checkout_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])

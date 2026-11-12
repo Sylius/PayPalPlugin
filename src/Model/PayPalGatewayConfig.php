@@ -26,11 +26,17 @@ final readonly class PayPalGatewayConfig
 
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
 
+    public const ONBOARDING_SCOPE = 'onboarding_scope';
+
     public const SANDBOX = 'sandbox';
 
     public const USE_AUTHORIZE = 'use_authorize';
 
     public const WEBHOOK_ID = 'webhook_id';
+
+    public const WEBHOOK_URL = 'webhook_url';
+
+    public const WEBHOOK_EVENT_TYPES = 'webhook_event_types';
 
     public const EXPRESS_CHECKOUT_ENABLED = 'express_checkout_enabled';
 
@@ -97,6 +103,18 @@ final readonly class PayPalGatewayConfig
         return $this->optional(self::WEBHOOK_ID);
     }
 
+    public function webhookUrl(): ?string
+    {
+        return $this->optional(self::WEBHOOK_URL);
+    }
+
+    public function webhookEventTypes(): ?WebhookEventTypes
+    {
+        $eventTypes = $this->config[self::WEBHOOK_EVENT_TYPES] ?? null;
+
+        return is_array($eventTypes) ? WebhookEventTypes::fromNames($eventTypes) : null;
+    }
+
     public function isExpressCheckoutEnabled(): bool
     {
         return $this->flag(self::EXPRESS_CHECKOUT_ENABLED, true);
@@ -145,6 +163,13 @@ final readonly class PayPalGatewayConfig
     public function isRedirectPaymentSourceEnabled(RedirectPaymentSource $paymentSource): bool
     {
         return $this->flag($paymentSource->configurationKey(), false);
+    }
+
+    public function onboardingScope(): ?OnboardingScope
+    {
+        $scope = $this->config[self::ONBOARDING_SCOPE] ?? null;
+
+        return is_array($scope) ? OnboardingScope::fromArray($scope) : null;
     }
 
     private function required(string $key): string

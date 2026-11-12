@@ -106,6 +106,8 @@
    The templates and hookables listed in [Templates and Twig hooks](#templates-and-twig-hooks) were rewritten
    for Web SDK v6. An override of one of them renders v5 markup with no SDK behind it, or is no longer rendered
    at all.
+   The admin payment method form's PayPal hookables moved to new hooks with new priorities, so an override of
+   one of them no longer applies until you move it.
 
 1. **New Composer requirements:** `ext-openssl` and `psr/cache`.
 
@@ -440,7 +442,11 @@ unchanged.
    - the `template` prop of `sylius_admin.order.show.content.sections.shipments.item.actions` → `ship`, now
      `@SyliusPayPalPlugin/admin/shipment/component/ship_gate.html.twig`;
    - the `ship_with_tracking_code` grid action template (`sylius_grid.templates.action`);
-   - `sylius_shop.order.show.content` → `form`, now `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`.
+   - `sylius_shop.order.show.content` → `form`, now `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`;
+   - `sylius_admin.payment_method.update.content.form.sections.gateway_configuration` → `type` and `use_payum`,
+     now `@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration/type.html.twig` and
+     `use_payum.html.twig`. For a PayPal payment method the type field spans the full width and the Use Payum
+     switch is not rendered; every other gateway gets the core templates.
 
 1. **The admin ship form for PayPal orders.**
 
@@ -456,6 +462,110 @@ unchanged.
      `data-live-action-param="ship"`). Posting to Sylius' ship routes ships without saving the carrier.
    - The form renders with `render_rest: false`, so fields a shop added to `ShipmentShipType` are not rendered for
      PayPal orders.
+
+1. **The PayPal configuration on the admin payment method form is split into cards.** In 2.1 the fields were
+   hookables of one flat hook, `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal`.
+   They now live in their own cards, each with nested hooks per group and payment method. Every field keeps its
+   own hookable and template, so a single field can still be overridden or disabled, but under its new hook
+   name and priority. An override that still targets the old hook does nothing and reports no error.
+
+   Hook names below are shortened to the part after `sylius_admin.payment_method.update.content.form.sections.`.
+
+   Moved hookables:
+
+   | Hookable                     | 2.1 hook (priority)                           | 2.2 hook (priority)                                               |
+   |------------------------------|-----------------------------------------------|-------------------------------------------------------------------|
+   | `client_id`                  | `gateway_configuration.sylius_paypal` (-100)  | `paypal_account` (100)                                            |
+   | `client_secret`              | `gateway_configuration.sylius_paypal` (-200)  | `paypal_account` (0)                                              |
+   | `reports_sftp_username`      | `gateway_configuration.sylius_paypal` (-300)  | `gateway_configuration.sylius_paypal.configuration.reports` (100) |
+   | `reports_sftp_password`      | `gateway_configuration.sylius_paypal` (-400)  | `gateway_configuration.sylius_paypal.configuration.reports` (0)   |
+   | `express_checkout_enabled`   | `gateway_configuration.sylius_paypal` (-500)  | `paypal_checkout_experience` (100)                                |
+   | `pay_later_enabled`          | `gateway_configuration.sylius_paypal` (-600)  | `paypal_payment_methods.paypal.pay_later` (0)                     |
+   | `messaging_enabled`          | `gateway_configuration.sylius_paypal` (-700)  | `paypal_checkout_experience` (0)                                  |
+   | `venmo_enabled`              | `gateway_configuration.sylius_paypal` (-800)  | `paypal_payment_methods.wallets.venmo` (0)                        |
+   | `google_pay_enabled`         | `gateway_configuration.sylius_paypal` (-900)  | `paypal_payment_methods.wallets.google_pay` (0)                   |
+   | `apple_pay_enabled`          | `gateway_configuration.sylius_paypal` (-1000) | `paypal_payment_methods.wallets.apple_pay` (0)                    |
+   | `trustly_enabled`            | `gateway_configuration.sylius_paypal` (-1100) | `paypal_payment_methods.local_payment_methods.trustly` (0)        |
+   | `card_three_d_secure_always` | `gateway_configuration.sylius_paypal` (-1200) | `paypal_payment_methods.cards.cards.options` (0)                  |
+
+   The full structure, with priorities. The four new cards render for a PayPal payment method only, above the
+   core `general` (200), `gateway_configuration` (100) and `translations` (0) sections:
+
+   - the sections hook gets four new hookables:
+     - `mode` (600): a banner with the global sandbox or production mode. In sandbox mode it also explains how
+       to go live;
+     - `paypal_account` (500): the PayPal account card. Its header shows a Connected badge when the payment
+       method is enabled and has a merchant id (no call to PayPal is made), and a link to the PayPal business
+       account, sandbox or live depending on the mode;
+     - `paypal_payment_methods` (400): the payment methods card;
+     - `paypal_checkout_experience` (300): the checkout experience card;
+   - `paypal_account`: `merchant_id` (200), `client_id` (100), `client_secret` (0);
+   - `paypal_payment_methods`: one group per kind of payment method, rendered by
+     `@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/group.html.twig` from its
+     `code` and `label` configuration: `paypal` (300), `cards` (200), `wallets` (100),
+     `local_payment_methods` (0);
+   - each group hook (`paypal_payment_methods.<group>`) holds one row per payment method, rendered by
+     `@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig` from its
+     `code`, `label`, `icon`, `description`, `badge` and `help` configuration. `icon` is a payment method icon
+     code or a `tabler:` icon. `help` is a translation key shown in an "i" tooltip next to the label, rendered by
+     the `icon` macro of `@SyliusPayPalPlugin/admin/shared/helper/info_tooltip.html.twig`. A row renders its `<code>` hook on the right, for the switch, and its `<code>.options`
+     hook in a row below, for the method's settings, when that hook renders anything:
+     - `paypal_payment_methods.paypal`: `paypal` (100), `pay_later` (0);
+     - `paypal_payment_methods.cards`: `cards`;
+     - `paypal_payment_methods.wallets`: `venmo` (200), `apple_pay` (100), `google_pay` (0);
+     - `paypal_payment_methods.local_payment_methods`: `trustly`;
+   - `paypal_payment_methods.paypal.paypal` and `paypal_payment_methods.cards.cards`: `always_on`, an
+     "Always on" badge;
+   - `paypal_payment_methods.paypal.pay_later`: `pay_later_enabled`;
+   - `paypal_payment_methods.cards.cards.options`: `card_three_d_secure_always`;
+   - `paypal_payment_methods.wallets.venmo`, `.wallets.apple_pay`, `.wallets.google_pay` and
+     `.local_payment_methods.trustly`: `venmo_enabled`, `apple_pay_enabled`, `google_pay_enabled` and
+     `trustly_enabled`;
+   - `paypal_checkout_experience`: `express_checkout_enabled` (100), `messaging_enabled` (0);
+   - `gateway_configuration.sylius_paypal`: `configuration`;
+   - `gateway_configuration.sylius_paypal.configuration`: `reports`, a group rendered by
+     `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/configuration/group.html.twig`
+     from its `code` and `label` configuration. A group without a `label` renders no heading;
+   - `gateway_configuration.sylius_paypal.configuration.reports`: `reports_sftp_username` (100),
+     `reports_sftp_password` (0).
+
+   `merchant_id` and `client_id` show the stored values in read-only fields. `client_secret` shows only a Stored
+   or Missing badge, never the secret itself.
+
+   To migrate, move each override to its new hook. For example, this hides the client secret field in 2.1:
+
+   ```yaml
+   sylius_twig_hooks:
+       hooks:
+           'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal':
+               client_secret:
+                   enabled: false
+   ```
+
+   In 2.2 it becomes:
+
+   ```yaml
+   sylius_twig_hooks:
+       hooks:
+           'sylius_admin.payment_method.update.content.form.sections.paypal_account':
+               client_secret:
+                   enabled: false
+   ```
+
+1. **The PayPal credentials in `PayPalConfigurationType` cannot be changed through the form.** Onboarding sets
+   them.
+
+   - `client_secret` is no longer a form field, so the secret never appears in the page source. The stored value
+     stays in the gateway config when the form is saved. Code that reads `form.client_secret` must read the
+     gateway config instead.
+   - `merchant_id` is now a disabled `TextType` labelled `sylius_paypal.merchant_id`. It was a `HiddenType` with
+     the `sylius_paypal.client_secret` label.
+   - `sylius_merchant_id` is now a disabled `HiddenType`.
+   - `client_id` is now a disabled `TextType`. It was only `readonly`, so a submitted value was saved.
+
+   A submitted `merchant_id`, `sylius_merchant_id` or `client_id` is ignored and the stored value is kept. A
+   request that submits `client_secret` fails validation with "This form should not contain extra fields", so
+   nothing is saved.
 
 1. **Priority change:** `paypal_checkout` on `sylius_shop.product.show.content.info.summary` moved from `50` to
    `75`.
