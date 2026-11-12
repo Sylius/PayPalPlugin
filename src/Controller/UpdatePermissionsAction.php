@@ -105,7 +105,7 @@ final readonly class UpdatePermissionsAction
         } else {
             $flashBag->add('warning', [
                 'message' => 'sylius_paypal.permissions_not_granted',
-                'parameters' => ['%capabilities%' => implode(', ', $verification->missingCapabilities())],
+                'parameters' => ['%capabilities%' => implode(', ', $verification->capabilitiesToRequest())],
             ]);
         }
 

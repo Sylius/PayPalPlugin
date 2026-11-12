@@ -58,8 +58,9 @@
       Every PayPal payment method connected on 2.x is flagged with "PayPal permissions unknown" on the payment method
       list, as the plugin has not stored the scope it was onboarded with. On its edit page, click "Update PayPal
       permissions" in that alert. The plugin first reads the merchant integration status of the account: when Apple Pay
-      and Google Pay are already active, it only stores the scope; when PayPal is still reviewing one of them, it says
-      so. Otherwise the seller logs in to PayPal with the account of that payment method and grants every permission the
+      and Google Pay are already active, it only stores the scope; when PayPal is still reviewing one of them or waits
+      for the seller (e.g. `NEED_DATA`), it says so. Otherwise, e.g. when one of them is missing or `INACTIVE`, the
+      seller logs in to PayPal with the account of that payment method and grants every permission the
       plugin asks for at once. The payment method keeps its credentials and webhook. When PayPal does not activate
       all of them, the admin names the missing ones and keeps flagging the permissions.
 
@@ -106,10 +107,12 @@
    Before it offers the consent, the modal asks PayPal for the merchant integration status of the account through
    `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`), which returns a
    `Sylius\PayPalPlugin\Model\PermissionsVerification`. When every capability of the current scope is `ACTIVE`, it
-   stores the scope and tells the permissions are up to date; when the account has all of them but PayPal has not
-   activated some yet (e.g. `PENDING` or `NEED_DATA`), it lists them, as a new consent would not change that. Only a
-   capability the account does not have, or an account the configured partner does not know, leads to the consent; a
-   status that cannot be read is logged and the consent is offered anyway. The products and the features of the scope
+   stores the scope and tells the permissions are up to date. A capability the account does not have, one PayPal
+   enables on a request (`INACTIVE`, `APPROVED`) or one in a status the plugin does not know, as well as an account the
+   configured partner does not know, leads to the consent. A capability PayPal is deciding on (`PENDING`,
+   `IN_REVIEW`) or that only the seller can sort out with PayPal (`NEED_DATA`, `SUSPENDED`, `REVOKED`, `DENY`) is
+   listed with its status instead, as a new consent would not change it, unless another capability needs the consent
+   anyway. A status that cannot be read is logged and the consent is offered anyway. The products and the features of the scope
    are not compared, as the merchant integration status does not return them in the shape the onboarding asks for them.
 
 1. #### `PayPalPaymentMethodProvider` has been removed.

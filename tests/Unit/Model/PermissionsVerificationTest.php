@@ -51,6 +51,28 @@ final class PermissionsVerificationTest extends TestCase
         $verification = PermissionsVerification::of($status, $this->scope);
 
         self::assertTrue($verification->isConsentRequired());
-        self::assertSame(['APPLE_PAY', 'PAY_UPON_INVOICE'], $verification->missingCapabilities());
+        self::assertSame(['APPLE_PAY', 'PAY_UPON_INVOICE'], $verification->capabilitiesToRequest());
+    }
+
+    public function test_it_requires_the_consent_for_the_capabilities_paypal_enables_on_a_request(): void
+    {
+        $status = new OnboardingStatus(true, true, ['APPLE_PAY' => 'INACTIVE', 'GOOGLE_PAY' => 'approved', 'PAY_UPON_INVOICE' => 'SOMETHING_NEW']);
+
+        self::assertSame(['APPLE_PAY', 'GOOGLE_PAY', 'PAY_UPON_INVOICE'], PermissionsVerification::of($status, $this->scope)->capabilitiesToRequest());
+    }
+
+    public function test_it_requires_the_consent_even_when_paypal_is_deciding_on_another_capability(): void
+    {
+        $status = new OnboardingStatus(true, true, ['APPLE_PAY' => 'INACTIVE', 'GOOGLE_PAY' => 'PENDING', 'PAY_UPON_INVOICE' => 'ACTIVE']);
+
+        self::assertEquals(PermissionsVerification::consentRequired(['APPLE_PAY']), PermissionsVerification::of($status, $this->scope));
+    }
+
+    public function test_it_does_not_require_the_consent_for_the_capabilities_a_consent_does_not_change(): void
+    {
+        $scope = new OnboardingScope('ppcp', [], ['A', 'B', 'C', 'D', 'E', 'F'], []);
+        $statuses = ['A' => 'PENDING', 'B' => 'IN_REVIEW', 'C' => 'NEED_DATA', 'D' => 'SUSPENDED', 'E' => 'REVOKED', 'F' => 'DENY'];
+
+        self::assertEquals(PermissionsVerification::awaitingPayPal($statuses), PermissionsVerification::of(new OnboardingStatus(true, true, $statuses), $scope));
     }
 }

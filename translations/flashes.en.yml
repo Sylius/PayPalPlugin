@@ -17,7 +17,7 @@ sylius_paypal:
     payment_not_refunded: 'The payment has not been refunded. %reason%'
     payment_refund_pending: 'PayPal is processing the refund. The payment will be marked as refunded once PayPal confirms it.'
     payment_source_not_available: 'The selected payment method is not available. Please choose another one.'
-    permissions_awaiting_paypal: 'PayPal has not activated these capabilities of the account yet: %capabilities%. Once PayPal activates them, update the PayPal permissions again to store them.'
+    permissions_awaiting_paypal: 'PayPal does not let the account of this payment method use these capabilities yet: %capabilities%. Check them in the PayPal account, then update the PayPal permissions again.'
     permissions_not_granted: 'PayPal has not granted %capabilities% to the account of this payment method, which may not be eligible for them. Check the account with PayPal before updating its permissions again.'
     permissions_update_another_account: 'You connected another PayPal account. Sign in to PayPal with the account of this payment method to update its permissions.'
     permissions_update_failed: 'Could not update the PayPal permissions. Please, try again later.'

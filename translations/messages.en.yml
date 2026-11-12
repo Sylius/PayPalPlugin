@@ -61,7 +61,7 @@ sylius_paypal:
             unknown_details: 'The plugin has not stored the permissions this PayPal account was connected with.'
         update:
             already_up_to_date: 'The PayPal permissions of this payment method are already up to date.'
-            awaiting_paypal: 'PayPal has not activated these capabilities of the account yet. Check the PayPal account of this payment method:'
+            awaiting_paypal: 'PayPal does not let the account of this payment method use these capabilities yet. Check them in the PayPal account:'
             button: 'Update PayPal permissions'
             completed: 'Your PayPal permissions have been updated.'
             modal_description: 'You will be asked to log in to PayPal with the account of this payment method and to grant the permissions the plugin needs. The payment method keeps its credentials and webhook.'

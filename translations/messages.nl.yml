@@ -50,7 +50,7 @@ sylius_paypal:
             unknown_details: 'De plugin heeft de machtigingen waarmee dit PayPal-account is gekoppeld niet opgeslagen.'
         update:
             already_up_to_date: 'De PayPal-machtigingen van deze betaalmethode zijn al up-to-date.'
-            awaiting_paypal: 'PayPal heeft deze mogelijkheden van het account nog niet geactiveerd. Controleer het PayPal-account van deze betaalmethode:'
+            awaiting_paypal: 'PayPal staat het account van deze betaalmethode nog niet toe deze mogelijkheden te gebruiken. Controleer ze in het PayPal-account:'
             button: 'PayPal-machtigingen bijwerken'
             completed: 'Uw PayPal-machtigingen zijn bijgewerkt.'
             modal_description: 'U wordt gevraagd in te loggen bij PayPal met het account van deze betaalmethode en de machtigingen te verlenen die de plugin nodig heeft. De betaalmethode behoudt haar inloggegevens en webhook.'
