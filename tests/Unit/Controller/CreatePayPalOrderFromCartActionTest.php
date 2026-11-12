@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
@@ -171,5 +172,47 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $action($request)->getStatusCode());
         self::assertSame(['sylius_paypal.vaulting_not_available'], $session->getFlashBag()->get('error'));
+    }
+
+    public function test_it_refuses_the_cart_when_express_checkout_is_disabled_before_asking_about_vaulting(): void
+    {
+        $channel = $this->createStub(ChannelInterface::class);
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($channel);
+
+        $orderProvider = $this->createStub(OrderProviderInterface::class);
+        $orderProvider->method('provideOrderById')->willReturn($order);
+
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setFactoryName('sylius_paypal');
+        $gatewayConfig->setConfig(['express_checkout_enabled' => false]);
+        $payPalPaymentMethod = $this->createStub(PaymentMethodInterface::class);
+        $payPalPaymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $payPalMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+        $payPalMethodsResolver->method('getInChannel')->willReturn([$payPalPaymentMethod]);
+
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::never())->method('isVaultingRequirementMet');
+        $vaultRequestProvider->expects(self::never())->method('provide');
+
+        $action = new CreatePayPalOrderFromCartAction(
+            $this->createStub(ObjectManager::class),
+            $orderProvider,
+            $this->createStub(CapturePaymentResolverInterface::class),
+            $this->createStub(OrderPaymentsRemoverInterface::class),
+            $this->createStub(OrderProcessorInterface::class),
+            $payPalMethodsResolver,
+            $this->createStub(OrderOwnershipVerifierInterface::class),
+            $vaultRequestProvider,
+        );
+
+        $session = new Session(new MockArraySessionStorage());
+        $request = Request::create('/create-pay-pal-order-from-cart/1', 'POST');
+        $request->query->set('paymentSource', 'venmo');
+        $request->attributes->set('id', 1);
+        $request->setSession($session);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, $action($request)->getStatusCode());
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $session->getFlashBag()->get('error'));
     }
 }
