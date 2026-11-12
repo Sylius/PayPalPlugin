@@ -42,12 +42,12 @@ final class UpdatePermissionsTest extends JsonApiTestCase
         $this->client->loginUser($this->admin, 'admin');
     }
 
-    public function test_it_offers_to_update_the_permissions_of_a_paypal_payment_method(): void
+    public function test_it_offers_to_update_the_unknown_permissions_of_a_paypal_payment_method(): void
     {
         $crawler = $this->client->request('GET', sprintf('/admin/payment-methods/%d/edit', (int) $this->payPalPaymentMethod->getId()));
 
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('[data-test-update-paypal-permissions][data-bs-target="#confirmation-modal-update-paypal-permissions"]'));
+        self::assertCount(1, $crawler->filter('[data-test-paypal-permissions-update-button][data-bs-target="#confirmation-modal-update-paypal-permissions"]'));
         self::assertSame(
             sprintf('/admin/payment-methods/%d/paypal-permissions', (int) $this->payPalPaymentMethod->getId()),
             $crawler->filter('#confirmation-modal-update-paypal-permissions')->attr('data-paypal-onboarding-complete-url'),
@@ -60,7 +60,7 @@ final class UpdatePermissionsTest extends JsonApiTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('#confirmation-modal-update-paypal-permissions'));
-        self::assertCount(0, $crawler->filter('[data-test-update-paypal-permissions]'));
+        self::assertCount(0, $crawler->filter('[data-test-paypal-permissions-update-button]'));
     }
 
     public function test_it_sends_the_admin_back_to_the_payment_method_when_the_onboarding_session_has_expired(): void

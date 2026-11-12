@@ -20,9 +20,6 @@ sylius_twig_hooks:
             mode:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/mode.html.twig'
                 priority: 100
-            permissions:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/permissions.html.twig'
-                priority: 90
             capture_strategy:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/capture_strategy.html.twig'
                 priority: 50

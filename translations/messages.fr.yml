@@ -43,7 +43,6 @@ sylius_paypal:
     pay_with_card: 'Payer par carte'
     pay_with_paypal: 'Payer avec PayPal'
     permissions:
-        label: 'Autorisations PayPal'
         state:
             missing: 'Autorisations manquantes :'
             out_of_date: 'Autorisations PayPal obsolètes'
@@ -54,7 +53,6 @@ sylius_paypal:
             awaiting_paypal: 'PayPal n''a pas encore activé ces fonctionnalités du compte. Vérifiez le compte PayPal de ce moyen de paiement :'
             button: 'Mettre à jour les autorisations PayPal'
             completed: 'Vos autorisations PayPal ont été mises à jour.'
-            help: 'Accordez les autorisations ajoutées par une version plus récente du plugin, par ex. Apple Pay ou Google Pay, sans reconnecter le compte.'
             modal_description: 'Vous serez invité à vous connecter à PayPal avec le compte de ce mode de paiement et à accorder les autorisations dont le plugin a besoin. Le mode de paiement conserve ses identifiants et son webhook.'
             verification_failed: 'Impossible de vérifier les autorisations PayPal de ce moyen de paiement. Vous pouvez tout de même les mettre à jour.'
     sandbox_on_production_warning: "Attention : ce moyen de paiement utilise le Sandbox PayPal sur un environnement de production. Le Sandbox utilise des identifiants de test et ne traitera pas de vrais paiements."
