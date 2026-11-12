@@ -24,6 +24,8 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
 use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
+use Sylius\PayPalPlugin\Model\Capability;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
@@ -36,6 +38,12 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
         'use_authorize' => false,
+        'onboarding_scope' => [
+            'product' => OnboardingScope::PRODUCT_PPCP,
+            'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
+            'capabilities' => [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
+            'features' => [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND, OnboardingScope::FEATURE_ACCESS_MERCHANT_INFORMATION],
+        ],
     ];
 
     private FactoryInterface&MockObject $gatewayFactory;

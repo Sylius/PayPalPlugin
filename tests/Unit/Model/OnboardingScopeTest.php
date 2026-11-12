@@ -1,0 +1,70 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Tests\Sylius\PayPalPlugin\Unit\Model;
+
+use PHPUnit\Framework\TestCase;
+use Sylius\PayPalPlugin\Model\Capability;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
+
+final class OnboardingScopeTest extends TestCase
+{
+    public function test_it_turns_into_an_array_and_back(): void
+    {
+        $array = [
+            'product' => OnboardingScope::PRODUCT_PPCP,
+            'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
+            'capabilities' => [Capability::APPLE_PAY],
+            'features' => [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND],
+        ];
+        $scope = new OnboardingScope($array['product'], $array['secondary_products'], $array['capabilities'], $array['features']);
+
+        self::assertSame($array, $scope->toArray());
+        self::assertEquals($scope, OnboardingScope::fromArray($array));
+    }
+
+    public function test_it_reads_a_partial_or_malformed_array_as_an_empty_scope_where_it_lacks_data(): void
+    {
+        $scope = OnboardingScope::fromArray(['capabilities' => [Capability::APPLE_PAY, 7, [Capability::GOOGLE_PAY]], 'features' => OnboardingScope::FEATURE_PAYMENT]);
+
+        self::assertSame('', $scope->product());
+        self::assertSame([], $scope->secondaryProducts());
+        self::assertSame([Capability::APPLE_PAY, '7'], $scope->capabilities());
+        self::assertSame([], $scope->features());
+    }
+
+    public function test_it_is_covered_by_a_scope_that_has_all_it_asks_for(): void
+    {
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY], [OnboardingScope::FEATURE_PAYMENT]);
+
+        self::assertSame([], $scope->notCoveredBy($scope));
+        self::assertSame([], $scope->notCoveredBy(new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY, 'VAULT'], [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND])));
+    }
+
+    public function test_it_is_covered_by_a_scope_that_spells_the_same_names_in_another_case(): void
+    {
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], ['PAYPAL_WALLET_VAULTING_ADVANCED'], [OnboardingScope::FEATURE_PAYMENT]);
+
+        self::assertSame([], $scope->notCoveredBy(new OnboardingScope('PPCP', ['PAYMENT_METHODS'], ['paypal_wallet_vaulting_advanced'], ['payment'])));
+    }
+
+    public function test_it_lists_what_a_scope_lacks_of_it(): void
+    {
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY, Capability::GOOGLE_PAY], [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND]);
+
+        self::assertSame(
+            [OnboardingScope::PRODUCT_PPCP, OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS, Capability::GOOGLE_PAY, OnboardingScope::FEATURE_REFUND],
+            $scope->notCoveredBy(new OnboardingScope('express_checkout', [], [Capability::APPLE_PAY], [OnboardingScope::FEATURE_PAYMENT])),
+        );
+    }
+}

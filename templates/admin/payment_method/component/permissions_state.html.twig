@@ -1,0 +1,31 @@
+{% set state = this.state %}
+
+<div {{ attributes }}>
+    {% if state is not null and not state.isUpToDate() %}
+        {% set status = state.status().value %}
+
+        {% if variant == constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_ALERT') %}
+            <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>
+                <div>
+                    <div class="fw-bold">{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</div>
+                    {% if state.isKnown() %}
+                        <div>{{ 'sylius_paypal.permissions.state.missing'|trans }} <code>{{ state.missing()|join(', ') }}</code></div>
+                    {% else %}
+                        <div>{{ 'sylius_paypal.permissions.state.unknown_details'|trans }}</div>
+                    {% endif %}
+                    <button
+                        type="button"
+                        class="btn btn-warning mt-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#{{ constant('Sylius\\PayPalPlugin\\Twig\\Component\\PayPalOnboardingModalComponent::PERMISSIONS_UPDATE_MODAL_ID') }}"
+                        {{ sylius_test_html_attribute('paypal-permissions-update-button') }}
+                    >
+                        {{ 'sylius_paypal.permissions.update.button'|trans }}
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <span class="badge bg-red-lt" title="{{ state.missing()|join(', ') }}" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</span>
+        {% endif %}
+    {% endif %}
+</div>

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\UrlUtils;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -28,16 +29,17 @@ final readonly class PayPalOnboardingUrlProvider implements PayPalOnboardingUrlP
     public function generate(string $sellerNonce, bool $sandbox): string
     {
         $partnerCredentials = $this->partnerCredentialsProvider->provide($sandbox);
+        $scope = OnboardingScope::current();
 
         return UrlUtils::appendQueryString(
             $this->hostProvider->getWebUrlForMode($sandbox) . '/bizsignup/partner/entry',
             http_build_query([
                 'partnerId' => $partnerCredentials->getPartnerId(),
-                'product' => 'ppcp',
-                'secondaryProducts' => 'payment_methods',
-                'capabilities' => 'APPLE_PAY,GOOGLE_PAY',
+                'product' => $scope->product(),
+                'secondaryProducts' => implode(',', $scope->secondaryProducts()),
+                'capabilities' => implode(',', $scope->capabilities()),
                 'integrationType' => 'FO',
-                'features' => 'payment,refund,access_merchant_information',
+                'features' => implode(',', $scope->features()),
                 'partnerClientId' => $partnerCredentials->getPartnerClientId(),
                 'partnerLogoUrl' => $partnerCredentials->getPartnerLogoUrl(),
                 'displayMode' => 'minibrowser',

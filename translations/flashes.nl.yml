@@ -14,6 +14,13 @@ sylius_paypal:
     payment_not_refunded: 'De betaling is niet terugbetaald. %reason%'
     payment_refund_pending: 'PayPal verwerkt de terugbetaling. De betaling wordt als terugbetaald gemarkeerd zodra PayPal deze bevestigt.'
     payment_source_not_available: 'De gekozen betaalmethode is niet beschikbaar. Kies een andere.'
+    permissions:
+        update:
+            another_account: 'U heeft een ander PayPal-account verbonden. Log in bij PayPal met het account van deze betaalmethode om de machtigingen bij te werken.'
+            awaiting_paypal: 'PayPal staat het account van deze betaalmethode nog niet toe deze mogelijkheden te gebruiken: %capabilities%. Controleer ze in het PayPal-account en werk daarna de PayPal-machtigingen opnieuw bij.'
+            completed: 'De PayPal-machtigingen zijn bijgewerkt.'
+            failed: 'De PayPal-machtigingen konden niet worden bijgewerkt. Probeer het later opnieuw.'
+            not_granted: 'PayPal heeft %capabilities% niet toegekend aan het account van deze betaalmethode, dat er mogelijk niet voor in aanmerking komt. Controleer het account bij PayPal voordat u de machtigingen opnieuw bijwerkt.'
     production_connected_successfully: 'PayPal Productie is succesvol verbonden.'
     sandbox_connected_successfully: 'PayPal Sandbox is succesvol verbonden.'
     seller_onboarding_payments_not_receivable: 'Let op: u kunt momenteel geen betalingen ontvangen vanwege een mogelijke beperking op uw PayPal-account. Neem contact op met de PayPal-klantenservice of ga naar %paypal_url% voor meer informatie. Zodra dit is opgelost, bezoekt u deze pagina opnieuw om de onboardingstatus te vernieuwen.'

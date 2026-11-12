@@ -51,6 +51,19 @@ sylius_paypal:
     pay_with_card: 'Zapłać kartą'
     pay_with_paypal: 'Zapłać przez PayPal'
     pay_with_trustly: 'Zapłać przez Trustly'
+    permissions:
+        state:
+            missing: 'Brakujące uprawnienia:'
+            out_of_date: 'Uprawnienia PayPal nieaktualne'
+            unknown: 'Uprawnienia PayPal nieznane'
+            unknown_details: 'Plugin nie zapisał uprawnień, z jakimi połączono to konto PayPal.'
+        update:
+            already_up_to_date: 'Uprawnienia PayPal tej metody płatności są już aktualne.'
+            awaiting_paypal: 'PayPal nie pozwala jeszcze kontu tej metody płatności korzystać z tych funkcji. Sprawdź je na koncie PayPal:'
+            button: 'Zaktualizuj uprawnienia PayPal'
+            completed: 'Uprawnienia PayPal zostały zaktualizowane.'
+            modal_description: 'Zostaniesz poproszony o zalogowanie się w PayPal kontem tej metody płatności i nadanie uprawnień, których potrzebuje wtyczka. Metoda płatności zachowa swoje dane uwierzytelniające i webhook.'
+            verification_failed: 'Nie udało się sprawdzić uprawnień PayPal tej metody płatności. Nadal możesz je zaktualizować.'
     privacy_notice: 'Płacąc kartą, przyjmujesz do wiadomości, że PayPal będzie przetwarzać Twoje dane zgodnie z Oświadczeniem o ochronie prywatności PayPal dostępnym na stronie PayPal.com.'
     privacy_statement: 'Oświadczenie o ochronie prywatności PayPal'
     refund_late_capture: 'Zwróć dodatkowe %amount%'

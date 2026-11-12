@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -145,5 +146,18 @@ final class PayPalGatewayConfigTest extends TestCase
         ]);
 
         self::assertTrue($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
+    }
+
+    public function test_it_reads_the_onboarding_scope_as_null_when_it_is_not_stored(): void
+    {
+        self::assertNull(PayPalGatewayConfig::fromArray([])->onboardingScope());
+        self::assertNull(PayPalGatewayConfig::fromArray(['onboarding_scope' => 'ppcp'])->onboardingScope());
+    }
+
+    public function test_it_reads_the_stored_onboarding_scope(): void
+    {
+        $scope = PayPalGatewayConfig::fromArray(['onboarding_scope' => OnboardingScope::current()->toArray()])->onboardingScope();
+
+        self::assertEquals(OnboardingScope::current(), $scope);
     }
 }

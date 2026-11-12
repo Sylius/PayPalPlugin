@@ -14,8 +14,13 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Twig\Component;
 
 use Psr\Log\LoggerInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
+use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
+use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
+use Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -25,6 +30,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 final class PayPalOnboardingModalComponent
 {
     use DefaultActionTrait;
+
+    public const PERMISSIONS_UPDATE_MODAL_ID = 'confirmation-modal-update-paypal-permissions';
 
     #[LiveProp]
     public ?string $modalId = null;
@@ -47,10 +54,20 @@ final class PayPalOnboardingModalComponent
     #[LiveProp]
     public bool $sandbox = false;
 
+    #[LiveProp]
+    public ?int $paymentMethodId = null;
+
+    public ?PermissionsVerification $verification = null;
+
+    public bool $verificationFailed = false;
+
+    /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
     public function __construct(
         private readonly PayPalOnboardingUrlProviderInterface $onboardingUrlProvider,
         private readonly SellerNonceManagerInterface $sellerNonceManager,
         private readonly LoggerInterface $logger,
+        private readonly PaymentMethodRepositoryInterface $paymentMethodRepository,
+        private readonly PermissionsVerifierInterface $permissionsVerifier,
     ) {
     }
 
@@ -58,6 +75,12 @@ final class PayPalOnboardingModalComponent
     public function loadOnboardingUrl(): void
     {
         $this->opened = true;
+
+        if (null !== $this->paymentMethodId && !$this->requiresConsent($this->paymentMethodId)) {
+            $this->loading = false;
+
+            return;
+        }
 
         try {
             $this->onboardingUrl = $this->onboardingUrlProvider->generate(
@@ -72,5 +95,24 @@ final class PayPalOnboardingModalComponent
         }
 
         $this->loading = false;
+    }
+
+    private function requiresConsent(int $paymentMethodId): bool
+    {
+        $paymentMethod = $this->paymentMethodRepository->find($paymentMethodId);
+        if (!$paymentMethod instanceof PaymentMethodInterface) {
+            return true;
+        }
+
+        try {
+            $this->verification = $this->permissionsVerifier->verify($paymentMethod);
+        } catch (MerchantIntegrationStatusUnavailableException $exception) {
+            $this->logger->warning($exception->getMessage(), ['exception' => $exception]);
+            $this->verificationFailed = true;
+
+            return true;
+        }
+
+        return $this->verification->isConsentRequired();
     }
 }

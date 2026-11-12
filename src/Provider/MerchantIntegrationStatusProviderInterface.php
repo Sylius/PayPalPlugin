@@ -14,9 +14,16 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 interface MerchantIntegrationStatusProviderInterface
 {
+    /**
+     * @return OnboardingStatus|null null when the payment method has no PayPal account yet or PayPal does not know its
+     *                               account under the configured partner
+     *
+     * @throws MerchantIntegrationStatusUnavailableException
+     */
     public function provide(PaymentMethodInterface $paymentMethod): ?OnboardingStatus;
 }

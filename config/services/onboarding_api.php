@@ -89,7 +89,6 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.generic'),
             service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.partner_credentials'),
-            service('monolog.logger.paypal'),
         ]);
 
     $services->alias(MerchantIntegrationStatusProviderInterface::class, 'sylius_paypal.provider.merchant_integration_status');
