@@ -33,7 +33,7 @@ final readonly class PermissionsVerification
         $pendingCapabilities = [];
         $capabilitiesToRequest = [];
         foreach ($scope->capabilities() as $capability) {
-            $capabilityStatus = strtoupper((string) $status->capabilityStatus($capability));
+            $capabilityStatus = (string) $status->capabilityStatus($capability);
             if (OnboardingStatus::ACTIVE_CAPABILITY_STATUS === $capabilityStatus) {
                 continue;
             }

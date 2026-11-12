@@ -22,10 +22,10 @@ final class OnboardingScopeTest extends TestCase
     public function test_it_turns_into_an_array_and_back(): void
     {
         $array = [
-            'product' => 'ppcp',
-            'secondary_products' => ['payment_methods'],
+            'product' => OnboardingScope::PRODUCT_PPCP,
+            'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
             'capabilities' => [Capability::APPLE_PAY],
-            'features' => ['payment', 'refund'],
+            'features' => [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND],
         ];
         $scope = new OnboardingScope($array['product'], $array['secondary_products'], $array['capabilities'], $array['features']);
 
@@ -35,7 +35,7 @@ final class OnboardingScopeTest extends TestCase
 
     public function test_it_reads_a_partial_or_malformed_array_as_an_empty_scope_where_it_lacks_data(): void
     {
-        $scope = OnboardingScope::fromArray(['capabilities' => [Capability::APPLE_PAY, 7, [Capability::GOOGLE_PAY]], 'features' => 'payment']);
+        $scope = OnboardingScope::fromArray(['capabilities' => [Capability::APPLE_PAY, 7, [Capability::GOOGLE_PAY]], 'features' => OnboardingScope::FEATURE_PAYMENT]);
 
         self::assertSame('', $scope->product());
         self::assertSame([], $scope->secondaryProducts());
@@ -45,26 +45,26 @@ final class OnboardingScopeTest extends TestCase
 
     public function test_it_is_covered_by_a_scope_that_has_all_it_asks_for(): void
     {
-        $scope = new OnboardingScope('ppcp', ['payment_methods'], [Capability::APPLE_PAY], ['payment']);
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY], [OnboardingScope::FEATURE_PAYMENT]);
 
         self::assertSame([], $scope->notCoveredBy($scope));
-        self::assertSame([], $scope->notCoveredBy(new OnboardingScope('ppcp', ['payment_methods'], [Capability::APPLE_PAY, 'VAULT'], ['payment', 'refund'])));
+        self::assertSame([], $scope->notCoveredBy(new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY, 'VAULT'], [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND])));
     }
 
     public function test_it_is_covered_by_a_scope_that_spells_the_same_names_in_another_case(): void
     {
-        $scope = new OnboardingScope('ppcp', ['payment_methods'], ['PAYPAL_WALLET_VAULTING_ADVANCED'], ['payment']);
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], ['PAYPAL_WALLET_VAULTING_ADVANCED'], [OnboardingScope::FEATURE_PAYMENT]);
 
-        self::assertSame([], $scope->notCoveredBy(new OnboardingScope('PPCP', ['PAYMENT_METHODS'], ['paypal_wallet_vaulting_advanced'], ['PAYMENT'])));
+        self::assertSame([], $scope->notCoveredBy(new OnboardingScope('PPCP', ['PAYMENT_METHODS'], ['paypal_wallet_vaulting_advanced'], ['payment'])));
     }
 
     public function test_it_lists_what_a_scope_lacks_of_it(): void
     {
-        $scope = new OnboardingScope('ppcp', ['payment_methods'], [Capability::APPLE_PAY, Capability::GOOGLE_PAY], ['payment', 'refund']);
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY, Capability::GOOGLE_PAY], [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND]);
 
         self::assertSame(
-            ['ppcp', 'payment_methods', Capability::GOOGLE_PAY, 'refund'],
-            $scope->notCoveredBy(new OnboardingScope('express_checkout', [], [Capability::APPLE_PAY], ['payment'])),
+            [OnboardingScope::PRODUCT_PPCP, OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS, Capability::GOOGLE_PAY, OnboardingScope::FEATURE_REFUND],
+            $scope->notCoveredBy(new OnboardingScope('express_checkout', [], [Capability::APPLE_PAY], [OnboardingScope::FEATURE_PAYMENT])),
         );
     }
 }

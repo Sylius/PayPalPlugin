@@ -94,7 +94,7 @@ final class UpdatePermissionsActionTest extends TestCase
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => true], $this->content($response));
+        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'upToDate' => true], $this->content($response));
         self::assertSame(['success' => ['sylius_paypal.permissions.update.completed']], $this->flashBag($request)->all());
     }
 
@@ -106,7 +106,7 @@ final class UpdatePermissionsActionTest extends TestCase
 
         $response = ($this->action)($request);
 
-        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
+        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'upToDate' => false], $this->content($response));
         self::assertSame(['warning' => [[
             'message' => 'sylius_paypal.permissions.update.awaiting_paypal',
             'parameters' => ['%capabilities%' => 'APPLE_PAY: PENDING, GOOGLE_PAY: NEED_DATA'],
@@ -122,7 +122,7 @@ final class UpdatePermissionsActionTest extends TestCase
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
+        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'upToDate' => false], $this->content($response));
         self::assertSame(['warning' => [[
             'message' => 'sylius_paypal.permissions.update.not_granted',
             'parameters' => ['%capabilities%' => Capability::GOOGLE_PAY],

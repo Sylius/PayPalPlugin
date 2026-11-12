@@ -17,12 +17,16 @@ final readonly class OnboardingStatus
 {
     public const ACTIVE_CAPABILITY_STATUS = 'ACTIVE';
 
+    /** @var array<string, string> */
+    private array $capabilityStatuses;
+
     /** @param array<string, string> $capabilityStatuses */
     public function __construct(
         private bool $paymentsReceivable,
         private bool $primaryEmailConfirmed,
-        private array $capabilityStatuses = [],
+        array $capabilityStatuses = [],
     ) {
+        $this->capabilityStatuses = array_map(strtoupper(...), array_change_key_case($capabilityStatuses, \CASE_UPPER));
     }
 
     /** @param array<array-key, mixed> $content */
@@ -54,7 +58,7 @@ final readonly class OnboardingStatus
     public function activeCapabilities(): array
     {
         return array_map(
-            'strval',
+            strval(...),
             array_keys(array_filter(
                 $this->capabilityStatuses,
                 static fn (string $status): bool => self::ACTIVE_CAPABILITY_STATUS === $status,
@@ -69,7 +73,7 @@ final readonly class OnboardingStatus
 
     public function capabilityStatus(string $capability): ?string
     {
-        return array_change_key_case($this->capabilityStatuses, \CASE_UPPER)[strtoupper($capability)] ?? null;
+        return $this->capabilityStatuses[strtoupper($capability)] ?? null;
     }
 
     /** @return array<string, string> */

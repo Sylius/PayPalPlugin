@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Form\Type;
 
 use PHPUnit\Framework\Attributes\Test;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 
@@ -239,7 +240,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertSame('SB', $data['client_id']);
         self::assertSame('SBS', $data['client_secret']);
         self::assertSame('SBM', $data['merchant_id']);
-        self::assertSame(['product' => 'ppcp'], $data['onboarding_scope']);
+        self::assertSame(['product' => OnboardingScope::PRODUCT_PPCP], $data['onboarding_scope']);
     }
 
     /**
@@ -250,7 +251,7 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         return [
             'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
             'partner_attribution_id' => 'bn', 'use_authorize' => 1,
-            'webhook_id' => 'WH', 'sandbox' => true, 'onboarding_scope' => ['product' => 'ppcp'],
+            'webhook_id' => 'WH', 'sandbox' => true, 'onboarding_scope' => ['product' => OnboardingScope::PRODUCT_PPCP],
         ];
     }
 }

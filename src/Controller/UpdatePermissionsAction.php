@@ -110,7 +110,7 @@ final readonly class UpdatePermissionsAction
             $flashBag->add('warning', $message);
         }
 
-        return new JsonResponse(['redirectUrl' => $updateUrl, 'completed' => $verification->isUpToDate()]);
+        return new JsonResponse(['redirectUrl' => $updateUrl, 'upToDate' => $verification->isUpToDate()]);
     }
 
     private function isPayPalPaymentMethod(PaymentMethodInterface $paymentMethod): bool

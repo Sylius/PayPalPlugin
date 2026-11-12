@@ -29,7 +29,7 @@ final class PermissionsVerificationTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->scope = new OnboardingScope('ppcp', ['payment_methods'], [Capability::APPLE_PAY, Capability::GOOGLE_PAY], ['payment']);
+        $this->scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY, Capability::GOOGLE_PAY], [OnboardingScope::FEATURE_PAYMENT]);
     }
 
     public static function statusesAConsentDoesNotChange(): iterable

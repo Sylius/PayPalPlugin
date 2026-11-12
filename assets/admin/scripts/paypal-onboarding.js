@@ -167,7 +167,7 @@ window.syliusPayPalOnboardedCallback = function onboardedCallback(authCode, shar
         .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
         .then(({ ok, data }) => {
             if (data && data.redirectUrl) {
-                if (ok && data.completed !== false) {
+                if (ok && data.upToDate !== false) {
                     showOnboardingSuccess(modal, data.redirectUrl);
                 }
 

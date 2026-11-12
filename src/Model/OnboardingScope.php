@@ -15,6 +15,16 @@ namespace Sylius\PayPalPlugin\Model;
 
 final readonly class OnboardingScope
 {
+    public const PRODUCT_PPCP = 'ppcp';
+
+    public const SECONDARY_PRODUCT_PAYMENT_METHODS = 'payment_methods';
+
+    public const FEATURE_PAYMENT = 'PAYMENT';
+
+    public const FEATURE_REFUND = 'REFUND';
+
+    public const FEATURE_ACCESS_MERCHANT_INFORMATION = 'ACCESS_MERCHANT_INFORMATION';
+
     private const PRODUCT = 'product';
 
     private const SECONDARY_PRODUCTS = 'secondary_products';
@@ -50,10 +60,10 @@ final readonly class OnboardingScope
     public static function current(): self
     {
         return new self(
-            'ppcp',
-            ['payment_methods'],
+            self::PRODUCT_PPCP,
+            [self::SECONDARY_PRODUCT_PAYMENT_METHODS],
             [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
-            ['payment', 'refund', 'access_merchant_information'],
+            [self::FEATURE_PAYMENT, self::FEATURE_REFUND, self::FEATURE_ACCESS_MERCHANT_INFORMATION],
         );
     }
 

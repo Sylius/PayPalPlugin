@@ -36,7 +36,7 @@ final class OnboardingScopeUpdaterTest extends TestCase
     public function test_it_stores_the_current_onboarding_scope_in_the_gateway_config(): void
     {
         $gatewayConfig = new GatewayConfig();
-        $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID', 'onboarding_scope' => ['product' => 'ppcp']]);
+        $gatewayConfig->setConfig(['client_id' => 'CLIENT_ID', 'onboarding_scope' => ['product' => OnboardingScope::PRODUCT_PPCP]]);
         $paymentMethod = new PaymentMethod();
         $paymentMethod->setGatewayConfig($gatewayConfig);
 
