@@ -42,6 +42,15 @@ final class OnboardingStatusTest extends TestCase
         self::assertNull($status->capabilityStatus('PAYPAL_WALLET_VAULTING_ADVANCED'));
     }
 
+    public function test_it_tells_the_status_of_a_capability_named_in_another_case(): void
+    {
+        $status = new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE', 'apple_pay' => 'NEED_DATA']);
+
+        self::assertSame('ACTIVE', $status->capabilityStatus('paypal_wallet_vaulting_advanced'));
+        self::assertSame('NEED_DATA', $status->capabilityStatus('APPLE_PAY'));
+        self::assertTrue($status->hasActiveCapability('Paypal_Wallet_Vaulting_Advanced'));
+    }
+
     public function test_it_is_read_from_a_merchant_integration_with_the_status_of_each_capability(): void
     {
         $status = OnboardingStatus::fromMerchantIntegration([

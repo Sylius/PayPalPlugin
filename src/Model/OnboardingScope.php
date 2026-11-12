@@ -84,10 +84,10 @@ final readonly class OnboardingScope
     public function notCoveredBy(self $scope): array
     {
         return array_merge(
-            $this->product === $scope->product ? [] : [$this->product],
-            array_diff($this->secondaryProducts, $scope->secondaryProducts),
-            array_diff($this->capabilities, $scope->capabilities),
-            array_diff($this->features, $scope->features),
+            0 === strcasecmp($this->product, $scope->product) ? [] : [$this->product],
+            array_udiff($this->secondaryProducts, $scope->secondaryProducts, strcasecmp(...)),
+            array_udiff($this->capabilities, $scope->capabilities, strcasecmp(...)),
+            array_udiff($this->features, $scope->features, strcasecmp(...)),
         );
     }
 

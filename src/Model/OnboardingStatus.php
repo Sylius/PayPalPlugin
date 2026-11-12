@@ -69,7 +69,7 @@ final readonly class OnboardingStatus
 
     public function capabilityStatus(string $capability): ?string
     {
-        return $this->capabilityStatuses[$capability] ?? null;
+        return array_change_key_case($this->capabilityStatuses, \CASE_UPPER)[strtoupper($capability)] ?? null;
     }
 
     /** @return array<string, string> */

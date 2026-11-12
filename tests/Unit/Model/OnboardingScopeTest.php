@@ -50,6 +50,13 @@ final class OnboardingScopeTest extends TestCase
         self::assertSame([], $scope->notCoveredBy(new OnboardingScope('ppcp', ['payment_methods'], ['APPLE_PAY', 'VAULT'], ['payment', 'refund'])));
     }
 
+    public function test_it_is_covered_by_a_scope_that_spells_the_same_names_in_another_case(): void
+    {
+        $scope = new OnboardingScope('ppcp', ['payment_methods'], ['PAYPAL_WALLET_VAULTING_ADVANCED'], ['payment']);
+
+        self::assertSame([], $scope->notCoveredBy(new OnboardingScope('PPCP', ['PAYMENT_METHODS'], ['paypal_wallet_vaulting_advanced'], ['PAYMENT'])));
+    }
+
     public function test_it_lists_what_a_scope_lacks_of_it(): void
     {
         $scope = new OnboardingScope('ppcp', ['payment_methods'], ['APPLE_PAY', 'GOOGLE_PAY'], ['payment', 'refund']);
