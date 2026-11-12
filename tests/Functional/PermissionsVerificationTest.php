@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
+use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
@@ -49,8 +50,8 @@ final class PermissionsVerificationTest extends JsonApiTestCase
     public function test_it_stores_the_current_scope_without_a_consent_when_every_capability_is_active(): void
     {
         $this->payPalHttpClient()->addExpectation('GET', self::MERCHANT_INTEGRATION_PATH, $this->merchantIntegration([
-            Capability::APPLE_PAY => 'ACTIVE',
-            Capability::GOOGLE_PAY => 'ACTIVE',
+            Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+            Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
         ]));
 
         $rendered = (string) $this->permissionsModal()->call('loadOnboardingUrl')->render();
@@ -64,7 +65,7 @@ final class PermissionsVerificationTest extends JsonApiTestCase
     public function test_it_tells_which_capability_paypal_has_not_activated_yet_without_a_consent(): void
     {
         $this->payPalHttpClient()->addExpectation('GET', self::MERCHANT_INTEGRATION_PATH, $this->merchantIntegration([
-            Capability::APPLE_PAY => 'ACTIVE',
+            Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
             Capability::GOOGLE_PAY => 'NEED_DATA',
         ]));
 

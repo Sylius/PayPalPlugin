@@ -125,7 +125,7 @@ final class UpdatePermissionsActionTest extends TestCase
         self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
         self::assertSame(['warning' => [[
             'message' => 'sylius_paypal.permissions_not_granted',
-            'parameters' => ['%capabilities%' => 'GOOGLE_PAY'],
+            'parameters' => ['%capabilities%' => Capability::GOOGLE_PAY],
         ]]], $this->flashBag($request)->all());
     }
 

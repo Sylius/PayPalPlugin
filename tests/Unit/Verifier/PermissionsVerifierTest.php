@@ -44,7 +44,7 @@ final class PermissionsVerifierTest extends TestCase
 
     public function test_it_stores_the_current_scope_of_an_account_with_every_capability_active(): void
     {
-        $this->givenStatus([Capability::APPLE_PAY => 'ACTIVE', Capability::GOOGLE_PAY => 'ACTIVE', 'CUSTOM_CARD_PROCESSING' => 'ACTIVE']);
+        $this->givenStatus([Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, 'CUSTOM_CARD_PROCESSING' => OnboardingStatus::ACTIVE_CAPABILITY_STATUS]);
 
         $this->onboardingScopeUpdater->expects(self::once())->method('update')->with($this->paymentMethod);
 
@@ -53,7 +53,7 @@ final class PermissionsVerifierTest extends TestCase
 
     public function test_it_waits_for_paypal_to_activate_a_capability_the_account_already_asked_for(): void
     {
-        $this->givenStatus([Capability::APPLE_PAY => 'ACTIVE', Capability::GOOGLE_PAY => 'NEED_DATA']);
+        $this->givenStatus([Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::GOOGLE_PAY => 'NEED_DATA']);
 
         $this->onboardingScopeUpdater->expects(self::never())->method('update');
 

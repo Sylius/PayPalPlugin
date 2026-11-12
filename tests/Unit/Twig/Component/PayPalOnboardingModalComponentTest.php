@@ -20,6 +20,7 @@ use Psr\Log\LoggerInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOnboardingUrlProviderInterface;
@@ -173,7 +174,7 @@ final class PayPalOnboardingModalComponentTest extends TestCase
         $this->paymentMethodRepository->method('find')->willReturn($this->createStub(PaymentMethodInterface::class));
         $this->permissionsVerifier->method('verify')->willReturnOnConsecutiveCalls(
             PermissionsVerification::upToDate(),
-            PermissionsVerification::awaitingPayPal(['GOOGLE_PAY' => 'NEED_DATA']),
+            PermissionsVerification::awaitingPayPal([Capability::GOOGLE_PAY => 'NEED_DATA']),
         );
 
         $this->sellerNonceManager->expects(self::never())->method('generate');

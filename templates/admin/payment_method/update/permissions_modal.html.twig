@@ -4,7 +4,7 @@
     payment_method is not null and
     payment_method.id is not null and
     payment_method.gatewayConfig is not null and
-    payment_method.gatewayConfig.factoryName == 'sylius_paypal'
+    payment_method.gatewayConfig.factoryName == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME')
 %}
     {% component 'sylius_paypal:live_onboarding_modal' with {
         modalId: constant('Sylius\\PayPalPlugin\\Twig\\Component\\PayPalOnboardingModalComponent::PERMISSIONS_UPDATE_MODAL_ID'),
