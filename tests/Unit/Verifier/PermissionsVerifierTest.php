@@ -69,7 +69,7 @@ final class PermissionsVerifierTest extends TestCase
 
         $this->onboardingScopeUpdater->expects(self::never())->method('update');
 
-        self::assertEquals(PermissionsVerification::consentRequired(), $this->verifier->verify($this->paymentMethod));
+        self::assertEquals(PermissionsVerification::consentRequired([Capability::GOOGLE_PAY]), $this->verifier->verify($this->paymentMethod));
     }
 
     public function test_it_requires_the_consent_of_an_account_the_configured_partner_does_not_know(): void

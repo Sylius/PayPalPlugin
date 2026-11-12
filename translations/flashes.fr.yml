@@ -14,6 +14,8 @@ sylius_paypal:
     payment_not_refunded: 'Le paiement n''a pas été remboursé. %reason%'
     payment_refund_pending: 'PayPal traite le remboursement. Le paiement sera marqué comme remboursé dès que PayPal l''aura confirmé.'
     payment_source_not_available: 'Le moyen de paiement choisi n''est pas disponible. Veuillez en choisir un autre.'
+    permissions_awaiting_paypal: 'PayPal n''a pas encore activé ces fonctionnalités du compte : %capabilities%. Une fois activées par PayPal, mettez à jour les autorisations PayPal à nouveau pour les enregistrer.'
+    permissions_not_granted: 'PayPal n''a pas accordé %capabilities% au compte de ce mode de paiement, qui n''y est peut-être pas éligible. Vérifiez le compte auprès de PayPal avant de mettre à jour ses autorisations à nouveau.'
     permissions_update_another_account: 'Vous avez connecté un autre compte PayPal. Connectez-vous à PayPal avec le compte de ce mode de paiement pour mettre à jour ses autorisations.'
     permissions_update_failed: 'Impossible de mettre à jour les autorisations PayPal. Merci de réessayer plus tard.'
     permissions_updated: 'Les autorisations PayPal ont été mises à jour.'

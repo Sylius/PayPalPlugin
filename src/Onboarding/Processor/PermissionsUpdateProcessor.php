@@ -18,8 +18,10 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
 use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
@@ -55,9 +57,13 @@ final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProc
             throw new OnboardingAccountMismatchException($config->merchantId(), $sellerOnboardingResult->getMerchantId());
         }
 
-        $this->onboardingScopeUpdater->update($paymentMethod);
+        $status = $sellerOnboardingResult->getStatus();
+        if (PermissionsVerification::of($status, OnboardingScope::current())->isUpToDate()) {
+            $this->onboardingScopeUpdater->update($paymentMethod);
+        }
+
         $this->sellerNonceManager->remove($sandbox);
 
-        return $sellerOnboardingResult->getStatus();
+        return $status;
     }
 }

@@ -21,16 +21,44 @@ final readonly class PermissionsVerification
 
     private const CONSENT_REQUIRED = 'consent_required';
 
-    /** @param array<string, string> $pendingCapabilities */
+    /**
+     * @param array<string, string> $pendingCapabilities
+     * @param list<string> $missingCapabilities
+     */
     private function __construct(
         private string $outcome,
-        private array $pendingCapabilities,
+        private array $pendingCapabilities = [],
+        private array $missingCapabilities = [],
     ) {
+    }
+
+    public static function of(OnboardingStatus $status, OnboardingScope $scope): self
+    {
+        $pendingCapabilities = [];
+        $missingCapabilities = [];
+        foreach ($scope->capabilities() as $capability) {
+            $capabilityStatus = $status->capabilityStatus($capability);
+            if (null === $capabilityStatus) {
+                $missingCapabilities[] = $capability;
+            } elseif (OnboardingStatus::ACTIVE_CAPABILITY_STATUS !== $capabilityStatus) {
+                $pendingCapabilities[$capability] = $capabilityStatus;
+            }
+        }
+
+        if ([] !== $missingCapabilities) {
+            return self::consentRequired($missingCapabilities);
+        }
+
+        if ([] !== $pendingCapabilities) {
+            return self::awaitingPayPal($pendingCapabilities);
+        }
+
+        return self::upToDate();
     }
 
     public static function upToDate(): self
     {
-        return new self(self::UP_TO_DATE, []);
+        return new self(self::UP_TO_DATE);
     }
 
     /** @param non-empty-array<string, string> $pendingCapabilities */
@@ -39,9 +67,10 @@ final readonly class PermissionsVerification
         return new self(self::AWAITING_PAYPAL, $pendingCapabilities);
     }
 
-    public static function consentRequired(): self
+    /** @param list<string> $missingCapabilities */
+    public static function consentRequired(array $missingCapabilities = []): self
     {
-        return new self(self::CONSENT_REQUIRED, []);
+        return new self(self::CONSENT_REQUIRED, missingCapabilities: $missingCapabilities);
     }
 
     public function isUpToDate(): bool
@@ -63,5 +92,11 @@ final readonly class PermissionsVerification
     public function pendingCapabilities(): array
     {
         return $this->pendingCapabilities;
+    }
+
+    /** @return list<string> the capabilities the PayPal account does not have at all */
+    public function missingCapabilities(): array
+    {
+        return $this->missingCapabilities;
     }
 }

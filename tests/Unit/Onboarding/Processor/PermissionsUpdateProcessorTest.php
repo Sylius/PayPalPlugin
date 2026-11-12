@@ -84,6 +84,34 @@ final class PermissionsUpdateProcessorTest extends TestCase
         self::assertSame(self::CONFIG, $paymentMethod->getGatewayConfig()?->getConfig());
     }
 
+    public function test_it_keeps_the_stored_onboarding_scope_while_the_paypal_account_lacks_a_capability_of_it(): void
+    {
+        $paymentMethod = $this->paymentMethod(self::CONFIG);
+        $status = new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE']);
+        $this->sellerNonceManager->method('get')->willReturn('NONCE');
+        $this->sellerOnboardingResolver->method('resolve')->willReturn(new SellerOnboardingResult('NEW_CLIENT_ID', 'NEW_CLIENT_SECRET', 'MERCHANT_ID', $status));
+
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
+        $this->sellerNonceManager->expects(self::once())->method('remove')->with(true);
+
+        self::assertSame($status, $this->processor->process($paymentMethod, 'AUTH_CODE', 'SHARED_ID'));
+    }
+
+    public function test_it_keeps_the_stored_onboarding_scope_while_paypal_has_not_activated_a_capability_of_it(): void
+    {
+        $this->sellerNonceManager->method('get')->willReturn('NONCE');
+        $this->sellerOnboardingResolver->method('resolve')->willReturn(new SellerOnboardingResult(
+            'NEW_CLIENT_ID',
+            'NEW_CLIENT_SECRET',
+            'MERCHANT_ID',
+            new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'PENDING']),
+        ));
+
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
+
+        $this->processor->process($this->paymentMethod(self::CONFIG), 'AUTH_CODE', 'SHARED_ID');
+    }
+
     public function test_it_refuses_another_paypal_account_and_changes_nothing(): void
     {
         $paymentMethod = $this->paymentMethod(self::CONFIG);

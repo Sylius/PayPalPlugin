@@ -21,7 +21,9 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Provider\OnboardingStatusMessagesProviderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -88,7 +90,24 @@ final readonly class UpdatePermissionsAction
             return new JsonResponse(['redirectUrl' => $updateUrl], Response::HTTP_BAD_REQUEST);
         }
 
-        $flashBag->add('success', 'sylius_paypal.permissions_updated');
+        $verification = PermissionsVerification::of($status, OnboardingScope::current());
+        if ($verification->isUpToDate()) {
+            $flashBag->add('success', 'sylius_paypal.permissions_updated');
+        } elseif ($verification->isAwaitingPayPal()) {
+            $flashBag->add('warning', [
+                'message' => 'sylius_paypal.permissions_awaiting_paypal',
+                'parameters' => ['%capabilities%' => implode(', ', array_map(
+                    static fn (string $capability, string $capabilityStatus): string => $capability . ': ' . $capabilityStatus,
+                    array_keys($verification->pendingCapabilities()),
+                    $verification->pendingCapabilities(),
+                ))],
+            ]);
+        } else {
+            $flashBag->add('warning', [
+                'message' => 'sylius_paypal.permissions_not_granted',
+                'parameters' => ['%capabilities%' => implode(', ', $verification->missingCapabilities())],
+            ]);
+        }
 
         /** @var GatewayConfigInterface $gatewayConfig */
         $gatewayConfig = $paymentMethod->getGatewayConfig();
@@ -97,7 +116,7 @@ final readonly class UpdatePermissionsAction
             $flashBag->add('warning', $message);
         }
 
-        return new JsonResponse(['redirectUrl' => $updateUrl]);
+        return new JsonResponse(['redirectUrl' => $updateUrl, 'completed' => $verification->isUpToDate()]);
     }
 
     private function isPayPalPaymentMethod(PaymentMethodInterface $paymentMethod): bool

@@ -84,15 +84,46 @@ final class UpdatePermissionsActionTest extends TestCase
             ->expects(self::once())
             ->method('process')
             ->with($this->paymentMethod, 'AUTH_CODE', 'SHARED_ID')
-            ->willReturn(new OnboardingStatus(true, true))
+            ->willReturn(new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'ACTIVE']))
         ;
         $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
 
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
-        self::assertSame(['redirectUrl' => self::UPDATE_URL], $this->content($response));
+        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => true], $this->content($response));
         self::assertSame(['success' => ['sylius_paypal.permissions_updated']], $this->flashBag($request)->all());
+    }
+
+    public function test_it_tells_which_capabilities_paypal_has_not_activated_yet(): void
+    {
+        $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod);
+        $this->permissionsUpdateProcessor->method('process')->willReturn(new OnboardingStatus(true, true, ['APPLE_PAY' => 'PENDING', 'GOOGLE_PAY' => 'NEED_DATA']));
+        $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
+
+        $response = ($this->action)($request);
+
+        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
+        self::assertSame(['warning' => [[
+            'message' => 'sylius_paypal.permissions_awaiting_paypal',
+            'parameters' => ['%capabilities%' => 'APPLE_PAY: PENDING, GOOGLE_PAY: NEED_DATA'],
+        ]]], $this->flashBag($request)->all());
+    }
+
+    public function test_it_tells_which_capabilities_paypal_has_not_granted(): void
+    {
+        $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod);
+        $this->permissionsUpdateProcessor->method('process')->willReturn(new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE']));
+        $request = $this->request(['authCode' => 'AUTH_CODE', 'sharedId' => 'SHARED_ID']);
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
+        self::assertSame(['warning' => [[
+            'message' => 'sylius_paypal.permissions_not_granted',
+            'parameters' => ['%capabilities%' => 'GOOGLE_PAY'],
+        ]]], $this->flashBag($request)->all());
     }
 
     public function test_it_warns_about_what_the_paypal_account_still_lacks(): void
