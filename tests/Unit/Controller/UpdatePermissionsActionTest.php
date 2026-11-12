@@ -95,7 +95,7 @@ final class UpdatePermissionsActionTest extends TestCase
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => true], $this->content($response));
-        self::assertSame(['success' => ['sylius_paypal.permissions_updated']], $this->flashBag($request)->all());
+        self::assertSame(['success' => ['sylius_paypal.permissions.update.completed']], $this->flashBag($request)->all());
     }
 
     public function test_it_tells_which_capabilities_paypal_has_not_activated_yet(): void
@@ -108,7 +108,7 @@ final class UpdatePermissionsActionTest extends TestCase
 
         self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
         self::assertSame(['warning' => [[
-            'message' => 'sylius_paypal.permissions_awaiting_paypal',
+            'message' => 'sylius_paypal.permissions.update.awaiting_paypal',
             'parameters' => ['%capabilities%' => 'APPLE_PAY: PENDING, GOOGLE_PAY: NEED_DATA'],
         ]]], $this->flashBag($request)->all());
     }
@@ -124,7 +124,7 @@ final class UpdatePermissionsActionTest extends TestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         self::assertSame(['redirectUrl' => self::UPDATE_URL, 'completed' => false], $this->content($response));
         self::assertSame(['warning' => [[
-            'message' => 'sylius_paypal.permissions_not_granted',
+            'message' => 'sylius_paypal.permissions.update.not_granted',
             'parameters' => ['%capabilities%' => Capability::GOOGLE_PAY],
         ]]], $this->flashBag($request)->all());
     }
@@ -152,7 +152,7 @@ final class UpdatePermissionsActionTest extends TestCase
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
         self::assertSame(['redirectUrl' => self::UPDATE_URL], $this->content($response));
-        self::assertSame(['error' => ['sylius_paypal.permissions_update_another_account']], $this->flashBag($request)->all());
+        self::assertSame(['error' => ['sylius_paypal.permissions.update.another_account']], $this->flashBag($request)->all());
     }
 
     public function test_it_reports_an_update_that_failed(): void
@@ -164,7 +164,7 @@ final class UpdatePermissionsActionTest extends TestCase
         $response = ($this->action)($request);
 
         self::assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-        self::assertSame(['error' => ['sylius_paypal.permissions_update_failed']], $this->flashBag($request)->all());
+        self::assertSame(['error' => ['sylius_paypal.permissions.update.failed']], $this->flashBag($request)->all());
     }
 
     public function test_it_reports_an_expired_onboarding_session(): void

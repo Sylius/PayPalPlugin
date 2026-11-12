@@ -78,27 +78,27 @@ final readonly class UpdatePermissionsAction
             return new JsonResponse(['redirectUrl' => $updateUrl], Response::HTTP_BAD_REQUEST);
         } catch (OnboardingAccountMismatchException $exception) {
             $this->logger->error($exception->getMessage(), ['exception' => $exception]);
-            $flashBag->add('error', 'sylius_paypal.permissions_update_another_account');
+            $flashBag->add('error', 'sylius_paypal.permissions.update.another_account');
 
             return new JsonResponse(['redirectUrl' => $updateUrl], Response::HTTP_BAD_REQUEST);
         } catch (OnboardingFailedException $exception) {
             $this->logger->error($exception->getMessage(), ['exception' => $exception]);
-            $flashBag->add('error', 'sylius_paypal.permissions_update_failed');
+            $flashBag->add('error', 'sylius_paypal.permissions.update.failed');
 
             return new JsonResponse(['redirectUrl' => $updateUrl], Response::HTTP_BAD_REQUEST);
         }
 
         $verification = $result->verification();
         if ($verification->isUpToDate()) {
-            $flashBag->add('success', 'sylius_paypal.permissions_updated');
+            $flashBag->add('success', 'sylius_paypal.permissions.update.completed');
         } elseif ($verification->isAwaitingPayPal()) {
             $flashBag->add('warning', [
-                'message' => 'sylius_paypal.permissions_awaiting_paypal',
+                'message' => 'sylius_paypal.permissions.update.awaiting_paypal',
                 'parameters' => ['%capabilities%' => implode(', ', $verification->describedPendingCapabilities())],
             ]);
         } else {
             $flashBag->add('warning', [
-                'message' => 'sylius_paypal.permissions_not_granted',
+                'message' => 'sylius_paypal.permissions.update.not_granted',
                 'parameters' => ['%capabilities%' => implode(', ', $verification->capabilitiesToRequest())],
             ]);
         }

@@ -17,11 +17,13 @@ sylius_paypal:
     payment_not_refunded: 'Płatność nie została zwrócona. %reason%'
     payment_refund_pending: 'PayPal przetwarza zwrot. Płatność zostanie oznaczona jako zwrócona, gdy PayPal go potwierdzi.'
     payment_source_not_available: 'Wybrana metoda płatności jest niedostępna. Wybierz inną.'
-    permissions_awaiting_paypal: 'PayPal nie pozwala jeszcze kontu tej metody płatności korzystać z tych funkcji: %capabilities%. Sprawdź je na koncie PayPal, a potem ponownie zaktualizuj uprawnienia PayPal.'
-    permissions_not_granted: 'PayPal nie przyznał %capabilities% kontu tej metody płatności, które może nie spełniać warunków. Sprawdź konto w PayPal, zanim ponownie zaktualizujesz jego uprawnienia.'
-    permissions_update_another_account: 'Połączono inne konto PayPal. Zaloguj się w PayPal kontem tej metody płatności, aby zaktualizować jej uprawnienia.'
-    permissions_update_failed: 'Nie udało się zaktualizować uprawnień PayPal. Spróbuj ponownie później.'
-    permissions_updated: 'Uprawnienia PayPal zostały zaktualizowane.'
+    permissions:
+        update:
+            another_account: 'Połączono inne konto PayPal. Zaloguj się w PayPal kontem tej metody płatności, aby zaktualizować jej uprawnienia.'
+            awaiting_paypal: 'PayPal nie pozwala jeszcze kontu tej metody płatności korzystać z tych funkcji: %capabilities%. Sprawdź je na koncie PayPal, a potem ponownie zaktualizuj uprawnienia PayPal.'
+            completed: 'Uprawnienia PayPal zostały zaktualizowane.'
+            failed: 'Nie udało się zaktualizować uprawnień PayPal. Spróbuj ponownie później.'
+            not_granted: 'PayPal nie przyznał %capabilities% kontu tej metody płatności, które może nie spełniać warunków. Sprawdź konto w PayPal, zanim ponownie zaktualizujesz jego uprawnienia.'
     production_connected_successfully: 'Połączono konto PayPal (produkcja).'
     sandbox_connected_successfully: 'Połączono konto PayPal (sandbox).'
     seller_onboarding_payments_not_receivable: 'Uwaga: obecnie nie możesz przyjmować płatności z powodu możliwego ograniczenia na Twoim koncie PayPal. Skontaktuj się z obsługą klienta PayPal lub przejdź na %paypal_url%, aby dowiedzieć się więcej. Po wyjaśnieniu sprawy wróć na tę stronę, aby odświeżyć status onboardingu.'

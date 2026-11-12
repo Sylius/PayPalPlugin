@@ -17,11 +17,13 @@ sylius_paypal:
     payment_not_refunded: 'The payment has not been refunded. %reason%'
     payment_refund_pending: 'PayPal is processing the refund. The payment will be marked as refunded once PayPal confirms it.'
     payment_source_not_available: 'The selected payment method is not available. Please choose another one.'
-    permissions_awaiting_paypal: 'PayPal does not let the account of this payment method use these capabilities yet: %capabilities%. Check them in the PayPal account, then update the PayPal permissions again.'
-    permissions_not_granted: 'PayPal has not granted %capabilities% to the account of this payment method, which may not be eligible for them. Check the account with PayPal before updating its permissions again.'
-    permissions_update_another_account: 'You connected another PayPal account. Sign in to PayPal with the account of this payment method to update its permissions.'
-    permissions_update_failed: 'Could not update the PayPal permissions. Please, try again later.'
-    permissions_updated: 'PayPal permissions have been updated.'
+    permissions:
+        update:
+            another_account: 'You connected another PayPal account. Sign in to PayPal with the account of this payment method to update its permissions.'
+            awaiting_paypal: 'PayPal does not let the account of this payment method use these capabilities yet: %capabilities%. Check them in the PayPal account, then update the PayPal permissions again.'
+            completed: 'PayPal permissions have been updated.'
+            failed: 'Could not update the PayPal permissions. Please, try again later.'
+            not_granted: 'PayPal has not granted %capabilities% to the account of this payment method, which may not be eligible for them. Check the account with PayPal before updating its permissions again.'
     production_connected_successfully: 'PayPal Production has been connected successfully.'
     sandbox_connected_successfully: 'PayPal Sandbox has been connected successfully.'
     shipment_cannot_be_shipped: 'This shipment can no longer be shipped. It may have been shipped in the meantime.'
