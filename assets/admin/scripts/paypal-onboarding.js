@@ -221,9 +221,41 @@ function loadOnboardingUrlOnceShown(event) {
     });
 }
 
+const shownOnboardingModalIds = new Set();
+const guardedOnboardingComponents = new WeakSet();
+
+function trackOnboardingModalVisibility(event) {
+    if (event.target instanceof Element && event.target.hasAttribute('data-paypal-onboarding-complete-url')) {
+        if (event.type === 'shown.bs.modal') {
+            shownOnboardingModalIds.add(event.target.id);
+        } else {
+            shownOnboardingModalIds.delete(event.target.id);
+        }
+    }
+}
+
+function skipRenderingClosedOnboardingModal(event) {
+    const component = event.detail?.component;
+    const onboardingModal = event.target instanceof Element ? event.target.querySelector('[data-paypal-onboarding-complete-url]') : null;
+
+    if (!component || onboardingModal === null || guardedOnboardingComponents.has(component)) {
+        return;
+    }
+
+    guardedOnboardingComponents.add(component);
+    component.on('render:started', (html, response, controls) => {
+        if (!shownOnboardingModalIds.has(onboardingModal.id)) {
+            controls.shouldRender = false;
+        }
+    });
+}
+
 function initOnboardingModal() {
     document.addEventListener('click', guardOnboardingButtonClick, true);
+    document.addEventListener('shown.bs.modal', trackOnboardingModalVisibility);
     document.addEventListener('shown.bs.modal', loadOnboardingUrlOnceShown);
+    document.addEventListener('hide.bs.modal', trackOnboardingModalVisibility);
+    document.addEventListener('live:connect', skipRenderingClosedOnboardingModal);
 
     findOnboardingModals().forEach((onboardingModal) => {
         loadPartnerJsOnceButtonExists(onboardingModal);
