@@ -98,9 +98,10 @@ final class PayPalExtensionTest extends TestCase
     /** @return iterable<string, array{array<string, bool>, bool}> */
     public static function messagingConfigurations(): iterable
     {
-        yield 'defaults' => [[], true];
-        yield 'messaging disabled' => [['messaging_enabled' => false], false];
-        yield 'pay later disabled' => [['pay_later_enabled' => false], false];
+        yield 'defaults' => [[], false];
+        yield 'pay later and messaging enabled' => [['pay_later_enabled' => true, 'messaging_enabled' => true], true];
+        yield 'messaging disabled' => [['pay_later_enabled' => true, 'messaging_enabled' => false], false];
+        yield 'pay later disabled' => [['pay_later_enabled' => false, 'messaging_enabled' => true], false];
     }
 
     #[Test]
