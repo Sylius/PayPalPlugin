@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -31,6 +32,8 @@ use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
 final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 {
+    private const ACTIVE = OnboardingStatus::ACTIVE_CAPABILITY_STATUS;
+
     private const CONFIG = [
         'client_id' => 'CLIENT-ID',
         'client_secret' => 'CLIENT-SECRET',
@@ -38,6 +41,8 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'partner_attribution_id' => 'sylius-ppcp4p-bn-code',
         'sandbox' => false,
         'use_authorize' => false,
+        'google_pay_enabled' => false,
+        'apple_pay_enabled' => false,
         'onboarding_scope' => [
             'product' => OnboardingScope::PRODUCT_PPCP,
             'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
@@ -148,6 +153,31 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $result = new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true));
 
         self::assertSame($paymentMethod, $this->creator->create($result, false));
+    }
+
+    /** @param array<string, string> $capabilityStatuses */
+    #[Test]
+    #[DataProvider('walletCapabilityStatuses')]
+    public function it_turns_on_only_the_wallets_whose_capability_is_active(array $capabilityStatuses, bool $googlePayEnabled, bool $applePayEnabled): void
+    {
+        [$gatewayConfig] = $this->mockFactories();
+
+        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, [
+            'google_pay_enabled' => $googlePayEnabled,
+            'apple_pay_enabled' => $applePayEnabled,
+        ]));
+
+        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, $capabilityStatuses)), false);
+    }
+
+    /** @return iterable<string, array{array<string, string>, bool, bool}> */
+    public static function walletCapabilityStatuses(): iterable
+    {
+        yield 'both active' => [[Capability::GOOGLE_PAY => self::ACTIVE, Capability::APPLE_PAY => self::ACTIVE], true, true];
+        yield 'only Google Pay active' => [[Capability::GOOGLE_PAY => self::ACTIVE, Capability::APPLE_PAY => 'PENDING'], true, false];
+        yield 'only Apple Pay active' => [[Capability::GOOGLE_PAY => 'NEED_DATA', Capability::APPLE_PAY => self::ACTIVE], false, true];
+        yield 'none active' => [[Capability::GOOGLE_PAY => 'PENDING', Capability::APPLE_PAY => 'NEED_DATA'], false, false];
+        yield 'none reported' => [[], false, false];
     }
 
     #[Test]
