@@ -1,0 +1,8 @@
+sylius_paypal:
+    more_than_one_seller_not_allowed: 'Es ist nicht erlaubt, mehr als einen PayPal-Verkäufer zu registrieren!'
+    order_cancelled: 'Die PayPal-Bestellung wurde storniert.'
+    payment_cancelled: 'Die PayPal-Zahlung wurde storniert.'
+    payment_enabled: 'Die PayPal-Zahlung wurde gerade aktiviert.'
+    payment_not_enabled: 'Die PayPal-Zahlung konnte nicht aktiviert werden. Bitte versuchen Sie es später erneut.'
+    something_went_wrong: 'Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'
+    webhook_url_not_valid: 'PayPal konnte die angegebene Webhook-URL nicht verifizieren. Stellen Sie sicher, dass sie HTTPS nutzt, und versuchen Sie es erneut.'
