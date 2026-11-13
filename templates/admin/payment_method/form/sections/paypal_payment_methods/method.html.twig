@@ -28,7 +28,6 @@
         </div>
     </div>
 </div>
-{# the hook wraps its output in debug comments, so only real content counts #}
 {% if options|striptags('<input><select><textarea><button>')|trim is not empty %}
     <div class="list-group-item py-3 bg-body" {{ sylius_test_html_attribute('paypal-payment-method-options', configuration.code) }}>
         {{ options }}

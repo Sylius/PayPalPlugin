@@ -1,5 +1,4 @@
 {% if hookable_metadata.context.resource.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
-    {# the surface layer keeps the translucent alert background light on the grey page #}
     <div class="bg-surface rounded mb-3">
         {% if sylius_is_paypal_sandbox() %}
             <div class="alert bg-yellow-lt border-warning-subtle mb-0" role="alert" {{ sylius_test_html_attribute('paypal-mode', 'sandbox') }}>
