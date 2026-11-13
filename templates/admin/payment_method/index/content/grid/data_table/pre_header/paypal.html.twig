@@ -1,3 +1,5 @@
+{% import '@SyliusAdmin/shared/helper/dropdown.html.twig' as dropdown %}
+
 {% set factory = constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
 {% set configuration = hookable_metadata.configuration %}
 
@@ -43,10 +45,22 @@
         </td>
 
         <td class="payment-method-list__actions text-end" colspan="4">
-            {% set modal_target = sylius_is_paypal_sandbox() ? '#confirmation-modal-create-paypal-sandbox' : '#confirmation-modal-create-pay-pal' %}
-            <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="{{ modal_target }}">
-                {{ ux_icon('tabler:settings', { class: 'icon' }) }} {{ 'sylius_paypal.configure'|trans }}
-            </button>
+            {% set items %}
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-pay-pal">
+                    {{ ux_icon('tabler:brand-paypal-filled') }}
+                    {{ 'sylius_paypal.enable_paypal_production'|trans }}
+                </a>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#confirmation-modal-create-paypal-sandbox">
+                    {{ ux_icon('tabler:flask') }}
+                    {{ 'sylius_paypal.enable_paypal_sandbox'|trans }}
+                </a>
+            {% endset %}
+
+            {{ dropdown.default({
+                direction: 'down-end',
+                button: { text: 'sylius_paypal.configure'|trans, icon: 'tabler:settings' },
+                content: items,
+            }) }}
         </td>
     </tr>
 {% endif %}

@@ -1,11 +1,21 @@
+sylius:
+    ui:
+        capture_authorization: 'Capturer l''autorisation'
+        refund_late_capture: 'Rembourser la capture tardive'
+        void_authorization: 'Annuler l''autorisation'
 sylius_paypal:
     account_connected: 'Connecté'
     account_not_enabled: 'Non activé'
+    add_paypal_account: 'Ajouter un compte PayPal'
     always_on: 'Toujours actif'
     apple_pay: 'Apple Pay'
     apple_pay_description: 'Nécessite aussi la vérification du domaine dans votre compte PayPal.'
     back_to_store: 'Retour au magasin'
     billing_info: 'Utiliser la même adresse de facturation que pour la commande'
+    capture_strategy: 'Stratégie d''encaissement'
+    capture_strategy_authorize: 'Autorisation et encaissement'
+    capture_strategy_capture: 'Encaissement immédiat'
+    capture_strategy_help: 'L''autorisation bloque les fonds de l''acheteur. Finalisez le paiement dans la commande pour les encaisser, ou annulez la commande pour libérer l''autorisation. Seuls PayPal, Pay Later, Venmo, les cartes, Apple Pay et Google Pay sont proposés, les autres moyens de paiement sont masqués.'
     card_fields_invalid: 'Veuillez vérifier les informations de carte en surbrillance.'
     card_number: 'Numéro de carte'
     card_three_d_secure_always: 'Toujours demander 3D Secure'
@@ -22,6 +32,7 @@ sylius_paypal:
     configure: 'Configurer'
     create_production: 'PayPal (Production)'
     create_sandbox: 'PayPal (Sandbox)'
+    could_not_load_onboarding_url: "Impossible de charger le lien de connexion PayPal. Veuillez fermer cette fenêtre et réessayer."
     credit_card: 'Carte de crédit'
     credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
@@ -32,6 +43,7 @@ sylius_paypal:
     enable_paypal_production: 'Production'
     expiration_date: 'Date d''expiration'
     express_checkout_enabled_help: 'Boutons PayPal, Pay Later et Venmo sur les pages produit et panier et à l''étape de paiement, pour que les clients puissent payer avec les informations enregistrées dans leur compte PayPal.'
+    go_to_payment_method: 'Aller au moyen de paiement'
     google_pay: 'Google Pay'
     invalid_form: 'Le formulaire est invalide'
     label: 'PayPal'
@@ -46,8 +58,10 @@ sylius_paypal:
     mode_production_title: 'Mode production.'
     mode_sandbox: 'Sandbox'
     mode_sandbox_description: 'Les paiements sont simulés : rien n''est débité et aucun versement n''est effectué.'
-    mode_sandbox_go_live: 'Pour accepter de vrais paiements, passez la boutique en mode production PayPal, puis supprimez ce moyen de paiement et connectez à nouveau votre compte PayPal de production.'
+    mode_sandbox_go_live: 'Pour accepter de vrais paiements, choisissez « Créer » > « PayPal (Production) » dans la liste des moyens de paiement et connectez votre compte PayPal de production. Il devient un nouveau moyen de paiement.'
     mode_sandbox_title: 'Mode sandbox.'
+    onboarding_completed: 'Votre compte PayPal a été connecté.'
+    onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
     pay_later: 'Pay Later'
     pay_later_description: 'Proposez des paiements flexibles : vos clients achètent maintenant et paient plus tard, vous êtes payé immédiatement.'
     pay_with_card: 'Payer par carte'
@@ -55,10 +69,20 @@ sylius_paypal:
     payment_methods: 'Moyens de paiement'
     paypal: 'PayPal'
     paypal_account: 'Compte PayPal'
-    report: 'Rapport'
-    reports_sftp: 'Rapports (SFTP)'
-    sftp_password: 'Mot de passe SFTP'
-    sftp_username: 'Identifiant SFTP'
+    permissions:
+        state:
+            missing: 'Autorisations manquantes :'
+            out_of_date: 'Autorisations PayPal obsolètes'
+            unknown: 'Autorisations PayPal inconnues'
+            unknown_details: 'Le plugin n''a pas enregistré les autorisations avec lesquelles ce compte PayPal a été connecté.'
+        update:
+            already_up_to_date: 'Les autorisations PayPal de ce moyen de paiement sont déjà à jour.'
+            awaiting_paypal: 'PayPal ne permet pas encore au compte de ce moyen de paiement d''utiliser ces fonctionnalités. Vérifiez-les dans le compte PayPal :'
+            button: 'Mettre à jour les autorisations PayPal'
+            completed: 'Vos autorisations PayPal ont été mises à jour.'
+            modal_description: 'Vous serez invité à vous connecter à PayPal avec le compte de ce mode de paiement et à accorder les autorisations dont le plugin a besoin. Le mode de paiement conserve ses identifiants et son webhook.'
+            verification_failed: 'Impossible de vérifier les autorisations PayPal de ce moyen de paiement. Vous pouvez tout de même les mettre à jour.'
+    sandbox_on_production_warning: "Attention : ce moyen de paiement utilise le Sandbox PayPal sur un environnement de production. Le Sandbox utilise des identifiants de test et ne traitera pas de vrais paiements."
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"
     suggested: 'Suggéré'
     suggested_payment_method_description: 'Acceptez les paiements PayPal, carte de crédit et carte de débit dans votre boutique.'
@@ -69,3 +93,20 @@ sylius_paypal:
     venmo: 'Venmo'
 
     wallets: 'Portefeuilles'
+    webhook:
+        state:
+            missing_event_types: "Événements manquants :"
+            out_of_date: "Webhook obsolète"
+            points_elsewhere: "PayPal envoie les événements à %url%."
+            unknown: "État du webhook inconnu"
+            unknown_details: "Le plugin n'a pas encore enregistré l'URL ni les événements de ce webhook."
+        update:
+            already_up_to_date: "Le webhook %id% est déjà à jour à %url%."
+            button: "Mettre à jour le webhook"
+            failed: "Impossible de mettre à jour le webhook : %reason%"
+            failed_check_logs: "Impossible de mettre à jour le webhook. Consultez les journaux pour plus de détails."
+            registered: "Webhook %id% enregistré à %url%."
+            updated: "Le webhook %id% pointe maintenant vers %url%."
+        url:
+            label: "URL du webhook"
+            not_stored: "Pas encore enregistrée"

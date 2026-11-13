@@ -13,119 +13,147 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Console\Command;
 
-use Doctrine\Persistence\ObjectManager;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sylius\Abstraction\StateMachine\StateMachineInterface;
-use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
-use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
+use Sylius\PayPalPlugin\Dispatcher\StatusPaymentRequestDispatcherInterface;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class CompletePaidPaymentsCommandTest extends TestCase
 {
-    /** @var PaymentRepositoryInterface<PaymentInterface>&MockObject */
-    private PaymentRepositoryInterface&MockObject $paymentRepository;
+    private const SETTLEABLE_STATES = [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED];
 
-    private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
+    private PaypalPaymentBatchQueryInterface&MockObject $paypalPaymentBatchQuery;
+
+    private StatusPaymentRequestDispatcherInterface&MockObject $statusPaymentRequestDispatcher;
+
+    private EntityManagerInterface&MockObject $entityManager;
 
     private CommandTester $commandTester;
 
     protected function setUp(): void
     {
-        parent::setUp();
-        $this->paymentRepository = $this->createMock(PaymentRepositoryInterface::class);
-        $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->paypalPaymentBatchQuery = $this->createMock(PaypalPaymentBatchQueryInterface::class);
+        $this->statusPaymentRequestDispatcher = $this->createMock(StatusPaymentRequestDispatcherInterface::class);
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
 
-        $this->commandTester = new CommandTester(
-            new CompletePaidPaymentsCommand(
-                $this->paymentRepository,
-                paymentSettlementProcessor: $this->paymentSettlementProcessor,
-            ),
-        );
+        $this->commandTester = new CommandTester(new CompletePaidPaymentsCommand(
+            $this->paypalPaymentBatchQuery,
+            $this->statusPaymentRequestDispatcher,
+            $this->entityManager,
+        ));
     }
 
-    public function test_it_hands_every_processing_paypal_payment_to_the_settlement_processor(): void
+    public function test_it_dispatches_a_status_payment_request_for_every_payment_batch_after_batch(): void
     {
-        $payment = $this->payment('sylius_paypal');
-        $this->paymentRepository
-            ->method('findBy')
-            ->with(['state' => PaymentInterface::STATE_PROCESSING])
-            ->willReturn([$payment])
+        $first = $this->payment(3);
+        $second = $this->payment(5);
+        $third = $this->payment(8);
+        $this->paypalPaymentBatchQuery
+            ->expects(self::exactly(3))
+            ->method('findInStates')
+            ->willReturnMap([
+                [self::SETTLEABLE_STATES, 2, null, [$first, $second]],
+                [self::SETTLEABLE_STATES, 2, 5, [$third]],
+                [self::SETTLEABLE_STATES, 2, 8, []],
+            ])
         ;
 
-        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($payment);
+        $settled = [];
+        $this->statusPaymentRequestDispatcher
+            ->expects(self::exactly(3))
+            ->method('dispatch')
+            ->willReturnCallback(function (PaymentInterface $payment) use (&$settled): PaymentRequestInterface {
+                $settled[] = $payment;
 
-        self::assertSame(0, $this->commandTester->execute([]));
+                return $this->paymentRequest(PaymentRequestInterface::STATE_COMPLETED);
+            })
+        ;
+        $this->entityManager->expects(self::exactly(2))->method('clear');
+
+        self::assertSame(Command::SUCCESS, $this->commandTester->execute(['--batch-size' => '2']));
+        self::assertSame([$first, $second, $third], $settled);
     }
 
-    public function test_it_leaves_payments_of_other_gateways_alone(): void
+    public function test_it_reports_a_payment_whose_status_payment_request_failed_and_settles_the_next_ones(): void
     {
-        $this->paymentRepository->method('findBy')->willReturn([$this->payment('stripe')]);
+        $failing = $this->payment(7, '000000042');
+        $next = $this->payment(9);
+        $this->batches([$failing, $next]);
 
-        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+        $this->statusPaymentRequestDispatcher
+            ->expects(self::exactly(2))
+            ->method('dispatch')
+            ->willReturnCallback(fn (PaymentInterface $payment): PaymentRequestInterface => $payment === $failing
+                ? $this->paymentRequest(PaymentRequestInterface::STATE_FAILED, ['reason' => 'PayPal could not return the order.'])
+                : $this->paymentRequest(PaymentRequestInterface::STATE_COMPLETED))
+        ;
 
-        self::assertSame(0, $this->commandTester->execute([]));
+        self::assertSame(Command::FAILURE, $this->commandTester->execute([]));
+        self::assertStringContainsString('Payment #7 of order #000000042 could not be settled: PayPal could not return the order.', $this->display());
     }
 
-    public function test_it_no_longer_decides_on_its_own_whether_a_payment_is_paid(): void
+    public function test_it_reports_a_payment_whose_status_payment_request_could_not_be_dispatched(): void
     {
-        $payment = $this->payment('sylius_paypal');
-        $payment->expects(self::never())->method('setDetails');
-        $this->paymentRepository->method('findBy')->willReturn([$payment]);
+        $this->batches([$this->payment(4)]);
 
-        $this->commandTester->execute([]);
+        $this->statusPaymentRequestDispatcher->method('dispatch')->willThrowException(new \RuntimeException('The database is down.'));
+
+        self::assertSame(Command::FAILURE, $this->commandTester->execute([]));
+        self::assertStringContainsString('Payment #4 of order # could not be settled: The database is down.', $this->display());
     }
 
-    private function payment(string $factoryName): PaymentInterface&MockObject
+    public function test_it_leaves_a_payment_whose_status_payment_request_is_still_being_handled_alone(): void
     {
-        $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
+        $this->batches([$this->payment(4)]);
 
-        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
-        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $this->statusPaymentRequestDispatcher->method('dispatch')->willReturn($this->paymentRequest(PaymentRequestInterface::STATE_PROCESSING));
 
+        self::assertSame(Command::SUCCESS, $this->commandTester->execute([]));
+        self::assertSame('', $this->commandTester->getDisplay());
+    }
+
+    /** @param list<PaymentInterface> $payments */
+    private function batches(array $payments): void
+    {
+        $lastId = $payments[array_key_last($payments)]->getId();
+        $this->paypalPaymentBatchQuery->method('findInStates')->willReturnMap([
+            [self::SETTLEABLE_STATES, 100, null, $payments],
+            [self::SETTLEABLE_STATES, 100, $lastId, []],
+        ]);
+    }
+
+    private function payment(int $id, ?string $orderNumber = null): PaymentInterface&MockObject
+    {
         $payment = $this->createMock(PaymentInterface::class);
-        $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getId')->willReturn($id);
+        if (null !== $orderNumber) {
+            $order = $this->createMock(OrderInterface::class);
+            $order->method('getNumber')->willReturn($orderNumber);
+            $payment->method('getOrder')->willReturn($order);
+        }
 
         return $payment;
     }
 
-    public function test_it_still_settles_for_an_application_that_passes_the_released_arguments(): void
+    /** @param array<string, mixed> $responseData */
+    private function paymentRequest(string $state, array $responseData = []): PaymentRequestInterface
     {
-        $payment = $this->payment('sylius_paypal');
-        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
-        $this->paymentRepository->method('findBy')->willReturn([$payment]);
+        $paymentRequest = $this->createStub(PaymentRequestInterface::class);
+        $paymentRequest->method('getState')->willReturn($state);
+        $paymentRequest->method('getResponseData')->willReturn($responseData);
 
-        $authorizeClientApi = $this->createMock(CacheAuthorizeClientApiInterface::class);
-        $authorizeClientApi->method('authorize')->willReturn('TOKEN');
-
-        $orderDetailsApi = $this->createMock(OrderDetailsApiInterface::class);
-        $orderDetailsApi->expects(self::once())->method('get')->with('TOKEN', 'PAYPAL_ORDER_ID')->willReturn([]);
-
-        $commandTester = new CommandTester(new CompletePaidPaymentsCommand(
-            $this->paymentRepository,
-            $this->createMock(ObjectManager::class),
-            $authorizeClientApi,
-            $orderDetailsApi,
-            $this->createMock(StateMachineInterface::class),
-        ));
-
-        self::assertSame(Command::SUCCESS, $commandTester->execute([]));
+        return $paymentRequest;
     }
 
-    public function test_it_settles_nothing_when_it_was_given_nothing_to_settle_with(): void
+    private function display(): string
     {
-        $commandTester = new CommandTester(new CompletePaidPaymentsCommand($this->paymentRepository));
-
-        $this->paymentRepository->expects(self::never())->method('findBy');
-
-        self::assertSame(Command::FAILURE, $commandTester->execute([]));
+        return preg_replace('/\s+/', ' ', $this->commandTester->getDisplay()) ?? '';
     }
 }

@@ -14,13 +14,14 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Service;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface;
 
 final class FakeFindEligibleMethodsApi implements FindEligibleMethodsApiInterface
 {
     public static array $eligibleMethods = ['trustly' => []];
 
-    public function find(string $token, PaymentInterface $payment, array $paymentSources): array
+    public function find(PaymentMethodInterface $paymentMethod, PaymentInterface $payment, array $paymentSources): array
     {
         return ['eligible_methods' => self::$eligibleMethods];
     }

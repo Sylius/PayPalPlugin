@@ -1,5 +1,10 @@
 sylius_twig_hooks:
     hooks:
+        'sylius_admin.payment_method.update.content':
+            paypal_permissions_modal:
+                template: '@SyliusPayPalPlugin/admin/payment_method/update/permissions_modal.html.twig'
+                priority: -100
+
         sylius_admin.payment_method.update.content.header.title_block:
             paypal_logo:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/header/paypal_logo.html.twig'
@@ -20,14 +25,23 @@ sylius_twig_hooks:
                 priority: 125
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_account':
+            webhook_state:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/webhook_state.html.twig'
+                priority: 500
+            permissions_state:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/permissions_state.html.twig'
+                priority: 400
             merchant_id:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/merchant_id.html.twig'
-                priority: 200
+                priority: 300
             client_id:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/client_id.html.twig'
-                priority: 100
+                priority: 200
             client_secret:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/client_secret.html.twig'
+                priority: 100
+            webhook_url:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/webhook_url.html.twig'
                 priority: 0
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods':
@@ -175,16 +189,11 @@ sylius_twig_hooks:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/configuration.html.twig'
 
         'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration':
-            reports:
+            payments:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/configuration/group.html.twig'
                 configuration:
-                    code: reports
-                    label: sylius_paypal.reports_sftp
+                    code: payments
 
-        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.reports':
-            reports_sftp_username:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_username.html.twig'
-                priority: 100
-            reports_sftp_password:
-                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_password.html.twig'
-                priority: 0
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.payments':
+            capture_strategy:
+                template: '@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/capture_strategy.html.twig'

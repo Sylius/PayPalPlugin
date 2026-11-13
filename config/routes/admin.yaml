@@ -1,17 +1,45 @@
-sylius_paypal_admin_download_payouts_report:
-    path: /download/payouts-report/{id}
-    methods: [GET]
-    defaults:
-        _controller: sylius_paypal.controller.download_payouts_report
-
 sylius_paypal_admin_enable_seller:
     path: /enable-seller/{id}
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.enable_seller
 
+sylius_paypal_admin_complete_onboarding:
+    path: /onboarding/complete
+    methods: [POST]
+    condition: "request.headers.get('Content-Type') matches '#^application/json#'"
+    defaults:
+        _controller: sylius_paypal.controller.complete_onboarding
+
+sylius_paypal_admin_update_permissions:
+    path: /payment-methods/{id}/paypal-permissions
+    methods: [POST]
+    requirements:
+        id: \d+
+    condition: "request.headers.get('Content-Type') matches '#^application/json#'"
+    defaults:
+        _controller: sylius_paypal.controller.update_permissions
+
 sylius_paypal_admin_order_payment_refund_late_capture:
     path: /orders/{orderId}/payments/{id}/refund-paypal-capture
     methods: [PUT]
     defaults:
         _controller: sylius_paypal.controller.refund_late_capture
+
+sylius_paypal_admin_order_payment_refund:
+    path: /orders/{orderId}/payments/{id}/refund-paypal-payment
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.refund_payment
+
+sylius_paypal_admin_order_payment_capture_authorization:
+    path: /orders/{orderId}/payments/{id}/capture-paypal-authorization
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.capture_authorization
+
+sylius_paypal_admin_payment_capture_authorization:
+    path: /payments/{id}/capture-paypal-authorization
+    methods: [PUT]
+    defaults:
+        _controller: sylius_paypal.controller.capture_authorization

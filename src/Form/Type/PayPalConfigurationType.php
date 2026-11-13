@@ -17,6 +17,7 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -27,24 +28,32 @@ final class PayPalConfigurationType extends AbstractType
 {
     private const HIDDEN_FIELDS = [
         PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID,
-        PayPalGatewayConfig::USE_AUTHORIZE,
     ];
+
+    private const CAPTURE = 'capture';
+
+    private const AUTHORIZE = 'authorize';
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $originalData = [];
 
-        // Onboarding sets the credentials, so they are disabled: a submitted value is ignored and the stored one is kept.
-        // The client secret has no field at all, so it never reaches the page; the stored value stays in the config.
         $builder
+            ->add(PayPalGatewayConfig::USE_AUTHORIZE, ChoiceType::class, [
+                'label' => 'sylius_paypal.capture_strategy',
+                'expanded' => false,
+                'multiple' => false,
+                'choices' => [
+                    'sylius_paypal.capture_strategy_capture' => false,
+                    'sylius_paypal.capture_strategy_authorize' => true,
+                ],
+                'choice_value' => static fn (?bool $authorize): string => true === $authorize ? self::AUTHORIZE : self::CAPTURE,
+            ])
+            // Onboarding sets the credentials, so they are disabled: a submitted value is ignored and the stored one is kept.
+            // The client secret has no field at all, so it never reaches the page; the stored value stays in the config.
             ->add(PayPalGatewayConfig::MERCHANT_ID, TextType::class, ['label' => 'sylius_paypal.merchant_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
-            ->add(PayPalGatewayConfig::SYLIUS_MERCHANT_ID, HiddenType::class, ['disabled' => true])
             ->add(PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID, HiddenType::class, ['label' => 'sylius_paypal.partner_attribution_id', 'attr' => ['readonly' => true]])
-            // we need to force Sylius Payum integration to postpone creating an order, it's the easiest way
-            ->add(PayPalGatewayConfig::USE_AUTHORIZE, HiddenType::class, ['data' => true, 'attr' => ['readonly' => true]])
-            ->add(PayPalGatewayConfig::REPORTS_SFTP_USERNAME, TextType::class, ['label' => 'sylius_paypal.sftp_username', 'required' => false])
-            ->add(PayPalGatewayConfig::REPORTS_SFTP_PASSWORD, TextType::class, ['label' => 'sylius_paypal.sftp_password', 'required' => false])
             ->add(PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.express_checkout_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::PAY_LATER_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.paylater_enabled', 'required' => false])
             ->add(PayPalGatewayConfig::MESSAGING_ENABLED, CheckboxType::class, ['label' => 'sylius_paypal.messaging_enabled', 'required' => false])
@@ -67,6 +76,7 @@ final class PayPalConfigurationType extends AbstractType
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
                 $data[RedirectPaymentSource::Trustly->configurationKey()] ??= false;
                 $data[PayPalGatewayConfig::CARD_THREE_D_SECURE_ALWAYS] ??= false;
+                $data[PayPalGatewayConfig::USE_AUTHORIZE] = PayPalGatewayConfig::fromArray($data)->isAuthorizeEnabled();
                 $event->setData($data);
             }
         });
@@ -84,6 +94,17 @@ final class PayPalConfigurationType extends AbstractType
             }
 
             $event->setData($submitted);
+        });
+
+        $builder->addEventListener(FormEvents::SUBMIT, function (FormEvent $event): void {
+            $config = $event->getData();
+            if (!is_array($config)) {
+                return;
+            }
+
+            $config[PayPalGatewayConfig::USE_AUTHORIZE] = true === ($config[PayPalGatewayConfig::USE_AUTHORIZE] ?? false);
+
+            $event->setData($config);
         });
     }
 }

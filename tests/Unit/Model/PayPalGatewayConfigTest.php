@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -26,14 +27,12 @@ final class PayPalGatewayConfigTest extends TestCase
             'client_id' => 'CLIENT_ID',
             'client_secret' => 'CLIENT_SECRET',
             'merchant_id' => 'MERCHANT_ID',
-            'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID',
             'partner_attribution_id' => 'PARTNER_ATTRIBUTION_ID',
         ]);
 
         self::assertSame('CLIENT_ID', $config->clientId());
         self::assertSame('CLIENT_SECRET', $config->clientSecret());
         self::assertSame('MERCHANT_ID', $config->merchantId());
-        self::assertSame('SYLIUS_MERCHANT_ID', $config->syliusMerchantId());
         self::assertSame('PARTNER_ATTRIBUTION_ID', $config->partnerAttributionId());
     }
 
@@ -59,31 +58,35 @@ final class PayPalGatewayConfigTest extends TestCase
 
         self::assertFalse(PayPalGatewayConfig::fromArray([])->hasPartnerAttributionId());
         self::assertTrue(PayPalGatewayConfig::fromArray(['partner_attribution_id' => 'BN'])->hasPartnerAttributionId());
-
-        self::assertFalse(PayPalGatewayConfig::fromArray([])->hasSyliusMerchantId());
-        self::assertTrue(PayPalGatewayConfig::fromArray(['sylius_merchant_id' => 'ID'])->hasSyliusMerchantId());
     }
 
-    public function test_it_reads_the_optional_values_as_null_when_they_are_not_set(): void
+    public function test_it_reads_the_webhook_id_as_null_when_it_is_not_set(): void
+    {
+        self::assertNull(PayPalGatewayConfig::fromArray([])->webhookId());
+    }
+
+    public function test_it_reads_the_webhook_id_when_it_is_set(): void
+    {
+        self::assertSame('WEBHOOK_ID', PayPalGatewayConfig::fromArray(['webhook_id' => 'WEBHOOK_ID'])->webhookId());
+    }
+
+    public function test_it_reads_the_webhook_url_and_event_types_as_null_when_they_are_not_set(): void
     {
         $config = PayPalGatewayConfig::fromArray([]);
 
-        self::assertNull($config->reportsSftpUsername());
-        self::assertNull($config->reportsSftpPassword());
-        self::assertNull($config->webhookId());
+        self::assertNull($config->webhookUrl());
+        self::assertNull($config->webhookEventTypes());
     }
 
-    public function test_it_reads_the_optional_values_when_they_are_set(): void
+    public function test_it_reads_the_webhook_url_and_event_types_when_they_are_set(): void
     {
         $config = PayPalGatewayConfig::fromArray([
-            'reports_sftp_username' => 'USERNAME',
-            'reports_sftp_password' => 'PASSWORD',
-            'webhook_id' => 'WEBHOOK_ID',
+            'webhook_url' => 'https://shop.example.com/payment-methods/PAYPAL',
+            'webhook_event_types' => ['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'],
         ]);
 
-        self::assertSame('USERNAME', $config->reportsSftpUsername());
-        self::assertSame('PASSWORD', $config->reportsSftpPassword());
-        self::assertSame('WEBHOOK_ID', $config->webhookId());
+        self::assertSame('https://shop.example.com/payment-methods/PAYPAL', $config->webhookUrl());
+        self::assertSame(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'], $config->webhookEventTypes()?->names());
     }
 
     public function test_it_opts_a_gateway_into_express_checkout_until_told_otherwise(): void
@@ -127,6 +130,13 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertTrue($config->isCardThreeDSecureAlways());
     }
 
+    public function test_it_captures_payments_until_told_to_authorize_them(): void
+    {
+        self::assertFalse(PayPalGatewayConfig::fromArray([])->isAuthorizeEnabled());
+        self::assertFalse(PayPalGatewayConfig::fromArray(['use_authorize' => false])->isAuthorizeEnabled());
+        self::assertTrue(PayPalGatewayConfig::fromArray(['use_authorize' => true])->isAuthorizeEnabled());
+    }
+
     public function test_it_takes_the_redirect_payment_source_key_from_the_enum(): void
     {
         $config = PayPalGatewayConfig::fromArray([
@@ -134,5 +144,18 @@ final class PayPalGatewayConfigTest extends TestCase
         ]);
 
         self::assertTrue($config->isRedirectPaymentSourceEnabled(RedirectPaymentSource::Trustly));
+    }
+
+    public function test_it_reads_the_onboarding_scope_as_null_when_it_is_not_stored(): void
+    {
+        self::assertNull(PayPalGatewayConfig::fromArray([])->onboardingScope());
+        self::assertNull(PayPalGatewayConfig::fromArray(['onboarding_scope' => 'ppcp'])->onboardingScope());
+    }
+
+    public function test_it_reads_the_stored_onboarding_scope(): void
+    {
+        $scope = PayPalGatewayConfig::fromArray(['onboarding_scope' => OnboardingScope::current()->toArray()])->onboardingScope();
+
+        self::assertEquals(OnboardingScope::current(), $scope);
     }
 }

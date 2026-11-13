@@ -15,8 +15,8 @@ namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
-use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
-use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
+use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\Dispatcher\RefundPayPalLateCapturePaymentRequestDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +32,7 @@ final readonly class RefundPayPalLateCaptureAction
     /** @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository */
     public function __construct(
         private PaymentRepositoryInterface $paymentRepository,
-        private PaymentRefundProcessorInterface $lateCaptureRefundProcessor,
+        private RefundPayPalLateCapturePaymentRequestDispatcherInterface $lateCaptureRefundPaymentRequestDispatcher,
         private CsrfTokenManagerInterface $csrfTokenManager,
         private UrlGeneratorInterface $router,
     ) {
@@ -55,12 +55,11 @@ final readonly class RefundPayPalLateCaptureAction
         /** @var FlashBagInterface $flashBag */
         $flashBag = $request->getSession()->getBag('flashes');
 
-        try {
-            $this->lateCaptureRefundProcessor->refund($payment);
-            $flashBag->add('success', 'sylius_paypal.late_capture_refunded');
-        } catch (PayPalOrderRefundException) {
-            $flashBag->add('error', 'sylius_paypal.late_capture_not_refunded');
-        }
+        match ($this->lateCaptureRefundPaymentRequestDispatcher->dispatch($payment)->getState()) {
+            PaymentRequestInterface::STATE_COMPLETED => $flashBag->add('success', 'sylius_paypal.late_capture_refunded'),
+            PaymentRequestInterface::STATE_FAILED => $flashBag->add('error', 'sylius_paypal.late_capture_not_refunded'),
+            default => $flashBag->add('info', 'sylius_paypal.payment_refund_pending'),
+        };
 
         return new RedirectResponse($this->router->generate('sylius_admin_order_show', ['id' => $orderId]));
     }

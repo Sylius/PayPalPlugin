@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class IdentityApi implements IdentityApiInterface
@@ -21,9 +22,9 @@ final readonly class IdentityApi implements IdentityApiInterface
     {
     }
 
-    public function generateToken(string $token): string
+    public function generateToken(PaymentMethodInterface $paymentMethod): string
     {
-        $content = $this->client->post('v1/identity/generate-token', $token);
+        $content = $this->client->post($paymentMethod, 'v1/identity/generate-token');
 
         return (string) $content['client_token'];
     }

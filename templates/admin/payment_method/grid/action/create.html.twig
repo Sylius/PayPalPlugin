@@ -1,12 +1,9 @@
 {% import '@SyliusAdmin/shared/helper/dropdown.html.twig' as dropdown %}
 
-{% set items = [] %}
-{% if not sylius_has_payment_method_with_gateway_factory(constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME')) %}
-    {% set items = sylius_is_paypal_sandbox()
-        ? [{ title: 'sylius_paypal.create_sandbox', url: '#', attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-paypal-sandbox' } }]
-        : [{ title: 'sylius_paypal.create_production', url: '#', attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-pay-pal' } }]
-    %}
-{% endif %}
+{% set items = [
+    { title: 'sylius_paypal.create_production', url: '#', attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-pay-pal' } },
+    { title: 'sylius_paypal.create_sandbox', url: '#', attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-paypal-sandbox' } },
+] %}
 
 {% for gateway_service_id, gateway_name in sylius_admin_get_payment_gateways() %}
     {% set items = items|merge([{

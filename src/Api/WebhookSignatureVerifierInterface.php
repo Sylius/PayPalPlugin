@@ -13,9 +13,10 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 interface WebhookSignatureVerifierInterface
 {
-    public function verify(Request $request, string $webhookId, string $token): bool;
+    public function verify(Request $request, string $webhookId, PaymentMethodInterface $paymentMethod): bool;
 }

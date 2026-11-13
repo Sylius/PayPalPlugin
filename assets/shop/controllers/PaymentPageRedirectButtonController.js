@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { PaymentSourceNotAvailableError, isBusy, release, startAttempt } from '../scripts/paypal-payment-page';
+import { AttemptRefusedError, isBusy, release, startAttempt } from '../scripts/paypal-payment-page';
 
 export default class extends Controller {
     static values = {
@@ -26,7 +26,7 @@ export default class extends Controller {
         } catch (error) {
             release();
 
-            if (!(error instanceof PaymentSourceNotAvailableError)) {
+            if (!(error instanceof AttemptRefusedError)) {
                 await this.reportError(error);
             }
 
