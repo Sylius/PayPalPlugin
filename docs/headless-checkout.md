@@ -107,7 +107,7 @@ The plugin reads the PayPal order and captures or authorizes it. Read the outcom
 
 | `state` | `responseData` | Meaning |
 |---|---|---|
-| `completed` | | The payment is paid, or authorized when the payment method authorizes payments. A pending capture leaves the payment `processing` until PayPal completes it. |
+| `completed` | | The payment is paid, or authorized when the payment method authorizes payments, also when a webhook settled it with this PayPal order before the `PUT`. A pending capture leaves the payment `processing` until PayPal completes it. |
 | `processing` | `awaiting_payer: true` | The payer has not finished at the bank yet. Send the same `PUT` again once they are back. |
 | `cancelled` | `reason` | The payer did not approve the PayPal order, or has to repeat 3D Secure (`three_d_secure: retry`). The payment can be paid again. |
 | `failed` | `reason` | PayPal declined the payment, or 3D Secure failed (`three_d_secure: declined`). |
