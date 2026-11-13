@@ -36,7 +36,8 @@
 
 1. **Add the plugin's admin entrypoint to your admin asset build.**
 
-   The admin payment method list shows the Pay Later and Trustly icons from the `app.admin` Encore build,
+   The admin payment method list and the PayPal payment method form show the payment method icons (PayPal,
+   Pay Later, Venmo, Apple Pay, Google Pay, Trustly and the card brands) from the `app.admin` Encore build,
    output to `public/build/app/admin` as in Sylius-Standard. Import the entrypoint in your
    `assets/admin/entrypoint.js`:
 
@@ -949,6 +950,10 @@ Further changes to existing constructors:
 
 Everything below will be removed or required in 3.0:
 
+1. Support for Sylius below 2.2.9; 3.0 requires `sylius/sylius` `^2.2.9`. Below 2.2.9 the plugin registers its
+   own `sylius_has_payment_method_with_gateway_factory` Twig function, which Sylius Admin provides from 2.2.9
+   (`Sylius\PayPalPlugin\Twig\PaymentMethodGatewayFactoryExtension`), and the PayPal row on the admin payment
+   method list shows only the payment method name.
 1. The routes `sylius_paypal_shop_cancel_last_payment` and `sylius_paypal_shop_update_paypal_order`.
 1. The old JSON keys `orderID` and `order_id` of the create and capture endpoints.
 1. Not passing a constructor argument added in 2.2 (see [Constructors](#constructors)).
