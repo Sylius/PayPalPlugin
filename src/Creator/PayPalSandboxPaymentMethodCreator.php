@@ -56,6 +56,8 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
             PayPalGatewayConfig::REPORTS_SFTP_PASSWORD => null,
             PayPalGatewayConfig::REPORTS_SFTP_USERNAME => null,
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => self::PARTNER_ATTRIBUTION_ID,
+            PayPalGatewayConfig::GOOGLE_PAY_ENABLED => true,
+            PayPalGatewayConfig::APPLE_PAY_ENABLED => true,
         ]);
 
         return $gatewayConfig;

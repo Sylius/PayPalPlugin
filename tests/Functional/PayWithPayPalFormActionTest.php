@@ -207,7 +207,7 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
 
     public function test_it_renders_the_page_in_a_locale_paypal_does_not_support(): void
     {
-        $this->requestPaymentPage(locale: 'es_MX');
+        $this->requestPaymentPage(messagingEnabled: true, locale: 'es_MX');
         $response = $this->client->getResponse();
 
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
@@ -219,6 +219,7 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         bool $applePayEnabled = false,
         bool $trustlyEnabled = false,
         bool $venmoEnabled = false,
+        bool $messagingEnabled = false,
         string $locale = 'en_US',
         ?string $shopCountryCode = 'US',
     ): void {
@@ -248,6 +249,10 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
 
         if ($venmoEnabled) {
             $this->enableGatewayConfig(['venmo_enabled' => true]);
+        }
+
+        if ($messagingEnabled) {
+            $this->enableGatewayConfig(['pay_later_enabled' => true, 'messaging_enabled' => true]);
         }
 
         /** @var OrderInterface $order */

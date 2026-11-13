@@ -61,7 +61,9 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
                     isset($config['sylius_merchant_id']) &&
                     array_key_exists('reports_sftp_password', $config) &&
                     array_key_exists('reports_sftp_username', $config) &&
-                    isset($config['partner_attribution_id']);
+                    isset($config['partner_attribution_id']) &&
+                    $config['google_pay_enabled'] === true &&
+                    $config['apple_pay_enabled'] === true;
             }));
 
         $paymentMethodFactory->expects(self::once())

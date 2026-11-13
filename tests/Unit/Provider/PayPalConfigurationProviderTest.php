@@ -64,20 +64,18 @@ final class PayPalConfigurationProviderTest extends TestCase
         self::assertFalse($this->payPalConfigurationProvider->isExpressCheckoutEnabled($channel));
     }
 
-    #[Test]
-    public function it_considers_pay_later_enabled_by_default_when_the_config_key_is_absent(): void
+    public function test_it_considers_pay_later_disabled_by_default_when_the_config_key_is_absent(): void
     {
         $channel = $this->configurePayPalPaymentMethodConfig([]);
 
-        self::assertTrue($this->payPalConfigurationProvider->isPayLaterEnabled($channel));
+        self::assertFalse($this->payPalConfigurationProvider->isPayLaterEnabled($channel));
     }
 
-    #[Test]
-    public function it_considers_pay_later_disabled_when_explicitly_set_to_false(): void
+    public function test_it_considers_pay_later_enabled_when_explicitly_set_to_true(): void
     {
-        $channel = $this->configurePayPalPaymentMethodConfig(['pay_later_enabled' => false]);
+        $channel = $this->configurePayPalPaymentMethodConfig(['pay_later_enabled' => true]);
 
-        self::assertFalse($this->payPalConfigurationProvider->isPayLaterEnabled($channel));
+        self::assertTrue($this->payPalConfigurationProvider->isPayLaterEnabled($channel));
     }
 
     #[Test]
@@ -96,20 +94,18 @@ final class PayPalConfigurationProviderTest extends TestCase
         self::assertTrue($this->payPalConfigurationProvider->isVenmoEnabled($channel));
     }
 
-    #[Test]
-    public function it_considers_messaging_enabled_by_default_when_the_config_key_is_absent(): void
+    public function test_it_considers_messaging_disabled_by_default_when_the_config_key_is_absent(): void
     {
         $channel = $this->configurePayPalPaymentMethodConfig([]);
 
-        self::assertTrue($this->payPalConfigurationProvider->isMessagingEnabled($channel));
+        self::assertFalse($this->payPalConfigurationProvider->isMessagingEnabled($channel));
     }
 
-    #[Test]
-    public function it_considers_messaging_disabled_when_explicitly_set_to_false(): void
+    public function test_it_considers_messaging_enabled_when_it_and_pay_later_are_explicitly_set_to_true(): void
     {
-        $channel = $this->configurePayPalPaymentMethodConfig(['messaging_enabled' => false]);
+        $channel = $this->configurePayPalPaymentMethodConfig(['pay_later_enabled' => true, 'messaging_enabled' => true]);
 
-        self::assertFalse($this->payPalConfigurationProvider->isMessagingEnabled($channel));
+        self::assertTrue($this->payPalConfigurationProvider->isMessagingEnabled($channel));
     }
 
     #[Test]

@@ -25,10 +25,17 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         return [new PreloadedExtension([new PayPalConfigurationType()], [])];
     }
 
-    #[Test]
-    public function the_funding_source_toggles_default_to_checked_for_a_new_payment_method(): void
+    public function test_the_pay_later_and_messaging_toggles_default_to_unchecked_for_a_new_payment_method(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        self::assertFalse($form->get('pay_later_enabled')->getData());
+        self::assertFalse($form->get('messaging_enabled')->getData());
+    }
+
+    public function test_the_pay_later_and_messaging_toggles_stay_true_for_a_payment_method_they_were_turned_on_for(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['pay_later_enabled' => true, 'messaging_enabled' => true]));
 
         self::assertTrue($form->get('pay_later_enabled')->getData());
         self::assertTrue($form->get('messaging_enabled')->getData());

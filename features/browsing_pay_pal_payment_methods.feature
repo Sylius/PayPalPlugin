@@ -13,8 +13,8 @@ Feature: Browsing PayPal payment methods
     Scenario: Seeing the payment sources a PayPal payment method offers by default
         When I browse payment methods
         Then the "PayPal" payment method should offer "PayPal"
-        And the "PayPal" payment method should offer "Pay Later"
         And the "PayPal" payment method should offer "Visa"
+        And the "PayPal" payment method should not offer "Pay Later"
         And the "PayPal" payment method should not offer "Venmo"
         And the "PayPal" payment method should not offer "Trustly"
         And the "PayPal" payment method should be marked as working in sandbox mode
@@ -28,7 +28,8 @@ Feature: Browsing PayPal payment methods
 
     @ui
     Scenario: Seeing the payment sources beyond the first six under "and more"
-        Given the store allows paying with Venmo through PayPal
+        Given the store allows paying with Pay Later through PayPal
+        And the store allows paying with Venmo through PayPal
         And the store allows paying with Apple Pay through PayPal
         And the store allows paying with Google Pay through PayPal
         And the store allows paying with Trustly through PayPal

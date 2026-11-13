@@ -32,10 +32,10 @@ final class EnabledPaymentSourcesProviderTest extends TestCase
         self::assertSame([], (new EnabledPaymentSourcesProvider())->provide(new PaymentMethod()));
     }
 
-    public function test_it_provides_paypal_pay_later_and_cards_by_default(): void
+    public function test_it_provides_paypal_and_cards_by_default(): void
     {
         self::assertSame(
-            ['paypal', 'pay_later', 'visa', 'master_card', 'amex'],
+            ['paypal', 'visa', 'master_card', 'amex'],
             (new EnabledPaymentSourcesProvider())->provide($this->paymentMethod([])),
         );
     }

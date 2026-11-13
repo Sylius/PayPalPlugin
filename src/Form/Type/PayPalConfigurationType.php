@@ -60,8 +60,8 @@ final class PayPalConfigurationType extends AbstractType
             if (is_array($data)) {
                 $originalData = $data;
                 $data[PayPalGatewayConfig::EXPRESS_CHECKOUT_ENABLED] ??= true;
-                $data[PayPalGatewayConfig::PAY_LATER_ENABLED] ??= true;
-                $data[PayPalGatewayConfig::MESSAGING_ENABLED] ??= true;
+                $data[PayPalGatewayConfig::PAY_LATER_ENABLED] ??= false;
+                $data[PayPalGatewayConfig::MESSAGING_ENABLED] ??= false;
                 $data[PayPalGatewayConfig::VENMO_ENABLED] ??= false;
                 $data[PayPalGatewayConfig::GOOGLE_PAY_ENABLED] ??= false;
                 $data[PayPalGatewayConfig::APPLE_PAY_ENABLED] ??= false;
