@@ -54,6 +54,7 @@ sylius_grid:
                 main:
                     enable_paypal:
                         type: enable_paypal
+                        enabled: false
 
 monolog:
     channels: ['paypal']
