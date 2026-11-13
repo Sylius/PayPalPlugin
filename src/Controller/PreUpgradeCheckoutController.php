@@ -195,8 +195,9 @@ final readonly class PreUpgradeCheckoutController
 
         $threeDSecureFailure = null === $payment ? null : PayPalPaymentDetails::fromPayment($payment)->threeDSecureFailure();
         if (
+            null !== $payment &&
             null !== $threeDSecureFailure &&
-            in_array($payment?->getState(), [BasePaymentInterface::STATE_CANCELLED, BasePaymentInterface::STATE_FAILED], true)
+            in_array($payment->getState(), [BasePaymentInterface::STATE_CANCELLED, BasePaymentInterface::STATE_FAILED], true)
         ) {
             if (PreUpgradePayPalOrderSettlementProcessor::THREE_D_SECURE_RETRY === $threeDSecureFailure) {
                 $this->addFlash('error', 'sylius_paypal.three_d_secure_retry');
