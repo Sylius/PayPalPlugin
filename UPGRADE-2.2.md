@@ -442,8 +442,8 @@ unchanged.
    - `sylius_shop.order.show.content` → `form`, now `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`;
    - `sylius_admin.payment_method.update.content.form.sections.gateway_configuration` → `type` and `use_payum`,
      now `@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration/type.html.twig` and
-     `use_payum.html.twig`. For a PayPal payment method the type field spans the full width and the Use Payum
-     switch is not rendered; every other gateway gets the core templates.
+     `use_payum.html.twig`. For a PayPal payment method neither the type field nor the Use Payum
+     switch is rendered; every other gateway gets the core templates.
 
 1. **The admin ship form for PayPal orders.**
 
@@ -504,9 +504,8 @@ unchanged.
      `local_payment_methods` (0);
    - each group hook (`paypal_payment_methods.<group>`) holds one row per payment method, rendered by
      `@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig` from its
-     `code`, `label`, `icon`, `description`, `badge` and `help` configuration. `icon` is a payment method icon
-     code or a `tabler:` icon. `help` is a translation key shown in an "i" tooltip next to the label, rendered by
-     the `icon` macro of `@SyliusPayPalPlugin/admin/shared/helper/info_tooltip.html.twig`. A row renders its `<code>` hook on the right, for the switch, and its `<code>.options`
+     `code`, `label`, `icon`, `description` and `badge` configuration. `icon` is a payment method icon
+     code or a `tabler:` icon. A row renders its `<code>` hook on the right, for the switch, and its `<code>.options`
      hook in a row below, for the method's settings, when that hook renders anything:
      - `paypal_payment_methods.paypal`: `paypal` (100), `pay_later` (0);
      - `paypal_payment_methods.cards`: `cards`;
