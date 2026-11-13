@@ -154,11 +154,6 @@
      to the payment page, or to the order when the buyer cannot retry.
    - An order with no `authentication_result` is captured as before.
 
-1. **Pay Later is on by default.** The Pay Later button and the `<paypal-message>` financing message render on
-   the product, cart and checkout pages whenever PayPal reports the buyer eligible. Their toggles,
-   `pay_later_enabled` and `messaging_enabled`, default to `true`, including for existing payment methods. All
-   other new methods are opt-in (see [Payment methods](#payment-methods)).
-
 1. **A capture that does not complete cancels the payment.** `sylius_paypal_shop_complete_paypal_order`
    (`CompletePayPalOrderAction`) cancels the payment when the capture does not complete it, for instance a
    capture PayPal reports as `PENDING`. It flashes `sylius_paypal.something_went_wrong` and returns a
@@ -265,8 +260,8 @@ Each method is controlled per payment method by a toggle in its gateway config. 
 | Key | Default | Where |
 |---|---|---|
 | `express_checkout_enabled` | `true` | PayPal, Pay Later and Venmo buttons on the product and cart pages; when `false`, `sylius_paypal_shop_add_to_cart` and `sylius_paypal_shop_create_paypal_order_from_cart` return `400` |
-| `pay_later_enabled` | `true` | Pay Later button on the product, cart, checkout and payment pages |
-| `messaging_enabled` | `true` | `<paypal-message>` on the product, cart and checkout pages |
+| `pay_later_enabled` | `false` | Pay Later button on the product, cart, checkout and payment pages |
+| `messaging_enabled` | `false` | `<paypal-message>` on the product, cart and checkout pages; needs `pay_later_enabled` too |
 | `venmo_enabled` | `false` | `<venmo-button>` on the product, cart, checkout and payment pages |
 | `google_pay_enabled` | `false` | payment page |
 | `apple_pay_enabled` | `false` | payment page |
