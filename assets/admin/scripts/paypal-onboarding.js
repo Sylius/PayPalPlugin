@@ -13,6 +13,8 @@ function syncOnboardingButtonsState() {
     document.querySelectorAll('[data-paypal-button]').forEach((button) => {
         button.classList.toggle('disabled', !partnerJsReady);
         button.setAttribute('aria-disabled', partnerJsReady ? 'false' : 'true');
+        button.setAttribute('aria-busy', partnerJsReady ? 'false' : 'true');
+        button.querySelector('[data-paypal-button-loading]')?.classList.toggle('d-none', partnerJsReady);
     });
 }
 
@@ -61,7 +63,10 @@ function loadPartnerJs(partnerJsUrl) {
         partnerJsReady = true;
         syncOnboardingButtonsState();
     });
-    script.addEventListener('error', showOnboardingError);
+    script.addEventListener('error', () => {
+        document.querySelectorAll('[data-paypal-button-loading]').forEach((spinner) => spinner.classList.add('d-none'));
+        showOnboardingError();
+    });
     document.body.appendChild(script);
 }
 
@@ -201,20 +206,58 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
     observer.observe(onboardingModal, { childList: true, subtree: true });
 }
 
-function bindOnboardingUrlLoader(onboardingModal) {
-    document.querySelectorAll(`[data-bs-target="#${onboardingModal.id}"]`).forEach((trigger) => {
-        trigger.addEventListener('click', () => {
-            activeOnboardingModal = onboardingModal;
-            onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
-        });
+// Opening the modal moves its live component to the body, which reconnects the component. An action sent before the
+// component is connected again is dropped, so the URL is requested on the next task after the modal is shown.
+function loadOnboardingUrlOnceShown(event) {
+    const onboardingModal = event.target;
+
+    if (!(onboardingModal instanceof Element) || !onboardingModal.hasAttribute('data-paypal-onboarding-complete-url')) {
+        return;
+    }
+
+    activeOnboardingModal = onboardingModal;
+    setTimeout(() => {
+        onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
+    });
+}
+
+const shownOnboardingModalIds = new Set();
+const guardedOnboardingComponents = new WeakSet();
+
+function trackOnboardingModalVisibility(event) {
+    if (event.target instanceof Element && event.target.hasAttribute('data-paypal-onboarding-complete-url')) {
+        if (event.type === 'shown.bs.modal') {
+            shownOnboardingModalIds.add(event.target.id);
+        } else {
+            shownOnboardingModalIds.delete(event.target.id);
+        }
+    }
+}
+
+function skipRenderingClosedOnboardingModal(event) {
+    const component = event.detail?.component;
+    const onboardingModal = event.target instanceof Element ? event.target.querySelector('[data-paypal-onboarding-complete-url]') : null;
+
+    if (!component || onboardingModal === null || guardedOnboardingComponents.has(component)) {
+        return;
+    }
+
+    guardedOnboardingComponents.add(component);
+    component.on('render:started', (html, response, controls) => {
+        if (!shownOnboardingModalIds.has(onboardingModal.id)) {
+            controls.shouldRender = false;
+        }
     });
 }
 
 function initOnboardingModal() {
     document.addEventListener('click', guardOnboardingButtonClick, true);
+    document.addEventListener('shown.bs.modal', trackOnboardingModalVisibility);
+    document.addEventListener('shown.bs.modal', loadOnboardingUrlOnceShown);
+    document.addEventListener('hide.bs.modal', trackOnboardingModalVisibility);
+    document.addEventListener('live:connect', skipRenderingClosedOnboardingModal);
 
     findOnboardingModals().forEach((onboardingModal) => {
-        bindOnboardingUrlLoader(onboardingModal);
         loadPartnerJsOnceButtonExists(onboardingModal);
     });
 }

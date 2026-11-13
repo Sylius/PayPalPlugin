@@ -67,7 +67,9 @@ sylius_paypal:
     mode_sandbox_title: 'Mode sandbox.'
     more_about: 'En savoir plus : %option%'
     onboarding_completed: 'Votre compte PayPal a été connecté.'
+    onboarding_failed: 'Impossible de connecter votre compte PayPal. Veuillez fermer cette fenêtre et réessayer.'
     onboarding_modal_description: 'Vous devrez vous connecter ou créer un compte PayPal pour le connecter à votre boutique.'
+    onboarding_modal_title: 'Connecter un compte PayPal'
     pay_later: 'Pay Later'
     pay_later_description: 'Bouton Pay Later à côté de PayPal au paiement et en paiement express.'
     pay_later_info: 'Proposez des paiements flexibles : vos clients achètent maintenant et paient plus tard, vous êtes payé immédiatement.'
@@ -89,7 +91,9 @@ sylius_paypal:
             awaiting_paypal: 'PayPal ne permet pas encore au compte de ce moyen de paiement d''utiliser ces fonctionnalités. Vérifiez-les dans le compte PayPal :'
             button: 'Mettre à jour les autorisations PayPal'
             completed: 'Vos autorisations PayPal ont été mises à jour.'
+            failed: 'Impossible de mettre à jour vos autorisations PayPal. Veuillez fermer cette fenêtre et réessayer.'
             modal_description: 'Vous serez invité à vous connecter à PayPal avec le compte de ce mode de paiement et à accorder les autorisations dont le plugin a besoin. Le mode de paiement conserve ses identifiants et son webhook.'
+            modal_title: 'Mettre à jour les autorisations PayPal'
             verification_failed: 'Impossible de vérifier les autorisations PayPal de ce moyen de paiement. Vous pouvez tout de même les mettre à jour.'
     sandbox_on_production_warning: "Attention : ce moyen de paiement utilise le Sandbox PayPal sur un environnement de production. Le Sandbox utilise des identifiants de test et ne traitera pas de vrais paiements."
     share_data_consent_confirmation: "En cliquant Oui, vous acceptez la politique de partage de données de PayPal"

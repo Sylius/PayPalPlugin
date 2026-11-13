@@ -6,16 +6,19 @@
 
         {% if variant == constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_ALERT') %}
             <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>
+                <div class="alert-icon">{{ ux_icon('tabler:alert-triangle') }}</div>
                 <div>
-                    <div class="fw-bold">{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</div>
-                    {% if state.isKnown() %}
-                        <div>{{ 'sylius_paypal.permissions.state.missing'|trans }} <code>{{ state.missing()|join(', ') }}</code></div>
-                    {% else %}
-                        <div>{{ 'sylius_paypal.permissions.state.unknown_details'|trans }}</div>
-                    {% endif %}
+                    <h4 class="alert-heading">{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</h4>
+                    <div>
+                        {% if state.isKnown() %}
+                            {{ 'sylius_paypal.permissions.state.missing'|trans }} <code>{{ state.missing()|join(', ') }}</code>
+                        {% else %}
+                            {{ 'sylius_paypal.permissions.state.unknown_details'|trans }}
+                        {% endif %}
+                    </div>
                     <button
                         type="button"
-                        class="btn btn-warning mt-2"
+                        class="btn mt-2"
                         data-bs-toggle="modal"
                         data-bs-target="#{{ constant('Sylius\\PayPalPlugin\\Twig\\Component\\PayPalOnboardingModalComponent::PERMISSIONS_UPDATE_MODAL_ID') }}"
                         {{ sylius_test_html_attribute('paypal-permissions-update-button') }}
@@ -25,7 +28,7 @@
                 </div>
             </div>
         {% else %}
-            <span class="badge bg-red-lt" title="{{ state.missing()|join(', ') }}" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</span>
+            <span class="badge {{ state.isKnown() ? 'bg-red-lt' : 'bg-orange-lt' }}" title="{{ state.missing()|join(', ') }}" {{ sylius_test_html_attribute('paypal-permissions-state', status) }}>{{ ('sylius_paypal.permissions.state.' ~ status)|trans }}</span>
         {% endif %}
     {% endif %}
 </div>
