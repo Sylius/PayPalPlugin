@@ -28,8 +28,8 @@ sylius_paypal:
     debit_and_credit_cards: 'Debet- en creditcards'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
     enable_paypal: 'PayPal inschakelen'
-    enable_paypal_sandbox: 'Sandbox'
     enable_paypal_production: 'Productie'
+    enable_paypal_sandbox: 'Sandbox'
     expiration_date: 'Vervaldatum'
     express_checkout_enabled_help: 'PayPal-, Pay Later- en Venmo-knoppen op product- en winkelwagenpagina''s en in de betaalstap, zodat klanten kunnen betalen met de gegevens uit hun PayPal-account.'
     google_pay: 'Google Pay'
@@ -59,7 +59,7 @@ sylius_paypal:
     reports_sftp: 'Rapporten (SFTP)'
     sftp_password: 'SFTP wachtwoord'
     sftp_username: 'SFTP gebruikersnaam'
-    share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
+    share_data_consent_confirmation: 'Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen'
     suggested: 'Voorgesteld'
     suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
@@ -67,5 +67,4 @@ sylius_paypal:
     trustly: 'Trustly'
     us_only: 'Alleen VS'
     venmo: 'Venmo'
-
     wallets: 'Wallets'
