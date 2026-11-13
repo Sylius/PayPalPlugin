@@ -122,12 +122,12 @@ final readonly class PayPalGatewayConfig
 
     public function isPayLaterEnabled(): bool
     {
-        return $this->flag(self::PAY_LATER_ENABLED, true);
+        return $this->flag(self::PAY_LATER_ENABLED, false);
     }
 
     public function isMessagingEnabled(): bool
     {
-        return $this->flag(self::MESSAGING_ENABLED, true);
+        return $this->flag(self::MESSAGING_ENABLED, false);
     }
 
     public function isVenmoEnabled(): bool

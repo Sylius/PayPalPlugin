@@ -89,19 +89,17 @@ final class PayPalGatewayConfigTest extends TestCase
         self::assertSame(['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED'], $config->webhookEventTypes()?->names());
     }
 
-    public function test_it_opts_a_gateway_into_express_checkout_pay_later_and_messaging_until_told_otherwise(): void
+    public function test_it_opts_a_gateway_into_express_checkout_until_told_otherwise(): void
     {
-        $config = PayPalGatewayConfig::fromArray([]);
-
-        self::assertTrue($config->isExpressCheckoutEnabled());
-        self::assertTrue($config->isPayLaterEnabled());
-        self::assertTrue($config->isMessagingEnabled());
+        self::assertTrue(PayPalGatewayConfig::fromArray([])->isExpressCheckoutEnabled());
     }
 
-    public function test_it_keeps_the_wallets_and_the_redirect_methods_off_until_told_otherwise(): void
+    public function test_it_keeps_pay_later_messaging_the_wallets_and_the_redirect_methods_off_until_told_otherwise(): void
     {
         $config = PayPalGatewayConfig::fromArray([]);
 
+        self::assertFalse($config->isPayLaterEnabled());
+        self::assertFalse($config->isMessagingEnabled());
         self::assertFalse($config->isVenmoEnabled());
         self::assertFalse($config->isGooglePayEnabled());
         self::assertFalse($config->isApplePayEnabled());

@@ -70,7 +70,7 @@ final class PaymentPayPalContext implements Context
         $this->paymentMethodRepository->add($paymentMethod);
     }
 
-    #[Given('/^the store allows paying with (Venmo|Apple Pay|Google Pay|Trustly) through PayPal$/')]
+    #[Given('/^the store allows paying with (Pay Later|Venmo|Apple Pay|Google Pay|Trustly) through PayPal$/')]
     public function theStoreAllowsPayingWithThroughPayPal(string $paymentSource): void
     {
         /** @var PaymentMethodInterface $paymentMethod */

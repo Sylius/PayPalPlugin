@@ -125,7 +125,7 @@ final class PayPalButtonsControllerTest extends TestCase
     #[Test]
     public function it_passes_the_configuration_of_the_first_paypal_payment_method_to_the_product_page_template(): void
     {
-        $this->channelPaymentMethods[] = $this->payPalMethod('PAYPAL_2', ['client_id' => 'SECOND_CLIENT_ID', 'venmo_enabled' => true]);
+        $this->channelPaymentMethods[] = $this->payPalMethod('PAYPAL_2', ['client_id' => 'SECOND_CLIENT_ID', 'pay_later_enabled' => true, 'venmo_enabled' => true]);
 
         $capturedContext = null;
         $this->twig->method('render')
@@ -140,7 +140,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertSame('CLIENT_ID', $capturedContext['clientId']);
         self::assertSame('BN', $capturedContext['partnerAttributionId']);
-        self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertFalse($capturedContext['venmoEnabled']);
     }
 
@@ -154,7 +154,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $paymentMethod = $this->payPalMethod('PAYPAL', [
             'client_id' => 'CART_CLIENT_ID',
             'partner_attribution_id' => 'CART_BN',
-            'pay_later_enabled' => false,
+            'pay_later_enabled' => true,
             'venmo_enabled' => true,
         ]);
         $this->channelPaymentMethods = [$paymentMethod, $this->paymentMethod];
@@ -172,7 +172,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertSame('CART_CLIENT_ID', $capturedContext['clientId']);
         self::assertSame('CART_BN', $capturedContext['partnerAttributionId']);
-        self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertTrue($capturedContext['paylaterEnabled']);
         self::assertSame('30.50', $capturedContext['amount']);
         self::assertTrue($capturedContext['venmoEnabled']);
         self::assertSame($paymentMethod, $this->capturedInstanceConfigArgs[0]);
@@ -182,13 +182,13 @@ final class PayPalButtonsControllerTest extends TestCase
     public function it_passes_the_configuration_of_the_first_paypal_payment_method_to_the_payment_page_template(): void
     {
         $this->orderRepository->method('find')->willReturn($this->order(3000));
-        $this->channelPaymentMethods[] = $this->payPalMethod('PAYPAL_2', ['client_id' => 'SECOND_CLIENT_ID', 'partner_attribution_id' => 'SECOND_BN']);
+        $this->channelPaymentMethods[] = $this->payPalMethod('PAYPAL_2', ['client_id' => 'SECOND_CLIENT_ID', 'partner_attribution_id' => 'SECOND_BN', 'pay_later_enabled' => true]);
 
         $capturedContext = $this->renderPaymentPageButtons(['orderId' => 1]);
 
         self::assertSame('CLIENT_ID', $capturedContext['clientId']);
         self::assertSame('BN', $capturedContext['partnerAttributionId']);
-        self::assertTrue($capturedContext['paylaterEnabled']);
+        self::assertFalse($capturedContext['paylaterEnabled']);
         self::assertFalse($capturedContext['venmoEnabled']);
         self::assertSame('30.00', $capturedContext['amount']);
         self::assertSame($this->paymentMethod, $this->capturedInstanceConfigArgs[0]);
@@ -201,7 +201,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $secondPaymentMethod = $this->payPalMethod('PAYPAL_2', [
             'client_id' => 'SECOND_CLIENT_ID',
             'partner_attribution_id' => 'SECOND_BN',
-            'pay_later_enabled' => false,
+            'pay_later_enabled' => true,
             'venmo_enabled' => true,
         ]);
         $this->channelPaymentMethods[] = $secondPaymentMethod;
@@ -220,7 +220,7 @@ final class PayPalButtonsControllerTest extends TestCase
 
         self::assertSame('SECOND_CLIENT_ID', $capturedContext['clientId']);
         self::assertSame('SECOND_BN', $capturedContext['partnerAttributionId']);
-        self::assertFalse($capturedContext['paylaterEnabled']);
+        self::assertTrue($capturedContext['paylaterEnabled']);
         self::assertTrue($capturedContext['venmoEnabled']);
         self::assertSame(['id' => 1, 'paymentMethod' => 'PAYPAL_2'], $createOrderUrlParameters);
         self::assertSame($secondPaymentMethod, $this->capturedInstanceConfigArgs[0]);
