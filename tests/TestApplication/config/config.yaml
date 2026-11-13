@@ -6,6 +6,31 @@ parameters:
     env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL): ''
     sylius_paypal.webhook_base_url: '%env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL)%'
 
+doctrine:
+    orm:
+        mappings:
+            SyliusPayPalPluginTestApplication:
+                type: attribute
+                dir: '%kernel.project_dir%/../../../tests/TestApplication/src/Entity'
+                prefix: 'Sylius\PayPalPlugin\TestApplication\Entity'
+                is_bundle: false
+
+sylius_payment:
+    resources:
+        gateway_config:
+            classes:
+                model: Sylius\PayPalPlugin\TestApplication\Entity\GatewayConfig
+                interface: Sylius\Component\Payment\Model\GatewayConfigInterface
+
+sylius_twig_hooks:
+    hooks:
+        'sylius_admin.payment_method.create.content.form.sections.gateway_configuration':
+            use_payum:
+                enabled: false
+        'sylius_admin.payment_method.update.content.form.sections.gateway_configuration':
+            use_payum:
+                enabled: false
+
 twig:
     paths:
         '%kernel.project_dir%/../../../tests/TestApplication/templates': ~

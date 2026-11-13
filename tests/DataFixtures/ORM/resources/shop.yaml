@@ -107,11 +107,10 @@ Sylius\Component\Core\Model\PaymentMethod:
             - "@cash_on_delivery_translation"
         channels: ["@channel_web"]
 
-Sylius\Bundle\PayumBundle\Model\GatewayConfig:
+Sylius\PayPalPlugin\TestApplication\Entity\GatewayConfig:
     paypal_config:
         gatewayName: "paypal"
         factoryName: "sylius_paypal"
-        usePayum: false
         config:
             client_id: "CLIENT_ID"
             client_secret: "CLIENT_SECRET"
