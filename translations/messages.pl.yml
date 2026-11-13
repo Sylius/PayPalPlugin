@@ -24,6 +24,8 @@ sylius_paypal:
     client_secret_missing: 'Brak'
     client_secret_stored: 'Zapisany'
     configuration: 'Konfiguracja'
+    create_production: 'PayPal (Produkcja)'
+    create_sandbox: 'PayPal (Sandbox)'
     credit_card: 'Karta płatnicza'
     cvv: 'CVV'
     debit_and_credit_cards: 'Karty debetowe i kredytowe'
