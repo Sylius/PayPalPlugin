@@ -4,6 +4,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use phpseclib3\Net\SFTP;
 use Psr\Http\Message\RequestFactoryInterface;
+use Sylius\Bundle\AdminBundle\Twig\PaymentMethodGatewayFactoryExtension as AdminPaymentMethodGatewayFactoryExtension;
 use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
@@ -124,6 +125,7 @@ use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
 use Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
+use Sylius\PayPalPlugin\Twig\PaymentMethodGatewayFactoryExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PayPalPaymentUpdater;
@@ -601,6 +603,12 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.twig.extension.enabled_payment_sources', EnabledPaymentSourcesExtension::class)
         ->args([service('sylius_paypal.provider.enabled_payment_sources')])
         ->tag('twig.extension');
+
+    if (!class_exists(AdminPaymentMethodGatewayFactoryExtension::class)) {
+        $services->set('sylius_paypal.twig.extension.payment_method_gateway_factory', PaymentMethodGatewayFactoryExtension::class)
+            ->args([service('sylius.repository.payment_method')])
+            ->tag('twig.extension');
+    }
 
     $services->set('sylius_paypal.twig.component.paypal_sandbox_modal', PayPalSandboxModalComponent::class)
         ->args([
