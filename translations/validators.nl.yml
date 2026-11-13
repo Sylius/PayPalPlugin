@@ -1,0 +1,6 @@
+sylius_paypal:
+    shipment_tracking:
+        carrier_invalid: 'Deze vervoerder wordt niet ondersteund.'
+        carrier_name_other_required: 'Geef de naam van de vervoerder op wanneer "Anders" is geselecteerd.'
+        tracking_code_required: 'Geef de trackingcode op wanneer een vervoerder is geselecteerd.'
+        tracking_code_too_long: 'De trackingcode mag maximaal {{ limit }} tekens bevatten om naar PayPal te worden verzonden.'
