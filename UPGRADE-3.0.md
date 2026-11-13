@@ -55,6 +55,16 @@
       A payment whose capture was pending, or a Trustly payment whose payer was at the bank, is completed once PayPal
       has captured it. A payment the buyer had not paid yet gets a new PayPal order on the payment page.
 
+      A payment whose buyer was still in the PayPal window stays `processing` until the buyer is done. Once the buyer
+      approves the PayPal order created by 2.x, the plugin captures it (or authorizes it, when 2.x created it to be
+      authorized): from the `CHECKOUT.ORDER.APPROVED` webhook, from this command, or from the 2.x payment page the
+      buyer kept open. Once PayPal voids the order, or no longer returns it 72 hours after the payment last changed,
+      this command cancels the payment and the order gets a new one, which the buyer pays on the order page. Keep
+      running the command until no such payment is left. Before the first run, make sure each PayPal payment method
+      points at the PayPal environment (sandbox or live) its 2.x orders were created in: PayPal does not return an
+      order looked up in the other environment, so the command would cancel these payments once the 72 hours have
+      passed. See "The 2.x shop URLs of the PayPal checkout lead to the 3.0 checkout".
+
    6. Update the PayPal permissions of every PayPal payment method in the admin.
 
       A PayPal payment method connected on 2.x is flagged with "PayPal permissions unknown" on the payment method list.
@@ -66,6 +76,38 @@
       method. Until then, the payment methods keep working with the permissions they had, but Apple Pay and Google Pay
       need their capability to be active in the PayPal account. See "The scope a PayPal payment method is onboarded
       with is stored in its gateway config".
+
+1. #### The 2.x shop URLs of the PayPal checkout lead to the 3.0 checkout.
+
+   The 2.x payment page and its endpoints have been removed. A buyer may still be on them while the store is upgraded,
+   and PayPal keeps sending a buyer back from the bank to the return URL of a PayPal order created by 2.x, so the
+   following routes are kept with the 2.x URLs, route names and parameters, and lead to the 3.0 checkout. They are
+   deprecated and will be removed in 4.0. Except for the payment page redirect, they only settle, cancel or fail a
+   `processing` payment whose PayPal order was not created by a `capture` or `authorize` Payment Request.
+
+   | 2.x | 3.0 |
+   |-----|-----|
+   | `Sylius\PayPalPlugin\Controller\PayWithPayPalFormAction`, route `sylius_paypal_shop_pay_with_paypal_form` (`GET /pay-with-paypal/{orderToken}/{paymentId}`) | `Sylius\PayPalPlugin\Controller\PreUpgradeCheckoutController::payWithPayPalFormAction()` redirects to the payment page of the order (`sylius_shop_order_pay`) |
+   | `Sylius\PayPalPlugin\Controller\CompletePayPalOrderAction`, route `sylius_paypal_shop_complete_paypal_order` (`POST /complete-pay-pal-order/{token}`) | `PreUpgradeCheckoutController::completePayPalOrderAction()` captures the approved PayPal order and returns the 2.x response, whose `return_url` is the order page, or the payment page of the order when the payment was not paid |
+   | `Sylius\PayPalPlugin\Controller\CancelPayPalCheckoutPaymentAction`, route `sylius_paypal_shop_cancel_checkout_payment` (`POST /cancel-pay-pal-checkout-payment`) | `PreUpgradeCheckoutController::cancelCheckoutPaymentAction()` cancels the payment, so the order gets a new one; it leaves a payment whose payer is at the bank as it is |
+   | `Sylius\PayPalPlugin\Controller\RedirectReturnAction`, route `sylius_paypal_shop_redirect_return` (`GET /paypal/redirect-return/{token}/{nonce}`) | `PreUpgradeCheckoutController::payerActionReturnAction()` settles the payment and redirects to the order page, or to the payment page of the order when the payment was cancelled or failed |
+   | `Sylius\PayPalPlugin\Controller\RedirectCancelAction`, route `sylius_paypal_shop_redirect_cancel` (`GET /paypal/redirect-cancel/{token}/{nonce}`) | `PreUpgradeCheckoutController::payerActionCancelAction()` settles the payment; if it is still not paid, it fails it when the bank refused the payment (an `errorcode` other than `payment_error`) and cancels it otherwise, then redirects to the payment page of the order |
+
+   The settlement of these payments is done by `Sylius\PayPalPlugin\Processor\PreUpgradePayPalOrderSettlementProcessor`,
+   which decorates `sylius_paypal.processor.payment_settlement`. It locks the payment while settling it, completes
+   only the orders 3.0 also treats as approved (PayPal completes the redirect payment sources itself; a payment created
+   on 2.0 or 2.1, which stored no payment source, is judged by the payment source of its PayPal order), updates the
+   amount and shipping address of the PayPal order first, verifies the 3D Secure result of the order before
+   completing it (it cancels the payment when the authentication did not finish and fails it when the card was
+   refused; the 2.x shop URLs then show the reason), fails the payment when PayPal declines the payment method of the
+   buyer, and cancels the payment when PayPal
+   no longer returns its order only once the payment has not changed for 72 hours
+   (`PreUpgradePayPalOrderSettlementProcessor::PAYPAL_ORDER_LIFETIME`); before that, the error is reported, as it may
+   come from a payment method pointing at the wrong PayPal environment.
+
+   `Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface` (`sylius_paypal.checker.pre_upgrade_paypal_order`)
+   tells such a payment apart. `CaptureApprovedOrderWebhookEventProcessor` takes the
+   `Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface` as its fourth argument.
 
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 

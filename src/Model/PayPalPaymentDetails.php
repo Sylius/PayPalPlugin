@@ -54,6 +54,8 @@ final readonly class PayPalPaymentDetails
 
     public const CAPTURE_STATUS = 'capture_status';
 
+    public const THREE_D_SECURE_FAILURE = 'three_d_secure_failure';
+
     /** @param array<string, mixed> $details */
     private function __construct(private array $details)
     {
@@ -129,6 +131,21 @@ final readonly class PayPalPaymentDetails
     public function payerActionUrl(): ?string
     {
         return $this->optional(self::PAYER_ACTION_URL);
+    }
+
+    public function matchesLegacyPayerActionReturnNonce(string $nonce): bool
+    {
+        return $this->matchesNonce(self::LEGACY_PAYER_ACTION_RETURN_NONCE, $nonce);
+    }
+
+    public function matchesLegacyPayerActionCancelNonce(string $nonce): bool
+    {
+        return $this->matchesNonce(self::LEGACY_PAYER_ACTION_CANCEL_NONCE, $nonce);
+    }
+
+    public function threeDSecureFailure(): ?string
+    {
+        return $this->optional(self::THREE_D_SECURE_FAILURE);
     }
 
     public function isRefunded(): bool
@@ -230,6 +247,11 @@ final readonly class PayPalPaymentDetails
         return $this->with([self::TRANSACTION_ID => $transactionId]);
     }
 
+    public function withThreeDSecureFailure(string $failure): self
+    {
+        return $this->with([self::THREE_D_SECURE_FAILURE => $failure]);
+    }
+
     public function withPayerAction(string $url): self
     {
         return $this->with([self::PAYER_ACTION_URL => $url]);
@@ -301,6 +323,13 @@ final readonly class PayPalPaymentDetails
     public function toArray(): array
     {
         return $this->details;
+    }
+
+    private function matchesNonce(string $key, string $nonce): bool
+    {
+        $storedNonce = $this->details[$key] ?? null;
+
+        return is_string($storedNonce) && '' !== $storedNonce && hash_equals($storedNonce, $nonce);
     }
 
     /** @param array<string, mixed> $details */

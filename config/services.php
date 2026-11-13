@@ -34,6 +34,8 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PermissionsStateChecker;
 use Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderChecker;
+use Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
@@ -84,6 +86,7 @@ use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorIn
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
+use Sylius\PayPalPlugin\Processor\PreUpgradePayPalOrderSettlementProcessor;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProvider;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
@@ -500,6 +503,28 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.api.order_details'),
             service('sylius_abstraction.state_machine'),
             service('sylius.manager.payment'),
+            service('monolog.logger.paypal'),
+        ]);
+
+    $services->set('sylius_paypal.checker.pre_upgrade_paypal_order', PreUpgradePayPalOrderChecker::class)
+        ->args([service('sylius.repository.payment_request')]);
+
+    $services->alias(PreUpgradePayPalOrderCheckerInterface::class, 'sylius_paypal.checker.pre_upgrade_paypal_order');
+
+    $services->set('sylius_paypal.processor.pre_upgrade_paypal_order_settlement', PreUpgradePayPalOrderSettlementProcessor::class)
+        ->decorate('sylius_paypal.processor.payment_settlement')
+        ->args([
+            service('.inner'),
+            service('sylius_paypal.checker.pre_upgrade_paypal_order'),
+            service('sylius_paypal.checker.approved_paypal_order'),
+            service('sylius_paypal.updater.approved_paypal_order'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.complete_order'),
+            service('sylius_paypal.api.authorize_order'),
+            service('sylius_paypal.verifier.three_d_secure'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.manager.payment'),
+            service('sylius_paypal.clock'),
             service('monolog.logger.paypal'),
         ]);
 

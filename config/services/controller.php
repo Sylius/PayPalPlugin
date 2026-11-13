@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Sylius\PayPalPlugin\Controller\EnableSellerAction;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
+use Sylius\PayPalPlugin\Controller\PreUpgradeCheckoutController;
 use Sylius\PayPalPlugin\Controller\RefundPayPalLateCaptureAction;
 use Sylius\PayPalPlugin\Controller\RefundPayPalPaymentAction;
 use Sylius\PayPalPlugin\Controller\ShippingCallbackAction;
@@ -187,5 +188,18 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.dispatcher.refund_paypal_payment_request'),
             service('security.csrf.token_manager'),
             service('router'),
+        ]);
+
+    $services->set('sylius_paypal.controller.pre_upgrade_checkout', PreUpgradeCheckoutController::class)
+        ->args([
+            service('sylius.repository.order'),
+            service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius_paypal.checker.pre_upgrade_paypal_order'),
+            service('sylius_paypal.checker.payer_action'),
+            service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_abstraction.state_machine'),
+            service('sylius.manager.payment'),
+            service('router'),
+            service('request_stack'),
         ]);
 };
