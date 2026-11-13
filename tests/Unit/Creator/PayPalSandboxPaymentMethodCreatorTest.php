@@ -82,6 +82,7 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $paymentMethod->expects(self::once())
             ->method('setDescription')
             ->with('Pay with PayPal');
+        $paymentMethod->expects(self::once())->method('setPosition')->with(0);
 
         $entityManager->expects(self::once())
             ->method('persist')

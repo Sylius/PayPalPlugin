@@ -90,6 +90,7 @@ final class BasicOnboardingProcessorTest extends TestCase
         ]);
 
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+        $paymentMethod->expects(self::once())->method('setPosition')->with(0);
 
         $request->query = new InputBag(['onboarding_id' => 'ONBOARDING-ID']);
 

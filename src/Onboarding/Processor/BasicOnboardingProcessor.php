@@ -72,6 +72,7 @@ final readonly class BasicOnboardingProcessor implements OnboardingProcessorInte
             PayPalGatewayConfig::GOOGLE_PAY_ENABLED => true,
             PayPalGatewayConfig::APPLE_PAY_ENABLED => true,
         ]);
+        $paymentMethod->setPosition(0);
 
         $permissionsGranted = $request->query->get('permissionsGranted') === null || (bool) $request->query->get('permissionsGranted');
         if (!$permissionsGranted) {
