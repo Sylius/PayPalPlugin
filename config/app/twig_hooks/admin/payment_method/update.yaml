@@ -63,7 +63,6 @@ sylius_twig_hooks:
                     code: paypal
                     label: sylius_paypal.paypal
                     icon: 'paypal'
-                    description: sylius_paypal.paypal_description
                 priority: 100
             pay_later:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig'
@@ -72,7 +71,6 @@ sylius_twig_hooks:
                     label: sylius_paypal.pay_later
                     icon: 'pay_later'
                     description: sylius_paypal.pay_later_description
-                    help: sylius_paypal.pay_later_info
                 priority: 0
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.paypal.paypal':
@@ -92,7 +90,6 @@ sylius_twig_hooks:
                     code: cards
                     label: sylius_paypal.debit_and_credit_cards
                     icon: 'tabler:credit-card'
-                    description: sylius_paypal.cards_description
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.cards.cards':
             always_on:
@@ -109,7 +106,6 @@ sylius_twig_hooks:
                     code: venmo
                     label: sylius_paypal.venmo
                     icon: 'venmo'
-                    description: sylius_paypal.venmo_description
                     badge: sylius_paypal.us_only
                 priority: 200
             apple_pay:
@@ -126,7 +122,6 @@ sylius_twig_hooks:
                     code: google_pay
                     label: sylius_paypal.google_pay
                     icon: 'google_pay'
-                    description: sylius_paypal.google_pay_description
                 priority: 0
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.wallets.venmo':
@@ -154,7 +149,6 @@ sylius_twig_hooks:
                     code: trustly
                     label: sylius_paypal.trustly
                     icon: 'trustly'
-                    description: sylius_paypal.trustly_description
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_payment_methods.local_payment_methods.trustly':
             trustly_enabled:
