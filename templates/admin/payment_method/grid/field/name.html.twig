@@ -1,6 +1,7 @@
 {% set legacy_layout = options.vars.legacy_layout|default(false) %}
+{% set legacy_paypal_row = options.vars.legacy_paypal_row|default(false) %}
 
-{% if data.gatewayConfig.factoryName|default(null) == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
+{% if not legacy_paypal_row and data.gatewayConfig.factoryName|default(null) == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
     <div class="payment-method-list__item-inner d-flex align-items-center gap-3">
         {% hook 'sylius_paypal.admin.payment_method.grid.field.name' with { payment_method: data, legacy_layout } %}
     </div>

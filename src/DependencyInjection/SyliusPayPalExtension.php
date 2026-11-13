@@ -56,6 +56,10 @@ final class SyliusPayPalExtension extends Extension implements PrependExtensionI
             'sylius_paypal.admin.legacy_payment_method_list',
             version_compare(SyliusCoreBundle::VERSION, '2.3.0', '<'),
         );
+        $container->setParameter(
+            'sylius_paypal.admin.legacy_paypal_payment_method_row',
+            version_compare(SyliusCoreBundle::VERSION, '2.2.9', '<'),
+        );
 
         $this->prependDoctrineMapping($container);
         $this->prependApiPlatformMapping($container);

@@ -39,6 +39,7 @@ sylius_grid:
                         template: "@SyliusPayPalPlugin/admin/payment_method/grid/field/name.html.twig"
                         vars:
                             legacy_layout: '%sylius_paypal.admin.legacy_payment_method_list%'
+                            legacy_paypal_row: '%sylius_paypal.admin.legacy_paypal_payment_method_row%'
             actions:
                 item:
                     enable_seller:
