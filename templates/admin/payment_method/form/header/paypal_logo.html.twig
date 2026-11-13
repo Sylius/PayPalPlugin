@@ -1,5 +1,8 @@
 {% if hookable_metadata.context.resource.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
-    <div class="col-12 col-md-auto">
-        <img src="https://www.paypalobjects.com/digitalassets/c/website/marketing/na/us/logo-center/9_bdg_secured_by_pp_2line.png" alt="Secured by PayPal">
+    <div class="col-12 col-md-auto d-flex align-items-center" {{ sylius_test_html_attribute('paypal-secured-by') }}>
+        <span class="d-inline-flex align-items-center gap-2 border-start ps-3 ms-md-1 text-secondary" style="height: 2.25rem;">
+            <span class="small">{{ 'sylius_paypal.secured_by'|trans }}</span>
+            {% include '@SyliusPayPalPlugin/admin/shared/paypal_logo.svg.twig' with { height: '16px', class: 'text-body' } only %}
+        </span>
     </div>
 {% endif %}
