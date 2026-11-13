@@ -69,6 +69,8 @@ final readonly class BasicOnboardingProcessor implements OnboardingProcessorInte
             PayPalGatewayConfig::SYLIUS_MERCHANT_ID => $response['sylius_merchant_id'],
             PayPalGatewayConfig::ONBOARDING_ID => $onboardingId,
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $response['partner_attribution_id'],
+            PayPalGatewayConfig::GOOGLE_PAY_ENABLED => true,
+            PayPalGatewayConfig::APPLE_PAY_ENABLED => true,
         ]);
 
         $permissionsGranted = $request->query->get('permissionsGranted') === null || (bool) $request->query->get('permissionsGranted');

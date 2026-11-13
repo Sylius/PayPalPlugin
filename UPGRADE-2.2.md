@@ -263,12 +263,14 @@ Each method is controlled per payment method by a toggle in its gateway config. 
 | `pay_later_enabled` | `false` | Pay Later button on the product, cart, checkout and payment pages |
 | `messaging_enabled` | `false` | `<paypal-message>` on the product, cart and checkout pages; needs `pay_later_enabled` too |
 | `venmo_enabled` | `false` | `<venmo-button>` on the product, cart, checkout and payment pages |
-| `google_pay_enabled` | `false` | payment page |
-| `apple_pay_enabled` | `false` | payment page |
+| `google_pay_enabled` | `false`, `true` for a new payment method | payment page |
+| `apple_pay_enabled` | `false`, `true` for a new payment method | payment page |
 | `trustly_enabled` | `false` | payment page |
 | `card_three_d_secure_always` | `false` | sends `SCA_ALWAYS` instead of `SCA_WHEN_REQUIRED` for card payments |
 
-The defaults apply to existing payment methods too, whose stored config does not carry these keys yet.
+The defaults apply to existing payment methods too, whose stored config does not carry these keys yet. A payment
+method created through onboarding or the sandbox flow starts with `google_pay_enabled` and `apple_pay_enabled`
+set to `true`; both still need the prerequisites below.
 
 Prerequisites the plugin cannot handle for you:
 

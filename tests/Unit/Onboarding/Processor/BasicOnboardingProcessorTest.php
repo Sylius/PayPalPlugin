@@ -85,6 +85,8 @@ final class BasicOnboardingProcessorTest extends TestCase
             'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
             'merchant_id' => 'MERCHANT-ID',
             'partner_attribution_id' => 'ATTRIBUTION-ID',
+            'google_pay_enabled' => true,
+            'apple_pay_enabled' => true,
         ]);
 
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
@@ -159,6 +161,8 @@ final class BasicOnboardingProcessorTest extends TestCase
             'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
             'merchant_id' => 'MERCHANT-ID',
             'partner_attribution_id' => 'ATTRIBUTION-ID',
+            'google_pay_enabled' => true,
+            'apple_pay_enabled' => true,
         ]);
 
         $this->sellerWebhookRegistrar->expects(self::once())->method('register')->with($paymentMethod);
@@ -213,6 +217,8 @@ final class BasicOnboardingProcessorTest extends TestCase
             'sylius_merchant_id' => 'SYLIUS-MERCHANT-ID',
             'merchant_id' => 'MERCHANT-ID',
             'partner_attribution_id' => 'ATTRIBUTION-ID',
+            'google_pay_enabled' => true,
+            'apple_pay_enabled' => true,
         ]);
 
         $this->sellerWebhookRegistrar
