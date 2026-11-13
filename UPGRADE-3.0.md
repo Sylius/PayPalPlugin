@@ -55,6 +55,16 @@
       A payment whose capture was pending, or a Trustly payment whose payer was at the bank, is completed once PayPal
       has captured it. A payment the buyer had not paid yet gets a new PayPal order on the payment page.
 
+      A payment whose buyer was still in the PayPal window stays `processing` until the buyer is done. Once the buyer
+      approves the PayPal order created by 2.x, the plugin captures it (or authorizes it, when 2.x created it to be
+      authorized): from the `CHECKOUT.ORDER.APPROVED` webhook, from this command, or from the 2.x payment page the
+      buyer kept open. Once PayPal voids the order, or no longer returns it 72 hours after the payment last changed,
+      this command cancels the payment and the order gets a new one, which the buyer pays on the order page. Keep
+      running the command until no such payment is left. Before the first run, make sure each PayPal payment method
+      points at the PayPal environment (sandbox or live) its 2.x orders were created in: PayPal does not return an
+      order looked up in the other environment, so the command would cancel these payments once the 72 hours have
+      passed.
+
    6. Update the PayPal permissions of every PayPal payment method in the admin.
 
       A PayPal payment method connected on 2.x is flagged with "PayPal permissions unknown" on the payment method list.
