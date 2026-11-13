@@ -24,6 +24,7 @@ sylius_core:
 sylius_grid:
     templates:
         action:
+            create_payment_method: "@SyliusPayPalPlugin/admin/payment_method/grid/action/create.html.twig"
             download_report: "@SyliusPayPalPlugin/admin/payment_method/grid/action/download_report.html.twig"
             enable_paypal: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig"
             enable_seller: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_seller.html.twig"
@@ -54,6 +55,7 @@ sylius_grid:
                 main:
                     enable_paypal:
                         type: enable_paypal
+                        enabled: false
 
 monolog:
     channels: ['paypal']

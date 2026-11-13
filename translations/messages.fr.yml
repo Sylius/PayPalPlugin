@@ -20,6 +20,8 @@ sylius_paypal:
     client_secret_stored: 'Enregistré'
     configuration: 'Configuration'
     configure: 'Configurer'
+    create_production: 'PayPal (Production)'
+    create_sandbox: 'PayPal (Sandbox)'
     credit_card: 'Carte de crédit'
     credit_card_number: 'Numéro de carte'
     cvv: 'CVV'
