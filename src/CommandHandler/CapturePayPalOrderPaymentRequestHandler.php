@@ -71,6 +71,12 @@ final class CapturePayPalOrderPaymentRequestHandler
         }
 
         if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
+            if ($this->isPaidByItsPayPalOrder($paymentRequest, $payment)) {
+                $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+
+                return;
+            }
+
             $paymentRequest->setResponseData([self::RESPONSE_REASON => 'Another PayPal order has already paid the payment.']);
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
 
@@ -160,5 +166,12 @@ final class CapturePayPalOrderPaymentRequestHandler
         }
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+    }
+
+    private function isPaidByItsPayPalOrder(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): bool
+    {
+        $payPalOrderId = $paymentRequest->getResponseData()[CreatePayPalOrderPaymentRequestHandler::RESPONSE_PAYPAL_ORDER_ID] ?? null;
+
+        return is_string($payPalOrderId) && $payPalOrderId === PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
     }
 }
