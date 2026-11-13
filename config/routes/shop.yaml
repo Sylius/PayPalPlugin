@@ -43,3 +43,37 @@ sylius_paypal_shop_add_to_cart:
                 type: Sylius\Bundle\ShopBundle\Form\Type\AddToCartType
                 options:
                     product: expr:notFoundOnNull(service('sylius.repository.product').find($productId))
+
+sylius_paypal_shop_pay_with_paypal_form:
+    path: /pay-with-paypal/{orderToken}/{paymentId}
+    methods: [GET]
+    defaults:
+        _controller: sylius_paypal.controller.pre_upgrade_checkout::payWithPayPalFormAction
+
+sylius_paypal_shop_complete_paypal_order:
+    path: /complete-pay-pal-order/{token}
+    methods: [POST]
+    defaults:
+        _controller: sylius_paypal.controller.pre_upgrade_checkout::completePayPalOrderAction
+
+sylius_paypal_shop_cancel_checkout_payment:
+    path: /cancel-pay-pal-checkout-payment
+    methods: [POST]
+    defaults:
+        _controller: sylius_paypal.controller.pre_upgrade_checkout::cancelCheckoutPaymentAction
+
+sylius_paypal_shop_redirect_return:
+    path: /paypal/redirect-return/{token}/{nonce}
+    methods: [GET]
+    defaults:
+        _controller: sylius_paypal.controller.pre_upgrade_checkout::payerActionReturnAction
+    requirements:
+        nonce: '[A-Za-z0-9_-]{16,128}'
+
+sylius_paypal_shop_redirect_cancel:
+    path: /paypal/redirect-cancel/{token}/{nonce}
+    methods: [GET]
+    defaults:
+        _controller: sylius_paypal.controller.pre_upgrade_checkout::payerActionCancelAction
+    requirements:
+        nonce: '[A-Za-z0-9_-]{16,128}'
