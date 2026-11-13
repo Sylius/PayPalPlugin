@@ -3,23 +3,29 @@
 <div {{ attributes }}>
     {% if variant == 'alert' and registration is not null %}
         <div class="alert alert-success" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'success') }}>
-            {% if registration.isNew() %}
-                {{ 'sylius_paypal.webhook.update.registered'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
-            {% elseif registration.isUpToDate() %}
-                {{ 'sylius_paypal.webhook.update.already_up_to_date'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
-            {% else %}
-                {{ 'sylius_paypal.webhook.update.updated'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
-            {% endif %}
+            <div class="alert-icon">{{ ux_icon('tabler:circle-check') }}</div>
+            <div>
+                {% if registration.isNew() %}
+                    {{ 'sylius_paypal.webhook.update.registered'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+                {% elseif registration.isUpToDate() %}
+                    {{ 'sylius_paypal.webhook.update.already_up_to_date'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+                {% else %}
+                    {{ 'sylius_paypal.webhook.update.updated'|trans({'%id%': registration.id(), '%url%': registration.url()}) }}
+                {% endif %}
+            </div>
         </div>
     {% endif %}
 
     {% if variant == 'alert' and updateFailed %}
         <div class="alert alert-danger" role="alert" {{ sylius_test_html_attribute('paypal-webhook-update', 'error') }}>
-            {% if updateError is null %}
-                {{ 'sylius_paypal.webhook.update.failed_check_logs'|trans }}
-            {% else %}
-                {{ 'sylius_paypal.webhook.update.failed'|trans({'%reason%': updateError}) }}
-            {% endif %}
+            <div class="alert-icon">{{ ux_icon('tabler:exclamation-circle') }}</div>
+            <div>
+                {% if updateError is null %}
+                    {{ 'sylius_paypal.webhook.update.failed_check_logs'|trans }}
+                {% else %}
+                    {{ 'sylius_paypal.webhook.update.failed'|trans({'%reason%': updateError}) }}
+                {% endif %}
+            </div>
         </div>
     {% endif %}
 
@@ -29,31 +35,35 @@
 
         {% if variant == 'alert' %}
             <div class="alert alert-warning" role="alert" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>
+                <div class="alert-icon">{{ ux_icon('tabler:alert-triangle') }}</div>
                 <div>
-                    <div class="fw-bold">{{ problem|trans }}</div>
-                    {% if not state.isKnown() %}
-                        <div>{{ 'sylius_paypal.webhook.state.unknown_details'|trans }}</div>
-                    {% endif %}
-                    {% if state.pointsElsewhere() %}
-                        <div>{{ 'sylius_paypal.webhook.state.points_elsewhere'|trans({'%url%': state.registeredUrl()}) }}</div>
-                    {% endif %}
-                    {% if state.missingEventTypes() is not empty %}
-                        <div>{{ 'sylius_paypal.webhook.state.missing_event_types'|trans }} <code>{{ state.missingEventTypes()|join(', ') }}</code></div>
-                    {% endif %}
+                    <h4 class="alert-heading">{{ problem|trans }}</h4>
+                    <div>
+                        {% if not state.isKnown() %}
+                            <div>{{ 'sylius_paypal.webhook.state.unknown_details'|trans }}</div>
+                        {% endif %}
+                        {% if state.pointsElsewhere() %}
+                            <div>{{ 'sylius_paypal.webhook.state.points_elsewhere'|trans({'%url%': state.registeredUrl()}) }}</div>
+                        {% endif %}
+                        {% if state.missingEventTypes() is not empty %}
+                            <div>{{ 'sylius_paypal.webhook.state.missing_event_types'|trans }} <code>{{ state.missingEventTypes()|join(', ') }}</code></div>
+                        {% endif %}
+                    </div>
                     <button
                         type="button"
-                        class="btn btn-warning mt-2"
+                        class="btn mt-2"
                         data-action="live#action"
                         data-live-action-param="updateWebhook"
                         data-loading="addAttribute(disabled)"
                         {{ sylius_test_html_attribute('paypal-webhook-update-button') }}
                     >
+                        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true" data-loading></span>
                         {{ 'sylius_paypal.webhook.update.button'|trans }}
                     </button>
                 </div>
             </div>
         {% else %}
-            <span class="badge bg-red-lt" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>{{ problem|trans }}</span>
+            <span class="badge {{ state.isKnown() ? 'bg-red-lt' : 'bg-orange-lt' }}" title="{{ state.missingEventTypes()|join(', ') }}" {{ sylius_test_html_attribute('paypal-webhook-state', test_state) }}>{{ problem|trans }}</span>
         {% endif %}
     {% endif %}
 </div>

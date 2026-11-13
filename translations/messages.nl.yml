@@ -67,7 +67,9 @@ sylius_paypal:
     mode_sandbox_title: 'Sandboxmodus.'
     more_about: 'Meer over %option%'
     onboarding_completed: 'Uw PayPal-account is gekoppeld.'
+    onboarding_failed: 'Kan uw PayPal-account niet koppelen. Sluit dit venster en probeer het opnieuw.'
     onboarding_modal_description: 'U wordt gevraagd in te loggen op of een PayPal-account aan te maken om deze met uw winkel te verbinden.'
+    onboarding_modal_title: 'PayPal-account koppelen'
     pay_later: 'Pay Later'
     pay_later_description: 'Pay Later-knop naast PayPal bij het afrekenen en in express checkout.'
     pay_later_info: 'Bied flexibel betalen aan: klanten kopen nu en betalen later, jij krijgt direct betaald.'
@@ -89,7 +91,9 @@ sylius_paypal:
             awaiting_paypal: 'PayPal staat het account van deze betaalmethode nog niet toe deze mogelijkheden te gebruiken. Controleer ze in het PayPal-account:'
             button: 'PayPal-machtigingen bijwerken'
             completed: 'Uw PayPal-machtigingen zijn bijgewerkt.'
+            failed: 'Kan uw PayPal-machtigingen niet bijwerken. Sluit dit venster en probeer het opnieuw.'
             modal_description: 'U wordt gevraagd in te loggen bij PayPal met het account van deze betaalmethode en de machtigingen te verlenen die de plugin nodig heeft. De betaalmethode behoudt haar inloggegevens en webhook.'
+            modal_title: 'PayPal-machtigingen bijwerken'
             verification_failed: 'De PayPal-machtigingen van deze betaalmethode konden niet worden gecontroleerd. U kunt ze nog steeds bijwerken.'
     sandbox_on_production_warning: "Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen."
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
