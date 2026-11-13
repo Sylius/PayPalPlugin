@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -31,6 +32,8 @@ use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
 
 final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
 {
+    private const ACTIVE = OnboardingStatus::ACTIVE_CAPABILITY_STATUS;
+
     private const CONFIG = [
         'client_id' => 'CLIENT-ID',
         'client_secret' => 'CLIENT-SECRET',
@@ -152,27 +155,29 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         self::assertSame($paymentMethod, $this->creator->create($result, false));
     }
 
+    /** @param array<string, string> $capabilityStatuses */
     #[Test]
-    public function it_turns_on_google_pay_and_apple_pay_when_the_paypal_account_has_their_capabilities_active(): void
+    #[DataProvider('walletCapabilityStatuses')]
+    public function it_turns_on_only_the_wallets_whose_capability_is_active(array $capabilityStatuses, bool $googlePayEnabled, bool $applePayEnabled): void
     {
         [$gatewayConfig] = $this->mockFactories();
 
         $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, [
-            'google_pay_enabled' => true,
-            'apple_pay_enabled' => true,
+            'google_pay_enabled' => $googlePayEnabled,
+            'apple_pay_enabled' => $applePayEnabled,
         ]));
 
-        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE', 'GOOGLE_PAY' => 'ACTIVE'])), false);
+        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, $capabilityStatuses)), false);
     }
 
-    #[Test]
-    public function it_turns_on_only_the_wallet_whose_capability_is_active(): void
+    /** @return iterable<string, array{array<string, string>, bool, bool}> */
+    public static function walletCapabilityStatuses(): iterable
     {
-        [$gatewayConfig] = $this->mockFactories();
-
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, ['apple_pay_enabled' => true]));
-
-        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE'])), false);
+        yield 'both active' => [[Capability::GOOGLE_PAY => self::ACTIVE, Capability::APPLE_PAY => self::ACTIVE], true, true];
+        yield 'only Google Pay active' => [[Capability::GOOGLE_PAY => self::ACTIVE, Capability::APPLE_PAY => 'PENDING'], true, false];
+        yield 'only Apple Pay active' => [[Capability::GOOGLE_PAY => 'NEED_DATA', Capability::APPLE_PAY => self::ACTIVE], false, true];
+        yield 'none active' => [[Capability::GOOGLE_PAY => 'PENDING', Capability::APPLE_PAY => 'NEED_DATA'], false, false];
+        yield 'none reported' => [[], false, false];
     }
 
     #[Test]

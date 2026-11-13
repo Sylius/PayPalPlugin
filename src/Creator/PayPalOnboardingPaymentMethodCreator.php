@@ -19,6 +19,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\SellerOnboardingResult;
@@ -51,6 +52,7 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
         $gatewayConfig = $this->gatewayFactory->createNew();
         $gatewayConfig->setFactoryName(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
         $gatewayConfig->setGatewayName(self::GATEWAY_NAME);
+        $status = $result->getStatus();
         $gatewayConfig->setConfig([
             PayPalGatewayConfig::CLIENT_ID => $result->getClientId(),
             PayPalGatewayConfig::CLIENT_SECRET => $result->getClientSecret(),
@@ -58,8 +60,8 @@ final readonly class PayPalOnboardingPaymentMethodCreator implements PayPalOnboa
             PayPalGatewayConfig::PARTNER_ATTRIBUTION_ID => $this->partnerAttributionId,
             PayPalGatewayConfig::SANDBOX => $sandbox,
             PayPalGatewayConfig::USE_AUTHORIZE => false,
-            PayPalGatewayConfig::GOOGLE_PAY_ENABLED => $result->getStatus()->hasActiveCapability('GOOGLE_PAY'),
-            PayPalGatewayConfig::APPLE_PAY_ENABLED => $result->getStatus()->hasActiveCapability('APPLE_PAY'),
+            PayPalGatewayConfig::GOOGLE_PAY_ENABLED => $status->hasActiveCapability(Capability::GOOGLE_PAY),
+            PayPalGatewayConfig::APPLE_PAY_ENABLED => $status->hasActiveCapability(Capability::APPLE_PAY),
             PayPalGatewayConfig::ONBOARDING_SCOPE => OnboardingScope::current()->toArray(),
         ]);
 
