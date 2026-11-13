@@ -15,6 +15,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Form\Type;
 
 use PHPUnit\Framework\Attributes\Test;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Symfony\Component\Form\PreloadedExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
 
@@ -53,6 +54,49 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['express_checkout_enabled' => false]));
 
         self::assertFalse($form->get('express_checkout_enabled')->getData());
+    }
+
+    public function test_the_capture_strategy_defaults_to_immediate_capture(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_diff_key($this->baseConfig(), ['use_authorize' => true]));
+
+        self::assertFalse($form->get('use_authorize')->getData());
+    }
+
+    public function test_the_capture_strategy_reads_an_authorizing_payment_method(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['use_authorize' => true]));
+
+        self::assertTrue($form->get('use_authorize')->getData());
+    }
+
+    public function test_the_capture_strategy_stores_authorize_and_capture(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit(array_merge($this->submittedFields(), ['use_authorize' => 'authorize']));
+
+        self::assertTrue($form->isValid());
+        self::assertTrue($form->getData()['use_authorize']);
+    }
+
+    public function test_the_capture_strategy_stores_immediate_capture(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, array_merge($this->baseConfig(), ['use_authorize' => true]));
+
+        $form->submit(array_merge($this->submittedFields(), ['use_authorize' => 'capture']));
+
+        self::assertTrue($form->isValid());
+        self::assertFalse($form->getData()['use_authorize']);
+    }
+
+    public function test_the_capture_strategy_stays_immediate_capture_when_none_is_submitted(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+
+        $form->submit($this->submittedFields());
+
+        self::assertFalse($form->getData()['use_authorize']);
     }
 
     public function test_the_google_pay_toggle_defaults_to_unchecked_for_a_new_payment_method(): void
@@ -193,23 +237,29 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
         self::assertSame('CLIENT_ID', $form->getData()['client_id']);
         self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
         self::assertSame('MERCHANT_ID', $form->getData()['merchant_id']);
-        self::assertSame('SYLIUS_MERCHANT_ID', $form->getData()['sylius_merchant_id']);
     }
 
-    public function test_submitted_credentials_are_ignored(): void
+    public function test_submitted_merchant_id_and_client_id_are_ignored(): void
     {
         $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
         $form->submit(array_merge($this->submittedFields(), [
             'client_id' => 'OTHER_CLIENT_ID',
-            'client_secret' => 'OTHER_CLIENT_SECRET',
             'merchant_id' => 'OTHER_MERCHANT_ID',
-            'sylius_merchant_id' => 'OTHER_SYLIUS_MERCHANT_ID',
         ]));
 
+        self::assertTrue($form->isValid());
         self::assertSame('CLIENT_ID', $form->getData()['client_id']);
         self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
         self::assertSame('MERCHANT_ID', $form->getData()['merchant_id']);
-        self::assertSame('SYLIUS_MERCHANT_ID', $form->getData()['sylius_merchant_id']);
+    }
+
+    public function test_a_submitted_client_secret_is_an_extra_field_and_does_not_replace_the_stored_one(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->baseConfig());
+        $form->submit(array_merge($this->submittedFields(), ['client_secret' => 'OTHER_CLIENT_SECRET']));
+
+        self::assertSame(['client_secret' => 'OTHER_CLIENT_SECRET'], $form->getExtraData());
+        self::assertSame('CLIENT_SECRET', $form->getData()['client_secret']);
     }
 
     /** @return array<string, mixed> */
@@ -217,16 +267,49 @@ final class PayPalConfigurationTypeTest extends TypeTestCase
     {
         return [
             'client_id' => 'CLIENT_ID', 'client_secret' => 'CLIENT_SECRET', 'merchant_id' => 'MERCHANT_ID',
-            'sylius_merchant_id' => 'SYLIUS_MERCHANT_ID', 'partner_attribution_id' => 'bn', 'use_authorize' => 1,
-            'reports_sftp_username' => null, 'reports_sftp_password' => null,
+            'partner_attribution_id' => 'bn', 'use_authorize' => 1,
         ];
     }
 
     /** @return array<string, mixed> */
     private function submittedFields(): array
     {
+        return [];
+    }
+
+    #[Test]
+    public function it_has_no_field_to_switch_the_mode(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->sandboxConfig());
+
+        self::assertFalse($form->has('sandbox_mode'));
+    }
+
+    #[Test]
+    public function it_keeps_the_mode_the_credentials_and_the_onboarding_scope_of_the_payment_method_on_submit(): void
+    {
+        $form = $this->factory->create(PayPalConfigurationType::class, $this->sandboxConfig());
+        $form->submit(array_merge($this->submittedFields(), ['client_id' => 'OTHER', 'merchant_id' => 'OTHERM']));
+
+        self::assertTrue($form->isValid());
+        $data = $form->getData();
+        self::assertTrue($data['sandbox']);
+        self::assertSame('WH', $data['webhook_id']);
+        self::assertSame('SB', $data['client_id']);
+        self::assertSame('SBS', $data['client_secret']);
+        self::assertSame('SBM', $data['merchant_id']);
+        self::assertSame(['product' => OnboardingScope::PRODUCT_PPCP], $data['onboarding_scope']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function sandboxConfig(): array
+    {
         return [
-            'reports_sftp_username' => '', 'reports_sftp_password' => '',
+            'client_id' => 'SB', 'client_secret' => 'SBS', 'merchant_id' => 'SBM',
+            'partner_attribution_id' => 'bn', 'use_authorize' => 1,
+            'webhook_id' => 'WH', 'sandbox' => true, 'onboarding_scope' => ['product' => OnboardingScope::PRODUCT_PPCP],
         ];
     }
 }

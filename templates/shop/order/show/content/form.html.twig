@@ -10,7 +10,7 @@
     <div class="alert alert-info" {{ sylius_test_html_attribute('paypal-awaiting-payer-action') }}>
         {% hook 'paypal_awaiting_payer_action' with { payment } %}
     </div>
-{% elseif order.paymentState == constant('Sylius\\Component\\Core\\OrderPaymentStates::STATE_AWAITING_PAYMENT') %}
+{% elseif sylius_paypal_can_change_payment_method(order) %}
     {{ form_start(form, {'action': path('sylius_shop_order_show', {'tokenValue': order.tokenValue}), 'attr': {'novalidate': 'novalidate'}}) }}
     <input type="hidden" name="_method" value="PUT" />
     {{ form_errors(form) }}

@@ -1,29 +1,60 @@
 <?php
 
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use phpseclib3\Net\SFTP;
-use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Component\Payment\Model\PaymentInterface;
-use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
+use Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider;
+use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
+use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicatorInterface;
+use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicator;
+use Sylius\PayPalPlugin\Applicator\PaymentRefundApplicatorInterface;
+use Sylius\PayPalPlugin\Changer\PaymentMethodChanger;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderChecker;
+use Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
-use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
-use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleterInterface;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationChecker;
+use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentCompletionChecker;
+use Sylius\PayPalPlugin\Checker\PaymentCompletionCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentRefundChecker;
+use Sylius\PayPalPlugin\Checker\PaymentRefundCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
+use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
+use Sylius\PayPalPlugin\Checker\PermissionsStateChecker;
+use Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface;
+use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
+use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
+use Sylius\PayPalPlugin\Console\Command\EncryptGatewayConfigsCommand;
+use Sylius\PayPalPlugin\Console\Command\PruneWebhookEventsCommand;
 use Sylius\PayPalPlugin\Console\Command\RegisterWebhookEventTypesCommand;
-use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
-use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
-use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
+use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreator;
+use Sylius\PayPalPlugin\Creator\PayPalOnboardingPaymentMethodCreatorInterface;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreator;
+use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
+use Sylius\PayPalPlugin\Entity\PayPalWebhookEvent;
+use Sylius\PayPalPlugin\EventListener\RemoveCachedAccessTokenListener;
+use Sylius\PayPalPlugin\EventListener\RemovePayPalPaymentDetailsListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PayPalPaymentMethodNewResourceFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactory;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
@@ -34,28 +65,25 @@ use Sylius\PayPalPlugin\Factory\ShippingOptionsFactory;
 use Sylius\PayPalPlugin\Factory\ShippingOptionsFactoryInterface;
 use Sylius\PayPalPlugin\Form\Extension\PaymentMethodTypeExtension;
 use Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType;
-use Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGenerator;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Listener\PayPalPaymentMethodListener;
-use Sylius\PayPalPlugin\Manager\PaymentStateManager;
-use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Processor\AfterCheckoutOrderPaymentProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessor;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
-use Sylius\PayPalPlugin\Processor\OrderPaymentProcessor;
-use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
-use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessor;
+use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
+use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalOrderCompleteProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalPaymentCompleteProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundProcessor;
-use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundProcessor;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessor;
+use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
+use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
-use Sylius\PayPalPlugin\Processor\UiPayPalPaymentRefundProcessor;
-use Sylius\PayPalPlugin\Processor\Webhook\CapturePaymentWebhookProcessor;
-use Sylius\PayPalPlugin\Processor\Webhook\RefundOrderWebhookProcessor;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProvider;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
@@ -67,8 +95,8 @@ use Sylius\PayPalPlugin\Provider\EnabledPaymentSourcesProvider;
 use Sylius\PayPalPlugin\Provider\EnabledPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
-use Sylius\PayPalPlugin\Provider\NonceProvider;
-use Sylius\PayPalPlugin\Provider\NonceProviderInterface;
+use Sylius\PayPalPlugin\Provider\HostProvider;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProvider;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderProvider;
@@ -77,21 +105,16 @@ use Sylius\PayPalPlugin\Provider\PaymentProvider;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider;
-use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
+use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProvider;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentMethodProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalRefundDataProvider;
-use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackAmountProvider;
@@ -108,103 +131,117 @@ use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrarInterface;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
+use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemover;
+use Sylius\PayPalPlugin\Remover\PayPalPaymentDetailsRemoverInterface;
+use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepository;
+use Sylius\PayPalPlugin\Repository\PayPalWebhookEventRepositoryInterface;
+use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentBatchQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQuery;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolver;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalDefaultPaymentMethodResolver;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolver;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
-use Sylius\PayPalPlugin\Resolver\PayPalPrioritisingPaymentMethodsResolver;
 use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolver;
 use Sylius\PayPalPlugin\Resolver\ShippingOptionsResolverInterface;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolver;
 use Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface;
-use Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent;
+use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
+use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolverInterface;
+use Sylius\PayPalPlugin\Twig\ChangePaymentMethodExtension;
+use Sylius\PayPalPlugin\Twig\Component\PayPalOnboardingModalComponent;
+use Sylius\PayPalPlugin\Twig\Component\PermissionsStateComponent;
+use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdater;
+use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 use Sylius\PayPalPlugin\Updater\PayPalPaymentUpdater;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifier;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifier;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
+use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifier;
+use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifier;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier;
 use Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
     $parameters = $container->parameters();
     $container->import('services/**/*.php');
 
-    $parameters->set('sylius_paypal.prioritize_paypal_as_default_method', true);
-    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW]);
+    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.updatable_states', [PaymentInterface::STATE_CART]);
     $parameters->set('sylius_paypal.repository.query.pay_pal_payment.cancellable_states', [PaymentInterface::STATE_CART, PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED]);
-    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.refundable_states', [PaymentInterface::STATE_COMPLETED]);
-    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
+    $parameters->set('sylius_paypal.repository.query.pay_pal_payment.settleable_states', [PaymentInterface::STATE_NEW, PaymentInterface::STATE_PROCESSING, PaymentInterface::STATE_AUTHORIZED, PaymentInterface::STATE_COMPLETED, PaymentInterface::STATE_CANCELLED, PaymentInterface::STATE_FAILED]);
 
     $services->set('sylius_paypal.form.extension.payment_method', PaymentMethodTypeExtension::class)
         ->tag('form.type_extension');
 
     $services->set('sylius_paypal.form.type.paypal_configuration', PayPalConfigurationType::class)
-        ->args(['%sylius_paypal.sandbox%'])
         ->tag('form.type')
         ->tag('sylius.gateway_configuration_type', ['type' => 'sylius_paypal', 'label' => 'sylius_paypal.label']);
-
-    $services->set('sylius_paypal.form.type.paypal_sandbox_credentials', PayPalSandboxCredentialsType::class)
-        ->tag('form.type');
 
     $services->set('sylius_paypal.generator.paypal_auth_assertion', PayPalAuthAssertionGenerator::class);
 
     $services->alias(PayPalAuthAssertionGeneratorInterface::class, 'sylius_paypal.generator.paypal_auth_assertion');
 
-    $services->set('sylius_paypal.api_platform.paypal_payment', PayPalPayment::class)
-        ->args([
-            service('router'),
-            service('sylius_paypal.provider.available_countries'),
-            service('sylius_paypal.provider.paypal_configuration'),
-        ])
+    $services->set('sylius_paypal.applicator.payment_capture', PaymentCaptureApplicator::class)
+        ->public()
+        ->args([service('sylius_paypal.dispatcher.capture_authorization_payment_request')]);
+
+    $services->alias(PaymentCaptureApplicatorInterface::class, 'sylius_paypal.applicator.payment_capture');
+
+    $services->set('sylius_paypal.applicator.payment_refund', PaymentRefundApplicator::class)
+        ->public()
+        ->args([service('sylius_paypal.dispatcher.refund_paypal_payment_request')]);
+
+    $services->alias(PaymentRefundApplicatorInterface::class, 'sylius_paypal.applicator.payment_refund');
+
+    $services->set('sylius_paypal.api_platform.payment_configuration_provider', PaymentConfigurationProvider::class)
+        ->args([service('sylius_paypal.provider.payment_sdk_configuration')])
         ->tag('sylius.api.payment_method_handler');
 
     $services->set('sylius_paypal.listener.paypal_payment_method', PayPalPaymentMethodListener::class)
         ->args([
-            service('sylius_paypal.onboarding.initiator'),
             service('router'),
             service('request_stack'),
-            service('sylius_paypal.provider.paypal_payment_method'),
-            '%sylius_paypal.sandbox%',
         ])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.initialize_create', 'method' => 'initializeCreate']);
 
-    $services->set('sylius_paypal.manager.payment_state', PaymentStateManager::class)
-        ->args([
-            service('sylius_abstraction.state_machine'),
-            service('sylius.manager.payment'),
-            service('sylius_paypal.processor.payment_complete'),
-            service('sylius_paypal.checker.payer_action'),
-        ]);
+    $services->set('sylius_paypal.listener.remove_cached_access_token', RemoveCachedAccessTokenListener::class)
+        ->args([service('sylius_paypal.remover.cached_access_token')])
+        ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.pre_update']);
 
-    $services->alias(PaymentStateManagerInterface::class, 'sylius_paypal.manager.payment_state');
+    $services->set('sylius_paypal.listener.remove_paypal_payment_details', RemovePayPalPaymentDetailsListener::class)
+        ->args([service('sylius_paypal.remover.payment_details')])
+        ->tag('kernel.event_listener', ['event' => 'sylius.order.pre_update']);
 
-    $services->set('sylius_paypal.completer.express_order', PayPalExpressOrderCompleter::class)
+    $services->set('sylius_paypal.completer.express_checkout', ExpressCheckoutCompleter::class)
         ->args([
-            service('sylius_paypal.manager.payment_state'),
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.api.update_order'),
+            service('sylius.repository.customer'),
+            service('sylius.factory.customer'),
+            service('sylius_paypal.factory.express_order_address'),
+            service('sylius.repository.shipping_method'),
+            service('sylius_paypal.verifier.payment_amount'),
             service('sylius_abstraction.state_machine'),
+            service('sylius.order_processing.order_processor'),
             service('sylius.manager.order'),
         ]);
 
-    $services->alias(PayPalExpressOrderCompleterInterface::class, 'sylius_paypal.completer.express_order');
+    $services->alias(ExpressCheckoutCompleterInterface::class, 'sylius_paypal.completer.express_checkout');
 
-    $services->set('sylius_paypal.factory.paypal_payment_method_new_resource', PayPalPaymentMethodNewResourceFactory::class)
-        ->decorate('sylius.resource_controller.new_resource_factory')
-        ->args([
-            service('.inner'),
-            service('sylius_paypal.onboarding.processor.basic'),
-        ]);
+    $services->set('sylius_paypal.mapper.paypal_order_details', PayPalOrderDetailsMapper::class);
+
+    $services->alias(PayPalOrderDetailsMapperInterface::class, 'sylius_paypal.mapper.paypal_order_details');
 
     $services->set('sylius_paypal.factory.paypal_shipping_address', PayPalShippingAddressFactory::class)
         ->args([
@@ -237,6 +274,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.shipping_callback_url'),
             service('sylius_paypal.provider.experience_context'),
             service('sylius_paypal.provider.paypal_payment_source'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(PayPalOrderFactoryInterface::class, 'sylius_paypal.factory.paypal_order');
@@ -298,19 +336,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalItemFactoryInterface::class, 'sylius_paypal.factory.paypal_item');
 
-    $services->set('sylius_paypal.provider.paypal_payment_method', PayPalPaymentMethodProvider::class)
-        ->args([service('sylius.repository.payment_method')]);
+    $services->set('sylius_paypal.provider.host', HostProvider::class);
 
-    $services->alias(PayPalPaymentMethodProviderInterface::class, 'sylius_paypal.provider.paypal_payment_method');
-
-    $services->set('sylius_paypal.provider.paypal_refund_data', PayPalRefundDataProvider::class)
-        ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
-            service('sylius_paypal.api.generic'),
-            service('sylius_paypal.provider.paypal_payment_method'),
-        ]);
-
-    $services->alias(PayPalRefundDataProviderInterface::class, 'sylius_paypal.provider.paypal_refund_data');
+    $services->alias(HostProviderInterface::class, 'sylius_paypal.provider.host');
 
     $services->set('sylius_paypal.provider.available_countries', AvailableCountriesProvider::class)
         ->args([
@@ -323,7 +351,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(ChannelAvailableCountriesProviderInterface::class, 'sylius_paypal.provider.available_countries');
 
     $services->set('sylius_paypal.resolver.capture_payment', CapturePaymentResolver::class)
-        ->args([service('payum')]);
+        ->args([service('sylius_paypal.creator.paypal_order')]);
 
     $services->alias(CapturePaymentResolverInterface::class, 'sylius_paypal.resolver.capture_payment');
 
@@ -331,24 +359,39 @@ return static function (ContainerConfigurator $container) {
         ->decorate('sylius.order_processing.order_payment_processor.after_checkout')
         ->args([service('.inner')]);
 
-    $services->set('sylius_paypal.order_processing.order_payment_processor.checkout', OrderPaymentProcessor::class)
-        ->decorate('sylius.order_processing.order_payment_processor.checkout')
+    $services->set('sylius_paypal.updater.approved_paypal_order', ApprovedPayPalOrderUpdater::class)
         ->args([
-            service('.inner'),
-            service('sylius_abstraction.state_machine'),
+            service('sylius_paypal.api.update_order'),
+            service('sylius_paypal.api.update_order_address'),
+            service('sylius_paypal.updater.payment'),
+            service('sylius.state_resolver.order_payment'),
         ]);
 
-    $services->set('sylius_paypal.processor.paypal_order_complete', PayPalOrderCompleteProcessor::class)
-        ->public()
+    $services->alias(ApprovedPayPalOrderUpdaterInterface::class, 'sylius_paypal.updater.approved_paypal_order');
+
+    $services->set('sylius_paypal.checker.approved_paypal_order', ApprovedPayPalOrderChecker::class);
+
+    $services->alias(ApprovedPayPalOrderCheckerInterface::class, 'sylius_paypal.checker.approved_paypal_order');
+
+    $services->set('sylius_paypal.processor.payment_capture', PaymentCaptureProcessor::class)
         ->args([
-            service('sylius_paypal.manager.payment_state'),
-            service('sylius_paypal.verifier.payment_amount'),
+            service('sylius_paypal.checker.approved_paypal_order'),
+            service('sylius_paypal.updater.approved_paypal_order'),
+            service('sylius_paypal.api.complete_order'),
+            service('sylius_paypal.api.order_details'),
         ]);
 
-    $services->set('sylius_paypal.processor.payment_complete', PayPalPaymentCompleteProcessor::class)
-        ->args([service('payum')]);
+    $services->alias(PaymentCaptureProcessorInterface::class, 'sylius_paypal.processor.payment_capture');
 
-    $services->alias(PaymentCompleteProcessorInterface::class, 'sylius_paypal.processor.payment_complete');
+    $services->set('sylius_paypal.processor.payment_authorization', PaymentAuthorizationProcessor::class)
+        ->args([
+            service('sylius_paypal.checker.approved_paypal_order'),
+            service('sylius_paypal.updater.approved_paypal_order'),
+            service('sylius_paypal.api.authorize_order'),
+            service('sylius_paypal.api.order_details'),
+        ]);
+
+    $services->alias(PaymentAuthorizationProcessorInterface::class, 'sylius_paypal.processor.payment_authorization');
 
     $services->set('sylius_paypal.processor.locale', LocaleProcessor::class)
         ->args([service('sylius_paypal.resolver.supported_locale')]);
@@ -363,71 +406,28 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(CurrentPayPalLocaleProviderInterface::class, 'sylius_paypal.provider.current_paypal_locale');
 
-    $services->set('sylius_paypal.processor.payment_refund', PayPalPaymentRefundProcessor::class)
-        ->public()
-        ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
-            service('sylius_paypal.api.order_details'),
-            service('sylius_paypal.api.refund_payment'),
-            service('sylius_paypal.generator.paypal_auth_assertion'),
-            service('sylius_paypal.provider.refund_reference_number'),
-        ]);
-
-    $services->alias(PaymentRefundProcessorInterface::class, 'sylius_paypal.processor.payment_refund');
-
-    $services->set('sylius_paypal.processor.late_capture_refund', PayPalLateCaptureRefundProcessor::class)
-        ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
-            service('sylius_paypal.api.order_details'),
-            service('sylius_paypal.api.refund_payment'),
-            service('sylius_paypal.generator.paypal_auth_assertion'),
-            service('sylius_paypal.provider.refund_reference_number'),
-            service('sylius.manager.payment'),
-        ]);
-
-    $services->set('sylius_paypal.processor.ui_paypal_payment_refund', UiPayPalPaymentRefundProcessor::class)
-        ->decorate('sylius_paypal.processor.payment_refund')
-        ->args([service('.inner')]);
-
-    $services->set('sylius_paypal.resolver.payment_method.paypal', PayPalDefaultPaymentMethodResolver::class)
-        ->decorate('sylius.resolver.payment_method.default')
-        ->args([
-            service('.inner'),
-            service('sylius.repository.payment_method'),
-            '%sylius_paypal.prioritize_paypal_as_default_method%',
-        ]);
-
-    $services->set('sylius_paypal.resolver.payment_method.paypal_prioritising', PayPalPrioritisingPaymentMethodsResolver::class)
-        ->decorate('sylius.resolver.payment_methods')
-        ->args([
-            service('.inner'),
-            '%sylius_paypal.prioritized_factory_name%',
-        ]);
-
-    $services->set('sylius_paypal.provider.paypal_configuration', PayPalConfigurationProvider::class)
-        ->args([service('sylius.repository.payment_method')]);
-
-    $services->alias(PayPalConfigurationProviderInterface::class, 'sylius_paypal.provider.paypal_configuration');
-
-    $services->alias(PayPalFundingSourcesConfigurationProviderInterface::class, 'sylius_paypal.provider.paypal_configuration');
-
     $services->set('sylius_paypal.provider.web_sdk_configuration', WebSdkConfigurationProvider::class)
         ->args([
-            service('sylius_paypal.provider.paypal_configuration'),
-            '%sylius_paypal.web_url%',
-            '%sylius_paypal.sandbox%',
-            '%sylius_paypal.test_buyer_country%',
+            service('sylius_paypal.provider.host'),
+            param('sylius_paypal.test_buyer_country'),
         ]);
 
     $services->alias(WebSdkConfigurationProviderInterface::class, 'sylius_paypal.provider.web_sdk_configuration');
 
-    $services->set('sylius_paypal.provider.paypal_payment_page_context', PayPalPaymentPageContextProvider::class)
+    $services->set('sylius_paypal.provider.payment_sdk_configuration', PaymentSdkConfigurationProvider::class)
         ->args([
             service('sylius_paypal.provider.web_sdk_configuration'),
-            service('router'),
             service('sylius_paypal.processor.locale'),
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
             service('sylius_paypal.provider.eligible_redirect_payment_sources'),
+            service('sylius_paypal.checker.payment_source_enabled'),
+        ]);
+
+    $services->alias(PaymentSdkConfigurationProviderInterface::class, 'sylius_paypal.provider.payment_sdk_configuration');
+
+    $services->set('sylius_paypal.provider.paypal_payment_page_context', PayPalPaymentPageContextProvider::class)
+        ->args([
+            service('sylius_paypal.provider.payment_sdk_configuration'),
+            service('router'),
         ]);
 
     $services->alias(PayPalPaymentPageContextProviderInterface::class, 'sylius_paypal.provider.paypal_payment_page_context');
@@ -435,18 +435,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.uuid', UuidProvider::class);
 
     $services->alias(UuidProviderInterface::class, 'sylius_paypal.provider.uuid');
-
-    $services->set('sylius_paypal.provider.nonce', NonceProvider::class);
-
-    $services->alias(NonceProviderInterface::class, 'sylius_paypal.provider.nonce');
-
-    $services->set('sylius_paypal.client.sftp', SFTP::class)
-        ->args(['%sylius_paypal.reports_sftp_host%']);
-
-    $services->set('sylius_paypal.downloader.report', SftpPayoutsReportDownloader::class)
-        ->args([service('sylius_paypal.client.sftp')]);
-
-    $services->alias(ReportDownloaderInterface::class, 'sylius_paypal.downloader.report');
 
     $services->set('sylius_paypal.processor.paypal_address', PayPalAddressProcessor::class)
         ->args([service('doctrine.orm.entity_manager')])
@@ -459,11 +447,11 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.enabler.payment_method', PayPalPaymentMethodEnabler::class)
         ->args([
-            service('sylius.http_client'),
-            '%sylius_paypal.facilitator_url%',
+            service('sylius_paypal.api.authorize_client'),
+            service('sylius_paypal.api.merchant_onboarding_status'),
             service('sylius.manager.payment_method'),
             service('sylius_paypal.registrar.seller_webhook'),
-            service(RequestFactoryInterface::class),
+            service('sylius_paypal.provider.partner_credentials'),
         ]);
 
     $services->alias(PaymentMethodEnablerInterface::class, 'sylius_paypal.enabler.payment_method');
@@ -474,10 +462,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.provider.eligible_redirect_payment_sources', EligibleRedirectPaymentSourcesProvider::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.find_eligible_methods'),
-            service('sylius_paypal.provider.paypal_configuration'),
             service('monolog.logger.paypal'),
+            service('sylius_paypal.checker.payment_authorization'),
         ]);
 
     $services->alias(EligibleRedirectPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.eligible_redirect_payment_sources');
@@ -486,26 +473,9 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(EnabledPaymentSourcesProviderInterface::class, 'sylius_paypal.provider.enabled_payment_sources');
 
-    $services->set('sylius_paypal.processor.webhook.refund_order', RefundOrderWebhookProcessor::class)
-        ->args([
-            service('sylius_paypal.provider.paypal_refund_data'),
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius_abstraction.state_machine'),
-            service('sylius.manager.payment'),
-        ]);
-
-    $services->set('sylius_paypal.processor.webhook.capture_payment', CapturePaymentWebhookProcessor::class)
-        ->args([
-            service('sylius_paypal.repository.query.paypal_payment'),
-            service('sylius_paypal.processor.payment_settlement'),
-            service('monolog.logger.paypal'),
-        ]);
-
     $services->set('sylius_paypal.verifier.webhook_request', WebhookRequestVerifier::class)
         ->args([
-            service('sylius_paypal.provider.paypal_payment_method'),
             service('sylius_paypal.provider.webhook_id'),
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.webhook_signature_verifier'),
         ]);
 
@@ -515,9 +485,18 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
 
+    $services->set('sylius_paypal.checker.payment_source_enabled', PaymentSourceEnabledChecker::class)
+        ->args([service('sylius_paypal.checker.payment_authorization')]);
+
+    $services->alias(PaymentSourceEnabledCheckerInterface::class, 'sylius_paypal.checker.payment_source_enabled');
+
+    $services->set('sylius_paypal.checker.payment_authorization', PaymentAuthorizationChecker::class)
+        ->args([param('sylius_paypal.authorize.payment_sources')]);
+
+    $services->alias(PaymentAuthorizationCheckerInterface::class, 'sylius_paypal.checker.payment_authorization');
+
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([
-            service('sylius_paypal.api.cache_authorize_client'),
             service('sylius_paypal.api.order_details'),
             service('sylius_abstraction.state_machine'),
             service('sylius.manager.payment'),
@@ -526,21 +505,54 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PaymentSettlementProcessorInterface::class, 'sylius_paypal.processor.payment_settlement');
 
+    $services->set('sylius_paypal.processor.payment_refund_confirmation', PayPalPaymentRefundConfirmationProcessor::class)
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+        ]);
+
+    $services->alias(PayPalPaymentRefundConfirmationProcessorInterface::class, 'sylius_paypal.processor.payment_refund_confirmation');
+
+    $services->set('sylius_paypal.processor.late_capture_refund_confirmation', PayPalLateCaptureRefundConfirmationProcessor::class)
+        ->args([
+            service('sylius.repository.payment_request'),
+            service('sylius_abstraction.state_machine'),
+        ]);
+
+    $services->alias(PayPalLateCaptureRefundConfirmationProcessorInterface::class, 'sylius_paypal.processor.late_capture_refund_confirmation');
+
+    $services->set('sylius_paypal.checker.payment_completion', PaymentCompletionChecker::class)
+        ->public();
+
+    $services->alias(PaymentCompletionCheckerInterface::class, 'sylius_paypal.checker.payment_completion');
+
+    $services->set('sylius_paypal.checker.payment_refund', PaymentRefundChecker::class)
+        ->public();
+
+    $services->alias(PaymentRefundCheckerInterface::class, 'sylius_paypal.checker.payment_refund');
+
+    $services->set('sylius_paypal.checker.permissions_state', PermissionsStateChecker::class);
+
+    $services->alias(PermissionsStateCheckerInterface::class, 'sylius_paypal.checker.permissions_state');
+
     $services->set('sylius_paypal.provider.webhook_url', WebhookUrlProvider::class)
         ->args([
             service('router'),
-            '%sylius_paypal.webhook_base_url%',
+            service('request_stack'),
+            param('sylius_paypal.webhook_base_url'),
         ]);
 
     $services->alias(WebhookUrlProviderInterface::class, 'sylius_paypal.provider.webhook_url');
 
     $services->set('sylius_paypal.registrar.seller_webhook_event_types', SellerWebhookEventTypesRegistrar::class)
         ->args([
-            service('sylius_paypal.provider.webhook_id'),
-            service('sylius_paypal.api.cache_authorize_client'),
+            service('sylius_paypal.provider.webhook_id.lookup'),
             service('sylius_paypal.api.update_webhook'),
             service('sylius_paypal.api.webhook'),
+            service('sylius_paypal.api.generic'),
+            service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.webhook_url'),
+            service('sylius_paypal.updater.webhook_id'),
         ]);
 
     $services->alias(SellerWebhookEventTypesRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook_event_types');
@@ -552,14 +564,41 @@ return static function (ContainerConfigurator $container) {
         ])
         ->tag('console.command');
 
+    $services->set('sylius_paypal.repository.webhook_event', PayPalWebhookEventRepository::class)
+        ->args([PayPalWebhookEvent::class])
+        ->factory([service('doctrine.orm.entity_manager'), 'getRepository']);
+
+    $services->alias(PayPalWebhookEventRepositoryInterface::class, 'sylius_paypal.repository.webhook_event');
+
+    $services->set('sylius_paypal.resolver.webhook_event_payment', WebhookEventPaymentResolver::class)
+        ->args([
+            service('sylius_paypal.repository.query.paypal_payment'),
+        ]);
+
+    $services->alias(WebhookEventPaymentResolverInterface::class, 'sylius_paypal.resolver.webhook_event_payment');
+
+    $services->set('sylius_paypal.console.command.prune_webhook_events', PruneWebhookEventsCommand::class)
+        ->args([
+            service('sylius_paypal.repository.webhook_event'),
+            '%sylius_paypal.webhook_event_retention_days%',
+        ])
+        ->tag('console.command');
+
     $services->set('sylius_paypal.console.command.complete_paid_payments', CompletePaidPaymentsCommand::class)
         ->args([
-            service('sylius.repository.payment'),
-            null,
-            null,
-            null,
-            null,
-            service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_paypal.repository.query.paypal_payment'),
+            service('sylius_paypal.dispatcher.status_payment_request'),
+            service('doctrine.orm.entity_manager'),
+        ])
+        ->tag('console.command');
+
+    $services->set('sylius_paypal.console.command.encrypt_gateway_configs', EncryptGatewayConfigsCommand::class)
+        ->args([
+            service('doctrine.dbal.default_connection'),
+            service('sylius.factory.gateway_config'),
+            service('sylius.checker.gateway_config_encryption')->nullOnInvalid(),
+            service('sylius.encrypter.gateway_config')->nullOnInvalid(),
+            service('payum.dynamic_gateways.cypher')->nullOnInvalid(),
         ])
         ->tag('console.command');
 
@@ -569,48 +608,92 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.registrar.seller_webhook', SellerWebhookRegistrar::class)
         ->args([
-            service('sylius_paypal.api.authorize_client'),
-            service('router'),
             service('sylius_paypal.api.webhook'),
             service('sylius_paypal.provider.webhook_url'),
+            service('sylius_paypal.updater.webhook_id'),
         ]);
 
     $services->alias(SellerWebhookRegistrarInterface::class, 'sylius_paypal.registrar.seller_webhook');
 
-    $services->set('sylius_paypal.creator.sandbox_payment_method', PayPalSandboxPaymentMethodCreator::class)
+    $services->set('sylius_paypal.creator.paypal_order', PayPalOrderCreator::class)
+        ->args([
+            service('sylius_paypal.api.create_order'),
+            service('sylius_paypal.provider.uuid'),
+            service('sylius_paypal.provider.paypal_order_created_statuses'),
+        ]);
+
+    $services->alias(PayPalOrderCreatorInterface::class, 'sylius_paypal.creator.paypal_order');
+
+    $services->set('sylius_paypal.remover.payment_details', PayPalPaymentDetailsRemover::class)
+        ->public();
+
+    $services->alias(PayPalPaymentDetailsRemoverInterface::class, 'sylius_paypal.remover.payment_details');
+
+    $services->set('sylius_paypal.changer.payment_method', PaymentMethodChanger::class)
+        ->decorate('sylius_api.changer.payment_method', null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->args([
+            service('.inner'),
+            service('sylius_paypal.remover.payment_details'),
+        ]);
+
+    $services->set('sylius_paypal.creator.onboarding_payment_method', PayPalOnboardingPaymentMethodCreator::class)
         ->args([
             service('sylius.factory.gateway_config'),
             service('sylius.factory.payment_method'),
             service('doctrine.orm.entity_manager'),
+            param('sylius_paypal.partner_attribution_id'),
+            service('sylius.repository.payment_method'),
         ]);
+
+    $services->alias(PayPalOnboardingPaymentMethodCreatorInterface::class, 'sylius_paypal.creator.onboarding_payment_method');
 
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)
         ->args([
-            '%sylius_paypal.sandbox%',
-            service(PayPalFundingSourcesConfigurationProviderInterface::class),
+            service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius.context.channel'),
             service(WebSdkConfigurationProviderInterface::class),
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
+            service('sylius_paypal.provider.host'),
         ])
         ->tag('twig.extension');
 
     $services->set('sylius_paypal.twig.extension.order_address', OrderAddressExtension::class)
         ->tag('twig.extension');
 
+    $services->set('sylius_paypal.twig.extension.change_payment_method', ChangePaymentMethodExtension::class)
+        ->args(['%sylius_core.checkout.payment.allowed_states%'])
+        ->tag('twig.extension');
+
     $services->set('sylius_paypal.twig.extension.enabled_payment_sources', EnabledPaymentSourcesExtension::class)
         ->args([service('sylius_paypal.provider.enabled_payment_sources')])
         ->tag('twig.extension');
 
-    $services->set('sylius_paypal.twig.component.paypal_sandbox_modal', PayPalSandboxModalComponent::class)
+    $services->set('sylius_paypal.twig.component.permissions_state', PermissionsStateComponent::class)
         ->args([
-            service('form.factory'),
-            service('sylius_paypal.creator.sandbox_payment_method'),
-            service('request_stack'),
-            service('logger'),
-            service('router'),
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.checker.permissions_state'),
         ])
-        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:create_sandbox_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig']);
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:permissions_state', 'template' => '@SyliusPayPalPlugin/admin/payment_method/component/permissions_state.html.twig']);
+
+    $services->set('sylius_paypal.twig.component.paypal_onboarding_modal', PayPalOnboardingModalComponent::class)
+        ->args([
+            service('sylius_paypal.provider.onboarding_url'),
+            service('sylius_paypal.manager.seller_nonce'),
+            service('monolog.logger.paypal'),
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.verifier.permissions'),
+        ])
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:live_onboarding_modal', 'template' => '@SyliusPayPalPlugin/admin/shared/components/paypal_onboarding_modal.html.twig']);
+
+    $services->set('sylius_paypal.twig.component.webhook_state', WebhookStateComponent::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+            service('sylius_paypal.checker.webhook_state'),
+            service('sylius_paypal.registrar.seller_webhook_event_types'),
+            service('monolog.logger.paypal'),
+        ])
+        ->tag('sylius.live_component.admin', ['key' => 'sylius_paypal:webhook_state', 'template' => '@SyliusPayPalPlugin/admin/shared/components/webhook_state.html.twig']);
 
     $services->set('sylius_paypal.verifier.payment_amount', PaymentAmountVerifier::class);
 
@@ -619,6 +702,14 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.verifier.three_d_secure', ThreeDSecureVerifier::class);
 
     $services->alias(ThreeDSecureVerifierInterface::class, 'sylius_paypal.verifier.three_d_secure');
+
+    $services->set('sylius_paypal.verifier.payment_three_d_secure', PaymentThreeDSecureVerifier::class)
+        ->args([
+            service('sylius_paypal.api.order_details'),
+            service('sylius_paypal.verifier.three_d_secure'),
+        ]);
+
+    $services->alias(PaymentThreeDSecureVerifierInterface::class, 'sylius_paypal.verifier.payment_three_d_secure');
 
     $services->set('sylius_paypal.verifier.order_ownership', OrderOwnershipVerifier::class)
         ->args([service('sylius.context.cart')]);
@@ -629,15 +720,16 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service('sylius.manager.payment'),
             service('sylius.repository.payment'),
-            '%sylius_paypal.repository.query.pay_pal_payment.updatable_states%',
-            '%sylius_paypal.repository.query.pay_pal_payment.cancellable_states%',
-            '%sylius_paypal.repository.query.pay_pal_payment.refundable_states%',
-            '%sylius_paypal.repository.query.pay_pal_payment.settleable_states%',
+            param('sylius_paypal.repository.query.pay_pal_payment.updatable_states'),
+            param('sylius_paypal.repository.query.pay_pal_payment.cancellable_states'),
+            param('sylius_paypal.repository.query.pay_pal_payment.settleable_states'),
         ]);
 
     $services->alias(PaypalPaymentQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
 
     $services->alias(SettleablePaypalPaymentQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
+
+    $services->alias(PaypalPaymentBatchQueryInterface::class, 'sylius_paypal.repository.query.paypal_payment');
 
     $services->set('sylius_paypal.resolver.paypal_payment_methods', PayPalPaymentMethodsResolver::class)
         ->args([service('sylius.repository.payment_method')]);
@@ -645,7 +737,7 @@ return static function (ContainerConfigurator $container) {
     $services->alias(PayPalPaymentMethodsResolverInterface::class, 'sylius_paypal.resolver.paypal_payment_methods');
 
     $services->set('sylius_paypal.resolver.supported_locale', SupportedLocaleResolver::class)
-        ->args(['%sylius_paypal.supported_locales%']);
+        ->args([param('sylius_paypal.supported_locales')]);
 
     $services->alias(SupportedLocaleResolverInterface::class, 'sylius_paypal.resolver.supported_locale');
 
