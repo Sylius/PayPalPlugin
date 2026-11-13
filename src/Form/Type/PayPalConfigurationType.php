@@ -34,8 +34,6 @@ final class PayPalConfigurationType extends AbstractType
     {
         $originalData = [];
 
-        // Onboarding sets the credentials, so they are disabled: a submitted value is ignored and the stored one is kept.
-        // The client secret has no field at all, so it never reaches the page; the stored value stays in the config.
         $builder
             ->add(PayPalGatewayConfig::MERCHANT_ID, TextType::class, ['label' => 'sylius_paypal.merchant_id', 'disabled' => true])
             ->add(PayPalGatewayConfig::CLIENT_ID, TextType::class, ['label' => 'sylius_paypal.client_id', 'disabled' => true])
