@@ -11,13 +11,13 @@ sylius_twig_hooks:
                 priority: 600
             paypal_account:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_account.html.twig'
-                priority: 500
+                priority: 175
             paypal_payment_methods:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods.html.twig'
-                priority: 400
+                priority: 150
             paypal_checkout_experience:
                 template: '@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_checkout_experience.html.twig'
-                priority: 300
+                priority: 125
 
         'sylius_admin.payment_method.update.content.form.sections.paypal_account':
             merchant_id:

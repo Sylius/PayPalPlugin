@@ -485,17 +485,18 @@ unchanged.
    | `trustly_enabled`            | `gateway_configuration.sylius_paypal` (-1100) | `paypal_payment_methods.local_payment_methods.trustly` (0)        |
    | `card_three_d_secure_always` | `gateway_configuration.sylius_paypal` (-1200) | `paypal_payment_methods.cards.cards.options` (0)                  |
 
-   The full structure, with priorities. The four new cards render for a PayPal payment method only, above the
-   core `general` (200), `gateway_configuration` (100) and `translations` (0) sections:
+   The full structure, with priorities. The new hookables render for a PayPal payment method only. The mode
+   banner renders above the core `general` (200) section, and the three cards between it and the core
+   `gateway_configuration` (100) and `translations` (0) sections:
 
    - the sections hook gets four new hookables:
      - `mode` (600): a banner with the global sandbox or production mode. In sandbox mode it also explains how
        to go live;
-     - `paypal_account` (500): the PayPal account card. Its header shows a Connected badge when the payment
+     - `paypal_account` (175): the PayPal account card. Its header shows a Connected badge when the payment
        method is enabled and has a merchant id (no call to PayPal is made), and a link to the PayPal business
        account, sandbox or live depending on the mode;
-     - `paypal_payment_methods` (400): the payment methods card;
-     - `paypal_checkout_experience` (300): the checkout experience card;
+     - `paypal_payment_methods` (150): the payment methods card;
+     - `paypal_checkout_experience` (125): the checkout experience card;
    - `paypal_account`: `merchant_id` (200), `client_id` (100), `client_secret` (0);
    - `paypal_payment_methods`: one group per kind of payment method, rendered by
      `@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/group.html.twig` from its
