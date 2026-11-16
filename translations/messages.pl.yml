@@ -114,6 +114,7 @@ sylius_paypal:
     privacy_statement: 'Oświadczenie o ochronie prywatności PayPal'
     report: 'Raport'
     reports_sftp: 'Raporty (SFTP)'
+    secured_by: 'Zabezpieczone przez'
     sftp_password: 'Hasło SFTP'
     sftp_username: 'Nazwa użytkownika SFTP'
     share_data_consent_confirmation: 'Klikając Tak, akceptujesz zgodę na udostępnianie danych PayPal'

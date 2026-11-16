@@ -10,7 +10,7 @@
         <td colspan="1">
             <div class="payment-method-list__item-inner d-flex align-items-center gap-3">
                 <div class="payment-method-list__logo d-flex align-items-center justify-content-center overflow-hidden p-2 flex-shrink-0">
-                    <img src="{{ asset('build/admin/images/paypal-logo.svg', 'admin') }}" alt="{{ 'sylius_paypal.label'|trans }}">
+                    {% include '@SyliusPayPalPlugin/admin/shared/paypal_logo.svg.twig' with { height: '24px', class: 'text-body' } only %}
                 </div>
 
                 <div class="payment-method-list__content d-flex flex-column gap-3">
