@@ -6,6 +6,8 @@ sylius_paypal:
     onboarding_session_expired: 'Uw PayPal onboarding-sessie is verlopen. Probeer het opnieuw.'
     order_cancelled: 'PayPal bestelling is geannuleerd'
     order_total_changed: 'Het totaalbedrag van uw bestelling is gewijzigd sinds de betaling werd gestart. Controleer uw bestelling en probeer het opnieuw.'
+    payment_awaiting_payer: 'Uw betaling bij de bank is nog niet afgerond. Rond deze af in het venster van de bank of kies opnieuw een betaalmethode.'
+    payment_cancellation_pending: 'De betaling is niet afgerond bij de bank. Zodra PayPal dit bevestigt, kunt u de bestelling opnieuw betalen.'
     payment_cancelled: 'PayPal betaling is geannuleerd'
     payment_capture_pending: 'PayPal verwerkt de incasso. De betaling wordt als voltooid gemarkeerd zodra PayPal deze bevestigt.'
     payment_enabled: 'PayPal betaling is zojuist ingeschakeld.'

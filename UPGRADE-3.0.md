@@ -1415,3 +1415,9 @@
    `Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider` (`sylius_paypal.api_platform.payment_configuration_provider`).
    It implements `Sylius\Bundle\ApiBundle\Payment\PaymentConfigurationProviderInterface` and takes only
    `PaymentSdkConfigurationProviderInterface`.
+
+1. #### Unused translations have been removed.
+
+   The `sylius_paypal.back_to_store`, `sylius_paypal.billing_info`, `sylius_paypal.credit_card`,
+   `sylius_paypal.credit_card_number` and `sylius_paypal.invalid_form` messages are no longer used by any template and
+   have been removed from every locale. Define them in your application if your templates use them.

@@ -1,0 +1,12 @@
+sylius_paypal:
+    payment_request:
+        action_not_allowed: 'Die Aktion „{{ action }}“ kann für eine PayPal-Zahlung nicht angefordert werden.'
+        action_not_matching_payment_method: 'Diese PayPal-Zahlungsmethode nimmt Zahlungen mit der Aktion „{{ expected_action }}“ an, nicht „{{ action }}“.'
+        payload_invalid: 'Der Payload darf nur die „payment_source“ enthalten, mit der bezahlt werden soll.'
+        payment_method_not_available: 'Diese PayPal-Zahlungsmethode ist im Verkaufskanal der Bestellung nicht verfügbar.'
+        payment_source_not_available: 'Die Zahlungsquelle „{{ payment_source }}“ ist für diese Zahlungsmethode nicht verfügbar.'
+    shipment_tracking:
+        carrier_invalid: 'Dieser Versanddienstleister wird nicht unterstützt.'
+        carrier_name_other_required: 'Bitte geben Sie den Namen des Versanddienstleisters an, wenn „Andere“ ausgewählt ist.'
+        tracking_code_required: 'Bitte geben Sie die Sendungsnummer an, wenn ein Versanddienstleister ausgewählt ist.'
+        tracking_code_too_long: 'Die Sendungsnummer darf höchstens {{ limit }} Zeichen lang sein, um an PayPal gesendet zu werden.'
