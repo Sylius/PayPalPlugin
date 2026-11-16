@@ -14,7 +14,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.listener.workflow.payment_complete_guard', PaymentCompleteGuardListener::class)
         ->args([service('sylius_paypal.checker.payment_completion')])
-        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.guard.complete']);
+        ->tag('kernel.event_listener', ['event' => 'workflow.sylius_payment.guard.complete', 'priority' => -100]);
 
     $services->set('sylius_paypal.listener.workflow.complete_capture_authorization_payment_requests', CompleteCaptureAuthorizationPaymentRequestsListener::class)
         ->args([service('sylius_paypal.completer.capture_authorization_payment_request')])
