@@ -134,6 +134,7 @@ sylius_paypal:
             verification_failed: 'De PayPal-machtigingen van deze betaalmethode konden niet worden gecontroleerd. U kunt ze nog steeds bijwerken.'
     privacy_notice: 'Door met uw kaart te betalen, erkent u dat PayPal uw gegevens verwerkt volgens de Privacyverklaring van PayPal, beschikbaar op PayPal.com.'
     privacy_statement: 'Privacyverklaring van PayPal'
+    refund_late_capture: 'Extra %amount% terugbetalen'
     sandbox_on_production_warning: 'Waarschuwing: deze betaalmethode gebruikt PayPal Sandbox op een productieomgeving. Sandbox gebruikt testgegevens en verwerkt geen echte betalingen.'
     share_data_consent_confirmation: 'Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen'
     shipment_tracking:

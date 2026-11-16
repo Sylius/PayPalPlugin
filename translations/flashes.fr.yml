@@ -6,6 +6,8 @@ sylius_paypal:
     onboarding_session_expired: 'Votre session d''intégration PayPal a expiré. Merci de réessayer.'
     order_cancelled: 'La commande PayPal a été annulée'
     order_total_changed: 'Le total de votre commande a changé depuis le début du paiement. Merci de vérifier votre commande et de réessayer.'
+    payment_awaiting_payer: 'Votre paiement auprès de la banque n''est pas encore terminé. Finalisez-le dans la fenêtre de la banque ou choisissez à nouveau un moyen de paiement.'
+    payment_cancellation_pending: 'Le paiement n''a pas été finalisé auprès de la banque. Dès que PayPal l''aura confirmé, vous pourrez à nouveau payer la commande.'
     payment_cancelled: 'Le paiement PayPal a été annulé'
     payment_capture_pending: 'PayPal traite l''encaissement. Le paiement sera marqué comme terminé dès que PayPal l''aura confirmé.'
     payment_enabled: 'Le paiement PayPal vient d''être activé.'
