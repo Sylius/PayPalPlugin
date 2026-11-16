@@ -1082,7 +1082,10 @@
    `Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface`
    (`sylius_paypal.onboarding.processor.permissions_update`), which returns a
    `Sylius\PayPalPlugin\Model\PermissionsUpdateResult`. It refuses another PayPal account and keeps the credentials
-   and the webhook of the payment method.
+   and the webhook of the payment method. Once the seller has gone through the consent, it stores the current scope
+   even when PayPal leaves some capabilities inactive, as the onboarding of a new payment method does: a capability
+   PayPal does not offer the account or has denied would otherwise keep the payment method flagged after every
+   consent. The admin is still told which capabilities PayPal has not activated.
 
    `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`) verifies the
    merchant integration status of the account, read from PayPal before the consent is offered (`verify()`) or returned
@@ -1122,7 +1125,9 @@
    stored onboarding scope is the only record that they were asked for.
 
    A PayPal payment method onboarded before has a stored scope that misses them, so it gets the "PayPal permissions
-   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting.
+   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting. Its webhook misses the
+   `VAULT.PAYMENT-TOKEN.CREATED` and `VAULT.PAYMENT-TOKEN.DELETED` event types and is flagged out of date until
+   `sylius-paypal:register-webhook-event-types` runs or "Update webhook" is used.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 
