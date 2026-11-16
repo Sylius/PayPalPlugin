@@ -250,6 +250,21 @@
 1. **The thank-you page's "Change payment method" button** shows only while the order's payment state is
    `awaiting_payment`. It used to show whenever the last payment was not completed.
 
+1. **The admin payment method list no longer shows the yellow "Enable PayPal" button.** The suggested PayPal row's
+   "Configure" button and the PayPal entry of the "Create" dropdown start the same flow. The `enable_paypal` main
+   action of the `sylius_admin_payment_method` grid is now disabled; to bring the button back, enable it in your
+   app:
+
+   ```yaml
+   sylius_grid:
+       grids:
+           sylius_admin_payment_method:
+               actions:
+                   main:
+                       enable_paypal:
+                           enabled: true
+   ```
+
 ## New features and configuration
 
 ### Payment methods
@@ -299,6 +314,11 @@ logo, the payment sources its gateway config enables and a sandbox or production
 the `name` field of the `sylius_admin_payment_method` grid to do it and hands every other payment method to the
 Sylius template. The row is built from the `sylius_paypal.admin.payment_method.grid.field.name` hook, with a
 `badges` hook for further badges.
+
+While no PayPal payment method exists, the "Create" dropdown of the admin payment method list offers
+"PayPal (Sandbox)" or "PayPal (Production)", following `sylius_paypal.sandbox`. It opens the same modal as the
+suggested PayPal row. The plugin overrides the `create_payment_method` grid action template to do it, so an app
+that overrides this template itself does not get the entry.
 
 ### Package tracking
 
@@ -442,8 +462,8 @@ unchanged.
    - `sylius_shop.order.show.content` → `form`, now `@SyliusPayPalPlugin/shop/order/show/content/form.html.twig`;
    - `sylius_admin.payment_method.update.content.form.sections.gateway_configuration` → `type` and `use_payum`,
      now `@SyliusPayPalPlugin/admin/payment_method/form/sections/gateway_configuration/type.html.twig` and
-     `use_payum.html.twig`. For a PayPal payment method the type field spans the full width and the Use Payum
-     switch is not rendered; every other gateway gets the core templates.
+     `use_payum.html.twig`. For a PayPal payment method neither the type field nor the Use Payum
+     switch is rendered; every other gateway gets the core templates.
 
 1. **The admin ship form for PayPal orders.**
 
@@ -504,9 +524,8 @@ unchanged.
      `local_payment_methods` (0);
    - each group hook (`paypal_payment_methods.<group>`) holds one row per payment method, rendered by
      `@SyliusPayPalPlugin/admin/payment_method/form/sections/paypal_payment_methods/method.html.twig` from its
-     `code`, `label`, `icon`, `description`, `badge` and `help` configuration. `icon` is a payment method icon
-     code or a `tabler:` icon. `help` is a translation key shown in an "i" tooltip next to the label, rendered by
-     the `icon` macro of `@SyliusPayPalPlugin/admin/shared/helper/info_tooltip.html.twig`. A row renders its `<code>` hook on the right, for the switch, and its `<code>.options`
+     `code`, `label`, `icon`, `description` and `badge` configuration. `icon` is a payment method icon
+     code or a `tabler:` icon. A row renders its `<code>` hook on the right, for the switch, and its `<code>.options`
      hook in a row below, for the method's settings, when that hook renders anything:
      - `paypal_payment_methods.paypal`: `paypal` (100), `pay_later` (0);
      - `paypal_payment_methods.cards`: `cards`;
@@ -941,6 +960,9 @@ Everything below will be removed or required in 3.0:
    favour of `PayPalWebhookAction` and `RefundOrderWebhookProcessor`.
 1. The three commented-out arguments of `CreateOrderApiInterface::create()` will be declared.
 1. The `?PaymentInterface` return types of `PaypalPaymentQueryInterface` will be narrowed to `PaymentInterface`.
+1. The `enable_paypal` action of the `sylius_admin_payment_method` grid, its `enable_paypal` action type and the
+   `@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig` template.
+1. The `sylius_is_paypal_enabled` Twig function and `PayPalExtension::isPayPalEnabled()`.
 
 ## Known limitations
 

@@ -25,7 +25,7 @@ final class ConnectPayPalAccountElement extends Element implements ConnectPayPal
     protected function getDefinedElements(): array
     {
         return array_merge(parent::getDefinedElements(), [
-            'add_paypal_account' => '.btn-group button.dropdown-toggle:contains("Add PayPal account")',
+            'add_paypal_account' => '.dropdown-menu a.dropdown-item[data-test-user-dropdown-item="PayPal (Production)"]',
         ]);
     }
 }

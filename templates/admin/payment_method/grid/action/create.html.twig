@@ -1,0 +1,21 @@
+{% import '@SyliusAdmin/shared/helper/dropdown.html.twig' as dropdown %}
+
+{% set items = [
+    { title: 'sylius_paypal.create_production', url: '#', attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-pay-pal' } },
+    { title: 'sylius_paypal.create_sandbox', url: '#', attributes: { 'data-bs-toggle': 'modal', 'data-bs-target': '#confirmation-modal-create-paypal-sandbox' } },
+] %}
+
+{% for gateway_service_id, gateway_name in sylius_admin_get_payment_gateways() %}
+    {% set items = items|merge([{
+        title: gateway_name|trans,
+        url: path('sylius_admin_payment_method_create', { 'factory': gateway_service_id }),
+    }]) %}
+{% endfor %}
+
+{{ dropdown.list(
+    {
+        direction: 'down-end',
+        button: { text: 'sylius.ui.create'|trans, icon: 'tabler:plus' }
+    },
+    items
+) }}

@@ -156,6 +156,12 @@ final class PayPalExtension extends AbstractExtension
 
     public function isPayPalEnabled(iterable $paymentMethods): bool
     {
+        trigger_deprecation(
+            'sylius/paypal-plugin',
+            '2.2',
+            'The "sylius_is_paypal_enabled" Twig function is deprecated and will be removed in 3.0.',
+        );
+
         /** @var PaymentMethodInterface $paymentMethod */
         foreach ($paymentMethods as $paymentMethod) {
             /** @var GatewayConfigInterface $gatewayConfig */
