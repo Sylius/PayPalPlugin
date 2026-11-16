@@ -1,0 +1,78 @@
+{% import '@SyliusAdmin/shared/helper/button.html.twig' as button %}
+
+<div {{ attributes }} {{ sylius_test_html_attribute('modal', type) }}>
+    <div
+        class="modal{{ opened ? ' show' : '' }}"
+        id="{{ modalId }}"
+        tabindex="-1"
+        {% if opened %}style="display: block;" aria-modal="true" role="dialog"{% else %}aria-hidden="true"{% endif %}
+        data-paypal-onboarding-complete-url="{{ paymentMethodId is null ? path('sylius_paypal_admin_complete_onboarding') : path('sylius_paypal_admin_update_permissions', {id: paymentMethodId}) }}"
+        data-paypal-onboarding-sandbox="{{ sandbox ? 'true' : 'false' }}"
+        data-paypal-onboarding-partner-js-url="{{ sylius_paypal_partner_js_url(sandbox) }}"
+        data-action="paypal:onboarding-open->live#action"
+        data-live-action-param="loadOnboardingUrl"
+    >
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title py-5">{{ 'sylius_paypal.share_data_consent_confirmation'|trans }}</h1>
+                </div>
+                <div class="modal-body">
+                    <p>{{ (paymentMethodId is null ? 'sylius_paypal.onboarding_modal_description' : 'sylius_paypal.permissions.update.modal_description')|trans }}</p>
+                    <div class="alert alert-danger d-none" data-paypal-onboarding-error></div>
+                    <div class="alert alert-success d-none" data-paypal-onboarding-success>
+                        <div class="alert-icon">{{ ux_icon('tabler:circle-check') }}</div>
+                        <div>
+                            <div class="alert-description">{{ (paymentMethodId is null ? 'sylius_paypal.onboarding_completed' : 'sylius_paypal.permissions.update.completed')|trans }}</div>
+                            <a href="#" class="btn btn-primary mt-2" data-paypal-onboarding-success-link>{{ 'sylius_paypal.go_to_payment_method'|trans }}</a>
+                        </div>
+                    </div>
+                    {% if verificationFailed %}
+                        <div class="alert alert-warning" {{ sylius_test_html_attribute('paypal-permissions-verification', 'failed') }}>
+                            <div class="alert-icon">{{ ux_icon('tabler:alert-triangle') }}</div>
+                            <div class="alert-description">{{ 'sylius_paypal.permissions.update.verification_failed'|trans }}</div>
+                        </div>
+                    {% endif %}
+                    {% if verification is not null and verification.isUpToDate() %}
+                        <div class="alert alert-success" {{ sylius_test_html_attribute('paypal-permissions-verification', verification.outcome().value) }}>
+                            <div class="alert-icon">{{ ux_icon('tabler:circle-check') }}</div>
+                            <div>
+                                <div class="alert-description">{{ 'sylius_paypal.permissions.update.already_up_to_date'|trans }}</div>
+                                <a href="{{ path('sylius_admin_payment_method_update', {id: paymentMethodId}) }}" class="btn btn-primary mt-2">{{ 'sylius_paypal.go_to_payment_method'|trans }}</a>
+                            </div>
+                        </div>
+                    {% elseif verification is not null and verification.isAwaitingPayPal() %}
+                        <div class="alert alert-info" {{ sylius_test_html_attribute('paypal-permissions-verification', verification.outcome().value) }}>
+                            <div class="alert-icon">{{ ux_icon('tabler:info-circle') }}</div>
+                            <div class="alert-description">
+                                {{ 'sylius_paypal.permissions.update.awaiting_paypal'|trans }}
+                                <code>{{ verification.describedPendingCapabilities()|join(', ') }}</code>
+                            </div>
+                        </div>
+                    {% elseif failed %}
+                        <div class="alert alert-danger" data-paypal-onboarding-load-error>
+                            <div class="alert-icon">{{ ux_icon('tabler:exclamation-circle') }}</div>
+                            <div class="alert-description">{{ 'sylius_paypal.could_not_load_onboarding_url'|trans }}</div>
+                        </div>
+                        {{ button.primary({ text: 'sylius.ui.yes_label'|trans, disabled: true }) }}
+                    {% elseif loading or not onboardingUrl %}
+                        {{ button.primary({ text: 'sylius.ui.yes_label'|trans, disabled: true }) }}
+                    {% else %}
+                        <a
+                            href="{{ onboardingUrl }}"
+                            target="_blank"
+                            data-paypal-button="true"
+                            data-paypal-onboard-complete="syliusPayPalOnboardedCallback"
+                            class="btn btn-primary"
+                        >
+                            {{ 'sylius.ui.yes_label'|trans }}
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    {{ button.default({ text: 'sylius.ui.no_label'|trans, attr: 'data-bs-dismiss=modal', type: 'button' }) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

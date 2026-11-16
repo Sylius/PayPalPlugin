@@ -14,16 +14,16 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Doctrine\Persistence\ObjectManager;
-use GuzzleHttp\Exception\GuzzleException;
-use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
@@ -43,7 +43,6 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
-        private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -78,15 +77,6 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
-        if (null === $this->fundingSourcesConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalFundingSourcesConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response
@@ -101,8 +91,18 @@ final readonly class CreatePayPalOrderFromCartAction
         }
         $this->orderOwnershipVerifier->verify($order, $request);
 
-        $paymentSource = $this->resolvePaymentSource($request, $order);
-        if (null === $paymentSource || !$this->isExpressCheckoutEnabled($order)) {
+        try {
+            $paymentMethod = $this->channelPayPalMethod($order, $request->query->getString('paymentMethod'));
+        } catch (\InvalidArgumentException) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        $paymentSource = $this->resolvePaymentSource($request, $paymentMethod);
+        if (null === $paymentSource || !$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -111,10 +111,10 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         try {
-            $payment = $this->getPayment($order);
-            $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+            $payment = $this->getPayment($order, $paymentMethod);
+            $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withPaymentSource($paymentSource)->toArray());
             $this->capturePaymentResolver->resolve($payment);
-        } catch (\DomainException|GuzzleException) {
+        } catch (\DomainException|PayPalApiException) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.something_went_wrong');
@@ -124,7 +124,7 @@ final readonly class CreatePayPalOrderFromCartAction
 
         $this->paymentManager->flush();
 
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
+        $payPalOrderId = PayPalPaymentDetails::fromPayment($payment)->payPalOrderId();
 
         return new JsonResponse([
             'id' => $order->getId(),
@@ -134,7 +134,7 @@ final readonly class CreatePayPalOrderFromCartAction
         ]);
     }
 
-    private function getPayment(OrderInterface $order): PaymentInterface
+    private function getPayment(OrderInterface $order, ?PaymentMethodInterface $channelPayPalMethod): PaymentInterface
     {
         /** @var PaymentInterface $payment */
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
@@ -143,6 +143,10 @@ final readonly class CreatePayPalOrderFromCartAction
         $factoryName = $paymentMethod?->getGatewayConfig()?->getFactoryName();
 
         if ($factoryName === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
+            if (null !== $channelPayPalMethod && $channelPayPalMethod !== $paymentMethod) {
+                $payment->setMethod($channelPayPalMethod);
+            }
+
             return $payment;
         }
 
@@ -154,17 +158,35 @@ final readonly class CreatePayPalOrderFromCartAction
         $this->orderProcessor->process($order);
 
         $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
-        if ($order->getChannel() !== null && $this->payPalMethodsResolver !== null) {
-            $paypalMethods = $this->payPalMethodsResolver->getInChannel($order->getChannel());
-            if ([] !== $paypalMethods) {
-                $payment->setMethod($paypalMethods[0]);
-            }
+        if (null !== $channelPayPalMethod) {
+            $payment->setMethod($channelPayPalMethod);
         }
 
         return $payment;
     }
 
-    private function resolvePaymentSource(Request $request, OrderInterface $order): ?string
+    private function channelPayPalMethod(OrderInterface $order, string $code): ?PaymentMethodInterface
+    {
+        $channel = $order->getChannel();
+        if (null === $channel || null === $this->payPalMethodsResolver) {
+            return null;
+        }
+
+        $paymentMethods = $this->payPalMethodsResolver->getInChannel($channel);
+        if ('' === $code) {
+            return $paymentMethods[0] ?? null;
+        }
+
+        foreach ($paymentMethods as $paymentMethod) {
+            if ($paymentMethod->getCode() === $code) {
+                return $paymentMethod;
+            }
+        }
+
+        throw new \InvalidArgumentException(sprintf('There is no PayPal payment method "%s" in the channel of the order.', $code));
+    }
+
+    private function resolvePaymentSource(Request $request, ?PaymentMethodInterface $paymentMethod): ?string
     {
         $paymentSource = $request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL);
 
@@ -172,40 +194,34 @@ final readonly class CreatePayPalOrderFromCartAction
             return $paymentSource;
         }
 
-        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($order)) {
+        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($paymentMethod)) {
             return $paymentSource;
         }
 
         return null;
     }
 
-    private function isVenmoEnabled(OrderInterface $order): bool
+    private function isVenmoEnabled(?PaymentMethodInterface $paymentMethod): bool
     {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null === $gatewayConfig) {
             return false;
         }
 
-        try {
-            return $this->fundingSourcesConfigurationProvider->isVenmoEnabled($channel);
-        } catch (\InvalidArgumentException) {
-            return false;
-        }
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVenmoEnabled();
     }
 
-    private function isExpressCheckoutEnabled(OrderInterface $order): bool
+    private function isExpressCheckoutEnabled(Request $request, ?PaymentMethodInterface $paymentMethod): bool
     {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
+        if ('' !== $request->query->getString('paymentMethod')) {
             return true;
         }
 
-        try {
-            return $this->fundingSourcesConfigurationProvider->isExpressCheckoutEnabled($channel);
-        } catch (\InvalidArgumentException) {
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null === $gatewayConfig) {
             return true;
         }
+
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isExpressCheckoutEnabled();
     }
 }

@@ -1,0 +1,153 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Tests\Sylius\PayPalPlugin\Unit\Resolver;
+
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
+use Sylius\PayPalPlugin\Model\PayPalWebhookEventNotification;
+use Sylius\PayPalPlugin\Repository\Query\SettleablePaypalPaymentQueryInterface;
+use Sylius\PayPalPlugin\Resolver\WebhookEventPaymentResolver;
+
+final class WebhookEventPaymentResolverTest extends TestCase
+{
+    private const PAYMENT_REQUEST_HASH = '0192f0b8-4d0b-7d4a-9b5e-3c2a1f6e8d10';
+
+    private SettleablePaypalPaymentQueryInterface&MockObject $paypalPaymentQuery;
+
+    private WebhookEventPaymentResolver $resolver;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->paypalPaymentQuery = $this->createMock(SettleablePaypalPaymentQueryInterface::class);
+
+        $this->resolver = new WebhookEventPaymentResolver($this->paypalPaymentQuery);
+    }
+
+    public function test_it_resolves_the_payment_of_the_payment_request_paypal_was_given_as_custom_id(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('getByPaymentRequestHash')->with(self::PAYMENT_REQUEST_HASH)->willReturn($payment);
+
+        $this->paypalPaymentQuery->expects(self::never())->method('getForSettlementByOrderId');
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('capture', [
+            'id' => 'CAPTURE_ID',
+            'custom_id' => self::PAYMENT_REQUEST_HASH,
+            'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+        ])));
+    }
+
+    public function test_it_resolves_the_payment_request_named_in_a_purchase_unit_of_a_checkout_order(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('getByPaymentRequestHash')->with(self::PAYMENT_REQUEST_HASH)->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('checkout-order', [
+            'id' => 'PAYPAL_ORDER_ID',
+            'purchase_units' => [['custom_id' => self::PAYMENT_REQUEST_HASH]],
+        ])));
+    }
+
+    public function test_it_does_not_look_up_a_custom_id_that_is_not_a_payment_request_hash(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+
+        $this->paypalPaymentQuery->expects(self::never())->method('getByPaymentRequestHash');
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('capture', [
+            'id' => 'CAPTURE_ID',
+            'custom_id' => '000000123-REFERENCE',
+            'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+        ])));
+    }
+
+    public function test_it_falls_back_to_the_paypal_order_of_a_capture(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('getByPaymentRequestHash')->willThrowException(new PaymentNotFoundException());
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('capture', [
+            'id' => 'CAPTURE_ID',
+            'custom_id' => self::PAYMENT_REQUEST_HASH,
+            'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+        ])));
+    }
+
+    public function test_it_falls_back_to_the_id_of_a_checkout_order(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->with('PAYPAL_ORDER_ID')->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('checkout-order', ['id' => 'PAYPAL_ORDER_ID'])));
+    }
+
+    public function test_it_falls_back_to_the_capture_id_when_no_payment_carries_the_paypal_order(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->willThrowException(new PaymentNotFoundException());
+        $this->paypalPaymentQuery->method('getForSettlementByCaptureId')->with('CAPTURE_ID')->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('capture', [
+            'id' => 'CAPTURE_ID',
+            'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+        ])));
+    }
+
+    public function test_it_resolves_the_payment_of_a_refund_by_the_capture_it_refunds(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $this->paypalPaymentQuery->expects(self::never())->method('getForSettlementByOrderId');
+        $this->paypalPaymentQuery->method('getForSettlementByCaptureId')->with('CAPTURE_ID')->willReturn($payment);
+
+        self::assertSame($payment, $this->resolver->resolve($this->notification('refund', [
+            'id' => 'REFUND_ID',
+            'links' => [
+                ['rel' => 'self', 'href' => 'https://api.paypal.com/v2/payments/refunds/REFUND_ID'],
+                ['rel' => 'up', 'href' => 'https://api.paypal.com/v2/payments/captures/CAPTURE_ID'],
+            ],
+        ])));
+    }
+
+    public function test_it_resolves_nothing_when_no_id_of_the_event_leads_to_a_payment(): void
+    {
+        $this->paypalPaymentQuery->method('getForSettlementByOrderId')->willThrowException(new PaymentNotFoundException());
+        $this->paypalPaymentQuery->method('getForSettlementByCaptureId')->willThrowException(new PaymentNotFoundException());
+
+        self::assertNull($this->resolver->resolve($this->notification('capture', [
+            'id' => 'CAPTURE_ID',
+            'supplementary_data' => ['related_ids' => ['order_id' => 'PAYPAL_ORDER_ID']],
+        ])));
+    }
+
+    public function test_it_resolves_nothing_for_a_refund_that_does_not_point_at_a_capture(): void
+    {
+        $this->paypalPaymentQuery->expects(self::never())->method('getForSettlementByCaptureId');
+
+        self::assertNull($this->resolver->resolve($this->notification('refund', [
+            'id' => 'REFUND_ID',
+            'links' => [['rel' => 'up', 'href' => 'https://api.paypal.com/v2/checkout/orders/PAYPAL_ORDER_ID']],
+        ])));
+    }
+
+    /** @param array<string, mixed> $resource */
+    private function notification(string $resourceType, array $resource): PayPalWebhookEventNotification
+    {
+        return new PayPalWebhookEventNotification('WH-1', 'EVENT.TYPE', $resourceType, (string) $resource['id'], $resource);
+    }
+}

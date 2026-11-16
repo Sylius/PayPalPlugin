@@ -9,6 +9,12 @@ sylius_twig_hooks:
                 priority: 140
 
         'sylius_admin.order.show.content.sections.payments.item.actions':
+            capture_authorization:
+                template: '@SyliusPayPalPlugin/admin/order/show/content/sections/payments/item/actions/capture_authorization.html.twig'
+                priority: 100
+            refund_paypal_payment:
+                template: '@SyliusPayPalPlugin/admin/order/show/content/sections/payments/item/actions/refund_paypal_payment.html.twig'
+                priority: 0
             refund_paypal_late_capture:
                 template: '@SyliusPayPalPlugin/admin/order/show/content/sections/payments/item/actions/refund_paypal_late_capture.html.twig'
                 priority: 0

@@ -1,0 +1,124 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Model;
+
+final readonly class OnboardingScope
+{
+    public const PRODUCT_PPCP = 'ppcp';
+
+    public const SECONDARY_PRODUCT_PAYMENT_METHODS = 'payment_methods';
+
+    public const FEATURE_PAYMENT = 'PAYMENT';
+
+    public const FEATURE_REFUND = 'REFUND';
+
+    public const FEATURE_ACCESS_MERCHANT_INFORMATION = 'ACCESS_MERCHANT_INFORMATION';
+
+    private const PRODUCT = 'product';
+
+    private const SECONDARY_PRODUCTS = 'secondary_products';
+
+    private const CAPABILITIES = 'capabilities';
+
+    private const FEATURES = 'features';
+
+    /**
+     * @param list<string> $secondaryProducts
+     * @param list<string> $capabilities
+     * @param list<string> $features
+     */
+    public function __construct(
+        private string $product,
+        private array $secondaryProducts,
+        private array $capabilities,
+        private array $features,
+    ) {
+    }
+
+    /** @param array<array-key, mixed> $scope */
+    public static function fromArray(array $scope): self
+    {
+        return new self(
+            is_string($scope[self::PRODUCT] ?? null) ? $scope[self::PRODUCT] : '',
+            self::listOf($scope[self::SECONDARY_PRODUCTS] ?? []),
+            self::listOf($scope[self::CAPABILITIES] ?? []),
+            self::listOf($scope[self::FEATURES] ?? []),
+        );
+    }
+
+    public static function current(): self
+    {
+        return new self(
+            self::PRODUCT_PPCP,
+            [self::SECONDARY_PRODUCT_PAYMENT_METHODS],
+            [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
+            [self::FEATURE_PAYMENT, self::FEATURE_REFUND, self::FEATURE_ACCESS_MERCHANT_INFORMATION],
+        );
+    }
+
+    public function product(): string
+    {
+        return $this->product;
+    }
+
+    /** @return list<string> */
+    public function secondaryProducts(): array
+    {
+        return $this->secondaryProducts;
+    }
+
+    /** @return list<string> */
+    public function capabilities(): array
+    {
+        return $this->capabilities;
+    }
+
+    /** @return list<string> */
+    public function features(): array
+    {
+        return $this->features;
+    }
+
+    /** @return list<string> */
+    public function notCoveredBy(self $scope): array
+    {
+        return array_merge(
+            0 === strcasecmp($this->product, $scope->product) ? [] : [$this->product],
+            array_udiff($this->secondaryProducts, $scope->secondaryProducts, strcasecmp(...)),
+            array_udiff($this->capabilities, $scope->capabilities, strcasecmp(...)),
+            array_udiff($this->features, $scope->features, strcasecmp(...)),
+        );
+    }
+
+    /** @return array{product: string, secondary_products: list<string>, capabilities: list<string>, features: list<string>} */
+    public function toArray(): array
+    {
+        return [
+            self::PRODUCT => $this->product,
+            self::SECONDARY_PRODUCTS => $this->secondaryProducts,
+            self::CAPABILITIES => $this->capabilities,
+            self::FEATURES => $this->features,
+        ];
+    }
+
+    /** @return list<string> */
+    private static function listOf(mixed $values): array
+    {
+        if (!is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_map(strval(...), array_filter($values, is_scalar(...))));
+    }
+}

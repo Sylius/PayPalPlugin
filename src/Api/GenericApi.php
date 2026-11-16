@@ -13,32 +13,53 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Sylius\PayPalPlugin\Exception\PayPalPluginException;
-use Symfony\Component\HttpFoundation\Response;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Exception\UntrustedPayPalUrlException;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 
 final readonly class GenericApi implements GenericApiInterface
 {
     public function __construct(
-        private ClientInterface $client,
-        private RequestFactoryInterface $requestFactory,
+        private PayPalClientInterface $client,
+        private HostProviderInterface $hostProvider,
     ) {
     }
 
-    public function get(string $token, string $url): array
+    public function get(PaymentMethodInterface $paymentMethod, string $url): array
     {
-        $request = $this->requestFactory->createRequest('GET', $url)
-            ->withHeader('Authorization', 'Bearer ' . $token)
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Accept', 'application/json');
+        return $this->client->get($paymentMethod, $this->pathOf($url, $paymentMethod));
+    }
 
-        $response = $this->client->sendRequest($request);
+    private function pathOf(string $url, PaymentMethodInterface $paymentMethod): string
+    {
+        $parts = parse_url($url);
 
-        if (Response::HTTP_OK !== $response->getStatusCode()) {
-            throw new PayPalPluginException();
+        if (
+            false === $parts ||
+            'https' !== strtolower($parts['scheme'] ?? '') ||
+            !in_array(strtolower($parts['host'] ?? ''), $this->trustedHosts($paymentMethod), true) ||
+            isset($parts['port']) ||
+            isset($parts['user']) ||
+            isset($parts['pass'])
+        ) {
+            throw new UntrustedPayPalUrlException($url);
         }
 
-        return (array) json_decode($response->getBody()->getContents(), true);
+        return ltrim($parts['path'] ?? '', '/') . (isset($parts['query']) ? '?' . $parts['query'] : '');
+    }
+
+    /** @return list<string> */
+    private function trustedHosts(PaymentMethodInterface $paymentMethod): array
+    {
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $sandbox = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
+
+        $host = strtolower((string) parse_url($this->hostProvider->getApiBaseUrlForMode($sandbox), \PHP_URL_HOST));
+
+        return [$host, (string) preg_replace('/^api\./', 'api-m.', $host)];
     }
 }

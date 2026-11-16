@@ -23,6 +23,7 @@ use Sylius\Component\Shipping\Model\ShippingMethodInterface;
 use Sylius\Component\Shipping\Resolver\ShippingMethodsResolverInterface;
 use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 
 final readonly class ShippingCallbackAmountProvider implements ShippingCallbackAmountProviderInterface
@@ -73,7 +74,7 @@ final readonly class ShippingCallbackAmountProvider implements ShippingCallbackA
 
         $purchaseUnit = $this->payPalPurchaseUnitFactory->create(
             $payment,
-            (string) ($payment->getDetails()['reference_id'] ?? ''),
+            (string) PayPalPaymentDetails::fromPayment($payment)->referenceId(),
         );
 
         return (array) $purchaseUnit->toArray()['amount'];

@@ -14,15 +14,16 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\ThreeDSecureAuthenticationStatus;
 use Sylius\PayPalPlugin\Model\ThreeDSecureEnrollmentStatus;
 use Sylius\PayPalPlugin\Model\ThreeDSecureLiabilityShift;
 
 final class ThreeDSecureVerifier implements ThreeDSecureVerifierInterface
 {
-    public function verify(array $paypalOrderDetails): void
+    public function verify(PayPalOrderDetails $payPalOrderDetails): void
     {
-        $authenticationResult = $this->findAuthenticationResult($paypalOrderDetails['payment_source'] ?? null);
+        $authenticationResult = $this->findAuthenticationResult($payPalOrderDetails->paymentSource());
 
         if (null === $authenticationResult) {
             return;

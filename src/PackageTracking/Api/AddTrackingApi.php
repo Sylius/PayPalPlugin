@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\PackageTracking\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 
 final readonly class AddTrackingApi implements AddTrackingApiInterface
@@ -21,11 +22,11 @@ final readonly class AddTrackingApi implements AddTrackingApiInterface
     {
     }
 
-    public function add(string $token, string $orderId, array $body): array
+    public function add(PaymentMethodInterface $paymentMethod, string $orderId, array $body): array
     {
         return $this->client->post(
+            $paymentMethod,
             sprintf('v2/checkout/orders/%s/track', $orderId),
-            $token,
             $body,
         );
     }
