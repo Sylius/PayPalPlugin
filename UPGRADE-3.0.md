@@ -1,5 +1,22 @@
 # UPGRADE FROM 2.2 to 3.0
 
+1. #### Sylius 2.2.9 or later is required.
+
+   `sylius/sylius` is now required in `^2.2.9`, as the admin payment method pages rely on the
+   `sylius_has_payment_method_with_gateway_factory` Twig function, the
+   `@SyliusAdmin/shared/helper/payment_method_icon.html.twig` template, the payment method icons and the payment
+   method list styles of Sylius Admin. Removed with it:
+
+   - `Sylius\PayPalPlugin\Twig\PaymentMethodGatewayFactoryExtension` and its
+     `sylius_paypal.twig.extension.payment_method_gateway_factory` service, which provided the Twig function below
+     Sylius 2.2.9
+   - the `sylius_paypal.admin.legacy_paypal_payment_method_row` parameter and the `legacy_paypal_row` var of the
+     `name` field of the `sylius_admin_payment_method` grid; the PayPal row on the payment method list always
+     shows the PayPal logo, mode and payment methods
+   - the PayPal, Venmo, Apple Pay, Google Pay, Visa, Mastercard and American Express SVGs of the plugin's
+     `app.admin` build; `@SyliusPayPalPlugin/admin/shared/helper/payment_method_icon.html.twig` renders them from
+     Sylius Admin again and keeps only the Pay Later and Trustly ones
+
 1. #### PayPal payment methods no longer use Payum.
 
    PayPal payments go through Sylius Payment Requests. To move the PayPal payment methods of a 2.x store over:

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Sylius\Bundle\AdminBundle\Twig\PaymentMethodGatewayFactoryExtension as AdminPaymentMethodGatewayFactoryExtension;
 use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PaymentConfigurationProvider;
 use Sylius\PayPalPlugin\Applicator\PaymentCaptureApplicator;
@@ -156,7 +155,6 @@ use Sylius\PayPalPlugin\Twig\Component\PermissionsStateComponent;
 use Sylius\PayPalPlugin\Twig\Component\WebhookStateComponent;
 use Sylius\PayPalPlugin\Twig\EnabledPaymentSourcesExtension;
 use Sylius\PayPalPlugin\Twig\OrderAddressExtension;
-use Sylius\PayPalPlugin\Twig\PaymentMethodGatewayFactoryExtension;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdater;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
@@ -670,12 +668,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.twig.extension.enabled_payment_sources', EnabledPaymentSourcesExtension::class)
         ->args([service('sylius_paypal.provider.enabled_payment_sources')])
         ->tag('twig.extension');
-
-    if (!class_exists(AdminPaymentMethodGatewayFactoryExtension::class)) {
-        $services->set('sylius_paypal.twig.extension.payment_method_gateway_factory', PaymentMethodGatewayFactoryExtension::class)
-            ->args([service('sylius.repository.payment_method')])
-            ->tag('twig.extension');
-    }
 
     $services->set('sylius_paypal.twig.component.permissions_state', PermissionsStateComponent::class)
         ->args([
