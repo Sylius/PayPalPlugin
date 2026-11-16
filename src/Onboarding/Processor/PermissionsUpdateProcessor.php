@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PermissionsUpdateResult;
 use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
+use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
 use Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface;
 
 final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProcessorInterface
@@ -30,6 +31,7 @@ final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProc
         private SellerNonceManagerInterface $sellerNonceManager,
         private SellerOnboardingResolverInterface $sellerOnboardingResolver,
         private PermissionsVerifierInterface $permissionsVerifier,
+        private OnboardingScopeUpdaterInterface $onboardingScopeUpdater,
     ) {
     }
 
@@ -57,6 +59,9 @@ final readonly class PermissionsUpdateProcessor implements PermissionsUpdateProc
 
         $status = $sellerOnboardingResult->getStatus();
         $verification = $this->permissionsVerifier->verifyStatus($paymentMethod, $status);
+        if (!$verification->isUpToDate()) {
+            $this->onboardingScopeUpdater->update($paymentMethod);
+        }
 
         $this->sellerNonceManager->remove($sandbox);
 

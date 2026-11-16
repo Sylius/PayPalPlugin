@@ -20,10 +20,10 @@ sylius_paypal:
     permissions:
         update:
             another_account: 'You connected another PayPal account. Sign in to PayPal with the account of this payment method to update its permissions.'
-            awaiting_paypal: 'PayPal does not let the account of this payment method use these capabilities yet: %capabilities%. Check them in the PayPal account, then update the PayPal permissions again.'
+            awaiting_paypal: 'PayPal does not let the account of this payment method use these capabilities yet: %capabilities%. PayPal may activate them later; check them in the PayPal account.'
             completed: 'PayPal permissions have been updated.'
             failed: 'Could not update the PayPal permissions. Please, try again later.'
-            not_granted: 'PayPal has not granted %capabilities% to the account of this payment method, which may not be eligible for them. Check the account with PayPal before updating its permissions again.'
+            not_granted: 'PayPal has not granted %capabilities% to the account of this payment method, which may not be eligible for them. Check the account with PayPal.'
     production_connected_successfully: 'PayPal Production has been connected successfully.'
     sandbox_connected_successfully: 'PayPal Sandbox has been connected successfully.'
     seller_onboarding_payments_not_receivable: 'Attention: You currently cannot receive payments due to possible restriction on your PayPal account. Please, reach out to PayPal Customer Support or connect to %paypal_url% for more information. Once sorted, simply revisit this page to refresh the onboarding status.'

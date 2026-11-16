@@ -1141,7 +1141,10 @@
    `Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface`
    (`sylius_paypal.onboarding.processor.permissions_update`), which returns a
    `Sylius\PayPalPlugin\Model\PermissionsUpdateResult`. It refuses another PayPal account and keeps the credentials
-   and the webhook of the payment method.
+   and the webhook of the payment method. Once the seller has gone through the consent, it stores the current scope
+   even when PayPal leaves some capabilities inactive, as the onboarding of a new payment method does: a capability
+   PayPal does not offer the account or has denied would otherwise keep the payment method flagged after every
+   consent. The admin is still told which capabilities PayPal has not activated.
 
    `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`) verifies the
    merchant integration status of the account, read from PayPal before the consent is offered (`verify()`) or returned
@@ -1175,13 +1178,17 @@
    The status of the vaulting capability is read only together with the rest of the merchant integration status: at
    the end of the onboarding and when the permissions of the payment method are verified or updated. It is not
    stored and nothing reads it when the admin or the shop is visited. When PayPal reports the capability with a
-   status other than `ACTIVE`, the `sylius_paypal.seller_onboarding_vaulting_not_active` message is shown with that
-   status. Enabling the payment method does not depend on it, and nothing is shown when PayPal does not list the
+   status other than `ACTIVE`, the `sylius_paypal.seller_onboarding_vaulting_not_active` message
+   (`OnboardingStatusMessagesProviderInterface::VAULTING_NOT_ACTIVE_MESSAGE`) is shown with that status after the
+   onboarding and the permissions update. Enabling the payment method does not depend on it, so `EnableSellerAction`
+   leaves it out of the reasons a payment method could not be enabled. Nothing is shown when PayPal does not list the
    capability at all. PayPal does not report the `BILLING_AGREEMENT` and `VAULT` features to the seller, so the
    stored onboarding scope is the only record that they were asked for.
 
    A PayPal payment method onboarded before has a stored scope that misses them, so it gets the "PayPal permissions
-   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting.
+   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting. Its webhook misses the
+   `VAULT.PAYMENT-TOKEN.CREATED` and `VAULT.PAYMENT-TOKEN.DELETED` event types and is flagged out of date until
+   `sylius-paypal:register-webhook-event-types` runs or "Update webhook" is used.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 

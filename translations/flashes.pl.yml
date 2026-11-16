@@ -20,10 +20,10 @@ sylius_paypal:
     permissions:
         update:
             another_account: 'Połączono inne konto PayPal. Zaloguj się w PayPal kontem tej metody płatności, aby zaktualizować jej uprawnienia.'
-            awaiting_paypal: 'PayPal nie pozwala jeszcze kontu tej metody płatności korzystać z tych funkcji: %capabilities%. Sprawdź je na koncie PayPal, a potem ponownie zaktualizuj uprawnienia PayPal.'
+            awaiting_paypal: 'PayPal nie pozwala jeszcze kontu tej metody płatności korzystać z tych funkcji: %capabilities%. PayPal może je włączyć później; sprawdź je na koncie PayPal.'
             completed: 'Uprawnienia PayPal zostały zaktualizowane.'
             failed: 'Nie udało się zaktualizować uprawnień PayPal. Spróbuj ponownie później.'
-            not_granted: 'PayPal nie przyznał %capabilities% kontu tej metody płatności, które może nie spełniać warunków. Sprawdź konto w PayPal, zanim ponownie zaktualizujesz jego uprawnienia.'
+            not_granted: 'PayPal nie przyznał %capabilities% kontu tej metody płatności, które może nie spełniać warunków. Sprawdź konto w PayPal.'
     production_connected_successfully: 'Połączono konto PayPal (produkcja).'
     sandbox_connected_successfully: 'Połączono konto PayPal (sandbox).'
     seller_onboarding_payments_not_receivable: 'Uwaga: obecnie nie możesz przyjmować płatności z powodu możliwego ograniczenia na Twoim koncie PayPal. Skontaktuj się z obsługą klienta PayPal lub przejdź na %paypal_url%, aby dowiedzieć się więcej. Po wyjaśnieniu sprawy wróć na tę stronę, aby odświeżyć status onboardingu.'
