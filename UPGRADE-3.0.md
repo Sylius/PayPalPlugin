@@ -813,6 +813,7 @@
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
    | `PAYMENT.AUTHORIZATION.CREATED` | authorizes the payment whose authorization PayPal created, when the payer never came back to the shop |
    | `PAYMENT.AUTHORIZATION.VOIDED` | cancels the authorized payment whose authorization was voided outside the shop, without voiding it again |
+   | `VAULT.PAYMENT-TOKEN.CREATED`, `VAULT.PAYMENT-TOKEN.DELETED` | ignored and answered `204`; the webhook is subscribed to them for vaulting the PayPal wallet in a later release |
 
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
@@ -831,7 +832,8 @@
    of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
    to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
    `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`,
-   `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED`.
+   `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED`, `VAULT.PAYMENT-TOKEN.CREATED` and
+   `VAULT.PAYMENT-TOKEN.DELETED`.
 
    `/paypal-webhook/api/` no longer exists, so a webhook still registered on it has to be moved:
 
@@ -1097,6 +1099,30 @@
 
    When the status cannot be read, `verify()` throws `MerchantIntegrationStatusUnavailableException` and the modal
    offers the consent anyway.
+
+1. #### The onboarding asks PayPal for vaulting the PayPal wallet.
+
+   `OnboardingScope::current()` asks for the `advanced_vaulting` secondary product
+   (`OnboardingScope::SECONDARY_PRODUCT_ADVANCED_VAULTING`), the `PAYPAL_WALLET_VAULTING_ADVANCED` capability
+   (`Capability::PAYPAL_WALLET_VAULTING_ADVANCED`) and the `BILLING_AGREEMENT` and `VAULT` features
+   (`OnboardingScope::FEATURE_BILLING_AGREEMENT`, `OnboardingScope::FEATURE_VAULT`). `PayPalOnboardingUrlProvider`
+   sends the capabilities and the features in lower case, like the product and the secondary products:
+
+   ```diff
+   -secondaryProducts=payment_methods&capabilities=APPLE_PAY,GOOGLE_PAY&features=PAYMENT,REFUND,ACCESS_MERCHANT_INFORMATION
+   +secondaryProducts=payment_methods,advanced_vaulting&capabilities=apple_pay,google_pay,paypal_wallet_vaulting_advanced&features=payment,refund,access_merchant_information,billing_agreement,vault
+   ```
+
+   The status of the vaulting capability is read only together with the rest of the merchant integration status: at
+   the end of the onboarding and when the permissions of the payment method are verified or updated. It is not
+   stored and nothing reads it when the admin or the shop is visited. When PayPal reports the capability with a
+   status other than `ACTIVE`, the `sylius_paypal.seller_onboarding_vaulting_not_active` message is shown with that
+   status. Enabling the payment method does not depend on it, and nothing is shown when PayPal does not list the
+   capability at all. PayPal does not report the `BILLING_AGREEMENT` and `VAULT` features to the seller, so the
+   stored onboarding scope is the only record that they were asked for.
+
+   A PayPal payment method onboarded before has a stored scope that misses them, so it gets the "PayPal permissions
+   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 

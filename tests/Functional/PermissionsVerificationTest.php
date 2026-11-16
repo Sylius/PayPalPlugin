@@ -52,6 +52,7 @@ final class PermissionsVerificationTest extends JsonApiTestCase
         $this->payPalHttpClient()->addExpectation('GET', self::MERCHANT_INTEGRATION_PATH, $this->merchantIntegration([
             Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
             Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+            Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
         ]));
 
         $rendered = (string) $this->permissionsModal()->call('loadOnboardingUrl')->render();
@@ -67,6 +68,7 @@ final class PermissionsVerificationTest extends JsonApiTestCase
         $this->payPalHttpClient()->addExpectation('GET', self::MERCHANT_INTEGRATION_PATH, $this->merchantIntegration([
             Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
             Capability::GOOGLE_PAY => 'NEED_DATA',
+            Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
         ]));
 
         $rendered = (string) $this->permissionsModal()->call('loadOnboardingUrl')->render();
