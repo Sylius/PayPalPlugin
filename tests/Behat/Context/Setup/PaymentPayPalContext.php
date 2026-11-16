@@ -58,14 +58,14 @@ final class PaymentPayPalContext implements Context
         );
     }
 
-    #[Given('the store uses PayPal in sandbox mode')]
-    public function theStoreUsesPayPalInSandboxMode(): void
+    #[Given('/^the store uses PayPal in (sandbox|production) mode$/')]
+    public function theStoreUsesPayPalInMode(string $mode): void
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $this->sharedStorage->get('payment_method');
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
-        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [PayPalGatewayConfig::SANDBOX => true]));
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [PayPalGatewayConfig::SANDBOX => 'sandbox' === $mode]));
 
         $this->paymentMethodRepository->add($paymentMethod);
     }

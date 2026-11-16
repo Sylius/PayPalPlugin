@@ -23,7 +23,8 @@ Feature: Browsing PayPal payment methods
 
     @ui
     Scenario: Seeing a payment source enabled in the PayPal configuration
-        Given the store allows paying with Trustly through PayPal
+        Given the store uses PayPal in production mode
+        And the store allows paying with Trustly through PayPal
         When I browse payment methods
         Then the "PayPal" payment method should offer "Trustly"
         And the "PayPal" payment method should be marked as working in production mode
