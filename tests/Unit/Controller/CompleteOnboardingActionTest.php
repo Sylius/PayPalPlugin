@@ -113,6 +113,27 @@ final class CompleteOnboardingActionTest extends TestCase
     }
 
     #[Test]
+    public function it_warns_that_vaulting_is_not_active_yet(): void
+    {
+        $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);
+
+        $this->onboardingCompletionProcessor
+            ->method('process')
+            ->willReturn($this->completionResult(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA']), true));
+
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_OK, $response->getStatusCode());
+        self::assertSame(
+            ['warning' => [[
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => ['%status%' => 'NEED_DATA'],
+            ]]],
+            $this->flashBag($request)->all(),
+        );
+    }
+
+    #[Test]
     public function it_returns_bad_request_when_the_onboarding_session_has_expired(): void
     {
         $request = $this->requestWithBody(['authCode' => 'AUTH-CODE', 'sharedId' => 'SHARED-ID', 'sandbox' => false]);

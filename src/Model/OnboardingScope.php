@@ -19,11 +19,17 @@ final readonly class OnboardingScope
 
     public const SECONDARY_PRODUCT_PAYMENT_METHODS = 'payment_methods';
 
+    public const SECONDARY_PRODUCT_ADVANCED_VAULTING = 'advanced_vaulting';
+
     public const FEATURE_PAYMENT = 'PAYMENT';
 
     public const FEATURE_REFUND = 'REFUND';
 
     public const FEATURE_ACCESS_MERCHANT_INFORMATION = 'ACCESS_MERCHANT_INFORMATION';
+
+    public const FEATURE_BILLING_AGREEMENT = 'BILLING_AGREEMENT';
+
+    public const FEATURE_VAULT = 'VAULT';
 
     private const PRODUCT = 'product';
 
@@ -61,9 +67,15 @@ final readonly class OnboardingScope
     {
         return new self(
             self::PRODUCT_PPCP,
-            [self::SECONDARY_PRODUCT_PAYMENT_METHODS],
-            [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
-            [self::FEATURE_PAYMENT, self::FEATURE_REFUND, self::FEATURE_ACCESS_MERCHANT_INFORMATION],
+            [self::SECONDARY_PRODUCT_PAYMENT_METHODS, self::SECONDARY_PRODUCT_ADVANCED_VAULTING],
+            [Capability::APPLE_PAY, Capability::GOOGLE_PAY, Capability::PAYPAL_WALLET_VAULTING_ADVANCED],
+            [
+                self::FEATURE_PAYMENT,
+                self::FEATURE_REFUND,
+                self::FEATURE_ACCESS_MERCHANT_INFORMATION,
+                self::FEATURE_BILLING_AGREEMENT,
+                self::FEATURE_VAULT,
+            ],
         );
     }
 

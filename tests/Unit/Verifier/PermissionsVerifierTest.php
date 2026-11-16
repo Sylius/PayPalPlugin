@@ -44,7 +44,7 @@ final class PermissionsVerifierTest extends TestCase
 
     public function test_it_stores_the_current_scope_of_an_account_with_every_capability_active(): void
     {
-        $this->givenStatus([Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, 'CUSTOM_CARD_PROCESSING' => OnboardingStatus::ACTIVE_CAPABILITY_STATUS]);
+        $this->givenStatus([Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, 'CUSTOM_CARD_PROCESSING' => OnboardingStatus::ACTIVE_CAPABILITY_STATUS]);
 
         $this->onboardingScopeUpdater->expects(self::once())->method('update')->with($this->paymentMethod);
 
@@ -53,7 +53,7 @@ final class PermissionsVerifierTest extends TestCase
 
     public function test_it_waits_for_paypal_to_activate_a_capability_the_account_already_asked_for(): void
     {
-        $this->givenStatus([Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::GOOGLE_PAY => 'NEED_DATA']);
+        $this->givenStatus([Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS, Capability::GOOGLE_PAY => 'NEED_DATA', Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS]);
 
         $this->onboardingScopeUpdater->expects(self::never())->method('update');
 
@@ -65,7 +65,7 @@ final class PermissionsVerifierTest extends TestCase
 
     public function test_it_requires_the_consent_for_a_capability_the_account_does_not_have(): void
     {
-        $this->givenStatus([Capability::APPLE_PAY => 'PENDING']);
+        $this->givenStatus([Capability::APPLE_PAY => 'PENDING', Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS]);
 
         $this->onboardingScopeUpdater->expects(self::never())->method('update');
 
@@ -102,6 +102,7 @@ final class PermissionsVerifierTest extends TestCase
             $this->verifier->verifyStatus($this->paymentMethod, new OnboardingStatus(true, true, [
                 Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
                 Capability::GOOGLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+                Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
             ])),
         );
     }
@@ -112,7 +113,10 @@ final class PermissionsVerifierTest extends TestCase
 
         self::assertEquals(
             PermissionsVerification::consentRequired([Capability::GOOGLE_PAY]),
-            $this->verifier->verifyStatus($this->paymentMethod, new OnboardingStatus(true, true, [Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS])),
+            $this->verifier->verifyStatus($this->paymentMethod, new OnboardingStatus(true, true, [
+                Capability::APPLE_PAY => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+                Capability::PAYPAL_WALLET_VAULTING_ADVANCED => OnboardingStatus::ACTIVE_CAPABILITY_STATUS,
+            ])),
         );
     }
 

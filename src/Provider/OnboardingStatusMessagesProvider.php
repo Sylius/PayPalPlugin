@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 final readonly class OnboardingStatusMessagesProvider implements OnboardingStatusMessagesProviderInterface
@@ -39,6 +40,16 @@ final readonly class OnboardingStatusMessagesProvider implements OnboardingStatu
                 'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                 'parameters' => [
                     '%business_profile_url%' => $this->hostProvider->getWebUrlForMode($sandbox) . '/businessprofile/settings',
+                ],
+            ];
+        }
+
+        $vaultingCapabilityStatus = $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED);
+        if (null !== $vaultingCapabilityStatus && !$status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED)) {
+            $messages[] = [
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => [
+                    '%status%' => $vaultingCapabilityStatus,
                 ],
             ];
         }

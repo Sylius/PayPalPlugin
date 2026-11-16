@@ -45,9 +45,15 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'apple_pay_enabled' => false,
         'onboarding_scope' => [
             'product' => OnboardingScope::PRODUCT_PPCP,
-            'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
-            'capabilities' => [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
-            'features' => [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND, OnboardingScope::FEATURE_ACCESS_MERCHANT_INFORMATION],
+            'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS, OnboardingScope::SECONDARY_PRODUCT_ADVANCED_VAULTING],
+            'capabilities' => [Capability::APPLE_PAY, Capability::GOOGLE_PAY, Capability::PAYPAL_WALLET_VAULTING_ADVANCED],
+            'features' => [
+                OnboardingScope::FEATURE_PAYMENT,
+                OnboardingScope::FEATURE_REFUND,
+                OnboardingScope::FEATURE_ACCESS_MERCHANT_INFORMATION,
+                OnboardingScope::FEATURE_BILLING_AGREEMENT,
+                OnboardingScope::FEATURE_VAULT,
+            ],
         ],
     ];
 
