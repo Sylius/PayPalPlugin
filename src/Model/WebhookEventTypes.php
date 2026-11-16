@@ -27,6 +27,8 @@ final readonly class WebhookEventTypes
         'PAYMENT.CAPTURE.REVERSED',
         'PAYMENT.AUTHORIZATION.CREATED',
         'PAYMENT.AUTHORIZATION.VOIDED',
+        'VAULT.PAYMENT-TOKEN.CREATED',
+        'VAULT.PAYMENT-TOKEN.DELETED',
     ];
 
     /** @param list<string> $names */

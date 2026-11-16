@@ -813,6 +813,7 @@
    | `CHECKOUT.ORDER.PROCESSED` | ignored; the capture events settle the payment |
    | `PAYMENT.AUTHORIZATION.CREATED` | authorizes the payment whose authorization PayPal created, when the payer never came back to the shop |
    | `PAYMENT.AUTHORIZATION.VOIDED` | cancels the authorized payment whose authorization was voided outside the shop, without voiding it again |
+   | `VAULT.PAYMENT-TOKEN.CREATED`, `VAULT.PAYMENT-TOKEN.DELETED` | ignored and answered `204`; the webhook is subscribed to them for vaulting the PayPal wallet in a later release |
 
    ```diff
     // Sylius\PayPalPlugin\Verifier\WebhookRequestVerifierInterface
@@ -831,7 +832,8 @@
    of a PayPal payment method on its `sylius_payment_method_notify` URL instead of `/paypal-webhook/api/`, subscribed
    to `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`,
    `PAYMENT.CAPTURE.DECLINED`, `PAYMENT.CAPTURE.PENDING`, `PAYMENT.CAPTURE.REFUNDED`, `PAYMENT.CAPTURE.REVERSED`,
-   `PAYMENT.AUTHORIZATION.CREATED` and `PAYMENT.AUTHORIZATION.VOIDED`.
+   `PAYMENT.AUTHORIZATION.CREATED`, `PAYMENT.AUTHORIZATION.VOIDED`, `VAULT.PAYMENT-TOKEN.CREATED` and
+   `VAULT.PAYMENT-TOKEN.DELETED`.
 
    `/paypal-webhook/api/` no longer exists, so a webhook still registered on it has to be moved:
 

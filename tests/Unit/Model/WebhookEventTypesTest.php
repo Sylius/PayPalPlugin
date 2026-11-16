@@ -28,7 +28,7 @@ final class WebhookEventTypesTest extends TestCase
     public function test_it_lists_the_events_the_plugin_handles_that_it_misses(): void
     {
         self::assertSame(
-            ['PAYMENT.AUTHORIZATION.CREATED', 'PAYMENT.AUTHORIZATION.VOIDED'],
+            ['VAULT.PAYMENT-TOKEN.CREATED', 'VAULT.PAYMENT-TOKEN.DELETED'],
             WebhookEventTypes::fromNames(array_slice(WebhookEventTypes::HANDLED, 0, -2))->missing(),
         );
     }
