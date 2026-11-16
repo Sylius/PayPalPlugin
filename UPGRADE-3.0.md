@@ -1103,23 +1103,24 @@
    `OnboardingScope::current()` asks for the `advanced_vaulting` secondary product
    (`OnboardingScope::SECONDARY_PRODUCT_ADVANCED_VAULTING`), the `PAYPAL_WALLET_VAULTING_ADVANCED` capability
    (`Capability::PAYPAL_WALLET_VAULTING_ADVANCED`) and the `BILLING_AGREEMENT` and `VAULT` features
-   (`OnboardingScope::FEATURE_BILLING_AGREEMENT`, `OnboardingScope::FEATURE_VAULT`).
-   `OnboardingStatus::isVaultingEnabled()` tells whether the capability is active.
+   (`OnboardingScope::FEATURE_BILLING_AGREEMENT`, `OnboardingScope::FEATURE_VAULT`). `PayPalOnboardingUrlProvider`
+   sends the capabilities and the features in lower case, like the product and the secondary products:
 
-   The onboarding and `PayPalPaymentMethodEnabler` store whether it is active in the `vaulting_enabled` key of the
-   gateway config (`Sylius\PayPalPlugin\Model\PayPalGatewayConfig::VAULTING_ENABLED`, read with
-   `PayPalGatewayConfig::isVaultingEnabled()`). The key keeps the status read at that moment: it is not refreshed
-   when PayPal activates the capability later. In sandbox mode the enabler does not read the onboarding status, so it
-   leaves the key as it is.
+   ```diff
+   -secondaryProducts=payment_methods&capabilities=APPLE_PAY,GOOGLE_PAY&features=PAYMENT,REFUND,ACCESS_MERCHANT_INFORMATION
+   +secondaryProducts=payment_methods,advanced_vaulting&capabilities=apple_pay,google_pay,paypal_wallet_vaulting_advanced&features=payment,refund,access_merchant_information,billing_agreement,vault
+   ```
 
-   When PayPal reports the capability with a status other than `ACTIVE`, the
-   `sylius_paypal.seller_onboarding_vaulting_not_active` message is shown with that status after the onboarding.
-   When the payment method cannot be enabled because the onboarding is incomplete, the message is listed after the
-   blocking reasons. Enabling the payment method does not depend on the vaulting status and shows no vaulting message
-   when it succeeds. Nothing is shown when PayPal does not list the capability at all.
+   The status of the vaulting capability is read only together with the rest of the merchant integration status: at
+   the end of the onboarding and when the permissions of the payment method are verified or updated. It is not
+   stored and nothing reads it when the admin or the shop is visited. When PayPal reports the capability with a
+   status other than `ACTIVE`, the `sylius_paypal.seller_onboarding_vaulting_not_active` message is shown with that
+   status. Enabling the payment method does not depend on it, and nothing is shown when PayPal does not list the
+   capability at all. PayPal does not report the `BILLING_AGREEMENT` and `VAULT` features to the seller, so the
+   stored onboarding scope is the only record that they were asked for.
 
-   A PayPal payment method onboarded without vaulting has a stored scope that misses it, so it gets the
-   "PayPal permissions out of date" badge and alert. "Update PayPal permissions" asks PayPal for vaulting.
+   A PayPal payment method onboarded before has a stored scope that misses them, so it gets the "PayPal permissions
+   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
 

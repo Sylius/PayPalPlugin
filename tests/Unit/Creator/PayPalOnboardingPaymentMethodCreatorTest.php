@@ -43,7 +43,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'use_authorize' => false,
         'google_pay_enabled' => false,
         'apple_pay_enabled' => false,
-        'vaulting_enabled' => false,
         'onboarding_scope' => [
             'product' => OnboardingScope::PRODUCT_PPCP,
             'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS, OnboardingScope::SECONDARY_PRODUCT_ADVANCED_VAULTING],
@@ -117,16 +116,6 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         $this->entityManager->expects(self::never())->method('flush');
 
         self::assertSame($paymentMethod, $this->creator->create($result, false));
-    }
-
-    #[Test]
-    public function it_stores_the_vaulting_flag_when_the_vaulting_capability_is_active(): void
-    {
-        [$gatewayConfig] = $this->mockFactories();
-
-        $gatewayConfig->expects(self::once())->method('setConfig')->with(array_merge(self::CONFIG, ['vaulting_enabled' => true]));
-
-        $this->creator->create(new SellerOnboardingResult('CLIENT-ID', 'CLIENT-SECRET', 'MERCHANT-ID', new OnboardingStatus(true, true, [Capability::PAYPAL_WALLET_VAULTING_ADVANCED => self::ACTIVE])), false);
     }
 
     #[Test]

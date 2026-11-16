@@ -29,15 +29,9 @@ final class OnboardingStatusTest extends TestCase
         self::assertFalse($status->hasActiveCapability('PAYPAL_WALLET_VAULTING_ADVANCED'));
     }
 
-    public function test_it_has_vaulting_disabled_by_default(): void
+    public function test_it_has_no_active_capabilities_by_default(): void
     {
-        self::assertFalse((new OnboardingStatus(true, true))->isVaultingEnabled());
-    }
-
-    public function test_it_enables_vaulting_only_when_the_vaulting_capability_is_active(): void
-    {
-        self::assertTrue((new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE']))->isVaultingEnabled());
-        self::assertFalse((new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA']))->isVaultingEnabled());
+        self::assertSame([], (new OnboardingStatus(true, true))->activeCapabilities());
     }
 
     public function test_it_tells_the_status_of_a_capability(): void
@@ -79,7 +73,7 @@ final class OnboardingStatusTest extends TestCase
         self::assertSame('NEED_DATA', $status->capabilityStatus('GOOGLE_PAY'));
         self::assertSame('IN_REVIEW', $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
         self::assertNull($status->capabilityStatus('VENMO'));
-        self::assertFalse($status->isVaultingEnabled());
+        self::assertFalse($status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
     }
 
     public function test_it_takes_the_last_status_of_a_capability_the_merchant_integration_lists_more_than_once(): void
@@ -92,7 +86,7 @@ final class OnboardingStatusTest extends TestCase
         ]);
 
         self::assertSame('REVOKED', $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
-        self::assertFalse($status->isVaultingEnabled());
+        self::assertFalse($status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
         self::assertSame([], $status->activeCapabilities());
     }
 
