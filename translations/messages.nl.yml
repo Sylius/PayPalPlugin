@@ -98,7 +98,7 @@ sylius_paypal:
     merchant_id: 'Merchant ID'
     messaging_enabled: 'Pay Later-berichten'
     messaging_enabled_help: 'Toon klanten al op product- en winkelwagenpagina''s de mogelijkheden om in termijnen te betalen, voor meer conversie en hogere orderwaarde.'
-    missing_billing_address_content: 'Ga terug naar de stap Adresseren en vul deze aan.'
+    missing_billing_address_content: 'Ga terug naar de stap Adres en vul deze aan.'
     missing_billing_address_header: 'We konden geen factuuradres ophalen van PayPal'
     mode_production: 'Productie'
     mode_production_description: 'Klanten betalen met echt geld.'

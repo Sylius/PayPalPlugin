@@ -98,7 +98,7 @@ sylius_paypal:
     merchant_id: 'Merchant ID'
     messaging_enabled: 'Pay Later messaging'
     messaging_enabled_help: 'Show shoppers installment options early on product and cart pages to boost conversion and order value.'
-    missing_billing_address_content: 'Please, go back to the Addressing step and complete it'
+    missing_billing_address_content: 'Please, go back to the Address step and complete it'
     missing_billing_address_header: 'We could not fetch any billing address from PayPal'
     mode_production: 'Production'
     mode_production_description: 'Customers are charged real money.'

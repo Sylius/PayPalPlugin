@@ -98,7 +98,7 @@ sylius_paypal:
     merchant_id: 'Händler-ID'
     messaging_enabled: 'Pay-Later-Hinweise'
     messaging_enabled_help: 'Zeigen Sie Kunden schon auf Produkt- und Warenkorbseiten die Ratenzahlungsoptionen, um Conversion und Bestellwert zu steigern.'
-    missing_billing_address_content: 'Bitte gehen Sie zurück zum Schritt „Adresse“ und vervollständigen Sie ihn.'
+    missing_billing_address_content: 'Bitte gehen Sie zurück zum Schritt „Anschrift“ und vervollständigen Sie ihn.'
     missing_billing_address_header: 'Wir konnten keine Rechnungsadresse von PayPal abrufen.'
     mode_production: 'Produktion'
     mode_production_description: 'Kunden werden echte Beträge belastet.'

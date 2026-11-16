@@ -98,7 +98,7 @@ sylius_paypal:
     merchant_id: 'ID marchand'
     messaging_enabled: 'Messages Pay Later'
     messaging_enabled_help: 'Affichez les options de paiement échelonné dès les pages produit et panier pour augmenter la conversion et le panier moyen.'
-    missing_billing_address_content: 'Merci de revenir à l''étape Adressage et de la compléter.'
+    missing_billing_address_content: 'Merci de revenir à l''étape Adresse et de la compléter.'
     missing_billing_address_header: 'Impossible de récupérer une adresse de facturation depuis PayPal'
     mode_production: 'Production'
     mode_production_description: 'Les clients sont réellement débités.'
