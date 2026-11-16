@@ -71,7 +71,10 @@ final readonly class EnableSellerAction
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $sandbox = null !== $gatewayConfig && PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isSandbox();
 
-        $messages = $this->onboardingStatusMessagesProvider->provide($onboardingStatus, $sandbox);
+        $messages = array_values(array_filter(
+            $this->onboardingStatusMessagesProvider->provide($onboardingStatus, $sandbox),
+            static fn (string|array $message): bool => !is_array($message) || OnboardingStatusMessagesProviderInterface::VAULTING_NOT_ACTIVE_MESSAGE !== $message['message'],
+        ));
 
         return [] === $messages ? ['sylius_paypal.payment_not_enabled'] : $messages;
     }
