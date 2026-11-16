@@ -206,8 +206,6 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
     observer.observe(onboardingModal, { childList: true, subtree: true });
 }
 
-// Opening the modal moves its live component to the body, which reconnects the component. An action sent before the
-// component is connected again is dropped, so the URL is requested on the next task after the modal is shown.
 function loadOnboardingUrlOnceShown(event) {
     const onboardingModal = event.target;
 
@@ -221,30 +219,20 @@ function loadOnboardingUrlOnceShown(event) {
     });
 }
 
-const shownOnboardingModalIds = new Set();
+const ONBOARDING_MODAL_CHILD_SELECTOR = ':scope > [data-paypal-onboarding-complete-url]';
 const guardedOnboardingComponents = new WeakSet();
-
-function trackOnboardingModalVisibility(event) {
-    if (event.target instanceof Element && event.target.hasAttribute('data-paypal-onboarding-complete-url')) {
-        if (event.type === 'shown.bs.modal') {
-            shownOnboardingModalIds.add(event.target.id);
-        } else {
-            shownOnboardingModalIds.delete(event.target.id);
-        }
-    }
-}
 
 function skipRenderingClosedOnboardingModal(event) {
     const component = event.detail?.component;
-    const onboardingModal = event.target instanceof Element ? event.target.querySelector('[data-paypal-onboarding-complete-url]') : null;
+    const hasOnboardingModal = event.target instanceof Element && event.target.querySelector(ONBOARDING_MODAL_CHILD_SELECTOR) !== null;
 
-    if (!component || onboardingModal === null || guardedOnboardingComponents.has(component)) {
+    if (!component || !hasOnboardingModal || guardedOnboardingComponents.has(component)) {
         return;
     }
 
     guardedOnboardingComponents.add(component);
     component.on('render:started', (html, response, controls) => {
-        if (!shownOnboardingModalIds.has(onboardingModal.id)) {
+        if (!component.element.querySelector(ONBOARDING_MODAL_CHILD_SELECTOR)?.classList.contains('show')) {
             controls.shouldRender = false;
         }
     });
@@ -252,9 +240,7 @@ function skipRenderingClosedOnboardingModal(event) {
 
 function initOnboardingModal() {
     document.addEventListener('click', guardOnboardingButtonClick, true);
-    document.addEventListener('shown.bs.modal', trackOnboardingModalVisibility);
     document.addEventListener('shown.bs.modal', loadOnboardingUrlOnceShown);
-    document.addEventListener('hide.bs.modal', trackOnboardingModalVisibility);
     document.addEventListener('live:connect', skipRenderingClosedOnboardingModal);
 
     findOnboardingModals().forEach((onboardingModal) => {
