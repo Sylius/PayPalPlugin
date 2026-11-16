@@ -1,0 +1,6 @@
+sylius_paypal:
+    shipment_tracking:
+        carrier_invalid: 'Ce transporteur n''est pas pris en charge.'
+        carrier_name_other_required: 'Veuillez indiquer le nom du transporteur lorsque « Autre » est sélectionné.'
+        tracking_code_required: 'Veuillez indiquer le numéro de suivi lorsqu''un transporteur est sélectionné.'
+        tracking_code_too_long: 'Le numéro de suivi ne peut pas dépasser {{ limit }} caractères pour être envoyé à PayPal.'
