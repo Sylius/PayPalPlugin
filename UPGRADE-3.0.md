@@ -1138,8 +1138,11 @@
    The "Complete" button of an authorized PayPal payment and `PATCH /api/v2/admin/payments/{id}/paypal-capture`
    dispatch a `capture_authorization` Payment Request. The payment is completed once PayPal reports the capture as
    completed, right away or through the `PAYMENT.CAPTURE.COMPLETED` webhook; a rejected capture fails the request and
-   keeps the payment authorized. Until then the core `complete` transition is guarded, so the core "Complete" button is
-   hidden and `PATCH /api/v2/admin/payments/{id}/complete` answers `422`.
+   keeps the payment authorized. Until then the core `complete` transition is guarded by `PaymentCompleteGuardListener`
+   (on `workflow.sylius_payment.guard.complete`), so the core "Complete" button is hidden and
+   `PATCH /api/v2/admin/payments/{id}/complete` answers `422`. The listener has the priority `-100`, so it runs after
+   the complete guards of other payment plugins, which may let the transition through with `setBlocked(false)` and
+   would otherwise lift its block.
 
    | Service | Role |
    |---|---|
