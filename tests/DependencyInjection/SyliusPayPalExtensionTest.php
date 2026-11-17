@@ -18,13 +18,15 @@ use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 
 final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
 {
-    private ?string $originalSandboxEnv = null;
+    private const ENV_VARS = ['SYLIUS_PAYPAL_LOGGING_INCREASED', 'SYLIUS_PAYPAL_SANDBOX_ENABLED'];
 
-    private ?string $originalLoggingEnv = null;
+    /** @var array<string, string> */
+    private array $originalEnvVars = [];
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->setParameter('kernel.bundles_metadata', []);
         $this->saveEnvVars();
         $this->clearEnvVars();
     }
@@ -47,150 +49,104 @@ final class SyliusPayPalExtensionTest extends AbstractExtensionTestCase
         $this->load();
     }
 
-    /**
-     * @dataProvider sandboxModeParametersProvider
-     */
-    public function test_it_sets_parameters_based_on_sandbox_mode(
-        bool $sandboxEnabled,
-        string $parameterName,
-        string $expectedValue,
-    ): void {
-        $this->load(['sandbox' => $sandboxEnabled]);
-
-        $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
-    }
-
-    public static function sandboxModeParametersProvider(): iterable
+    public function test_it_increases_logging_via_env(): void
     {
-        yield 'production mode api base url' => [
-            false,
-            'sylius_paypal.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'sandbox mode api base url' => [
-            true,
-            'sylius_paypal.api_base_url',
-            'https://api.sandbox.paypal.com/',
-        ];
-
-        yield 'production mode facilitator url' => [
-            false,
-            'sylius_paypal.facilitator_url',
-            'https://prod.paypal.sylius.com',
-        ];
-
-        yield 'sandbox mode facilitator url' => [
-            true,
-            'sylius_paypal.facilitator_url',
-            'https://paypal.sylius.com',
-        ];
-
-        yield 'production mode sftp host' => [
-            false,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.paypal.com',
-        ];
-
-        yield 'sandbox mode sftp host' => [
-            true,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.sandbox.paypal.com',
-        ];
-
-        yield 'production mode aliased facilitator url' => [
-            false,
-            'sylius.pay_pal.facilitator_url',
-            'https://prod.paypal.sylius.com',
-        ];
-
-        yield 'sandbox mode aliased facilitator url' => [
-            true,
-            'sylius.pay_pal.facilitator_url',
-            'https://paypal.sylius.com',
-        ];
-
-        yield 'production mode aliased api base url' => [
-            false,
-            'sylius.pay_pal.api_base_url',
-            'https://api.paypal.com/',
-        ];
-
-        yield 'sandbox mode aliased api base url' => [
-            true,
-            'sylius.pay_pal.api_base_url',
-            'https://api.sandbox.paypal.com/',
-        ];
-
-        yield 'production mode aliased sftp host' => [
-            false,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.paypal.com',
-        ];
-
-        yield 'sandbox mode aliased sftp host' => [
-            true,
-            'sylius.pay_pal.reports_sftp_host',
-            'reports.sandbox.paypal.com',
-        ];
-    }
-
-    /**
-     * @dataProvider environmentVariablesProvider
-     */
-    public function test_it_respects_environment_variables(
-        string $envVarName,
-        string $envVarValue,
-        string $parameterName,
-        mixed $expectedValue,
-    ): void {
-        $this->setEnvVar($envVarName, $envVarValue);
+        $this->setEnvVar('SYLIUS_PAYPAL_LOGGING_INCREASED', 'true');
 
         $this->load();
 
-        $this->assertContainerBuilderHasParameter($parameterName, $expectedValue);
+        $this->assertContainerBuilderHasParameter('sylius_paypal.logging.increased', true);
     }
 
-    public static function environmentVariablesProvider(): iterable
+    public function test_it_resolves_the_sandbox_mode_of_2_x_to_sandbox_by_default(): void
     {
-        yield 'sandbox mode disabled via env' => [
-            'SYLIUS_PAYPAL_SANDBOX_ENABLED',
-            'false',
-            'sylius_paypal.api_base_url',
-            'https://api.paypal.com/',
-        ];
+        $this->load();
 
-        yield 'logging increased enabled via env' => [
-            'SYLIUS_PAYPAL_LOGGING_INCREASED',
-            'true',
-            'sylius_paypal.logging.increased',
-            true,
-        ];
+        $this->assertContainerBuilderHasParameter('.sylius_paypal.sandbox', true);
+    }
+
+    public function test_it_resolves_the_sandbox_mode_from_the_configuration(): void
+    {
+        $this->loadCollectingDeprecations(['sandbox' => false]);
+
+        $this->assertContainerBuilderHasParameter('.sylius_paypal.sandbox', false);
+    }
+
+    public function test_it_resolves_the_sandbox_mode_from_the_env_over_the_configuration(): void
+    {
+        $this->setEnvVar('SYLIUS_PAYPAL_SANDBOX_ENABLED', 'false');
+
+        $this->loadCollectingDeprecations(['sandbox' => true]);
+
+        $this->assertContainerBuilderHasParameter('.sylius_paypal.sandbox', false);
+    }
+
+    public function test_it_deprecates_the_sandbox_option(): void
+    {
+        $deprecations = $this->loadCollectingDeprecations(['sandbox' => true]);
+
+        self::assertCount(1, $deprecations);
+        self::assertStringContainsString('"sylius_paypal.sandbox" option is deprecated', $deprecations[0]);
+    }
+
+    public function test_it_does_not_deprecate_anything_without_the_sandbox_option(): void
+    {
+        self::assertSame([], $this->loadCollectingDeprecations());
+    }
+
+    public function test_it_sets_the_production_and_sandbox_partner_credentials(): void
+    {
+        $this->load();
+
+        $this->assertContainerBuilderHasParameter('sylius_paypal.partner_credentials.partner_id', 'PTV9W69CVKNEL');
+        $this->assertContainerBuilderHasParameter('sylius_paypal.partner_credentials.sandbox.partner_id', 'JQVY284FYA5PC');
+        $this->assertContainerBuilderHasParameter(
+            'sylius_paypal.partner_credentials.sandbox.partner_client_id',
+            'ARDYqDJaDpNYQZUlGxdR-AyNxVV-Xr24nrkcWLiJME9NSsl6w7l6GfVuKe5iVmCbysOtsjyGtVeXYM2a',
+        );
+    }
+
+    /** @param array<string, mixed> $config */
+    private function loadCollectingDeprecations(array $config = []): array
+    {
+        $deprecations = [];
+        set_error_handler(static function (int $errno, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $this->load($config);
+        } finally {
+            restore_error_handler();
+        }
+
+        return $deprecations;
     }
 
     private function saveEnvVars(): void
     {
-        $this->originalSandboxEnv = $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] ?? null;
-        $this->originalLoggingEnv = $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] ?? null;
+        foreach (self::ENV_VARS as $name) {
+            if (isset($_ENV[$name])) {
+                $this->originalEnvVars[$name] = $_ENV[$name];
+            }
+        }
     }
 
     private function clearEnvVars(): void
     {
-        unset($_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED']);
-        unset($_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
+        foreach (self::ENV_VARS as $name) {
+            unset($_ENV[$name]);
+        }
     }
 
     private function restoreEnvVars(): void
     {
-        if ($this->originalSandboxEnv !== null) {
-            $_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED'] = $this->originalSandboxEnv;
-        } else {
-            unset($_ENV['SYLIUS_PAYPAL_SANDBOX_ENABLED']);
-        }
-        if ($this->originalLoggingEnv !== null) {
-            $_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED'] = $this->originalLoggingEnv;
-        } else {
-            unset($_ENV['SYLIUS_PAYPAL_LOGGING_INCREASED']);
+        $this->clearEnvVars();
+
+        foreach ($this->originalEnvVars as $name => $value) {
+            $_ENV[$name] = $value;
         }
     }
 

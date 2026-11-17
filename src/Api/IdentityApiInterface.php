@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface IdentityApiInterface
 {
-    public function generateToken(string $token): string;
+    public function generateToken(PaymentMethodInterface $paymentMethod): string;
 }

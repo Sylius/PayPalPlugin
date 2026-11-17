@@ -19,7 +19,7 @@ final class PayWithPayPalPage extends SyliusPage
 {
     public function getRouteName(): string
     {
-        return 'sylius_paypal_shop_pay_with_paypal_form';
+        return 'sylius_shop_order_pay';
     }
 
     public function hasPayPalButton(): bool
@@ -37,6 +37,13 @@ final class PayWithPayPalPage extends SyliusPage
         return $this->hasElement('card_fields');
     }
 
+    public function getPayPalClientId(): ?string
+    {
+        $instanceConfig = $this->getElement('card_fields')->getAttribute('data-sylius--paypal-plugin--paypal-payment-card-fields-instance-config-value');
+
+        return json_decode((string) $instanceConfig, true)['clientId'] ?? null;
+    }
+
     public function isRenderedInTheShopLayout(): bool
     {
         return $this->hasElement('shop_layout_body');
@@ -47,7 +54,7 @@ final class PayWithPayPalPage extends SyliusPage
         return array_merge(parent::getDefinedElements(), [
             'card_fields' => '[data-controller~="sylius--paypal-plugin--paypal-payment-card-fields"]',
             'paypal_button' => '[data-controller~="sylius--paypal-plugin--paypal-payment-wallet-button"]',
-            'shop_layout_body' => 'body[data-route="sylius_paypal_shop_pay_with_paypal_form"]',
+            'shop_layout_body' => 'body[data-route="sylius_shop_payment_request_pay"]',
             'trustly_button' => '[data-test-paypal-redirect-button="trustly"]',
         ]);
     }

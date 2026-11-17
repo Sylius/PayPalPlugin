@@ -1,0 +1,10 @@
+{% set payment_method = hookable_metadata.context.resource ?? null %}
+
+{% if payment_method is not null and payment_method.id is not null %}
+    <div class="col-12">
+        {{ component('sylius_paypal:permissions_state', {
+            paymentMethodId: payment_method.id,
+            variant: constant('Sylius\\PayPalPlugin\\Twig\\Component\\PermissionsStateComponent::VARIANT_ALERT'),
+        }) }}
+    </div>
+{% endif %}

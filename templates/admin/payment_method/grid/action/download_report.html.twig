@@ -1,9 +1,0 @@
-{% if data.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME')
-    and data.gatewayConfig.config.reports_sftp_username is not empty
-    and data.gatewayConfig.config.reports_sftp_password is not empty
-%}
-    {% set path = options.link.url|default(path(options.link.route, options.link.parameters|default({}))) %}
-    <a href="{{ path }}" class="btn btn-icon" data-bs-toggle="tooltip" data-bs-title="{{ action.label|trans }}" {{ sylius_test_html_attribute('action', action.label|trans ) }} }}>
-        {{ ux_icon(action.icon) }}
-    </a>
-{% endif %}

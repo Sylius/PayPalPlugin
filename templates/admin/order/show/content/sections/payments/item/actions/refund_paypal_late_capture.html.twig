@@ -1,3 +1,5 @@
+{% import '@SyliusAdmin/shared/helper/money.html.twig' as money %}
+
 {% set order = hookable_metadata.context.resource %}
 {% set payment = hookable_metadata.context.payment %}
 {% set late_capture = payment.details[constant('Sylius\\PayPalPlugin\\Processor\\PayPalPaymentSettlementProcessor::LATE_CAPTURE')] ?? null %}
@@ -11,7 +13,7 @@
         <input type="hidden" name="_method" value="PUT">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token(payment.id) }}" />
         <button type="submit" class="btn" {{ sylius_test_html_attribute('refund-paypal-late-capture', payment.id) }}>
-            {{ ux_icon('tabler:arrow-back-up-double') }} {{ 'sylius.ui.refund'|trans }}
+            {{ ux_icon('tabler:arrow-back-up-double') }} {{ 'sylius_paypal.refund_late_capture'|trans({'%amount%': money.format(late_capture.amount, late_capture.currency_code)}) }}
         </button>
     </form>
 {% endif %}

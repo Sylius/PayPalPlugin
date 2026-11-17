@@ -67,7 +67,7 @@ final class PurchaseUnitFactoryTest extends TestCase
             ->willReturn(0);
 
         $this->gatewayConfig->method('getConfig')->willReturn(
-            ['merchant_id' => 'merchant-id', 'sylius_merchant_id' => 'sylius-merchant-id'],
+            ['merchant_id' => 'merchant-id'],
         );
 
         $this->paymentReferenceNumberProvider->method('provide')->with($this->payment)->willReturn('REFERENCE-NUMBER');
@@ -114,6 +114,14 @@ final class PurchaseUnitFactoryTest extends TestCase
         );
         self::assertSame('PRODUCT_ONE', $purchaseUnit['items'][0]['name']);
         self::assertSame('90.00', $purchaseUnit['items'][0]['unit_amount']['value']);
+    }
+
+    public function test_it_prefers_the_custom_id_it_is_given_over_the_payment_reference_number(): void
+    {
+        $purchaseUnit = $this->factory->create($this->payment, 'REFERENCE_ID', customId: 'PAYMENT_REQUEST_HASH')->toArray();
+
+        self::assertSame('PAYMENT_REQUEST_HASH', $purchaseUnit['custom_id']);
+        self::assertSame('REFERENCE-NUMBER-REFERENCE_ID', $purchaseUnit['invoice_id']);
     }
 
     public function test_it_sends_the_item_taxes_by_default(): void
@@ -190,7 +198,7 @@ final class PurchaseUnitFactoryTest extends TestCase
     public function test_it_fails_when_the_gateway_config_carries_no_merchant_id(): void
     {
         $gatewayConfig = $this->createMock(GatewayConfigInterface::class);
-        $gatewayConfig->method('getConfig')->willReturn(['sylius_merchant_id' => 'sylius-merchant-id']);
+        $gatewayConfig->method('getConfig')->willReturn([]);
 
         $paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);

@@ -19,6 +19,8 @@ class PayPalOrder
 {
     public const INTENT_CAPTURE = 'CAPTURE';
 
+    public const INTENT_AUTHORIZE = 'AUTHORIZE';
+
     public const NO_SHIPPING = 'NO_SHIPPING';
 
     public const PROVIDED_ADDRESS = 'SET_PROVIDED_ADDRESS';
