@@ -72,7 +72,7 @@ final class CapturePayPalOrderPaymentRequestHandler
 
         if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
             if ($this->isPaidByItsPayPalOrder($paymentRequest, $payment)) {
-                $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);
+                $this->completeRequest($paymentRequest);
 
                 return;
             }
@@ -163,6 +163,17 @@ final class CapturePayPalOrderPaymentRequestHandler
     {
         if ($this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS)) {
             $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_PROCESS);
+        }
+
+        $this->completeRequest($paymentRequest);
+    }
+
+    private function completeRequest(PaymentRequestInterface $paymentRequest): void
+    {
+        $responseData = $paymentRequest->getResponseData();
+        if (array_key_exists(self::RESPONSE_AWAITING_PAYER, $responseData)) {
+            unset($responseData[self::RESPONSE_AWAITING_PAYER]);
+            $paymentRequest->setResponseData($responseData);
         }
 
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE);

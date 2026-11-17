@@ -139,6 +139,22 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
         self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
     }
 
+    public function test_it_stops_awaiting_the_payer_once_it_completes_the_request(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(
+            ['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payment_source' => 'trustly'],
+            responseData: ['awaiting_payer' => true, 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank'],
+        );
+        $this->paymentCaptureProcessor->method('capture')->willReturn($this->capturedOrder('COMPLETED'));
+        $this->stateMachine->method('can')->willReturn(false);
+
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
+    }
+
     public function test_it_moves_a_payment_with_a_pending_capture_to_processing(): void
     {
         $this->paymentRequestWith();
@@ -263,6 +279,18 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
 
         $this->paymentCaptureProcessor->expects(self::never())->method('capture');
         $paymentRequest->expects(self::never())->method('setResponseData');
+
+        ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
+    }
+
+    public function test_it_stops_awaiting_the_payer_once_its_paypal_order_has_already_paid_the_payment(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(responseData: ['awaiting_payer' => true, 'paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
+        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_COMPLETED);
+
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'payer_action_url' => 'https://paypal.test/bank']);
 
         ($this->handler)(new CapturePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
 

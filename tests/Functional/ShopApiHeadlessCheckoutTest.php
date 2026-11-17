@@ -152,6 +152,7 @@ final class ShopApiHeadlessCheckoutTest extends JsonApiTestCase
         $paymentRequest = $this->completePayment($paymentRequest['hash']);
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest['state']);
+        self::assertArrayNotHasKey('awaiting_payer', $paymentRequest['responseData']);
         self::assertSame(OrderPaymentStates::STATE_PAID, $this->orderPaymentState($token));
     }
 
@@ -181,6 +182,7 @@ final class ShopApiHeadlessCheckoutTest extends JsonApiTestCase
 
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $paymentRequest['state']);
         self::assertArrayNotHasKey('reason', $paymentRequest['responseData']);
+        self::assertArrayNotHasKey('awaiting_payer', $paymentRequest['responseData']);
     }
 
     public function test_it_authorizes_a_paypal_payment_of_a_payment_method_that_authorizes_payments(): void
