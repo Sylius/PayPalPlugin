@@ -656,7 +656,8 @@
    included, on the `paypal` channel: the method, URL, status and `PayPal-Debug-Id` in the message, the request and
    response headers and bodies in the context. A successful call is logged as `info`, a call PayPal rejected or that
    never reached it as `error`. Credentials (authorization headers, tokens, client credentials), the payer's
-   personal data (name, contact details, address, card data) and the seller's primary email are masked.
+   personal data (name, contact details, address, card data) and the seller's email (`primary_email`, and
+   `tracking_id`, which PayPal fills with it) are masked.
 
    PayPal asks to keep the logs of failed calls for at least two weeks, as it purges its own after that. Route the
    `paypal` channel accordingly, for example:
