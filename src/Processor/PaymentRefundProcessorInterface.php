@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Processor;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 interface PaymentRefundProcessorInterface
 {
     /**

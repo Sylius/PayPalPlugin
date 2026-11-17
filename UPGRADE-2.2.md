@@ -957,13 +957,23 @@ Everything below will be removed or required in 3.0:
    `CompletePaidPaymentsCommand`.
 1. Not passing a `$paymentSource` to `PayPalOrder`, and its `$order` argument.
 1. `CreateOrderApi::PAYPAL_INTENT_CAPTURE`, in favour of `PayPalOrder::INTENT_CAPTURE`.
-1. `Controller\Webhook\RefundOrderAction` and the `sylius_paypal.controller.webhook.refund_order` service, in
-   favour of `PayPalWebhookAction` and `RefundOrderWebhookProcessor`.
+1. `Controller\Webhook\RefundOrderAction` and the `sylius_paypal.controller.webhook.refund_order` service. The
+   `sylius_paypal_webhook_refund_order` route already uses `PayPalWebhookAction`.
 1. The three commented-out arguments of `CreateOrderApiInterface::create()` will be declared.
 1. The `?PaymentInterface` return types of `PaypalPaymentQueryInterface` will be narrowed to `PaymentInterface`.
 1. The `enable_paypal` action of the `sylius_admin_payment_method` grid, its `enable_paypal` action type and the
    `@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig` template.
 1. The `sylius_is_paypal_enabled` Twig function and `PayPalExtension::isPayPalEnabled()`.
+1. Refunding a PayPal payment on the `refund` transition of the payment, as 3.0 refunds it through a refund Payment
+   Request: `EventListener\Workflow\RefundPaymentListener` with the `refund_paypal_order` winzou callback,
+   `Processor\PaymentRefundProcessorInterface`, `PayPalPaymentRefundProcessor`, `UiPayPalPaymentRefundProcessor`,
+   `PayPalLateCaptureRefundProcessor` and `Exception\PayPalOrderRefundException`.
+1. The webhook endpoint `/paypal-webhook/api/` (`sylius_paypal_webhook_refund_order`), as 3.0 accepts the webhooks
+   of a payment method on its notify URL: `Controller\Webhook\PayPalWebhookAction`,
+   `Processor\Webhook\WebhookProcessorInterface`, `RefundOrderWebhookProcessor`, `CapturePaymentWebhookProcessor`,
+   `Provider\PayPalRefundDataProvider` with its interface, `PaypalPaymentQueryInterface::getForRefundingByOrderId()`
+   with the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter,
+   `UpdateWebhookApiInterface::updateEventTypes()` and `WebhookApi::EVENT_TYPES`.
 
 ## Known limitations
 

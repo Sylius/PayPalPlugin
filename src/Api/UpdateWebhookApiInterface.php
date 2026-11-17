@@ -19,6 +19,8 @@ interface UpdateWebhookApiInterface
      * @param list<string> $eventTypes
      *
      * @return array<string, mixed>
+     *
+     * @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
      */
     public function updateEventTypes(string $token, string $webhookId, array $eventTypes): array;
 }

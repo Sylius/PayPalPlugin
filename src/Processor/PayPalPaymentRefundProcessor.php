@@ -26,6 +26,7 @@ use Sylius\PayPalPlugin\Exception\PayPalOrderRefundException;
 use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalPaymentRefundProcessor implements PaymentRefundProcessorInterface
 {
     private const CAPTURE_STATUS_REFUNDED = 'REFUNDED';
