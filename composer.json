@@ -15,7 +15,7 @@
         "psr/cache": "^3.0",
         "psr/http-client": "^1.0",
         "sylius-labs/doctrine-migrations-extra-bundle": "^0.2 || ^0.3",
-        "sylius/sylius": "^2.0.1",
+        "sylius/sylius": "^2.2.9",
         "sylius/telemetry": "^1.0",
         "symfony/clock": "^6.4 || ^7.4 || ^8.0",
         "symfony/mailer": "^6.4 || ^7.4 || ^8.0"

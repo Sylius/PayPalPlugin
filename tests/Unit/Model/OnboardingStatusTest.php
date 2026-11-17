@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 
 use PHPUnit\Framework\TestCase;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 final class OnboardingStatusTest extends TestCase
@@ -60,6 +61,8 @@ final class OnboardingStatusTest extends TestCase
             'capabilities' => [
                 ['name' => 'APPLE_PAY', 'status' => 'ACTIVE'],
                 ['name' => 'GOOGLE_PAY', 'status' => 'NEED_DATA'],
+                ['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'IN_REVIEW'],
+                ['name' => 'VENMO'],
                 ['status' => 'ACTIVE'],
                 'CUSTOM_CARD_PROCESSING',
             ],
@@ -68,6 +71,49 @@ final class OnboardingStatusTest extends TestCase
         self::assertTrue($status->isComplete());
         self::assertSame(['APPLE_PAY'], $status->activeCapabilities());
         self::assertSame('NEED_DATA', $status->capabilityStatus('GOOGLE_PAY'));
+        self::assertSame('IN_REVIEW', $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
+        self::assertNull($status->capabilityStatus('VENMO'));
+        self::assertFalse($status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
+    }
+
+    public function test_it_takes_the_last_status_of_a_capability_the_merchant_integration_lists_more_than_once(): void
+    {
+        $status = OnboardingStatus::fromMerchantIntegration([
+            'capabilities' => [
+                ['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'ACTIVE'],
+                ['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => 'REVOKED'],
+            ],
+        ]);
+
+        self::assertSame('REVOKED', $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
+        self::assertFalse($status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
+        self::assertSame([], $status->activeCapabilities());
+    }
+
+    public function test_it_skips_the_capabilities_whose_name_or_status_is_not_a_string(): void
+    {
+        $status = OnboardingStatus::fromMerchantIntegration([
+            'capabilities' => [
+                ['name' => 'PAYPAL_WALLET_VAULTING_ADVANCED', 'status' => ['code' => 'ACTIVE']],
+                ['name' => 123, 'status' => 'ACTIVE'],
+                ['name' => 'APPLE_PAY', 'status' => 'ACTIVE'],
+            ],
+        ]);
+
+        self::assertNull($status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
+        self::assertSame(['APPLE_PAY'], $status->activeCapabilities());
+    }
+
+    public function test_it_lists_a_numeric_capability_name_as_a_string(): void
+    {
+        $status = OnboardingStatus::fromMerchantIntegration([
+            'capabilities' => [
+                ['name' => '123', 'status' => 'ACTIVE'],
+            ],
+        ]);
+
+        self::assertSame(['123'], $status->activeCapabilities());
+        self::assertTrue($status->hasActiveCapability('123'));
     }
 
     public function test_it_reads_an_empty_merchant_integration_as_incomplete_without_capabilities(): void
@@ -76,5 +122,6 @@ final class OnboardingStatusTest extends TestCase
 
         self::assertFalse($status->isComplete());
         self::assertSame([], $status->activeCapabilities());
+        self::assertNull($status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED));
     }
 }

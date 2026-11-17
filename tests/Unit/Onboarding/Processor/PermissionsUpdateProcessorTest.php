@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Onboarding\Processor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
@@ -21,6 +22,7 @@ use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Exception\OnboardingAccountMismatchException;
 use Sylius\PayPalPlugin\Exception\OnboardingFailedException;
 use Sylius\PayPalPlugin\Exception\OnboardingSessionExpiredException;
+use Sylius\PayPalPlugin\Model\Capability;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PermissionsUpdateResult;
 use Sylius\PayPalPlugin\Model\PermissionsVerification;
@@ -29,6 +31,7 @@ use Sylius\PayPalPlugin\Onboarding\Manager\SellerNonceManagerInterface;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessor;
 use Sylius\PayPalPlugin\Onboarding\Processor\PermissionsUpdateProcessorInterface;
 use Sylius\PayPalPlugin\Onboarding\Resolver\SellerOnboardingResolverInterface;
+use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
 use Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface;
 
 final class PermissionsUpdateProcessorTest extends TestCase
@@ -47,6 +50,8 @@ final class PermissionsUpdateProcessorTest extends TestCase
 
     private PermissionsVerifierInterface&MockObject $permissionsVerifier;
 
+    private OnboardingScopeUpdaterInterface&MockObject $onboardingScopeUpdater;
+
     private PermissionsUpdateProcessor $processor;
 
     protected function setUp(): void
@@ -54,11 +59,13 @@ final class PermissionsUpdateProcessorTest extends TestCase
         $this->sellerNonceManager = $this->createMock(SellerNonceManagerInterface::class);
         $this->sellerOnboardingResolver = $this->createMock(SellerOnboardingResolverInterface::class);
         $this->permissionsVerifier = $this->createMock(PermissionsVerifierInterface::class);
+        $this->onboardingScopeUpdater = $this->createMock(OnboardingScopeUpdaterInterface::class);
 
         $this->processor = new PermissionsUpdateProcessor(
             $this->sellerNonceManager,
             $this->sellerOnboardingResolver,
             $this->permissionsVerifier,
+            $this->onboardingScopeUpdater,
         );
     }
 
@@ -81,10 +88,32 @@ final class PermissionsUpdateProcessorTest extends TestCase
         ;
 
         $this->permissionsVerifier->expects(self::once())->method('verifyStatus')->with($paymentMethod, $status)->willReturn($verification);
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
         $this->sellerNonceManager->expects(self::once())->method('remove')->with(true);
 
         self::assertEquals(new PermissionsUpdateResult($status, $verification), $this->processor->process($paymentMethod, 'AUTH_CODE', 'SHARED_ID'));
         self::assertSame(self::CONFIG, $paymentMethod->getGatewayConfig()?->getConfig());
+    }
+
+    #[DataProvider('verificationsOfAConsentThatLeavesCapabilitiesInactive')]
+    public function test_it_stores_the_current_scope_once_the_seller_consented_even_when_paypal_leaves_capabilities_inactive(PermissionsVerification $verification): void
+    {
+        $paymentMethod = $this->paymentMethod(self::CONFIG);
+        $status = new OnboardingStatus(true, true);
+        $this->sellerNonceManager->method('get')->willReturn('NONCE');
+        $this->sellerOnboardingResolver->method('resolve')->willReturn(new SellerOnboardingResult('NEW_CLIENT_ID', 'NEW_CLIENT_SECRET', 'MERCHANT_ID', $status));
+        $this->permissionsVerifier->method('verifyStatus')->willReturn($verification);
+
+        $this->onboardingScopeUpdater->expects(self::once())->method('update')->with($paymentMethod);
+
+        self::assertEquals(new PermissionsUpdateResult($status, $verification), $this->processor->process($paymentMethod, 'AUTH_CODE', 'SHARED_ID'));
+    }
+
+    /** @return iterable<string, array{PermissionsVerification}> */
+    public static function verificationsOfAConsentThatLeavesCapabilitiesInactive(): iterable
+    {
+        yield 'capability not offered' => [PermissionsVerification::consentRequired([Capability::PAYPAL_WALLET_VAULTING_ADVANCED])];
+        yield 'capability denied' => [PermissionsVerification::awaitingPayPal([Capability::PAYPAL_WALLET_VAULTING_ADVANCED => 'DENY'])];
     }
 
     public function test_it_refuses_another_paypal_account_and_changes_nothing(): void
@@ -94,6 +123,7 @@ final class PermissionsUpdateProcessorTest extends TestCase
         $this->sellerOnboardingResolver->method('resolve')->willReturn($this->sellerOnboardingResult('ANOTHER_MERCHANT_ID'));
 
         $this->permissionsVerifier->expects(self::never())->method('verifyStatus');
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
         $this->sellerNonceManager->expects(self::never())->method('remove');
 
         $this->expectException(OnboardingAccountMismatchException::class);

@@ -17,11 +17,13 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PaymentBundle\CommandProvider\PaymentRequestCommandProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Processor\Webhook\CaptureApprovedOrderWebhookEventProcessor;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -37,6 +39,8 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
 
     private MessageBusInterface&MockObject $commandBus;
 
+    private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
+
     private PaymentInterface&MockObject $payment;
 
     private CaptureApprovedOrderWebhookEventProcessor $processor;
@@ -47,13 +51,15 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         $this->paymentRequestRepository = $this->createMock(PaymentRequestRepositoryInterface::class);
         $this->paymentRequestCommandProvider = $this->createMock(PaymentRequestCommandProviderInterface::class);
         $this->commandBus = $this->createMock(MessageBusInterface::class);
+        $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
-        $this->payment->method('getState')->willReturn(PaymentInterface::STATE_PROCESSING);
+        $this->payment->method('getState')->willReturn(BasePaymentInterface::STATE_PROCESSING);
 
         $this->processor = new CaptureApprovedOrderWebhookEventProcessor(
             $this->paymentRequestRepository,
             $this->paymentRequestCommandProvider,
             $this->commandBus,
+            $this->paymentSettlementProcessor,
         );
     }
 
@@ -149,6 +155,34 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
     }
 
+    public function test_it_settles_an_order_created_before_the_upgrade_to_3_0_once_the_buyer_approves_it(): void
+    {
+        $this->paymentRequestRepository->expects(self::never())->method('find');
+        $this->commandBus->expects(self::never())->method('dispatch');
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, null, 'PAYPAL_ORDER_ID');
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->preUpgradeApprovedOrder(), $this->payment);
+    }
+
+    public function test_it_does_not_settle_an_order_created_before_the_upgrade_to_3_0_for_a_payment_no_longer_processing(): void
+    {
+        $payment = $this->createStub(PaymentInterface::class);
+        $payment->method('getState')->willReturn(BasePaymentInterface::STATE_NEW);
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->preUpgradeApprovedOrder(), $payment);
+    }
+
+    public function test_it_does_not_settle_an_order_of_a_payment_request_no_longer_awaiting_it(): void
+    {
+        $this->capturePaymentRequest(state: PaymentRequestInterface::STATE_COMPLETED);
+
+        $this->paymentSettlementProcessor->expects(self::never())->method('settle');
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
+    }
+
     private function capturePaymentRequest(
         string $state = PaymentRequestInterface::STATE_PROCESSING,
         ?PaymentInterface $payment = null,
@@ -173,6 +207,16 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
             'id' => 'PAYPAL_ORDER_ID',
             'status' => 'APPROVED',
             'purchase_units' => [['custom_id' => self::HASH]],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function preUpgradeApprovedOrder(): array
+    {
+        return [
+            'id' => 'PAYPAL_ORDER_ID',
+            'status' => 'APPROVED',
+            'purchase_units' => [['custom_id' => '000000001']],
         ];
     }
 }

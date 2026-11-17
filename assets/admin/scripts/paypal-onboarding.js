@@ -13,6 +13,8 @@ function syncOnboardingButtonsState() {
     document.querySelectorAll('[data-paypal-button]').forEach((button) => {
         button.classList.toggle('disabled', !partnerJsReady);
         button.setAttribute('aria-disabled', partnerJsReady ? 'false' : 'true');
+        button.setAttribute('aria-busy', partnerJsReady ? 'false' : 'true');
+        button.querySelector('[data-paypal-button-loading]')?.classList.toggle('d-none', partnerJsReady);
     });
 }
 
@@ -61,7 +63,10 @@ function loadPartnerJs(partnerJsUrl) {
         partnerJsReady = true;
         syncOnboardingButtonsState();
     });
-    script.addEventListener('error', showOnboardingError);
+    script.addEventListener('error', () => {
+        document.querySelectorAll('[data-paypal-button-loading]').forEach((spinner) => spinner.classList.add('d-none'));
+        showOnboardingError();
+    });
     document.body.appendChild(script);
 }
 
@@ -201,20 +206,44 @@ function loadPartnerJsOnceButtonExists(onboardingModal) {
     observer.observe(onboardingModal, { childList: true, subtree: true });
 }
 
-function bindOnboardingUrlLoader(onboardingModal) {
-    document.querySelectorAll(`[data-bs-target="#${onboardingModal.id}"]`).forEach((trigger) => {
-        trigger.addEventListener('click', () => {
-            activeOnboardingModal = onboardingModal;
-            onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
-        });
+function loadOnboardingUrlOnceShown(event) {
+    const onboardingModal = event.target;
+
+    if (!(onboardingModal instanceof Element) || !onboardingModal.hasAttribute('data-paypal-onboarding-complete-url')) {
+        return;
+    }
+
+    activeOnboardingModal = onboardingModal;
+    setTimeout(() => {
+        onboardingModal.dispatchEvent(new Event('paypal:onboarding-open'));
+    });
+}
+
+const ONBOARDING_MODAL_CHILD_SELECTOR = ':scope > [data-paypal-onboarding-complete-url]';
+const guardedOnboardingComponents = new WeakSet();
+
+function skipRenderingClosedOnboardingModal(event) {
+    const component = event.detail?.component;
+    const hasOnboardingModal = event.target instanceof Element && event.target.querySelector(ONBOARDING_MODAL_CHILD_SELECTOR) !== null;
+
+    if (!component || !hasOnboardingModal || guardedOnboardingComponents.has(component)) {
+        return;
+    }
+
+    guardedOnboardingComponents.add(component);
+    component.on('render:started', (html, response, controls) => {
+        if (!component.element.querySelector(ONBOARDING_MODAL_CHILD_SELECTOR)?.classList.contains('show')) {
+            controls.shouldRender = false;
+        }
     });
 }
 
 function initOnboardingModal() {
     document.addEventListener('click', guardOnboardingButtonClick, true);
+    document.addEventListener('shown.bs.modal', loadOnboardingUrlOnceShown);
+    document.addEventListener('live:connect', skipRenderingClosedOnboardingModal);
 
     findOnboardingModals().forEach((onboardingModal) => {
-        bindOnboardingUrlLoader(onboardingModal);
         loadPartnerJsOnceButtonExists(onboardingModal);
     });
 }

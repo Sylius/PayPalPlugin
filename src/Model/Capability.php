@@ -19,6 +19,8 @@ final class Capability
 
     public const GOOGLE_PAY = 'GOOGLE_PAY';
 
+    public const PAYPAL_WALLET_VAULTING_ADVANCED = 'PAYPAL_WALLET_VAULTING_ADVANCED';
+
     private function __construct()
     {
     }

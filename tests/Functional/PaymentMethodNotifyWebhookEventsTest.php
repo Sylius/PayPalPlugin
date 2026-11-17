@@ -441,6 +441,30 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
     }
 
+    public function test_it_acknowledges_the_vault_payment_token_events_and_leaves_the_payment_alone(): void
+    {
+        $order = $this->processingOrder();
+
+        foreach (['VAULT.PAYMENT-TOKEN.CREATED', 'VAULT.PAYMENT-TOKEN.DELETED'] as $index => $eventType) {
+            $this->notify([
+                'id' => 'WH-VAULT-' . $index,
+                'event_type' => $eventType,
+                'resource_type' => 'payment_token',
+                'resource' => [
+                    'id' => 'PAYMENT_TOKEN_ID',
+                    'customer' => ['id' => 'PAYPAL_CUSTOMER_ID'],
+                    'metadata' => ['order_id' => 'PAYPAL_ORDER_ID'],
+                    'payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']],
+                ],
+            ]);
+
+            self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+            self::assertNull($this->webhookEventStatus('WH-VAULT-' . $index));
+        }
+
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+    }
+
     public function test_it_finds_the_payment_of_the_payment_request_an_event_names_without_loading_the_request(): void
     {
         $paymentRequest = $this->processingCapturePaymentRequest();

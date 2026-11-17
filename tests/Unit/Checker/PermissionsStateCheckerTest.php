@@ -34,7 +34,7 @@ final class PermissionsStateCheckerTest extends TestCase
     public function test_it_finds_the_permissions_outdated_with_what_the_stored_scope_lacks(): void
     {
         $current = OnboardingScope::current();
-        $stored = new OnboardingScope($current->product(), $current->secondaryProducts(), [Capability::APPLE_PAY], $current->features());
+        $stored = new OnboardingScope($current->product(), $current->secondaryProducts(), [Capability::APPLE_PAY, Capability::PAYPAL_WALLET_VAULTING_ADVANCED], $current->features());
 
         self::assertEquals(
             PermissionsState::outdated([Capability::GOOGLE_PAY]),
