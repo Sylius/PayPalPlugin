@@ -1,0 +1,20 @@
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+// PayPal's partner.js renders a full-page overlay while its onboarding popup is open,
+// without a z-index. Lift it above the Bootstrap onboarding modal and its backdrop,
+// so the whole admin page is dimmed evenly instead of in patches.
+[id^="zoid-isu-minibrowser-component"] {
+    z-index: 1060;
+}
+
+// While that overlay is shown, hide the modal backdrop, so the page is not dimmed twice.
+body:has([id^="zoid-isu-minibrowser-component"]) .modal-backdrop {
+    opacity: 0;
+}
