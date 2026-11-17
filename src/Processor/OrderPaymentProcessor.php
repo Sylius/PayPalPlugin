@@ -23,6 +23,7 @@ use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Webmozart\Assert\Assert;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class OrderPaymentProcessor implements OrderProcessorInterface
 {
     public function __construct(

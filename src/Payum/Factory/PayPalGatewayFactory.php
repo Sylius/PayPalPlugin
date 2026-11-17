@@ -17,6 +17,7 @@ use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final class PayPalGatewayFactory extends GatewayFactory
 {
     protected function populateConfig(ArrayObject $config): void

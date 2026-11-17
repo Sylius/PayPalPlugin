@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalExpressOrderCompleter implements PayPalExpressOrderCompleterInterface
 {
     public function __construct(

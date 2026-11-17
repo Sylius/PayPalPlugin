@@ -33,6 +33,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayWithPayPalFormAction
 {
     private const WEBAUTHN_PERMISSIONS_POLICY_FALLBACK_ORIGINS = '"https://www.paypal.com" "https://www.sandbox.paypal.com"';

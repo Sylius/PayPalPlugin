@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Manager;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 interface PaymentStateManagerInterface
 {
     public function create(PaymentInterface $payment): void;

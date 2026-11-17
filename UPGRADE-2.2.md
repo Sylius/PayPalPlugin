@@ -952,7 +952,7 @@ Everything below will be removed or required in 3.0:
    method list shows only the payment method name.
 1. The routes `sylius_paypal_shop_cancel_last_payment` and `sylius_paypal_shop_update_paypal_order`.
 1. The old JSON keys `orderID` and `order_id` of the create and capture endpoints.
-1. Not passing a constructor argument added in 2.2 (see [Constructors](#constructors)).
+1. Not passing a constructor argument added in 2.2 to a class that 3.0 keeps (see [Constructors](#constructors)).
 1. Passing the five unused arguments of `PayWithPayPalFormAction`, and the four unused arguments of
    `CompletePaidPaymentsCommand`.
 1. Not passing a `$paymentSource` to `PayPalOrder`, and its `$order` argument.
@@ -1002,6 +1002,26 @@ Everything below will be removed or required in 3.0:
    goes too, with the `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.reports`
    hook and its `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_username.html.twig`
    and `reports_sftp_password.html.twig` templates.
+1. The Payum gateway, as every PayPal flow runs through Payment Requests in 3.0: `Payum\Factory\PayPalGatewayFactory`,
+   `Payum\Action\AuthorizeAction`, `CaptureAction`, `CompleteOrderAction`, `ResolveNextRouteAction`, `StatusAction`
+   and `Payum\Request\CompleteOrder`.
+1. The controllers of the payment page and the payer action redirects: `PayWithPayPalFormAction`,
+   `CreatePayPalOrderAction`, `CompletePayPalOrderAction`, `CancelPayPalPaymentAction`,
+   `CancelPayPalCheckoutPaymentAction`, `CancelLastPayPalPaymentAction`, `RedirectReturnAction` and
+   `RedirectCancelAction`. The routes `sylius_paypal_shop_create_paypal_order` and
+   `sylius_paypal_shop_cancel_payment` are removed with them; the other routes stay in 3.0 and lead to the 3.0
+   checkout.
+1. The PayPal buttons completing the checkout through `ProcessPayPalOrderAction`,
+   `CreatePayPalOrderFromPaymentPageAction`, `CompletePayPalOrderFromPaymentPageAction` and
+   `Completer\PayPalExpressOrderCompleter` with its interface, and their routes `sylius_paypal_shop_process_paypal_order`,
+   `sylius_paypal_shop_create_paypal_order_from_payment_page` and
+   `sylius_paypal_shop_complete_paypal_order_from_payment_page`.
+1. Capturing a PayPal payment when the checkout is completed: `EventListener\Workflow\CompletePayPalOrderListener`
+   with the `complete_paypal_order` winzou callback, `Processor\PayPalOrderCompleteProcessor`,
+   `Manager\PaymentStateManager` with its interface, `Processor\PayPalPaymentCompleteProcessor`,
+   `Processor\PaymentCompleteProcessorInterface`, `Processor\OrderPaymentProcessor` and `UpdatePayPalOrderAction`.
+1. The payer action nonces: `Provider\NonceProvider` with its interface, and
+   `PayerActionCheckerInterface::matchesPayerActionReturnNonce()` and `matchesPayerActionCancelNonce()`.
 
 ## Known limitations
 
