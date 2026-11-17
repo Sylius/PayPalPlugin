@@ -976,6 +976,22 @@ Everything below will be removed or required in 3.0:
    `Provider\PayPalRefundDataProvider` with its interface, `PaypalPaymentQueryInterface::getForRefundingByOrderId()`
    with the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter,
    `UpdateWebhookApiInterface::updateEventTypes()` and `WebhookApi::EVENT_TYPES`.
+1. `Provider\PayPalPaymentMethodProvider` with its interface (`sylius_paypal.provider.paypal_payment_method`) and
+   `Exception\PayPalPaymentMethodNotFoundException`. Take the payment method of the payment, or the PayPal payment
+   methods of a channel from `PayPalPaymentMethodsResolverInterface::getInChannel()`.
+1. The facilitator-based onboarding: `Onboarding\Initiator\OnboardingInitiator` and
+   `Onboarding\Processor\BasicOnboardingProcessor` with their interfaces, `Factory\PayPalPaymentMethodNewResourceFactory`,
+   `PayPalGatewayConfig::ONBOARDING_ID`, `SYLIUS_MERCHANT_ID`, `syliusMerchantId()` and `hasSyliusMerchantId()`.
+1. Creating a sandbox payment method from pasted credentials: `Twig\Component\PayPalSandboxModalComponent`
+   (`sylius_paypal:create_sandbox_modal`), `Creator\PayPalSandboxPaymentMethodCreator` with its interface,
+   `Form\Type\PayPalSandboxCredentialsType` and `Model\PayPalSandboxCredentials`. 3.0 onboards a sandbox payment
+   method through PayPal like a live one.
+1. The SFTP payouts report download: `Controller\DownloadPayoutsReportAction` with the
+   `sylius_paypal_admin_download_payouts_report` route and the `download_report` grid action,
+   `Downloader\SftpPayoutsReportDownloader` with its interface, `Exception\PayPalReportDownloadException`,
+   `Model\Report`, the `reports_sftp_username` and `reports_sftp_password` fields of the gateway config with
+   `PayPalGatewayConfig::REPORTS_SFTP_USERNAME`, `REPORTS_SFTP_PASSWORD`, `reportsSftpUsername()` and
+   `reportsSftpPassword()`, the `sylius_paypal.reports_sftp_host` parameter and the `phpseclib/phpseclib` dependency.
 
 ## Known limitations
 

@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\UrlUtils;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final class OnboardingInitiator implements OnboardingInitiatorInterface
 {
     private string $createPartnerReferralsUrl;
