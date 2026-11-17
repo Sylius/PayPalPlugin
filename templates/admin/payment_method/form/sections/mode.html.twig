@@ -3,7 +3,6 @@
 {% if payment_method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
     {% set sandbox = payment_method.gatewayConfig.config[constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX')]|default(false) %}
 
-    {# the surface layer keeps the translucent alert background light on the grey page #}
     <div class="bg-surface rounded mb-3">
         {% if sandbox and app.environment == 'prod' %}
             <div class="alert alert-danger mb-0" role="alert" {{ sylius_test_html_attribute('paypal-mode', 'sandbox') }}>

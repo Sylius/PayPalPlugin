@@ -140,6 +140,7 @@ sylius_paypal:
     privacy_statement: 'PayPal Privacy Statement'
     refund_late_capture: 'Refund the extra %amount%'
     sandbox_on_production_warning: 'Warning: this payment method uses PayPal Sandbox on a production environment. Sandbox uses test credentials and will not process real payments.'
+    secured_by: 'Secured by'
     share_data_consent_confirmation: 'By clicking Yes, you accept PayPal share data consent'
     shipment_tracking:
         attempts: 'Attempts'
