@@ -126,8 +126,7 @@
    come from a payment method pointing at the wrong PayPal environment.
 
    `Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface` (`sylius_paypal.checker.pre_upgrade_paypal_order`)
-   tells such a payment apart. `CaptureApprovedOrderWebhookEventProcessor` takes the
-   `Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface` as its fourth argument.
+   tells such a payment apart.
 
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 
