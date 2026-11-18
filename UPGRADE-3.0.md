@@ -101,9 +101,13 @@
 
    The 2.x payment page and its endpoints have been removed. A buyer may still be on them while the store is upgraded,
    and PayPal keeps sending a buyer back from the bank to the return URL of a PayPal order created by 2.x, so the
-   following routes are kept with the 2.x URLs, route names and parameters, and lead to the 3.0 checkout. They are
-   deprecated and will be removed in 4.0. Except for the payment page redirect, they only settle, cancel or fail a
-   `processing` payment whose PayPal order was not created by a `capture` or `authorize` Payment Request.
+   following routes are kept with the 2.x URLs and parameters, and lead to the 3.0 checkout. They are deprecated and
+   will be removed in 4.0. Except for the payment page redirect, they only settle, cancel or fail a `processing`
+   payment whose PayPal order was not created by a `capture` or `authorize` Payment Request.
+
+   The routes are now named `sylius_paypal_shop_pre_upgrade_*` (e.g. `sylius_paypal_shop_pre_upgrade_redirect_return`),
+   and the 2.x route names are kept as deprecated aliases of them: generating a URL with a 2.x route name, e.g. from
+   an overridden 2.x template, triggers a deprecation, while the requests to these URLs do not.
 
    | 2.x | 3.0 |
    |-----|-----|

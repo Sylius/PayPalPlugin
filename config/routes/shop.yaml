@@ -44,25 +44,46 @@ sylius_paypal_shop_add_to_cart:
                 options:
                     product: expr:notFoundOnNull(service('sylius.repository.product').find($productId))
 
-sylius_paypal_shop_pay_with_paypal_form:
+sylius_paypal_shop_pre_upgrade_pay_with_paypal_form:
     path: /pay-with-paypal/{orderToken}/{paymentId}
     methods: [GET]
     defaults:
         _controller: sylius_paypal.controller.pre_upgrade_checkout::payWithPayPalFormAction
 
-sylius_paypal_shop_complete_paypal_order:
+sylius_paypal_shop_pay_with_paypal_form:
+    alias: sylius_paypal_shop_pre_upgrade_pay_with_paypal_form
+    deprecated:
+        package: sylius/paypal-plugin
+        version: '3.0'
+        message: 'The "%alias_id%" route is deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.'
+
+sylius_paypal_shop_pre_upgrade_complete_paypal_order:
     path: /complete-pay-pal-order/{token}
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.pre_upgrade_checkout::completePayPalOrderAction
 
-sylius_paypal_shop_cancel_checkout_payment:
+sylius_paypal_shop_complete_paypal_order:
+    alias: sylius_paypal_shop_pre_upgrade_complete_paypal_order
+    deprecated:
+        package: sylius/paypal-plugin
+        version: '3.0'
+        message: 'The "%alias_id%" route is deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.'
+
+sylius_paypal_shop_pre_upgrade_cancel_checkout_payment:
     path: /cancel-pay-pal-checkout-payment
     methods: [POST]
     defaults:
         _controller: sylius_paypal.controller.pre_upgrade_checkout::cancelCheckoutPaymentAction
 
-sylius_paypal_shop_redirect_return:
+sylius_paypal_shop_cancel_checkout_payment:
+    alias: sylius_paypal_shop_pre_upgrade_cancel_checkout_payment
+    deprecated:
+        package: sylius/paypal-plugin
+        version: '3.0'
+        message: 'The "%alias_id%" route is deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.'
+
+sylius_paypal_shop_pre_upgrade_redirect_return:
     path: /paypal/redirect-return/{token}/{nonce}
     methods: [GET]
     defaults:
@@ -70,10 +91,24 @@ sylius_paypal_shop_redirect_return:
     requirements:
         nonce: '[A-Za-z0-9_-]{16,128}'
 
-sylius_paypal_shop_redirect_cancel:
+sylius_paypal_shop_redirect_return:
+    alias: sylius_paypal_shop_pre_upgrade_redirect_return
+    deprecated:
+        package: sylius/paypal-plugin
+        version: '3.0'
+        message: 'The "%alias_id%" route is deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.'
+
+sylius_paypal_shop_pre_upgrade_redirect_cancel:
     path: /paypal/redirect-cancel/{token}/{nonce}
     methods: [GET]
     defaults:
         _controller: sylius_paypal.controller.pre_upgrade_checkout::payerActionCancelAction
     requirements:
         nonce: '[A-Za-z0-9_-]{16,128}'
+
+sylius_paypal_shop_redirect_cancel:
+    alias: sylius_paypal_shop_pre_upgrade_redirect_cancel
+    deprecated:
+        package: sylius/paypal-plugin
+        version: '3.0'
+        message: 'The "%alias_id%" route is deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.'

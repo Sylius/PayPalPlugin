@@ -25,6 +25,42 @@ final class PreUpgradeCheckoutUrlsTest extends JsonApiTestCase
 
     private const CANCEL_NONCE = 'CANCEL_NONCE_0123456789';
 
+    public function test_it_keeps_the_2_x_route_names_as_deprecated_aliases_of_the_pre_upgrade_routes(): void
+    {
+        $routes = [
+            'pay_with_paypal_form' => ['orderToken' => 'TOKEN', 'paymentId' => 1],
+            'complete_paypal_order' => ['token' => 'TOKEN'],
+            'cancel_checkout_payment' => [],
+            'redirect_return' => ['token' => 'TOKEN', 'nonce' => self::RETURN_NONCE],
+            'redirect_cancel' => ['token' => 'TOKEN', 'nonce' => self::CANCEL_NONCE],
+        ];
+        $router = self::getContainer()->get('router');
+
+        foreach ($routes as $route => $parameters) {
+            $parameters += ['_locale' => 'en_US'];
+            $deprecations = [];
+            set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+                if (str_starts_with($message, 'Since sylius/paypal-plugin')) {
+                    $deprecations[] = $message;
+                }
+
+                return true;
+            }, \E_USER_DEPRECATED);
+
+            try {
+                $url = $router->generate('sylius_paypal_shop_' . $route, $parameters);
+            } finally {
+                restore_error_handler();
+            }
+
+            self::assertSame($router->generate('sylius_paypal_shop_pre_upgrade_' . $route, $parameters), $url);
+            self::assertSame([sprintf(
+                'Since sylius/paypal-plugin 3.0: The "sylius_paypal_shop_%s" route is deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.',
+                $route,
+            )], $deprecations);
+        }
+    }
+
     public function test_it_sends_the_buyer_from_the_paypal_payment_page_of_2_x_to_the_payment_page_of_the_order(): void
     {
         $this->paymentWaitingForTheBuyerAtPayPalId();
