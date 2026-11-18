@@ -1,0 +1,6 @@
+sylius_paypal:
+    shipment_tracking:
+        carrier_invalid: 'Este transportista no es compatible.'
+        carrier_name_other_required: 'Indica el nombre del transportista cuando selecciones «Otro».'
+        tracking_code_required: 'Indica el código de seguimiento cuando selecciones un transportista.'
+        tracking_code_too_long: 'El código de seguimiento puede tener como máximo {{ limit }} caracteres para poder enviarlo a PayPal.'
