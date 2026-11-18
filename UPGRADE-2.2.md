@@ -1027,6 +1027,26 @@ Everything below will be removed or required in 3.0:
    `PayerActionCheckerInterface::matchesPayerActionReturnNonce()` and `matchesPayerActionCancelNonce()`.
 1. The `PAGE_TYPE`, `CARD_FIELDS_COMPONENT`, `GOOGLE_PAY_COMPONENT`, `APPLE_PAY_COMPONENT` and `VENMO_COMPONENT`
    constants of `Provider\PayPalPaymentPageContextProvider`.
+1. Reading the PayPal configuration of the channel: `Provider\PayPalConfigurationProvider`
+   (`sylius_paypal.provider.paypal_configuration`) with `PayPalConfigurationProviderInterface` and
+   `PayPalFundingSourcesConfigurationProviderInterface`, and the arguments taking them in `PayPalButtonsController`,
+   `CreatePayPalOrderFromCartAction`, `AddToCartAction`, `PayPalExtension`, `PayPalPaymentPageContextProvider`,
+   `EligibleRedirectPaymentSourcesProvider`, `WebSdkConfigurationProvider` and `PayPalClient`. Read the gateway
+   config of a PayPal payment method from `PayPalPaymentMethodsResolverInterface::getInChannel()` instead.
+1. Prioritising PayPal among the payment methods: `Resolver\PayPalPrioritisingPaymentMethodsResolver`
+   (`sylius_paypal.resolver.payment_method.paypal_prioritising`), the `sylius_paypal.resolver.payment_method.paypal`
+   service and the `sylius_paypal.prioritize_paypal_as_default_method` and `sylius_paypal.prioritized_factory_name`
+   parameters. Give a PayPal payment method a lower position to show it first.
+1. The parameters derived from the `sylius_paypal.sandbox` option: `sylius_paypal.sandbox`,
+   `sylius_paypal.api_base_url`, `sylius_paypal.web_url` and `sylius_paypal.facilitator_url`, with the
+   `sylius_is_paypal_sandbox` Twig function and `PayPalExtension::isSandbox()`. 3.0 stores the mode in the gateway
+   config of each payment method.
+1. `PayPalClientInterface::authorize()`, the `sylius_paypal.request_trials_limit` parameter, and the access token
+   taken by `PayPalClientInterface::get()`, `post()`, `patch()` and the API classes, which take the payment method
+   in 3.0.
+1. `ApiPlatform\PayPalPayment` and the exceptions `PayPalApiTimeoutException`, `PayPalAuthorizationException`,
+   `PayPalOrderUpdateException` and `PayPalApiErrorException`.
+1. The `$paymentRepository` and `$paymentSettlementProcessor` arguments of `CompletePaidPaymentsCommand`.
 
 ## Known limitations
 

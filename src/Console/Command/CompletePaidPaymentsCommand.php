@@ -69,16 +69,6 @@ final class CompletePaidPaymentsCommand extends Command
                 );
             }
         }
-
-        if (null === $this->paymentSettlementProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
-                PaymentSettlementProcessorInterface::class,
-                self::class,
-            );
-        }
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

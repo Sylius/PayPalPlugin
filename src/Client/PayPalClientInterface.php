@@ -18,6 +18,7 @@ use Sylius\PayPalPlugin\Exception\PayPalAuthorizationException;
 interface PayPalClientInterface
 {
     /** @throws PayPalAuthorizationException */
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function authorize(string $clientId, string $clientSecret): array;
 
     public function get(string $url, string $token): array;

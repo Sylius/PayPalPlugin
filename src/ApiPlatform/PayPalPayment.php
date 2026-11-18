@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final class PayPalPayment
 {
     private RouterInterface $router;
@@ -41,15 +42,6 @@ final class PayPalPayment
         $this->router = $router;
         $this->availableCountriesProvider = $availableCountriesProvider;
         $this->payPalConfigurationProvider = $payPalConfigurationProvider;
-        if (null === $this->payPalConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function supports(PaymentMethodInterface $paymentMethod): bool

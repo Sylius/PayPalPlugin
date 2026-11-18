@@ -42,14 +42,6 @@ final class PayPalExtension extends AbstractExtension
     ) {
         $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
 
-        if (null === $this->fundingSourcesConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $fundingSourcesConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
-                self::class,
-            );
-        }
         if (null === $this->channelContext) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
@@ -89,6 +81,7 @@ final class PayPalExtension extends AbstractExtension
         ];
     }
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function isSandbox(): bool
     {
         return $this->sandbox;
