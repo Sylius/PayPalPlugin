@@ -1667,7 +1667,7 @@
    | `Sylius\PayPalPlugin\Api\UpdateOrderApi` | takes only `PayPalClientInterface` and `PurchaseUnitFactoryInterface` |
    | `Sylius\PayPalPlugin\Factory\PayPalItemFactory` | requires `UrlGeneratorInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalItemDataProvider` | requires `PayPalItemFactoryInterface` |
-   | `Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction` | requires `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface` and `ObjectManager` |
+   | `Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction` | requires `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface`, `ObjectManager` and `PayerActionCheckerInterface` |
 
    `Sylius\PayPalPlugin\Model\PayPalOrder` no longer takes the order, and requires the payment source. It no longer
    sends the `application_context`; the shipping preference is part of the experience context of the payment source:

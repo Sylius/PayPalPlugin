@@ -19,7 +19,6 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
@@ -30,8 +29,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 final readonly class PayPalPaymentOnErrorAction
 {
-    private PayerActionCheckerInterface $payerActionChecker;
-
     public function __construct(
         private RequestStack $flashBagOrRequestStack,
         private LoggerInterface $logger,
@@ -39,9 +36,8 @@ final readonly class PayPalPaymentOnErrorAction
         private StateMachineInterface $stateMachine,
         private OrderProcessorInterface $orderPaymentProcessor,
         private ObjectManager $objectManager,
-        ?PayerActionCheckerInterface $payerActionChecker = null,
+        private PayerActionCheckerInterface $payerActionChecker,
     ) {
-        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
     }
 
     public function __invoke(Request $request): Response
