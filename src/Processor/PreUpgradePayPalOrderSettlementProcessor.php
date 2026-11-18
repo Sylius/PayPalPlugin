@@ -35,6 +35,11 @@ use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Symfony\Component\Clock\ClockInterface;
 
+/**
+ * @internal
+ *
+ * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.
+ */
 final readonly class PreUpgradePayPalOrderSettlementProcessor implements PaymentSettlementProcessorInterface
 {
     public const PAYPAL_ORDER_LIFETIME = 'PT72H';

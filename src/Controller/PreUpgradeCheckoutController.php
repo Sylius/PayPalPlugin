@@ -38,6 +38,11 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/**
+ * @internal
+ *
+ * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.
+ */
 final readonly class PreUpgradeCheckoutController
 {
     private const BUYER_CANCELLATION_ERROR_CODE = 'payment_error';

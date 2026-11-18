@@ -54,6 +54,11 @@ final readonly class PayPalPaymentDetails
 
     public const CAPTURE_STATUS = 'capture_status';
 
+    /**
+     * @internal
+     *
+     * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0.
+     */
     public const THREE_D_SECURE_FAILURE = 'three_d_secure_failure';
 
     /** @param array<string, mixed> $details */
@@ -133,16 +138,31 @@ final readonly class PayPalPaymentDetails
         return $this->optional(self::PAYER_ACTION_URL);
     }
 
+    /**
+     * @internal
+     *
+     * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0.
+     */
     public function matchesLegacyPayerActionReturnNonce(string $nonce): bool
     {
         return $this->matchesNonce(self::LEGACY_PAYER_ACTION_RETURN_NONCE, $nonce);
     }
 
+    /**
+     * @internal
+     *
+     * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0.
+     */
     public function matchesLegacyPayerActionCancelNonce(string $nonce): bool
     {
         return $this->matchesNonce(self::LEGACY_PAYER_ACTION_CANCEL_NONCE, $nonce);
     }
 
+    /**
+     * @internal
+     *
+     * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0.
+     */
     public function threeDSecureFailure(): ?string
     {
         return $this->optional(self::THREE_D_SECURE_FAILURE);
@@ -247,6 +267,11 @@ final readonly class PayPalPaymentDetails
         return $this->with([self::TRANSACTION_ID => $transactionId]);
     }
 
+    /**
+     * @internal
+     *
+     * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0.
+     */
     public function withThreeDSecureFailure(string $failure): self
     {
         return $this->with([self::THREE_D_SECURE_FAILURE => $failure]);
