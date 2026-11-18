@@ -964,12 +964,14 @@ Everything below will be removed or required in 3.0:
 1. The `enable_paypal` action of the `sylius_admin_payment_method` grid, its `enable_paypal` action type and the
    `@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig` template.
 1. The `sylius_is_paypal_enabled` Twig function and `PayPalExtension::isPayPalEnabled()`.
-1. Refunding a PayPal payment on the `refund` transition of the payment, as 3.0 refunds it through a refund Payment
-   Request: `EventListener\Workflow\RefundPaymentListener` with the `refund_paypal_order` winzou callback,
-   `Processor\PaymentRefundProcessorInterface`, `PayPalPaymentRefundProcessor`, `UiPayPalPaymentRefundProcessor`,
-   `PayPalLateCaptureRefundProcessor` and `Exception\PayPalOrderRefundException`.
-1. The webhook endpoint `/paypal-webhook/api/` (`sylius_paypal_webhook_refund_order`), as 3.0 accepts the webhooks
-   of a payment method on its notify URL: `Controller\Webhook\PayPalWebhookAction`,
+1. Refunding a PayPal payment through `Processor\PaymentRefundProcessorInterface`, as 3.0 refunds it through a
+   refund Payment Request: on the `refund` transition of the payment, `EventListener\Workflow\RefundPaymentListener`
+   with the `refund_paypal_order` winzou callback, `PayPalPaymentRefundProcessor` and `UiPayPalPaymentRefundProcessor`;
+   from the admin refund of a late capture, `PayPalLateCaptureRefundProcessor`; and
+   `Exception\PayPalOrderRefundException`.
+1. The webhook endpoint `/paypal-webhook/api/` (`sylius_paypal_webhook_refund_order`) and its
+   `@SyliusPayPalPlugin/config/routes/webhook.yaml` route resource, as 3.0 accepts the webhooks of a payment method
+   on its notify URL: `Controller\Webhook\PayPalWebhookAction`,
    `Processor\Webhook\WebhookProcessorInterface`, `RefundOrderWebhookProcessor`, `CapturePaymentWebhookProcessor`,
    `Provider\PayPalRefundDataProvider` with its interface, `PaypalPaymentQueryInterface::getForRefundingByOrderId()`
    with the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter,
