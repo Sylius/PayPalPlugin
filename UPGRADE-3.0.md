@@ -937,7 +937,8 @@
    `WebhookUrlProviderInterface::LEGACY_PATH` is only there for the command to find a webhook still registered on
    `/paypal-webhook/api/`; it will be removed in 4.0.
 
-   The webhook URL starts with `sylius_paypal.webhook_base_url`. When it is empty, the URL takes the host of the
+   The webhook URL starts with `sylius_paypal.webhook_base_url`, which the plugin reads from the
+   `SYLIUS_PAYPAL_WEBHOOK_BASE_URL` environment variable. When it is empty, the URL takes the host of the
    request, and on the console the hostname of the first enabled channel of the payment method that has one other
    than `localhost`, so the command does not register `localhost`; only without such a channel does the console fall
    back to the request context (`framework.router.default_uri`). `WebhookUrlProvider` takes the `request_stack` for
