@@ -17,7 +17,6 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
@@ -34,45 +33,17 @@ final class PayPalExtension extends AbstractExtension
 {
     private const PARTNER_JS_PATH = '/webapps/merchantboarding/js/lib/lightbox/partner.js';
 
-    private readonly PayerActionCheckerInterface $payerActionChecker;
-
     private readonly HostProviderInterface $hostProvider;
 
     public function __construct(
         private readonly PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
-        private readonly ?ChannelContextInterface $channelContext = null,
-        private readonly ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
-        ?PayerActionCheckerInterface $payerActionChecker = null,
-        private readonly ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+        private readonly ChannelContextInterface $channelContext,
+        private readonly WebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
+        private readonly PayerActionCheckerInterface $payerActionChecker,
+        private readonly CurrentPayPalLocaleProviderInterface $currentLocaleProvider,
         ?HostProviderInterface $hostProvider = null,
     ) {
-        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
         $this->hostProvider = $hostProvider ?? new HostProvider();
-
-        if (null === $this->channelContext) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $channelContext to %s constructor is deprecated and will be required in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->webSdkConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $webSdkConfigurationProvider to %s constructor is deprecated and will be required in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->currentLocaleProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $currentLocaleProvider to %s constructor is deprecated and will be required in 3.0',
-                self::class,
-            );
-        }
     }
 
     public function getFunctions(): array
@@ -104,7 +75,7 @@ final class PayPalExtension extends AbstractExtension
     public function getWebSdkScriptUrl(?PaymentMethodInterface $paymentMethod = null): string
     {
         $paymentMethod ??= $this->channelPaymentMethod();
-        if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
+        if (null === $paymentMethod) {
             return '';
         }
 
@@ -115,7 +86,7 @@ final class PayPalExtension extends AbstractExtension
     public function getWebSdkInstanceConfig(string $pageType, ?string $locale = null, ?PaymentMethodInterface $paymentMethod = null): array
     {
         $paymentMethod ??= $this->channelPaymentMethod();
-        if (null === $this->webSdkConfigurationProvider || null === $paymentMethod) {
+        if (null === $paymentMethod) {
             return [];
         }
 
@@ -124,7 +95,7 @@ final class PayPalExtension extends AbstractExtension
                 $paymentMethod,
                 $pageType,
                 ['paypal-messages'],
-                $locale ?? $this->currentLocaleProvider?->provide(),
+                $locale ?? $this->currentLocaleProvider->provide(),
             );
         } catch (\InvalidArgumentException) {
             return [];
@@ -153,10 +124,6 @@ final class PayPalExtension extends AbstractExtension
 
     private function channelPaymentMethod(): ?PaymentMethodInterface
     {
-        if (null === $this->channelContext) {
-            return null;
-        }
-
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
 

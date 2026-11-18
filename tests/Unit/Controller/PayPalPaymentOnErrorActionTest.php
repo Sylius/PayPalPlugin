@@ -138,16 +138,6 @@ final class PayPalPaymentOnErrorActionTest extends TestCase
         self::assertSame(Response::HTTP_OK, ($this->action)($this->request($this->payload()))->getStatusCode());
     }
 
-    public function test_it_only_logs_when_the_cancelling_collaborators_are_missing(): void
-    {
-        $action = new PayPalPaymentOnErrorAction($this->requestStack, $this->logger);
-
-        $this->logger->expects(self::once())->method('error')->with('Something went wrong');
-        $this->objectManager->expects(self::never())->method('flush');
-
-        self::assertSame(Response::HTTP_OK, $action($this->request($this->payload()))->getStatusCode());
-    }
-
     private function payload(): string
     {
         return (string) json_encode(['error' => 'Something went wrong', 'payPalOrderId' => 'PAYPAL_ORDER_ID']);

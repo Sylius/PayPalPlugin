@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
-use Sylius\Component\Core\Model\OrderInterface;
-
 class PayPalOrder
 {
     public const INTENT_CAPTURE = 'CAPTURE';
@@ -49,26 +47,13 @@ class PayPalOrder
 
     public const PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL = 'ORDER_COMPLETE_ON_PAYMENT_APPROVAL';
 
-    /**
-     * @param array<string, mixed>|null $paymentSource
-     *
-     * @deprecated the $order argument is used only when no $paymentSource is passed since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
-     */
+    /** @param array<string, mixed> $paymentSource */
     public function __construct(
-        private readonly OrderInterface $order,
         private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
         private readonly string $intent,
-        private readonly ?array $paymentSource = null,
+        private readonly array $paymentSource,
         private readonly ?string $processingInstruction = null,
     ) {
-        if (null === $this->paymentSource) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing a $paymentSource to "%s" constructor is deprecated and will be prohibited in 3.0.',
-                self::class,
-            );
-        }
     }
 
     public function toArray(): array
@@ -80,9 +65,7 @@ class PayPalOrder
             ],
         ];
 
-        if (null === $this->paymentSource) {
-            $payPalOrder['application_context'] = [self::KEY_SHIPPING_PREFERENCE => $this->getShippingPreference()];
-        } elseif ([] !== $this->paymentSource) {
+        if ([] !== $this->paymentSource) {
             $payPalOrder['payment_source'] = $this->paymentSource;
         }
 
@@ -91,14 +74,5 @@ class PayPalOrder
         }
 
         return $payPalOrder;
-    }
-
-    private function getShippingPreference(): string
-    {
-        if (!$this->order->isShippingRequired()) {
-            return self::NO_SHIPPING;
-        }
-
-        return null !== $this->order->getShippingAddress() ? self::PROVIDED_ADDRESS : self::PAYPAL_ADDRESS;
     }
 }

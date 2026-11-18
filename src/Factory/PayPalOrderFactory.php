@@ -65,7 +65,6 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         );
 
         return new PayPalOrder(
-            order: $order,
             payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create(
                 $payment,
                 $referenceId,
