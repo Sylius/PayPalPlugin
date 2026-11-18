@@ -46,7 +46,6 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 
         $this->assertSame($content['id'], $orderId);
         $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
-        $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
     }
 
@@ -67,7 +66,6 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
 
         $this->assertSame($content['id'], $orderId);
         $this->assertSame($content['orderId'], 'PAYPAL_ORDER_ID');
-        $this->assertSame($content['orderID'], 'PAYPAL_ORDER_ID');
         $this->assertSame($content['status'], 'cart');
     }
 

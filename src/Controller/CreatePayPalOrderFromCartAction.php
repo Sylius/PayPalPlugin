@@ -129,7 +129,6 @@ final readonly class CreatePayPalOrderFromCartAction
         return new JsonResponse([
             'id' => $order->getId(),
             'orderId' => $payPalOrderId,
-            'orderID' => $payPalOrderId, // BC with 2.1. Deprecated in 2.2; use "orderId" instead.
             'status' => $payment->getState(),
         ]);
     }

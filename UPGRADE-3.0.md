@@ -1609,9 +1609,10 @@
 
 1. #### Unused translations have been removed.
 
-   The `sylius_paypal.back_to_store`, `sylius_paypal.billing_info`, `sylius_paypal.credit_card`,
-   `sylius_paypal.credit_card_number` and `sylius_paypal.invalid_form` messages are no longer used by any template and
-   have been removed from every locale. Define them in your application if your templates use them.
+   The `sylius_paypal.add_paypal_account`, `sylius_paypal.back_to_store`, `sylius_paypal.billing_info`,
+   `sylius_paypal.credit_card`, `sylius_paypal.credit_card_number`, `sylius_paypal.enable_paypal` and
+   `sylius_paypal.invalid_form` messages are no longer used by any template and have been removed from every locale.
+   Define them in your application if your templates use them.
 
 1. #### The classes and arguments deprecated since 1.x have been removed.
 
@@ -1641,3 +1642,16 @@
    +    private readonly SupportedLocaleResolverInterface $supportedLocaleResolver,
     )
    ```
+
+1. #### The leftovers deprecated in 2.2 have been removed.
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Api\CreateOrderApi::PAYPAL_INTENT_CAPTURE` | `Sylius\PayPalPlugin\Model\PayPalOrder::INTENT_CAPTURE` |
+   | the `sylius_is_paypal_enabled` Twig function and `Sylius\PayPalPlugin\Twig\PayPalExtension::isPayPalEnabled()` | none |
+   | the `enable_paypal` main action of the `sylius_admin_payment_method` grid, its `enable_paypal` action type and the `@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig` template | the PayPal row of the admin payment method list |
+   | the `orderID` key of the `CreatePayPalOrderFromCartAction` response | `orderId` |
+
+   `Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface::getForUpdateByOrderId()` and
+   `getForCancellationByOrderId()` return `PaymentInterface` instead of `?PaymentInterface`; they throw
+   `PaymentNotFoundException` when no payment is found.

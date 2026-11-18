@@ -6,7 +6,6 @@ sylius:
 sylius_paypal:
     account_connected: 'Connected'
     account_not_enabled: 'Not enabled'
-    add_paypal_account: 'Add PayPal account'
     always_on: 'Always on'
     apple_pay: 'Apple Pay'
     apple_pay_description: 'Also requires domain verification in your PayPal account.'
@@ -75,7 +74,6 @@ sylius_paypal:
     cvv: 'CVV'
     debit_and_credit_cards: 'Debit and credit cards'
     different_amount: 'This is the authorized price. As you have modified the order after authorization, you will pay the amount displayed as Total'
-    enable_paypal: 'Enable PayPal'
     enable_paypal_production: 'Production'
     enable_paypal_sandbox: 'Sandbox'
     expiration_date: 'Expiration date'

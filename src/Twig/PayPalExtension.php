@@ -17,10 +17,8 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
-use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
-use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
@@ -80,7 +78,6 @@ final class PayPalExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('sylius_is_paypal_enabled', [$this, 'isPayPalEnabled']),
             new TwigFunction('sylius_paypal_is_messaging_enabled', [$this, 'isMessagingEnabled']),
             new TwigFunction('sylius_paypal_web_sdk_script_url', [$this, 'getWebSdkScriptUrl']),
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
@@ -152,26 +149,6 @@ final class PayPalExtension extends AbstractExtension
     public function getPartnerJsUrl(bool $sandbox = false): string
     {
         return $this->hostProvider->getWebUrlForMode($sandbox) . self::PARTNER_JS_PATH;
-    }
-
-    public function isPayPalEnabled(iterable $paymentMethods): bool
-    {
-        trigger_deprecation(
-            'sylius/paypal-plugin',
-            '2.2',
-            'The "sylius_is_paypal_enabled" Twig function is deprecated and will be removed in 3.0.',
-        );
-
-        /** @var PaymentMethodInterface $paymentMethod */
-        foreach ($paymentMethods as $paymentMethod) {
-            /** @var GatewayConfigInterface $gatewayConfig */
-            $gatewayConfig = $paymentMethod->getGatewayConfig();
-            if ($gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function channelPaymentMethod(): ?PaymentMethodInterface

@@ -99,7 +99,6 @@ final readonly class PreUpgradeCheckoutController
         }
 
         if (
-            null !== $payment &&
             $this->preUpgradePayPalOrderChecker->isAwaitingPreUpgradePayPalOrder($payment) &&
             !$this->payerActionChecker->isAwaitingPayerAction($payment)
         ) {

@@ -19,8 +19,8 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 interface PaypalPaymentQueryInterface
 {
     /** @throws PaymentNotFoundException */
-    public function getForUpdateByOrderId(string $paypalOrderId): ?PaymentInterface;
+    public function getForUpdateByOrderId(string $paypalOrderId): PaymentInterface;
 
     /** @throws PaymentNotFoundException */
-    public function getForCancellationByOrderId(string $paypalOrderId): ?PaymentInterface;
+    public function getForCancellationByOrderId(string $paypalOrderId): PaymentInterface;
 }
