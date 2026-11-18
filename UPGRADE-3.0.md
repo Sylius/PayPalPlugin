@@ -340,7 +340,6 @@
    | `sylius_paypal.sandbox` parameter | the `sandbox` key of the gateway config of each PayPal payment method (`PayPalGatewayConfig::isSandbox()`) |
    | `sylius_paypal.api_base_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getApiBaseUrlForMode()` (`sylius_paypal.provider.host`) |
    | `sylius_paypal.web_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (`sylius_paypal.provider.host`) |
-   | `sylius_paypal.partner_js_url` parameter | `Sylius\PayPalPlugin\Provider\HostProviderInterface::getWebUrlForMode()` (used by the `sylius_paypal_partner_js_url()` Twig function) |
 
    The following constructor signatures have changed:
 
@@ -1389,7 +1388,8 @@
    the payload of the Payment Request carries `settle_authorized: true`
    (`StatusPaymentRequestHandler::PAYLOAD_SETTLE_AUTHORIZED`), as the dispatcher sets it. The `status` Payment
    Request Sylius creates when the buyer comes back carries no payload, so a payment just authorized is not read from
-   PayPal a second time. The constructor arguments deprecated in 2.2 have been removed:
+   PayPal a second time. The constructor arguments deprecated in 2.2 have been removed, and the batch query, the
+   dispatcher and the entity manager have been added:
 
    ```diff
     // Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand
@@ -1400,8 +1400,6 @@
    -    private readonly ?OrderDetailsApiInterface $orderDetailsApi = null,
    -    private readonly ?StateMachineInterface $stateMachine = null,
    -    private readonly ?PaymentSettlementProcessorInterface $paymentSettlementProcessor = null,
-   -    private readonly ?PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery = null,
-   -    private readonly ?EntityManagerInterface $entityManager = null,
    +    private readonly PaypalPaymentBatchQueryInterface $paypalPaymentBatchQuery,
    +    private readonly StatusPaymentRequestDispatcherInterface $statusPaymentRequestDispatcher,
    +    private readonly EntityManagerInterface $entityManager,
@@ -1516,6 +1514,14 @@
 
    The payment page context also carries `sandbox`, `messagingEnabled` and `messagingInstanceConfig`; the
    `sylius_is_paypal_sandbox()` Twig function has been removed, use `context.sandbox` on the payment page.
+
+   The payment page context no longer carries `completePayPalOrderUrl` and `cancelPayPalPaymentUrl`, and its
+   `createPayPalOrderUrl` leads to `sylius_paypal_shop_create_paypal_order_for_payment_request`. Once the buyer
+   approves or cancels, the payment page goes to the return or cancel URL of the PayPal order instead, so the
+   `completeOrderUrl` and `cancelOrderUrl` values of the `@sylius/paypal-plugin/paypal-payment-wallet-button` and
+   `@sylius/paypal-plugin/paypal-payment-card-fields` Stimulus controllers, and the `completeOrderUrl` value of
+   `@sylius/paypal-plugin/paypal-payment-apple-pay` and `@sylius/paypal-plugin/paypal-payment-google-pay`, have been
+   removed.
 
    The following constructor signatures have changed:
 
