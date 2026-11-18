@@ -120,10 +120,11 @@
    amount and shipping address of the PayPal order first, verifies the 3D Secure result of the order before
    completing it (it cancels the payment when the authentication did not finish and fails it when the card was
    refused; the 2.x shop URLs then show the reason), fails the payment when PayPal declines the payment method of the
-   buyer, and cancels the payment when PayPal
-   no longer returns its order only once the payment has not changed for 72 hours
-   (`PreUpgradePayPalOrderSettlementProcessor::PAYPAL_ORDER_LIFETIME`); before that, the error is reported, as it may
-   come from a payment method pointing at the wrong PayPal environment.
+   buyer, and cancels the payment once it has not changed for 72 hours
+   (`PreUpgradePayPalOrderSettlementProcessor::PAYPAL_ORDER_LIFETIME`, the longest an order stays valid at PayPal)
+   when PayPal no longer returns its order, when the buyer never approved the order, or when PayPal refuses to update,
+   capture or authorize an approved order. An approved order is still completed first, so a late payment is not lost.
+   Before that, the error is reported, as it may come from a payment method pointing at the wrong PayPal environment.
 
    `Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface` (`sylius_paypal.checker.pre_upgrade_paypal_order`)
    tells such a payment apart.

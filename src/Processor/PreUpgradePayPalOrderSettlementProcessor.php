@@ -145,7 +145,14 @@ final readonly class PreUpgradePayPalOrderSettlementProcessor implements Payment
                 return;
             }
 
-            if ($this->approvedPayPalOrderChecker->isApproved($payPalOrderDetails, $this->paymentSource($payment, $payPalOrderDetails))) {
+            $approved = $this->approvedPayPalOrderChecker->isApproved($payPalOrderDetails, $this->paymentSource($payment, $payPalOrderDetails));
+            if (!$approved && $this->hasOutlivedItsPayPalOrder($payment)) {
+                $this->cancel($payment, $preUpgradePayPalOrderId, 'the buyer never approved it before it expired');
+
+                return;
+            }
+
+            if ($approved) {
                 try {
                     $this->threeDSecureVerifier->verify($payPalOrderDetails);
                 } catch (ThreeDSecureAuthenticationFailedException $exception) {
@@ -154,8 +161,19 @@ final readonly class PreUpgradePayPalOrderSettlementProcessor implements Payment
                     return;
                 }
 
-                $this->approvedPayPalOrderUpdater->update($payment);
-                $settledPayPalOrderDetails = $this->settledAtPayPal($paymentMethod, $payPalOrderDetails);
+                try {
+                    $this->approvedPayPalOrderUpdater->update($payment);
+                    $settledPayPalOrderDetails = $this->settledAtPayPal($paymentMethod, $payPalOrderDetails);
+                } catch (PayPalApiRequestException $exception) {
+                    if (!$this->hasOutlivedItsPayPalOrder($payment)) {
+                        throw $exception;
+                    }
+
+                    $this->cancel($payment, $preUpgradePayPalOrderId, 'PayPal refused to settle it before it expired');
+
+                    return;
+                }
+
                 if (null === $settledPayPalOrderDetails) {
                     $this->end($payment, PaymentTransitions::TRANSITION_FAIL, $preUpgradePayPalOrderId, 'PayPal declined the payment method of the buyer');
 
