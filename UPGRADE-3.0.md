@@ -129,6 +129,21 @@
    tells such a payment apart. `CaptureApprovedOrderWebhookEventProcessor` takes the
    `Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface` as its fourth argument.
 
+   The routes point at `sylius_paypal.controller.pre_upgrade_checkout`; the services of the 2.x controllers
+   (`sylius_paypal.controller.pay_with_paypal_form`, `sylius_paypal.controller.complete_paypal_order`,
+   `sylius_paypal.controller.cancel_paypal_checkout_payment`, `sylius_paypal.controller.redirect_return` and
+   `sylius_paypal.controller.redirect_cancel`) have been removed. The nonce of a return or cancel URL is checked by
+   `PayPalPaymentDetails::matchesLegacyPayerActionReturnNonce()` and `matchesLegacyPayerActionCancelNonce()`;
+   `PayerActionCheckerInterface::matchesPayerActionReturnNonce()` and `matchesPayerActionCancelNonce()`, and
+   `Sylius\PayPalPlugin\Provider\NonceProvider` and its interface (`sylius_paypal.provider.nonce`), have been removed.
+
+   The following 2.x endpoints have been removed without a route kept for the upgrade:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderAction` (`sylius_paypal.controller.create_paypal_order`), route `sylius_paypal_shop_create_paypal_order` (`POST /create-pay-pal-order/{token}`) | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderForPaymentRequestAction` (`sylius_paypal.controller.create_paypal_order_for_payment_request`), route `sylius_paypal_shop_create_paypal_order_for_payment_request` |
+   | `Sylius\PayPalPlugin\Controller\CancelLastPayPalPaymentAction` (`sylius_paypal.controller.cancel_last_paypal_payment`), route `sylius_paypal_shop_cancel_last_payment` (`GET /order/{token}/cancel-last-pay-pal-payment`) | none |
+
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 
    The BN code is not sandbox specific: it is sent as the `PayPal-Partner-Attribution-Id` header in production
@@ -233,11 +248,13 @@
 
    The sandbox is connected through the same PayPal onboarding as production (`sylius_paypal:live_onboarding_modal`
    with `sandbox: true`). The following has been removed:
-   - `Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent` (`sylius_paypal:sandbox_onboarding_modal`)
-     and the `@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig` template
+   - `Sylius\PayPalPlugin\Twig\Component\PayPalSandboxModalComponent` (`sylius_paypal.twig.component.paypal_sandbox_modal`,
+     `sylius_paypal:create_sandbox_modal`) and the `@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig`
+     template
    - `Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator` and its interface
      (`sylius_paypal.creator.sandbox_payment_method`)
-   - `Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType` and `Sylius\PayPalPlugin\Model\PayPalSandboxCredentials`
+   - `Sylius\PayPalPlugin\Form\Type\PayPalSandboxCredentialsType` (`sylius_paypal.form.type.paypal_sandbox_credentials`) and
+     `Sylius\PayPalPlugin\Model\PayPalSandboxCredentials`
    - the `sylius_paypal.invalid_paypal_sandbox_credentials` flash message
 
 1. #### The SFTP payouts report download has been removed.
@@ -270,10 +287,12 @@
      `sylius_paypal.report` translation
    - the `sylius_paypal.client.sftp` service (`phpseclib3\Net\SFTP`) and the `sylius_paypal.reports_sftp_host` parameter
    - the `reports_sftp_username` and `reports_sftp_password` fields of `Sylius\PayPalPlugin\Form\Type\PayPalConfigurationType`,
-     their `reports_sftp_username` and `reports_sftp_password` hooks under
-     `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal`, their
+     their `reports` group under `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration`
+     and its `reports_sftp_username` and `reports_sftp_password` hooks
+     (`sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.reports`), their
      `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_{username,password}.html.twig`
-     templates and the `sylius_paypal.sftp_username` and `sylius_paypal.sftp_password` translations
+     templates and the `sylius_paypal.reports_sftp`, `sylius_paypal.sftp_username` and `sylius_paypal.sftp_password`
+     translations
    - the `REPORTS_SFTP_USERNAME` and `REPORTS_SFTP_PASSWORD` constants and the `reportsSftpUsername()` and
      `reportsSftpPassword()` methods of `Sylius\PayPalPlugin\Model\PayPalGatewayConfig`
    - the `phpseclib/phpseclib` dependency; require it in your application if your code uses it
@@ -426,7 +445,7 @@
    | `Sylius\PayPalPlugin\Api\RefundPaymentApiInterface` | `refund()` |
    | `Sylius\PayPalPlugin\Api\UpdateOrderAddressApiInterface` | `update()` |
    | `Sylius\PayPalPlugin\Api\UpdateOrderApiInterface` | `update()` |
-   | `Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface` | `update()` |
+   | `Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface` | `updateEventTypes()`, renamed to `update()` |
    | `Sylius\PayPalPlugin\Api\WebhookApiInterface` | `register()` |
    | `Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface` | `add()` |
 
@@ -608,6 +627,52 @@
    refund Payment Request returns the first refund instead of refunding again. Without a request id, a random one
    is used, as before.
 
+   The PayPal order of a Payment Request carries the Payment Request hash as the `custom_id` of its purchase unit, and
+   its return and cancel URLs are given by the caller instead of being built from payer action nonces:
+
+   ```diff
+    // Sylius\PayPalPlugin\Api\CreateOrderApiInterface
+    public function create(
+   -    string $token,
+   +    PaymentMethodInterface $paymentMethod,
+        PaymentInterface $payment,
+        string $referenceId,
+   -    /* string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL, */
+   -    /* ?string $payerActionReturnNonce = null, */
+   -    /* ?string $payerActionCancelNonce = null, */
+   +    string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+   +    ?string $customId = null,
+   +    ?string $requestId = null,
+   +    ?string $returnUrl = null,
+   +    ?string $cancelUrl = null,
+    ): array;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface
+    public function create(
+        PaymentInterface $payment,
+        string $referenceId,
+        string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+   -    ?string $payerActionReturnNonce = null,
+   -    ?string $payerActionCancelNonce = null,
+   +    ?string $customId = null,
+   +    ?string $returnUrl = null,
+   +    ?string $cancelUrl = null,
+    ): PayPalOrder;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface
+    public function create(
+        PaymentInterface $payment,
+        string $referenceId,
+        ?string $merchantId = null,
+        bool $withItemTaxes = true,
+   +    ?string $customId = null,
+    ): PayPalPurchaseUnit;
+   ```
+
 1. #### Failed PayPal API calls throw typed exceptions instead of returning the error body.
 
    `PayPalClientInterface`, `AuthorizeClientApiInterface` and every API class built on them throw a
@@ -634,6 +699,7 @@
    | `Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException` | `PayPalApiConnectionException` |
    | `Sylius\PayPalPlugin\Exception\PayPalAuthorizationException` | `PayPalApiAuthenticationException` |
    | `Sylius\PayPalPlugin\Exception\PayPalOrderUpdateException` | none, it was never thrown |
+   | `Sylius\PayPalPlugin\Exception\PayPalApiErrorException` | `PayPalApiException` |
 
    The plugin's own callers handle the new exceptions as follows:
 
@@ -795,6 +861,15 @@
    `PaymentAuthorizationChecker::isAuthorizeEnabled()` no longer treats a PayPal gateway config still on Payum as
    capturing: `use_authorize` alone decides.
 
+   `Sylius\PayPalPlugin\Resolver\CapturePaymentResolver` creates the PayPal order through
+   `Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface` (`sylius_paypal.creator.paypal_order`) instead of
+   executing the Payum `Capture` request:
+
+   ```diff
+   -public function __construct(private Payum $payum)
+   +public function __construct(private PayPalOrderCreatorInterface $payPalOrderCreator)
+   ```
+
 1. #### The PayPal payment cancellation endpoint has been removed.
 
    `Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction` (`sylius_paypal.controller.cancel_paypal_payment`) and
@@ -949,7 +1024,8 @@
    request host and the hostnames of the enabled channels of the payment method, so a webhook registered on the admin
    host or on another channel is found and moved instead of a second one being registered.
    It is the `sylius_paypal.provider.webhook_id.lookup` service; `sylius_paypal.provider.webhook_id` is the
-   `PersistingWebhookIdProvider` wrapping it instead of decorating it.
+   `PersistingWebhookIdProvider` wrapping it instead of decorating it, so the `sylius_paypal.provider.webhook_id.persisting`
+   service has been removed.
    `SellerWebhookEventTypesRegistrar` gets it from `sylius_paypal.provider.webhook_id.lookup`, which asks PayPal
    every time, so the refresh cooldown of `sylius_paypal.provider.webhook_id` cannot make it register a second webhook,
    and stores the id of the webhook it updates or registers in the gateway config through
@@ -997,7 +1073,7 @@
 
    ```diff
     // Sylius\PayPalPlugin\Api\UpdateWebhookApiInterface
-   -public function updateEventTypes(PaymentMethodInterface $paymentMethod, string $webhookId, array $eventTypes): array;
+   -public function updateEventTypes(string $token, string $webhookId, array $eventTypes): array;
    +public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, WebhookEventTypes $eventTypes): array;
    ```
 
@@ -1006,7 +1082,8 @@
    (`PayPalGatewayConfig::webhookEventTypes()`) or returned by PayPal (`fromPayPal()`), tells which of the handled ones
    they miss (`missing()`) and gives them in the shape PayPal expects (`toPayPal()`).
 
-   The `sylius_paypal_webhook_refund_order` route (`/paypal-webhook/api/`) and the following have been removed:
+   The `sylius_paypal_webhook_refund_order` route (`/paypal-webhook/api/`), its `@SyliusPayPalPlugin/config/routes/webhook.yaml`
+   resource and the following have been removed:
 
    | Removed | Replacement |
    |---|---|
@@ -1201,6 +1278,21 @@
    | `false` (default) | `"intent": "CAPTURE"`, then `POST /v2/checkout/orders/{id}/capture` | `completed` |
    | `true` | `"intent": "AUTHORIZE"`, then `POST /v2/checkout/orders/{id}/authorize` | `authorized` |
 
+   `PayPalOrderFactory` sends the `AUTHORIZE` intent when `PaymentAuthorizationCheckerInterface` allows the payment
+   source; without it, it always sends `CAPTURE`:
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\PayPalOrderFactory
+    public function __construct(
+        private PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
+        private ?UrlGeneratorInterface $router = null,
+        private ?ShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
+        ?ExperienceContextProviderInterface $experienceContextProvider = null,
+        ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
+   +    private ?PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker = null,
+    ) {
+   ```
+
    Like the capture, `AuthorizePayPalOrderPaymentRequestHandler` locks the Payment and then the Payment Request
    (`PESSIMISTIC_WRITE`) before reading its state, so the buyer's return and the `CHECKOUT.ORDER.APPROVED` webhook
    authorizing it at the same time handle it one after the other.
@@ -1343,6 +1435,48 @@
    ```diff
    -public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void;
    +public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void;
+   ```
+
+   The following take it, or its `PayPalAddress`, instead of PayPal's array as well:
+
+   ```diff
+    // Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface
+   -public function verify(array $paypalOrderDetails): void;
+   +public function verify(PayPalOrderDetails $payPalOrderDetails): void;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface
+   -public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null): void;
+   +public function settle(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null, ?string $payPalOrderId = null): void;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface
+   -public function createFromPurchaseUnit(array $purchaseUnit, ?string $phoneNumber): AddressInterface;
+   +public function createFromPayPalOrder(PayPalOrderDetails $payPalOrder): AddressInterface;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface
+   -public function create(array $payPalShippingAddress): AddressInterface;
+   +public function create(PayPalAddress $payPalShippingAddress): AddressInterface;
+   ```
+
+   `ShippingCallbackAction` maps the PayPal order it is called with:
+
+   ```diff
+    // Sylius\PayPalPlugin\Controller\ShippingCallbackAction
+    public function __construct(
+        private CallbackSignatureVerifierInterface $signatureVerifier,
+        private PaypalPaymentQueryInterface $paypalPaymentQuery,
+        private ChannelAvailableCountriesProviderInterface $availableCountriesProvider,
+   +    private PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
+        private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
+        private ShippingOptionsResolverInterface $shippingOptionsResolver,
+        private ShippingCallbackResponseFactoryInterface $responseFactory,
+        private ShippingCallbackAmountProviderInterface $amountProvider,
+    ) {
    ```
 
 1. #### The storefront takes the PayPal account of the channel or of the payment being paid.
