@@ -29,14 +29,6 @@ final readonly class PayPalOrderCompleteProcessor
         private PaymentStateManagerInterface $paymentStateManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
     ) {
-        if (null === $this->paymentAmountVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                'Not passing an instance of "%s" as the second argument is deprecated and will be prohibited in 3.0.',
-                PaymentAmountVerifierInterface::class,
-            );
-        }
     }
 
     public function completePayPalOrder(OrderInterface $order): void

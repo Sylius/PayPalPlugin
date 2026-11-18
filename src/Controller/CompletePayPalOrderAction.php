@@ -39,20 +39,6 @@ final readonly class CompletePayPalOrderAction
         private ?OrderDetailsApiInterface $orderDetailsApi = null,
         private ?ThreeDSecureVerifierInterface $threeDSecureVerifier = null,
     ) {
-        if (
-            null === $this->authorizeClientApi ||
-            null === $this->orderDetailsApi ||
-            null === $this->threeDSecureVerifier
-        ) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $authorizeClientApi, $orderDetailsApi and $threeDSecureVerifier to "%s" constructor' .
-                ' is deprecated and will be prohibited in 3.0. Without them the 3D Secure authentication result' .
-                ' is not verified before the payment is captured.',
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response
