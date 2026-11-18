@@ -981,7 +981,10 @@ Everything below will be removed or required in 3.0:
    methods of a channel from `PayPalPaymentMethodsResolverInterface::getInChannel()`.
 1. The facilitator-based onboarding: `Onboarding\Initiator\OnboardingInitiator` and
    `Onboarding\Processor\BasicOnboardingProcessor` with their interfaces, `Factory\PayPalPaymentMethodNewResourceFactory`,
-   `PayPalGatewayConfig::ONBOARDING_ID`, `SYLIUS_MERCHANT_ID`, `syliusMerchantId()` and `hasSyliusMerchantId()`.
+   `PayPalGatewayConfig::ONBOARDING_ID`, `SYLIUS_MERCHANT_ID`, `syliusMerchantId()` and `hasSyliusMerchantId()`,
+   the `$onboardingInitiator`, `$payPalPaymentMethodProvider` and `$isSandbox` arguments of
+   `Listener\PayPalPaymentMethodListener`, and the `$client`, `$baseUrl` and `$requestFactory` arguments of
+   `Enabler\PayPalPaymentMethodEnabler`, which checks the seller's permissions through the facilitator.
 1. Creating a sandbox payment method from pasted credentials: `Twig\Component\PayPalSandboxModalComponent`
    (`sylius_paypal:create_sandbox_modal`), `Creator\PayPalSandboxPaymentMethodCreator` with its interface,
    `Form\Type\PayPalSandboxCredentialsType` and `Model\PayPalSandboxCredentials`. 3.0 onboards a sandbox payment
