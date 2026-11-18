@@ -47,11 +47,7 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set('sylius_paypal.controller.cancel_paypal_order', CancelPayPalOrderAction::class)
-        ->args([
-            null,
-            null,
-            service('request_stack'),
-        ]);
+        ->args([service('request_stack')]);
 
     $services->set('sylius_paypal.controller.enable_seller', EnableSellerAction::class)
         ->args([

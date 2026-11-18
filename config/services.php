@@ -80,7 +80,6 @@ use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor;
 use Sylius\PayPalPlugin\Processor\PaymentCaptureProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
-use Sylius\PayPalPlugin\Processor\PayPalAddressProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessor;
 use Sylius\PayPalPlugin\Processor\PayPalLateCaptureRefundConfirmationProcessorInterface;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentRefundConfirmationProcessor;
@@ -104,8 +103,6 @@ use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProvider;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxProviderInterface;
 use Sylius\PayPalPlugin\Provider\OrderProvider;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
-use Sylius\PayPalPlugin\Provider\PaymentProvider;
-use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProvider;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
@@ -313,15 +310,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(PayPalOrderCreatedStatusesProviderInterface::class, 'sylius_paypal.provider.paypal_order_created_statuses');
 
-    $services->set('sylius_paypal.provider.payment', PaymentProvider::class)
-        ->args([
-            service('sylius.repository.payment'),
-            service('sylius.repository.order'),
-        ])
-        ->deprecate('sylius/paypal-plugin', '1.7', 'The "%service_id%" service is deprecated since 1.7 and will be removed in 3.0.');
-
-    $services->alias(PaymentProviderInterface::class, 'sylius_paypal.provider.payment');
-
     $services->set('sylius_paypal.provider.order_item_non_neutral_tax', OrderItemNonNeutralTaxesProvider::class);
 
     $services->alias(OrderItemNonNeutralTaxProviderInterface::class, 'sylius_paypal.provider.order_item_non_neutral_tax');
@@ -438,10 +426,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.provider.uuid', UuidProvider::class);
 
     $services->alias(UuidProviderInterface::class, 'sylius_paypal.provider.uuid');
-
-    $services->set('sylius_paypal.processor.paypal_address', PayPalAddressProcessor::class)
-        ->args([service('doctrine.orm.entity_manager')])
-        ->deprecate('sylius/paypal-plugin', '1.7', 'The "%service_id%" service is deprecated since 1.7 and will be removed in 3.0.');
 
     $services->set('sylius_paypal.updater.payment', PayPalPaymentUpdater::class)
         ->args([service('sylius.manager.payment')]);
