@@ -126,9 +126,6 @@
    capture or authorize an approved order. An approved order is still completed first, so a late payment is not lost.
    Before that, the error is reported, as it may come from a payment method pointing at the wrong PayPal environment.
 
-   `Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface` (`sylius_paypal.checker.pre_upgrade_paypal_order`)
-   tells such a payment apart.
-
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 
    The BN code is not sandbox specific: it is sent as the `PayPal-Partner-Attribution-Id` header in production

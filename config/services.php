@@ -35,7 +35,6 @@ use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PermissionsStateChecker;
 use Sylius\PayPalPlugin\Checker\PermissionsStateCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderChecker;
-use Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleter;
 use Sylius\PayPalPlugin\Completer\ExpressCheckoutCompleterInterface;
 use Sylius\PayPalPlugin\Console\Command\CompletePaidPaymentsCommand;
@@ -508,8 +507,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('sylius_paypal.checker.pre_upgrade_paypal_order', PreUpgradePayPalOrderChecker::class)
         ->args([service('sylius.repository.payment_request')]);
-
-    $services->alias(PreUpgradePayPalOrderCheckerInterface::class, 'sylius_paypal.checker.pre_upgrade_paypal_order');
 
     $services->set('sylius_paypal.processor.pre_upgrade_paypal_order_settlement', PreUpgradePayPalOrderSettlementProcessor::class)
         ->decorate('sylius_paypal.processor.payment_settlement')
