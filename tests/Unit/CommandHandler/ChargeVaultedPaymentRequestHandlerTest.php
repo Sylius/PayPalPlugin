@@ -51,6 +51,9 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 
     private Payment $payment;
 
+    /** @var array<string, mixed> */
+    private array $payload = ['vault_id' => 'VAULT_ID'];
+
     /** @var list<array{string, string}> */
     private array $appliedTransitions = [];
 
@@ -61,10 +64,11 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->payment = new Payment();
         $this->payment->setState(PaymentInterface::STATE_NEW);
         $this->payment->setAmount(1500);
-        $this->payment->setDetails(['vault_id' => 'VAULT_ID', 'vault_customer_id' => 'CUSTOMER_ID']);
+        $this->payment->setDetails(['vault_customer_id' => 'CUSTOMER_ID']);
 
         $this->paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $this->paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $this->paymentRequest->method('getPayload')->willReturnCallback(fn (): array => $this->payload);
         $this->paymentRequest->method('getPayment')->willReturn($this->payment);
 
         $paymentRequestProvider = $this->createStub(PaymentRequestProviderInterface::class);
@@ -181,8 +185,8 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([
-            'vault_id' => 'VAULT_ID',
             'vault_customer_id' => 'CUSTOMER_ID',
+            'vault_id' => 'VAULT_ID',
             'status' => 'PROCESSING',
             'paypal_order_id' => 'PAYPAL_ORDER_ID',
             'reference_id' => 'PAYMENT_REQUEST_HASH',
@@ -274,13 +278,41 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ], $this->appliedTransitions);
     }
 
-    public function test_it_fails_the_payment_that_carries_no_vaulted_wallet_without_calling_paypal(): void
+    public function test_it_charges_the_vault_the_request_names_instead_of_the_one_the_payment_details_carry(): void
     {
         $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
-        $this->payment->setDetails([]);
+        $this->payment->setDetails(['vault_id' => 'PREVIOUS_VAULT_ID']);
+
+        $this->chargeVaultedOrderApi
+            ->expects(self::once())
+            ->method('charge')
+            ->with($this->payment, 'VAULT_ID', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
+            ->willReturn($this->payPalOrder('COMPLETED'))
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame('VAULT_ID', $this->payment->getDetails()['vault_id']);
+    }
+
+    /** @return iterable<string, array{array<string, mixed>}> */
+    public static function payloadsWithoutVault(): iterable
+    {
+        yield 'no vault id' => [[]];
+        yield 'empty vault id' => [['vault_id' => '']];
+        yield 'vault id that is not a string' => [['vault_id' => 123]];
+    }
+
+    /** @param array<string, mixed> $payload */
+    #[DataProvider('payloadsWithoutVault')]
+    public function test_it_fails_the_payment_whose_request_names_no_vaulted_wallet_without_calling_paypal(array $payload): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = $payload;
+        $this->payment->setDetails(['vault_id' => 'VAULT_ID']);
 
         $this->chargeVaultedOrderApi->expects(self::never())->method('charge');
-        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment carries no vaulted PayPal wallet.', 'failure' => 'credential_invalid']);
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment request names no vaulted PayPal wallet to charge.', 'failure' => 'credential_invalid']);
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -366,7 +398,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         }
 
         self::assertSame([], $this->appliedTransitions);
-        self::assertSame(['vault_id' => 'VAULT_ID', 'vault_customer_id' => 'CUSTOMER_ID'], $this->payment->getDetails());
+        self::assertSame(['vault_customer_id' => 'CUSTOMER_ID'], $this->payment->getDetails());
     }
 
     /** @return array<string, mixed> */

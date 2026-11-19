@@ -18,5 +18,5 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 
 interface ChargeVaultedPaymentRequestDispatcherInterface
 {
-    public function dispatch(PaymentInterface $payment): PaymentRequestInterface;
+    public function dispatch(PaymentInterface $payment, string $vaultId): PaymentRequestInterface;
 }
