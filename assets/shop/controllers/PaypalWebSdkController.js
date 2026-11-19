@@ -96,7 +96,7 @@ export default class extends Controller {
                 const payLaterDetails = paymentMethods.getDetails('paylater');
                 this.payLaterButtonTarget.productCode = payLaterDetails.productCode;
                 this.payLaterButtonTarget.countryCode = payLaterDetails.countryCode;
-                this.wireUpButton(this.payLaterButtonTarget, this.sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()));
+                this.wireUpButton(this.payLaterButtonTarget, this.sdkInstance.createPayLaterOneTimePaymentSession(this.buildSessionOptions()), 'paylater');
             }
         } catch (error) {
             console.error('Pay Later button setup error:', error);
@@ -161,6 +161,7 @@ export default class extends Controller {
 
     async createOrder(paymentSource = null) {
         this.validationFailed = false;
+        this.orderRefused = false;
 
         const requestInit = { method: 'post' };
         if (this.hasAddToCartFormSelectorValue && this.addToCartFormSelectorValue !== '') {
@@ -181,10 +182,15 @@ export default class extends Controller {
             throw new Error('The add to cart form is invalid.');
         }
 
-        if (!response.ok) {
+        if (response.status === 400) {
+            this.orderRefused = true;
             window.location.reload();
 
-            return;
+            throw new Error('The shop refused to create the PayPal order.');
+        }
+
+        if (!response.ok) {
+            throw new Error(`Could not create the PayPal order (${response.status}).`);
         }
 
         if (this.hasLoadingSelectorValue && this.loadingSelectorValue !== '') {
@@ -242,6 +248,10 @@ export default class extends Controller {
         if (this.validationFailed) {
             this.validationFailed = false;
 
+            return;
+        }
+
+        if (this.orderRefused) {
             return;
         }
 

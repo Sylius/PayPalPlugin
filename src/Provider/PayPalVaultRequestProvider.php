@@ -1,0 +1,116 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Provider;
+
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
+use Sylius\Component\Payment\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Checker\VaultingCapabilityCheckerInterface;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
+use Sylius\PayPalPlugin\Resolver\VaultRequestResolverInterface;
+
+final readonly class PayPalVaultRequestProvider implements PayPalVaultRequestProviderInterface
+{
+    public function __construct(
+        private VaultRequestResolverInterface $vaultRequestResolver,
+        private PayPalPaymentMethodsResolverInterface $payPalMethodsResolver,
+        private VaultingCapabilityCheckerInterface $vaultingCapabilityChecker,
+    ) {
+    }
+
+    public function provide(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): ?PayPalVaultRequest
+    {
+        if (null === $paymentMethod) {
+            return null;
+        }
+
+        $gatewayConfig = $this->payPalGatewayConfig($paymentMethod);
+        if (null === $gatewayConfig) {
+            return null;
+        }
+
+        $vaultRequest = $this->vaultRequestResolver->resolve($order);
+        if (null === $vaultRequest) {
+            return null;
+        }
+
+        if (!$this->canVault($gatewayConfig, $paymentMethod)) {
+            return null;
+        }
+
+        return $vaultRequest;
+    }
+
+    public function isVaultingRequirementMet(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool
+    {
+        if (null === $paymentMethod) {
+            return true;
+        }
+
+        $gatewayConfig = $this->payPalGatewayConfig($paymentMethod);
+        if (null === $gatewayConfig) {
+            return true;
+        }
+
+        if (null === $this->vaultRequestResolver->resolve($order)) {
+            return true;
+        }
+
+        return $this->canVault($gatewayConfig, $paymentMethod);
+    }
+
+    public function provideForCart(OrderInterface $order): ?PayPalVaultRequest
+    {
+        return $this->provide($order, $this->cartPaymentMethod($order));
+    }
+
+    private function canVault(PayPalGatewayConfig $gatewayConfig, PaymentMethodInterface $paymentMethod): bool
+    {
+        return $gatewayConfig->isVaultingEnabled() || $this->vaultingCapabilityChecker->isVaultingActive($paymentMethod);
+    }
+
+    private function payPalGatewayConfig(PaymentMethodInterface $paymentMethod): ?PayPalGatewayConfig
+    {
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        if (
+            !$gatewayConfig instanceof GatewayConfigInterface ||
+            SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $gatewayConfig->getFactoryName()
+        ) {
+            return null;
+        }
+
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+    }
+
+    private function cartPaymentMethod(OrderInterface $order): ?PaymentMethodInterface
+    {
+        $paymentMethod = $order->getLastPayment(BasePaymentInterface::STATE_CART)?->getMethod();
+        if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME === $paymentMethod?->getGatewayConfig()?->getFactoryName()) {
+            return $paymentMethod;
+        }
+
+        /** @var ChannelInterface|null $channel */
+        $channel = $order->getChannel();
+        if (null === $channel) {
+            return null;
+        }
+
+        return $this->payPalMethodsResolver->getInChannel($channel)[0] ?? null;
+    }
+}

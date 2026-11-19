@@ -17,6 +17,7 @@ sylius_paypal:
     payment_pending: 'Votre paiement est en cours. Nous confirmerons votre commande dès que votre banque aura envoyé les fonds.'
     payment_refund_pending: 'PayPal traite le remboursement. Le paiement sera marqué comme remboursé dès que PayPal l''aura confirmé.'
     payment_source_not_available: 'Le moyen de paiement choisi n''est pas disponible. Veuillez en choisir un autre.'
+    paypal_wallet_required: 'Cette commande ne peut être payée qu''avec votre compte PayPal. Veuillez utiliser le bouton PayPal.'
     permissions:
         update:
             another_account: 'Vous avez connecté un autre compte PayPal. Connectez-vous à PayPal avec le compte de ce mode de paiement pour mettre à jour ses autorisations.'
@@ -33,4 +34,5 @@ sylius_paypal:
     something_went_wrong: 'Une erreur est survenue. Merci de réessayer.'
     three_d_secure_declined: 'Votre carte n''a pas pu être authentifiée. Merci d''utiliser un autre mode de paiement.'
     three_d_secure_retry: 'L''authentification de la carte n''a pas pu être finalisée. Merci de réessayer.'
+    vaulting_not_available: 'PayPal ne peut pas encore être utilisé pour cette commande. Veuillez choisir un autre moyen de paiement.'
     webhook_url_not_valid: 'PayPal n''a pas pu vérifier l''URL de webhook. Assurez-vous qu''elle utilise HTTPS et réessayez.'

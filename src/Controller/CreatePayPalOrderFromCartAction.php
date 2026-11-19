@@ -19,12 +19,14 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Payment\Remover\OrderPaymentsRemoverInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Verifier\OrderOwnershipVerifierInterface;
@@ -35,6 +37,8 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final readonly class CreatePayPalOrderFromCartAction
 {
+    public const PAY_LATER_BUTTON = 'paylater';
+
     public function __construct(
         private ObjectManager $paymentManager,
         private OrderProviderInterface $orderProvider,
@@ -43,6 +47,7 @@ final readonly class CreatePayPalOrderFromCartAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         if (null === $this->orderPaymentsRemover) {
             trigger_deprecation(
@@ -77,6 +82,15 @@ final readonly class CreatePayPalOrderFromCartAction
                 self::class,
             );
         }
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(Request $request): Response
@@ -101,8 +115,32 @@ final readonly class CreatePayPalOrderFromCartAction
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
+        if (!$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.vaulting_not_available');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($this->isWalletOnlyButtonRefused($request, $order, $paymentMethod)) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.paypal_wallet_required');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
         $paymentSource = $this->resolvePaymentSource($request, $paymentMethod);
-        if (null === $paymentSource || !$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
+        if (null === $paymentSource) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -137,7 +175,7 @@ final readonly class CreatePayPalOrderFromCartAction
     private function getPayment(OrderInterface $order, ?PaymentMethodInterface $channelPayPalMethod): PaymentInterface
     {
         /** @var PaymentInterface $payment */
-        $payment = $order->getLastPayment(PaymentInterface::STATE_CART);
+        $payment = $order->getLastPayment(BasePaymentInterface::STATE_CART);
         /** @var PaymentMethodInterface|null $paymentMethod */
         $paymentMethod = $payment->getMethod();
         $factoryName = $paymentMethod?->getGatewayConfig()?->getFactoryName();
@@ -186,19 +224,34 @@ final readonly class CreatePayPalOrderFromCartAction
         throw new \InvalidArgumentException(sprintf('There is no PayPal payment method "%s" in the channel of the order.', $code));
     }
 
+    private function isWalletOnlyButtonRefused(Request $request, OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool
+    {
+        $paymentSource = $request->query->get('paymentSource');
+
+        return
+            in_array($paymentSource, [PayPalPaymentSourceProviderInterface::VENMO, self::PAY_LATER_BUTTON], true) &&
+            $this->isVaultRequired($order, $paymentMethod)
+        ;
+    }
+
     private function resolvePaymentSource(Request $request, ?PaymentMethodInterface $paymentMethod): ?string
     {
-        $paymentSource = $request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL);
+        return match ($request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL)) {
+            PayPalPaymentSourceProviderInterface::PAYPAL => PayPalPaymentSourceProviderInterface::PAYPAL,
+            PayPalPaymentSourceProviderInterface::VENMO => $this->isVenmoEnabled($paymentMethod) ? PayPalPaymentSourceProviderInterface::VENMO : null,
+            self::PAY_LATER_BUTTON => $this->isPayLaterEnabled($paymentMethod) ? PayPalPaymentSourceProviderInterface::PAYPAL : null,
+            default => null,
+        };
+    }
 
-        if (PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource) {
-            return $paymentSource;
+    private function isPayLaterEnabled(?PaymentMethodInterface $paymentMethod): bool
+    {
+        $gatewayConfig = $paymentMethod?->getGatewayConfig();
+        if (null === $gatewayConfig) {
+            return false;
         }
 
-        if (PayPalPaymentSourceProviderInterface::VENMO === $paymentSource && $this->isVenmoEnabled($paymentMethod)) {
-            return $paymentSource;
-        }
-
-        return null;
+        return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isPayLaterEnabled();
     }
 
     private function isVenmoEnabled(?PaymentMethodInterface $paymentMethod): bool
@@ -223,5 +276,14 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isExpressCheckoutEnabled();
+    }
+
+    private function isVaultRequired(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool
+    {
+        if (null === $this->vaultRequestProvider) {
+            return false;
+        }
+
+        return null !== $this->vaultRequestProvider->provide($order, $paymentMethod);
     }
 }

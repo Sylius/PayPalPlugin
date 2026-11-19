@@ -25,7 +25,7 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 
-final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface, PaypalPaymentBatchQueryInterface
+final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, SettleablePaypalPaymentQueryInterface, PaypalPaymentBatchQueryInterface, VaultedPaypalPaymentQueryInterface
 {
     /** @param PaymentRepositoryInterface<PaymentInterface>&EntityRepository $paymentRepository */
     public function __construct(
@@ -147,6 +147,22 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         }
 
         return $payment;
+    }
+
+    public function findByVaultId(string $vaultId): array
+    {
+        $queryBuilder = $this->getPaypalPaymentQueryBuilder();
+        $this->filterByDetailsValue($queryBuilder, $vaultId);
+
+        $payments = [];
+        /** @var PaymentInterface $payment */
+        foreach ($queryBuilder->getQuery()->toIterable() as $payment) {
+            if ($vaultId === PayPalPaymentDetails::fromPayment($payment)->vaultId()) {
+                $payments[] = $payment;
+            }
+        }
+
+        return $payments;
     }
 
     private function doGetPayment(QueryBuilder $queryBuilder, string $paypalOrderId, bool $includingSuperseded = false): PaymentInterface

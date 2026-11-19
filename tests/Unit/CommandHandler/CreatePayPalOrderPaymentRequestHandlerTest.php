@@ -17,6 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
@@ -29,7 +30,9 @@ use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 
 final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
 {
@@ -210,6 +213,60 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
 
         ($this->handler)(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH', self::RETURN_URL));
+    }
+
+    public function test_it_fails_the_payment_request_for_another_payment_source_than_the_wallet_when_the_payment_needs_vaulting(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'card']);
+
+        $this->payPalOrderCreator->expects(self::never())->method('create');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'This payment can be paid only with a PayPal wallet, which PayPal saves for later charges.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
+
+        ($this->handlerVaulting())(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH', self::RETURN_URL));
+    }
+
+    public function test_it_creates_the_paypal_order_paid_with_the_wallet_when_the_payment_needs_vaulting(): void
+    {
+        $this->paymentRequestWith(['payment_source' => 'paypal']);
+
+        $this->payPalOrderCreator
+            ->expects(self::once())
+            ->method('create')
+            ->willReturn(PayPalPaymentDetails::create()->withPayPalOrderId('PAYPAL_ORDER_ID'))
+        ;
+
+        ($this->handlerVaulting())(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH', self::RETURN_URL));
+    }
+
+    public function test_it_fails_the_payment_request_instead_of_paying_once_when_the_payment_needs_vaulting_the_merchant_cannot_do(): void
+    {
+        $paymentRequest = $this->paymentRequestWith(['payment_source' => 'paypal']);
+
+        $this->payPalOrderCreator->expects(self::never())->method('create');
+        $paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'This payment needs a PayPal wallet saved for later charges, but the merchant cannot save PayPal wallets yet.']);
+        $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL);
+
+        ($this->handlerVaulting(vaultingRequirementMet: false))(new CreatePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH', self::RETURN_URL));
+    }
+
+    private function handlerVaulting(bool $vaultingRequirementMet = true): CreatePayPalOrderPaymentRequestHandler
+    {
+        $this->payment->method('getOrder')->willReturn($this->createStub(OrderInterface::class));
+
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn($vaultingRequirementMet);
+        $vaultRequestProvider->method('provide')->willReturn($vaultingRequirementMet ? new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID) : null);
+
+        return new CreatePayPalOrderPaymentRequestHandler(
+            $this->paymentRequestProvider,
+            $this->payPalOrderCreator,
+            new PayPalPaymentSourceProvider(),
+            $this->paymentSourceEnabledChecker,
+            $this->paymentAuthorizationChecker,
+            $this->stateMachine,
+            $vaultRequestProvider,
+        );
     }
 
     private function paymentRequestWith(
