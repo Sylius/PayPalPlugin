@@ -102,7 +102,7 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         $paymentSource = $this->resolvePaymentSource($request, $paymentMethod);
-        if (null === $paymentSource || !$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
+        if (null === $paymentSource || !$this->isExpressCheckoutEnabled($paymentMethod)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -211,12 +211,8 @@ final readonly class CreatePayPalOrderFromCartAction
         return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVenmoEnabled();
     }
 
-    private function isExpressCheckoutEnabled(Request $request, ?PaymentMethodInterface $paymentMethod): bool
+    private function isExpressCheckoutEnabled(?PaymentMethodInterface $paymentMethod): bool
     {
-        if ('' !== $request->query->getString('paymentMethod')) {
-            return true;
-        }
-
         $gatewayConfig = $paymentMethod?->getGatewayConfig();
         if (null === $gatewayConfig) {
             return true;

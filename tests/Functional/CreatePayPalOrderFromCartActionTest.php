@@ -199,15 +199,15 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertNull($this->recordedPaymentSource($order));
     }
 
-    public function test_it_still_creates_the_paypal_order_from_the_payment_page_when_express_checkout_is_disabled(): void
+    public function test_it_rejects_the_payment_page_when_express_checkout_is_disabled_on_the_payment_method(): void
     {
         $order = $this->cartWithTwoPayPalMethods(['express_checkout_enabled' => false]);
 
-        $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentMethod=PAYPAL_2');
 
-        $this->assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-        $this->assertSame('paypal', $this->recordedPaymentSource($order));
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
+        $this->assertNull($this->recordedPaymentSource($order));
     }
 
     private function seededCart(bool $venmoEnabled = false, bool $expressCheckoutEnabled = true): OrderInterface

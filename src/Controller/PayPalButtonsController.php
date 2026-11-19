@@ -167,6 +167,10 @@ final readonly class PayPalButtonsController
             $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel, $request->attributes->getString('paymentMethodCode'));
             $config = $this->getConfig($paymentMethod);
+            if (!$config->isExpressCheckoutEnabled()) {
+                return new Response('');
+            }
+
             $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
