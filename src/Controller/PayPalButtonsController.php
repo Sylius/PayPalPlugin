@@ -116,8 +116,6 @@ final readonly class PayPalButtonsController
         $orderId = $request->attributes->getInt('orderId');
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
-        /** @var OrderInterface $order */
-        $order = $this->orderRepository->find($orderId);
 
         try {
             $paymentMethod = $this->getPaymentMethod($channel);
@@ -125,6 +123,9 @@ final readonly class PayPalButtonsController
             if (!$config->isExpressCheckoutEnabled()) {
                 return new Response('');
             }
+
+            /** @var OrderInterface $order */
+            $order = $this->orderRepository->find($orderId);
 
             $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $config->isVenmoEnabled();
@@ -160,13 +161,18 @@ final readonly class PayPalButtonsController
         $orderId = $request->attributes->getInt('orderId');
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
-        /** @var OrderInterface $order */
-        $order = $this->orderRepository->find($orderId);
 
         try {
-            $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel, $request->attributes->getString('paymentMethodCode'));
             $config = $this->getConfig($paymentMethod);
+            if (!$config->isExpressCheckoutEnabled()) {
+                return new Response('');
+            }
+
+            /** @var OrderInterface $order */
+            $order = $this->orderRepository->find($orderId);
+
+            $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
