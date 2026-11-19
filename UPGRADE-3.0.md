@@ -227,7 +227,7 @@
    ```
 
    Instead of the general `sylius_paypal.payment_not_enabled` message, the admin is shown the reasons provided
-   by `OnboardingStatusMessagesProviderInterface` for the seller's onboarding status.
+   by `OnboardingStatusMessagesProviderInterface::provideBlocking()` for the seller's onboarding status.
 
 1. #### The sandbox credentials modal has been removed.
 
@@ -1179,10 +1179,10 @@
    The status of the vaulting capability is read only together with the rest of the merchant integration status: at
    the end of the onboarding and when the permissions of the payment method are verified or updated. It is not
    stored and nothing reads it when the admin or the shop is visited. When PayPal reports the capability with a
-   status other than `ACTIVE`, the `sylius_paypal.seller_onboarding_vaulting_not_active` message
-   (`OnboardingStatusMessagesProviderInterface::VAULTING_NOT_ACTIVE_MESSAGE`) is shown with that status after the
-   onboarding and the permissions update. Enabling the payment method does not depend on it, so `EnableSellerAction`
-   leaves it out of the reasons a payment method could not be enabled. Nothing is shown when PayPal does not list the
+   status other than `ACTIVE`, the `sylius_paypal.seller_onboarding_vaulting_not_active` message is shown with that
+   status after the onboarding and the permissions update. Enabling the payment method does not depend on it, so
+   `OnboardingStatusMessagesProviderInterface::provideBlocking()`, which `EnableSellerAction` uses, leaves it out of
+   the reasons a payment method could not be enabled. Nothing is shown when PayPal does not list the
    capability at all. PayPal does not report the `BILLING_AGREEMENT` and `VAULT` features to the seller, so the
    stored onboarding scope is the only record that they were asked for.
 
