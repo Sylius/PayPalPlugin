@@ -22,12 +22,15 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final class AuthorizePayPalOrderPaymentRequestHandler
 {
@@ -46,8 +49,19 @@ final class AuthorizePayPalOrderPaymentRequestHandler
         private readonly EntityManagerInterface $paymentManager,
         private readonly EntityManagerInterface $paymentRequestManager,
         StateMachineInterface $stateMachine,
+        private readonly ?MessageBusInterface $eventBus = null,
     ) {
         $this->stateMachine = $stateMachine;
+
+        if (null === $this->eventBus) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                MessageBusInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(AuthorizePayPalOrderPaymentRequest $authorizePayPalOrderPaymentRequest): void
@@ -75,7 +89,8 @@ final class AuthorizePayPalOrderPaymentRequestHandler
             return;
         }
 
-        if (!PayPalPaymentDetails::fromPayment($payment)->hasPayPalOrderId()) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        if (!$details->hasPayPalOrderId()) {
             $this->failWithReason($paymentRequest, 'The payment carries no PayPal order id.');
 
             return;
@@ -95,6 +110,7 @@ final class AuthorizePayPalOrderPaymentRequestHandler
 
             return;
         }
+        $this->announceRevealedVaultToken($payment, $details->vaultId());
 
         $authorization = $payPalOrder->authorization();
 
@@ -111,6 +127,19 @@ final class AuthorizePayPalOrderPaymentRequestHandler
             PayPalAuthorization::STATUS_PENDING => $this->complete($paymentRequest, $payment, PaymentTransitions::TRANSITION_PROCESS),
             default => $this->refuse($paymentRequest, $payment, $authorization),
         };
+    }
+
+    private function announceRevealedVaultToken(PaymentInterface $payment, ?string $knownVaultId): void
+    {
+        $vaultId = PayPalPaymentDetails::fromPayment($payment)->vaultId();
+        if (null === $vaultId || $knownVaultId === $vaultId) {
+            return;
+        }
+
+        $this->eventBus?->dispatch(
+            new PayPalPaymentTokenCreated($payment->getId(), $vaultId),
+            [new DispatchAfterCurrentBusStamp()],
+        );
     }
 
     private function cancelUnapproved(PaymentRequestInterface $paymentRequest): void

@@ -25,12 +25,17 @@ use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\AuthorizePayPalOrderPaymentRequestHandler;
+use Sylius\PayPalPlugin\Event\PayPalPaymentTokenCreated;
+use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Processor\PaymentAuthorizationProcessorInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifierInterface;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
 {
@@ -45,6 +50,8 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
     private EntityManagerInterface&MockObject $paymentRequestManager;
 
     private StateMachineInterface&MockObject $stateMachine;
+
+    private MessageBusInterface&MockObject $eventBus;
 
     private PaymentInterface&MockObject $payment;
 
@@ -62,6 +69,7 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
         $this->stateMachine = $this->createMock(StateMachineInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
+        $this->eventBus = $this->createMock(MessageBusInterface::class);
 
         $this->stateMachine->method('apply')->willReturnCallback(function (object $subject, string $graph, string $transition): void {
             $this->appliedTransitions[] = [$graph, $transition];
@@ -74,6 +82,7 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentManager,
             $this->paymentRequestManager,
             $this->stateMachine,
+            $this->eventBus,
         );
     }
 
@@ -279,6 +288,42 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         self::assertSame([], $this->appliedTransitions);
     }
 
+    public function test_it_announces_the_vault_token_the_authorization_revealed(): void
+    {
+        $this->paymentRequestWhoseAuthorizationRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID'], ['vault_id' => 'VAULT_ID']);
+
+        $this->eventBus
+            ->expects(self::once())
+            ->method('dispatch')
+            ->with(
+                self::callback(static fn (PayPalPaymentTokenCreated $event): bool => 7 === $event->paymentId && 'VAULT_ID' === $event->vaultId),
+                self::callback(static fn (array $stamps): bool => [new DispatchAfterCurrentBusStamp()] == $stamps),
+            )
+            ->willReturnCallback(static fn (object $event): Envelope => new Envelope($event))
+        ;
+
+        ($this->handler)(new AuthorizePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_announce_a_vault_token_the_payment_already_carried(): void
+    {
+        $this->paymentRequestWhoseAuthorizationRecords(['paypal_order_id' => 'PAYPAL_ORDER_ID', 'vault_id' => 'VAULT_ID'], []);
+
+        $this->eventBus->expects(self::never())->method('dispatch');
+
+        ($this->handler)(new AuthorizePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_announce_a_vault_token_when_the_authorization_failed(): void
+    {
+        $this->paymentRequestWith();
+        $this->paymentAuthorizationProcessor->method('authorize')->willThrowException(new PayPalApiConnectionException('GET', 'v2/checkout/orders/PAYPAL_ORDER_ID'));
+
+        $this->eventBus->expects(self::never())->method('dispatch');
+
+        ($this->handler)(new AuthorizePayPalOrderPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
     /** @param array<string, mixed> $details */
     private function paymentRequestWith(
         array $details = ['paypal_order_id' => 'PAYPAL_ORDER_ID'],
@@ -296,6 +341,31 @@ final class AuthorizePayPalOrderPaymentRequestHandlerTest extends TestCase
         $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
 
         return $paymentRequest;
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @param array<string, mixed> $recordedByAuthorization
+     */
+    private function paymentRequestWhoseAuthorizationRecords(array $details, array $recordedByAuthorization): void
+    {
+        $this->payment->method('getId')->willReturn(7);
+        $this->payment->method('getDetails')->willReturnCallback(static function () use (&$details): array {
+            return $details;
+        });
+
+        $paymentRequest = $this->createMock(PaymentRequestInterface::class);
+        $paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $paymentRequest->method('getPayment')->willReturn($this->payment);
+        $paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $this->paymentRequestProvider->method('provide')->willReturn($paymentRequest);
+
+        $this->paymentAuthorizationProcessor->method('authorize')->willReturnCallback(function () use (&$details, $recordedByAuthorization): PayPalOrderDetails {
+            $details = array_merge($details, $recordedByAuthorization);
+
+            return $this->authorizedOrder('CREATED');
+        });
+        $this->stateMachine->method('can')->willReturn(false);
     }
 
     private function authorizedOrder(string $authorizationStatus): PayPalOrderDetails
