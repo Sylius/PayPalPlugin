@@ -33,10 +33,7 @@ final class VaultedChargeFailureResolverTest extends TestCase
         yield 'expired token' => ['TOKEN_EXPIRED', VaultedChargeFailure::CredentialInvalid];
         yield 'missing token' => ['TOKEN_ID_NOT_FOUND', VaultedChargeFailure::CredentialInvalid];
         yield 'token of another payment source' => ['MISMATCHED_VAULT_ID_TO_PAYMENT_SOURCE', VaultedChargeFailure::CredentialInvalid];
-        yield 'payment source of another transaction' => ['PAYMENT_SOURCE_MISMATCH', VaultedChargeFailure::CredentialInvalid];
-        yield 'invalid previous transaction' => ['INVALID_PREVIOUS_TRANSACTION_REFERENCE', VaultedChargeFailure::CredentialInvalid];
         yield 'previous transaction charged back' => ['PREVIOUS_TRANSACTION_REFERENCE_HAS_CHARGEBACK', VaultedChargeFailure::CredentialInvalid];
-        yield 'previous transaction voided' => ['PREVIOUS_TRANSACTION_REFERENCE_VOIDED', VaultedChargeFailure::CredentialInvalid];
         yield 'payer action required' => ['PAYER_ACTION_REQUIRED', VaultedChargeFailure::PayerActionRequired];
         yield 'alternate funding' => ['REDIRECT_PAYER_FOR_ALTERNATE_FUNDING', VaultedChargeFailure::PayerActionRequired];
         yield 'declined instrument' => ['INSTRUMENT_DECLINED', VaultedChargeFailure::Declined];
@@ -47,6 +44,9 @@ final class VaultedChargeFailureResolverTest extends TestCase
         yield 'blocked by the merchant fraud settings' => ['TRANSACTION_BLOCKED_BY_PAYEE', VaultedChargeFailure::Declined];
         yield 'blocked by a fraud tool' => ['PAYEE_BLOCKED_TRANSACTION', VaultedChargeFailure::Declined];
         yield 'merchant restriction' => ['PAYEE_ACCOUNT_RESTRICTED', VaultedChargeFailure::Unknown];
+        yield 'payment source of another transaction' => ['PAYMENT_SOURCE_MISMATCH', VaultedChargeFailure::Unknown];
+        yield 'invalid previous transaction' => ['INVALID_PREVIOUS_TRANSACTION_REFERENCE', VaultedChargeFailure::Unknown];
+        yield 'previous transaction voided' => ['PREVIOUS_TRANSACTION_REFERENCE_VOIDED', VaultedChargeFailure::Unknown];
     }
 
     #[DataProvider('issues')]
