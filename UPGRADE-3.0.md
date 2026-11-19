@@ -1472,3 +1472,32 @@
    The `sylius_paypal.back_to_store`, `sylius_paypal.billing_info`, `sylius_paypal.credit_card`,
    `sylius_paypal.credit_card_number` and `sylius_paypal.invalid_form` messages are no longer used by any template and
    have been removed from every locale. Define them in your application if your templates use them.
+
+1. #### The classes and arguments deprecated since 1.x have been removed.
+
+   The following have been removed:
+
+   | Removed | Replacement |
+   |---|---|
+   | `Sylius\PayPalPlugin\Provider\PaymentProvider` and its interface (`sylius_paypal.provider.payment`) | `Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface` |
+   | `Sylius\PayPalPlugin\Processor\PayPalAddressProcessor` and its interface (`sylius_paypal.processor.paypal_address`) | none |
+
+   `Sylius\PayPalPlugin\Controller\CancelPayPalOrderAction` takes only the `RequestStack`:
+
+   ```diff
+    public function __construct(
+   -    private ?PaymentProviderInterface $paymentProvider,
+   -    private ?OrderRepositoryInterface $orderRepository,
+        private RequestStack $flashBagOrRequestStack,
+    )
+   ```
+
+   `Sylius\PayPalPlugin\Processor\LocaleProcessor` requires its
+   `Sylius\PayPalPlugin\Resolver\SupportedLocaleResolverInterface` and no longer resolves a locale on its own:
+
+   ```diff
+    public function __construct(
+   -    private readonly ?SupportedLocaleResolverInterface $supportedLocaleResolver = null,
+   +    private readonly SupportedLocaleResolverInterface $supportedLocaleResolver,
+    )
+   ```

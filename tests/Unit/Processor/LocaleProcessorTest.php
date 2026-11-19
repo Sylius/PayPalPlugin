@@ -64,33 +64,4 @@ final class LocaleProcessorTest extends TestCase
 
         self::assertEquals('en_US', $localeProcessor->process('en'));
     }
-
-    #[Test]
-    public function it_always_processes_locale_to_version_with_region_using_legacy_mode(): void
-    {
-        $localeProcessor = new LocaleProcessor();
-
-        self::assertEquals('et_EE', $localeProcessor->process('et'));
-        self::assertEquals('pl_PL', $localeProcessor->process('pl'));
-        self::assertEquals('ja_JP', $localeProcessor->process('ja'));
-    }
-
-    #[Test]
-    public function it_returns_same_locale_if_it_is_valid_using_legacy_mode(): void
-    {
-        $localeProcessor = new LocaleProcessor();
-
-        self::assertEquals('it_IT', $localeProcessor->process('it_IT'));
-        self::assertEquals('de_DE', $localeProcessor->process('de_DE'));
-        self::assertEquals('ja_JP_TRADITIONAL', $localeProcessor->process('ja_JP_TRADITIONAL'));
-        self::assertEquals('sd_Arab_PK', $localeProcessor->process('sd_Arab_PK'));
-    }
-
-    #[Test]
-    public function it_returns_correct_locale_for_en_locale_using_legacy_mode(): void
-    {
-        $localeProcessor = new LocaleProcessor();
-
-        self::assertEquals('en_US', $localeProcessor->process('en'));
-    }
 }
