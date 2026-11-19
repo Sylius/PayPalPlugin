@@ -362,7 +362,7 @@
     public function __construct(
    -    private readonly bool $sandbox,
         // ...
-   +    ?HostProviderInterface $hostProvider = null,
+   +    private readonly HostProviderInterface $hostProvider,
     ) {
    ```
 
@@ -1657,9 +1657,10 @@
    `getForCancellationByOrderId()` return `PaymentInterface` instead of `?PaymentInterface`; they throw
    `PaymentNotFoundException` when no payment is found.
 
-1. #### The constructor arguments deprecated in 2.2 are required.
+1. #### The optional constructor arguments added in 2.2 and 3.0 are required.
 
-   The arguments that 2.2 deprecated not passing are required, and the fallbacks used without them have been removed:
+   The arguments that 2.2 and 3.0 added as optional are required, and the fallbacks used without them have been
+   removed:
 
    | Class | Change |
    |---|---|
@@ -1667,6 +1668,9 @@
    | `Sylius\PayPalPlugin\Api\UpdateOrderApi` | takes only `PayPalClientInterface` and `PurchaseUnitFactoryInterface` |
    | `Sylius\PayPalPlugin\Factory\PayPalItemFactory` | requires `UrlGeneratorInterface` |
    | `Sylius\PayPalPlugin\Provider\PayPalItemDataProvider` | requires `PayPalItemFactoryInterface` |
+   | `Sylius\PayPalPlugin\Factory\PayPalOrderFactory` | requires `UrlGeneratorInterface`, `ShippingCallbackUrlProviderInterface`, `ExperienceContextProviderInterface`, `PayPalPaymentSourceProviderInterface` and `PaymentAuthorizationCheckerInterface` |
+   | `Sylius\PayPalPlugin\Provider\ExperienceContextProvider` | requires `CurrentPayPalLocaleProviderInterface`; no longer falls back to the locale of the order |
+   | `Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory` | requires `PayPalShippingAddressFactoryInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction` | requires `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface`, `ObjectManager` and `PayerActionCheckerInterface` |
 
    `Sylius\PayPalPlugin\Model\PayPalOrder` no longer takes the order, and requires the payment source. It no longer

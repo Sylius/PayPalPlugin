@@ -30,7 +30,9 @@ final class ExperienceContextProviderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->provider = new ExperienceContextProvider();
+        $currentLocaleProvider = $this->createStub(CurrentPayPalLocaleProviderInterface::class);
+        $currentLocaleProvider->method('provide')->willReturn('en_US');
+        $this->provider = new ExperienceContextProvider($currentLocaleProvider);
         $this->order = $this->createMock(OrderInterface::class);
         $this->order->method('getLocaleCode')->willReturn('en_US');
     }
@@ -107,7 +109,7 @@ final class ExperienceContextProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_normalises_the_order_locale_to_bcp_47(): void
+    public function it_normalises_the_current_locale_to_bcp_47(): void
     {
         $this->order->method('isShippingRequired')->willReturn(false);
 

@@ -24,7 +24,7 @@ final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFa
     /** @param AddressFactoryInterface<AddressInterface> $addressFactory */
     public function __construct(
         private AddressFactoryInterface $addressFactory,
-        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory,
+        private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
     ) {
     }
 
@@ -72,10 +72,6 @@ final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFa
 
     private function applyProvince(AddressInterface $address, PayPalAddress $payPalAddress): void
     {
-        if (null === $this->shippingAddressFactory) {
-            return;
-        }
-
         $payPalShippingAddress = $this->shippingAddressFactory->create($payPalAddress);
 
         $address->setProvinceCode($payPalShippingAddress->getProvinceCode());

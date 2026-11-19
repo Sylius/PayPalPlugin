@@ -27,6 +27,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -63,6 +64,7 @@ final class PayPalExtensionTest extends TestCase
             $this->webSdkConfigurationProvider,
             new PayerActionChecker(),
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            new HostProvider(),
         );
     }
 
@@ -306,6 +308,7 @@ final class PayPalExtensionTest extends TestCase
             $this->webSdkConfigurationProvider,
             new PayerActionChecker(),
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            new HostProvider(),
         );
     }
 

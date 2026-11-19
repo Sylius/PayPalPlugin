@@ -21,7 +21,6 @@ use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
-use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -33,17 +32,14 @@ final class PayPalExtension extends AbstractExtension
 {
     private const PARTNER_JS_PATH = '/webapps/merchantboarding/js/lib/lightbox/partner.js';
 
-    private readonly HostProviderInterface $hostProvider;
-
     public function __construct(
         private readonly PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
         private readonly ChannelContextInterface $channelContext,
         private readonly WebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private readonly PayerActionCheckerInterface $payerActionChecker,
         private readonly CurrentPayPalLocaleProviderInterface $currentLocaleProvider,
-        ?HostProviderInterface $hostProvider = null,
+        private readonly HostProviderInterface $hostProvider,
     ) {
-        $this->hostProvider = $hostProvider ?? new HostProvider();
     }
 
     public function getFunctions(): array

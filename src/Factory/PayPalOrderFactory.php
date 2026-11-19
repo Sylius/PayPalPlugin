@@ -18,9 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
-use Sylius\PayPalPlugin\Provider\ExperienceContextProvider;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\ShippingCallbackUrlProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -28,20 +26,14 @@ use Webmozart\Assert\Assert;
 
 final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
 {
-    private ExperienceContextProviderInterface $experienceContextProvider;
-
-    private PayPalPaymentSourceProviderInterface $paymentSourceProvider;
-
     public function __construct(
         private PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
-        private ?UrlGeneratorInterface $router = null,
-        private ?ShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider = null,
-        ?ExperienceContextProviderInterface $experienceContextProvider = null,
-        ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
-        private ?PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker = null,
+        private UrlGeneratorInterface $router,
+        private ShippingCallbackUrlProviderInterface $shippingCallbackUrlProvider,
+        private ExperienceContextProviderInterface $experienceContextProvider,
+        private PayPalPaymentSourceProviderInterface $paymentSourceProvider,
+        private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
     ) {
-        $this->experienceContextProvider = $experienceContextProvider ?? new ExperienceContextProvider();
-        $this->paymentSourceProvider = $paymentSourceProvider ?? new PayPalPaymentSourceProvider();
     }
 
     public function create(
@@ -61,7 +53,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             $order,
             $returnUrl ?? $this->checkoutCompleteUrl($order, $redirectPaymentSource),
             $cancelUrl ?? $returnUrl ?? $this->checkoutCompleteUrl($order, $redirectPaymentSource),
-            null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider?->provide() : null,
+            null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider->provide() : null,
         );
 
         return new PayPalOrder(
@@ -82,7 +74,7 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
     private function intent(PaymentInterface $payment, string $paymentSource): string
     {
         $paymentMethod = $payment->getMethod();
-        if (null === $paymentMethod || null === $this->paymentAuthorizationChecker) {
+        if (null === $paymentMethod) {
             return PayPalOrder::INTENT_CAPTURE;
         }
 
@@ -92,14 +84,14 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         ;
     }
 
-    private function checkoutCompleteUrl(OrderInterface $order, ?RedirectPaymentSource $redirectPaymentSource): ?string
+    private function checkoutCompleteUrl(OrderInterface $order, ?RedirectPaymentSource $redirectPaymentSource): string
     {
         Assert::null(
             $redirectPaymentSource,
             'A redirect PayPal order needs the URL the payer comes back to from the bank.',
         );
 
-        return $this->router?->generate(
+        return $this->router->generate(
             'sylius_shop_checkout_complete',
             ['_locale' => $order->getLocaleCode()],
             UrlGeneratorInterface::ABSOLUTE_URL,
