@@ -31,6 +31,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CreatePayPalOrderAction
 {
     public function __construct(
@@ -40,24 +41,6 @@ final readonly class CreatePayPalOrderAction
         private ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
-        if (null === $this->paymentSourceProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalPaymentSourceProviderInterface::class,
-                self::class,
-            );
-        }
-        if (null === $this->fundingSourcesConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalFundingSourcesConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response

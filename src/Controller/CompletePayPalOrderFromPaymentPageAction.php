@@ -29,6 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CompletePayPalOrderFromPaymentPageAction
 {
     public function __construct(
@@ -41,31 +42,6 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
         private ?OrderProcessorInterface $orderProcessor = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
     ) {
-        if (null === $this->paymentAmountVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                'Not passing an instance of "%s" as the fifth argument is deprecated and will be prohibited in 3.0.',
-                PaymentAmountVerifierInterface::class,
-            );
-        }
-        if (null === $this->orderProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                'Not passing an instance of "%s" as the sixth argument is deprecated and will be prohibited in 3.0.',
-                OrderProcessorInterface::class,
-            );
-        }
-        if (null === $this->orderOwnershipVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                OrderOwnershipVerifierInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response

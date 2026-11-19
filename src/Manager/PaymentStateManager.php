@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PaymentStateManager implements PaymentStateManagerInterface
 {
     private PayerActionCheckerInterface $payerActionChecker;

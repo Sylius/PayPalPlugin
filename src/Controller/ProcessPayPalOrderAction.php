@@ -50,6 +50,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class ProcessPayPalOrderAction
 {
     private ExpressOrderAddressFactoryInterface $expressOrderAddressFactory;
@@ -78,76 +79,6 @@ final readonly class ProcessPayPalOrderAction
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
         private ?UpdateOrderApiInterface $updateOrderApi = null,
     ) {
-        if (null === $this->paymentAmountVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                message: sprintf(
-                    'Not passing $paymentAmountVerifier to "%s" constructor is deprecated and will be prohibited in 3.0',
-                    self::class,
-                ),
-            );
-        }
-        if (null === $this->router) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $router to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->orderCompleter) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $orderCompleter to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->orderProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $orderProcessor to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->shippingMethodRepository) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $shippingMethodRepository to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $expressOrderAddressFactory) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $expressOrderAddressFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->orderOwnershipVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                OrderOwnershipVerifierInterface::class,
-                self::class,
-            );
-        }
-
-        if (null === $this->updateOrderApi) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                UpdateOrderApiInterface::class,
-                self::class,
-            );
-        }
-
         $this->expressOrderAddressFactory = $expressOrderAddressFactory ?? new ExpressOrderAddressFactory($this->addressFactory, null);
     }
 

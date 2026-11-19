@@ -28,6 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CompletePayPalOrderAction
 {
     public function __construct(
@@ -47,8 +48,8 @@ final readonly class CompletePayPalOrderAction
                 'sylius/paypal-plugin',
                 '2.2',
                 'Not passing $authorizeClientApi, $orderDetailsApi and $threeDSecureVerifier to "%s" constructor' .
-                ' is deprecated and will be prohibited in 3.0. Without them the 3D Secure authentication result' .
-                ' is not verified before the payment is captured.',
+                ' is deprecated. Without them the 3D Secure authentication result is not verified before the payment' .
+                ' is captured.',
                 self::class,
             );
         }

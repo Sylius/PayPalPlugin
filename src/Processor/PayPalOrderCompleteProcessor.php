@@ -22,20 +22,13 @@ use Sylius\PayPalPlugin\Exception\PaymentAmountMismatchException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalOrderCompleteProcessor
 {
     public function __construct(
         private PaymentStateManagerInterface $paymentStateManager,
         private ?PaymentAmountVerifierInterface $paymentAmountVerifier = null,
     ) {
-        if (null === $this->paymentAmountVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                'Not passing an instance of "%s" as the second argument is deprecated and will be prohibited in 3.0.',
-                PaymentAmountVerifierInterface::class,
-            );
-        }
     }
 
     public function completePayPalOrder(OrderInterface $order): void

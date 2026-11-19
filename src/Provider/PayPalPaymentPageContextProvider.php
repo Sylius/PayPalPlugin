@@ -22,14 +22,19 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalPaymentPageContextProvider implements PayPalPaymentPageContextProviderInterface
 {
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public const PAGE_TYPE = 'checkout';
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public const CARD_FIELDS_COMPONENT = 'card-fields';
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public const GOOGLE_PAY_COMPONENT = 'googlepay-payments';
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public const APPLE_PAY_COMPONENT = 'applepay-payments';
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public const VENMO_COMPONENT = 'venmo-payments';
 
     public function __construct(

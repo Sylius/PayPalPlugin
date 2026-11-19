@@ -35,6 +35,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CreatePayPalOrderFromPaymentPageAction
 {
     public function __construct(
@@ -47,40 +48,6 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
     ) {
-        if (null === $this->orderPaymentProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" as the fifth argument is deprecated and will be prohibited in 3.0.',
-                OrderProcessorInterface::class,
-            );
-        }
-        if (null === $this->objectManager) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" as the sixth argument is deprecated and will be prohibited in 3.0.',
-                ObjectManager::class,
-            );
-        }
-        if (null === $this->orderOwnershipVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                OrderOwnershipVerifierInterface::class,
-                self::class,
-            );
-        }
-        if (null === $this->fundingSourcesConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                PayPalFundingSourcesConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response

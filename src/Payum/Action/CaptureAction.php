@@ -28,6 +28,7 @@ use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\UuidProviderInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CaptureAction implements ActionInterface
 {
     public const PAYER_ACTION_LINK_REL = 'payer-action';
@@ -39,23 +40,6 @@ final readonly class CaptureAction implements ActionInterface
         private ?PayPalOrderCreatedStatusesProviderInterface $orderCreatedStatusesProvider = null,
         private ?NonceProviderInterface $nonceProvider = null,
     ) {
-        if (null === $this->orderCreatedStatusesProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $orderCreatedStatusesProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-
-        if (null === $this->nonceProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $nonceProvider to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
     }
 
     /** @param Capture $request */

@@ -33,6 +33,7 @@ use Sylius\PayPalPlugin\Processor\PayPalAddressProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\PaymentUpdaterInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CompleteOrderAction implements ActionInterface
 {
     public function __construct(
@@ -51,18 +52,8 @@ final readonly class CompleteOrderAction implements ActionInterface
                 'sylius/paypal-plugin',
                 '1.7',
                 sprintf(
-                    'Passing an instance of "%s" as the fifth argument is deprecated and will be prohibited in 3.0',
+                    'Passing an instance of "%s" as the fifth argument is deprecated, as it is no longer used.',
                     PayPalAddressProcessorInterface::class,
-                ),
-            );
-        }
-        if (null === $this->updateOrderAddressApi) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.7',
-                sprintf(
-                    'Not passing $updateOrderAddressApi to "%s" constructor is deprecated and will be prohibited in 3.0',
-                    self::class,
                 ),
             );
         }

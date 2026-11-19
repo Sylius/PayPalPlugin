@@ -33,6 +33,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayWithPayPalFormAction
 {
     private const WEBAUTHN_PERMISSIONS_POLICY_FALLBACK_ORIGINS = '"https://www.paypal.com" "https://www.sandbox.paypal.com"';
@@ -60,18 +61,6 @@ final readonly class PayWithPayPalFormAction
         $this->deprecateUnusedArgument($this->identityApi, IdentityApiInterface::class);
         $this->deprecateUnusedArgument($this->localeProcessor, LocaleProcessorInterface::class);
         $this->deprecateUnusedArgument($this->payPalConfigurationProvider, PayPalConfigurationProviderInterface::class);
-
-        $this->deprecateMissingArgument($this->contextProvider, PayPalPaymentPageContextProviderInterface::class);
-        $this->deprecateMissingArgument($this->router, UrlGeneratorInterface::class);
-
-        if (null === $this->webUrl) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing the "sylius_paypal.web_url" parameter to "%s" constructor is deprecated and will be required in 3.0.',
-                self::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response
@@ -118,23 +107,8 @@ final readonly class PayWithPayPalFormAction
         trigger_deprecation(
             'sylius/paypal-plugin',
             '2.2',
-            'Passing an instance of "%s" to "%s" constructor is deprecated and will be prohibited in 3.0.' .
-            ' It is no longer used since the page moved to PayPal Web SDK v6.',
-            $interface,
-            self::class,
-        );
-    }
-
-    private function deprecateMissingArgument(?object $argument, string $interface): void
-    {
-        if (null !== $argument) {
-            return;
-        }
-
-        trigger_deprecation(
-            'sylius/paypal-plugin',
-            '2.2',
-            'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
+            'Passing an instance of "%s" to "%s" constructor is deprecated, as it is no longer used since the page' .
+            ' moved to PayPal Web SDK v6.',
             $interface,
             self::class,
         );

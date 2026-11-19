@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Payum\Request;
 
 use Payum\Core\Request\Generic;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 class CompleteOrder extends Generic
 {
     private string $orderId;

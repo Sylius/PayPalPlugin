@@ -23,6 +23,7 @@ use Sylius\Component\Payment\PaymentTransitions;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class CancelLastPayPalPaymentAction
 {
     /** @param OrderRepositoryInterface<OrderInterface> $orderRepository */

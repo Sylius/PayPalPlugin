@@ -18,6 +18,7 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Sylius\Bundle\PayumBundle\Request\GetStatus;
 use Sylius\Component\Core\Model\PaymentInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final class StatusAction implements ActionInterface
 {
     public const STATUS_CAPTURED = 'CAPTURED';

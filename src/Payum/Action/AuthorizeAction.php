@@ -19,6 +19,7 @@ use Payum\Core\Request\Authorize;
 use Payum\Core\Request\Capture;
 use Sylius\Component\Core\Model\PaymentInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final class AuthorizeAction implements ActionInterface
 {
     /** @param Capture $request */
