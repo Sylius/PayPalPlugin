@@ -18,7 +18,7 @@ use Sylius\PayPalPlugin\Model\PayPalOrder;
 
 final readonly class ExperienceContextProvider implements ExperienceContextProviderInterface
 {
-    public function __construct(private ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null)
+    public function __construct(private CurrentPayPalLocaleProviderInterface $currentLocaleProvider)
     {
     }
 
@@ -32,7 +32,7 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
 
         $experienceContext = array_filter(
             [
-                'locale' => $this->provideLocaleCode($order),
+                'locale' => $this->provideLocaleCode(),
                 PayPalOrder::KEY_SHIPPING_PREFERENCE => $shippingPreference,
                 'contact_preference' => $this->getContactPreference($order),
                 'user_action' => PayPalOrder::USER_ACTION_PAY_NOW,
@@ -59,9 +59,9 @@ final readonly class ExperienceContextProvider implements ExperienceContextProvi
         return $experienceContext;
     }
 
-    private function provideLocaleCode(OrderInterface $order): ?string
+    private function provideLocaleCode(): ?string
     {
-        $localeCode = null !== $this->currentLocaleProvider ? $this->currentLocaleProvider->provide() : $order->getLocaleCode();
+        $localeCode = $this->currentLocaleProvider->provide();
         if (null === $localeCode) {
             return null;
         }

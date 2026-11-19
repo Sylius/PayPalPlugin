@@ -24,8 +24,10 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
+use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -60,7 +62,9 @@ final class PayPalExtensionTest extends TestCase
             $this->payPalPaymentMethodsResolver,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
-            currentLocaleProvider: new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            new PayerActionChecker(),
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            new HostProvider(),
         );
     }
 
@@ -105,16 +109,6 @@ final class PayPalExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_false_when_constructed_without_the_new_dependencies(): void
-    {
-        $extension = new PayPalExtension(
-            $this->payPalPaymentMethodsResolver,
-        );
-
-        self::assertFalse($extension->isMessagingEnabled());
-    }
-
-    #[Test]
     public function it_returns_the_web_sdk_script_url(): void
     {
         $this->channelContext->method('getChannel')->willReturn($this->createMock(ChannelInterface::class));
@@ -136,16 +130,6 @@ final class PayPalExtensionTest extends TestCase
 
         self::assertSame('SCRIPT_URL', $this->extension->getWebSdkScriptUrl($paymentMethod));
         self::assertSame(['clientId' => 'SECOND_CLIENT_ID'], $this->extension->getWebSdkInstanceConfig('checkout', 'en_US', $paymentMethod));
-    }
-
-    #[Test]
-    public function it_returns_an_empty_script_url_when_constructed_without_the_new_dependency(): void
-    {
-        $extension = new PayPalExtension(
-            $this->payPalPaymentMethodsResolver,
-        );
-
-        self::assertSame('', $extension->getWebSdkScriptUrl());
     }
 
     #[Test]
@@ -251,16 +235,6 @@ final class PayPalExtensionTest extends TestCase
         self::assertSame('', $extension->getWebSdkScriptUrl());
     }
 
-    #[Test]
-    public function it_returns_an_empty_instance_config_when_constructed_without_the_new_dependencies(): void
-    {
-        $extension = new PayPalExtension(
-            $this->payPalPaymentMethodsResolver,
-        );
-
-        self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));
-    }
-
     public function test_it_tells_a_template_when_the_payer_is_still_finishing_off_site(): void
     {
         $payment = $this->createMock(PaymentInterface::class);
@@ -332,6 +306,9 @@ final class PayPalExtensionTest extends TestCase
             $payPalPaymentMethodsResolver,
             $this->channelContext,
             $this->webSdkConfigurationProvider,
+            new PayerActionChecker(),
+            new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
+            new HostProvider(),
         );
     }
 

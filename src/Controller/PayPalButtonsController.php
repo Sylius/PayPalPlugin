@@ -18,13 +18,10 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
-use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
-use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
@@ -36,41 +33,17 @@ use Twig\Environment;
 
 final readonly class PayPalButtonsController
 {
-    private CurrentPayPalLocaleProviderInterface $currentLocaleProvider;
-
     /** @param OrderRepositoryInterface<OrderInterface> $orderRepository */
     public function __construct(
         private Environment $twig,
         private UrlGeneratorInterface $router,
         private ChannelContextInterface $channelContext,
-        LocaleContextInterface $localeContext,
         private OrderRepositoryInterface $orderRepository,
         private AvailableCountriesProviderInterface $availableCountriesProvider,
-        LocaleProcessorInterface $localeProcessor,
         private PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
-        private ?WebSdkConfigurationProviderInterface $webSdkConfigurationProvider = null,
-        ?CurrentPayPalLocaleProviderInterface $currentLocaleProvider = null,
+        private WebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
+        private CurrentPayPalLocaleProviderInterface $currentLocaleProvider,
     ) {
-        if (null === $this->webSdkConfigurationProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                WebSdkConfigurationProviderInterface::class,
-                self::class,
-            );
-        }
-        if (null === $currentLocaleProvider) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of %s to %s constructor is deprecated and will be required in 3.0.',
-                CurrentPayPalLocaleProviderInterface::class,
-                self::class,
-            );
-        }
-
-        $this->currentLocaleProvider = $currentLocaleProvider ?? new CurrentPayPalLocaleProvider($localeContext, $localeProcessor);
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -96,8 +69,8 @@ final readonly class PayPalButtonsController
                 'errorPayPalPaymentUrl' => $this->router->generate('sylius_paypal_shop_payment_error'),
                 'locale' => $locale,
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($paymentMethod),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
+                'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod),
+                'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                     $paymentMethod,
                     'product-details',
                     $this->getWebSdkComponents($venmoEnabled),
@@ -141,8 +114,8 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $config->partnerAttributionId(),
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($paymentMethod),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
+                'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod),
+                'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                     $paymentMethod,
                     'cart',
                     $this->getWebSdkComponents($venmoEnabled),
@@ -189,8 +162,8 @@ final readonly class PayPalButtonsController
                 'orderId' => $orderId,
                 'partnerAttributionId' => $config->partnerAttributionId(),
                 'completeExpressCheckoutUrl' => $this->router->generate('sylius_paypal_shop_complete_express_checkout'),
-                'webSdkScriptUrl' => $this->getWebSdkConfigurationProvider()->getScriptUrl($paymentMethod),
-                'webSdkInstanceConfig' => $this->getWebSdkConfigurationProvider()->getInstanceConfig(
+                'webSdkScriptUrl' => $this->webSdkConfigurationProvider->getScriptUrl($paymentMethod),
+                'webSdkInstanceConfig' => $this->webSdkConfigurationProvider->getInstanceConfig(
                     $paymentMethod,
                     'checkout',
                     $this->getWebSdkComponents($venmoEnabled),
@@ -234,17 +207,5 @@ final readonly class PayPalButtonsController
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
         return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-    }
-
-    private function getWebSdkConfigurationProvider(): WebSdkConfigurationProviderInterface
-    {
-        if (null === $this->webSdkConfigurationProvider) {
-            throw new \RuntimeException(sprintf(
-                'An instance of "%s" is required to render the v6 Web SDK placements.',
-                WebSdkConfigurationProviderInterface::class,
-            ));
-        }
-
-        return $this->webSdkConfigurationProvider;
     }
 }

@@ -34,8 +34,6 @@ final class ExpressOrderAddressFactoryTest extends TestCase
 
     private ExpressOrderAddressFactory $factory;
 
-    private ExpressOrderAddressFactory $factoryWithoutProvinces;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,7 +42,6 @@ final class ExpressOrderAddressFactoryTest extends TestCase
         $this->shippingAddressFactory = $this->createMock(PayPalShippingAddressFactoryInterface::class);
 
         $this->factory = new ExpressOrderAddressFactory($this->addressFactory, $this->shippingAddressFactory);
-        $this->factoryWithoutProvinces = new ExpressOrderAddressFactory($this->addressFactory, null);
     }
 
     public function test_it_implements_express_order_address_factory_interface(): void
@@ -125,18 +122,6 @@ final class ExpressOrderAddressFactoryTest extends TestCase
 
         self::assertNull($address->getProvinceCode());
         self::assertSame('Nowhere County', $address->getProvinceName());
-    }
-
-    public function test_it_leaves_the_region_out_when_it_has_no_shipping_address_factory(): void
-    {
-        $address = $this->factoryWithoutProvinces->createFromPayPalOrder($this->payPalOrder(adminArea1: 'TX'));
-
-        self::assertNull($address->getProvinceCode());
-        self::assertNull($address->getProvinceName());
-        self::assertSame('1 Star City Plaza', $address->getStreet());
-        self::assertSame('Star City', $address->getCity());
-        self::assertSame('10001', $address->getPostcode());
-        self::assertSame('US', $address->getCountryCode());
     }
 
     public function test_it_keeps_the_region_when_paypal_sends_no_country_code(): void

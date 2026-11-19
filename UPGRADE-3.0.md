@@ -362,7 +362,7 @@
     public function __construct(
    -    private readonly bool $sandbox,
         // ...
-   +    ?HostProviderInterface $hostProvider = null,
+   +    private readonly HostProviderInterface $hostProvider,
     ) {
    ```
 
@@ -1532,9 +1532,9 @@
    | `Sylius\PayPalPlugin\Provider\WebSdkConfigurationProvider` | takes only `HostProviderInterface` and the test buyer country |
    | `Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProvider` | takes only `PaymentSdkConfigurationProviderInterface` and `UrlGeneratorInterface`; its component and page type constants moved to `PaymentSdkConfigurationProvider` |
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
-   | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface` and `PayPalFundingSourcesConfigurationProviderInterface`; requires `PayPalPaymentMethodsResolverInterface` right after `LocaleProcessorInterface` and reads the configuration from the resolved payment method |
-   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` as its first argument; lost `PayPalFundingSourcesConfigurationProviderInterface` |
-   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the order |
+   | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface`, `LocaleContextInterface` and `LocaleProcessorInterface`; requires `PayPalPaymentMethodsResolverInterface`, `WebSdkConfigurationProviderInterface` and `CurrentPayPalLocaleProviderInterface`, and reads the configuration from the resolved payment method |
+   | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` as its first argument, then `ChannelContextInterface`, `WebSdkConfigurationProviderInterface`, `PayerActionCheckerInterface` and `CurrentPayPalLocaleProviderInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; requires `OrderPaymentsRemoverInterface`, `OrderProcessorInterface`, `PayPalPaymentMethodsResolverInterface` and `OrderOwnershipVerifierInterface`; Venmo is checked on the PayPal payment method of the order |
    | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the channel |
 
    `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` (`sylius_paypal.provider.paypal_configuration`),
@@ -1656,3 +1656,33 @@
    `Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface::getForUpdateByOrderId()` and
    `getForCancellationByOrderId()` return `PaymentInterface` instead of `?PaymentInterface`; they throw
    `PaymentNotFoundException` when no payment is found.
+
+1. #### The optional constructor arguments added in 2.2 and 3.0 are required.
+
+   The arguments that 2.2 and 3.0 added as optional are required, and the fallbacks used without them have been
+   removed:
+
+   | Class | Change |
+   |---|---|
+   | `Sylius\PayPalPlugin\Api\CreateOrderApi` | takes only `PayPalClientInterface` and `PayPalOrderFactoryInterface` |
+   | `Sylius\PayPalPlugin\Api\UpdateOrderApi` | takes only `PayPalClientInterface` and `PurchaseUnitFactoryInterface` |
+   | `Sylius\PayPalPlugin\Factory\PayPalItemFactory` | requires `UrlGeneratorInterface` |
+   | `Sylius\PayPalPlugin\Provider\PayPalItemDataProvider` | requires `PayPalItemFactoryInterface` |
+   | `Sylius\PayPalPlugin\Factory\PayPalOrderFactory` | requires `UrlGeneratorInterface`, `ShippingCallbackUrlProviderInterface`, `ExperienceContextProviderInterface`, `PayPalPaymentSourceProviderInterface` and `PaymentAuthorizationCheckerInterface` |
+   | `Sylius\PayPalPlugin\Provider\ExperienceContextProvider` | requires `CurrentPayPalLocaleProviderInterface`; no longer falls back to the locale of the order |
+   | `Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory` | requires `PayPalShippingAddressFactoryInterface` |
+   | `Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction` | requires `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface`, `ObjectManager` and `PayerActionCheckerInterface` |
+
+   `Sylius\PayPalPlugin\Model\PayPalOrder` no longer takes the order, and requires the payment source. It no longer
+   sends the `application_context`; the shipping preference is part of the experience context of the payment source:
+
+   ```diff
+    public function __construct(
+   -    private readonly OrderInterface $order,
+        private readonly PayPalPurchaseUnit $payPalPurchaseUnit,
+        private readonly string $intent,
+   -    private readonly ?array $paymentSource = null,
+   +    private readonly array $paymentSource,
+        private readonly ?string $processingInstruction = null,
+    )
+   ```

@@ -19,7 +19,6 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
@@ -30,30 +29,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 final readonly class PayPalPaymentOnErrorAction
 {
-    private PayerActionCheckerInterface $payerActionChecker;
-
     public function __construct(
         private RequestStack $flashBagOrRequestStack,
         private LoggerInterface $logger,
-        private ?PaypalPaymentQueryInterface $paypalPaymentQuery = null,
-        private ?StateMachineInterface $stateMachine = null,
-        private ?OrderProcessorInterface $orderPaymentProcessor = null,
-        private ?ObjectManager $objectManager = null,
-        ?PayerActionCheckerInterface $payerActionChecker = null,
+        private PaypalPaymentQueryInterface $paypalPaymentQuery,
+        private StateMachineInterface $stateMachine,
+        private OrderProcessorInterface $orderPaymentProcessor,
+        private ObjectManager $objectManager,
+        private PayerActionCheckerInterface $payerActionChecker,
     ) {
-        $this->payerActionChecker = $payerActionChecker ?? new PayerActionChecker();
-
-        if (!$this->canCancelPayments()) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing instances of "%s", "%s", "%s" and "%s" as the third to sixth arguments is deprecated and will be prohibited in 3.0.',
-                PaypalPaymentQueryInterface::class,
-                StateMachineInterface::class,
-                OrderProcessorInterface::class,
-                ObjectManager::class,
-            );
-        }
     }
 
     public function __invoke(Request $request): Response
@@ -94,10 +78,6 @@ final readonly class PayPalPaymentOnErrorAction
 
     private function cancelPayment(string $payPalOrderId): void
     {
-        if (!$this->canCancelPayments()) {
-            return;
-        }
-
         try {
             $payment = $this->paypalPaymentQuery->getForCancellationByOrderId($payPalOrderId);
         } catch (PaymentNotFoundException) {
@@ -120,15 +100,5 @@ final readonly class PayPalPaymentOnErrorAction
             $this->orderPaymentProcessor->process($order);
         }
         $this->objectManager->flush();
-    }
-
-    private function canCancelPayments(): bool
-    {
-        return
-            null !== $this->paypalPaymentQuery &&
-            null !== $this->stateMachine &&
-            null !== $this->orderPaymentProcessor &&
-            null !== $this->objectManager
-        ;
     }
 }
