@@ -123,13 +123,14 @@ final readonly class PayPalButtonsController
         $orderId = $request->attributes->getInt('orderId');
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
-        /** @var OrderInterface $order */
-        $order = $this->orderRepository->find($orderId);
 
         try {
             if (!$this->getFundingSourcesConfigurationProvider()->isExpressCheckoutEnabled($channel)) {
                 return new Response('');
             }
+
+            /** @var OrderInterface $order */
+            $order = $this->orderRepository->find($orderId);
 
             $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
@@ -165,13 +166,14 @@ final readonly class PayPalButtonsController
         $orderId = $request->attributes->getInt('orderId');
         /** @var ChannelInterface $channel */
         $channel = $this->channelContext->getChannel();
-        /** @var OrderInterface $order */
-        $order = $this->orderRepository->find($orderId);
 
         try {
             if (!$this->getFundingSourcesConfigurationProvider()->isExpressCheckoutEnabled($channel)) {
                 return new Response('');
             }
+
+            /** @var OrderInterface $order */
+            $order = $this->orderRepository->find($orderId);
 
             $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);

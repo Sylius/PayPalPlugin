@@ -23,6 +23,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -47,6 +49,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private ?ObjectManager $objectManager = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?ExpressCheckoutCheckerInterface $expressCheckoutChecker = null,
     ) {
     }
 
@@ -170,16 +173,6 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
     private function isExpressCheckoutEnabled(OrderInterface $order): bool
     {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
-            return true;
-        }
-
-        try {
-            return $this->fundingSourcesConfigurationProvider->isExpressCheckoutEnabled($channel);
-        } catch (\InvalidArgumentException) {
-            return true;
-        }
+        return ($this->expressCheckoutChecker ?? new ExpressCheckoutChecker($this->fundingSourcesConfigurationProvider))->isEnabled($order);
     }
 }

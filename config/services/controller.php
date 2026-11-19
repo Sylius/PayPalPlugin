@@ -112,6 +112,7 @@ return static function (ContainerConfigurator $container) {
             service('doctrine.orm.entity_manager'),
             service('sylius_paypal.verifier.order_ownership'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
+            service('sylius_paypal.checker.express_checkout'),
         ]);
 
     $services->set('sylius_paypal.controller.download_payouts_report', DownloadPayoutsReportAction::class)
@@ -145,6 +146,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.verifier.order_ownership'),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
+            service('sylius_paypal.checker.express_checkout'),
         ]);
 
     $services->set('sylius_paypal.controller.paypal_buttons', PayPalButtonsController::class)
@@ -280,6 +282,7 @@ return static function (ContainerConfigurator $container) {
             service('router'),
             service(CartStorageInterface::class),
             service(PayPalFundingSourcesConfigurationProviderInterface::class),
+            service('sylius_paypal.checker.express_checkout'),
         ]);
 
     $services->set('sylius_paypal.controller.refund_late_capture', RefundPayPalLateCaptureAction::class)

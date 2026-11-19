@@ -26,6 +26,8 @@ use Sylius\Component\Order\Context\CartContextInterface;
 use Sylius\Component\Order\Modifier\OrderItemQuantityModifierInterface;
 use Sylius\Component\Order\Modifier\OrderModifierInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\Resource\Metadata\MetadataInterface;
@@ -54,6 +56,7 @@ final readonly class AddToCartAction
         private RouterInterface $router,
         private ?CartStorageInterface $cartStorage = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?ExpressCheckoutCheckerInterface $expressCheckoutChecker = null,
     ) {
         if (null === $this->cartStorage) {
             trigger_deprecation(
@@ -165,16 +168,6 @@ final readonly class AddToCartAction
 
     private function isExpressCheckoutEnabled(OrderInterface $order): bool
     {
-        /** @var ChannelInterface|null $channel */
-        $channel = $order->getChannel();
-        if (null === $channel || null === $this->fundingSourcesConfigurationProvider) {
-            return true;
-        }
-
-        try {
-            return $this->fundingSourcesConfigurationProvider->isExpressCheckoutEnabled($channel);
-        } catch (\InvalidArgumentException) {
-            return true;
-        }
+        return ($this->expressCheckoutChecker ?? new ExpressCheckoutChecker($this->fundingSourcesConfigurationProvider))->isEnabled($order);
     }
 }

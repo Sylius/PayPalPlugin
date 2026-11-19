@@ -1019,6 +1019,10 @@ Everything below will be removed or required in 3.0:
    `sylius_paypal_shop_create_paypal_order_from_payment_page` and
    `sylius_paypal_shop_complete_paypal_order_from_payment_page`. `ExpressOrderAddressFactoryInterface::createFromPurchaseUnit()`,
    used only by `ProcessPayPalOrderAction`, goes with them; 3.0 creates the address with `createFromPayPalOrder()`.
+1. `Checker\ExpressCheckoutChecker` with its interface (`sylius_paypal.checker.express_checkout`) and the
+   `$expressCheckoutChecker` argument it adds to `AddToCartAction`, `CreatePayPalOrderFromCartAction` and
+   `CreatePayPalOrderFromPaymentPageAction`. 3.0 reads `express_checkout_enabled` from the gateway config of the
+   payment method.
 1. Capturing a PayPal payment when the checkout is completed: `EventListener\Workflow\CompletePayPalOrderListener`
    with the `complete_paypal_order` winzou callback, `Processor\PayPalOrderCompleteProcessor`,
    `Manager\PaymentStateManager` with its interface, `Processor\PayPalPaymentCompleteProcessor`,
