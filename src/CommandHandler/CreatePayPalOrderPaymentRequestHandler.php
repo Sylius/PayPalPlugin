@@ -50,6 +50,16 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         $this->stateMachine = $stateMachine;
+
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(CreatePayPalOrderPaymentRequest $createPayPalOrderPaymentRequest): void
