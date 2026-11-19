@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Model;
 
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+
 final readonly class PayPalVault
 {
     public function __construct(
@@ -34,12 +36,12 @@ final readonly class PayPalVault
     /** @param array<string, mixed> $paymentSource */
     public static function fromPaymentSource(array $paymentSource): ?self
     {
-        $paypal = $paymentSource['paypal'] ?? null;
-        if (!is_array($paypal)) {
+        $source = $paymentSource[PayPalPaymentSourceProviderInterface::PAYPAL] ?? $paymentSource[PayPalPaymentSourceProviderInterface::CARD] ?? null;
+        if (!is_array($source)) {
             return null;
         }
 
-        $vault = $paypal['attributes']['vault'] ?? null;
+        $vault = $source['attributes']['vault'] ?? null;
         if (!is_array($vault) || !is_string($vault['status'] ?? null)) {
             return null;
         }
@@ -48,7 +50,7 @@ final readonly class PayPalVault
             $vault['status'],
             isset($vault['id']) ? (string) $vault['id'] : null,
             isset($vault['customer']['id']) ? (string) $vault['customer']['id'] : null,
-            isset($paypal['email_address']) ? (string) $paypal['email_address'] : null,
+            isset($source['email_address']) ? (string) $source['email_address'] : null,
         );
     }
 

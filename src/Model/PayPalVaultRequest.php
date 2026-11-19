@@ -19,6 +19,14 @@ final readonly class PayPalVaultRequest
 {
     public const USAGE_PATTERN_SUBSCRIPTION_PREPAID = 'SUBSCRIPTION_PREPAID';
 
+    public const CARD_STORED_CREDENTIAL = [
+        'payment_initiator' => 'CUSTOMER',
+        'payment_type' => 'RECURRING',
+        'usage' => 'FIRST',
+    ];
+
+    private const STORE_IN_VAULT_ON_SUCCESS = 'ON_SUCCESS';
+
     private const DESCRIPTION_MAX_LENGTH = 128;
 
     public function __construct(
@@ -42,12 +50,18 @@ final readonly class PayPalVaultRequest
     public function toArray(): array
     {
         return array_filter([
-            'store_in_vault' => 'ON_SUCCESS',
+            'store_in_vault' => self::STORE_IN_VAULT_ON_SUCCESS,
             'usage_type' => 'MERCHANT',
             'customer_type' => 'CONSUMER',
             'usage_pattern' => $this->usagePattern,
             'permit_multiple_payment_tokens' => false,
             'description' => null !== $this->description ? mb_substr($this->description, 0, self::DESCRIPTION_MAX_LENGTH) : null,
         ], static fn (mixed $value): bool => null !== $value);
+    }
+
+    /** @return array<string, string> */
+    public function toCardArray(): array
+    {
+        return ['store_in_vault' => self::STORE_IN_VAULT_ON_SUCCESS];
     }
 }
