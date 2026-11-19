@@ -84,7 +84,6 @@ final readonly class PreUpgradeCheckoutController
 
         return new JsonResponse([
             'orderId' => $payPalOrderId,
-            'orderID' => $payPalOrderId,
             'status' => $payment->getState(),
             'return_url' => $this->destination($order, $payment),
         ]);

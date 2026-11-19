@@ -138,6 +138,7 @@ final class PreUpgradeCheckoutUrlsTest extends JsonApiTestCase
         $response = json_decode((string) $this->client->getResponse()->getContent(), true);
         self::assertSame(PaymentInterface::STATE_COMPLETED, $response['status']);
         self::assertSame('PAYPAL_ORDER_ID', $response['orderId']);
+        self::assertArrayNotHasKey('orderID', $response);
         self::assertStringEndsWith('/en_US/order/TOKEN', $response['return_url']);
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment($paymentId)->getState());
         $this->assertPayPalApiExpectationsWereMet();

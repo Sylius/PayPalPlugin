@@ -1650,7 +1650,7 @@
    | `Sylius\PayPalPlugin\Api\CreateOrderApi::PAYPAL_INTENT_CAPTURE` | `Sylius\PayPalPlugin\Model\PayPalOrder::INTENT_CAPTURE` |
    | the `sylius_is_paypal_enabled` Twig function and `Sylius\PayPalPlugin\Twig\PayPalExtension::isPayPalEnabled()` | none |
    | the `enable_paypal` main action of the `sylius_admin_payment_method` grid, its `enable_paypal` action type and the `@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig` template | the PayPal row of the admin payment method list |
-   | the `orderID` key of the `CreatePayPalOrderFromCartAction` response | `orderId` |
+   | the `orderID` key of the `CreatePayPalOrderFromCartAction` and `PreUpgradeCheckoutController::completePayPalOrderAction()` responses | `orderId` |
 
    `Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface::getForUpdateByOrderId()` and
    `getForCancellationByOrderId()` return `PaymentInterface` instead of `?PaymentInterface`; they throw
