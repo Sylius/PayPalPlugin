@@ -51,4 +51,12 @@ final class PayPalVaultRequestTest extends TestCase
 
         new PayPalVaultRequest('');
     }
+
+    public function test_it_asks_paypal_to_save_a_card_once_the_payment_succeeds(): void
+    {
+        self::assertSame(
+            ['store_in_vault' => 'ON_SUCCESS'],
+            (new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription'))->toCardArray(),
+        );
+    }
 }
