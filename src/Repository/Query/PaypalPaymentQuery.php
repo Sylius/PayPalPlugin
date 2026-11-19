@@ -56,6 +56,7 @@ final class PaypalPaymentQuery implements PaypalPaymentQueryInterface, Settleabl
         return $this->doGetPayment($queryBuilder, $paypalOrderId);
     }
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function getForRefundingByOrderId(string $paypalOrderId): PaymentInterface
     {
         $queryBuilder = $this->getPaypalPaymentQueryBuilder()

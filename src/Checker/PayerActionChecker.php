@@ -32,11 +32,13 @@ final readonly class PayerActionChecker implements PayerActionCheckerInterface
         ;
     }
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function matchesPayerActionReturnNonce(PaymentInterface $payment, string $nonce): bool
     {
         return $this->matchesNonce($payment, 'payer_action_return_nonce', $nonce);
     }
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function matchesPayerActionCancelNonce(PaymentInterface $payment, string $nonce): bool
     {
         return $this->matchesNonce($payment, 'payer_action_cancel_nonce', $nonce);

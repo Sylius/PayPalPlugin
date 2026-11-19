@@ -1010,20 +1010,23 @@ Everything below will be removed or required in 3.0:
 1. The controllers of the payment page and the payer action redirects: `PayWithPayPalFormAction`,
    `CreatePayPalOrderAction`, `CompletePayPalOrderAction`, `CancelPayPalPaymentAction`,
    `CancelPayPalCheckoutPaymentAction`, `CancelLastPayPalPaymentAction`, `RedirectReturnAction` and
-   `RedirectCancelAction`. The routes `sylius_paypal_shop_create_paypal_order`, `sylius_paypal_shop_cancel_payment`
-   and `sylius_paypal_shop_cancel_last_payment` are removed with them; the other routes stay in 3.0 and lead to the
-   3.0 checkout.
+   `RedirectCancelAction`, and `UpdatePayPalOrderAction`, which updates the PayPal order from the payment page. The
+   routes `sylius_paypal_shop_create_paypal_order` and `sylius_paypal_shop_cancel_payment` are removed with them; the
+   other routes stay in 3.0 and lead to the 3.0 checkout.
 1. The PayPal buttons completing the checkout through `ProcessPayPalOrderAction`,
    `CreatePayPalOrderFromPaymentPageAction`, `CompletePayPalOrderFromPaymentPageAction` and
    `Completer\PayPalExpressOrderCompleter` with its interface, and their routes `sylius_paypal_shop_process_paypal_order`,
    `sylius_paypal_shop_create_paypal_order_from_payment_page` and
-   `sylius_paypal_shop_complete_paypal_order_from_payment_page`.
+   `sylius_paypal_shop_complete_paypal_order_from_payment_page`. `ExpressOrderAddressFactoryInterface::createFromPurchaseUnit()`,
+   used only by `ProcessPayPalOrderAction`, goes with them; 3.0 creates the address with `createFromPayPalOrder()`.
 1. Capturing a PayPal payment when the checkout is completed: `EventListener\Workflow\CompletePayPalOrderListener`
    with the `complete_paypal_order` winzou callback, `Processor\PayPalOrderCompleteProcessor`,
    `Manager\PaymentStateManager` with its interface, `Processor\PayPalPaymentCompleteProcessor`,
-   `Processor\PaymentCompleteProcessorInterface`, `Processor\OrderPaymentProcessor` and `UpdatePayPalOrderAction`.
+   `Processor\PaymentCompleteProcessorInterface` and `Processor\OrderPaymentProcessor`.
 1. The payer action nonces: `Provider\NonceProvider` with its interface, and
    `PayerActionCheckerInterface::matchesPayerActionReturnNonce()` and `matchesPayerActionCancelNonce()`.
+1. The `PAGE_TYPE`, `CARD_FIELDS_COMPONENT`, `GOOGLE_PAY_COMPONENT`, `APPLE_PAY_COMPONENT` and `VENMO_COMPONENT`
+   constants of `Provider\PayPalPaymentPageContextProvider`.
 
 ## Known limitations
 

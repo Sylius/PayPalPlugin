@@ -18,7 +18,11 @@ use Sylius\Component\Core\Model\CustomerInterface;
 
 interface ExpressOrderAddressFactoryInterface
 {
-    /** @param array<string, mixed> $purchaseUnit */
+    /**
+     * @param array<string, mixed> $purchaseUnit
+     *
+     * @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
+     */
     public function createFromPurchaseUnit(array $purchaseUnit, ?string $phoneNumber): AddressInterface;
 
     public function createFromCustomer(
