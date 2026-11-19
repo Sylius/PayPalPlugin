@@ -72,7 +72,8 @@ return static function (ContainerConfigurator $container) {
     $services = $container->services();
     $parameters = $container->parameters();
     $parameters->set('sylius_paypal.api.max_attempts', 3);
-    $parameters->set('sylius_paypal.webhook_base_url', '');
+    $parameters->set('env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL)', '');
+    $parameters->set('sylius_paypal.webhook_base_url', '%env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL)%');
     $parameters->set('sylius_paypal.webhook_id_refresh_cooldown', 300);
     $parameters->set('sylius_paypal.webhook_event_retention_days', 30);
     $parameters->set('sylius_paypal.callback_certificate_lifetime', 86400);
