@@ -780,9 +780,9 @@ unchanged.
 ### Constructors
 
 Unless stated otherwise, each new argument is appended, optional and nullable. Not passing it triggers a
-deprecation, and it will be required in 3.0, except for the arguments marked as deprecated and the classes listed
-under [Deprecations](#deprecations), which 3.0 removes. If you instantiate, decorate or redefine one of these
-services with an explicit argument list, add the new arguments.
+deprecation, and it will be required in 3.0. The arguments marked as deprecated, and those of the classes listed
+under [Deprecations](#deprecations), trigger nothing, as 3.0 removes them. If you instantiate, decorate or redefine
+one of these services with an explicit argument list, add the new arguments.
 
 The "Without it" column says what happens when a new argument is missing:
 
@@ -798,7 +798,7 @@ The "Without it" column says what happens when a new argument is missing:
 | `Controller\ProcessPayPalOrderAction` | `UrlGeneratorInterface`, `PayPalExpressOrderCompleterInterface`, `OrderProcessorInterface`, `RepositoryInterface` (shipping methods), `ExpressOrderAddressFactoryInterface`, `OrderOwnershipVerifierInterface`, `UpdateOrderApiInterface` | verifier: **throws** on every request; router, completer, processor: **throw** when needed; shipping method repository: the wallet's method is not applied and the amount check fails; address factory: no region stored; update API: a lower total is a mismatch |
 | `Controller\PayPalButtonsController` | `WebSdkConfigurationProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface` (deprecated), `CurrentPayPalLocaleProviderInterface` | Web SDK and funding sources: **throw** on render; locale: built from the locale context |
 | `Controller\PayWithPayPalFormAction` | `PayPalConfigurationProviderInterface`, `PayPalPaymentPageContextProviderInterface`, `UrlGeneratorInterface`, `PayerActionCheckerInterface`, `?string $webUrl` | context provider and router: **throw** on render; `$webUrl`: the `Permissions-Policy` allows both PayPal origins |
-| `Controller\CompletePayPalOrderAction` | `CacheAuthorizeClientApiInterface`, `OrderDetailsApiInterface`, `ThreeDSecureVerifierInterface` | degrades, no 3D Secure check |
+| `Controller\CompletePayPalOrderAction` | `CacheAuthorizeClientApiInterface`, `OrderDetailsApiInterface`, `ThreeDSecureVerifierInterface` | degrades, no 3D Secure check; triggers a deprecation |
 | `Controller\CreatePayPalOrderAction` | `PayPalPaymentSourceProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface` | only `paypal` accepted |
 | `Controller\PayPalPaymentOnErrorAction` | `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface` (`sylius.order_processing.order_payment_processor.checkout`), `ObjectManager`, `PayerActionCheckerInterface` | degrades, only logs and flashes |
 | `Controller\AddToCartAction` | `CartStorageInterface`, `PayPalFundingSourcesConfigurationProviderInterface` (deprecated) | degrades, `venmo` refused |
@@ -1041,7 +1041,9 @@ Everything below will be removed or required in 3.0:
 1. The parameters derived from the `sylius_paypal.sandbox` option: `sylius_paypal.sandbox`,
    `sylius_paypal.api_base_url`, `sylius_paypal.web_url` and `sylius_paypal.facilitator_url`, with the
    `sylius_is_paypal_sandbox` Twig function and `PayPalExtension::isSandbox()`. 3.0 stores the mode in the gateway
-   config of each payment method.
+   config of each payment method. The `sylius_paypal.sandbox` option itself stays in 3.0: the migration that stores
+   the mode reads it, so keep it with its current value until that migration has run. Otherwise the live payment
+   methods of a shop that removed `sandbox: false` are migrated as sandbox ones.
 1. `PayPalClientInterface::authorize()`, the `sylius_paypal.request_trials_limit` parameter, and the access token
    taken by `PayPalClientInterface::get()`, `post()`, `patch()` and the API classes, which take the payment method
    in 3.0.
