@@ -105,7 +105,6 @@ final readonly class PayPalPaymentOnErrorAction
         }
 
         if (
-            null === $payment ||
             $this->payerActionChecker->isAwaitingPayerAction($payment) ||
             !$this->stateMachine->can($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)
         ) {

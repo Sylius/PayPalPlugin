@@ -84,7 +84,6 @@ final readonly class PreUpgradeCheckoutController
 
         return new JsonResponse([
             'orderId' => $payPalOrderId,
-            'orderID' => $payPalOrderId,
             'status' => $payment->getState(),
             'return_url' => $this->destination($order, $payment),
         ]);
@@ -99,7 +98,6 @@ final readonly class PreUpgradeCheckoutController
         }
 
         if (
-            null !== $payment &&
             $this->preUpgradePayPalOrderChecker->isAwaitingPreUpgradePayPalOrder($payment) &&
             !$this->payerActionChecker->isAwaitingPayerAction($payment)
         ) {

@@ -19,15 +19,12 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
-use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
 {
-    public const PAYPAL_INTENT_CAPTURE = PayPalOrder::INTENT_CAPTURE;
-
     public function __construct(
         private PayPalClientInterface $client,
         private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
