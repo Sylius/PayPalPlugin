@@ -351,7 +351,7 @@ final class PayPalButtonsControllerTest extends TestCase
     public function test_it_renders_no_product_cart_or_payment_page_buttons_when_express_checkout_is_disabled(): void
     {
         $this->channelPaymentMethods = [$this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'express_checkout_enabled' => false])];
-        $this->orderRepository->method('find')->willReturn($this->order(3000));
+        $this->orderRepository->expects(self::never())->method('find');
         $this->twig->expects(self::never())->method('render');
 
         self::assertSame('', $this->controller->renderProductPageButtonsAction(Request::create('/'))->getContent());
