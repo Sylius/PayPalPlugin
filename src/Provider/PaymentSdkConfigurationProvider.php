@@ -21,6 +21,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 
 final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfigurationProviderInterface
@@ -134,7 +135,9 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
     {
         $enabledPaymentSources = [];
         foreach (array_keys(self::COMPONENTS) as $paymentSource) {
-            $enabledPaymentSources[$paymentSource] = !$vaultRequired && $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
+            $enabledPaymentSources[$paymentSource] =
+                (!$vaultRequired || in_array($paymentSource, PayPalVaultedCredential::PAYMENT_SOURCES, true)) &&
+                $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
         }
 
         return $enabledPaymentSources;
