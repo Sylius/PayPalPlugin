@@ -101,9 +101,13 @@
 
    The 2.x payment page and its endpoints have been removed. A buyer may still be on them while the store is upgraded,
    and PayPal keeps sending a buyer back from the bank to the return URL of a PayPal order created by 2.x, so the
-   following routes are kept with the 2.x URLs, route names and parameters, and lead to the 3.0 checkout. They are
-   deprecated and will be removed in 4.0. Except for the payment page redirect, they only settle, cancel or fail a
-   `processing` payment whose PayPal order was not created by a `capture` or `authorize` Payment Request.
+   following routes are kept with the 2.x URLs and parameters, and lead to the 3.0 checkout. They are deprecated and
+   will be removed in 4.0. Except for the payment page redirect, they only settle, cancel or fail a `processing`
+   payment whose PayPal order was not created by a `capture` or `authorize` Payment Request.
+
+   The routes are now named `sylius_paypal_shop_pre_upgrade_*` (e.g. `sylius_paypal_shop_pre_upgrade_redirect_return`),
+   and the 2.x route names are kept as deprecated aliases of them: generating a URL with a 2.x route name, e.g. from
+   an overridden 2.x template, triggers a deprecation, while the requests to these URLs do not.
 
    | 2.x | 3.0 |
    |-----|-----|
@@ -120,14 +124,11 @@
    amount and shipping address of the PayPal order first, verifies the 3D Secure result of the order before
    completing it (it cancels the payment when the authentication did not finish and fails it when the card was
    refused; the 2.x shop URLs then show the reason), fails the payment when PayPal declines the payment method of the
-   buyer, and cancels the payment when PayPal
-   no longer returns its order only once the payment has not changed for 72 hours
-   (`PreUpgradePayPalOrderSettlementProcessor::PAYPAL_ORDER_LIFETIME`); before that, the error is reported, as it may
-   come from a payment method pointing at the wrong PayPal environment.
-
-   `Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface` (`sylius_paypal.checker.pre_upgrade_paypal_order`)
-   tells such a payment apart. `CaptureApprovedOrderWebhookEventProcessor` takes the
-   `Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface` as its fourth argument.
+   buyer, and cancels the payment once it has not changed for 72 hours
+   (`PreUpgradePayPalOrderSettlementProcessor::PAYPAL_ORDER_LIFETIME`, the longest an order stays valid at PayPal)
+   when PayPal no longer returns its order, when the buyer never approved the order, or when PayPal refuses to update,
+   capture or authorize an approved order. An approved order is still completed first, so a late payment is not lost.
+   Before that, the error is reported, as it may come from a payment method pointing at the wrong PayPal environment.
 
 1. #### `PayPalSandboxPaymentMethodCreatorInterface::PARTNER_ATTRIBUTION_ID` has been removed.
 

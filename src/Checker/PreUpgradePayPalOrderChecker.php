@@ -19,6 +19,11 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 
+/**
+ * @internal
+ *
+ * @deprecated since Sylius/PayPalPlugin 3.0 and will be removed in Sylius/PayPalPlugin 4.0. It only serves the PayPal payments started before the upgrade to 3.0.
+ */
 final readonly class PreUpgradePayPalOrderChecker implements PreUpgradePayPalOrderCheckerInterface
 {
     private const PAYPAL_ORDER_ACTIONS = [PaymentRequestInterface::ACTION_CAPTURE, PaymentRequestInterface::ACTION_AUTHORIZE];
