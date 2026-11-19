@@ -18,7 +18,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 
 final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInterface
 {
@@ -34,7 +34,7 @@ final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInter
     ) {
     }
 
-    public function charge(PaymentInterface $payment, string $vaultId, string $referenceId, string $requestId): array
+    public function charge(PaymentInterface $payment, PayPalVaultedCredential $credential, string $referenceId, string $requestId): array
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
@@ -42,9 +42,9 @@ final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInter
         $payPalOrder = new PayPalOrder(
             payPalPurchaseUnit: $this->purchaseUnitFactory->create($payment, $referenceId, customId: $requestId),
             intent: PayPalOrder::INTENT_CAPTURE,
-            paymentSource: [PayPalPaymentSourceProviderInterface::PAYPAL => [
-                'vault_id' => $vaultId,
-                'stored_credential' => self::STORED_CREDENTIAL,
+            paymentSource: [$credential->paymentSource() => [
+                'vault_id' => $credential->vaultId(),
+                'stored_credential' => $this->storedCredential($credential),
             ]],
         );
 
@@ -57,5 +57,16 @@ final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInter
                 'Prefer' => 'return=representation',
             ],
         );
+    }
+
+    /** @return array<string, string> */
+    private function storedCredential(PayPalVaultedCredential $credential): array
+    {
+        $previousTransactionReference = $credential->previousTransactionReference();
+        if (!$credential->isCard() || null === $previousTransactionReference) {
+            return self::STORED_CREDENTIAL;
+        }
+
+        return self::STORED_CREDENTIAL + ['previous_transaction_reference' => $previousTransactionReference];
     }
 }

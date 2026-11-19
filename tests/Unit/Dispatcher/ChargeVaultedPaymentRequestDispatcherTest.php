@@ -29,6 +29,7 @@ use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\ChargeVaultedPaymentRequestCommandProvider;
 use Sylius\PayPalPlugin\Dispatcher\ChargeVaultedPaymentRequestDispatcher;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -94,12 +95,12 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
 
         $this->paymentRequestFactory->expects(self::once())->method('create')->with($this->payment, $this->paymentMethod)->willReturn($paymentRequest);
         $paymentRequest->expects(self::once())->method('setAction')->with(ChargeVaultedPaymentRequestCommandProvider::ACTION);
-        $paymentRequest->expects(self::once())->method('setPayload')->with(['vault_id' => 'VAULT_ID']);
+        $paymentRequest->expects(self::once())->method('setPayload')->with(['vault_id' => 'VAULT_ID', 'payment_source' => 'paypal']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
         $this->paymentRequestRepository->expects(self::once())->method('add')->with($paymentRequest);
         $this->expectChargeDispatchedFor('CHARGE_REQUEST_HASH');
 
-        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, 'VAULT_ID'));
+        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID')));
     }
 
     public function test_it_dispatches_the_open_charge_request_again_so_paypal_sees_the_same_request_id(): void
@@ -113,7 +114,7 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         $paymentRequest->expects(self::never())->method('setPayload');
         $this->expectChargeDispatchedFor('OPEN_CHARGE_REQUEST_HASH');
 
-        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, 'VAULT_ID'));
+        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID')));
     }
 
     public function test_it_moves_an_open_charge_request_that_is_still_new_to_processing_before_dispatching_it(): void
@@ -122,11 +123,11 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         $this->paymentRequestRepository->method('findByPaymentIdAndStates')->willReturn([$paymentRequest]);
 
         $this->paymentRequestFactory->expects(self::never())->method('create');
-        $paymentRequest->expects(self::once())->method('setPayload')->with(['vault_id' => 'VAULT_ID']);
+        $paymentRequest->expects(self::once())->method('setPayload')->with(['vault_id' => 'VAULT_ID', 'payment_source' => 'paypal']);
         $this->stateMachine->expects(self::once())->method('apply')->with($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
         $this->expectChargeDispatchedFor('NEW_CHARGE_REQUEST_HASH');
 
-        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, 'VAULT_ID'));
+        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID')));
     }
 
     public function test_it_looks_for_the_open_charge_request_under_the_payment_lock_and_dispatches_after_the_commit(): void
@@ -144,7 +145,7 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         $this->expectPaymentLocked();
         $this->recordDispatch();
 
-        $this->dispatcher->dispatch($this->payment, 'VAULT_ID');
+        $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID'));
 
         self::assertSame(['begin', 'lock', 'lookup', 'commit', 'dispatch'], $this->calls);
     }
@@ -171,7 +172,7 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         $this->expectPaymentLocked();
         $this->recordDispatch();
 
-        $this->dispatcher->dispatch($this->payment, 'VAULT_ID');
+        $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID'));
 
         self::assertSame(['begin', 'lock', 'lookup', 'add', 'commit', 'dispatch'], $this->calls);
     }
@@ -195,7 +196,7 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
 
         $this->expectException(\LogicException::class);
 
-        $this->dispatcher->dispatch($this->payment, 'VAULT_ID');
+        $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID'));
     }
 
     private function expectPaymentLocked(): void
