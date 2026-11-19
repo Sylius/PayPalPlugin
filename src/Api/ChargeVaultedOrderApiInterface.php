@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 
 interface ChargeVaultedOrderApiInterface
 {
@@ -23,5 +24,5 @@ interface ChargeVaultedOrderApiInterface
      *
      * @throws PayPalApiException
      */
-    public function charge(PaymentInterface $payment, string $vaultId, string $referenceId, string $requestId): array;
+    public function charge(PaymentInterface $payment, PayPalVaultedCredential $credential, string $referenceId, string $requestId): array;
 }
