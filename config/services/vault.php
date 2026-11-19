@@ -59,9 +59,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.checker.vaulting_capability', VaultingCapabilityChecker::class)
         ->args([
-            service('sylius_paypal.api.authorize_client'),
-            service('sylius_paypal.api.merchant_onboarding_status'),
-            service('sylius_paypal.provider.partner_credentials'),
+            service('sylius_paypal.provider.merchant_integration_status'),
         ]);
 
     $services->alias(VaultingCapabilityCheckerInterface::class, 'sylius_paypal.checker.vaulting_capability');
