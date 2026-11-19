@@ -119,8 +119,9 @@
 
    The settlement of these payments is done by `Sylius\PayPalPlugin\Processor\PreUpgradePayPalOrderSettlementProcessor`,
    which decorates `sylius_paypal.processor.payment_settlement`. It locks the payment while settling it, completes
-   only the orders 3.0 also treats as approved (PayPal completes the redirect payment sources itself; a payment created
-   on 2.0 or 2.1, which stored no payment source, is judged by the payment source of its PayPal order), updates the
+   only the orders 3.0 also treats as approved (PayPal completes the redirect payment sources itself; a card order
+   waits until its 3D Secure authentication has a result; a payment created on 2.0 or 2.1, which stored no payment
+   source, is judged by the payment source of its PayPal order), updates the
    amount and shipping address of the PayPal order first, verifies the 3D Secure result of the order before
    completing it (it cancels the payment when the authentication did not finish and fails it when the card was
    refused; the 2.x shop URLs then show the reason), fails the payment when PayPal declines the payment method of the

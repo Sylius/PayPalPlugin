@@ -86,7 +86,7 @@ final class PaymentsInProgressAtUpgradeTest extends JsonApiTestCase
         $paymentId = $this->paymentWaitingForTheBuyerAtPayPalId();
         $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->preUpgradeOrder([
             'status' => 'CREATED',
-            'payment_source' => ['card' => ['last_digits' => '1111']],
+            'payment_source' => ['card' => ['last_digits' => '1111', 'authentication_result' => ['three_d_secure' => ['enrollment_status' => 'Y', 'authentication_status' => 'Y'], 'liability_shift' => 'POSSIBLE']]],
         ]));
         $this->payPalApi()->mockCapture(requestId: 'sylius-paypal-pre-upgrade-PAYPAL_ORDER_ID');
         $this->payPalApi()->mockOrderDetailsWithCapture();
@@ -95,6 +95,19 @@ final class PaymentsInProgressAtUpgradeTest extends JsonApiTestCase
 
         self::assertSame(PaymentInterface::STATE_COMPLETED, $this->reloadedPayment($paymentId)->getState());
         $this->assertPayPalApiExpectationsWereMet();
+    }
+
+    public function test_it_keeps_waiting_for_the_buyer_still_authenticating_their_card_after_the_upgrade(): void
+    {
+        $paymentId = $this->paymentWaitingForTheBuyerAtPayPalId();
+        $this->payPalApi()->mockOrderDetails('PAYPAL_ORDER_ID', $this->preUpgradeOrder([
+            'status' => 'CREATED',
+            'payment_source' => ['card' => ['last_digits' => '7713']],
+        ]));
+
+        self::assertSame(Command::SUCCESS, $this->settlePayments());
+
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadedPayment($paymentId)->getState());
     }
 
     public function test_it_keeps_waiting_for_the_buyer_still_at_paypal_after_the_upgrade(): void
