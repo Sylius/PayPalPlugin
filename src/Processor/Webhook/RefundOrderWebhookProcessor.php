@@ -21,6 +21,7 @@ use Sylius\PayPalPlugin\Exception\PayPalWrongDataException;
 use Sylius\PayPalPlugin\Provider\PayPalRefundDataProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class RefundOrderWebhookProcessor implements WebhookProcessorInterface
 {
     public const EVENT_TYPE = 'PAYMENT.CAPTURE.REFUNDED';

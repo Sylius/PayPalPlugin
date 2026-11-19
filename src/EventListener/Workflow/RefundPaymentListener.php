@@ -18,6 +18,7 @@ use Sylius\PayPalPlugin\Processor\PaymentRefundProcessorInterface;
 use Symfony\Component\Workflow\Event\TransitionEvent;
 use Webmozart\Assert\Assert;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final class RefundPaymentListener
 {
     public function __construct(private readonly PaymentRefundProcessorInterface $paymentRefundProcessor)

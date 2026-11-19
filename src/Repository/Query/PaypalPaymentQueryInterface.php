@@ -24,6 +24,10 @@ interface PaypalPaymentQueryInterface
     /** @throws PaymentNotFoundException */
     public function getForCancellationByOrderId(string $paypalOrderId): ?PaymentInterface;
 
-    /** @throws PaymentNotFoundException */
+    /**
+     * @throws PaymentNotFoundException
+     *
+     * @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
+     */
     public function getForRefundingByOrderId(string $paypalOrderId): ?PaymentInterface;
 }

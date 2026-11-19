@@ -29,6 +29,7 @@ use Sylius\PayPalPlugin\Generator\PayPalAuthAssertionGeneratorInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Provider\RefundReferenceNumberProviderInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalLateCaptureRefundProcessor implements PaymentRefundProcessorInterface
 {
     private const FAILED_REFUND_STATUSES = ['FAILED', 'CANCELLED'];

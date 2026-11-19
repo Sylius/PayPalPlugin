@@ -58,7 +58,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.repository.query.paypal_payment'),
             service('sylius_paypal.verifier.webhook_request'),
         ])
-        ->deprecate('sylius/paypal-plugin', '2.2', 'The "%service_id%" service is deprecated, use "sylius_paypal.controller.webhook.paypal_webhook" instead.');
+        ->deprecate('sylius/paypal-plugin', '2.2', 'The "%service_id%" service is deprecated and will be removed in 3.0.');
 
     $services->set('sylius_paypal.controller.cancel_paypal_order', CancelPayPalOrderAction::class)
         ->args([

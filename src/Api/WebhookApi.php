@@ -19,7 +19,11 @@ use Psr\Http\Message\StreamFactoryInterface;
 
 final readonly class WebhookApi implements WebhookApiInterface
 {
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     *
+     * @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
+     */
     public const EVENT_TYPES = [
         'PAYMENT.CAPTURE.REFUNDED',
         'PAYMENT.CAPTURE.COMPLETED',
