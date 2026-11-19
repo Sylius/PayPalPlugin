@@ -28,6 +28,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 #[AsLiveComponent('sylius_paypal_sandbox_modal', template: '@SyliusPayPalPlugin/admin/shared/paypal_sandbox_modal.html.twig')]
 final class PayPalSandboxModalComponent
 {

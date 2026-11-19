@@ -17,6 +17,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 use Sylius\PayPalPlugin\Model\Report;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 interface PayoutsReportDownloaderInterface
 {
     /**

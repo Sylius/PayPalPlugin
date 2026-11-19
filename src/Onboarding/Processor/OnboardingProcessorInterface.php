@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Onboarding\Processor;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Symfony\Component\HttpFoundation\Request;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 interface OnboardingProcessorInterface
 {
     public function process(PaymentMethodInterface $paymentMethod, Request $request): PaymentMethodInterface;

@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Exception\PayPalReportDownloadException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\Report;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class SftpPayoutsReportDownloader implements PayoutsReportDownloaderInterface
 {
     public function __construct(private SFTP $sftp)

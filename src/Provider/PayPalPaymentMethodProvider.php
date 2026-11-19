@@ -19,6 +19,7 @@ use Sylius\Component\Core\Repository\PaymentMethodRepositoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalPaymentMethodNotFoundException;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalPaymentMethodProvider implements PayPalPaymentMethodProviderInterface
 {
     /** @param PaymentMethodRepositoryInterface<PaymentMethodInterface> $paymentMethodRepository */
