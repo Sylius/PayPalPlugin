@@ -169,6 +169,10 @@ final readonly class PayPalButtonsController
         $order = $this->orderRepository->find($orderId);
 
         try {
+            if (!$this->getFundingSourcesConfigurationProvider()->isExpressCheckoutEnabled($channel)) {
+                return new Response('');
+            }
+
             $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $this->getFundingSourcesConfigurationProvider()->isVenmoEnabled($channel);
 

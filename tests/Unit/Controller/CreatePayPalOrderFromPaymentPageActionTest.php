@@ -57,6 +57,8 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
 
     private PayPalFundingSourcesConfigurationProviderInterface&Stub $fundingSourcesConfigurationProvider;
 
+    private bool $expressCheckoutEnabled = true;
+
     /** @var array<string, mixed>|null */
     private ?array $recordedDetails = null;
 
@@ -75,6 +77,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->order = $this->createStub(OrderInterface::class);
         $this->order->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
         $this->fundingSourcesConfigurationProvider = $this->createStub(PayPalFundingSourcesConfigurationProviderInterface::class);
+        $this->fundingSourcesConfigurationProvider->method('isExpressCheckoutEnabled')->willReturnCallback(fn (): bool => $this->expressCheckoutEnabled);
 
         $this->orderProvider->method('provideOrderById')->with(42)->willReturn($this->order);
 
@@ -217,6 +220,18 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->paymentStateManager->expects(self::never())->method('cancel');
         $this->capturePaymentResolver->expects(self::never())->method('resolve');
         $request = $this->request(['paymentSource' => 'venmo']);
+
+        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($request)->getStatusCode());
+        self::assertSame(['sylius_paypal.payment_source_not_available'], $request->getSession()->getFlashBag()->peek('error'));
+    }
+
+    public function test_it_rejects_the_payment_page_when_express_checkout_is_disabled_on_the_channel(): void
+    {
+        $this->expressCheckoutEnabled = false;
+        $this->payments(processing: null, cart: $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME));
+
+        $this->capturePaymentResolver->expects(self::never())->method('resolve');
+        $request = $this->request();
 
         self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($request)->getStatusCode());
         self::assertSame(['sylius_paypal.payment_source_not_available'], $request->getSession()->getFlashBag()->peek('error'));
