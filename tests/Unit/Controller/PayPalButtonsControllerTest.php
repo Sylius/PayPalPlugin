@@ -352,6 +352,7 @@ final class PayPalButtonsControllerTest extends TestCase
     {
         $this->channelPaymentMethods = [$this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'express_checkout_enabled' => false])];
         $this->orderRepository->expects(self::never())->method('find');
+        $this->localeContext->expects(self::never())->method('getLocaleCode');
         $this->twig->expects(self::never())->method('render');
 
         self::assertSame('', $this->controller->renderProductPageButtonsAction(Request::create('/'))->getContent());

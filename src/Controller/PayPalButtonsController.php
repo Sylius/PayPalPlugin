@@ -163,7 +163,6 @@ final readonly class PayPalButtonsController
         $channel = $this->channelContext->getChannel();
 
         try {
-            $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel, $request->attributes->getString('paymentMethodCode'));
             $config = $this->getConfig($paymentMethod);
             if (!$config->isExpressCheckoutEnabled()) {
@@ -173,6 +172,7 @@ final readonly class PayPalButtonsController
             /** @var OrderInterface $order */
             $order = $this->orderRepository->find($orderId);
 
+            $locale = $this->currentLocaleProvider->provide();
             $venmoEnabled = $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
