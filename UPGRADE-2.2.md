@@ -275,7 +275,7 @@ Each method is controlled per payment method by a toggle in its gateway config. 
 
 | Key | Default | Where |
 |---|---|---|
-| `express_checkout_enabled` | `true` | PayPal, Pay Later and Venmo buttons on the product and cart pages; when `false`, `sylius_paypal_shop_add_to_cart` and `sylius_paypal_shop_create_paypal_order_from_cart` return `400` |
+| `express_checkout_enabled` | `true` | PayPal, Pay Later and Venmo buttons on the product and cart pages and on the checkout payment step; when `false`, `sylius_paypal_shop_add_to_cart`, `sylius_paypal_shop_create_paypal_order_from_cart` and `sylius_paypal_shop_create_paypal_order_from_payment_page` return `400` |
 | `pay_later_enabled` | `false` | Pay Later button on the product, cart, checkout and payment pages |
 | `messaging_enabled` | `false` | `<paypal-message>` on the product, cart and checkout pages; needs `pay_later_enabled` too |
 | `venmo_enabled` | `false` | `<venmo-button>` on the product, cart, checkout and payment pages |
@@ -1020,6 +1020,10 @@ Everything below will be removed or required in 3.0:
    `sylius_paypal_shop_create_paypal_order_from_payment_page` and
    `sylius_paypal_shop_complete_paypal_order_from_payment_page`. `ExpressOrderAddressFactoryInterface::createFromPurchaseUnit()`,
    used only by `ProcessPayPalOrderAction`, goes with them; 3.0 creates the address with `createFromPayPalOrder()`.
+1. `Checker\ExpressCheckoutChecker` with its interface (`sylius_paypal.checker.express_checkout`) and the
+   `$expressCheckoutChecker` argument it adds to `AddToCartAction`, `CreatePayPalOrderFromCartAction` and
+   `CreatePayPalOrderFromPaymentPageAction`. 3.0 reads `express_checkout_enabled` from the gateway config of the
+   payment method.
 1. Capturing a PayPal payment when the checkout is completed: `EventListener\Workflow\CompletePayPalOrderListener`
    with the `complete_paypal_order` winzou callback, `Processor\PayPalOrderCompleteProcessor`,
    `Manager\PaymentStateManager` with its interface, `Processor\PayPalPaymentCompleteProcessor`,

@@ -23,6 +23,8 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\OrderCheckoutTransitions;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -47,6 +49,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         private ?ObjectManager $objectManager = null,
         private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
         private ?PayPalFundingSourcesConfigurationProviderInterface $fundingSourcesConfigurationProvider = null,
+        private ?ExpressCheckoutCheckerInterface $expressCheckoutChecker = null,
     ) {
     }
 
@@ -64,7 +67,7 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         $this->orderOwnershipVerifier->verify($order, $request);
 
         $paymentSource = $this->resolvePaymentSource($request, $order);
-        if (null === $paymentSource) {
+        if (null === $paymentSource || !$this->isExpressCheckoutEnabled($order)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -166,5 +169,10 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
         } catch (\InvalidArgumentException) {
             return false;
         }
+    }
+
+    private function isExpressCheckoutEnabled(OrderInterface $order): bool
+    {
+        return ($this->expressCheckoutChecker ?? new ExpressCheckoutChecker($this->fundingSourcesConfigurationProvider))->isEnabled($order);
     }
 }

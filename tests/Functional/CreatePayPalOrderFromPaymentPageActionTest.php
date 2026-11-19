@@ -14,12 +14,14 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Functional;
 
 use ApiTestCase\JsonApiTestCase;
+use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 
 final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
@@ -84,6 +86,29 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         $this->assertSame(Response::HTTP_NOT_FOUND, $this->client->getResponse()->getStatusCode());
     }
 
+    /** @test */
+    public function it_refuses_to_create_a_paypal_order_from_the_payment_page_when_express_checkout_is_disabled(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var GatewayConfigInterface $gatewayConfig */
+        $gatewayConfig = $fixtures['paypal_config'];
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['express_checkout_enabled' => false]));
+        $this->getEntityManager()->flush();
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+        $this->seedCurrentCart($order);
+
+        $this->client->request('POST', '/en_US/pay-pal-order-payment-page/' . $order->getId() . '/create');
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
+
+        $this->getEntityManager()->clear();
+        /** @var OrderInterface $order */
+        $order = self::getContainer()->get('sylius.repository.order')->find($order->getId());
+        $this->assertNull($order->getLastPayment(PaymentInterface::STATE_PROCESSING));
+    }
+
     private function seedCurrentCart(OrderInterface $order): void
     {
         /** @var SessionFactoryInterface $sessionFactory */
@@ -96,5 +121,17 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         self::getContainer()->get('request_stack')->pop();
 
         $this->client->getCookieJar()->set(new Cookie($session->getName(), $session->getId()));
+    }
+
+    private function clientSession(): Session
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        /** @var Session $session */
+        $session = $sessionFactory->createSession();
+        $session->setId((string) $this->client->getCookieJar()->get($session->getName())?->getValue());
+        $session->start();
+
+        return $session;
     }
 }

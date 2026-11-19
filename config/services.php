@@ -7,6 +7,8 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\AdminBundle\Twig\PaymentMethodGatewayFactoryExtension as AdminPaymentMethodGatewayFactoryExtension;
 use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\PayPalPlugin\ApiPlatform\PayPalPayment;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker;
+use Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Completer\PayPalExpressOrderCompleter;
@@ -516,6 +518,11 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.checker.payer_action', PayerActionChecker::class);
 
     $services->alias(PayerActionCheckerInterface::class, 'sylius_paypal.checker.payer_action');
+
+    $services->set('sylius_paypal.checker.express_checkout', ExpressCheckoutChecker::class)
+        ->args([service(PayPalFundingSourcesConfigurationProviderInterface::class)]);
+
+    $services->alias(ExpressCheckoutCheckerInterface::class, 'sylius_paypal.checker.express_checkout');
 
     $services->set('sylius_paypal.processor.payment_settlement', PayPalPaymentSettlementProcessor::class)
         ->args([
