@@ -987,14 +987,21 @@ Everything below will be removed or required in 3.0:
    `Enabler\PayPalPaymentMethodEnabler`, which checks the seller's permissions through the facilitator.
 1. Creating a sandbox payment method from pasted credentials: `Twig\Component\PayPalSandboxModalComponent`
    (`sylius_paypal:create_sandbox_modal`), `Creator\PayPalSandboxPaymentMethodCreator` with its interface,
-   `Form\Type\PayPalSandboxCredentialsType` and `Model\PayPalSandboxCredentials`. 3.0 onboards a sandbox payment
-   method through PayPal like a live one.
+   `Form\Type\PayPalSandboxCredentialsType`, `Model\PayPalSandboxCredentials` and the
+   `@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig` template. 3.0 onboards a sandbox
+   payment method through PayPal like a live one.
 1. The SFTP payouts report download: `Controller\DownloadPayoutsReportAction` with the
-   `sylius_paypal_admin_download_payouts_report` route and the `download_report` grid action,
+   `sylius_paypal_admin_download_payouts_report` route and the `download_report` grid action with its
+   `@SyliusPayPalPlugin/admin/payment_method/grid/action/download_report.html.twig` template,
    `Downloader\SftpPayoutsReportDownloader` with its interface, `Exception\PayPalReportDownloadException`,
    `Model\Report`, the `reports_sftp_username` and `reports_sftp_password` fields of the gateway config with
    `PayPalGatewayConfig::REPORTS_SFTP_USERNAME`, `REPORTS_SFTP_PASSWORD`, `reportsSftpUsername()` and
    `reportsSftpPassword()`, the `sylius_paypal.reports_sftp_host` parameter and the `phpseclib/phpseclib` dependency.
+   In the admin, the `reports` section of the
+   `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration` hook
+   goes too, with the `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.reports`
+   hook and its `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_username.html.twig`
+   and `reports_sftp_password.html.twig` templates.
 
 ## Known limitations
 
