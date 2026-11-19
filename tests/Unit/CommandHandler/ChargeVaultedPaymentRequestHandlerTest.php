@@ -314,6 +314,23 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         self::assertSame('card', $this->payment->getDetails()['payment_source']);
     }
 
+    public function test_it_charges_the_wallet_a_request_created_before_cards_could_be_vaulted_names(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'VAULT_ID'];
+
+        $this->chargeVaultedOrderApi
+            ->expects(self::once())
+            ->method('charge')
+            ->with($this->payment, new PayPalVaultedCredential('VAULT_ID'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
+            ->willReturn($this->payPalOrder('COMPLETED'))
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame('paypal', $this->payment->getDetails()['payment_source']);
+    }
+
     /** @return iterable<string, array{array<string, mixed>}> */
     public static function payloadsWithoutVault(): iterable
     {

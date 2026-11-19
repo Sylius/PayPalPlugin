@@ -44,7 +44,7 @@ final readonly class PayPalVaultedCredential
         return self::fromArray([
             self::VAULT_ID => $details->vaultId(),
             self::PAYMENT_SOURCE => $details->paymentSource(),
-            self::PREVIOUS_TRANSACTION_REFERENCE => $details->transactionId(),
+            self::PREVIOUS_TRANSACTION_REFERENCE => $details->transactionId() ?? $details->authorizationId(),
         ]);
     }
 
