@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\ChannelInterface;
 
+/** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 interface PayPalFundingSourcesConfigurationProviderInterface
 {
     public function isExpressCheckoutEnabled(ChannelInterface $channel): bool;

@@ -41,7 +41,6 @@ final class CompletePaidPaymentsCommand extends Command
      *
      * @deprecated the $paymentManager, $authorizeClientApi, $orderDetailsApi and $stateMachine arguments are
      *             deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
-     *             Pass a $paymentSettlementProcessor instead.
      */
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
@@ -68,16 +67,6 @@ final class CompletePaidPaymentsCommand extends Command
                     self::class,
                 );
             }
-        }
-
-        if (null === $this->paymentSettlementProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to "%s" constructor is deprecated and will be required in 3.0.',
-                PaymentSettlementProcessorInterface::class,
-                self::class,
-            );
         }
     }
 

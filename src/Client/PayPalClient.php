@@ -44,6 +44,7 @@ final class PayPalClient implements PayPalClientInterface
     ) {
     }
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function authorize(string $clientId, string $clientSecret): array
     {
         $response = $this->doRequest(
