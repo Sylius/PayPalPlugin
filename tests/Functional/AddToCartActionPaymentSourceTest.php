@@ -56,6 +56,7 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
     public function test_it_passes_pay_later_on_to_the_create_order_request(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml']);
+        $this->enablePayLater($fixtures['paypal_config']);
 
         $this->addMugToCart($fixtures['mug'], 'paylater');
 
@@ -112,6 +113,12 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
     private function enableVenmo(GatewayConfigInterface $gatewayConfig): void
     {
         $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['venmo_enabled' => true]));
+        $this->getEntityManager()->flush();
+    }
+
+    private function enablePayLater(GatewayConfigInterface $gatewayConfig): void
+    {
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['pay_later_enabled' => true]));
         $this->getEntityManager()->flush();
     }
 

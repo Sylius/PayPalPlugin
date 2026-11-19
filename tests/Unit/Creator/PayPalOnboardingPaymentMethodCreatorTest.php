@@ -43,6 +43,7 @@ final class PayPalOnboardingPaymentMethodCreatorTest extends TestCase
         'use_authorize' => false,
         'google_pay_enabled' => false,
         'apple_pay_enabled' => false,
+        'vaulting_enabled' => false,
         'onboarding_scope' => [
             'product' => OnboardingScope::PRODUCT_PPCP,
             'secondary_products' => [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS, OnboardingScope::SECONDARY_PRODUCT_ADVANCED_VAULTING],

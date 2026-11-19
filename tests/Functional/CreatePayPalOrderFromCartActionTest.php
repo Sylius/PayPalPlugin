@@ -179,7 +179,7 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
     /** @test */
     public function it_records_paypal_as_the_payment_source_of_pay_later(): void
     {
-        $order = $this->seededCart();
+        $order = $this->seededCart(payLaterEnabled: true);
 
         $this->payPalApi()->mockCreateOrder();
         $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId() . '?paymentSource=paylater');
@@ -233,18 +233,19 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame('paypal', $this->recordedPaymentSource($order));
     }
 
-    private function seededCart(bool $venmoEnabled = false, bool $expressCheckoutEnabled = true): OrderInterface
+    private function seededCart(bool $venmoEnabled = false, bool $expressCheckoutEnabled = true, bool $payLaterEnabled = false): OrderInterface
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
         /** @var OrderInterface $order */
         $order = $fixtures['new_cart'];
 
-        if ($venmoEnabled || !$expressCheckoutEnabled) {
+        if ($venmoEnabled || !$expressCheckoutEnabled || $payLaterEnabled) {
             /** @var GatewayConfigInterface $gatewayConfig */
             $gatewayConfig = $fixtures['paypal_config'];
             $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), [
                 'venmo_enabled' => $venmoEnabled,
                 'express_checkout_enabled' => $expressCheckoutEnabled,
+                'pay_later_enabled' => $payLaterEnabled,
             ]));
             $this->getEntityManager()->flush();
         }
