@@ -41,6 +41,8 @@ interface PayPalPaymentSourceProviderInterface
 
     public const VENMO = 'venmo';
 
+    public const PAY_LATER = 'paylater';
+
     /**
      * @param array<string, mixed> $experienceContext
      *
