@@ -66,7 +66,7 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
             ->withAuthorization($authorization)
         ;
 
-        $vault = PayPalVault::fromPayPalOrder($authorizationResponse) ?? PayPalVault::fromPaymentSource($orderDetails->paymentSource());
+        $vault = PayPalVault::fromPayPalOrder($authorizationResponse) ?? $orderDetails->vault();
         $knownVault = $details->vault();
         if (null === $vault?->id() && null !== $knownVault?->id()) {
             $vault = $knownVault;

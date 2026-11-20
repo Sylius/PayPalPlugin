@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Model;
 use PHPUnit\Framework\TestCase;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalRefund;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 
 final class PayPalOrderDetailsTest extends TestCase
 {
@@ -42,6 +43,25 @@ final class PayPalOrderDetailsTest extends TestCase
 
         self::assertNull($details->completedRefundOf('CAPTURE_ID'));
         self::assertNull($this->orderDetails([])->completedRefundOf('CAPTURE_ID'));
+    }
+
+    public function test_it_reads_the_vault_of_the_payment_source_it_was_not_given_a_vault_for(): void
+    {
+        $details = new PayPalOrderDetails('PAYPAL_ORDER_ID', paymentSource: ['paypal' => [
+            'attributes' => ['vault' => ['id' => 'VAULT_ID', 'status' => 'VAULTED', 'customer' => ['id' => 'CUSTOMER_ID']]],
+        ]]);
+
+        self::assertEquals(new PayPalVault('VAULTED', 'VAULT_ID', 'CUSTOMER_ID'), $details->vault());
+    }
+
+    public function test_it_prefers_the_vault_it_was_given(): void
+    {
+        $vault = new PayPalVault('VAULTED', 'GIVEN_VAULT_ID');
+        $details = new PayPalOrderDetails('PAYPAL_ORDER_ID', paymentSource: ['paypal' => [
+            'attributes' => ['vault' => ['id' => 'VAULT_ID', 'status' => 'VAULTED']],
+        ]], vault: $vault);
+
+        self::assertSame($vault, $details->vault());
     }
 
     /** @param list<PayPalRefund> $refunds */

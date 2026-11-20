@@ -292,6 +292,18 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ], $this->appliedTransitions);
     }
 
+    public function test_it_does_not_store_an_empty_paypal_order_id_when_paypal_answered_without_one(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $payPalOrder = $this->payPalOrder('COMPLETED');
+        unset($payPalOrder['id']);
+        $this->chargeVaultedOrderApi->method('charge')->willReturn($payPalOrder);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertArrayNotHasKey('paypal_order_id', $this->payment->getDetails());
+    }
+
     public function test_it_settles_from_the_order_details_when_paypal_completed_the_order_without_returning_the_capture(): void
     {
         $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);

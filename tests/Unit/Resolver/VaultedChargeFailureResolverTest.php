@@ -15,6 +15,8 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Resolver;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolver;
 
@@ -72,7 +74,7 @@ final class VaultedChargeFailureResolverTest extends TestCase
     {
         self::assertSame(
             VaultedChargeFailure::PayerActionRequired,
-            (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(['id' => 'PAYPAL_ORDER_ID', 'status' => 'PAYER_ACTION_REQUIRED']),
+            (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(new PayPalOrderDetails('PAYPAL_ORDER_ID', 'PAYER_ACTION_REQUIRED')),
         );
     }
 
@@ -87,15 +89,13 @@ final class VaultedChargeFailureResolverTest extends TestCase
     #[DataProvider('captureStatuses')]
     public function test_it_resolves_the_failure_from_the_capture_status(string $status, VaultedChargeFailure $failure): void
     {
-        self::assertSame($failure, (new VaultedChargeFailureResolver())->resolveFromPayPalOrder([
-            'id' => 'PAYPAL_ORDER_ID',
-            'status' => 'COMPLETED',
-            'purchase_units' => [['payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => $status]]]]],
-        ]));
+        self::assertSame($failure, (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(
+            new PayPalOrderDetails('PAYPAL_ORDER_ID', 'COMPLETED', capture: new PayPalCapture($status, 'CAPTURE_ID')),
+        ));
     }
 
     public function test_it_resolves_an_unknown_failure_for_an_order_without_a_capture(): void
     {
-        self::assertSame(VaultedChargeFailure::Unknown, (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(['id' => 'PAYPAL_ORDER_ID', 'status' => 'CREATED']));
+        self::assertSame(VaultedChargeFailure::Unknown, (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(new PayPalOrderDetails('PAYPAL_ORDER_ID', 'CREATED')));
     }
 }
