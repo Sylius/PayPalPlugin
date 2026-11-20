@@ -16,11 +16,10 @@ namespace Sylius\PayPalPlugin\Resolver;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
+use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 
 final readonly class VaultedChargeFailureResolver implements VaultedChargeFailureResolverInterface
 {
-    private const ORDER_STATUS_PAYER_ACTION_REQUIRED = 'PAYER_ACTION_REQUIRED';
-
     private const ISSUES = [
         'INVALID_VAULT_ID' => VaultedChargeFailure::CredentialInvalid,
         'PAYER_ACCOUNT_LOCKED_OR_CLOSED' => VaultedChargeFailure::CredentialInvalid,
@@ -57,7 +56,7 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
 
     public function resolveFromPayPalOrder(PayPalOrderDetails $payPalOrder): VaultedChargeFailure
     {
-        if ($payPalOrder->isStatus(self::ORDER_STATUS_PAYER_ACTION_REQUIRED)) {
+        if ($payPalOrder->isStatus(PayPalOrderCreatedStatusesProvider::STATUS_PAYER_ACTION_REQUIRED)) {
             return VaultedChargeFailure::PayerActionRequired;
         }
 
