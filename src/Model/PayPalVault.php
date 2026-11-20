@@ -17,6 +17,8 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class PayPalVault
 {
+    public const STATUS_VAULTED = 'VAULTED';
+
     public function __construct(
         private string $status,
         private ?string $id = null,
