@@ -29,6 +29,7 @@ use Sylius\Component\Order\Modifier\OrderModifierInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
@@ -116,7 +117,8 @@ final readonly class AddToCartAction
 
         $this->orderModifier->addToOrder($addToCartCommand->getCart(), $addToCartCommand->getCartItem());
 
-        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($cart, $this->payPalPaymentMethod($cart))) {
+        $vaultRequirement = $this->vaultRequestProvider?->provide($cart, $this->payPalPaymentMethod($cart));
+        if (false === $vaultRequirement?->isMet()) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.vaulting_not_available');
@@ -124,7 +126,7 @@ final readonly class AddToCartAction
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
-        if ($this->isWalletOnlyButtonRefused($request, $cart)) {
+        if ($this->isWalletOnlyButtonRefused($request, $vaultRequirement)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.paypal_wallet_required');
@@ -167,13 +169,13 @@ final readonly class AddToCartAction
         };
     }
 
-    private function isWalletOnlyButtonRefused(Request $request, OrderInterface $cart): bool
+    private function isWalletOnlyButtonRefused(Request $request, ?PayPalVaultRequirement $vaultRequirement): bool
     {
         if (!in_array($request->query->get('paymentSource'), [PayPalPaymentSourceProviderInterface::VENMO, CreatePayPalOrderFromCartAction::PAY_LATER_BUTTON], true)) {
             return false;
         }
 
-        return null !== $this->vaultRequestProvider?->provide($cart, $this->payPalPaymentMethod($cart));
+        return null !== $vaultRequirement?->vaultRequest();
     }
 
     private function payPalPaymentMethod(OrderInterface $cart): ?PaymentMethodInterface

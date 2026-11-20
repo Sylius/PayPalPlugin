@@ -51,7 +51,6 @@ return static function (ContainerConfigurator $container): void {
     $services->set('sylius_paypal.provider.vault_request', PayPalVaultRequestProvider::class)
         ->args([
             service('sylius_paypal.resolver.vault_request'),
-            service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.checker.vaulting_capability.cached'),
         ]);
 

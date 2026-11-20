@@ -82,7 +82,7 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
     {
         $paypal = ['experience_context' => $experienceContext];
 
-        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod());
+        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest();
         if (null !== $vaultRequest) {
             $paypal['attributes'] = ['vault' => $vaultRequest->toArray()];
         }
@@ -99,7 +99,7 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
     {
         $card = ['attributes' => ['verification' => ['method' => $this->cardVerificationMethod($payment)]]];
 
-        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod());
+        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest();
         if (null !== $vaultRequest) {
             $card['attributes']['vault'] = $vaultRequest->toCardArray();
             $card['stored_credential'] = PayPalVaultRequest::CARD_STORED_CREDENTIAL;

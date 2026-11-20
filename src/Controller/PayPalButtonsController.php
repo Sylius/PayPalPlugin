@@ -137,12 +137,13 @@ final readonly class PayPalButtonsController
                 return new Response('');
             }
 
-            if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+            $vaultRequirement = $this->vaultRequestProvider?->provide($order, $paymentMethod);
+            if (false === $vaultRequirement?->isMet()) {
                 return new Response('');
             }
 
             $locale = $this->currentLocaleProvider->provide();
-            $vaultRequired = $this->isVaultRequired($order, $paymentMethod);
+            $vaultRequired = null !== $vaultRequirement?->vaultRequest();
             $venmoEnabled = !$vaultRequired && $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
@@ -182,12 +183,13 @@ final readonly class PayPalButtonsController
         try {
             $locale = $this->currentLocaleProvider->provide();
             $paymentMethod = $this->getPaymentMethod($channel, $request->attributes->getString('paymentMethodCode'));
-            if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+            $vaultRequirement = $this->vaultRequestProvider?->provide($order, $paymentMethod);
+            if (false === $vaultRequirement?->isMet()) {
                 return new Response('');
             }
 
             $config = $this->getConfig($paymentMethod);
-            $vaultRequired = $this->isVaultRequired($order, $paymentMethod);
+            $vaultRequired = null !== $vaultRequirement?->vaultRequest();
             $venmoEnabled = !$vaultRequired && $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
@@ -261,14 +263,5 @@ final readonly class PayPalButtonsController
         }
 
         return $this->webSdkConfigurationProvider;
-    }
-
-    private function isVaultRequired(OrderInterface $order, PaymentMethodInterface $paymentMethod): bool
-    {
-        if (null === $this->vaultRequestProvider) {
-            return false;
-        }
-
-        return null !== $this->vaultRequestProvider->provide($order, $paymentMethod);
     }
 }

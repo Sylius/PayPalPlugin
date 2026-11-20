@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\OrderBundle\Controller\AddToCartCommandInterface;
 use Sylius\Bundle\OrderBundle\Factory\AddToCartCommandFactoryInterface;
@@ -34,6 +35,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Controller\AddToCartAction;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\Resource\Metadata\MetadataInterface;
@@ -55,7 +57,7 @@ final class AddToCartActionTest extends TestCase
 
     private CartStorageInterface&MockObject $cartStorage;
 
-    private PayPalVaultRequestProviderInterface&MockObject $vaultRequestProvider;
+    private PayPalVaultRequestProviderInterface&Stub $vaultRequestProvider;
 
     protected function setUp(): void
     {
@@ -69,18 +71,19 @@ final class AddToCartActionTest extends TestCase
 
         $this->cartManager = $this->createMock(EntityManagerInterface::class);
         $this->cartStorage = $this->createMock(CartStorageInterface::class);
-        $this->vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $this->vaultRequestProvider->method('isVaultingRequirementMet')->willReturn(true);
+        $this->vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $this->vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
     }
 
     #[DataProvider('provideWalletOnlyButtons')]
     public function test_it_refuses_a_button_other_than_the_paypal_wallet_for_a_cart_that_needs_vaulting_without_saving_the_cart(string $paymentSource): void
     {
+        $this->vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $this->vaultRequestProvider
             ->expects(self::once())
             ->method('provide')
             ->with($this->cart, $this->payPalPaymentMethod)
-            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+            ->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)))
         ;
         $this->expectNothingSaved();
 
@@ -100,7 +103,6 @@ final class AddToCartActionTest extends TestCase
     #[DataProvider('provideWalletOnlyButtons')]
     public function test_it_adds_the_product_to_a_cart_that_does_not_need_vaulting(string $paymentSource): void
     {
-        $this->vaultRequestProvider->method('provide')->willReturn(null);
         $this->cartManager->expects(self::once())->method('flush');
 
         $response = $this->action()($this->request($paymentSource, new Session(new MockArraySessionStorage())));
@@ -110,7 +112,8 @@ final class AddToCartActionTest extends TestCase
 
     public function test_it_adds_the_product_to_a_cart_that_needs_vaulting_for_the_paypal_wallet(): void
     {
-        $this->vaultRequestProvider->expects(self::never())->method('provide');
+        $this->vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $this->vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)));
         $this->cartManager->expects(self::once())->method('flush');
 
         $response = $this->action()($this->request('paypal', new Session(new MockArraySessionStorage())));
@@ -124,9 +127,9 @@ final class AddToCartActionTest extends TestCase
         $this->vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $this->vaultRequestProvider
             ->expects(self::once())
-            ->method('isVaultingRequirementMet')
+            ->method('provide')
             ->with($this->cart, $this->payPalPaymentMethod)
-            ->willReturn(false)
+            ->willReturn(PayPalVaultRequirement::unmet())
         ;
         $this->expectNothingSaved();
 

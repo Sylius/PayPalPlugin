@@ -15,13 +15,9 @@ namespace Sylius\PayPalPlugin\Provider;
 
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 
 interface PayPalVaultRequestProviderInterface
 {
-    public function provide(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): ?PayPalVaultRequest;
-
-    public function provideForCart(OrderInterface $order): ?PayPalVaultRequest;
-
-    public function isVaultingRequirementMet(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): bool;
+    public function provide(OrderInterface $order, ?PaymentMethodInterface $paymentMethod): PayPalVaultRequirement;
 }
