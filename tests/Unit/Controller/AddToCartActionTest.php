@@ -168,7 +168,16 @@ final class AddToCartActionTest extends TestCase
         $this->cartStorage->expects(self::never())->method('setForChannel');
     }
 
-    private function action(): AddToCartAction
+    #[DataProvider('provideAllButtons')]
+    public function test_it_resolves_the_paypal_method_of_the_channel_once(string $paymentSource): void
+    {
+        $payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $payPalPaymentMethodsResolver->expects(self::once())->method('getInChannel')->willReturn([$this->payPalPaymentMethod]);
+
+        $this->action($payPalPaymentMethodsResolver)($this->request($paymentSource, new Session(new MockArraySessionStorage())));
+    }
+
+    private function action(?PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver = null): AddToCartAction
     {
         $cartItem = $this->createStub(OrderItemInterface::class);
 
@@ -185,8 +194,10 @@ final class AddToCartActionTest extends TestCase
         $requestConfiguration->method('getFormType')->willReturn('add_to_cart');
         $requestConfiguration->method('getFormOptions')->willReturn([]);
 
-        $payPalPaymentMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
-        $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->payPalPaymentMethod]);
+        if (null === $payPalPaymentMethodsResolver) {
+            $payPalPaymentMethodsResolver = $this->createStub(PayPalPaymentMethodsResolverInterface::class);
+            $payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->payPalPaymentMethod]);
+        }
 
         $router = $this->createStub(RouterInterface::class);
         $router->method('generate')->willReturn('/create-pay-pal-order-from-cart/1');
