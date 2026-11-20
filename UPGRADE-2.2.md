@@ -275,7 +275,7 @@ Each method is controlled per payment method by a toggle in its gateway config. 
 
 | Key | Default | Where |
 |---|---|---|
-| `express_checkout_enabled` | `true` | PayPal, Pay Later and Venmo buttons on the product and cart pages; when `false`, `sylius_paypal_shop_add_to_cart` and `sylius_paypal_shop_create_paypal_order_from_cart` return `400` |
+| `express_checkout_enabled` | `true` | PayPal, Pay Later and Venmo buttons on the product and cart pages and on the checkout payment step; when `false`, `sylius_paypal_shop_add_to_cart`, `sylius_paypal_shop_create_paypal_order_from_cart` and `sylius_paypal_shop_create_paypal_order_from_payment_page` return `400` |
 | `pay_later_enabled` | `false` | Pay Later button on the product, cart, checkout and payment pages |
 | `messaging_enabled` | `false` | `<paypal-message>` on the product, cart and checkout pages; needs `pay_later_enabled` too |
 | `venmo_enabled` | `false` | `<venmo-button>` on the product, cart, checkout and payment pages |
@@ -727,8 +727,9 @@ unchanged.
 
 1. **`CreateOrderApiInterface::create()`** gained three arguments, declared only as commented-out parameters, so
    an implementation with the 2.1 signature keeps loading. The plugin passes them anyway and `CreateOrderApi`
-   declares them. An implementation without them creates every order as `paypal`. Add them before 3.0, which
-   declares them on the interface.
+   declares them. An implementation without them creates every order as `paypal`. 3.0 declares
+   `$paymentSource` on the interface and replaces the two nonces with `$customId`, `$requestId`, `$returnUrl` and
+   `$cancelUrl`.
 
    ```diff
     public function create(
@@ -779,8 +780,9 @@ unchanged.
 ### Constructors
 
 Unless stated otherwise, each new argument is appended, optional and nullable. Not passing it triggers a
-deprecation, and it will be required in 3.0. If you instantiate, decorate or redefine one of these services
-with an explicit argument list, add the new arguments.
+deprecation, and it will be required in 3.0. The arguments marked as deprecated, and those of the classes listed
+under [Deprecations](#deprecations), trigger nothing, as 3.0 removes them. If you instantiate, decorate or redefine
+one of these services with an explicit argument list, add the new arguments.
 
 The "Without it" column says what happens when a new argument is missing:
 
@@ -790,28 +792,28 @@ The "Without it" column says what happens when a new argument is missing:
 
 | Class | New arguments | Without it |
 |---|---|---|
-| `Controller\CreatePayPalOrderFromCartAction` | `OrderOwnershipVerifierInterface`, `PayPalFundingSourcesConfigurationProviderInterface` | verifier: **throws** on every request; funding sources: degrades, `venmo` refused |
+| `Controller\CreatePayPalOrderFromCartAction` | `OrderOwnershipVerifierInterface`, `PayPalFundingSourcesConfigurationProviderInterface` (deprecated) | verifier: **throws** on every request; funding sources: degrades, `venmo` refused |
 | `Controller\CreatePayPalOrderFromPaymentPageAction` | `OrderProcessorInterface` (`sylius.order_processing.order_payment_processor.checkout`), `ObjectManager`, `OrderOwnershipVerifierInterface`, `PayPalFundingSourcesConfigurationProviderInterface` | verifier: **throws**; processor and manager: degrades, the abandoned attempt is kept and the endpoint answers `409`; funding sources: `venmo` refused |
 | `Controller\CompletePayPalOrderFromPaymentPageAction` | `OrderOwnershipVerifierInterface` | **throws** on every request |
 | `Controller\ProcessPayPalOrderAction` | `UrlGeneratorInterface`, `PayPalExpressOrderCompleterInterface`, `OrderProcessorInterface`, `RepositoryInterface` (shipping methods), `ExpressOrderAddressFactoryInterface`, `OrderOwnershipVerifierInterface`, `UpdateOrderApiInterface` | verifier: **throws** on every request; router, completer, processor: **throw** when needed; shipping method repository: the wallet's method is not applied and the amount check fails; address factory: no region stored; update API: a lower total is a mismatch |
-| `Controller\PayPalButtonsController` | `WebSdkConfigurationProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface`, `CurrentPayPalLocaleProviderInterface` | Web SDK and funding sources: **throw** on render; locale: built from the locale context |
+| `Controller\PayPalButtonsController` | `WebSdkConfigurationProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface` (deprecated), `CurrentPayPalLocaleProviderInterface` | Web SDK and funding sources: **throw** on render; locale: built from the locale context |
 | `Controller\PayWithPayPalFormAction` | `PayPalConfigurationProviderInterface`, `PayPalPaymentPageContextProviderInterface`, `UrlGeneratorInterface`, `PayerActionCheckerInterface`, `HostProviderInterface` | context provider and router: **throw** on render; host provider: the `Permissions-Policy` allows both PayPal origins |
-| `Controller\CompletePayPalOrderAction` | `CacheAuthorizeClientApiInterface`, `OrderDetailsApiInterface`, `ThreeDSecureVerifierInterface` | degrades, no 3D Secure check |
+| `Controller\CompletePayPalOrderAction` | `CacheAuthorizeClientApiInterface`, `OrderDetailsApiInterface`, `ThreeDSecureVerifierInterface` | degrades, no 3D Secure check; triggers a deprecation |
 | `Controller\CreatePayPalOrderAction` | `PayPalPaymentSourceProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface` | only `paypal` accepted |
 | `Controller\PayPalPaymentOnErrorAction` | `PaypalPaymentQueryInterface`, `StateMachineInterface`, `OrderProcessorInterface` (`sylius.order_processing.order_payment_processor.checkout`), `ObjectManager`, `PayerActionCheckerInterface` | degrades, only logs and flashes |
-| `Controller\AddToCartAction` | `CartStorageInterface`, `PayPalFundingSourcesConfigurationProviderInterface` | degrades, `venmo` refused |
+| `Controller\AddToCartAction` | `CartStorageInterface`, `PayPalFundingSourcesConfigurationProviderInterface` (deprecated) | degrades, `venmo` refused |
 | `ApiPlatform\PayPalPayment` | `PayPalConfigurationProviderInterface` | degrades |
 | `Api\CreateOrderApi` | `PayPalOrderFactoryInterface` | builds a default factory: no return and cancel URLs, no shipping callback |
 | `Api\UpdateOrderApi` | `PurchaseUnitFactoryInterface` | builds a default factory |
 | `Payum\Action\CaptureAction` | `PayPalOrderCreatedStatusesProviderInterface`, `NonceProviderInterface` | default statuses provider |
 | `Payum\Action\CompleteOrderAction` | `LoggerInterface` | no deprecation |
 | `Provider\PayPalItemDataProvider` | `PayPalItemFactoryInterface` | builds a factory without a router, so items carry no `url` |
-| `Twig\PayPalExtension` | `PayPalFundingSourcesConfigurationProviderInterface`, `ChannelContextInterface`, `WebSdkConfigurationProviderInterface`, `PayerActionCheckerInterface`, `CurrentPayPalLocaleProviderInterface` | the new functions return `false`, `''` or `[]`; no locale resolved |
+| `Twig\PayPalExtension` | `PayPalFundingSourcesConfigurationProviderInterface` (deprecated), `ChannelContextInterface`, `WebSdkConfigurationProviderInterface`, `PayerActionCheckerInterface`, `CurrentPayPalLocaleProviderInterface` | the new functions return `false`, `''` or `[]`; no locale resolved |
 | `Manager\PaymentStateManager` | `PayerActionCheckerInterface` | default checker, no deprecation |
 | `Provider\WebhookIdProvider`, `Registrar\SellerWebhookRegistrar` | `WebhookUrlProviderInterface` | default provider, no deprecation |
 | `Controller\Webhook\RefundOrderAction` | `WebhookRequestVerifierInterface` | default verifier, no deprecation |
 | `Repository\Query\PaypalPaymentQuery` | settleable states | has a default |
-| `Console\Command\CompletePaidPaymentsCommand` | `PaymentSettlementProcessorInterface` | builds one from the deprecated arguments; given only the repository, settles nothing |
+| `Console\Command\CompletePaidPaymentsCommand` | `PaymentSettlementProcessorInterface` (deprecated) | builds one from the deprecated arguments; given only the repository, settles nothing |
 
 Further changes to existing constructors:
 
@@ -952,18 +954,106 @@ Everything below will be removed or required in 3.0:
    method list shows only the payment method name.
 1. The routes `sylius_paypal_shop_cancel_last_payment` and `sylius_paypal_shop_update_paypal_order`.
 1. The old JSON keys `orderID` and `order_id` of the create and capture endpoints.
-1. Not passing a constructor argument added in 2.2 (see [Constructors](#constructors)).
+1. Not passing a constructor argument added in 2.2 to a class that 3.0 keeps (see [Constructors](#constructors)).
 1. Passing the five unused arguments of `PayWithPayPalFormAction`, and the four unused arguments of
    `CompletePaidPaymentsCommand`.
 1. Not passing a `$paymentSource` to `PayPalOrder`, and its `$order` argument.
 1. `CreateOrderApi::PAYPAL_INTENT_CAPTURE`, in favour of `PayPalOrder::INTENT_CAPTURE`.
-1. `Controller\Webhook\RefundOrderAction` and the `sylius_paypal.controller.webhook.refund_order` service, in
-   favour of `PayPalWebhookAction` and `RefundOrderWebhookProcessor`.
-1. The three commented-out arguments of `CreateOrderApiInterface::create()` will be declared.
+1. `Controller\Webhook\RefundOrderAction` and the `sylius_paypal.controller.webhook.refund_order` service. The
+   `sylius_paypal_webhook_refund_order` route already uses `PayPalWebhookAction`.
+1. The payer action nonce arguments of `CreateOrderApiInterface::create()` and `PayPalOrderFactoryInterface::create()`,
+   replaced in 3.0 by the return and cancel URLs of the PayPal order.
 1. The `?PaymentInterface` return types of `PaypalPaymentQueryInterface` will be narrowed to `PaymentInterface`.
 1. The `enable_paypal` action of the `sylius_admin_payment_method` grid, its `enable_paypal` action type and the
    `@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig` template.
 1. The `sylius_is_paypal_enabled` Twig function and `PayPalExtension::isPayPalEnabled()`.
+1. Refunding a PayPal payment through `Processor\PaymentRefundProcessorInterface`, as 3.0 refunds it through a
+   refund Payment Request: on the `refund` transition of the payment, `EventListener\Workflow\RefundPaymentListener`
+   with the `refund_paypal_order` winzou callback, `PayPalPaymentRefundProcessor` and `UiPayPalPaymentRefundProcessor`;
+   from the admin refund of a late capture, `PayPalLateCaptureRefundProcessor`; and
+   `Exception\PayPalOrderRefundException`.
+1. The webhook endpoint `/paypal-webhook/api/` (`sylius_paypal_webhook_refund_order`) and its
+   `@SyliusPayPalPlugin/config/routes/webhook.yaml` route resource, as 3.0 accepts the webhooks of a payment method
+   on its notify URL: `Controller\Webhook\PayPalWebhookAction`,
+   `Processor\Webhook\WebhookProcessorInterface`, `RefundOrderWebhookProcessor`, `CapturePaymentWebhookProcessor`,
+   `Provider\PayPalRefundDataProvider` with its interface, `PaypalPaymentQueryInterface::getForRefundingByOrderId()`
+   with the `sylius_paypal.repository.query.pay_pal_payment.refundable_states` parameter,
+   `UpdateWebhookApiInterface::updateEventTypes()` and `WebhookApi::EVENT_TYPES`.
+1. `Provider\PayPalPaymentMethodProvider` with its interface (`sylius_paypal.provider.paypal_payment_method`) and
+   `Exception\PayPalPaymentMethodNotFoundException`. Take the payment method of the payment, or the PayPal payment
+   methods of a channel from `PayPalPaymentMethodsResolverInterface::getInChannel()`.
+1. The facilitator-based onboarding: `Onboarding\Initiator\OnboardingInitiator` and
+   `Onboarding\Processor\BasicOnboardingProcessor` with their interfaces, `Factory\PayPalPaymentMethodNewResourceFactory`,
+   `PayPalGatewayConfig::ONBOARDING_ID`, `SYLIUS_MERCHANT_ID`, `syliusMerchantId()` and `hasSyliusMerchantId()`,
+   the `$onboardingInitiator`, `$payPalPaymentMethodProvider` and `$isSandbox` arguments of
+   `Listener\PayPalPaymentMethodListener`, and the `$client`, `$baseUrl` and `$requestFactory` arguments of
+   `Enabler\PayPalPaymentMethodEnabler`, which checks the seller's permissions through the facilitator.
+1. Creating a sandbox payment method from pasted credentials: `Twig\Component\PayPalSandboxModalComponent`
+   (`sylius_paypal:create_sandbox_modal`), `Creator\PayPalSandboxPaymentMethodCreator` with its interface,
+   `Form\Type\PayPalSandboxCredentialsType`, `Model\PayPalSandboxCredentials` and the
+   `@SyliusPayPalPlugin/admin/shared/components/paypal_sandbox_modal.html.twig` template. 3.0 onboards a sandbox
+   payment method through PayPal like a live one.
+1. The SFTP payouts report download: `Controller\DownloadPayoutsReportAction` with the
+   `sylius_paypal_admin_download_payouts_report` route and the `download_report` grid action with its
+   `@SyliusPayPalPlugin/admin/payment_method/grid/action/download_report.html.twig` template,
+   `Downloader\SftpPayoutsReportDownloader` with its interface, `Exception\PayPalReportDownloadException`,
+   `Model\Report`, the `reports_sftp_username` and `reports_sftp_password` fields of the gateway config with
+   `PayPalGatewayConfig::REPORTS_SFTP_USERNAME`, `REPORTS_SFTP_PASSWORD`, `reportsSftpUsername()` and
+   `reportsSftpPassword()`, the `sylius_paypal.reports_sftp_host` parameter and the `phpseclib/phpseclib` dependency.
+   In the admin, the `reports` section of the
+   `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration` hook
+   goes too, with the `sylius_admin.payment_method.update.content.form.sections.gateway_configuration.sylius_paypal.configuration.reports`
+   hook and its `@SyliusPayPalPlugin/admin/payment_method/form/section/gateway_configuration/reports_sftp_username.html.twig`
+   and `reports_sftp_password.html.twig` templates.
+1. The Payum gateway, as every PayPal flow runs through Payment Requests in 3.0: `Payum\Factory\PayPalGatewayFactory`,
+   `Payum\Action\AuthorizeAction`, `CaptureAction`, `CompleteOrderAction`, `ResolveNextRouteAction`, `StatusAction`
+   and `Payum\Request\CompleteOrder`.
+1. The controllers of the payment page and the payer action redirects: `PayWithPayPalFormAction`,
+   `CreatePayPalOrderAction`, `CompletePayPalOrderAction`, `CancelPayPalPaymentAction`,
+   `CancelPayPalCheckoutPaymentAction`, `CancelLastPayPalPaymentAction`, `RedirectReturnAction` and
+   `RedirectCancelAction`, and `UpdatePayPalOrderAction`, which updates the PayPal order from the payment page. The
+   routes `sylius_paypal_shop_create_paypal_order` and `sylius_paypal_shop_cancel_payment` are removed with them; the
+   other routes stay in 3.0 and lead to the 3.0 checkout.
+1. The PayPal buttons completing the checkout through `ProcessPayPalOrderAction`,
+   `CreatePayPalOrderFromPaymentPageAction`, `CompletePayPalOrderFromPaymentPageAction` and
+   `Completer\PayPalExpressOrderCompleter` with its interface, and their routes `sylius_paypal_shop_process_paypal_order`,
+   `sylius_paypal_shop_create_paypal_order_from_payment_page` and
+   `sylius_paypal_shop_complete_paypal_order_from_payment_page`. `ExpressOrderAddressFactoryInterface::createFromPurchaseUnit()`,
+   used only by `ProcessPayPalOrderAction`, goes with them; 3.0 creates the address with `createFromPayPalOrder()`.
+1. `Checker\ExpressCheckoutChecker` with its interface (`sylius_paypal.checker.express_checkout`) and the
+   `$expressCheckoutChecker` argument it adds to `AddToCartAction`, `CreatePayPalOrderFromCartAction` and
+   `CreatePayPalOrderFromPaymentPageAction`. 3.0 reads `express_checkout_enabled` from the gateway config of the
+   payment method.
+1. Capturing a PayPal payment when the checkout is completed: `EventListener\Workflow\CompletePayPalOrderListener`
+   with the `complete_paypal_order` winzou callback, `Processor\PayPalOrderCompleteProcessor`,
+   `Manager\PaymentStateManager` with its interface, `Processor\PayPalPaymentCompleteProcessor`,
+   `Processor\PaymentCompleteProcessorInterface` and `Processor\OrderPaymentProcessor`.
+1. The payer action nonces: `Provider\NonceProvider` with its interface, and
+   `PayerActionCheckerInterface::matchesPayerActionReturnNonce()` and `matchesPayerActionCancelNonce()`.
+1. The `PAGE_TYPE`, `CARD_FIELDS_COMPONENT`, `GOOGLE_PAY_COMPONENT`, `APPLE_PAY_COMPONENT` and `VENMO_COMPONENT`
+   constants of `Provider\PayPalPaymentPageContextProvider`.
+1. Reading the PayPal configuration of the channel: `Provider\PayPalConfigurationProvider`
+   (`sylius_paypal.provider.paypal_configuration`) with `PayPalConfigurationProviderInterface` and
+   `PayPalFundingSourcesConfigurationProviderInterface`, and the arguments taking them in `PayPalButtonsController`,
+   `CreatePayPalOrderFromCartAction`, `AddToCartAction`, `PayPalExtension`, `PayPalPaymentPageContextProvider`,
+   `EligibleRedirectPaymentSourcesProvider`, `WebSdkConfigurationProvider` and `PayPalClient`. Read the gateway
+   config of a PayPal payment method from `PayPalPaymentMethodsResolverInterface::getInChannel()` instead.
+1. Prioritising PayPal among the payment methods: `Resolver\PayPalPrioritisingPaymentMethodsResolver`
+   (`sylius_paypal.resolver.payment_method.paypal_prioritising`), the `sylius_paypal.resolver.payment_method.paypal`
+   service and the `sylius_paypal.prioritize_paypal_as_default_method` and `sylius_paypal.prioritized_factory_name`
+   parameters. Give a PayPal payment method a lower position to show it first.
+1. The parameters derived from the `sylius_paypal.sandbox` option: `sylius_paypal.sandbox`,
+   `sylius_paypal.api_base_url`, `sylius_paypal.web_url` and `sylius_paypal.facilitator_url`, with the
+   `sylius_is_paypal_sandbox` Twig function and `PayPalExtension::isSandbox()`. 3.0 stores the mode in the gateway
+   config of each payment method. The `sylius_paypal.sandbox` option itself stays in 3.0: the migration that stores
+   the mode reads it, so keep it with its current value until that migration has run. Otherwise the live payment
+   methods of a shop that removed `sandbox: false` are migrated as sandbox ones.
+1. `PayPalClientInterface::authorize()`, the `sylius_paypal.request_trials_limit` parameter, and the access token
+   taken by `PayPalClientInterface::get()`, `post()`, `patch()` and the API classes, which take the payment method
+   in 3.0.
+1. `ApiPlatform\PayPalPayment` and the exceptions `PayPalApiTimeoutException`, `PayPalAuthorizationException`,
+   `PayPalOrderUpdateException` and `PayPalApiErrorException`.
+1. The `$paymentRepository` and `$paymentSettlementProcessor` arguments of `CompletePaidPaymentsCommand`.
 
 ## Known limitations
 
