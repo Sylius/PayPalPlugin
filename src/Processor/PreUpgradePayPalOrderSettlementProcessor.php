@@ -31,6 +31,7 @@ use Sylius\PayPalPlugin\Exception\ThreeDSecureAuthenticationFailedException;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 use Sylius\PayPalPlugin\Verifier\ThreeDSecureVerifierInterface;
 use Symfony\Component\Clock\ClockInterface;
@@ -51,6 +52,8 @@ final readonly class PreUpgradePayPalOrderSettlementProcessor implements Payment
     private const ORDER_NOT_FOUND_ERROR = 'RESOURCE_NOT_FOUND';
 
     private const VOIDED_ORDER_STATUS = 'VOIDED';
+
+    private const CREATED_ORDER_STATUS = 'CREATED';
 
     private const ISSUES_OF_AN_ORDER_ALREADY_SETTLED = ['ORDER_ALREADY_CAPTURED', 'ORDER_ALREADY_AUTHORIZED'];
 
@@ -150,7 +153,11 @@ final readonly class PreUpgradePayPalOrderSettlementProcessor implements Payment
                 return;
             }
 
-            $approved = $this->approvedPayPalOrderChecker->isApproved($payPalOrderDetails, $this->paymentSource($payment, $payPalOrderDetails));
+            $paymentSource = $this->paymentSource($payment, $payPalOrderDetails);
+            $approved =
+                $this->approvedPayPalOrderChecker->isApproved($payPalOrderDetails, $paymentSource) &&
+                !$this->isAwaitingCardAuthentication($payPalOrderDetails, $paymentSource)
+            ;
             if (!$approved && $this->hasOutlivedItsPayPalOrder($payment)) {
                 $this->cancel($payment, $preUpgradePayPalOrderId, 'the buyer never approved it before it expired');
 
@@ -215,6 +222,15 @@ final readonly class PreUpgradePayPalOrderSettlementProcessor implements Payment
         $orderPaymentSource = array_key_first($payPalOrderDetails->paymentSource());
 
         return is_string($orderPaymentSource) ? $orderPaymentSource : PayPalPaymentDetails::fromPayment($payment)->paymentSource();
+    }
+
+    private function isAwaitingCardAuthentication(PayPalOrderDetails $payPalOrderDetails, string $paymentSource): bool
+    {
+        return
+            PayPalPaymentSourceProviderInterface::CARD === $paymentSource &&
+            $payPalOrderDetails->isStatus(self::CREATED_ORDER_STATUS) &&
+            !is_array($payPalOrderDetails->paymentSource()[PayPalPaymentSourceProviderInterface::CARD]['authentication_result'] ?? null)
+        ;
     }
 
     private function hasOutlivedItsPayPalOrder(PaymentInterface $payment): bool
