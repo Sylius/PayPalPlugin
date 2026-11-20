@@ -102,6 +102,11 @@ final readonly class OnboardingScope
         return $this->features;
     }
 
+    public function withoutCapabilities(): self
+    {
+        return new self($this->product, $this->secondaryProducts, [], $this->features);
+    }
+
     /** @return list<string> */
     public function notCoveredBy(self $scope): array
     {

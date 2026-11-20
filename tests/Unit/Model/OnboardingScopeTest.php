@@ -67,4 +67,14 @@ final class OnboardingScopeTest extends TestCase
             $scope->notCoveredBy(new OnboardingScope('express_checkout', [], [Capability::APPLE_PAY], [OnboardingScope::FEATURE_PAYMENT])),
         );
     }
+
+    public function test_it_drops_its_capabilities_to_compare_what_paypal_does_not_report(): void
+    {
+        $scope = new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [Capability::APPLE_PAY], [OnboardingScope::FEATURE_PAYMENT]);
+
+        self::assertEquals(
+            new OnboardingScope(OnboardingScope::PRODUCT_PPCP, [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS], [], [OnboardingScope::FEATURE_PAYMENT]),
+            $scope->withoutCapabilities(),
+        );
+    }
 }
