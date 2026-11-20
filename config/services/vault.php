@@ -17,8 +17,6 @@ use Sylius\PayPalPlugin\Checker\CachedVaultingCapabilityChecker;
 use Sylius\PayPalPlugin\Checker\VaultingCapabilityChecker;
 use Sylius\PayPalPlugin\Checker\VaultingCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Console\Command\RefreshVaultingCapabilityCommand;
-use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessor;
-use Sylius\PayPalPlugin\Processor\Webhook\VaultingCapabilityWebhookProcessorInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProvider;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresher;
@@ -61,9 +59,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('sylius_paypal.checker.vaulting_capability', VaultingCapabilityChecker::class)
         ->args([
-            service('sylius_paypal.api.authorize_client'),
-            service('sylius_paypal.api.merchant_onboarding_status'),
-            service('sylius_paypal.provider.partner_credentials'),
+            service('sylius_paypal.provider.merchant_integration_status'),
         ]);
 
     $services->alias(VaultingCapabilityCheckerInterface::class, 'sylius_paypal.checker.vaulting_capability');
@@ -91,14 +87,6 @@ return static function (ContainerConfigurator $container): void {
             service('sylius.manager.payment_method'),
         ])
         ->tag('console.command');
-
-    $services->set('sylius_paypal.processor.webhook.vaulting_capability', VaultingCapabilityWebhookProcessor::class)
-        ->args([
-            service('sylius_paypal.refresher.vaulting_capability'),
-            service('sylius.manager.payment_method'),
-        ]);
-
-    $services->alias(VaultingCapabilityWebhookProcessorInterface::class, 'sylius_paypal.processor.webhook.vaulting_capability');
 
     $services->set('sylius_paypal.resolver.vaulted_charge_failure', VaultedChargeFailureResolver::class);
 

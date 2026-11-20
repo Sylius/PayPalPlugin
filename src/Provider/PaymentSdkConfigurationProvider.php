@@ -51,6 +51,15 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
         private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function provide(PaymentInterface $payment, string $locale): array

@@ -13,37 +13,27 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Checker;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface as CorePaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentMethodInterface;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
-use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
-use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
+use Sylius\PayPalPlugin\Model\Capability;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 
 final readonly class VaultingCapabilityChecker implements VaultingCapabilityCheckerInterface
 {
-    public function __construct(
-        private AuthorizeClientApiInterface $authorizeClientApi,
-        private MerchantOnboardingStatusApiInterface $merchantOnboardingStatusApi,
-        private PartnerCredentialsProviderInterface $partnerCredentialsProvider,
-    ) {
+    public function __construct(private MerchantIntegrationStatusProviderInterface $merchantIntegrationStatusProvider)
+    {
     }
 
     public function isVaultingActive(PaymentMethodInterface $paymentMethod): bool
     {
-        $gatewayConfig = $paymentMethod->getGatewayConfig();
-        if (!$gatewayConfig instanceof GatewayConfigInterface) {
+        if (
+            !$paymentMethod instanceof CorePaymentMethodInterface ||
+            !$paymentMethod->getGatewayConfig() instanceof GatewayConfigInterface
+        ) {
             return false;
         }
 
-        $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
-        $sandbox = $config->isSandbox();
-
-        return $this->merchantOnboardingStatusApi->get(
-            $this->authorizeClientApi->authorize($config->clientId(), $config->clientSecret(), $sandbox)->value(),
-            $this->partnerCredentialsProvider->provide($sandbox)->getPartnerId(),
-            $config->merchantId(),
-            $sandbox,
-        )->isVaultingEnabled();
+        return $this->merchantIntegrationStatusProvider->provide($paymentMethod)?->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED) ?? false;
     }
 }
