@@ -24,5 +24,5 @@ sylius_paypal:
     sftp_username: 'SFTP gebruikersnaam'
     share_data_consent_confirmation: "Door op Ja te klikken, geeft u toestemming om PayPal-gegevens te delen"
     suggested: 'Voorgesteld'
-    suggested_payment_method_description: 'Accepteer PayPal-, creditcard- en debetkaartbetalingen in uw winkel.'
+    suggested_payment_method_description: 'Uw alles-in-één betaaloplossing. Accepteer PayPal, Pay Later, credit- en debetkaarten, Apple Pay en meer. Binnen enkele minuten aan de slag.'
     tender_type: 'Teruggestort in de PayPal portemonnee'
