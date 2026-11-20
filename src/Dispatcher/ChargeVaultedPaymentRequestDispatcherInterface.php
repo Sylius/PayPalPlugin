@@ -15,8 +15,9 @@ namespace Sylius\PayPalPlugin\Dispatcher;
 
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 
 interface ChargeVaultedPaymentRequestDispatcherInterface
 {
-    public function dispatch(PaymentInterface $payment): PaymentRequestInterface;
+    public function dispatch(PaymentInterface $payment, PayPalVaultedCredential $credential): PaymentRequestInterface;
 }

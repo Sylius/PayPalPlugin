@@ -71,7 +71,7 @@ final readonly class PaymentCaptureProcessor implements PaymentCaptureProcessorI
             $capturedDetails = $capturedDetails->withTransactionId($capture->id());
         }
 
-        $vault = PayPalVault::fromPayPalOrder($captureResponse) ?? PayPalVault::fromPaymentSource($orderDetails->paymentSource());
+        $vault = PayPalVault::fromPayPalOrder($captureResponse) ?? $orderDetails->vault();
         $knownVault = $details->vault();
         if (null === $vault?->id() && null !== $knownVault?->id()) {
             $vault = $knownVault;

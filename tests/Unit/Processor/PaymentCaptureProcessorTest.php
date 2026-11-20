@@ -231,6 +231,31 @@ final class PaymentCaptureProcessorTest extends TestCase
         $this->processor->capture($this->payment);
     }
 
+    public function test_it_records_the_vault_paypal_saved_the_card_in_on_the_capture(): void
+    {
+        $this->paymentOf(['paypal_order_id' => '123123', 'payment_source' => 'card'], amount: 1000, total: 1000);
+
+        $this->completeOrderApi->method('complete')->willReturn(self::ORDER_DETAILS + [
+            'payment_source' => ['card' => [
+                'last_digits' => '1111',
+                'attributes' => ['vault' => ['id' => '82x54909c9550233k', 'status' => 'VAULTED', 'customer' => ['id' => 'AvFzLMCNpg']]],
+            ]],
+        ]);
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => PayPalPaymentStatus::Completed->value,
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'card',
+            'transaction_id' => 'TRANSACTION_ID',
+            'vault_id' => '82x54909c9550233k',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => 'AvFzLMCNpg',
+        ]);
+
+        $this->processor->capture($this->payment);
+    }
+
     public function test_it_reads_the_vault_from_the_order_when_the_capture_response_did_not_carry_it(): void
     {
         $this->paymentOf(['paypal_order_id' => '123123'], amount: 1000, total: 1000);

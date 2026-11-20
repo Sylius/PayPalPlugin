@@ -24,6 +24,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
@@ -64,7 +65,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     {
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider->expects(self::once())->method('provide')->with($this->order, null)->willReturn(
-            new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription'),
+            PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription')),
         );
 
         self::assertSame(
@@ -86,7 +87,7 @@ final class PayPalPaymentSourceProviderTest extends TestCase
     public function test_it_does_not_vault_the_wallet_when_the_payment_does_not_need_it(): void
     {
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('provide')->willReturn(null);
+        $vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
 
         self::assertSame(
             ['paypal' => ['experience_context' => ['locale' => 'en-US']]],
@@ -232,6 +233,48 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         self::assertSame(
             ['method' => 'SCA_WHEN_REQUIRED'],
             $card['card']['attributes']['verification'],
+        );
+    }
+
+    public function test_it_asks_paypal_to_vault_the_card_as_the_first_of_recurring_payments_when_the_payment_needs_it(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('provide')->with($this->order, null)->willReturn(
+            PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription')),
+        );
+
+        self::assertSame(
+            ['card' => [
+                'attributes' => [
+                    'verification' => ['method' => 'SCA_WHEN_REQUIRED'],
+                    'vault' => ['store_in_vault' => 'ON_SUCCESS'],
+                ],
+                'stored_credential' => [
+                    'payment_initiator' => 'CUSTOMER',
+                    'payment_type' => 'RECURRING',
+                    'usage' => 'FIRST',
+                ],
+                'experience_context' => ['return_url' => 'https://shop.example.com/checkout/complete'],
+            ]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide(
+                $this->payment,
+                PayPalPaymentSourceProviderInterface::CARD,
+                ['return_url' => 'https://shop.example.com/checkout/complete'],
+            ),
+        );
+    }
+
+    public function test_it_does_not_vault_the_card_when_the_payment_does_not_need_it(): void
+    {
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
+
+        self::assertSame(
+            ['card' => [
+                'attributes' => ['verification' => ['method' => 'SCA_WHEN_REQUIRED']],
+                'experience_context' => [],
+            ]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []),
         );
     }
 

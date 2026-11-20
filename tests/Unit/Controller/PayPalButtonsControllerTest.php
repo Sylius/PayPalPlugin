@@ -25,6 +25,7 @@ use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\PayPalButtonsController;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
@@ -189,12 +190,11 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->channelPaymentMethods = [$paymentMethod];
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn(true);
         $vaultRequestProvider
             ->expects(self::once())
             ->method('provide')
             ->with($order, $paymentMethod)
-            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+            ->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)))
         ;
 
         $capturedContext = null;
@@ -220,12 +220,11 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->channelPaymentMethods = [$paymentMethod];
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn(true);
         $vaultRequestProvider
             ->expects(self::once())
             ->method('provide')
             ->with($order, $paymentMethod)
-            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+            ->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)))
         ;
         $this->controller = $this->controller($vaultRequestProvider);
 
@@ -261,7 +260,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->channelPaymentMethods = [$paymentMethod];
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->expects(self::once())->method('isVaultingRequirementMet')->with($order, $paymentMethod)->willReturn(false);
+        $vaultRequestProvider->expects(self::once())->method('provide')->with($order, $paymentMethod)->willReturn(PayPalVaultRequirement::unmet());
         $this->twig->expects(self::never())->method('render');
 
         self::assertSame('', $this->controller($vaultRequestProvider)->renderCartPageButtonsAction(new Request(attributes: ['orderId' => 1]))->getContent());
@@ -276,7 +275,7 @@ final class PayPalButtonsControllerTest extends TestCase
         $this->channelPaymentMethods = [$paymentMethod];
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->expects(self::once())->method('isVaultingRequirementMet')->with($order, $paymentMethod)->willReturn(false);
+        $vaultRequestProvider->expects(self::once())->method('provide')->with($order, $paymentMethod)->willReturn(PayPalVaultRequirement::unmet());
         $this->twig->expects(self::never())->method('render');
 
         $request = Request::create('/');
@@ -503,7 +502,7 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
-            $vaultRequestProvider ?? $this->createConfiguredStub(PayPalVaultRequestProviderInterface::class, ['isVaultingRequirementMet' => true]),
+            $vaultRequestProvider ?? $this->createConfiguredStub(PayPalVaultRequestProviderInterface::class, ['provide' => PayPalVaultRequirement::notRequired()]),
         );
     }
 

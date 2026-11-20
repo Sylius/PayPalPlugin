@@ -21,6 +21,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 
 final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfigurationProviderInterface
@@ -51,6 +52,15 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         private PaymentSourceEnabledCheckerInterface $paymentSourceEnabledChecker,
         private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function provide(PaymentInterface $payment, string $locale): array
@@ -65,7 +75,7 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
         /** @var ChannelInterface $channel */
         $channel = $order->getChannel();
 
-        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $paymentMethod);
+        $vaultRequired = null !== $this->vaultRequestProvider?->provide($order, $paymentMethod)->vaultRequest();
         $messagingEnabled = !$vaultRequired && $config->isPayLaterEnabled() && $config->isMessagingEnabled();
         $enabledPaymentSources = $this->enabledPaymentSources($paymentMethod, $vaultRequired);
 
@@ -125,7 +135,9 @@ final readonly class PaymentSdkConfigurationProvider implements PaymentSdkConfig
     {
         $enabledPaymentSources = [];
         foreach (array_keys(self::COMPONENTS) as $paymentSource) {
-            $enabledPaymentSources[$paymentSource] = !$vaultRequired && $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
+            $enabledPaymentSources[$paymentSource] =
+                (!$vaultRequired || in_array($paymentSource, PayPalVaultedCredential::PAYMENT_SOURCES, true)) &&
+                $this->paymentSourceEnabledChecker->isEnabled($paymentSource, $paymentMethod);
         }
 
         return $enabledPaymentSources;

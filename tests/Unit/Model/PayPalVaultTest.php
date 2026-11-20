@@ -37,6 +37,25 @@ final class PayPalVaultTest extends TestCase
         self::assertSame('buyer@example.com', $vault->payerEmail());
     }
 
+    public function test_it_reads_the_vault_paypal_saved_the_card_in(): void
+    {
+        $vault = PayPalVault::fromPayPalOrder([
+            'payment_source' => ['card' => [
+                'last_digits' => '1111',
+                'attributes' => ['vault' => [
+                    'id' => '82x54909c9550233k',
+                    'status' => 'VAULTED',
+                    'customer' => ['id' => 'AvFzLMCNpg'],
+                ]],
+            ]],
+        ]);
+
+        self::assertSame('82x54909c9550233k', $vault->id());
+        self::assertSame('VAULTED', $vault->status());
+        self::assertSame('AvFzLMCNpg', $vault->customerId());
+        self::assertNull($vault->payerEmail());
+    }
+
     public function test_it_reads_a_vault_paypal_approved_but_has_not_saved_yet(): void
     {
         $vault = PayPalVault::fromPayPalOrder([
@@ -54,7 +73,7 @@ final class PayPalVaultTest extends TestCase
     public function test_it_reads_no_vault_from_an_order_paying_without_saving_the_wallet(): void
     {
         self::assertNull(PayPalVault::fromPayPalOrder([]));
-        self::assertNull(PayPalVault::fromPayPalOrder(['payment_source' => ['card' => ['attributes' => ['vault' => ['status' => 'VAULTED']]]]]));
+        self::assertNull(PayPalVault::fromPayPalOrder(['payment_source' => ['venmo' => ['attributes' => ['vault' => ['status' => 'VAULTED']]]]]));
         self::assertNull(PayPalVault::fromPayPalOrder(['payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']]]));
     }
 

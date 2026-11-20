@@ -39,7 +39,7 @@ final readonly class VaultingAwarePaymentMethodsResolver implements PaymentMetho
 
         return array_values(array_filter(
             $paymentMethods,
-            fn (PaymentMethodInterface $paymentMethod): bool => $this->vaultRequestProvider->isVaultingRequirementMet($order, $paymentMethod),
+            fn (PaymentMethodInterface $paymentMethod): bool => $this->vaultRequestProvider->provide($order, $paymentMethod)->isMet(),
         ));
     }
 

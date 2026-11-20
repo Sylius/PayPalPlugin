@@ -22,6 +22,8 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
@@ -32,6 +34,7 @@ use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
 use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolver;
 
@@ -51,6 +54,11 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 
     private Payment $payment;
 
+    private string $factoryName = 'sylius_paypal';
+
+    /** @var array<string, mixed> */
+    private array $payload = ['vault_id' => 'VAULT_ID'];
+
     /** @var list<array{string, string}> */
     private array $appliedTransitions = [];
 
@@ -61,11 +69,20 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->payment = new Payment();
         $this->payment->setState(PaymentInterface::STATE_NEW);
         $this->payment->setAmount(1500);
-        $this->payment->setDetails(['vault_id' => 'VAULT_ID', 'vault_customer_id' => 'CUSTOMER_ID']);
+        $this->payment->setDetails(['vault_customer_id' => 'CUSTOMER_ID']);
 
         $this->paymentRequest = $this->createMock(PaymentRequestInterface::class);
         $this->paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
+        $this->paymentRequest->method('getPayload')->willReturnCallback(fn (): array => $this->payload);
         $this->paymentRequest->method('getPayment')->willReturn($this->payment);
+        $this->paymentRequest->method('getMethod')->willReturnCallback(function (): PaymentMethodInterface {
+            $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+            $gatewayConfig->method('getFactoryName')->willReturn($this->factoryName);
+            $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+            $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+            return $paymentMethod;
+        });
 
         $paymentRequestProvider = $this->createStub(PaymentRequestProviderInterface::class);
         $paymentRequestProvider->method('provide')->willReturn($this->paymentRequest);
@@ -139,6 +156,24 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         self::assertSame(['lock payment', 'lock request', 'read request state'], $calls);
     }
 
+    public function test_it_fails_only_the_request_without_charging_when_the_payment_method_is_not_paypal(): void
+    {
+        $this->factoryName = 'offline';
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+
+        $this->chargeVaultedOrderApi->expects(self::never())->method('charge');
+        $this->paymentRequest
+            ->expects(self::once())
+            ->method('setResponseData')
+            ->with([ChargeVaultedPaymentRequestHandler::RESPONSE_REASON => 'Payment method mismatch.'])
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
+        self::assertSame(PaymentInterface::STATE_NEW, $this->payment->getState());
+    }
+
     #[DataProvider('provideNoLongerNewPaymentStates')]
     public function test_it_cancels_the_request_without_charging_when_the_payment_is_no_longer_new(string $paymentState): void
     {
@@ -149,7 +184,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->paymentRequest
             ->expects(self::once())
             ->method('setResponseData')
-            ->with([ChargeVaultedPaymentRequestHandler::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted wallet is not charged again.', $paymentState)])
+            ->with([ChargeVaultedPaymentRequestHandler::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted payment source is not charged again.', $paymentState)])
         ;
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
@@ -173,7 +208,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->chargeVaultedOrderApi
             ->expects(self::once())
             ->method('charge')
-            ->with($this->payment, 'VAULT_ID', 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
+            ->with($this->payment, new PayPalVaultedCredential('VAULT_ID'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
             ->willReturn($payPalOrder)
         ;
         $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, (new PayPalOrderDetailsMapper())->map($payPalOrder));
@@ -181,8 +216,8 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame([
-            'vault_id' => 'VAULT_ID',
             'vault_customer_id' => 'CUSTOMER_ID',
+            'vault_id' => 'VAULT_ID',
             'status' => 'PROCESSING',
             'paypal_order_id' => 'PAYPAL_ORDER_ID',
             'reference_id' => 'PAYMENT_REQUEST_HASH',
@@ -228,7 +263,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
         $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
-            'reason' => 'PayPal refused to charge the vaulted wallet.',
+            'reason' => 'PayPal refused to charge the vaulted payment source.',
             'failure' => 'declined',
             'issues' => ['INSTRUMENT_DECLINED'],
         ]);
@@ -257,6 +292,18 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ], $this->appliedTransitions);
     }
 
+    public function test_it_does_not_store_an_empty_paypal_order_id_when_paypal_answered_without_one(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $payPalOrder = $this->payPalOrder('COMPLETED');
+        unset($payPalOrder['id']);
+        $this->chargeVaultedOrderApi->method('charge')->willReturn($payPalOrder);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertArrayNotHasKey('paypal_order_id', $this->payment->getDetails());
+    }
+
     public function test_it_settles_from_the_order_details_when_paypal_completed_the_order_without_returning_the_capture(): void
     {
         $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
@@ -274,13 +321,77 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ], $this->appliedTransitions);
     }
 
-    public function test_it_fails_the_payment_that_carries_no_vaulted_wallet_without_calling_paypal(): void
+    public function test_it_charges_the_vault_the_request_names_instead_of_the_one_the_payment_details_carry(): void
     {
         $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
-        $this->payment->setDetails([]);
+        $this->payment->setDetails(['vault_id' => 'PREVIOUS_VAULT_ID']);
+
+        $this->chargeVaultedOrderApi
+            ->expects(self::once())
+            ->method('charge')
+            ->with($this->payment, new PayPalVaultedCredential('VAULT_ID'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
+            ->willReturn($this->payPalOrder('COMPLETED'))
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame('VAULT_ID', $this->payment->getDetails()['vault_id']);
+    }
+
+    public function test_it_charges_the_vaulted_card_with_the_transaction_that_first_charged_it(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'CARD_VAULT_ID', 'payment_source' => 'card', 'previous_transaction_reference' => 'FIRST_CAPTURE_ID'];
+
+        $this->chargeVaultedOrderApi
+            ->expects(self::once())
+            ->method('charge')
+            ->with($this->payment, new PayPalVaultedCredential('CARD_VAULT_ID', 'card', 'FIRST_CAPTURE_ID'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
+            ->willReturn($this->payPalOrder('COMPLETED'))
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame('CARD_VAULT_ID', $this->payment->getDetails()['vault_id']);
+        self::assertSame('card', $this->payment->getDetails()['payment_source']);
+    }
+
+    public function test_it_charges_the_wallet_a_request_created_before_cards_could_be_vaulted_names(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'VAULT_ID'];
+
+        $this->chargeVaultedOrderApi
+            ->expects(self::once())
+            ->method('charge')
+            ->with($this->payment, new PayPalVaultedCredential('VAULT_ID'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH')
+            ->willReturn($this->payPalOrder('COMPLETED'))
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame('paypal', $this->payment->getDetails()['payment_source']);
+    }
+
+    /** @return iterable<string, array{array<string, mixed>}> */
+    public static function payloadsWithoutVault(): iterable
+    {
+        yield 'no vault id' => [[]];
+        yield 'empty vault id' => [['vault_id' => '']];
+        yield 'vault id that is not a string' => [['vault_id' => 123]];
+        yield 'payment source that cannot be vaulted' => [['vault_id' => 'VAULT_ID', 'payment_source' => 'venmo']];
+    }
+
+    /** @param array<string, mixed> $payload */
+    #[DataProvider('payloadsWithoutVault')]
+    public function test_it_fails_the_payment_whose_request_names_no_vaulted_wallet_without_calling_paypal(array $payload): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = $payload;
+        $this->payment->setDetails(['vault_id' => 'VAULT_ID']);
 
         $this->chargeVaultedOrderApi->expects(self::never())->method('charge');
-        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment carries no vaulted PayPal wallet.', 'failure' => 'credential_invalid']);
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with(['reason' => 'The payment request names no vaulted PayPal payment source to charge.', 'failure' => 'credential_invalid']);
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
@@ -298,7 +409,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         );
 
         $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
-            'reason' => 'PayPal refused to charge the vaulted wallet.',
+            'reason' => 'PayPal refused to charge the vaulted payment source.',
             'failure' => 'credential_invalid',
             'issues' => ['INVALID_VAULT_ID'],
         ]);
@@ -366,7 +477,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         }
 
         self::assertSame([], $this->appliedTransitions);
-        self::assertSame(['vault_id' => 'VAULT_ID', 'vault_customer_id' => 'CUSTOMER_ID'], $this->payment->getDetails());
+        self::assertSame(['vault_customer_id' => 'CUSTOMER_ID'], $this->payment->getDetails());
     }
 
     /** @return array<string, mixed> */

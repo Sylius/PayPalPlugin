@@ -86,8 +86,8 @@ final class CapturePayPalOrderPaymentRequestHandlerTest extends TestCase
             $this->paymentSettlementProcessor,
             $this->paymentManager,
             $this->paymentRequestManager,
-            $this->eventBus,
             $this->stateMachine,
+            $this->eventBus,
         );
     }
 

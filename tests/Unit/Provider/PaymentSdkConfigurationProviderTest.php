@@ -27,6 +27,7 @@ use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
 use Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
@@ -368,7 +369,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         self::assertFalse($context['applePayEnabled']);
     }
 
-    public function test_it_offers_only_the_paypal_wallet_for_a_payment_that_needs_vaulting(): void
+    public function test_it_offers_only_the_paypal_wallet_and_the_card_for_a_payment_that_needs_vaulting(): void
     {
         $this->paymentMethodConfig['pay_later_enabled'] = true;
         $this->paymentMethodConfig['messaging_enabled'] = true;
@@ -380,19 +381,19 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
         $eligibleRedirectPaymentSourcesProvider->expects(self::never())->method('provide');
 
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('provide')->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID));
+        $vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)));
 
         $this->webSdkConfigurationProvider
             ->expects(self::once())
             ->method('getInstanceConfig')
-            ->with(self::anything(), 'checkout', ['paypal-payments'], 'en_US')
+            ->with(self::anything(), 'checkout', ['paypal-payments', 'card-fields'], 'en_US')
             ->willReturn([])
         ;
 
         $configuration = $this->providerWith($eligibleRedirectPaymentSourcesProvider, $vaultRequestProvider)->provide($this->payment, 'en_US');
 
         self::assertTrue($configuration['vaultRequired']);
-        self::assertFalse($configuration['cardEnabled']);
+        self::assertTrue($configuration['cardEnabled']);
         self::assertFalse($configuration['paylaterEnabled']);
         self::assertFalse($configuration['messagingEnabled']);
         self::assertFalse($configuration['googlePayEnabled']);
@@ -404,7 +405,7 @@ final class PaymentSdkConfigurationProviderTest extends TestCase
     public function test_it_offers_the_card_for_a_payment_that_needs_no_vaulting(): void
     {
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('provide')->willReturn(null);
+        $vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
 
         $configuration = $this->providerWith($this->eligibleRedirectPaymentSourcesProvider, $vaultRequestProvider)->provide($this->payment, 'en_US');
 

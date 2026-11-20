@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 use Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface;
 
 final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizationProcessorInterface
@@ -49,8 +50,9 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
 
         $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
 
+        $authorizationResponse = [];
         if ($this->approvedPayPalOrderChecker->isApproved($orderDetails, $details->paymentSource())) {
-            $this->authorizeApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
+            $authorizationResponse = $this->authorizeApprovedOrder($payment, $paymentMethod, $payPalOrderId, $requestId);
             $orderDetails = $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
         }
 
@@ -59,31 +61,43 @@ final readonly class PaymentAuthorizationProcessor implements PaymentAuthorizati
             return $orderDetails;
         }
 
-        $payment->setDetails(
-            PayPalPaymentDetails::fromPayment($payment)
-                ->withStatus($authorization->isStatus(PayPalAuthorization::STATUS_CREATED) ? PayPalPaymentStatus::Authorized : PayPalPaymentStatus::Processing)
-                ->withAuthorization($authorization)
-                ->toArray(),
-        );
+        $authorizedDetails = PayPalPaymentDetails::fromPayment($payment)
+            ->withStatus($authorization->isStatus(PayPalAuthorization::STATUS_CREATED) ? PayPalPaymentStatus::Authorized : PayPalPaymentStatus::Processing)
+            ->withAuthorization($authorization)
+        ;
+
+        $vault = PayPalVault::fromPayPalOrder($authorizationResponse) ?? $orderDetails->vault();
+        $knownVault = $details->vault();
+        if (null === $vault?->id() && null !== $knownVault?->id()) {
+            $vault = $knownVault;
+        }
+        if (null !== $vault) {
+            $authorizedDetails = $authorizedDetails->withVault($vault);
+        }
+
+        $payment->setDetails($authorizedDetails->toArray());
 
         return $orderDetails;
     }
 
+    /** @return array<string, mixed> */
     private function authorizeApprovedOrder(
         PaymentInterface $payment,
         PaymentMethodInterface $paymentMethod,
         string $payPalOrderId,
         ?string $requestId,
-    ): void {
+    ): array {
         $this->approvedPayPalOrderUpdater->update($payment);
 
         try {
-            $this->authorizeOrderApi->authorize($paymentMethod, $payPalOrderId, $requestId);
+            return $this->authorizeOrderApi->authorize($paymentMethod, $payPalOrderId, $requestId);
         } catch (PayPalApiConnectionException|PayPalApiServerException) {
         } catch (PayPalApiRequestException $exception) {
             if ([] === array_intersect($exception->getIssues(), self::ISSUES_LEAVING_THE_ORDER_TO_READ)) {
                 throw $exception;
             }
         }
+
+        return [];
     }
 }
