@@ -38,7 +38,7 @@ final class WebhookEventPaymentResolverTest extends TestCase
             VaultedPaypalPaymentQueryInterface::class,
         ]);
 
-        $this->resolver = new WebhookEventPaymentResolver($this->paypalPaymentQuery);
+        $this->resolver = new WebhookEventPaymentResolver($this->paypalPaymentQuery, $this->paypalPaymentQuery);
     }
 
     public function test_it_resolves_the_payment_of_the_payment_request_paypal_was_given_as_custom_id(): void
@@ -181,6 +181,19 @@ final class WebhookEventPaymentResolverTest extends TestCase
         $this->paypalPaymentQuery->expects(self::never())->method('findByVaultId');
 
         self::assertNull($this->resolver->resolve($this->notification('capture', ['id' => 'CAPTURE_ID'])));
+    }
+
+    public function test_it_resolves_nothing_for_a_token_without_the_vaulted_payment_query(): void
+    {
+        $paypalPaymentQuery = $this->createMockForIntersectionOfInterfaces([
+            SettleablePaypalPaymentQueryInterface::class,
+            VaultedPaypalPaymentQueryInterface::class,
+        ]);
+        $paypalPaymentQuery->expects(self::never())->method('findByVaultId');
+
+        $resolver = new WebhookEventPaymentResolver($paypalPaymentQuery);
+
+        self::assertNull($resolver->resolve($this->notification('payment_token', ['id' => 'VAULT_ID'])));
     }
 
     /** @param array<string, mixed> $resource */
