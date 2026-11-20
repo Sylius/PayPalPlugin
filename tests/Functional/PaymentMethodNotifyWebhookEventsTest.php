@@ -24,6 +24,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
@@ -459,7 +460,7 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
         self::assertSame(PayPalWebhookEventStatus::Processed->value, $this->webhookEventStatus('WH-VAULT-DELETED'));
         $payment = $this->reloadPayment($order);
-        self::assertSame(PayPalPaymentDetails::VAULT_STATUS_DELETED, PayPalPaymentDetails::fromPayment($payment)->vaultStatus());
+        self::assertSame(PayPalVault::STATUS_DELETED, PayPalPaymentDetails::fromPayment($payment)->vaultStatus());
         self::assertSame(PaymentInterface::STATE_PROCESSING, $payment->getState());
     }
 
