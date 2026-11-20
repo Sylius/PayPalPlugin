@@ -19,12 +19,14 @@ use Doctrine\ORM\Exception\ORMException;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApiInterface;
 use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
@@ -74,6 +76,14 @@ final class ChargeVaultedPaymentRequestHandler
         $this->paymentRequestManager->refresh($paymentRequest, LockMode::PESSIMISTIC_WRITE);
 
         if (PaymentRequestInterface::STATE_PROCESSING !== $paymentRequest->getState()) {
+            return;
+        }
+
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $paymentRequest->getMethod();
+        if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()) {
+            $this->failWithReason($paymentRequest, 'Payment method mismatch.');
+
             return;
         }
 
