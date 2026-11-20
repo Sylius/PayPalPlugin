@@ -235,6 +235,48 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         );
     }
 
+    public function test_it_asks_paypal_to_vault_the_card_as_the_first_of_recurring_payments_when_the_payment_needs_it(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('provide')->with($this->order, null)->willReturn(
+            new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID, 'Monthly subscription'),
+        );
+
+        self::assertSame(
+            ['card' => [
+                'attributes' => [
+                    'verification' => ['method' => 'SCA_WHEN_REQUIRED'],
+                    'vault' => ['store_in_vault' => 'ON_SUCCESS'],
+                ],
+                'stored_credential' => [
+                    'payment_initiator' => 'CUSTOMER',
+                    'payment_type' => 'RECURRING',
+                    'usage' => 'FIRST',
+                ],
+                'experience_context' => ['return_url' => 'https://shop.example.com/checkout/complete'],
+            ]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide(
+                $this->payment,
+                PayPalPaymentSourceProviderInterface::CARD,
+                ['return_url' => 'https://shop.example.com/checkout/complete'],
+            ),
+        );
+    }
+
+    public function test_it_does_not_vault_the_card_when_the_payment_does_not_need_it(): void
+    {
+        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->method('provide')->willReturn(null);
+
+        self::assertSame(
+            ['card' => [
+                'attributes' => ['verification' => ['method' => 'SCA_WHEN_REQUIRED']],
+                'experience_context' => [],
+            ]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []),
+        );
+    }
+
     public function test_it_always_asks_for_3d_secure_on_card_when_the_payment_method_requires_it(): void
     {
         $this->payWith('sylius_paypal', ['card_three_d_secure_always' => true]);

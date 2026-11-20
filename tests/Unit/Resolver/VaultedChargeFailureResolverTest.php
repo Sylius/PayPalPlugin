@@ -28,6 +28,12 @@ final class VaultedChargeFailureResolverTest extends TestCase
         yield 'restricted payer account' => ['PAYER_ACCOUNT_RESTRICTED', VaultedChargeFailure::CredentialInvalid];
         yield 'payer cannot pay' => ['PAYER_CANNOT_PAY', VaultedChargeFailure::CredentialInvalid];
         yield 'unusable payment source' => ['PAYMENT_SOURCE_CANNOT_BE_USED', VaultedChargeFailure::CredentialInvalid];
+        yield 'expired card' => ['CARD_EXPIRED', VaultedChargeFailure::CredentialInvalid];
+        yield 'expired vaulted card' => ['REFERENCED_CARD_EXPIRED', VaultedChargeFailure::CredentialInvalid];
+        yield 'expired token' => ['TOKEN_EXPIRED', VaultedChargeFailure::CredentialInvalid];
+        yield 'missing token' => ['TOKEN_ID_NOT_FOUND', VaultedChargeFailure::CredentialInvalid];
+        yield 'token of another payment source' => ['MISMATCHED_VAULT_ID_TO_PAYMENT_SOURCE', VaultedChargeFailure::CredentialInvalid];
+        yield 'previous transaction charged back' => ['PREVIOUS_TRANSACTION_REFERENCE_HAS_CHARGEBACK', VaultedChargeFailure::CredentialInvalid];
         yield 'payer action required' => ['PAYER_ACTION_REQUIRED', VaultedChargeFailure::PayerActionRequired];
         yield 'alternate funding' => ['REDIRECT_PAYER_FOR_ALTERNATE_FUNDING', VaultedChargeFailure::PayerActionRequired];
         yield 'declined instrument' => ['INSTRUMENT_DECLINED', VaultedChargeFailure::Declined];
@@ -35,7 +41,12 @@ final class VaultedChargeFailureResolverTest extends TestCase
         yield 'declined by processor' => ['PAYMENT_SOURCE_DECLINED_BY_PROCESSOR', VaultedChargeFailure::Declined];
         yield 'transaction limit' => ['TRANSACTION_LIMIT_EXCEEDED', VaultedChargeFailure::Declined];
         yield 'too many attempts' => ['MAX_NUMBER_OF_PAYMENT_ATTEMPTS_EXCEEDED', VaultedChargeFailure::Declined];
+        yield 'blocked by the merchant fraud settings' => ['TRANSACTION_BLOCKED_BY_PAYEE', VaultedChargeFailure::Declined];
+        yield 'blocked by a fraud tool' => ['PAYEE_BLOCKED_TRANSACTION', VaultedChargeFailure::Declined];
         yield 'merchant restriction' => ['PAYEE_ACCOUNT_RESTRICTED', VaultedChargeFailure::Unknown];
+        yield 'payment source of another transaction' => ['PAYMENT_SOURCE_MISMATCH', VaultedChargeFailure::Unknown];
+        yield 'invalid previous transaction' => ['INVALID_PREVIOUS_TRANSACTION_REFERENCE', VaultedChargeFailure::Unknown];
+        yield 'previous transaction voided' => ['PREVIOUS_TRANSACTION_REFERENCE_VOIDED', VaultedChargeFailure::Unknown];
     }
 
     #[DataProvider('issues')]

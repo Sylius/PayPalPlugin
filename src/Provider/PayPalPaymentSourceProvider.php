@@ -22,12 +22,22 @@ use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceProviderInterface
 {
     public function __construct(private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null)
     {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext): array
@@ -42,13 +52,7 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
             ]],
             self::APPLE_PAY => [],
             self::TRUSTLY => [self::TRUSTLY => $this->trustly($order, $experienceContext)],
-            self::CARD => [self::CARD => [
-                'attributes' => ['verification' => ['method' => $this->cardVerificationMethod($payment)]],
-                'experience_context' => array_filter([
-                    'return_url' => $experienceContext['return_url'] ?? null,
-                    'cancel_url' => $experienceContext['cancel_url'] ?? null,
-                ]),
-            ]],
+            self::CARD => [self::CARD => $this->card($order, $payment, $experienceContext)],
             self::VENMO => [self::VENMO => [
                 'experience_context' => array_filter([
                     PayPalOrder::KEY_SHIPPING_PREFERENCE => $experienceContext[PayPalOrder::KEY_SHIPPING_PREFERENCE] ?? null,
@@ -84,6 +88,29 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
         }
 
         return $paypal;
+    }
+
+    /**
+     * @param array<string, mixed> $experienceContext
+     *
+     * @return array<string, mixed>
+     */
+    private function card(OrderInterface $order, PaymentInterface $payment, array $experienceContext): array
+    {
+        $card = ['attributes' => ['verification' => ['method' => $this->cardVerificationMethod($payment)]]];
+
+        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod());
+        if (null !== $vaultRequest) {
+            $card['attributes']['vault'] = $vaultRequest->toCardArray();
+            $card['stored_credential'] = PayPalVaultRequest::CARD_STORED_CREDENTIAL;
+        }
+
+        $card['experience_context'] = array_filter([
+            'return_url' => $experienceContext['return_url'] ?? null,
+            'cancel_url' => $experienceContext['cancel_url'] ?? null,
+        ]);
+
+        return $card;
     }
 
     /**

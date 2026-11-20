@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Command\CreatePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface;
 use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 
@@ -50,6 +51,16 @@ final class CreatePayPalOrderPaymentRequestHandler
         private readonly ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
         $this->stateMachine = $stateMachine;
+
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(CreatePayPalOrderPaymentRequest $createPayPalOrderPaymentRequest): void
@@ -94,16 +105,16 @@ final class CreatePayPalOrderPaymentRequestHandler
         $order = $payment->getOrder();
 
         if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $payment->getMethod())) {
-            $this->failWithReason($paymentRequest, 'This payment needs a PayPal wallet saved for later charges, but the merchant cannot save PayPal wallets yet.');
+            $this->failWithReason($paymentRequest, 'This payment needs a payment method saved for later charges, but the merchant cannot save payment methods with PayPal yet.');
 
             return;
         }
 
         if (
-            PayPalPaymentSourceProviderInterface::PAYPAL !== $paymentSource &&
+            !in_array($paymentSource, PayPalVaultedCredential::PAYMENT_SOURCES, true) &&
             null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod())
         ) {
-            $this->failWithReason($paymentRequest, 'This payment can be paid only with a PayPal wallet, which PayPal saves for later charges.');
+            $this->failWithReason($paymentRequest, 'This payment can be paid only with a PayPal wallet or a card, which PayPal saves for later charges.');
 
             return;
         }

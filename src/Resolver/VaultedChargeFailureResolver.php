@@ -26,6 +26,12 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
         'PAYER_ACCOUNT_RESTRICTED' => VaultedChargeFailure::CredentialInvalid,
         'PAYER_CANNOT_PAY' => VaultedChargeFailure::CredentialInvalid,
         'PAYMENT_SOURCE_CANNOT_BE_USED' => VaultedChargeFailure::CredentialInvalid,
+        'CARD_EXPIRED' => VaultedChargeFailure::CredentialInvalid,
+        'REFERENCED_CARD_EXPIRED' => VaultedChargeFailure::CredentialInvalid,
+        'TOKEN_EXPIRED' => VaultedChargeFailure::CredentialInvalid,
+        'TOKEN_ID_NOT_FOUND' => VaultedChargeFailure::CredentialInvalid,
+        'MISMATCHED_VAULT_ID_TO_PAYMENT_SOURCE' => VaultedChargeFailure::CredentialInvalid,
+        'PREVIOUS_TRANSACTION_REFERENCE_HAS_CHARGEBACK' => VaultedChargeFailure::CredentialInvalid,
         'PAYER_ACTION_REQUIRED' => VaultedChargeFailure::PayerActionRequired,
         'REDIRECT_PAYER_FOR_ALTERNATE_FUNDING' => VaultedChargeFailure::PayerActionRequired,
         'INSTRUMENT_DECLINED' => VaultedChargeFailure::Declined,
@@ -33,6 +39,8 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
         'PAYMENT_SOURCE_DECLINED_BY_PROCESSOR' => VaultedChargeFailure::Declined,
         'TRANSACTION_LIMIT_EXCEEDED' => VaultedChargeFailure::Declined,
         'MAX_NUMBER_OF_PAYMENT_ATTEMPTS_EXCEEDED' => VaultedChargeFailure::Declined,
+        'TRANSACTION_BLOCKED_BY_PAYEE' => VaultedChargeFailure::Declined,
+        'PAYEE_BLOCKED_TRANSACTION' => VaultedChargeFailure::Declined,
     ];
 
     public function resolveFromIssues(array $issues): VaultedChargeFailure

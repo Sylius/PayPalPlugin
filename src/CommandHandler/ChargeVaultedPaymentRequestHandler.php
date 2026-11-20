@@ -32,9 +32,9 @@ use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapperInterface;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
-use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Resolver\VaultedChargeFailureResolverInterface;
 
 final class ChargeVaultedPaymentRequestHandler
@@ -78,32 +78,33 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         if (BasePaymentInterface::STATE_NEW !== $payment->getState()) {
-            $paymentRequest->setResponseData([self::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted wallet is not charged again.', $payment->getState())]);
+            $paymentRequest->setResponseData([self::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted payment source is not charged again.', $payment->getState())]);
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
+
+            return;
+        }
+
+        $payload = $paymentRequest->getPayload();
+        $credential = is_array($payload) ? PayPalVaultedCredential::fromArray($payload) : null;
+        if (null === $credential) {
+            $this->failWith($paymentRequest, $payment, 'The payment request names no vaulted PayPal payment source to charge.', VaultedChargeFailure::CredentialInvalid);
 
             return;
         }
 
         $details = PayPalPaymentDetails::fromPayment($payment);
 
-        $vaultId = $details->vaultId();
-        if (null === $vaultId || '' === $vaultId) {
-            $this->failWith($paymentRequest, $payment, 'The payment carries no vaulted PayPal wallet.', VaultedChargeFailure::CredentialInvalid);
-
-            return;
-        }
-
         $referenceId = (string) $paymentRequest->getId();
 
         try {
-            $payPalOrder = $this->chargeVaultedOrderApi->charge($payment, $vaultId, $referenceId, $referenceId);
+            $payPalOrder = $this->chargeVaultedOrderApi->charge($payment, $credential, $referenceId, $referenceId);
         } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
             throw $exception;
         } catch (PayPalApiException $exception) {
             $this->failWith(
                 $paymentRequest,
                 $payment,
-                'PayPal refused to charge the vaulted wallet.',
+                'PayPal refused to charge the vaulted payment source.',
                 $this->failureResolver->resolveFromIssues($exception->getIssues()),
                 $exception->getIssues(),
             );
@@ -112,11 +113,12 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         $payment->setDetails($details
+            ->withVaultId($credential->vaultId())
             ->withStatus(PayPalPaymentStatus::Processing)
             ->withPayPalOrderId((string) ($payPalOrder['id'] ?? ''))
             ->withReferenceId($referenceId)
             ->withAmount((int) $payment->getAmount())
-            ->withPaymentSource(PayPalPaymentSourceProviderInterface::PAYPAL)
+            ->withPaymentSource($credential->paymentSource())
             ->toArray());
 
         $capture = PayPalCapture::fromPayPalOrder($payPalOrder);

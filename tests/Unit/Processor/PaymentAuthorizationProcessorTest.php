@@ -99,6 +99,82 @@ final class PaymentAuthorizationProcessorTest extends TestCase
         self::assertEquals((new PayPalOrderDetailsMapper())->map(self::ORDER_DETAILS), $this->processor->authorize($this->payment));
     }
 
+    public function test_it_records_the_vault_paypal_returned_in_the_authorization_response(): void
+    {
+        $this->authorizeOrderApi->method('authorize')->willReturn(self::ORDER_DETAILS + [
+            'payment_source' => ['paypal' => [
+                'email_address' => 'buyer@example.com',
+                'attributes' => ['vault' => ['id' => 'j7hzkgdn', 'status' => 'VAULTED', 'customer' => ['id' => '163456532']]],
+            ]],
+        ]);
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'AUTHORIZED',
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'card',
+            'authorization_id' => 'AUTHORIZATION_ID',
+            'authorization_status' => 'CREATED',
+            'vault_id' => 'j7hzkgdn',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => '163456532',
+            'payer_email' => 'buyer@example.com',
+        ]);
+
+        $this->processor->authorize($this->payment);
+    }
+
+    public function test_it_reads_the_vault_from_the_order_when_the_authorization_response_did_not_carry_it(): void
+    {
+        $this->authorizeOrderApi->method('authorize')->willThrowException(new PayPalApiServerException('POST', 'v2/checkout/orders/123123/authorize', 503));
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS + [
+            'payment_source' => ['paypal' => ['attributes' => ['vault' => ['status' => 'APPROVED', 'customer' => ['id' => '163456532']]]]],
+        ]);
+        $this->payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'AUTHORIZED',
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'card',
+            'authorization_id' => 'AUTHORIZATION_ID',
+            'authorization_status' => 'CREATED',
+            'vault_status' => 'APPROVED',
+            'vault_customer_id' => '163456532',
+        ]);
+
+        $this->processor->authorize($this->payment);
+    }
+
+    public function test_it_keeps_the_token_a_webhook_recorded_when_the_authorization_reports_the_vault_without_it(): void
+    {
+        $payment = $this->createMock(PaymentInterface::class);
+        $payment->method('getMethod')->willReturn($this->paymentMethod);
+        $payment->method('getDetails')->willReturn(self::DETAILS + [
+            'vault_id' => 'j7hzkgdn',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => '163456532',
+            'payer_email' => 'buyer@example.com',
+        ]);
+
+        $this->authorizeOrderApi->method('authorize')->willReturn(self::ORDER_DETAILS + [
+            'payment_source' => ['paypal' => ['attributes' => ['vault' => ['status' => 'APPROVED', 'customer' => ['id' => '163456532']]]]],
+        ]);
+        $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
+        $payment->expects(self::once())->method('setDetails')->with([
+            'status' => 'AUTHORIZED',
+            'paypal_order_id' => '123123',
+            'reference_id' => 'REFERENCE_ID',
+            'payment_source' => 'card',
+            'vault_id' => 'j7hzkgdn',
+            'vault_status' => 'VAULTED',
+            'vault_customer_id' => '163456532',
+            'payer_email' => 'buyer@example.com',
+            'authorization_id' => 'AUTHORIZATION_ID',
+            'authorization_status' => 'CREATED',
+        ]);
+
+        $this->processor->authorize($payment);
+    }
+
     public function test_it_brings_the_approved_paypal_order_up_to_date_before_authorizing_it(): void
     {
         $this->paypalReadsTheApprovedOrderThen(self::ORDER_DETAILS);
