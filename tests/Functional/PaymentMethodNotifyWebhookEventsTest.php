@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalWebhookEventStatus;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Sylius\PayPalPlugin\Service\DummyRefundPaymentApi;
@@ -441,28 +442,25 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
         self::assertSame(PaymentRequestInterface::STATE_COMPLETED, $this->reloadPaymentRequest($paymentRequest)->getState());
     }
 
-    public function test_it_acknowledges_the_vault_payment_token_events_and_leaves_the_payment_alone(): void
+    public function test_it_stores_the_vault_of_a_created_payment_token_and_marks_it_deleted_once_the_token_is_deleted(): void
     {
         $order = $this->processingOrder();
 
-        foreach (['VAULT.PAYMENT-TOKEN.CREATED', 'VAULT.PAYMENT-TOKEN.DELETED'] as $index => $eventType) {
-            $this->notify([
-                'id' => 'WH-VAULT-' . $index,
-                'event_type' => $eventType,
-                'resource_type' => 'payment_token',
-                'resource' => [
-                    'id' => 'PAYMENT_TOKEN_ID',
-                    'customer' => ['id' => 'PAYPAL_CUSTOMER_ID'],
-                    'metadata' => ['order_id' => 'PAYPAL_ORDER_ID'],
-                    'payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']],
-                ],
-            ]);
+        $this->notifyAboutPaymentToken('WH-VAULT-CREATED', 'VAULT.PAYMENT-TOKEN.CREATED');
 
-            self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
-            self::assertNull($this->webhookEventStatus('WH-VAULT-' . $index));
-        }
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PayPalWebhookEventStatus::Processed->value, $this->webhookEventStatus('WH-VAULT-CREATED'));
+        $payment = $this->reloadPayment($order);
+        self::assertSame('PAYMENT_TOKEN_ID', PayPalPaymentDetails::fromPayment($payment)->vaultId());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $payment->getState());
 
-        self::assertSame(PaymentInterface::STATE_PROCESSING, $this->reloadPayment($order)->getState());
+        $this->notifyAboutPaymentToken('WH-VAULT-DELETED', 'VAULT.PAYMENT-TOKEN.DELETED');
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $this->client->getResponse()->getStatusCode());
+        self::assertSame(PayPalWebhookEventStatus::Processed->value, $this->webhookEventStatus('WH-VAULT-DELETED'));
+        $payment = $this->reloadPayment($order);
+        self::assertSame(PayPalPaymentDetails::VAULT_STATUS_DELETED, PayPalPaymentDetails::fromPayment($payment)->vaultStatus());
+        self::assertSame(PaymentInterface::STATE_PROCESSING, $payment->getState());
     }
 
     public function test_it_finds_the_payment_of_the_payment_request_an_event_names_without_loading_the_request(): void
@@ -477,6 +475,21 @@ final class PaymentMethodNotifyWebhookEventsTest extends JsonApiTestCase
 
         self::assertSame($paymentId, $payment->getId());
         self::assertSame([], $entityManager->getUnitOfWork()->getIdentityMap()[$paymentRequest::class] ?? []);
+    }
+
+    private function notifyAboutPaymentToken(string $eventId, string $eventType): void
+    {
+        $this->notify([
+            'id' => $eventId,
+            'event_type' => $eventType,
+            'resource_type' => 'payment_token',
+            'resource' => [
+                'id' => 'PAYMENT_TOKEN_ID',
+                'customer' => ['id' => 'PAYPAL_CUSTOMER_ID'],
+                'metadata' => ['order_id' => 'PAYPAL_ORDER_ID'],
+                'payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']],
+            ],
+        ]);
     }
 
     private function processingOrder(): OrderInterface

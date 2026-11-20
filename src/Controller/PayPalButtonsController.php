@@ -24,6 +24,7 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Provider\AvailableCountriesProviderInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,7 +44,17 @@ final readonly class PayPalButtonsController
         private PayPalPaymentMethodsResolverInterface $payPalPaymentMethodsResolver,
         private WebSdkConfigurationProviderInterface $webSdkConfigurationProvider,
         private CurrentPayPalLocaleProviderInterface $currentLocaleProvider,
+        private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function renderProductPageButtonsAction(Request $request): Response
@@ -100,8 +111,13 @@ final readonly class PayPalButtonsController
             /** @var OrderInterface $order */
             $order = $this->orderRepository->find($orderId);
 
+            if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+                return new Response('');
+            }
+
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $config->isVenmoEnabled();
+            $vaultRequired = $this->isVaultRequired($order, $paymentMethod);
+            $venmoEnabled = !$vaultRequired && $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_cart_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -121,7 +137,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $config->isPayLaterEnabled(),
+                'paylaterEnabled' => !$vaultRequired && $config->isPayLaterEnabled(),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -145,8 +161,13 @@ final readonly class PayPalButtonsController
             /** @var OrderInterface $order */
             $order = $this->orderRepository->find($orderId);
 
+            if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $paymentMethod)) {
+                return new Response('');
+            }
+
             $locale = $this->currentLocaleProvider->provide();
-            $venmoEnabled = $config->isVenmoEnabled();
+            $vaultRequired = $this->isVaultRequired($order, $paymentMethod);
+            $venmoEnabled = !$vaultRequired && $config->isVenmoEnabled();
 
             return new Response($this->twig->render('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', [
                 'available_countries' => $this->availableCountriesProvider->provide(),
@@ -169,7 +190,7 @@ final readonly class PayPalButtonsController
                     $this->getWebSdkComponents($venmoEnabled),
                     $locale,
                 ),
-                'paylaterEnabled' => $config->isPayLaterEnabled(),
+                'paylaterEnabled' => !$vaultRequired && $config->isPayLaterEnabled(),
                 'venmoEnabled' => $venmoEnabled,
             ]));
         } catch (\InvalidArgumentException $exception) {
@@ -207,5 +228,14 @@ final readonly class PayPalButtonsController
         $gatewayConfig = $paymentMethod->getGatewayConfig();
 
         return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
+    }
+
+    private function isVaultRequired(OrderInterface $order, PaymentMethodInterface $paymentMethod): bool
+    {
+        if (null === $this->vaultRequestProvider) {
+            return false;
+        }
+
+        return null !== $this->vaultRequestProvider->provide($order, $paymentMethod);
     }
 }

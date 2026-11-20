@@ -71,6 +71,11 @@ final readonly class OnboardingStatus
         return self::ACTIVE_CAPABILITY_STATUS === $this->capabilityStatus($capability);
     }
 
+    public function isVaultingEnabled(): bool
+    {
+        return $this->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED);
+    }
+
     public function capabilityStatus(string $capability): ?string
     {
         return $this->capabilityStatuses[strtoupper($capability)] ?? null;

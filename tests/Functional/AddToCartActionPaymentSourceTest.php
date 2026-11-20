@@ -53,6 +53,17 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
         self::assertMatchesRegularExpression('#/en_US/create-pay-pal-order-from-cart/\d+\?paymentSource=venmo$#', $location);
     }
 
+    public function test_it_passes_pay_later_on_to_the_create_order_request(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml']);
+        $this->enablePayLater($fixtures['paypal_config']);
+
+        $this->addMugToCart($fixtures['mug'], 'paylater');
+
+        $location = (string) $this->client->getResponse()->headers->get('Location');
+        self::assertMatchesRegularExpression('#/en_US/create-pay-pal-order-from-cart/\d+\?paymentSource=paylater$#', $location);
+    }
+
     public function test_it_keeps_the_cart_and_tells_the_customer_when_the_payment_source_is_not_available(): void
     {
         $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
@@ -102,6 +113,12 @@ final class AddToCartActionPaymentSourceTest extends JsonApiTestCase
     private function enableVenmo(GatewayConfigInterface $gatewayConfig): void
     {
         $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['venmo_enabled' => true]));
+        $this->getEntityManager()->flush();
+    }
+
+    private function enablePayLater(GatewayConfigInterface $gatewayConfig): void
+    {
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['pay_later_enabled' => true]));
         $this->getEntityManager()->flush();
     }
 
