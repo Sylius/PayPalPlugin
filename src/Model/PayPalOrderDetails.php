@@ -32,6 +32,7 @@ final readonly class PayPalOrderDetails
         private ?PayPalShipping $shipping = null,
         private ?Payer $payer = null,
         private array $refunds = [],
+        private ?PayPalVault $vault = null,
     ) {
     }
 
@@ -101,6 +102,11 @@ final readonly class PayPalOrderDetails
     public function paymentSource(): array
     {
         return $this->paymentSource;
+    }
+
+    public function vault(): ?PayPalVault
+    {
+        return $this->vault ?? PayPalVault::fromPaymentSource($this->paymentSource);
     }
 
     public function shipping(): ?PayPalShipping

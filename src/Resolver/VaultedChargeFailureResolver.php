@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Resolver;
 
 use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
 
 final readonly class VaultedChargeFailureResolver implements VaultedChargeFailureResolverInterface
@@ -54,13 +55,13 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
         return VaultedChargeFailure::Unknown;
     }
 
-    public function resolveFromPayPalOrder(array $payPalOrder): VaultedChargeFailure
+    public function resolveFromPayPalOrder(PayPalOrderDetails $payPalOrder): VaultedChargeFailure
     {
-        if (self::ORDER_STATUS_PAYER_ACTION_REQUIRED === ($payPalOrder['status'] ?? null)) {
+        if ($payPalOrder->isStatus(self::ORDER_STATUS_PAYER_ACTION_REQUIRED)) {
             return VaultedChargeFailure::PayerActionRequired;
         }
 
-        return match (PayPalCapture::fromPayPalOrder($payPalOrder)?->status()) {
+        return match ($payPalOrder->capture()?->status()) {
             PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED => VaultedChargeFailure::Declined,
             default => VaultedChargeFailure::Unknown,
         };

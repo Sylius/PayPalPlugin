@@ -122,17 +122,23 @@ final class ChargeVaultedPaymentRequestHandler
             return;
         }
 
-        $payment->setDetails($details
+        $orderDetails = $this->payPalOrderDetailsMapper->map($payPalOrder);
+
+        $details = $details
             ->withVaultId($credential->vaultId())
             ->withStatus(PayPalPaymentStatus::Processing)
-            ->withPayPalOrderId((string) ($payPalOrder['id'] ?? ''))
+        ;
+        if ('' !== $orderDetails->id()) {
+            $details = $details->withPayPalOrderId($orderDetails->id());
+        }
+        $payment->setDetails($details
             ->withReferenceId($referenceId)
             ->withAmount((int) $payment->getAmount())
             ->withPaymentSource($credential->paymentSource())
             ->toArray());
 
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
-        if (null === $capture && self::ORDER_STATUS_COMPLETED === ($payPalOrder['status'] ?? null)) {
+        $capture = $orderDetails->capture();
+        if (null === $capture && $orderDetails->isStatus(self::ORDER_STATUS_COMPLETED)) {
             $this->paymentSettlementProcessor->settle($payment);
             $this->awaitCapture($paymentRequest, $payment);
 
@@ -140,7 +146,7 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         if (null === $capture) {
-            $this->failWith($paymentRequest, $payment, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($payPalOrder));
+            $this->failWith($paymentRequest, $payment, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($orderDetails));
 
             return;
         }
@@ -150,11 +156,11 @@ final class ChargeVaultedPaymentRequestHandler
             $this->recordFailure(
                 $paymentRequest,
                 sprintf('PayPal reported the capture as %s.', $capture->status()),
-                $this->failureResolver->resolveFromPayPalOrder($payPalOrder),
+                $this->failureResolver->resolveFromPayPalOrder($orderDetails),
             );
         }
 
-        $this->paymentSettlementProcessor->settle($payment, $this->payPalOrderDetailsMapper->map($payPalOrder));
+        $this->paymentSettlementProcessor->settle($payment, $orderDetails);
 
         match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => $this->complete($paymentRequest),

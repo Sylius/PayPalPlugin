@@ -19,6 +19,7 @@ use Sylius\PayPalPlugin\Model\Payer;
 use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
 use Sylius\PayPalPlugin\Model\PayPalShipping;
+use Sylius\PayPalPlugin\Model\PayPalVault;
 
 final class PayPalOrderDetailsMapperTest extends TestCase
 {
@@ -114,6 +115,24 @@ final class PayPalOrderDetailsMapperTest extends TestCase
         self::assertNull($details->shipping());
         self::assertNull($details->payer());
         self::assertNull($details->phoneNumber());
+        self::assertNull($details->vault());
+    }
+
+    public function test_it_reads_the_vault_of_the_payment_source(): void
+    {
+        $details = $this->mapper->map(['id' => 'PAYPAL_ORDER_ID', 'payment_source' => ['paypal' => [
+            'email_address' => 'buyer@example.com',
+            'attributes' => ['vault' => ['id' => 'VAULT_ID', 'status' => 'VAULTED', 'customer' => ['id' => 'CUSTOMER_ID']]],
+        ]]]);
+
+        self::assertEquals(new PayPalVault('VAULTED', 'VAULT_ID', 'CUSTOMER_ID', 'buyer@example.com'), $details->vault());
+    }
+
+    public function test_it_reads_no_vault_from_a_payment_source_paypal_did_not_vault(): void
+    {
+        $details = $this->mapper->map(['id' => 'PAYPAL_ORDER_ID', 'payment_source' => ['paypal' => ['email_address' => 'buyer@example.com']]]);
+
+        self::assertNull($details->vault());
     }
 
     public function test_it_reads_no_selected_shipping_option_when_the_buyer_picked_none(): void

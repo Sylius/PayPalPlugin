@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Resolver;
 
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
 
 interface VaultedChargeFailureResolverInterface
@@ -20,6 +21,5 @@ interface VaultedChargeFailureResolverInterface
     /** @param array<string> $issues */
     public function resolveFromIssues(array $issues): VaultedChargeFailure;
 
-    /** @param array<string, mixed> $payPalOrder */
-    public function resolveFromPayPalOrder(array $payPalOrder): VaultedChargeFailure;
+    public function resolveFromPayPalOrder(PayPalOrderDetails $payPalOrder): VaultedChargeFailure;
 }
