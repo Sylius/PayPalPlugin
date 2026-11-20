@@ -56,10 +56,20 @@ final class CapturePayPalOrderPaymentRequestHandler
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private readonly EntityManagerInterface $paymentManager,
         private readonly EntityManagerInterface $paymentRequestManager,
-        private readonly MessageBusInterface $eventBus,
         StateMachineInterface $stateMachine,
+        private readonly ?MessageBusInterface $eventBus = null,
     ) {
         $this->stateMachine = $stateMachine;
+
+        if (null === $this->eventBus) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                MessageBusInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function __invoke(CapturePayPalOrderPaymentRequest $capturePayPalOrderPaymentRequest): void
@@ -140,7 +150,7 @@ final class CapturePayPalOrderPaymentRequestHandler
             return;
         }
 
-        $this->eventBus->dispatch(
+        $this->eventBus?->dispatch(
             new PayPalPaymentTokenCreated($payment->getId(), $vaultId),
             [new DispatchAfterCurrentBusStamp()],
         );
