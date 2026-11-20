@@ -1227,8 +1227,10 @@
 
    `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`) verifies the
    merchant integration status of the account, read from PayPal before the consent is offered (`verify()`) or returned
-   by the onboarding after it (`verifyStatus()`). It returns a `Sylius\PayPalPlugin\Model\PermissionsVerification`
-   whose `outcome()` is a `Sylius\PayPalPlugin\Model\PermissionsVerificationOutcome`:
+   by the onboarding after it (`verifyStatus()`). PayPal does not report the product, the secondary products and the
+   features, so `verify()` requires the consent without asking PayPal when the stored scope misses any of them or no
+   scope is stored. It returns a `Sylius\PayPalPlugin\Model\PermissionsVerification` whose `outcome()` is a
+   `Sylius\PayPalPlugin\Model\PermissionsVerificationOutcome`:
 
    - `UpToDate`: every capability of the current scope is `ACTIVE`, and the verifier stores the current scope in the
      payment method through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface`
@@ -1265,8 +1267,9 @@
    stored onboarding scope is the only record that they were asked for.
 
    A PayPal payment method onboarded before has a stored scope that misses them, so it gets the "PayPal permissions
-   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting. Its webhook misses the
-   `VAULT.PAYMENT-TOKEN.CREATED` and `VAULT.PAYMENT-TOKEN.DELETED` event types and is flagged out of date until
+   out of date" badge and alert, and "Update PayPal permissions" asks the seller to consent to vaulting, even when
+   PayPal already activated the vaulting capability of the account. Its webhook misses the `VAULT.PAYMENT-TOKEN.CREATED`
+   and `VAULT.PAYMENT-TOKEN.DELETED` event types and is flagged out of date until
    `sylius-paypal:register-webhook-event-types` runs or "Update webhook" is used.
 
 1. #### The PayPal payment method can authorize payments and capture them later.

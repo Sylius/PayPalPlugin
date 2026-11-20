@@ -45,6 +45,7 @@ final class PermissionsVerificationTest extends JsonApiTestCase
         ]);
         $this->paymentMethod = $fixtures['paypal'];
         $this->admin = $fixtures['admin'];
+        $this->storeScope(self::scopeConsentedBeforeVaultingWasActive());
     }
 
     public function test_it_stores_the_current_scope_without_a_consent_when_every_capability_is_active(): void
@@ -76,7 +77,25 @@ final class PermissionsVerificationTest extends JsonApiTestCase
         self::assertStringContainsString('data-test-paypal-permissions-verification="awaiting_paypal"', $rendered);
         self::assertStringContainsString('GOOGLE_PAY: NEED_DATA', $rendered);
         self::assertStringNotContainsString('data-paypal-button', $rendered);
-        self::assertNull($this->onboardingScope());
+        self::assertEquals(self::scopeConsentedBeforeVaultingWasActive(), $this->onboardingScope());
+    }
+
+    public function test_it_offers_the_consent_for_the_features_paypal_does_not_report_even_with_every_capability_active(): void
+    {
+        $scopeOnboardedBeforeVaulting = new OnboardingScope(
+            OnboardingScope::PRODUCT_PPCP,
+            [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
+            [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
+            [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND, OnboardingScope::FEATURE_ACCESS_MERCHANT_INFORMATION],
+        );
+        $this->storeScope($scopeOnboardedBeforeVaulting);
+
+        $rendered = (string) $this->permissionsModal()->call('loadOnboardingUrl')->render();
+
+        self::assertStringNotContainsString('data-test-paypal-permissions-verification', $rendered);
+        self::assertStringContainsString('data-paypal-button', $rendered);
+        $this->getEntityManager()->refresh($this->paymentMethod);
+        self::assertEquals($scopeOnboardedBeforeVaulting, $this->onboardingScope());
     }
 
     public function test_it_offers_the_consent_to_an_account_the_configured_partner_does_not_know(): void
@@ -145,5 +164,25 @@ final class PermissionsVerificationTest extends JsonApiTestCase
         $scope = $gatewayConfig->getConfig()['onboarding_scope'] ?? null;
 
         return is_array($scope) ? OnboardingScope::fromArray($scope) : null;
+    }
+
+    private static function scopeConsentedBeforeVaultingWasActive(): OnboardingScope
+    {
+        $current = OnboardingScope::current();
+
+        return new OnboardingScope(
+            $current->product(),
+            $current->secondaryProducts(),
+            [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
+            $current->features(),
+        );
+    }
+
+    private function storeScope(OnboardingScope $scope): void
+    {
+        $gatewayConfig = $this->paymentMethod->getGatewayConfig();
+        self::assertNotNull($gatewayConfig);
+        $gatewayConfig->setConfig(array_merge($gatewayConfig->getConfig(), ['onboarding_scope' => $scope->toArray()]));
+        $this->getEntityManager()->flush();
     }
 }
