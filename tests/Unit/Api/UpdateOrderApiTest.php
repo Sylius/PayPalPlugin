@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApi;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -31,6 +32,8 @@ final class UpdateOrderApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private PaymentReferenceNumberProviderInterface&MockObject $paymentReferenceNumberProvider;
 
     private PayPalItemDataProviderInterface&MockObject $payPalItemsDataProvider;
@@ -41,13 +44,12 @@ final class UpdateOrderApiTest extends TestCase
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->paymentReferenceNumberProvider = $this->createMock(PaymentReferenceNumberProviderInterface::class);
         $this->payPalItemsDataProvider = $this->createMock(PayPalItemDataProviderInterface::class);
 
         $this->updateOrderApi = new UpdateOrderApi(
             $this->client,
-            $this->paymentReferenceNumberProvider,
-            $this->payPalItemsDataProvider,
             new PurchaseUnitFactory($this->paymentReferenceNumberProvider, $this->payPalItemsDataProvider),
         );
     }
@@ -99,8 +101,8 @@ final class UpdateOrderApiTest extends TestCase
             ->expects(self::once())
             ->method('patch')
             ->with(
+                $this->paymentMethod,
                 'v2/checkout/orders/ORDER-ID',
-                'TOKEN',
                 $this->callback(function (array $data): bool {
                     return
                         $data[0]['op'] === 'replace' &&
@@ -124,7 +126,7 @@ final class UpdateOrderApiTest extends TestCase
                 }),
             );
 
-        $this->updateOrderApi->update('TOKEN', 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');
+        $this->updateOrderApi->update($this->paymentMethod, 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');
     }
 
     #[Test]
@@ -162,8 +164,8 @@ final class UpdateOrderApiTest extends TestCase
             ->expects(self::once())
             ->method('patch')
             ->with(
+                $this->paymentMethod,
                 'v2/checkout/orders/ORDER-ID',
-                'TOKEN',
                 $this->callback(function (array $data): bool {
                     return
                         $data[0]['op'] === 'replace' &&
@@ -182,6 +184,6 @@ final class UpdateOrderApiTest extends TestCase
                 }),
             );
 
-        $this->updateOrderApi->update('TOKEN', 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');
+        $this->updateOrderApi->update($this->paymentMethod, 'ORDER-ID', $payment, 'REFERENCE-ID', 'MERCHANT-ID');
     }
 }

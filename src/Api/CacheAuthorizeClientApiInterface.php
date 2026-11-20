@@ -18,4 +18,6 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 interface CacheAuthorizeClientApiInterface
 {
     public function authorize(PaymentMethodInterface $paymentMethod): string;
+
+    public function invalidate(PaymentMethodInterface $paymentMethod): void;
 }

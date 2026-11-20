@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\PackageTracking\Api;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+
 interface AddTrackingApiInterface
 {
     /**
@@ -20,5 +22,5 @@ interface AddTrackingApiInterface
      *
      * @return array<string, mixed>
      */
-    public function add(string $token, string $orderId, array $body): array;
+    public function add(PaymentMethodInterface $paymentMethod, string $orderId, array $body): array;
 }

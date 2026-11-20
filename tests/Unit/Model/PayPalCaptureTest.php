@@ -66,6 +66,15 @@ final class PayPalCaptureTest extends TestCase
         }
     }
 
+    public function test_it_reads_a_capture_paypal_returns_on_its_own(): void
+    {
+        $capture = PayPalCapture::fromCapture(['id' => 'CAPTURE_ID', 'status' => 'PENDING']);
+
+        self::assertSame('CAPTURE_ID', $capture?->id());
+        self::assertSame('PENDING', $capture?->status());
+        self::assertNull(PayPalCapture::fromCapture([]));
+    }
+
     /**
      * @param array<string, mixed> $capture
      *

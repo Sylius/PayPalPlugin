@@ -21,17 +21,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
 {
-    public function __construct(
-        private ?UrlGeneratorInterface $urlGenerator = null,
-    ) {
-        if (null === $urlGenerator) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing a $urlGenerator to "%s" constructor is deprecated and will be prohibited in 3.0.',
-                self::class,
-            );
-        }
+    public function __construct(private UrlGeneratorInterface $urlGenerator)
+    {
     }
 
     public function create(
@@ -76,10 +67,6 @@ final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
 
     private function resolveProductUrl(?ProductInterface $product): ?string
     {
-        if (null === $this->urlGenerator) {
-            return null;
-        }
-
         $slug = $product?->getSlug();
         if (null === $slug || '' === $slug) {
             return null;

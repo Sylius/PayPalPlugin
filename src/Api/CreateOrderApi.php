@@ -14,61 +14,43 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Factory\PayPalOrderFactory;
 use Sylius\PayPalPlugin\Factory\PayPalOrderFactoryInterface;
-use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
-use Sylius\PayPalPlugin\Model\PayPalOrder;
-use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
 {
-    public const PAYPAL_INTENT_CAPTURE = PayPalOrder::INTENT_CAPTURE;
-
     public function __construct(
         private PayPalClientInterface $client,
-        private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        private PayPalItemDataProviderInterface $payPalItemDataProvider,
-        private ?PayPalOrderFactoryInterface $payPalOrderFactory = null,
+        private PayPalOrderFactoryInterface $payPalOrderFactory,
     ) {
-        if (null === $this->payPalOrderFactory) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $payPalOrderFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
     }
 
     public function create(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         PaymentInterface $payment,
         string $referenceId,
         string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
-        ?string $payerActionReturnNonce = null,
-        ?string $payerActionCancelNonce = null,
+        ?string $customId = null,
+        ?string $requestId = null,
+        ?string $returnUrl = null,
+        ?string $cancelUrl = null,
     ): array {
-        $payPalOrder = $this->getPayPalOrderFactory()->create(
+        $payPalOrder = $this->payPalOrderFactory->create(
             $payment,
             $referenceId,
             $paymentSource,
-            $payerActionReturnNonce,
-            $payerActionCancelNonce,
+            $customId,
+            $returnUrl,
+            $cancelUrl,
         );
 
-        return $this->client->post('v2/checkout/orders', $token, $payPalOrder->toArray());
-    }
-
-    private function getPayPalOrderFactory(): PayPalOrderFactoryInterface
-    {
-        return $this->payPalOrderFactory ?? new PayPalOrderFactory(
-            new PurchaseUnitFactory(
-                $this->paymentReferenceNumberProvider,
-                $this->payPalItemDataProvider,
-            ),
+        return $this->client->post(
+            $paymentMethod,
+            'v2/checkout/orders',
+            $payPalOrder->toArray(),
+            null === $requestId ? [] : ['PayPal-Request-Id' => $requestId],
         );
     }
 }

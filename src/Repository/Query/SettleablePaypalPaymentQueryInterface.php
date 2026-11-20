@@ -20,4 +20,10 @@ interface SettleablePaypalPaymentQueryInterface
 {
     /** @throws PaymentNotFoundException */
     public function getForSettlementByOrderId(string $paypalOrderId): PaymentInterface;
+
+    /** @throws PaymentNotFoundException */
+    public function getForSettlementByCaptureId(string $captureId): PaymentInterface;
+
+    /** @throws PaymentNotFoundException */
+    public function getByPaymentRequestHash(string $paymentRequestHash): PaymentInterface;
 }
