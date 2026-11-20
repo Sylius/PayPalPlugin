@@ -20,6 +20,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Command\AuthorizePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\Command\CapturePayPalOrderPaymentRequest;
 use Sylius\PayPalPlugin\CommandProvider\CaptureAuthorizationPaymentRequestCommandProvider;
@@ -41,6 +42,8 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
+    private PreUpgradePayPalOrderCheckerInterface&MockObject $preUpgradePayPalOrderChecker;
+
     private PaymentInterface&MockObject $payment;
 
     private CaptureApprovedOrderWebhookEventProcessor $processor;
@@ -52,6 +55,7 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         $this->paymentRequestCommandProvider = $this->createMock(PaymentRequestCommandProviderInterface::class);
         $this->commandBus = $this->createMock(MessageBusInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->preUpgradePayPalOrderChecker = $this->createMock(PreUpgradePayPalOrderCheckerInterface::class);
         $this->payment = $this->createMock(PaymentInterface::class);
         $this->payment->method('getState')->willReturn(BasePaymentInterface::STATE_PROCESSING);
 
@@ -60,6 +64,7 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
             $this->paymentRequestCommandProvider,
             $this->commandBus,
             $this->paymentSettlementProcessor,
+            $this->preUpgradePayPalOrderChecker,
         );
     }
 
@@ -157,6 +162,8 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
 
     public function test_it_settles_an_order_created_before_the_upgrade_to_3_0_once_the_buyer_approves_it(): void
     {
+        $this->preUpgradePayPalOrderChecker->method('isAwaitingPreUpgradePayPalOrder')->with($this->payment)->willReturn(true);
+
         $this->paymentRequestRepository->expects(self::never())->method('find');
         $this->commandBus->expects(self::never())->method('dispatch');
         $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, null, 'PAYPAL_ORDER_ID');
@@ -164,14 +171,24 @@ final class CaptureApprovedOrderWebhookEventProcessorTest extends TestCase
         $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->preUpgradeApprovedOrder(), $this->payment);
     }
 
-    public function test_it_does_not_settle_an_order_created_before_the_upgrade_to_3_0_for_a_payment_no_longer_processing(): void
+    public function test_it_settles_an_order_created_before_the_upgrade_to_3_0_whose_custom_id_is_a_uuid(): void
     {
-        $payment = $this->createStub(PaymentInterface::class);
-        $payment->method('getState')->willReturn(BasePaymentInterface::STATE_NEW);
+        $this->paymentRequestRepository->method('find')->with(self::HASH)->willReturn(null);
+        $this->preUpgradePayPalOrderChecker->method('isAwaitingPreUpgradePayPalOrder')->with($this->payment)->willReturn(true);
+
+        $this->commandBus->expects(self::never())->method('dispatch');
+        $this->paymentSettlementProcessor->expects(self::once())->method('settle')->with($this->payment, null, 'PAYPAL_ORDER_ID');
+
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->approvedOrder(), $this->payment);
+    }
+
+    public function test_it_does_not_settle_an_order_of_a_payment_not_awaiting_its_pre_upgrade_paypal_order(): void
+    {
+        $this->preUpgradePayPalOrderChecker->method('isAwaitingPreUpgradePayPalOrder')->with($this->payment)->willReturn(false);
 
         $this->paymentSettlementProcessor->expects(self::never())->method('settle');
 
-        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->preUpgradeApprovedOrder(), $payment);
+        $this->processor->process('CHECKOUT.ORDER.APPROVED', $this->preUpgradeApprovedOrder(), $this->payment);
     }
 
     public function test_it_does_not_settle_an_order_of_a_payment_request_no_longer_awaiting_it(): void

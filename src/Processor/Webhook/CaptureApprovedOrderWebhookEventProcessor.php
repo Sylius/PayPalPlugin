@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
+use Sylius\PayPalPlugin\Checker\PreUpgradePayPalOrderCheckerInterface;
 use Sylius\PayPalPlugin\Processor\PaymentSettlementProcessorInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
@@ -38,6 +39,7 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
         private PaymentRequestCommandProviderInterface $paymentRequestCommandProvider,
         private MessageBusInterface $commandBus,
         private PaymentSettlementProcessorInterface $paymentSettlementProcessor,
+        private PreUpgradePayPalOrderCheckerInterface $preUpgradePayPalOrderChecker,
     ) {
     }
 
@@ -64,29 +66,11 @@ final readonly class CaptureApprovedOrderWebhookEventProcessor implements Webhoo
     private function settlePreUpgradePayPalOrder(array $resource, PaymentInterface $payment): void
     {
         $payPalOrderId = $resource['id'] ?? null;
-        if (
-            !is_string($payPalOrderId) ||
-            BasePaymentInterface::STATE_PROCESSING !== $payment->getState() ||
-            $this->hasPaymentRequestCustomId($resource)
-        ) {
+        if (!is_string($payPalOrderId) || !$this->preUpgradePayPalOrderChecker->isAwaitingPreUpgradePayPalOrder($payment)) {
             return;
         }
 
         $this->paymentSettlementProcessor->settle($payment, null, $payPalOrderId);
-    }
-
-    /** @param array<string, mixed> $resource */
-    private function hasPaymentRequestCustomId(array $resource): bool
-    {
-        $purchaseUnits = $resource['purchase_units'] ?? [];
-        foreach (is_array($purchaseUnits) ? $purchaseUnits : [] as $purchaseUnit) {
-            $customId = is_array($purchaseUnit) ? ($purchaseUnit['custom_id'] ?? null) : null;
-            if (is_string($customId) && Uuid::isValid($customId)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /** @param array<string, mixed> $resource */

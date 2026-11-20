@@ -6,7 +6,6 @@ sylius:
 sylius_paypal:
     account_connected: 'Verbonden'
     account_not_enabled: 'Niet ingeschakeld'
-    add_paypal_account: 'PayPal-account toevoegen'
     always_on: 'Altijd aan'
     apple_pay: 'Apple Pay'
     apple_pay_description: 'Vereist ook domeinverificatie in je PayPal-account.'
@@ -75,7 +74,6 @@ sylius_paypal:
     cvv: 'CVV'
     debit_and_credit_cards: 'Debet- en creditcards'
     different_amount: 'Dit is de geautoriseerde prijs. Aangezien u de bestelling na autorisatie heeft gewijzigd, betaalt u het bedrag dat wordt weergegeven als Totaal'
-    enable_paypal: 'PayPal inschakelen'
     enable_paypal_production: 'Productie'
     enable_paypal_sandbox: 'Sandbox'
     expiration_date: 'Vervaldatum'

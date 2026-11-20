@@ -50,8 +50,6 @@ final class UpdateOrderApiTest extends TestCase
 
         $this->updateOrderApi = new UpdateOrderApi(
             $this->client,
-            $this->paymentReferenceNumberProvider,
-            $this->payPalItemsDataProvider,
             new PurchaseUnitFactory($this->paymentReferenceNumberProvider, $this->payPalItemsDataProvider),
         );
     }

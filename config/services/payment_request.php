@@ -378,6 +378,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius.command_provider.payment_request.default'),
             service('sylius.payment_request.command_bus'),
             service('sylius_paypal.processor.payment_settlement'),
+            service('sylius_paypal.checker.pre_upgrade_paypal_order'),
         ])
         ->tag('sylius_paypal.webhook_event_processor', ['event_type' => CaptureApprovedOrderWebhookEventProcessor::EVENT_TYPE]);
 

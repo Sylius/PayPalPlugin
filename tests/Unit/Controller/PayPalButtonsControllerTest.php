@@ -381,27 +381,6 @@ final class PayPalButtonsControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_the_current_locale_itself_when_no_locale_provider_is_passed(): void
-    {
-        $this->twig->method('render')->willReturn('');
-
-        $controller = new PayPalButtonsController(
-            $this->twig,
-            $this->router,
-            $this->channelContext,
-            $this->localeContext,
-            $this->orderRepository,
-            $this->availableCountriesProvider,
-            $this->localeProcessor,
-            $this->payPalPaymentMethodsResolver,
-            $this->webSdkConfigurationProvider,
-        );
-        $controller->renderProductPageButtonsAction(Request::create('/'));
-
-        self::assertSame('pl_PL', $this->capturedInstanceConfigArgs[3]);
-    }
-
-    #[Test]
     public function it_passes_the_current_locale_rather_than_the_order_one_to_the_web_sdk_instance_config_on_the_cart_page(): void
     {
         $order = $this->createMock(OrderInterface::class);
@@ -455,22 +434,16 @@ final class PayPalButtonsControllerTest extends TestCase
         self::assertNull($this->capturedInstanceConfigArgs[3]);
     }
 
-    public function test_it_renders_no_product_or_cart_buttons_when_express_checkout_is_disabled(): void
+    public function test_it_renders_no_product_cart_or_payment_page_buttons_when_express_checkout_is_disabled(): void
     {
         $this->channelPaymentMethods = [$this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'express_checkout_enabled' => false])];
+        $this->orderRepository->expects(self::never())->method('find');
+        $this->localeContext->expects(self::never())->method('getLocaleCode');
         $this->twig->expects(self::never())->method('render');
 
         self::assertSame('', $this->controller->renderProductPageButtonsAction(Request::create('/'))->getContent());
         self::assertSame('', $this->controller->renderCartPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]))->getContent());
-    }
-
-    public function test_it_still_renders_the_payment_page_buttons_when_express_checkout_is_disabled(): void
-    {
-        $this->channelPaymentMethods = [$this->payPalMethod('PAYPAL', ['client_id' => 'CLIENT_ID', 'partner_attribution_id' => 'BN', 'express_checkout_enabled' => false])];
-        $this->orderRepository->method('find')->willReturn($this->order(3000));
-        $this->twig->method('render')->with('@SyliusPayPalPlugin/pay_from_payment_page.html.twig', self::isType('array'))->willReturn('<buttons>');
-
-        self::assertSame('<buttons>', $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]))->getContent());
+        self::assertSame('', $this->controller->renderPaymentPageButtonsAction(Request::create('/', 'GET', ['orderId' => 1]))->getContent());
     }
 
     #[Test]
@@ -525,10 +498,8 @@ final class PayPalButtonsControllerTest extends TestCase
             $this->twig,
             $this->router,
             $this->channelContext,
-            $this->localeContext,
             $this->orderRepository,
             $this->availableCountriesProvider,
-            $this->localeProcessor,
             $this->payPalPaymentMethodsResolver,
             $this->webSdkConfigurationProvider,
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),

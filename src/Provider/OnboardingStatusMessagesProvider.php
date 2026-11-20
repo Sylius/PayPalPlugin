@@ -24,6 +24,23 @@ final readonly class OnboardingStatusMessagesProvider implements OnboardingStatu
 
     public function provide(OnboardingStatus $status, bool $sandbox = false): array
     {
+        $messages = $this->provideBlocking($status, $sandbox);
+
+        $vaultingCapabilityStatus = $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED);
+        if (null !== $vaultingCapabilityStatus && !$status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED)) {
+            $messages[] = [
+                'message' => 'sylius_paypal.seller_onboarding_vaulting_not_active',
+                'parameters' => [
+                    '%status%' => $vaultingCapabilityStatus,
+                ],
+            ];
+        }
+
+        return $messages;
+    }
+
+    public function provideBlocking(OnboardingStatus $status, bool $sandbox = false): array
+    {
         $messages = [];
 
         if (!$status->arePaymentsReceivable()) {
@@ -40,16 +57,6 @@ final readonly class OnboardingStatusMessagesProvider implements OnboardingStatu
                 'message' => 'sylius_paypal.seller_onboarding_primary_email_not_confirmed',
                 'parameters' => [
                     '%business_profile_url%' => $this->hostProvider->getWebUrlForMode($sandbox) . '/businessprofile/settings',
-                ],
-            ];
-        }
-
-        $vaultingCapabilityStatus = $status->capabilityStatus(Capability::PAYPAL_WALLET_VAULTING_ADVANCED);
-        if (null !== $vaultingCapabilityStatus && !$status->hasActiveCapability(Capability::PAYPAL_WALLET_VAULTING_ADVANCED)) {
-            $messages[] = [
-                'message' => self::VAULTING_NOT_ACTIVE_MESSAGE,
-                'parameters' => [
-                    '%status%' => $vaultingCapabilityStatus,
                 ],
             ];
         }

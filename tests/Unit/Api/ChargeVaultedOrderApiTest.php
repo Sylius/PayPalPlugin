@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 
 use PHPUnit\Framework\TestCase;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApi;
@@ -29,7 +28,6 @@ final class ChargeVaultedOrderApiTest extends TestCase
         $paymentMethod = $this->createStub(PaymentMethodInterface::class);
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getMethod')->willReturn($paymentMethod);
-        $payment->method('getOrder')->willReturn($this->createStub(OrderInterface::class));
 
         $purchaseUnit = $this->createStub(PayPalPurchaseUnit::class);
         $purchaseUnit->method('toArray')->willReturn(['reference_id' => 'REFERENCE_ID']);

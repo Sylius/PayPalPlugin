@@ -43,45 +43,12 @@ final readonly class CreatePayPalOrderFromCartAction
         private ObjectManager $paymentManager,
         private OrderProviderInterface $orderProvider,
         private CapturePaymentResolverInterface $capturePaymentResolver,
-        private ?OrderPaymentsRemoverInterface $orderPaymentsRemover = null,
-        private ?OrderProcessorInterface $orderProcessor = null,
-        private ?PayPalPaymentMethodsResolverInterface $payPalMethodsResolver = null,
-        private ?OrderOwnershipVerifierInterface $orderOwnershipVerifier = null,
+        private OrderPaymentsRemoverInterface $orderPaymentsRemover,
+        private OrderProcessorInterface $orderProcessor,
+        private PayPalPaymentMethodsResolverInterface $payPalMethodsResolver,
+        private OrderOwnershipVerifierInterface $orderOwnershipVerifier,
         private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
-        if (null === $this->orderPaymentsRemover) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                'Not passing an $orderPaymentsRemover to %s constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->orderProcessor) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.6',
-                'Not passing an $orderProcessor to %s constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->payPalMethodsResolver) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '1.7',
-                'Not passing a $payPalMethodsResolver to %s constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
-        if (null === $this->orderOwnershipVerifier) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing an instance of "%s" to %s constructor is deprecated and will be required in 3.0.',
-                OrderOwnershipVerifierInterface::class,
-                self::class,
-            );
-        }
         if (null === $this->vaultRequestProvider) {
             trigger_deprecation(
                 'sylius/paypal-plugin',
@@ -97,12 +64,6 @@ final readonly class CreatePayPalOrderFromCartAction
     {
         $id = $request->attributes->getInt('id');
         $order = $this->orderProvider->provideOrderById($id);
-        if (null === $this->orderOwnershipVerifier) {
-            throw new \RuntimeException(sprintf(
-                'An instance of "%s" is required to verify order ownership.',
-                OrderOwnershipVerifierInterface::class,
-            ));
-        }
         $this->orderOwnershipVerifier->verify($order, $request);
 
         try {
@@ -115,7 +76,7 @@ final readonly class CreatePayPalOrderFromCartAction
             return new JsonResponse([], Response::HTTP_BAD_REQUEST);
         }
 
-        if (!$this->isExpressCheckoutEnabled($request, $paymentMethod)) {
+        if (!$this->isExpressCheckoutEnabled($paymentMethod)) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.payment_source_not_available');
@@ -167,7 +128,6 @@ final readonly class CreatePayPalOrderFromCartAction
         return new JsonResponse([
             'id' => $order->getId(),
             'orderId' => $payPalOrderId,
-            'orderID' => $payPalOrderId, // BC with 2.1. Deprecated in 2.2; use "orderId" instead.
             'status' => $payment->getState(),
         ]);
     }
@@ -188,10 +148,6 @@ final readonly class CreatePayPalOrderFromCartAction
             return $payment;
         }
 
-        if ($this->orderPaymentsRemover === null || $this->orderProcessor === null) {
-            throw new \DomainException('OrderPaymentsRemover and OrderProcessor must be provided to create a new payment.');
-        }
-
         $this->orderPaymentsRemover->removePayments($order);
         $this->orderProcessor->process($order);
 
@@ -206,7 +162,7 @@ final readonly class CreatePayPalOrderFromCartAction
     private function channelPayPalMethod(OrderInterface $order, string $code): ?PaymentMethodInterface
     {
         $channel = $order->getChannel();
-        if (null === $channel || null === $this->payPalMethodsResolver) {
+        if (null === $channel) {
             return null;
         }
 
@@ -264,12 +220,8 @@ final readonly class CreatePayPalOrderFromCartAction
         return PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->isVenmoEnabled();
     }
 
-    private function isExpressCheckoutEnabled(Request $request, ?PaymentMethodInterface $paymentMethod): bool
+    private function isExpressCheckoutEnabled(?PaymentMethodInterface $paymentMethod): bool
     {
-        if ('' !== $request->query->getString('paymentMethod')) {
-            return true;
-        }
-
         $gatewayConfig = $paymentMethod?->getGatewayConfig();
         if (null === $gatewayConfig) {
             return true;

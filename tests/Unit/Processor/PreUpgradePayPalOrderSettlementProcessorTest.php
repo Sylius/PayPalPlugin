@@ -362,6 +362,66 @@ final class PreUpgradePayPalOrderSettlementProcessorTest extends TestCase
         $this->processor->settle($payment);
     }
 
+    public function test_it_cancels_the_payment_once_the_order_the_buyer_never_approved_has_outlived_its_lifetime(): void
+    {
+        $payment = $this->payment(updatedAt: '2026-11-09 12:00:00');
+        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'PAYER_ACTION_REQUIRED']));
+        $this->stateMachine->method('can')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)->willReturn(true);
+
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->decoratedProcessor->expects(self::never())->method('settle');
+
+        $this->processor->settle($payment);
+    }
+
+    public function test_it_cancels_the_payment_once_paypal_keeps_refusing_to_capture_an_order_that_has_outlived_its_lifetime(): void
+    {
+        $payment = $this->payment(updatedAt: '2026-11-09 12:00:00');
+        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'APPROVED']));
+        $this->completeOrderApi
+            ->method('complete')
+            ->willThrowException(new PayPalApiRequestException('POST', 'v2/checkout/orders/PAYPAL_ORDER_ID/capture', 422, 'UNPROCESSABLE_ENTITY', issues: ['ORDER_EXPIRED']))
+        ;
+        $this->stateMachine->method('can')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)->willReturn(true);
+
+        $this->completeOrderApi->expects(self::once())->method('complete');
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
+        $this->connection->expects(self::never())->method('rollBack');
+        $this->decoratedProcessor->expects(self::never())->method('settle');
+
+        $this->processor->settle($payment);
+    }
+
+    public function test_it_cancels_the_payment_once_paypal_refuses_to_update_an_order_that_has_outlived_its_lifetime(): void
+    {
+        $payment = $this->payment(updatedAt: '2026-11-09 12:00:00');
+        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'APPROVED']));
+        $this->approvedPayPalOrderUpdater
+            ->method('update')
+            ->willThrowException(new PayPalApiRequestException('PATCH', 'v2/checkout/orders/PAYPAL_ORDER_ID', 422, 'UNPROCESSABLE_ENTITY', issues: ['ORDER_EXPIRED']))
+        ;
+        $this->stateMachine->method('can')->willReturn(true);
+
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
+
+        $this->processor->settle($payment);
+    }
+
+    public function test_it_still_captures_an_approved_order_that_has_outlived_its_lifetime(): void
+    {
+        $payment = $this->payment(updatedAt: '2026-11-09 12:00:00');
+        $capturedOrder = $this->order(['status' => 'COMPLETED', 'purchase_units' => [['payments' => ['captures' => [['id' => 'CAPTURE_ID', 'status' => 'COMPLETED']]]]]]);
+        $this->orderDetailsApi->method('get')->willReturnOnConsecutiveCalls($this->order(['status' => 'APPROVED']), $capturedOrder);
+
+        $this->completeOrderApi->expects(self::once())->method('complete');
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->decoratedProcessor->expects(self::once())->method('settle')->with($payment, $capturedOrder, 'PAYPAL_ORDER_ID');
+
+        $this->processor->settle($payment);
+    }
+
     public function test_it_leaves_a_payment_not_awaiting_an_order_created_before_the_upgrade_to_the_settlement(): void
     {
         $payment = $this->payment(awaitingPreUpgradePayPalOrder: false);

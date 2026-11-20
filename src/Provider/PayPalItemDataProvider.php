@@ -16,7 +16,6 @@ namespace Sylius\PayPalPlugin\Provider;
 use Doctrine\Common\Collections\Collection;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
-use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 
 final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInterface
@@ -25,22 +24,10 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
 
     public const CATEGORY_DIGITAL_GOODS = 'DIGITAL_GOODS';
 
-    private PayPalItemFactoryInterface $itemFactory;
-
     public function __construct(
         private OrderItemNonNeutralTaxesProviderInterface $orderItemNonNeutralTaxesProvider,
-        ?PayPalItemFactoryInterface $itemFactory = null,
+        private PayPalItemFactoryInterface $itemFactory,
     ) {
-        if (null === $itemFactory) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing a $itemFactory to "%s" constructor is deprecated and will be prohibited in 3.0.',
-                self::class,
-            );
-        }
-
-        $this->itemFactory = $itemFactory ?? new PayPalItemFactory();
     }
 
     public function provide(OrderInterface $order): array

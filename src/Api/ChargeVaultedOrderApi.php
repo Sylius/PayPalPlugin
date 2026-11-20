@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -39,11 +38,8 @@ final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInter
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
-        /** @var OrderInterface $order */
-        $order = $payment->getOrder();
 
         $payPalOrder = new PayPalOrder(
-            order: $order,
             payPalPurchaseUnit: $this->purchaseUnitFactory->create($payment, $referenceId, customId: $requestId),
             intent: PayPalOrder::INTENT_CAPTURE,
             paymentSource: [PayPalPaymentSourceProviderInterface::PAYPAL => [
