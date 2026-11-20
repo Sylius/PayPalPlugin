@@ -166,14 +166,14 @@ final readonly class AddToCartAction
 
         return match ($paymentSource) {
             PayPalPaymentSourceProviderInterface::VENMO => true === $gatewayConfig?->isVenmoEnabled(),
-            CreatePayPalOrderFromCartAction::PAY_LATER_BUTTON => true === $gatewayConfig?->isPayLaterEnabled(),
+            PayPalPaymentSourceProviderInterface::PAY_LATER => true === $gatewayConfig?->isPayLaterEnabled(),
             default => false,
         };
     }
 
     private function isWalletOnlyButtonRefused(Request $request, ?PayPalVaultRequirement $vaultRequirement): bool
     {
-        if (!in_array($request->query->get('paymentSource'), [PayPalPaymentSourceProviderInterface::VENMO, CreatePayPalOrderFromCartAction::PAY_LATER_BUTTON], true)) {
+        if (!in_array($request->query->get('paymentSource'), [PayPalPaymentSourceProviderInterface::VENMO, PayPalPaymentSourceProviderInterface::PAY_LATER], true)) {
             return false;
         }
 

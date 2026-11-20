@@ -38,8 +38,6 @@ use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 
 final readonly class CreatePayPalOrderFromCartAction
 {
-    public const PAY_LATER_BUTTON = 'paylater';
-
     public function __construct(
         private ObjectManager $paymentManager,
         private OrderProviderInterface $orderProvider,
@@ -231,7 +229,7 @@ final readonly class CreatePayPalOrderFromCartAction
         $paymentSource = $request->query->get('paymentSource');
 
         return
-            in_array($paymentSource, [PayPalPaymentSourceProviderInterface::VENMO, self::PAY_LATER_BUTTON], true) &&
+            in_array($paymentSource, [PayPalPaymentSourceProviderInterface::VENMO, PayPalPaymentSourceProviderInterface::PAY_LATER], true) &&
             null !== $vaultRequirement?->vaultRequest()
         ;
     }
@@ -241,7 +239,7 @@ final readonly class CreatePayPalOrderFromCartAction
         return match ($request->query->get('paymentSource', PayPalPaymentSourceProviderInterface::PAYPAL)) {
             PayPalPaymentSourceProviderInterface::PAYPAL => PayPalPaymentSourceProviderInterface::PAYPAL,
             PayPalPaymentSourceProviderInterface::VENMO => $this->isVenmoEnabled($paymentMethod) ? PayPalPaymentSourceProviderInterface::VENMO : null,
-            self::PAY_LATER_BUTTON => $this->isPayLaterEnabled($paymentMethod) ? PayPalPaymentSourceProviderInterface::PAYPAL : null,
+            PayPalPaymentSourceProviderInterface::PAY_LATER => $this->isPayLaterEnabled($paymentMethod) ? PayPalPaymentSourceProviderInterface::PAYPAL : null,
             default => null,
         };
     }
