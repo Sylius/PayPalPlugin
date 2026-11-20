@@ -103,6 +103,22 @@ final class ChargeVaultedPaymentRequestDispatcherTest extends TestCase
         self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('VAULT_ID')));
     }
 
+    public function test_it_stores_the_vaulted_card_and_the_transaction_that_first_charged_it_in_the_charge_request(): void
+    {
+        $paymentRequest = $this->paymentRequest(ChargeVaultedPaymentRequestCommandProvider::ACTION, 'CHARGE_REQUEST_HASH');
+        $this->paymentRequestRepository->method('findByPaymentIdAndStates')->willReturn([]);
+
+        $this->paymentRequestFactory->expects(self::once())->method('create')->with($this->payment, $this->paymentMethod)->willReturn($paymentRequest);
+        $paymentRequest->expects(self::once())->method('setPayload')->with([
+            'vault_id' => 'CARD_VAULT_ID',
+            'payment_source' => 'card',
+            'previous_transaction_reference' => 'FIRST_CAPTURE_ID',
+        ]);
+        $this->expectChargeDispatchedFor('CHARGE_REQUEST_HASH');
+
+        self::assertSame($paymentRequest, $this->dispatcher->dispatch($this->payment, new PayPalVaultedCredential('CARD_VAULT_ID', 'card', 'FIRST_CAPTURE_ID')));
+    }
+
     public function test_it_dispatches_the_open_charge_request_again_so_paypal_sees_the_same_request_id(): void
     {
         $paymentRequest = $this->paymentRequest(ChargeVaultedPaymentRequestCommandProvider::ACTION, 'OPEN_CHARGE_REQUEST_HASH');

@@ -32,9 +32,9 @@ final class PayPalVaultedCredentialTest extends TestCase
         self::assertTrue($credential->isCard());
     }
 
-    public function test_it_reads_the_authorization_as_the_previous_transaction_of_a_card_paypal_has_not_captured(): void
+    public function test_it_refers_a_card_to_no_previous_transaction_until_paypal_captures_the_first_payment(): void
     {
-        self::assertSame('AUTHORIZATION_ID', PayPalVaultedCredential::fromPaymentDetails(PayPalPaymentDetails::fromArray([
+        self::assertNull(PayPalVaultedCredential::fromPaymentDetails(PayPalPaymentDetails::fromArray([
             'vault_id' => 'CARD_VAULT_ID',
             'payment_source' => 'card',
             'authorization_id' => 'AUTHORIZATION_ID',
