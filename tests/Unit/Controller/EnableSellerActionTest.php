@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Controller;
 
-use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
@@ -53,8 +52,7 @@ final class EnableSellerActionTest extends TestCase
         );
     }
 
-    #[Test]
-    public function it_lists_only_the_reasons_blocking_the_payment_method_and_not_the_vaulting_status(): void
+    public function test_it_lists_only_the_reasons_blocking_the_payment_method_and_not_the_vaulting_status(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod());
         $this->paymentMethodEnabler
@@ -74,8 +72,7 @@ final class EnableSellerActionTest extends TestCase
         );
     }
 
-    #[Test]
-    public function it_tells_the_payment_method_was_not_enabled_when_only_vaulting_is_not_active(): void
+    public function test_it_tells_the_payment_method_was_not_enabled_when_only_vaulting_is_not_active(): void
     {
         $this->paymentMethodRepository->method('find')->willReturn($this->paymentMethod());
         $this->paymentMethodEnabler

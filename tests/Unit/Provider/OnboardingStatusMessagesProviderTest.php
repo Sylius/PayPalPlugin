@@ -116,4 +116,22 @@ final class OnboardingStatusMessagesProviderTest extends TestCase
             (new OnboardingStatusMessagesProvider(new HostProvider()))->provide(new OnboardingStatus(false, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'IN_REVIEW'])),
         );
     }
+
+    #[Test]
+    public function it_provides_only_the_blocking_messages_without_the_vaulting_one(): void
+    {
+        self::assertSame(
+            [[
+                'message' => 'sylius_paypal.seller_onboarding_payments_not_receivable',
+                'parameters' => ['%paypal_url%' => 'https://www.paypal.com'],
+            ]],
+            (new OnboardingStatusMessagesProvider(new HostProvider()))->provideBlocking(new OnboardingStatus(false, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'IN_REVIEW'])),
+        );
+    }
+
+    #[Test]
+    public function it_provides_no_blocking_messages_when_only_vaulting_is_not_active(): void
+    {
+        self::assertSame([], (new OnboardingStatusMessagesProvider(new HostProvider()))->provideBlocking(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA'])));
+    }
 }

@@ -6,7 +6,6 @@ sylius:
 sylius_paypal:
     account_connected: 'Połączone'
     account_not_enabled: 'Nieaktywne'
-    add_paypal_account: 'Dodaj konto PayPal'
     always_on: 'Zawsze włączone'
     apple_pay: 'Apple Pay'
     apple_pay_description: 'Wymaga też weryfikacji domeny w koncie PayPal.'
@@ -75,7 +74,6 @@ sylius_paypal:
     cvv: 'CVV'
     debit_and_credit_cards: 'Karty debetowe i kredytowe'
     different_amount: 'To jest kwota autoryzowana. Ponieważ zamówienie zmieniło się po autoryzacji, zapłacisz kwotę widoczną jako Razem'
-    enable_paypal: 'Włącz PayPal'
     enable_paypal_production: 'Produkcja'
     enable_paypal_sandbox: 'Sandbox'
     expiration_date: 'Data ważności'

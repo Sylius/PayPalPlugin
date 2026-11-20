@@ -47,11 +47,7 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set('sylius_paypal.controller.cancel_paypal_order', CancelPayPalOrderAction::class)
-        ->args([
-            null,
-            null,
-            service('request_stack'),
-        ]);
+        ->args([service('request_stack')]);
 
     $services->set('sylius_paypal.controller.enable_seller', EnableSellerAction::class)
         ->args([
@@ -105,10 +101,8 @@ return static function (ContainerConfigurator $container) {
             service('twig'),
             service('router'),
             service('sylius.context.channel'),
-            service('sylius.context.locale'),
             service('sylius.repository.order'),
             service('sylius_paypal.provider.available_countries'),
-            service('sylius_paypal.processor.locale'),
             service('sylius_paypal.resolver.paypal_payment_methods'),
             service('sylius_paypal.provider.web_sdk_configuration'),
             service('sylius_paypal.provider.current_paypal_locale'),

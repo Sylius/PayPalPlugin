@@ -17,8 +17,9 @@ use Sylius\PayPalPlugin\Model\OnboardingStatus;
 
 interface OnboardingStatusMessagesProviderInterface
 {
-    public const VAULTING_NOT_ACTIVE_MESSAGE = 'sylius_paypal.seller_onboarding_vaulting_not_active';
-
     /** @return array<string|array{message: string, parameters: array<string, string>}> */
     public function provide(OnboardingStatus $status, bool $sandbox = false): array;
+
+    /** @return array<string|array{message: string, parameters: array<string, string>}> */
+    public function provideBlocking(OnboardingStatus $status, bool $sandbox = false): array;
 }

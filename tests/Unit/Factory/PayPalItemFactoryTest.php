@@ -87,10 +87,10 @@ final class PayPalItemFactoryTest extends TestCase
     }
 
     #[Test]
-    public function it_omits_the_url_when_it_was_given_no_router(): void
+    public function it_omits_the_sku_description_and_url_it_has_no_data_for(): void
     {
         $product = $this->createMock(ProductInterface::class);
-        $product->method('getSlug')->willReturn('product-one');
+        $product->method('getSlug')->willReturn(null);
         $product->method('getShortDescription')->willReturn(null);
 
         $variant = $this->createMock(ProductVariantInterface::class);
@@ -101,7 +101,7 @@ final class PayPalItemFactoryTest extends TestCase
         $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
         $orderItem->method('getVariant')->willReturn($variant);
 
-        $item = (new PayPalItemFactory())->create($orderItem, 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray();
+        $item = $this->factory->create($orderItem, 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray();
 
         self::assertArrayNotHasKey('sku', $item);
         self::assertArrayNotHasKey('description', $item);

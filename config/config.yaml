@@ -18,7 +18,6 @@ sylius_grid:
         action:
             complete_payment: "@SyliusPayPalPlugin/admin/payment/grid/action/complete_payment.html.twig"
             create_payment_method: "@SyliusPayPalPlugin/admin/payment_method/grid/action/create.html.twig"
-            enable_paypal: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_paypal.html.twig"
             enable_seller: "@SyliusPayPalPlugin/admin/payment_method/grid/action/enable_seller.html.twig"
             ship_with_tracking_code: "@SyliusPayPalPlugin/admin/shipment/grid/action/ship_with_tracking_code.html.twig"
     grids:
@@ -40,10 +39,6 @@ sylius_grid:
                 item:
                     enable_seller:
                         type: enable_seller
-                main:
-                    enable_paypal:
-                        type: enable_paypal
-                        enabled: false
 
 monolog:
     channels: ['paypal']

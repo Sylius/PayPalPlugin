@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Controller\PayPalPaymentOnErrorAction;
 use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
@@ -64,6 +65,7 @@ final class PayPalPaymentOnErrorActionTest extends TestCase
             $this->stateMachine,
             $this->orderPaymentProcessor,
             $this->objectManager,
+            new PayerActionChecker(),
         );
     }
 
@@ -136,16 +138,6 @@ final class PayPalPaymentOnErrorActionTest extends TestCase
         $this->objectManager->expects(self::never())->method('flush');
 
         self::assertSame(Response::HTTP_OK, ($this->action)($this->request($this->payload()))->getStatusCode());
-    }
-
-    public function test_it_only_logs_when_the_cancelling_collaborators_are_missing(): void
-    {
-        $action = new PayPalPaymentOnErrorAction($this->requestStack, $this->logger);
-
-        $this->logger->expects(self::once())->method('error')->with('Something went wrong');
-        $this->objectManager->expects(self::never())->method('flush');
-
-        self::assertSame(Response::HTTP_OK, $action($this->request($this->payload()))->getStatusCode());
     }
 
     private function payload(): string

@@ -76,7 +76,8 @@ return static function (ContainerConfigurator $container) {
     $services = $container->services();
     $parameters = $container->parameters();
     $parameters->set('sylius_paypal.api.max_attempts', 3);
-    $parameters->set('sylius_paypal.webhook_base_url', '');
+    $parameters->set('env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL)', '');
+    $parameters->set('sylius_paypal.webhook_base_url', '%env(SYLIUS_PAYPAL_WEBHOOK_BASE_URL)%');
     $parameters->set('sylius_paypal.webhook_id_refresh_cooldown', 300);
     $parameters->set('sylius_paypal.webhook_event_retention_days', 30);
     $parameters->set('sylius_paypal.callback_certificate_lifetime', 86400);
@@ -182,8 +183,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.create_order', CreateOrderApi::class)
         ->args([
             service('sylius_paypal.client.paypal'),
-            service('sylius_paypal.provider.payment_reference_number'),
-            service('sylius_paypal.provider.paypal_item_data'),
             service('sylius_paypal.factory.paypal_order'),
         ]);
 
@@ -281,8 +280,6 @@ return static function (ContainerConfigurator $container) {
     $services->set('sylius_paypal.api.update_order', UpdateOrderApi::class)
         ->args([
             service('sylius_paypal.client.paypal'),
-            service('sylius_paypal.provider.payment_reference_number'),
-            service('sylius_paypal.provider.paypal_item_data'),
             service('sylius_paypal.factory.purchase_unit'),
         ]);
 

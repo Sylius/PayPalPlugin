@@ -199,15 +199,6 @@ final class ShippingCallbackActionTest extends TestCase
         self::assertUnprocessableWithIssue('ADDRESS_ERROR', $response);
     }
 
-    public function test_it_refuses_an_order_id_it_does_not_know(): void
-    {
-        $this->availableCountriesProvider->expects(self::never())->method('provideForChannel');
-
-        $response = ($this->action)($this->callbackRequest(['id' => 'UNKNOWN']));
-
-        self::assertUnprocessableWithIssue('ADDRESS_ERROR', $response);
-    }
-
     public function test_it_refuses_an_order_whose_payment_lookup_fails(): void
     {
         $paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
