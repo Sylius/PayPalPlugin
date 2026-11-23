@@ -19,6 +19,7 @@ sylius_paypal:
     card_number: 'Numer karty'
     card_three_d_secure_always: 'Zawsze żądaj 3D Secure'
     card_three_d_secure_always_help: 'Dodaj silniejsze uwierzytelnianie kart, aby przenieść odpowiedzialność za chargebacki z tytułu oszustw na wydawcę karty i spełnić wymagania silnego uwierzytelniania klienta (SCA). Może to jednak obniżyć konwersję.'
+    card_vault_consent: 'Płacąc kartą, zgadzasz się, że PayPal ją zapisze, a my będziemy ją automatycznie obciążać płatnościami cyklicznymi za to zamówienie, dopóki ich nie anulujesz.'
     cardholder_name: 'Imię i nazwisko posiadacza karty'
     cards: 'Karty'
     carrier:

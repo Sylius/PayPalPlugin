@@ -76,6 +76,12 @@
                 hidden
             >{{ 'sylius_paypal.card_fields_invalid'|trans }}</div>
 
+            {% if context.vaultRequired|default(false) %}
+                <p class="text-body-secondary small" {{ sylius_test_html_attribute('paypal-card-vault-consent') }}>
+                    {{ 'sylius_paypal.card_vault_consent'|trans }}
+                </p>
+            {% endif %}
+
             <div class="btn-list">
                 {{ buttons.submit('sylius_paypal.pay_with_card', 'paypal-pay-with-card', null, 'btn-primary') }}
                 {{ buttons.default(

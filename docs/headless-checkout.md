@@ -46,6 +46,7 @@ GET /api/v2/shop/orders/{tokenValue}/payments/{paymentId}/configuration
     "sandbox": false,
     "paymentSources": ["paypal", "card", "trustly"],
     "payLaterEnabled": true,
+    "vaultRequired": false,
     "messagingInstanceConfig": null
 }
 ```
@@ -53,7 +54,10 @@ GET /api/v2/shop/orders/{tokenValue}/payments/{paymentId}/configuration
 Load `webSdkScriptUrl`, create the SDK instance with `webSdkInstanceConfig` and render the payment sources listed in
 `paymentSources`: these are the `payment_source` values step 2 accepts for this payment, including the redirect payment
 sources the payer can use for the order's billing address. Show the Pay Later button when `payLaterEnabled` is true,
-and the Pay Later messages with `messagingInstanceConfig` when it is not `null`.
+and the Pay Later messages with `messagingInstanceConfig` when it is not `null`. When `vaultRequired` is true, the
+payment source is saved with PayPal and charged later without the payer, for example for the next cycles of a
+subscription: PayPal asks for this consent in its own window, but for card fields show the payer a notice that the card
+will be saved and charged automatically for the recurring payments until they cancel them.
 
 ## 2. Create the PayPal order
 
