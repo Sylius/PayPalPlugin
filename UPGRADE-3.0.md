@@ -510,14 +510,11 @@
 
    The `CacheAuthorizeClientApiInterface $authorizeClientApi` argument has been removed from the constructors of:
 
-   - `Sylius\PayPalPlugin\Creator\PayPalOrderCreator`
    - `Sylius\PayPalPlugin\PackageTracking\Processor\ShipmentTrackingProcessor`
-   - `Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor`
    - `Sylius\PayPalPlugin\Processor\PayPalPaymentSettlementProcessor`
    - `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider`
    - `Sylius\PayPalPlugin\Provider\WebhookIdProvider`
    - `Sylius\PayPalPlugin\Registrar\SellerWebhookEventTypesRegistrar`
-   - `Sylius\PayPalPlugin\Verifier\PaymentThreeDSecureVerifier`
    - `Sylius\PayPalPlugin\Verifier\WebhookRequestVerifier`
 
    `Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrar` has lost its first argument,
@@ -587,14 +584,6 @@
    before adding the unique index; the tokens are fetched again on the next request.
 
 1. #### A Payment Request captures its PayPal order and refunds its capture under a request id derived from the request.
-
-   ```diff
-    interface PaymentCaptureProcessorInterface
-    {
-   -    public function capture(PaymentInterface $payment): array;
-   +    public function capture(PaymentInterface $payment, ?string $requestId = null): array;
-    }
-   ```
 
    ```diff
     interface CompleteOrderApiInterface
@@ -857,10 +846,6 @@
    | `Sylius\PayPalPlugin\Payum\Action\CompleteOrderAction` (`sylius_paypal.payum.action.complete_order`) and `Sylius\PayPalPlugin\Payum\Request\CompleteOrder` | `Sylius\PayPalPlugin\CommandHandler\CapturePayPalOrderPaymentRequestHandler` |
    | `Sylius\PayPalPlugin\Payum\Action\StatusAction` | `Sylius\PayPalPlugin\CommandHandler\StatusPaymentRequestHandler` |
    | `Sylius\PayPalPlugin\Payum\Action\ResolveNextRouteAction` (`sylius_paypal.payum.action.resolve_next_route`) | `Sylius\PayPalPlugin\OrderPay\Provider\CaptureHttpResponseProvider` |
-   | `Sylius\PayPalPlugin\Form\Extension\GatewayConfigTypeExtension` (`sylius_paypal.form.extension.gateway_config`) | none, Sylius turns `use_payum` off for PayPal |
-
-   `PaymentAuthorizationChecker::isAuthorizeEnabled()` no longer treats a PayPal gateway config still on Payum as
-   capturing: `use_authorize` alone decides.
 
    `Sylius\PayPalPlugin\Resolver\CapturePaymentResolver` creates the PayPal order through
    `Sylius\PayPalPlugin\Creator\PayPalOrderCreatorInterface` (`sylius_paypal.creator.paypal_order`) instead of
@@ -1135,37 +1120,11 @@
    The edit page also shows the stored webhook URL next to the credentials, read-only, or "Not stored yet" when none
    is stored.
 
-1. #### `PaymentCaptureProcessor` brings the approved PayPal order up to date through `ApprovedPayPalOrderUpdater`.
-
-   Updating the amount and the shipping address of an approved PayPal order before it is completed moved to
-   `Sylius\PayPalPlugin\Updater\ApprovedPayPalOrderUpdaterInterface` (`sylius_paypal.updater.approved_paypal_order`),
-   and telling whether the payer has approved it to `Sylius\PayPalPlugin\Checker\ApprovedPayPalOrderCheckerInterface`
-   (`sylius_paypal.checker.approved_paypal_order`).
-
-   ```diff
-    // Sylius\PayPalPlugin\Processor\PaymentCaptureProcessor
-    public function __construct(
-   -    private UpdateOrderApiInterface $updateOrderApi,
-   -    private UpdateOrderAddressApiInterface $updateOrderAddressApi,
-   +    private ApprovedPayPalOrderCheckerInterface $approvedPayPalOrderChecker,
-   +    private ApprovedPayPalOrderUpdaterInterface $approvedPayPalOrderUpdater,
-        private CompleteOrderApiInterface $completeOrderApi,
-        private OrderDetailsApiInterface $orderDetailsApi,
-   -    private PaymentUpdaterInterface $paymentUpdater,
-   -    private StateResolverInterface $orderPaymentStateResolver,
-    ) {
-   ```
-
 1. #### A payment method that authorizes offers only the payment sources PayPal can authorize.
 
    `Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface` (`sylius_paypal.checker.payment_authorization`)
    tells whether a payment source is allowed by the payment method's capture strategy. The payment page hides the
    others, and the `cardEnabled` variable tells the card fields template whether to render.
-
-   ```diff
-    // Sylius\PayPalPlugin\Checker\PaymentSourceEnabledChecker
-   +public function __construct(private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker)
-   ```
 
    ```diff
     // Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider
