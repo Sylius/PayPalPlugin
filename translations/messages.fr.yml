@@ -130,7 +130,7 @@ sylius_paypal:
             pending: 'En attente'
             synced: 'Synchronisé'
     suggested: 'Suggéré'
-    suggested_payment_method_description: 'Acceptez les paiements PayPal, carte de crédit et carte de débit dans votre boutique.'
+    suggested_payment_method_description: 'Votre solution de paiement tout-en-un : PayPal, paiement en plusieurs fois, cartes bancaires, Apple Pay et bien plus. Démarrez rapidement.'
     tender_type: 'Remboursé sur le porte-monnaie PayPal'
     tender_type_original_payment_method: 'Remboursé sur le moyen de paiement d''origine'
     trustly: 'Trustly'

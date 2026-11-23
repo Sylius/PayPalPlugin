@@ -130,7 +130,7 @@ sylius_paypal:
             pending: 'Pending'
             synced: 'Synced'
     suggested: 'Suggested'
-    suggested_payment_method_description: 'Accept PayPal, credit and debit card payments in your store.'
+    suggested_payment_method_description: 'Your all-in-one checkout solution. Accept PayPal, Pay Later, credit and debit cards, Apple Pay and more. Get started in minutes.'
     tender_type: 'Refunded to the PayPal wallet'
     tender_type_original_payment_method: 'Refunded to the original payment method'
     trustly: 'Trustly'
