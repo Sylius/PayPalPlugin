@@ -1538,13 +1538,17 @@
    | `Sylius\PayPalPlugin\Provider\EligibleRedirectPaymentSourcesProvider` | lost `PayPalFundingSourcesConfigurationProviderInterface` |
    | `Sylius\PayPalPlugin\Controller\PayPalButtonsController` | lost `PayPalConfigurationProviderInterface`, `PayPalFundingSourcesConfigurationProviderInterface`, `LocaleContextInterface` and `LocaleProcessorInterface`; requires `PayPalPaymentMethodsResolverInterface`, `WebSdkConfigurationProviderInterface` and `CurrentPayPalLocaleProviderInterface`, and reads the configuration from the resolved payment method |
    | `Sylius\PayPalPlugin\Twig\PayPalExtension` | requires `PayPalPaymentMethodsResolverInterface` as its first argument, then `ChannelContextInterface`, `WebSdkConfigurationProviderInterface`, `PayerActionCheckerInterface` and `CurrentPayPalLocaleProviderInterface`; lost `PayPalFundingSourcesConfigurationProviderInterface` |
-   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface`; requires `OrderPaymentsRemoverInterface`, `OrderProcessorInterface`, `PayPalPaymentMethodsResolverInterface` and `OrderOwnershipVerifierInterface`; Venmo is checked on the PayPal payment method of the order |
-   | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; Venmo is checked on the PayPal payment method of the channel |
+   | `Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction` | lost `PayPalFundingSourcesConfigurationProviderInterface` and `ExpressCheckoutCheckerInterface`; requires `OrderPaymentsRemoverInterface`, `OrderProcessorInterface`, `PayPalPaymentMethodsResolverInterface` and `OrderOwnershipVerifierInterface`; Venmo is checked on the PayPal payment method of the order |
+   | `Sylius\PayPalPlugin\Controller\AddToCartAction` | requires `CartStorageInterface` and `PayPalPaymentMethodsResolverInterface` instead of `PayPalFundingSourcesConfigurationProviderInterface`; lost `ExpressCheckoutCheckerInterface`; Venmo is checked on the PayPal payment method of the channel |
 
    `Sylius\PayPalPlugin\Provider\PayPalConfigurationProvider` (`sylius_paypal.provider.paypal_configuration`),
    `Sylius\PayPalPlugin\Provider\PayPalConfigurationProviderInterface` and
    `Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface` have been removed; read the
    configuration of the payment method returned by `PayPalPaymentMethodsResolverInterface::getInChannel()` instead.
+
+   `Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker` and
+   `Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface` (`sylius_paypal.checker.express_checkout`) have been
+   removed; express checkout reads `express_checkout_enabled` from the gateway config of the PayPal payment method.
 
 1. #### A PayPal Payment Request created through the shop API is validated.
 
