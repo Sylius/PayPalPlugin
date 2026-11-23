@@ -25,6 +25,7 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 
 final readonly class CreateOrderApi implements CreateOrderApiInterface
 {
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public const PAYPAL_INTENT_CAPTURE = PayPalOrder::INTENT_CAPTURE;
 
     public function __construct(
