@@ -1,5 +1,6 @@
-{% if sylius_paypal_is_messaging_enabled() %}
-    {% set cart = hookable_metadata.context.resource %}
+{% set cart = hookable_metadata.context.resource|default(null) %}
+
+{% if sylius_paypal_is_messaging_enabled(null, cart) %}
 
     <paypal-message
         {{ stimulus_controller('@sylius/paypal-plugin/paypal-message', {

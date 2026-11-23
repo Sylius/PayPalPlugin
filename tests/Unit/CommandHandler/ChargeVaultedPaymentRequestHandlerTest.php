@@ -28,6 +28,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApiInterface;
+use Sylius\PayPalPlugin\Api\PaymentTokenApiInterface;
 use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
 use Sylius\PayPalPlugin\CommandHandler\ChargeVaultedPaymentRequestHandler;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
@@ -43,6 +44,8 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
     private PaymentRequestInterface&MockObject $paymentRequest;
 
     private ChargeVaultedOrderApiInterface&MockObject $chargeVaultedOrderApi;
+
+    private PaymentTokenApiInterface&MockObject $paymentTokenApi;
 
     private PaymentSettlementProcessorInterface&MockObject $paymentSettlementProcessor;
 
@@ -89,6 +92,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 
         $this->chargeVaultedOrderApi = $this->createMock(ChargeVaultedOrderApiInterface::class);
         $this->paymentSettlementProcessor = $this->createMock(PaymentSettlementProcessorInterface::class);
+        $this->paymentTokenApi = $this->createMock(PaymentTokenApiInterface::class);
 
         $this->paymentManager = $this->createMock(EntityManagerInterface::class);
         $this->paymentRequestManager = $this->createMock(EntityManagerInterface::class);
@@ -104,6 +108,7 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             $this->chargeVaultedOrderApi,
             $this->paymentSettlementProcessor,
             new VaultedChargeFailureResolver(),
+            $this->paymentTokenApi,
             new PayPalOrderDetailsMapper(),
             $this->paymentManager,
             $this->paymentRequestManager,
@@ -413,6 +418,68 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             'failure' => 'credential_invalid',
             'issues' => ['INVALID_VAULT_ID'],
         ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_tells_the_vaulted_wallet_is_no_longer_usable_when_paypal_denies_the_charge_of_a_token_it_does_not_know(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 403, 'NOT_AUTHORIZED', issues: ['PERMISSION_DENIED']),
+        );
+        $this->paymentTokenApi->expects(self::once())->method('exists')->with(self::isInstanceOf(PaymentMethodInterface::class), 'VAULT_ID')->willReturn(false);
+
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
+            'reason' => 'PayPal refused to charge the vaulted payment source.',
+            'failure' => 'credential_invalid',
+            'issues' => ['PERMISSION_DENIED'],
+        ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_keeps_a_denied_charge_retryable_when_paypal_still_knows_the_token(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 403, 'NOT_AUTHORIZED', issues: ['PERMISSION_DENIED']),
+        );
+        $this->paymentTokenApi->method('exists')->willReturn(true);
+
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
+            'reason' => 'PayPal refused to charge the vaulted payment source.',
+            'failure' => 'unknown',
+            'issues' => ['PERMISSION_DENIED'],
+        ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_keeps_a_denied_charge_retryable_when_the_token_cannot_be_looked_up(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 403, 'NOT_AUTHORIZED', issues: ['PERMISSION_DENIED']),
+        );
+        $this->paymentTokenApi->method('exists')->willThrowException(new PayPalApiConnectionException('GET', 'v3/vault/payment-tokens/VAULT_ID'));
+
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
+            'reason' => 'PayPal refused to charge the vaulted payment source.',
+            'failure' => 'unknown',
+            'issues' => ['PERMISSION_DENIED'],
+        ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_look_the_token_up_when_paypal_names_the_reason_of_the_refusal(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->chargeVaultedOrderApi->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INSTRUMENT_DECLINED']),
+        );
+        $this->paymentTokenApi->expects(self::never())->method('exists');
 
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
     }

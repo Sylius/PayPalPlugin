@@ -22,4 +22,9 @@ interface PaymentTokenApiInterface
      * @throws PayPalApiException
      */
     public function delete(PaymentMethodInterface $paymentMethod, string $vaultId): void;
+
+    /**
+     * @throws PayPalApiException
+     */
+    public function exists(PaymentMethodInterface $paymentMethod, string $vaultId): bool;
 }
