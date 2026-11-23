@@ -348,6 +348,11 @@ final readonly class PayPalPaymentDetails
         ], static fn (?string $value): bool => null !== $value));
     }
 
+    public function withVaultId(string $vaultId): self
+    {
+        return $this->with([self::VAULT_ID => $vaultId]);
+    }
+
     public function withVaultDeleted(): self
     {
         $details = $this->details;

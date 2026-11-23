@@ -41,6 +41,8 @@ final class ChargeVaultedPaymentRequestHandler
 {
     use FailPaymentRequestTrait;
 
+    public const PAYLOAD_VAULT_ID = 'vault_id';
+
     public const RESPONSE_ISSUES = 'issues';
 
     public const RESPONSE_FAILURE = 'failure';
@@ -84,14 +86,14 @@ final class ChargeVaultedPaymentRequestHandler
             return;
         }
 
-        $details = PayPalPaymentDetails::fromPayment($payment);
-
-        $vaultId = $details->vaultId();
-        if (null === $vaultId || '' === $vaultId) {
-            $this->failWith($paymentRequest, $payment, 'The payment carries no vaulted PayPal wallet.', VaultedChargeFailure::CredentialInvalid);
+        $vaultId = $this->vaultId($paymentRequest);
+        if (null === $vaultId) {
+            $this->failWith($paymentRequest, $payment, 'The payment request names no vaulted PayPal wallet to charge.', VaultedChargeFailure::CredentialInvalid);
 
             return;
         }
+
+        $details = PayPalPaymentDetails::fromPayment($payment);
 
         $referenceId = (string) $paymentRequest->getId();
 
@@ -112,6 +114,7 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         $payment->setDetails($details
+            ->withVaultId($vaultId)
             ->withStatus(PayPalPaymentStatus::Processing)
             ->withPayPalOrderId((string) ($payPalOrder['id'] ?? ''))
             ->withReferenceId($referenceId)
@@ -149,6 +152,14 @@ final class ChargeVaultedPaymentRequestHandler
             PayPalCapture::STATUS_PENDING => $this->awaitCapture($paymentRequest, $payment),
             default => $this->failPaymentRequest($paymentRequest),
         };
+    }
+
+    private function vaultId(PaymentRequestInterface $paymentRequest): ?string
+    {
+        $payload = $paymentRequest->getPayload();
+        $vaultId = is_array($payload) ? ($payload[self::PAYLOAD_VAULT_ID] ?? null) : null;
+
+        return is_string($vaultId) && '' !== $vaultId ? $vaultId : null;
     }
 
     private function awaitCapture(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): void

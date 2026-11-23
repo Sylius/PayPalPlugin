@@ -13,71 +13,82 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Checker;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Payment\Model\GatewayConfig;
-use Sylius\PayPalPlugin\Api\AuthorizeClientApiInterface;
-use Sylius\PayPalPlugin\Api\MerchantOnboardingStatusApiInterface;
+use Sylius\Component\Payment\Model\PaymentMethodInterface as BasePaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\VaultingCapabilityChecker;
-use Sylius\PayPalPlugin\Model\AccessToken;
+use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
-use Sylius\PayPalPlugin\Model\PartnerCredentials;
-use Sylius\PayPalPlugin\Provider\PartnerCredentialsProviderInterface;
+use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 
 final class VaultingCapabilityCheckerTest extends TestCase
 {
-    private MerchantOnboardingStatusApiInterface&MockObject $merchantOnboardingStatusApi;
+    private MerchantIntegrationStatusProviderInterface&MockObject $merchantIntegrationStatusProvider;
 
     private VaultingCapabilityChecker $checker;
 
     protected function setUp(): void
     {
-        $authorizeClientApi = $this->createStub(AuthorizeClientApiInterface::class);
-        $authorizeClientApi->method('authorize')->with('CLIENT-ID', 'SECRET', true)->willReturn(new AccessToken('SELLER-TOKEN', 32400));
-        $this->merchantOnboardingStatusApi = $this->createMock(MerchantOnboardingStatusApiInterface::class);
+        $this->merchantIntegrationStatusProvider = $this->createMock(MerchantIntegrationStatusProviderInterface::class);
 
-        $partnerCredentialsProvider = $this->createStub(PartnerCredentialsProviderInterface::class);
-        $partnerCredentialsProvider->method('provide')->willReturn(new PartnerCredentials('PARTNER-ID', 'PARTNER-CLIENT-ID'));
-
-        $this->checker = new VaultingCapabilityChecker($authorizeClientApi, $this->merchantOnboardingStatusApi, $partnerCredentialsProvider);
+        $this->checker = new VaultingCapabilityChecker($this->merchantIntegrationStatusProvider);
     }
 
     public function test_it_tells_vaulting_is_active_when_paypal_reports_the_capability_active(): void
     {
-        $this->merchantOnboardingStatusApi
+        $paymentMethod = $this->paymentMethod();
+
+        $this->merchantIntegrationStatusProvider
             ->expects(self::once())
-            ->method('get')
-            ->with('SELLER-TOKEN', 'PARTNER-ID', 'MERCHANT-ID', true)
+            ->method('provide')
+            ->with($paymentMethod)
             ->willReturn(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE']))
         ;
 
-        self::assertTrue($this->checker->isVaultingActive($this->paymentMethod()));
+        self::assertTrue($this->checker->isVaultingActive($paymentMethod));
     }
 
-    public function test_it_tells_vaulting_is_not_active_when_paypal_reports_another_status(): void
+    /** @return iterable<string, array{OnboardingStatus|null}> */
+    public static function statusesWithoutActiveVaulting(): iterable
     {
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA']));
+        yield 'capability not active yet' => [new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'NEED_DATA'])];
+        yield 'capability not reported' => [new OnboardingStatus(true, true, ['APPLE_PAY' => 'ACTIVE'])];
+        yield 'no merchant integration' => [null];
+    }
+
+    #[DataProvider('statusesWithoutActiveVaulting')]
+    public function test_it_tells_vaulting_is_not_active_when_paypal_does_not_report_the_capability_active(?OnboardingStatus $status): void
+    {
+        $this->merchantIntegrationStatusProvider->method('provide')->willReturn($status);
 
         self::assertFalse($this->checker->isVaultingActive($this->paymentMethod()));
     }
 
-    public function test_it_leaves_the_gateway_config_alone(): void
+    public function test_it_lets_an_unavailable_merchant_integration_status_through(): void
     {
-        $paymentMethod = $this->paymentMethod();
-        $config = $paymentMethod->getGatewayConfig()?->getConfig();
-        $this->merchantOnboardingStatusApi->method('get')->willReturn(new OnboardingStatus(true, true, ['PAYPAL_WALLET_VAULTING_ADVANCED' => 'ACTIVE']));
+        $exception = new MerchantIntegrationStatusUnavailableException('PAYPAL', new \RuntimeException('PayPal is down'));
+        $this->merchantIntegrationStatusProvider->method('provide')->willThrowException($exception);
 
-        $this->checker->isVaultingActive($paymentMethod);
+        $this->expectExceptionObject($exception);
 
-        self::assertSame($config, $paymentMethod->getGatewayConfig()?->getConfig());
+        $this->checker->isVaultingActive($this->paymentMethod());
     }
 
     public function test_it_tells_a_payment_method_without_a_gateway_cannot_vault(): void
     {
-        $this->merchantOnboardingStatusApi->expects(self::never())->method('get');
+        $this->merchantIntegrationStatusProvider->expects(self::never())->method('provide');
 
         self::assertFalse($this->checker->isVaultingActive(new PaymentMethod()));
+    }
+
+    public function test_it_tells_a_payment_method_outside_the_core_cannot_vault(): void
+    {
+        $this->merchantIntegrationStatusProvider->expects(self::never())->method('provide');
+
+        self::assertFalse($this->checker->isVaultingActive($this->createStub(BasePaymentMethodInterface::class)));
     }
 
     private function paymentMethod(): PaymentMethod
@@ -89,7 +100,6 @@ final class VaultingCapabilityCheckerTest extends TestCase
             'client_secret' => 'SECRET',
             'merchant_id' => 'MERCHANT-ID',
             'sandbox' => true,
-            'vaulting_enabled' => false,
         ]);
 
         $paymentMethod = new PaymentMethod();

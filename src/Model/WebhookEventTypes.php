@@ -29,7 +29,6 @@ final readonly class WebhookEventTypes
         'PAYMENT.AUTHORIZATION.VOIDED',
         'VAULT.PAYMENT-TOKEN.CREATED',
         'VAULT.PAYMENT-TOKEN.DELETED',
-        'CUSTOMER.MERCHANT-INTEGRATION.CAPABILITY-UPDATED',
     ];
 
     /** @param list<string> $names */
