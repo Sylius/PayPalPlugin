@@ -1333,6 +1333,10 @@
    An authorized payment moves on from three places: a Payment Request the shop dispatches, a webhook, or the
    `sylius-paypal:settle-payments` command, which picks up what PayPal does not report.
 
+   The default of the `sylius_paypal.repository.query.pay_pal_payment.settleable_states` parameter, the payment states
+   a webhook may settle, gains `authorized`, and `new`, as a PayPal payment stays `new` until its PayPal order is
+   captured.
+
 1. #### An authorized PayPal payment is captured from the admin panel through a Payment Request.
 
    The "Complete" button of an authorized PayPal payment and `PATCH /api/v2/admin/payments/{id}/paypal-capture`
