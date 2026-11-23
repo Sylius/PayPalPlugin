@@ -31,8 +31,18 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
     private const RESOURCE_TYPE_REFUND = 'refund';
 
     public function __construct(
-        private SettleablePaypalPaymentQueryInterface&VaultedPaypalPaymentQueryInterface $paypalPaymentQuery,
+        private SettleablePaypalPaymentQueryInterface $paypalPaymentQuery,
+        private ?VaultedPaypalPaymentQueryInterface $vaultedPaypalPaymentQuery = null,
     ) {
+        if (null === $this->vaultedPaypalPaymentQuery) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                VaultedPaypalPaymentQueryInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function resolve(PayPalWebhookEventNotification $notification): ?PaymentInterface
@@ -64,7 +74,7 @@ final readonly class WebhookEventPaymentResolver implements WebhookEventPaymentR
         }
 
         if (self::RESOURCE_TYPE_PAYMENT_TOKEN === $resourceType) {
-            return $this->paypalPaymentQuery->findByVaultId($notification->resourceId())[0] ?? null;
+            return $this->vaultedPaypalPaymentQuery?->findByVaultId($notification->resourceId())[0] ?? null;
         }
 
         return null;

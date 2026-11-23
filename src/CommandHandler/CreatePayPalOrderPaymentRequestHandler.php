@@ -104,7 +104,8 @@ final class CreatePayPalOrderPaymentRequestHandler
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
-        if (false === $this->vaultRequestProvider?->isVaultingRequirementMet($order, $payment->getMethod())) {
+        $vaultRequirement = $this->vaultRequestProvider?->provide($order, $payment->getMethod());
+        if (false === $vaultRequirement?->isMet()) {
             $this->failWithReason($paymentRequest, 'This payment needs a payment method saved for later charges, but the merchant cannot save payment methods with PayPal yet.');
 
             return;
@@ -112,7 +113,7 @@ final class CreatePayPalOrderPaymentRequestHandler
 
         if (
             !in_array($paymentSource, PayPalVaultedCredential::PAYMENT_SOURCES, true) &&
-            null !== $this->vaultRequestProvider?->provide($order, $payment->getMethod())
+            null !== $vaultRequirement?->vaultRequest()
         ) {
             $this->failWithReason($paymentRequest, 'This payment can be paid only with a PayPal wallet or a card, which PayPal saves for later charges.');
 

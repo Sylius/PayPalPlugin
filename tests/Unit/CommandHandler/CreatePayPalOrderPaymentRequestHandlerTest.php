@@ -31,6 +31,7 @@ use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\PayPalApiRequestException;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProvider;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 
@@ -267,9 +268,10 @@ final class CreatePayPalOrderPaymentRequestHandlerTest extends TestCase
     {
         $this->payment->method('getOrder')->willReturn($this->createStub(OrderInterface::class));
 
-        $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn($vaultingRequirementMet);
-        $vaultRequestProvider->method('provide')->willReturn($vaultingRequirementMet ? new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID) : null);
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('provide')->willReturn($vaultingRequirementMet
+            ? PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+            : PayPalVaultRequirement::unmet());
 
         return new CreatePayPalOrderPaymentRequestHandler(
             $this->paymentRequestProvider,

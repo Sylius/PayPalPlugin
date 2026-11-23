@@ -22,6 +22,8 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
@@ -52,6 +54,8 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
 
     private Payment $payment;
 
+    private string $factoryName = 'sylius_paypal';
+
     /** @var array<string, mixed> */
     private array $payload = ['vault_id' => 'VAULT_ID'];
 
@@ -71,6 +75,14 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         $this->paymentRequest->method('getId')->willReturn('PAYMENT_REQUEST_HASH');
         $this->paymentRequest->method('getPayload')->willReturnCallback(fn (): array => $this->payload);
         $this->paymentRequest->method('getPayment')->willReturn($this->payment);
+        $this->paymentRequest->method('getMethod')->willReturnCallback(function (): PaymentMethodInterface {
+            $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+            $gatewayConfig->method('getFactoryName')->willReturn($this->factoryName);
+            $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+            $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+            return $paymentMethod;
+        });
 
         $paymentRequestProvider = $this->createStub(PaymentRequestProviderInterface::class);
         $paymentRequestProvider->method('provide')->willReturn($this->paymentRequest);
@@ -142,6 +154,24 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
 
         self::assertSame(['lock payment', 'lock request', 'read request state'], $calls);
+    }
+
+    public function test_it_fails_only_the_request_without_charging_when_the_payment_method_is_not_paypal(): void
+    {
+        $this->factoryName = 'offline';
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+
+        $this->chargeVaultedOrderApi->expects(self::never())->method('charge');
+        $this->paymentRequest
+            ->expects(self::once())
+            ->method('setResponseData')
+            ->with([ChargeVaultedPaymentRequestHandler::RESPONSE_REASON => 'Payment method mismatch.'])
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL]], $this->appliedTransitions);
+        self::assertSame(PaymentInterface::STATE_NEW, $this->payment->getState());
     }
 
     #[DataProvider('provideNoLongerNewPaymentStates')]
@@ -260,6 +290,18 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
             [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
             [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
         ], $this->appliedTransitions);
+    }
+
+    public function test_it_does_not_store_an_empty_paypal_order_id_when_paypal_answered_without_one(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $payPalOrder = $this->payPalOrder('COMPLETED');
+        unset($payPalOrder['id']);
+        $this->chargeVaultedOrderApi->method('charge')->willReturn($payPalOrder);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertArrayNotHasKey('paypal_order_id', $this->payment->getDetails());
     }
 
     public function test_it_settles_from_the_order_details_when_paypal_completed_the_order_without_returning_the_capture(): void

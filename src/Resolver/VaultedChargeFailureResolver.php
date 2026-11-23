@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Resolver;
 
 use Sylius\PayPalPlugin\Model\PayPalCapture;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 use Sylius\PayPalPlugin\Model\VaultedChargeFailure;
+use Sylius\PayPalPlugin\Provider\PayPalOrderCreatedStatusesProvider;
 
 final readonly class VaultedChargeFailureResolver implements VaultedChargeFailureResolverInterface
 {
-    private const ORDER_STATUS_PAYER_ACTION_REQUIRED = 'PAYER_ACTION_REQUIRED';
-
     private const ISSUES = [
         'INVALID_VAULT_ID' => VaultedChargeFailure::CredentialInvalid,
         'PAYER_ACCOUNT_LOCKED_OR_CLOSED' => VaultedChargeFailure::CredentialInvalid,
@@ -54,13 +54,13 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
         return VaultedChargeFailure::Unknown;
     }
 
-    public function resolveFromPayPalOrder(array $payPalOrder): VaultedChargeFailure
+    public function resolveFromPayPalOrder(PayPalOrderDetails $payPalOrder): VaultedChargeFailure
     {
-        if (self::ORDER_STATUS_PAYER_ACTION_REQUIRED === ($payPalOrder['status'] ?? null)) {
+        if ($payPalOrder->isStatus(PayPalOrderCreatedStatusesProvider::STATUS_PAYER_ACTION_REQUIRED)) {
             return VaultedChargeFailure::PayerActionRequired;
         }
 
-        return match (PayPalCapture::fromPayPalOrder($payPalOrder)?->status()) {
+        return match ($payPalOrder->capture()?->status()) {
             PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED => VaultedChargeFailure::Declined,
             default => VaultedChargeFailure::Unknown,
         };

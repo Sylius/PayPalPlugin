@@ -19,6 +19,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Resolver\PaymentMethodsResolverInterface;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\VaultingAwarePaymentMethodsResolver;
 
@@ -39,8 +40,10 @@ final class VaultingAwarePaymentMethodsResolverTest extends TestCase
 
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider
-            ->method('isVaultingRequirementMet')
-            ->willReturnCallback(static fn (OrderInterface $givenOrder, PaymentMethodInterface $paymentMethod): bool => $givenOrder !== $order || $paymentMethod !== $payPalWithoutVaulting)
+            ->method('provide')
+            ->willReturnCallback(static fn (OrderInterface $givenOrder, PaymentMethodInterface $paymentMethod): PayPalVaultRequirement => $givenOrder !== $order || $paymentMethod !== $payPalWithoutVaulting
+                ? PayPalVaultRequirement::notRequired()
+                : PayPalVaultRequirement::unmet())
         ;
 
         self::assertSame(
@@ -57,7 +60,7 @@ final class VaultingAwarePaymentMethodsResolverTest extends TestCase
         $decoratedResolver->method('getSupportedMethods')->willReturn($paymentMethods);
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->expects(self::never())->method('isVaultingRequirementMet');
+        $vaultRequestProvider->expects(self::never())->method('provide');
 
         self::assertSame(
             $paymentMethods,

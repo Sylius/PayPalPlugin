@@ -26,8 +26,6 @@ final readonly class PaymentTokenCreatedWebhookEventProcessor implements Payload
 {
     public const EVENT_TYPE = 'VAULT.PAYMENT-TOKEN.CREATED';
 
-    private const STATUS_VAULTED = 'VAULTED';
-
     public function __construct(
         private EntityManagerInterface $paymentManager,
         private MessageBusInterface $eventBus,
@@ -50,7 +48,7 @@ final readonly class PaymentTokenCreatedWebhookEventProcessor implements Payload
 
         $customerId = $resource['customer']['id'] ?? null;
         $payment->setDetails($details->withVault(new PayPalVault(
-            self::STATUS_VAULTED,
+            PayPalVault::STATUS_VAULTED,
             $vaultId,
             is_string($customerId) ? $customerId : $details->vaultCustomerId(),
             $details->payerEmail(),

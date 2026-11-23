@@ -24,6 +24,7 @@ use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Resolver\CapturePaymentResolverInterface;
@@ -51,12 +52,11 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $payPalMethodsResolver->method('getInChannel')->with($channel)->willReturn([$payPalPaymentMethod]);
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn(true);
         $vaultRequestProvider
             ->expects(self::once())
             ->method('provide')
             ->with($order, $payPalPaymentMethod)
-            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+            ->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)))
         ;
 
         $capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
@@ -98,12 +98,11 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $payPalMethodsResolver->method('getInChannel')->with($channel)->willReturn([$payPalPaymentMethod]);
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->method('isVaultingRequirementMet')->willReturn(true);
         $vaultRequestProvider
             ->expects(self::once())
             ->method('provide')
             ->with($order, $payPalPaymentMethod)
-            ->willReturn(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID))
+            ->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)))
         ;
 
         $capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
@@ -146,9 +145,9 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider
             ->expects(self::once())
-            ->method('isVaultingRequirementMet')
+            ->method('provide')
             ->with($order, $payPalPaymentMethod)
-            ->willReturn(false)
+            ->willReturn(PayPalVaultRequirement::unmet())
         ;
 
         $capturePaymentResolver = $this->createMock(CapturePaymentResolverInterface::class);
@@ -192,7 +191,6 @@ final class CreatePayPalOrderFromCartActionTest extends TestCase
         $payPalMethodsResolver->method('getInChannel')->willReturn([$payPalPaymentMethod]);
 
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
-        $vaultRequestProvider->expects(self::never())->method('isVaultingRequirementMet');
         $vaultRequestProvider->expects(self::never())->method('provide');
 
         $action = new CreatePayPalOrderFromCartAction(

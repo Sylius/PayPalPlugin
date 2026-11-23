@@ -19,12 +19,14 @@ use Doctrine\ORM\Exception\ORMException;
 use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Bundle\PaymentBundle\Provider\PaymentRequestProviderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\PaymentInterface as BasePaymentInterface;
 use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApiInterface;
 use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
+use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
 use Sylius\PayPalPlugin\Exception\PayPalApiException;
 use Sylius\PayPalPlugin\Exception\PayPalApiServerException;
@@ -77,6 +79,14 @@ final class ChargeVaultedPaymentRequestHandler
             return;
         }
 
+        /** @var PaymentMethodInterface $paymentMethod */
+        $paymentMethod = $paymentRequest->getMethod();
+        if (SyliusPayPalExtension::PAYPAL_FACTORY_NAME !== $paymentMethod->getGatewayConfig()?->getFactoryName()) {
+            $this->failWithReason($paymentRequest, 'Payment method mismatch.');
+
+            return;
+        }
+
         if (BasePaymentInterface::STATE_NEW !== $payment->getState()) {
             $paymentRequest->setResponseData([self::RESPONSE_REASON => sprintf('The payment is already %s, so the vaulted payment source is not charged again.', $payment->getState())]);
             $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_CANCEL);
@@ -112,17 +122,23 @@ final class ChargeVaultedPaymentRequestHandler
             return;
         }
 
-        $payment->setDetails($details
+        $orderDetails = $this->payPalOrderDetailsMapper->map($payPalOrder);
+
+        $details = $details
             ->withVaultId($credential->vaultId())
             ->withStatus(PayPalPaymentStatus::Processing)
-            ->withPayPalOrderId((string) ($payPalOrder['id'] ?? ''))
+        ;
+        if ('' !== $orderDetails->id()) {
+            $details = $details->withPayPalOrderId($orderDetails->id());
+        }
+        $payment->setDetails($details
             ->withReferenceId($referenceId)
             ->withAmount((int) $payment->getAmount())
             ->withPaymentSource($credential->paymentSource())
             ->toArray());
 
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrder);
-        if (null === $capture && self::ORDER_STATUS_COMPLETED === ($payPalOrder['status'] ?? null)) {
+        $capture = $orderDetails->capture();
+        if (null === $capture && $orderDetails->isStatus(self::ORDER_STATUS_COMPLETED)) {
             $this->paymentSettlementProcessor->settle($payment);
             $this->awaitCapture($paymentRequest, $payment);
 
@@ -130,7 +146,7 @@ final class ChargeVaultedPaymentRequestHandler
         }
 
         if (null === $capture) {
-            $this->failWith($paymentRequest, $payment, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($payPalOrder));
+            $this->failWith($paymentRequest, $payment, 'PayPal did not capture the order.', $this->failureResolver->resolveFromPayPalOrder($orderDetails));
 
             return;
         }
@@ -140,11 +156,11 @@ final class ChargeVaultedPaymentRequestHandler
             $this->recordFailure(
                 $paymentRequest,
                 sprintf('PayPal reported the capture as %s.', $capture->status()),
-                $this->failureResolver->resolveFromPayPalOrder($payPalOrder),
+                $this->failureResolver->resolveFromPayPalOrder($orderDetails),
             );
         }
 
-        $this->paymentSettlementProcessor->settle($payment, $this->payPalOrderDetailsMapper->map($payPalOrder));
+        $this->paymentSettlementProcessor->settle($payment, $orderDetails);
 
         match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => $this->complete($paymentRequest),
