@@ -43,6 +43,28 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
         'PAYEE_BLOCKED_TRANSACTION' => VaultedChargeFailure::Declined,
     ];
 
+    private const PROCESSOR_RESPONSE_CODES = [
+        '0390' => VaultedChargeFailure::CredentialInvalid,
+        '1330' => VaultedChargeFailure::CredentialInvalid,
+        '1352' => VaultedChargeFailure::CredentialInvalid,
+        '1380' => VaultedChargeFailure::CredentialInvalid,
+        '5140' => VaultedChargeFailure::CredentialInvalid,
+        '5150' => VaultedChargeFailure::CredentialInvalid,
+        '5180' => VaultedChargeFailure::CredentialInvalid,
+        '5400' => VaultedChargeFailure::CredentialInvalid,
+        '9520' => VaultedChargeFailure::CredentialInvalid,
+        'PP06' => VaultedChargeFailure::CredentialInvalid,
+        'PPEF' => VaultedChargeFailure::CredentialInvalid,
+        'PPEX' => VaultedChargeFailure::CredentialInvalid,
+        'PPRN' => VaultedChargeFailure::CredentialInvalid,
+        '5650' => VaultedChargeFailure::PayerActionRequired,
+    ];
+
+    private const PAYMENT_ADVICE_CODES = [
+        '03' => VaultedChargeFailure::CredentialInvalid,
+        '21' => VaultedChargeFailure::CredentialInvalid,
+    ];
+
     public function resolveFromIssues(array $issues): VaultedChargeFailure
     {
         foreach (self::ISSUES as $issue => $failure) {
@@ -60,9 +82,13 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
             return VaultedChargeFailure::PayerActionRequired;
         }
 
-        return match ($payPalOrder->capture()?->status()) {
-            PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED => VaultedChargeFailure::Declined,
-            default => VaultedChargeFailure::Unknown,
-        };
+        $capture = $payPalOrder->capture();
+        if (null === $capture || !in_array($capture->status(), [PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED], true)) {
+            return VaultedChargeFailure::Unknown;
+        }
+
+        return self::PAYMENT_ADVICE_CODES[(string) $capture->paymentAdviceCode()]
+            ?? self::PROCESSOR_RESPONSE_CODES[(string) $capture->processorResponseCode()]
+            ?? VaultedChargeFailure::Declined;
     }
 }

@@ -32,6 +32,8 @@ final readonly class PayPalCapture
         private ?string $id = null,
         private ?int $amount = null,
         private ?string $currencyCode = null,
+        private ?string $processorResponseCode = null,
+        private ?string $paymentAdviceCode = null,
     ) {
     }
 
@@ -51,12 +53,15 @@ final readonly class PayPalCapture
         }
 
         $amount = is_array($capture['amount'] ?? null) ? $capture['amount'] : [];
+        $processorResponse = is_array($capture['processor_response'] ?? null) ? $capture['processor_response'] : [];
 
         return new self(
             $capture['status'],
             isset($capture['id']) ? (string) $capture['id'] : null,
             isset($amount['value']) ? AmountUtils::toMinorUnits((string) $amount['value']) : null,
             isset($amount['currency_code']) ? (string) $amount['currency_code'] : null,
+            isset($processorResponse['response_code']) ? (string) $processorResponse['response_code'] : null,
+            isset($processorResponse['payment_advice_code']) ? (string) $processorResponse['payment_advice_code'] : null,
         );
     }
 
@@ -78,5 +83,15 @@ final readonly class PayPalCapture
     public function currencyCode(): ?string
     {
         return $this->currencyCode;
+    }
+
+    public function processorResponseCode(): ?string
+    {
+        return $this->processorResponseCode;
+    }
+
+    public function paymentAdviceCode(): ?string
+    {
+        return $this->paymentAdviceCode;
     }
 }
