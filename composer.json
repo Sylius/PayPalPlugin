@@ -75,9 +75,6 @@
         }
     },
     "extra": {
-        "branch-alias": {
-            "dev-master": "2.0-dev"
-        },
         "symfony": {
             "require": "^7.4"
         },
