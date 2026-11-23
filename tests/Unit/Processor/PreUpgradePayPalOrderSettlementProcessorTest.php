@@ -242,10 +242,38 @@ final class PreUpgradePayPalOrderSettlementProcessorTest extends TestCase
     public function test_it_captures_a_card_order_paypal_still_reports_as_created(): void
     {
         $payment = $this->payment(details: ['payment_source' => 'card']);
-        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'CREATED']));
+        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'CREATED', 'payment_source' => ['card' => ['authentication_result' => ['three_d_secure' => ['enrollment_status' => 'Y', 'authentication_status' => 'Y'], 'liability_shift' => 'POSSIBLE']]]]));
 
         $this->approvedPayPalOrderUpdater->expects(self::once())->method('update')->with($payment);
         $this->completeOrderApi->expects(self::once())->method('complete')->with($this->paymentMethod, 'PAYPAL_ORDER_ID', self::REQUEST_ID);
+
+        $this->processor->settle($payment);
+    }
+
+    public function test_it_leaves_a_card_order_whose_authentication_the_buyer_has_not_finished_yet_to_the_settlement(): void
+    {
+        $payment = $this->payment(details: ['payment_source' => 'card']);
+        $order = $this->order(['status' => 'CREATED', 'payment_source' => ['card' => ['last_digits' => '7713']]]);
+        $this->orderDetailsApi->method('get')->willReturn($order);
+
+        $this->threeDSecureVerifier->expects(self::never())->method('verify');
+        $this->approvedPayPalOrderUpdater->expects(self::never())->method('update');
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->decoratedProcessor->expects(self::once())->method('settle')->with($payment, $order, 'PAYPAL_ORDER_ID');
+
+        $this->processor->settle($payment);
+    }
+
+    public function test_it_cancels_the_payment_once_a_card_order_whose_authentication_the_buyer_never_finished_has_outlived_its_lifetime(): void
+    {
+        $payment = $this->payment(updatedAt: '2026-11-09 12:00:00', details: ['payment_source' => 'card']);
+        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'CREATED', 'payment_source' => ['card' => ['last_digits' => '7713']]]));
+        $this->stateMachine->method('can')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL)->willReturn(true);
+
+        $this->stateMachine->expects(self::once())->method('apply')->with($payment, PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_CANCEL);
+        $this->completeOrderApi->expects(self::never())->method('complete');
+        $this->decoratedProcessor->expects(self::never())->method('settle');
 
         $this->processor->settle($payment);
     }
@@ -292,7 +320,7 @@ final class PreUpgradePayPalOrderSettlementProcessorTest extends TestCase
     public function test_it_captures_a_card_order_of_a_payment_that_stored_no_payment_source_by_the_payment_source_of_the_order(): void
     {
         $payment = $this->payment();
-        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'CREATED', 'payment_source' => ['card' => ['last_digits' => '1111']]]));
+        $this->orderDetailsApi->method('get')->willReturn($this->order(['status' => 'CREATED', 'payment_source' => ['card' => ['last_digits' => '1111', 'authentication_result' => ['three_d_secure' => ['enrollment_status' => 'Y', 'authentication_status' => 'Y'], 'liability_shift' => 'POSSIBLE']]]]));
 
         $this->completeOrderApi->expects(self::once())->method('complete');
 
