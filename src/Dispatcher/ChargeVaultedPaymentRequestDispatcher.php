@@ -23,8 +23,8 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\Repository\PaymentRequestRepositoryInterface;
 use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
-use Sylius\PayPalPlugin\CommandHandler\ChargeVaultedPaymentRequestHandler;
 use Sylius\PayPalPlugin\CommandProvider\ChargeVaultedPaymentRequestCommandProvider;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaultedPaymentRequestDispatcherInterface
@@ -42,16 +42,16 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
     ) {
     }
 
-    public function dispatch(PaymentInterface $payment, string $vaultId): PaymentRequestInterface
+    public function dispatch(PaymentInterface $payment, PayPalVaultedCredential $credential): PaymentRequestInterface
     {
         if (PaymentInterface::STATE_NEW !== $payment->getState()) {
-            throw new \LogicException(sprintf('Only a new payment can be charged with a vaulted PayPal wallet, payment "%s" is %s.', $payment->getId(), $payment->getState()));
+            throw new \LogicException(sprintf('Only a new payment can be charged with a vaulted PayPal payment source, payment "%s" is %s.', $payment->getId(), $payment->getState()));
         }
 
-        $paymentRequest = $this->paymentManager->wrapInTransaction(function () use ($payment, $vaultId): PaymentRequestInterface {
+        $paymentRequest = $this->paymentManager->wrapInTransaction(function () use ($payment, $credential): PaymentRequestInterface {
             $this->paymentManager->lock($payment, LockMode::PESSIMISTIC_WRITE);
 
-            return $this->openPaymentRequest($payment, $vaultId) ?? $this->createPaymentRequest($payment, $vaultId);
+            return $this->openPaymentRequest($payment, $credential) ?? $this->createPaymentRequest($payment, $credential);
         });
 
         $this->commandBus->dispatch(new ChargeVaultedPaymentRequest($paymentRequest->getId()));
@@ -59,7 +59,7 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
         return $paymentRequest;
     }
 
-    private function openPaymentRequest(PaymentInterface $payment, string $vaultId): ?PaymentRequestInterface
+    private function openPaymentRequest(PaymentInterface $payment, PayPalVaultedCredential $credential): ?PaymentRequestInterface
     {
         $paymentRequests = $this->paymentRequestRepository->findByPaymentIdAndStates(
             $payment->getId(),
@@ -72,7 +72,7 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
             }
 
             if (PaymentRequestInterface::STATE_NEW === $paymentRequest->getState()) {
-                $paymentRequest->setPayload([ChargeVaultedPaymentRequestHandler::PAYLOAD_VAULT_ID => $vaultId]);
+                $paymentRequest->setPayload($credential->toArray());
                 $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
             }
 
@@ -82,14 +82,14 @@ final readonly class ChargeVaultedPaymentRequestDispatcher implements ChargeVaul
         return null;
     }
 
-    private function createPaymentRequest(PaymentInterface $payment, string $vaultId): PaymentRequestInterface
+    private function createPaymentRequest(PaymentInterface $payment, PayPalVaultedCredential $credential): PaymentRequestInterface
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
         $paymentRequest = $this->paymentRequestFactory->create($payment, $paymentMethod);
         $paymentRequest->setAction(ChargeVaultedPaymentRequestCommandProvider::ACTION);
-        $paymentRequest->setPayload([ChargeVaultedPaymentRequestHandler::PAYLOAD_VAULT_ID => $vaultId]);
+        $paymentRequest->setPayload($credential->toArray());
         $this->stateMachine->apply($paymentRequest, PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_PROCESS);
         $this->paymentRequestRepository->add($paymentRequest);
 
