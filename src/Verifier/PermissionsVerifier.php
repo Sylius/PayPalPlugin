@@ -16,6 +16,7 @@ namespace Sylius\PayPalPlugin\Verifier;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
+use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
 use Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface;
@@ -30,6 +31,10 @@ final readonly class PermissionsVerifier implements PermissionsVerifierInterface
 
     public function verify(PaymentMethodInterface $paymentMethod): PermissionsVerification
     {
+        if (!$this->hasConsentedToWhatPayPalDoesNotReport($paymentMethod)) {
+            return PermissionsVerification::consentRequired();
+        }
+
         $status = $this->merchantIntegrationStatusProvider->provide($paymentMethod);
         if (null === $status) {
             return PermissionsVerification::consentRequired();
@@ -46,5 +51,13 @@ final readonly class PermissionsVerifier implements PermissionsVerifierInterface
         }
 
         return $verification;
+    }
+
+    private function hasConsentedToWhatPayPalDoesNotReport(PaymentMethodInterface $paymentMethod): bool
+    {
+        $gatewayConfig = $paymentMethod->getGatewayConfig();
+        $storedScope = null === $gatewayConfig ? null : PayPalGatewayConfig::fromGatewayConfig($gatewayConfig)->onboardingScope();
+
+        return null !== $storedScope && [] === OnboardingScope::current()->withoutCapabilities()->notCoveredBy($storedScope);
     }
 }
