@@ -43,27 +43,37 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
         'PAYEE_BLOCKED_TRANSACTION' => VaultedChargeFailure::Declined,
     ];
 
-    private const PROCESSOR_RESPONSE_CODES = [
-        '0390' => VaultedChargeFailure::CredentialInvalid,
-        '1330' => VaultedChargeFailure::CredentialInvalid,
-        '1352' => VaultedChargeFailure::CredentialInvalid,
-        '1380' => VaultedChargeFailure::CredentialInvalid,
-        '5140' => VaultedChargeFailure::CredentialInvalid,
-        '5150' => VaultedChargeFailure::CredentialInvalid,
-        '5180' => VaultedChargeFailure::CredentialInvalid,
-        '5400' => VaultedChargeFailure::CredentialInvalid,
-        '9520' => VaultedChargeFailure::CredentialInvalid,
-        'PP06' => VaultedChargeFailure::CredentialInvalid,
-        'PPEF' => VaultedChargeFailure::CredentialInvalid,
-        'PPEX' => VaultedChargeFailure::CredentialInvalid,
-        'PPRN' => VaultedChargeFailure::CredentialInvalid,
-        '5650' => VaultedChargeFailure::PayerActionRequired,
-    ];
+    private const RESPONSE_CODE_ACCOUNT_NOT_FOUND = '0390';
 
-    private const PAYMENT_ADVICE_CODES = [
-        '03' => VaultedChargeFailure::CredentialInvalid,
-        '21' => VaultedChargeFailure::CredentialInvalid,
-    ];
+    private const RESPONSE_CODE_INVALID_ACCOUNT = '1330';
+
+    private const RESPONSE_CODE_RESTRICTED_OR_INACTIVE_ACCOUNT = '1352';
+
+    private const RESPONSE_CODE_INVALID_EXPIRATION = '1380';
+
+    private const RESPONSE_CODE_CARD_CLOSED = '5140';
+
+    private const RESPONSE_CODE_PICKUP_CARD = '5150';
+
+    private const RESPONSE_CODE_INVALID_OR_RESTRICTED_CARD = '5180';
+
+    private const RESPONSE_CODE_EXPIRED_CARD = '5400';
+
+    private const RESPONSE_CODE_SCA_REQUIRED = '5650';
+
+    private const RESPONSE_CODE_LOST_OR_STOLEN = '9520';
+
+    private const RESPONSE_CODE_ACCOUNT_CLOSED = 'PP06';
+
+    private const RESPONSE_CODE_EXPIRED_FUNDING_INSTRUMENT = 'PPEF';
+
+    private const RESPONSE_CODE_EXPIRY_DATE = 'PPEX';
+
+    private const RESPONSE_CODE_REATTEMPT_NOT_PERMITTED = 'PPRN';
+
+    private const PAYMENT_ADVICE_CODE_ACCOUNT_CLOSED = '03';
+
+    private const PAYMENT_ADVICE_CODE_STOP_RECURRING = '21';
 
     public function resolveFromIssues(array $issues): VaultedChargeFailure
     {
@@ -87,8 +97,26 @@ final readonly class VaultedChargeFailureResolver implements VaultedChargeFailur
             return VaultedChargeFailure::Unknown;
         }
 
-        return self::PAYMENT_ADVICE_CODES[(string) $capture->paymentAdviceCode()]
-            ?? self::PROCESSOR_RESPONSE_CODES[(string) $capture->processorResponseCode()]
-            ?? VaultedChargeFailure::Declined;
+        if (in_array($capture->paymentAdviceCode(), [self::PAYMENT_ADVICE_CODE_ACCOUNT_CLOSED, self::PAYMENT_ADVICE_CODE_STOP_RECURRING], true)) {
+            return VaultedChargeFailure::CredentialInvalid;
+        }
+
+        return match ($capture->processorResponseCode()) {
+            self::RESPONSE_CODE_ACCOUNT_NOT_FOUND,
+            self::RESPONSE_CODE_INVALID_ACCOUNT,
+            self::RESPONSE_CODE_RESTRICTED_OR_INACTIVE_ACCOUNT,
+            self::RESPONSE_CODE_INVALID_EXPIRATION,
+            self::RESPONSE_CODE_CARD_CLOSED,
+            self::RESPONSE_CODE_PICKUP_CARD,
+            self::RESPONSE_CODE_INVALID_OR_RESTRICTED_CARD,
+            self::RESPONSE_CODE_EXPIRED_CARD,
+            self::RESPONSE_CODE_LOST_OR_STOLEN,
+            self::RESPONSE_CODE_ACCOUNT_CLOSED,
+            self::RESPONSE_CODE_EXPIRED_FUNDING_INSTRUMENT,
+            self::RESPONSE_CODE_EXPIRY_DATE,
+            self::RESPONSE_CODE_REATTEMPT_NOT_PERMITTED => VaultedChargeFailure::CredentialInvalid,
+            self::RESPONSE_CODE_SCA_REQUIRED => VaultedChargeFailure::PayerActionRequired,
+            default => VaultedChargeFailure::Declined,
+        };
     }
 }
