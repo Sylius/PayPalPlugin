@@ -16,8 +16,10 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Verifier;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Payment\Model\GatewayConfig;
 use Sylius\PayPalPlugin\Exception\MerchantIntegrationStatusUnavailableException;
 use Sylius\PayPalPlugin\Model\Capability;
+use Sylius\PayPalPlugin\Model\OnboardingScope;
 use Sylius\PayPalPlugin\Model\OnboardingStatus;
 use Sylius\PayPalPlugin\Model\PermissionsVerification;
 use Sylius\PayPalPlugin\Provider\MerchantIntegrationStatusProviderInterface;
@@ -39,7 +41,7 @@ final class PermissionsVerifierTest extends TestCase
         $this->merchantIntegrationStatusProvider = $this->createMock(MerchantIntegrationStatusProviderInterface::class);
         $this->onboardingScopeUpdater = $this->createMock(OnboardingScopeUpdaterInterface::class);
         $this->verifier = new PermissionsVerifier($this->merchantIntegrationStatusProvider, $this->onboardingScopeUpdater);
-        $this->paymentMethod = new PaymentMethod();
+        $this->paymentMethod = $this->paymentMethodWithStoredScope(OnboardingScope::current());
     }
 
     public function test_it_stores_the_current_scope_of_an_account_with_every_capability_active(): void
@@ -75,6 +77,31 @@ final class PermissionsVerifierTest extends TestCase
     public function test_it_requires_the_consent_of_an_account_the_configured_partner_does_not_know(): void
     {
         $this->merchantIntegrationStatusProvider->method('provide')->willReturn(null);
+
+        self::assertEquals(PermissionsVerification::consentRequired(), $this->verifier->verify($this->paymentMethod));
+    }
+
+    public function test_it_requires_the_consent_for_the_features_paypal_does_not_report_even_with_every_capability_active(): void
+    {
+        $this->paymentMethod = $this->paymentMethodWithStoredScope(new OnboardingScope(
+            OnboardingScope::PRODUCT_PPCP,
+            [OnboardingScope::SECONDARY_PRODUCT_PAYMENT_METHODS],
+            [Capability::APPLE_PAY, Capability::GOOGLE_PAY],
+            [OnboardingScope::FEATURE_PAYMENT, OnboardingScope::FEATURE_REFUND, OnboardingScope::FEATURE_ACCESS_MERCHANT_INFORMATION],
+        ));
+
+        $this->merchantIntegrationStatusProvider->expects(self::never())->method('provide');
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
+
+        self::assertEquals(PermissionsVerification::consentRequired(), $this->verifier->verify($this->paymentMethod));
+    }
+
+    public function test_it_requires_the_consent_of_a_payment_method_without_a_stored_scope(): void
+    {
+        $this->paymentMethod = new PaymentMethod();
+
+        $this->merchantIntegrationStatusProvider->expects(self::never())->method('provide');
+        $this->onboardingScopeUpdater->expects(self::never())->method('update');
 
         self::assertEquals(PermissionsVerification::consentRequired(), $this->verifier->verify($this->paymentMethod));
     }
@@ -128,5 +155,15 @@ final class PermissionsVerifierTest extends TestCase
             ->with($this->paymentMethod)
             ->willReturn(new OnboardingStatus(true, true, $capabilityStatuses))
         ;
+    }
+
+    private function paymentMethodWithStoredScope(OnboardingScope $scope): PaymentMethod
+    {
+        $gatewayConfig = new GatewayConfig();
+        $gatewayConfig->setConfig(['onboarding_scope' => $scope->toArray()]);
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setGatewayConfig($gatewayConfig);
+
+        return $paymentMethod;
     }
 }

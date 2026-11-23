@@ -119,8 +119,9 @@
 
    The settlement of these payments is done by `Sylius\PayPalPlugin\Processor\PreUpgradePayPalOrderSettlementProcessor`,
    which decorates `sylius_paypal.processor.payment_settlement`. It locks the payment while settling it, completes
-   only the orders 3.0 also treats as approved (PayPal completes the redirect payment sources itself; a payment created
-   on 2.0 or 2.1, which stored no payment source, is judged by the payment source of its PayPal order), updates the
+   only the orders 3.0 also treats as approved (PayPal completes the redirect payment sources itself; a card order
+   waits until its 3D Secure authentication has a result; a payment created on 2.0 or 2.1, which stored no payment
+   source, is judged by the payment source of its PayPal order), updates the
    amount and shipping address of the PayPal order first, verifies the 3D Secure result of the order before
    completing it (it cancels the payment when the authentication did not finish and fails it when the card was
    refused; the 2.x shop URLs then show the reason), fails the payment when PayPal declines the payment method of the
@@ -1227,8 +1228,10 @@
 
    `Sylius\PayPalPlugin\Verifier\PermissionsVerifierInterface` (`sylius_paypal.verifier.permissions`) verifies the
    merchant integration status of the account, read from PayPal before the consent is offered (`verify()`) or returned
-   by the onboarding after it (`verifyStatus()`). It returns a `Sylius\PayPalPlugin\Model\PermissionsVerification`
-   whose `outcome()` is a `Sylius\PayPalPlugin\Model\PermissionsVerificationOutcome`:
+   by the onboarding after it (`verifyStatus()`). PayPal does not report the product, the secondary products and the
+   features, so `verify()` requires the consent without asking PayPal when the stored scope misses any of them or no
+   scope is stored. It returns a `Sylius\PayPalPlugin\Model\PermissionsVerification` whose `outcome()` is a
+   `Sylius\PayPalPlugin\Model\PermissionsVerificationOutcome`:
 
    - `UpToDate`: every capability of the current scope is `ACTIVE`, and the verifier stores the current scope in the
      payment method through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface`
@@ -1265,8 +1268,9 @@
    stored onboarding scope is the only record that they were asked for.
 
    A PayPal payment method onboarded before has a stored scope that misses them, so it gets the "PayPal permissions
-   out of date" badge and alert, and "Update PayPal permissions" asks PayPal for vaulting. Its webhook misses the
-   `VAULT.PAYMENT-TOKEN.CREATED` and `VAULT.PAYMENT-TOKEN.DELETED` event types and is flagged out of date until
+   out of date" badge and alert, and "Update PayPal permissions" asks the seller to consent to vaulting, even when
+   PayPal already activated the vaulting capability of the account. Its webhook misses the `VAULT.PAYMENT-TOKEN.CREATED`
+   and `VAULT.PAYMENT-TOKEN.DELETED` event types and is flagged out of date until
    `sylius-paypal:register-webhook-event-types` runs or "Update webhook" is used.
 
 1. #### The PayPal payment method can authorize payments and capture them later.
