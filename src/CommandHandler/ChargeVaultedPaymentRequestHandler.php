@@ -52,6 +52,13 @@ final class ChargeVaultedPaymentRequestHandler
 
     private const ISSUE_PERMISSION_DENIED = 'PERMISSION_DENIED';
 
+    private const PREVIOUS_TRANSACTION_REFERENCE_ISSUES = [
+        'INVALID_PREVIOUS_TRANSACTION_REFERENCE',
+        'PREVIOUS_TRANSACTION_REFERENCE_VOIDED',
+    ];
+
+    private const REQUEST_ID_WITHOUT_PREVIOUS_TRANSACTION_REFERENCE = '%s-without-previous-transaction-reference';
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly ChargeVaultedOrderApiInterface $chargeVaultedOrderApi,
@@ -111,7 +118,7 @@ final class ChargeVaultedPaymentRequestHandler
         $referenceId = (string) $paymentRequest->getId();
 
         try {
-            $payPalOrder = $this->chargeVaultedOrderApi->charge($payment, $credential, $referenceId, $referenceId);
+            $payPalOrder = $this->charge($payment, $credential, $referenceId);
         } catch (PayPalApiConnectionException|PayPalApiServerException $exception) {
             throw $exception;
         } catch (PayPalApiException $exception) {
@@ -171,6 +178,33 @@ final class ChargeVaultedPaymentRequestHandler
             PayPalCapture::STATUS_PENDING => $this->awaitCapture($paymentRequest, $payment),
             default => $this->failPaymentRequest($paymentRequest),
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws PayPalApiException
+     */
+    private function charge(PaymentInterface $payment, PayPalVaultedCredential $credential, string $referenceId): array
+    {
+        try {
+            return $this->chargeVaultedOrderApi->charge($payment, $credential, $referenceId, $referenceId);
+        } catch (PayPalApiException $exception) {
+            if (
+                !$credential->isCard() ||
+                null === $credential->previousTransactionReference() ||
+                [] === array_intersect(self::PREVIOUS_TRANSACTION_REFERENCE_ISSUES, $exception->getIssues())
+            ) {
+                throw $exception;
+            }
+        }
+
+        return $this->chargeVaultedOrderApi->charge(
+            $payment,
+            $credential->withoutPreviousTransactionReference(),
+            $referenceId,
+            sprintf(self::REQUEST_ID_WITHOUT_PREVIOUS_TRANSACTION_REFERENCE, $referenceId),
+        );
     }
 
     private function resolveRefusal(

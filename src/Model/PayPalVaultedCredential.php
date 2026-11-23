@@ -85,6 +85,11 @@ final readonly class PayPalVaultedCredential
         return $this->previousTransactionReference;
     }
 
+    public function withoutPreviousTransactionReference(): self
+    {
+        return new self($this->vaultId, $this->paymentSource);
+    }
+
     public function isCard(): bool
     {
         return PayPalPaymentSourceProviderInterface::CARD === $this->paymentSource;

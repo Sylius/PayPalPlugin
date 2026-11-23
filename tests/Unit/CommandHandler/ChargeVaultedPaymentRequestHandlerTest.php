@@ -361,6 +361,129 @@ final class ChargeVaultedPaymentRequestHandlerTest extends TestCase
         self::assertSame('card', $this->payment->getDetails()['payment_source']);
     }
 
+    /** @return iterable<string, array{string}> */
+    public static function previousTransactionReferenceIssues(): iterable
+    {
+        yield 'invalid reference' => ['INVALID_PREVIOUS_TRANSACTION_REFERENCE'];
+        yield 'voided reference' => ['PREVIOUS_TRANSACTION_REFERENCE_VOIDED'];
+    }
+
+    #[DataProvider('previousTransactionReferenceIssues')]
+    public function test_it_charges_the_vaulted_card_again_without_the_previous_transaction_paypal_refused(string $issue): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'CARD_VAULT_ID', 'payment_source' => 'card', 'previous_transaction_reference' => 'FIRST_CAPTURE_ID'];
+
+        $charges = [];
+        $this->chargeVaultedOrderApi
+            ->expects(self::exactly(2))
+            ->method('charge')
+            ->willReturnCallback(function (PaymentInterface $payment, PayPalVaultedCredential $credential, string $referenceId, string $requestId) use (&$charges, $issue): array {
+                $charges[] = [$credential, $referenceId, $requestId];
+                if (null !== $credential->previousTransactionReference()) {
+                    throw new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: [$issue]);
+                }
+
+                return $this->payPalOrder('COMPLETED');
+            })
+        ;
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertEquals([
+            [new PayPalVaultedCredential('CARD_VAULT_ID', 'card', 'FIRST_CAPTURE_ID'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH'],
+            [new PayPalVaultedCredential('CARD_VAULT_ID', 'card'), 'PAYMENT_REQUEST_HASH', 'PAYMENT_REQUEST_HASH-without-previous-transaction-reference'],
+        ], $charges);
+        self::assertSame([[PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_COMPLETE]], $this->appliedTransitions);
+    }
+
+    public function test_it_fails_the_payment_with_the_issues_of_the_charge_without_the_previous_transaction(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'CARD_VAULT_ID', 'payment_source' => 'card', 'previous_transaction_reference' => 'FIRST_CAPTURE_ID'];
+        $this->chargeVaultedOrderApi->method('charge')->willReturnOnConsecutiveCalls(
+            self::throwException(new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INVALID_PREVIOUS_TRANSACTION_REFERENCE'])),
+            self::throwException(new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['CARD_EXPIRED'])),
+        );
+
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
+            'reason' => 'PayPal refused to charge the vaulted payment source.',
+            'failure' => 'credential_invalid',
+            'issues' => ['CARD_EXPIRED'],
+        ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_charge_again_when_paypal_refused_a_charge_that_named_no_previous_transaction(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'CARD_VAULT_ID', 'payment_source' => 'card'];
+        $this->chargeVaultedOrderApi->expects(self::once())->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INVALID_PREVIOUS_TRANSACTION_REFERENCE']),
+        );
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+
+        self::assertSame([
+            [PaymentTransitions::GRAPH, PaymentTransitions::TRANSITION_FAIL],
+            [PaymentRequestTransitions::GRAPH, PaymentRequestTransitions::TRANSITION_FAIL],
+        ], $this->appliedTransitions);
+    }
+
+    public function test_it_does_not_charge_the_wallet_again_as_its_previous_transaction_is_never_sent(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'VAULT_ID', 'payment_source' => 'paypal', 'previous_transaction_reference' => 'FIRST_CAPTURE_ID'];
+        $this->chargeVaultedOrderApi->expects(self::once())->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INVALID_PREVIOUS_TRANSACTION_REFERENCE']),
+        );
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_rethrows_a_connection_failure_of_the_charge_without_the_previous_transaction(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'CARD_VAULT_ID', 'payment_source' => 'card', 'previous_transaction_reference' => 'FIRST_CAPTURE_ID'];
+        $connectionException = new PayPalApiConnectionException('POST', 'v2/checkout/orders');
+        $this->chargeVaultedOrderApi->method('charge')->willReturnOnConsecutiveCalls(
+            self::throwException(new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['INVALID_PREVIOUS_TRANSACTION_REFERENCE'])),
+            self::throwException($connectionException),
+        );
+
+        $this->paymentRequest->expects(self::never())->method('setResponseData');
+        $this->expectExceptionObject($connectionException);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_tells_the_vaulted_card_is_no_longer_usable_when_its_issuer_reported_it_lost_or_stolen(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $payPalOrder = $this->payPalOrder('DECLINED');
+        $payPalOrder['purchase_units'][0]['payments']['captures'][0]['processor_response'] = ['response_code' => '9520'];
+        $this->chargeVaultedOrderApi->method('charge')->willReturn($payPalOrder);
+
+        $this->paymentRequest->expects(self::once())->method('setResponseData')->with([
+            'reason' => 'PayPal reported the capture as DECLINED.',
+            'failure' => 'credential_invalid',
+        ]);
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
+    public function test_it_does_not_charge_the_card_again_when_paypal_refused_it_for_another_reason(): void
+    {
+        $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
+        $this->payload = ['vault_id' => 'CARD_VAULT_ID', 'payment_source' => 'card', 'previous_transaction_reference' => 'FIRST_CAPTURE_ID'];
+        $this->chargeVaultedOrderApi->expects(self::once())->method('charge')->willThrowException(
+            new PayPalApiRequestException('POST', 'v2/checkout/orders', 422, 'UNPROCESSABLE_ENTITY', issues: ['PREVIOUS_TRANSACTION_REFERENCE_HAS_CHARGEBACK']),
+        );
+
+        ($this->handler)(new ChargeVaultedPaymentRequest('PAYMENT_REQUEST_HASH'));
+    }
+
     public function test_it_charges_the_wallet_a_request_created_before_cards_could_be_vaulted_names(): void
     {
         $this->paymentRequest->method('getState')->willReturn(PaymentRequestInterface::STATE_PROCESSING);
