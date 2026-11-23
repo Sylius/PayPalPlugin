@@ -16,15 +16,21 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalItemFactoryTest extends TestCase
 {
     private UrlGeneratorInterface&MockObject $urlGenerator;
+
+    private RequestStack $requestStack;
 
     private PayPalItemFactory $factory;
 
@@ -32,7 +38,79 @@ final class PayPalItemFactoryTest extends TestCase
     {
         parent::setUp();
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $this->factory = new PayPalItemFactory($this->urlGenerator);
+        $this->requestStack = new RequestStack();
+        $this->requestStack->push(new Request());
+        $this->factory = new PayPalItemFactory($this->urlGenerator, $this->requestStack);
+    }
+
+    #[Test]
+    public function it_links_the_product_on_the_channel_host_when_there_is_no_request(): void
+    {
+        $this->requestStack->pop();
+        $this->urlGenerator
+            ->method('generate')
+            ->with('sylius_shop_product_show', ['slug' => 'product-one', '_locale' => 'de_DE'], UrlGeneratorInterface::ABSOLUTE_PATH)
+            ->willReturn('/de_DE/products/product-one')
+        ;
+
+        self::assertSame(
+            'https://shop.example.com/de_DE/products/product-one',
+            $this->factory->create($this->orderItemInChannel('shop.example.com'), 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray()['url'] ?? null,
+        );
+    }
+
+    #[Test]
+    public function it_links_the_product_on_the_request_host_when_there_is_a_request(): void
+    {
+        $this->urlGenerator
+            ->method('generate')
+            ->with('sylius_shop_product_show', ['slug' => 'product-one'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://request.example.com/en_US/products/product-one')
+        ;
+
+        self::assertSame(
+            'https://request.example.com/en_US/products/product-one',
+            $this->factory->create($this->orderItemInChannel('shop.example.com'), 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray()['url'] ?? null,
+        );
+    }
+
+    #[Test]
+    public function it_links_the_product_on_the_router_host_when_the_channel_has_no_hostname(): void
+    {
+        $this->requestStack->pop();
+        $this->urlGenerator
+            ->method('generate')
+            ->with('sylius_shop_product_show', ['slug' => 'product-one', '_locale' => 'de_DE'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('http://localhost/de_DE/products/product-one')
+        ;
+
+        self::assertSame(
+            'http://localhost/de_DE/products/product-one',
+            $this->factory->create($this->orderItemInChannel(null), 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray()['url'] ?? null,
+        );
+    }
+
+    private function orderItemInChannel(?string $hostname): OrderItemInterface
+    {
+        $product = $this->createStub(ProductInterface::class);
+        $product->method('getSlug')->willReturn('product-one');
+
+        $variant = $this->createStub(ProductVariantInterface::class);
+        $variant->method('getProduct')->willReturn($product);
+
+        $channel = $this->createStub(ChannelInterface::class);
+        $channel->method('getHostname')->willReturn($hostname);
+
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getChannel')->willReturn($channel);
+        $order->method('getLocaleCode')->willReturn('de_DE');
+
+        $orderItem = $this->createStub(OrderItemInterface::class);
+        $orderItem->method('getProductName')->willReturn('PRODUCT_ONE');
+        $orderItem->method('getVariant')->willReturn($variant);
+        $orderItem->method('getOrder')->willReturn($order);
+
+        return $orderItem;
     }
 
     #[Test]

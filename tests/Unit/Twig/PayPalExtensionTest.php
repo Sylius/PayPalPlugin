@@ -19,15 +19,19 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\HostProvider;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -46,6 +50,8 @@ final class PayPalExtensionTest extends TestCase
 
     private PayPalPaymentMethodsResolverInterface&MockObject $payPalPaymentMethodsResolver;
 
+    private PayPalVaultRequestProviderInterface&MockObject $vaultRequestProvider;
+
     private PayPalExtension $extension;
 
     protected function setUp(): void
@@ -57,6 +63,7 @@ final class PayPalExtensionTest extends TestCase
         $this->localeProcessor = $this->createMock(LocaleProcessorInterface::class);
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
+        $this->vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $this->payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod]);
         $this->extension = new PayPalExtension(
             $this->payPalPaymentMethodsResolver,
@@ -65,6 +72,7 @@ final class PayPalExtensionTest extends TestCase
             new PayerActionChecker(),
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
             new HostProvider(),
+            $this->vaultRequestProvider,
         );
     }
 
@@ -106,6 +114,44 @@ final class PayPalExtensionTest extends TestCase
         yield 'pay later and messaging enabled' => [['pay_later_enabled' => true, 'messaging_enabled' => true], true];
         yield 'messaging disabled' => [['pay_later_enabled' => true, 'messaging_enabled' => false], false];
         yield 'pay later disabled' => [['pay_later_enabled' => false, 'messaging_enabled' => true], false];
+    }
+
+    #[Test]
+    public function it_hides_messaging_for_an_order_that_requires_the_paypal_account_to_be_vaulted(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $order = $this->createStub(OrderInterface::class);
+        $this->vaultRequestProvider->expects(self::once())->method('provide')->with($order, $paymentMethod)->willReturn(
+            PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)),
+        );
+
+        self::assertFalse($this->extension->isMessagingEnabled($paymentMethod, $order));
+    }
+
+    #[Test]
+    public function it_hides_messaging_for_an_order_that_requires_vaulting_the_merchant_cannot_offer(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $this->vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::unmet());
+
+        self::assertFalse($this->extension->isMessagingEnabled($paymentMethod, $this->createStub(OrderInterface::class)));
+    }
+
+    #[Test]
+    public function it_shows_messaging_for_an_order_that_does_not_require_vaulting(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $this->vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
+
+        self::assertTrue($this->extension->isMessagingEnabled($paymentMethod, $this->createStub(OrderInterface::class)));
+    }
+
+    #[Test]
+    public function it_does_not_ask_for_vaulting_when_messaging_is_disabled(): void
+    {
+        $this->vaultRequestProvider->expects(self::never())->method('provide');
+
+        self::assertFalse($this->extension->isMessagingEnabled($this->payPalMethod([]), $this->createStub(OrderInterface::class)));
     }
 
     #[Test]
@@ -309,6 +355,7 @@ final class PayPalExtensionTest extends TestCase
             new PayerActionChecker(),
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
             new HostProvider(),
+            $this->vaultRequestProvider,
         );
     }
 

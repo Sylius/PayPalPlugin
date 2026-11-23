@@ -15,6 +15,7 @@ namespace Sylius\PayPalPlugin\Twig;
 
 use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
@@ -23,6 +24,7 @@ use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
+use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Twig\Extension\AbstractExtension;
@@ -39,7 +41,17 @@ final class PayPalExtension extends AbstractExtension
         private readonly PayerActionCheckerInterface $payerActionChecker,
         private readonly CurrentPayPalLocaleProviderInterface $currentLocaleProvider,
         private readonly HostProviderInterface $hostProvider,
+        private readonly ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function getFunctions(): array
@@ -55,7 +67,7 @@ final class PayPalExtension extends AbstractExtension
         ];
     }
 
-    public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null): bool
+    public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null, ?OrderInterface $order = null): bool
     {
         $paymentMethod ??= $this->channelPaymentMethod();
         $gatewayConfig = $paymentMethod?->getGatewayConfig();
@@ -65,7 +77,13 @@ final class PayPalExtension extends AbstractExtension
 
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
-        return $config->isPayLaterEnabled() && $config->isMessagingEnabled();
+        if (!$config->isPayLaterEnabled() || !$config->isMessagingEnabled()) {
+            return false;
+        }
+
+        $vaultRequirement = null === $order ? null : $this->vaultRequestProvider?->provide($order, $paymentMethod);
+
+        return null === $vaultRequirement || ($vaultRequirement->isMet() && null === $vaultRequirement->vaultRequest());
     }
 
     public function getWebSdkScriptUrl(?PaymentMethodInterface $paymentMethod = null): string

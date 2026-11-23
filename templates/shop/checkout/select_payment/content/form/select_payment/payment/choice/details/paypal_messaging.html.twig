@@ -1,6 +1,6 @@
 {% if
     hookable_metadata.context.method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') and
-    sylius_paypal_is_messaging_enabled(hookable_metadata.context.method)
+    sylius_paypal_is_messaging_enabled(hookable_metadata.context.method, hookable_metadata.context.order)
 %}
     {% set order = hookable_metadata.context.order %}
     {% set method = hookable_metadata.context.method %}

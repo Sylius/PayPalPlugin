@@ -312,6 +312,7 @@ return function (ContainerConfigurator $container): void {
             service('sylius_paypal.api.charge_vaulted_order'),
             service('sylius_paypal.processor.payment_settlement'),
             service('sylius_paypal.resolver.vaulted_charge_failure'),
+            service('sylius_paypal.api.payment_token'),
             service('sylius_paypal.mapper.paypal_order_details'),
             service('sylius.manager.payment'),
             service('sylius.manager.payment_request'),

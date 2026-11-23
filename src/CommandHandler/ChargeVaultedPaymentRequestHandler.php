@@ -25,6 +25,7 @@ use Sylius\Component\Payment\Model\PaymentRequestInterface;
 use Sylius\Component\Payment\PaymentRequestTransitions;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Api\ChargeVaultedOrderApiInterface;
+use Sylius\PayPalPlugin\Api\PaymentTokenApiInterface;
 use Sylius\PayPalPlugin\Command\ChargeVaultedPaymentRequest;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Exception\PayPalApiConnectionException;
@@ -49,11 +50,14 @@ final class ChargeVaultedPaymentRequestHandler
 
     private const ORDER_STATUS_COMPLETED = 'COMPLETED';
 
+    private const ISSUE_PERMISSION_DENIED = 'PERMISSION_DENIED';
+
     public function __construct(
         private readonly PaymentRequestProviderInterface $paymentRequestProvider,
         private readonly ChargeVaultedOrderApiInterface $chargeVaultedOrderApi,
         private readonly PaymentSettlementProcessorInterface $paymentSettlementProcessor,
         private readonly VaultedChargeFailureResolverInterface $failureResolver,
+        private readonly PaymentTokenApiInterface $paymentTokenApi,
         private readonly PayPalOrderDetailsMapperInterface $payPalOrderDetailsMapper,
         private readonly EntityManagerInterface $paymentManager,
         private readonly EntityManagerInterface $paymentRequestManager,
@@ -115,7 +119,7 @@ final class ChargeVaultedPaymentRequestHandler
                 $paymentRequest,
                 $payment,
                 'PayPal refused to charge the vaulted payment source.',
-                $this->failureResolver->resolveFromIssues($exception->getIssues()),
+                $this->resolveRefusal($exception, $paymentMethod, $credential),
                 $exception->getIssues(),
             );
 
@@ -167,6 +171,25 @@ final class ChargeVaultedPaymentRequestHandler
             PayPalCapture::STATUS_PENDING => $this->awaitCapture($paymentRequest, $payment),
             default => $this->failPaymentRequest($paymentRequest),
         };
+    }
+
+    private function resolveRefusal(
+        PayPalApiException $exception,
+        PaymentMethodInterface $paymentMethod,
+        PayPalVaultedCredential $credential,
+    ): VaultedChargeFailure {
+        $failure = $this->failureResolver->resolveFromIssues($exception->getIssues());
+        if (VaultedChargeFailure::Unknown !== $failure || !in_array(self::ISSUE_PERMISSION_DENIED, $exception->getIssues(), true)) {
+            return $failure;
+        }
+
+        try {
+            return $this->paymentTokenApi->exists($paymentMethod, $credential->vaultId())
+                ? VaultedChargeFailure::Unknown
+                : VaultedChargeFailure::CredentialInvalid;
+        } catch (PayPalApiException) {
+            return VaultedChargeFailure::Unknown;
+        }
     }
 
     private function awaitCapture(PaymentRequestInterface $paymentRequest, PaymentInterface $payment): void

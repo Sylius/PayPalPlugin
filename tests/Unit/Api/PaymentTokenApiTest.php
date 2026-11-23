@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\PaymentTokenApi;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Exception\PayPalApiNotFoundException;
 
 final class PaymentTokenApiTest extends TestCase
 {
@@ -28,5 +29,25 @@ final class PaymentTokenApiTest extends TestCase
         $client->expects(self::once())->method('delete')->with($paymentMethod, 'v3/vault/payment-tokens/VAULT%2FID')->willReturn([]);
 
         (new PaymentTokenApi($client))->delete($paymentMethod, 'VAULT/ID');
+    }
+
+    public function test_it_tells_paypal_knows_the_vaulted_payment_method(): void
+    {
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+
+        $client = $this->createMock(PayPalClientInterface::class);
+        $client->expects(self::once())->method('get')->with($paymentMethod, 'v3/vault/payment-tokens/VAULT%2FID')->willReturn(['id' => 'VAULT/ID']);
+
+        self::assertTrue((new PaymentTokenApi($client))->exists($paymentMethod, 'VAULT/ID'));
+    }
+
+    public function test_it_tells_paypal_does_not_know_the_vaulted_payment_method(): void
+    {
+        $paymentMethod = $this->createStub(PaymentMethodInterface::class);
+
+        $client = $this->createStub(PayPalClientInterface::class);
+        $client->method('get')->willThrowException(new PayPalApiNotFoundException('GET', 'v3/vault/payment-tokens/VAULT_ID', 404, 'RESOURCE_NOT_FOUND', issues: ['TOKEN_NOT_FOUND']));
+
+        self::assertFalse((new PaymentTokenApi($client))->exists($paymentMethod, 'VAULT_ID'));
     }
 }

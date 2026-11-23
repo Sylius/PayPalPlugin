@@ -24,6 +24,8 @@ use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Sylius\PayPalPlugin\Provider\OrderItemNonNeutralTaxesProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalItemDataProvider;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PayPalItemDataProviderTest extends TestCase
@@ -40,9 +42,11 @@ final class PayPalItemDataProviderTest extends TestCase
         $this->orderItemNonNeutralTaxesProvider = $this->createMock(OrderItemNonNeutralTaxesProviderInterface::class);
         $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
 
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request());
         $this->provider = new PayPalItemDataProvider(
             $this->orderItemNonNeutralTaxesProvider,
-            new PayPalItemFactory($this->urlGenerator),
+            new PayPalItemFactory($this->urlGenerator, $requestStack),
         );
     }
 

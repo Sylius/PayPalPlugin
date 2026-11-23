@@ -323,7 +323,10 @@ return static function (ContainerConfigurator $container) {
     $services->alias(PayPalItemDataProviderInterface::class, 'sylius_paypal.provider.paypal_item_data');
 
     $services->set('sylius_paypal.factory.paypal_item', PayPalItemFactory::class)
-        ->args([service('router')]);
+        ->args([
+            service('router'),
+            service('request_stack'),
+        ]);
 
     $services->alias(PayPalItemFactoryInterface::class, 'sylius_paypal.factory.paypal_item');
 
@@ -664,6 +667,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.checker.payer_action'),
             service('sylius_paypal.provider.current_paypal_locale'),
             service('sylius_paypal.provider.host'),
+            service('sylius_paypal.provider.vault_request'),
         ])
         ->tag('twig.extension');
 
