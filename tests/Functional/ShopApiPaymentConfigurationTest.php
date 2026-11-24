@@ -42,6 +42,7 @@ final class ShopApiPaymentConfigurationTest extends JsonApiTestCase
             'sandbox' => false,
             'paymentSources' => ['paypal', 'card'],
             'payLaterEnabled' => false,
+            'vaultRequired' => false,
             'messagingInstanceConfig' => null,
         ], $this->requestConfiguration($payment));
     }

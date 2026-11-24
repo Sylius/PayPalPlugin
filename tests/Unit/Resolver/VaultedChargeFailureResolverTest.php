@@ -94,6 +94,39 @@ final class VaultedChargeFailureResolverTest extends TestCase
         ));
     }
 
+    /** @return iterable<string, array{string, ?string, ?string, VaultedChargeFailure}> */
+    public static function processorResponses(): iterable
+    {
+        yield 'expired card' => ['DECLINED', '5400', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'lost or stolen card' => ['DECLINED', '9520', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'invalid or restricted card' => ['DECLINED', '5180', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'closed card' => ['DECLINED', '5140', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'reattempt not permitted' => ['FAILED', 'PPRN', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'strong customer authentication required' => ['DECLINED', '5650', null, VaultedChargeFailure::PayerActionRequired];
+        yield 'insufficient funds' => ['DECLINED', '5120', null, VaultedChargeFailure::Declined];
+        yield 'insufficient funds, retry later' => ['DECLINED', '5120', '02', VaultedChargeFailure::Declined];
+        yield 'new account information' => ['DECLINED', '5100', '01', VaultedChargeFailure::Declined];
+        yield 'updated card issued' => ['DECLINED', '5950', null, VaultedChargeFailure::Declined];
+        yield 'invalid expiration' => ['DECLINED', '1380', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'account not found' => ['DECLINED', '0390', null, VaultedChargeFailure::CredentialInvalid];
+        yield 'account closed as fraudulent' => ['DECLINED', '5100', '03', VaultedChargeFailure::CredentialInvalid];
+        yield 'stop recurring payments' => ['DECLINED', '5100', '21', VaultedChargeFailure::CredentialInvalid];
+        yield 'stop recurring payments outranks strong customer authentication' => ['DECLINED', '5650', '21', VaultedChargeFailure::CredentialInvalid];
+        yield 'codes of a capture that was not declined' => ['REFUNDED', '5400', '21', VaultedChargeFailure::Unknown];
+    }
+
+    #[DataProvider('processorResponses')]
+    public function test_it_resolves_the_failure_of_a_declined_card_from_the_processor_response(
+        string $status,
+        ?string $responseCode,
+        ?string $paymentAdviceCode,
+        VaultedChargeFailure $failure,
+    ): void {
+        self::assertSame($failure, (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(
+            new PayPalOrderDetails('PAYPAL_ORDER_ID', 'COMPLETED', capture: new PayPalCapture($status, 'CAPTURE_ID', processorResponseCode: $responseCode, paymentAdviceCode: $paymentAdviceCode)),
+        ));
+    }
+
     public function test_it_resolves_an_unknown_failure_for_an_order_without_a_capture(): void
     {
         self::assertSame(VaultedChargeFailure::Unknown, (new VaultedChargeFailureResolver())->resolveFromPayPalOrder(new PayPalOrderDetails('PAYPAL_ORDER_ID', 'CREATED')));

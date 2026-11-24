@@ -66,6 +66,25 @@ final class PayPalCaptureTest extends TestCase
         }
     }
 
+    public function test_it_reads_the_processor_response_of_a_declined_card(): void
+    {
+        $capture = PayPalCapture::fromPayPalOrder($this->payPalOrder([
+            'status' => 'DECLINED',
+            'processor_response' => ['avs_code' => 'Y', 'cvv_code' => 'M', 'response_code' => '5400', 'payment_advice_code' => '21'],
+        ]));
+
+        self::assertSame('5400', $capture?->processorResponseCode());
+        self::assertSame('21', $capture?->paymentAdviceCode());
+    }
+
+    public function test_it_reads_no_processor_response_from_a_capture_without_one(): void
+    {
+        $capture = PayPalCapture::fromPayPalOrder($this->payPalOrder(['status' => 'COMPLETED']));
+
+        self::assertNull($capture?->processorResponseCode());
+        self::assertNull($capture?->paymentAdviceCode());
+    }
+
     public function test_it_reads_a_capture_paypal_returns_on_its_own(): void
     {
         $capture = PayPalCapture::fromCapture(['id' => 'CAPTURE_ID', 'status' => 'PENDING']);

@@ -40,7 +40,7 @@ final readonly class ChargeVaultedOrderApi implements ChargeVaultedOrderApiInter
         $paymentMethod = $payment->getMethod();
 
         $payPalOrder = new PayPalOrder(
-            payPalPurchaseUnit: $this->purchaseUnitFactory->create($payment, $referenceId, customId: $requestId),
+            payPalPurchaseUnit: $this->purchaseUnitFactory->create($payment, $referenceId, customId: $referenceId),
             intent: PayPalOrder::INTENT_CAPTURE,
             paymentSource: [$credential->paymentSource() => [
                 'vault_id' => $credential->vaultId(),

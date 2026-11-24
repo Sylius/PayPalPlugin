@@ -65,7 +65,7 @@ final class ChargeVaultedOrderApiTest extends TestCase
         $purchaseUnitFactory
             ->expects(self::once())
             ->method('create')
-            ->with($payment, 'REFERENCE_ID', null, true, 'PAYMENT_REQUEST_HASH')
+            ->with($payment, 'REFERENCE_ID', null, true, 'REFERENCE_ID')
             ->willReturn($purchaseUnit)
         ;
 

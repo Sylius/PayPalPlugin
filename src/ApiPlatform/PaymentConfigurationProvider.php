@@ -60,6 +60,7 @@ final readonly class PaymentConfigurationProvider implements PaymentConfiguratio
             'sandbox' => $configuration['sandbox'],
             'paymentSources' => $this->paymentSources($configuration),
             'payLaterEnabled' => $configuration['paylaterEnabled'],
+            'vaultRequired' => $configuration['vaultRequired'],
             'messagingInstanceConfig' => $configuration['messagingEnabled'] ? $configuration['messagingInstanceConfig'] : null,
         ];
     }

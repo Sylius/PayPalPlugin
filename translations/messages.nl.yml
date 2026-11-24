@@ -19,6 +19,7 @@ sylius_paypal:
     card_number: 'Kaartnummer'
     card_three_d_secure_always: 'Altijd 3D Secure aanvragen'
     card_three_d_secure_always_help: 'Voeg sterkere kaartauthenticatie toe om de aansprakelijkheid voor chargebacks door fraude naar de kaartuitgever te verschuiven en te voldoen aan de eisen voor sterke klantauthenticatie (SCA), maar dit kan de conversie verlagen.'
+    card_vault_consent: 'Door met uw kaart te betalen, gaat u ermee akkoord dat PayPal deze opslaat en dat wij deze automatisch belasten voor de terugkerende betalingen van deze bestelling totdat u ze opzegt.'
     cardholder_name: 'Naam kaarthouder'
     cards: 'Kaarten'
     carrier:

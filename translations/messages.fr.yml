@@ -19,6 +19,7 @@ sylius_paypal:
     card_number: 'Numéro de carte'
     card_three_d_secure_always: 'Toujours demander 3D Secure'
     card_three_d_secure_always_help: 'Ajoutez une authentification renforcée des cartes pour transférer la responsabilité des rétrofacturations pour fraude à l''émetteur et respecter les exigences d''authentification forte du client (SCA), au risque de réduire la conversion.'
+    card_vault_consent: 'En payant par carte, vous acceptez que PayPal l''enregistre et que nous la débitions automatiquement des paiements récurrents de cette commande jusqu''à ce que vous les annuliez.'
     cardholder_name: 'Nom du titulaire de la carte'
     cards: 'Cartes'
     carrier:

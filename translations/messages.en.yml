@@ -19,6 +19,7 @@ sylius_paypal:
     card_number: 'Card number'
     card_three_d_secure_always: 'Always request 3D Secure'
     card_three_d_secure_always_help: 'Add stronger card authentication to shift fraud chargeback liability to the issuer and meet Strong Customer Authentication (SCA) requirements, but it might impact conversion.'
+    card_vault_consent: 'By paying with your card, you agree that PayPal saves it and that we charge it automatically for the recurring payments of this order until you cancel them.'
     cardholder_name: 'Cardholder name'
     cards: 'Cards'
     carrier:

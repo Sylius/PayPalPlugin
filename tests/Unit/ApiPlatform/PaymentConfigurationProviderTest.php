@@ -87,6 +87,7 @@ final class PaymentConfigurationProviderTest extends TestCase
             'sandbox' => true,
             'paymentSources' => ['paypal', 'card', 'venmo', 'google_pay', 'apple_pay', 'trustly'],
             'payLaterEnabled' => true,
+            'vaultRequired' => false,
             'messagingInstanceConfig' => ['clientId' => 'CLIENT_ID', 'components' => ['paypal-messages']],
         ], $this->paymentConfigurationProvider->provideConfiguration($payment));
     }
@@ -101,6 +102,18 @@ final class PaymentConfigurationProviderTest extends TestCase
 
         self::assertSame(['paypal'], $configuration['paymentSources']);
         self::assertNull($configuration['messagingInstanceConfig']);
+    }
+
+    #[Test]
+    public function it_tells_a_headless_storefront_that_the_payment_source_will_be_saved_for_later_charges(): void
+    {
+        $payment = $this->payment();
+        $this->paymentSdkConfigurationProvider->method('provide')->willReturn($this->sdkConfiguration([
+            'cardEnabled' => true,
+            'vaultRequired' => true,
+        ]));
+
+        self::assertTrue($this->paymentConfigurationProvider->provideConfiguration($payment)['vaultRequired']);
     }
 
     private function payment(): PaymentInterface
@@ -135,6 +148,7 @@ final class PaymentConfigurationProviderTest extends TestCase
             'paylaterEnabled' => true,
             'redirectPaymentSources' => [],
             'sandbox' => true,
+            'vaultRequired' => false,
             'venmoEnabled' => false,
             'webSdkInstanceConfig' => ['clientId' => 'CLIENT_ID'],
             'webSdkScriptUrl' => 'https://www.sandbox.paypal.com/web-sdk/v6/core',

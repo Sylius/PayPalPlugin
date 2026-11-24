@@ -47,6 +47,14 @@ final class PayPalVaultedCredentialTest extends TestCase
         ]))?->previousTransactionReference());
     }
 
+    public function test_it_drops_the_previous_transaction_reference_but_keeps_the_vaulted_card(): void
+    {
+        self::assertEquals(
+            new PayPalVaultedCredential('CARD_VAULT_ID', 'card'),
+            (new PayPalVaultedCredential('CARD_VAULT_ID', 'card', 'FIRST_CAPTURE_ID'))->withoutPreviousTransactionReference(),
+        );
+    }
+
     public function test_it_reads_a_vaulted_wallet_from_payment_details_that_name_no_payment_source(): void
     {
         self::assertEquals(
