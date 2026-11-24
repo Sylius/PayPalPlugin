@@ -39,8 +39,9 @@ final class CompletePaidPaymentsCommand extends Command
     /**
      * @param PaymentRepositoryInterface<PaymentInterface> $paymentRepository
      *
-     * @deprecated the $paymentManager, $authorizeClientApi, $orderDetailsApi and $stateMachine arguments are
-     *             deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0.
+     * @deprecated the $paymentRepository, $paymentManager, $authorizeClientApi, $orderDetailsApi, $stateMachine and
+     *             $paymentSettlementProcessor arguments are deprecated since Sylius/PayPalPlugin 2.2 and will be
+     *             removed in Sylius/PayPalPlugin 3.0.
      */
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,

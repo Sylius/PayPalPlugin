@@ -144,6 +144,7 @@ final class PayPalExtension extends AbstractExtension
         return PayPalPaymentSourceProviderInterface::PAYPAL === ($payment->getDetails()['payment_source'] ?? PayPalPaymentSourceProviderInterface::PAYPAL);
     }
 
+    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
     public function isPayPalEnabled(iterable $paymentMethods): bool
     {
         trigger_deprecation(
