@@ -69,7 +69,8 @@
 
 1. **Re-register the webhook event types.**
 
-   Set `sylius_paypal.webhook_base_url` to the shop's public base URL first. From the CLI there is no request
+   Set the `SYLIUS_PAYPAL_WEBHOOK_BASE_URL` environment variable, which the plugin reads into
+   `sylius_paypal.webhook_base_url`, to the shop's public base URL first. From the CLI there is no request
    to build an absolute URL from, so the router falls back to `http://localhost/…`. Then run:
 
    ```bash
