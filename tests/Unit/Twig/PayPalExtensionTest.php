@@ -22,6 +22,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\Component\Locale\Context\LocaleContextInterface;
 use Sylius\Component\Locale\Context\LocaleNotFoundException;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
@@ -32,6 +33,7 @@ use Sylius\PayPalPlugin\Processor\LocaleProcessorInterface;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProvider;
 use Sylius\PayPalPlugin\Provider\HostProvider;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
+use Sylius\PayPalPlugin\Provider\ProductVariantVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Sylius\PayPalPlugin\Twig\PayPalExtension;
@@ -52,6 +54,8 @@ final class PayPalExtensionTest extends TestCase
 
     private PayPalVaultRequestProviderInterface&MockObject $vaultRequestProvider;
 
+    private ProductVariantVaultRequestProviderInterface&MockObject $productVariantVaultRequestProvider;
+
     private PayPalExtension $extension;
 
     protected function setUp(): void
@@ -64,6 +68,7 @@ final class PayPalExtensionTest extends TestCase
         $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->payPalPaymentMethodsResolver = $this->createMock(PayPalPaymentMethodsResolverInterface::class);
         $this->vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $this->productVariantVaultRequestProvider = $this->createMock(ProductVariantVaultRequestProviderInterface::class);
         $this->payPalPaymentMethodsResolver->method('getInChannel')->willReturn([$this->paymentMethod]);
         $this->extension = new PayPalExtension(
             $this->payPalPaymentMethodsResolver,
@@ -73,6 +78,7 @@ final class PayPalExtensionTest extends TestCase
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
             new HostProvider(),
             $this->vaultRequestProvider,
+            $this->productVariantVaultRequestProvider,
         );
     }
 
@@ -147,11 +153,64 @@ final class PayPalExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_hides_messaging_for_a_product_variant_that_requires_vaulting(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $variant = $this->createStub(ProductVariantInterface::class);
+        $channel = $this->createStub(ChannelInterface::class);
+        $this->channelContext->method('getChannel')->willReturn($channel);
+        $this->productVariantVaultRequestProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->with($variant, $channel, $paymentMethod)
+            ->willReturn(PayPalVaultRequirement::met(new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID)))
+        ;
+
+        self::assertFalse($this->extension->isMessagingEnabled($paymentMethod, null, $variant));
+    }
+
+    #[Test]
+    public function it_hides_messaging_for_a_product_variant_whose_vaulting_the_merchant_cannot_offer(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $this->channelContext->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $this->productVariantVaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::unmet());
+
+        self::assertFalse($this->extension->isMessagingEnabled($paymentMethod, null, $this->createStub(ProductVariantInterface::class)));
+    }
+
+    #[Test]
+    public function it_shows_messaging_for_a_product_variant_that_does_not_require_vaulting(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $this->channelContext->method('getChannel')->willReturn($this->createStub(ChannelInterface::class));
+        $this->productVariantVaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
+
+        self::assertTrue($this->extension->isMessagingEnabled($paymentMethod, null, $this->createStub(ProductVariantInterface::class)));
+    }
+
+    #[Test]
+    public function it_asks_about_the_order_rather_than_the_product_variant_when_both_are_given(): void
+    {
+        $paymentMethod = $this->payPalMethod(['pay_later_enabled' => true, 'messaging_enabled' => true]);
+        $this->vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::notRequired());
+        $this->productVariantVaultRequestProvider->expects(self::never())->method('provide');
+
+        self::assertTrue($this->extension->isMessagingEnabled(
+            $paymentMethod,
+            $this->createStub(OrderInterface::class),
+            $this->createStub(ProductVariantInterface::class),
+        ));
+    }
+
+    #[Test]
     public function it_does_not_ask_for_vaulting_when_messaging_is_disabled(): void
     {
         $this->vaultRequestProvider->expects(self::never())->method('provide');
+        $this->productVariantVaultRequestProvider->expects(self::never())->method('provide');
 
         self::assertFalse($this->extension->isMessagingEnabled($this->payPalMethod([]), $this->createStub(OrderInterface::class)));
+        self::assertFalse($this->extension->isMessagingEnabled($this->payPalMethod([]), null, $this->createStub(ProductVariantInterface::class)));
     }
 
     #[Test]
@@ -356,6 +415,7 @@ final class PayPalExtensionTest extends TestCase
             new CurrentPayPalLocaleProvider($this->localeContext, $this->localeProcessor),
             new HostProvider(),
             $this->vaultRequestProvider,
+            $this->productVariantVaultRequestProvider,
         );
     }
 

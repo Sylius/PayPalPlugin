@@ -668,6 +668,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius_paypal.provider.current_paypal_locale'),
             service('sylius_paypal.provider.host'),
             service('sylius_paypal.provider.vault_request'),
+            service('sylius_paypal.provider.product_variant_vault_request'),
         ])
         ->tag('twig.extension');
 

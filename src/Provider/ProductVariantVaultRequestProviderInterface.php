@@ -1,0 +1,24 @@
+<?php
+
+/*
+ * This file is part of the Sylius package.
+ *
+ * (c) Sylius Sp. z o.o.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace Sylius\PayPalPlugin\Provider;
+
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\ProductVariantInterface;
+use Sylius\Component\Payment\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
+
+interface ProductVariantVaultRequestProviderInterface
+{
+    public function provide(ProductVariantInterface $variant, ChannelInterface $channel, ?PaymentMethodInterface $paymentMethod): PayPalVaultRequirement;
+}

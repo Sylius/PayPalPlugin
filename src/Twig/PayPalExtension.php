@@ -18,13 +18,16 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequirement;
 use Sylius\PayPalPlugin\Provider\CurrentPayPalLocaleProviderInterface;
 use Sylius\PayPalPlugin\Provider\HostProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
+use Sylius\PayPalPlugin\Provider\ProductVariantVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Provider\WebSdkConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Resolver\PayPalPaymentMethodsResolverInterface;
 use Twig\Extension\AbstractExtension;
@@ -42,6 +45,7 @@ final class PayPalExtension extends AbstractExtension
         private readonly CurrentPayPalLocaleProviderInterface $currentLocaleProvider,
         private readonly HostProviderInterface $hostProvider,
         private readonly ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
+        private readonly ?ProductVariantVaultRequestProviderInterface $productVariantVaultRequestProvider = null,
     ) {
         if (null === $this->vaultRequestProvider) {
             trigger_deprecation(
@@ -49,6 +53,16 @@ final class PayPalExtension extends AbstractExtension
                 '3.1',
                 'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
                 PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
+
+        if (null === $this->productVariantVaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                ProductVariantVaultRequestProviderInterface::class,
                 self::class,
             );
         }
@@ -67,8 +81,11 @@ final class PayPalExtension extends AbstractExtension
         ];
     }
 
-    public function isMessagingEnabled(?PaymentMethodInterface $paymentMethod = null, ?OrderInterface $order = null): bool
-    {
+    public function isMessagingEnabled(
+        ?PaymentMethodInterface $paymentMethod = null,
+        ?OrderInterface $order = null,
+        ?ProductVariantInterface $variant = null,
+    ): bool {
         $paymentMethod ??= $this->channelPaymentMethod();
         $gatewayConfig = $paymentMethod?->getGatewayConfig();
         if (null === $gatewayConfig) {
@@ -81,7 +98,7 @@ final class PayPalExtension extends AbstractExtension
             return false;
         }
 
-        $vaultRequirement = null === $order ? null : $this->vaultRequestProvider?->provide($order, $paymentMethod);
+        $vaultRequirement = $this->vaultRequirement($paymentMethod, $order, $variant);
 
         return null === $vaultRequirement || ($vaultRequirement->isMet() && null === $vaultRequirement->vaultRequest());
     }
@@ -134,6 +151,25 @@ final class PayPalExtension extends AbstractExtension
     public function getPartnerJsUrl(bool $sandbox = false): string
     {
         return $this->hostProvider->getWebUrlForMode($sandbox) . self::PARTNER_JS_PATH;
+    }
+
+    private function vaultRequirement(
+        PaymentMethodInterface $paymentMethod,
+        ?OrderInterface $order,
+        ?ProductVariantInterface $variant,
+    ): ?PayPalVaultRequirement {
+        if (null !== $order) {
+            return $this->vaultRequestProvider?->provide($order, $paymentMethod);
+        }
+
+        if (null === $variant) {
+            return null;
+        }
+
+        /** @var ChannelInterface $channel */
+        $channel = $this->channelContext->getChannel();
+
+        return $this->productVariantVaultRequestProvider?->provide($variant, $channel, $paymentMethod);
     }
 
     private function channelPaymentMethod(): ?PaymentMethodInterface
