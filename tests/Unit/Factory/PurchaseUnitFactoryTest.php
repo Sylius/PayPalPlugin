@@ -226,6 +226,6 @@ final class PurchaseUnitFactoryTest extends TestCase
             ->willReturn(['items' => [], 'total_item_value' => '90.00', 'total_tax' => '0.00'])
         ;
 
-        (new PurchaseUnitFactory($this->paymentReferenceNumberProvider, $payPalItemDataProvider))->create($this->payment, 'REFERENCE_ID', vaultRequest: $vaultRequest);
+        (new PurchaseUnitFactory($this->paymentReferenceNumberProvider, $payPalItemDataProvider))->create($this->payment, 'REFERENCE_ID', null, true, null, $vaultRequest);
     }
 }

@@ -22,6 +22,10 @@ use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
+use Sylius\PayPalPlugin\Model\PayPalBillingCycle;
+use Sylius\PayPalPlugin\Model\PayPalBillingCycleTenure;
+use Sylius\PayPalPlugin\Model\PayPalBillingIntervalUnit;
+use Sylius\PayPalPlugin\Model\PayPalBillingPlan;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -197,5 +201,16 @@ final class PayPalItemFactoryTest extends TestCase
 
         self::assertSame(127, mb_strlen($name));
         self::assertStringEndsWith('...', $name);
+    }
+
+    #[Test]
+    public function it_puts_the_billing_plan_it_is_given_on_the_item(): void
+    {
+        $billingPlan = new PayPalBillingPlan([new PayPalBillingCycle(PayPalBillingCycleTenure::Regular, PayPalBillingIntervalUnit::Month, totalCycles: 0, price: 2000)]);
+
+        self::assertSame(
+            $billingPlan->toArray('PLN'),
+            $this->factory->create($this->orderItemInChannel('shop.example.com'), 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS', $billingPlan)->toArray()['billing_plan'] ?? null,
+        );
     }
 }

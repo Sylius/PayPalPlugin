@@ -174,6 +174,37 @@
    `sylius_paypal.repository.query.paypal_payment` is passed where this interface is needed, so implement it if you
    replaced that service.
 
+1. #### The following interface methods take a new commented-out argument.
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface
+    public function create(
+        ...
+        ?string $customId = null,
+   +    /* ?PayPalVaultRequest $vaultRequest = null, */
+    ): PayPalPurchaseUnit;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface
+    public function create(
+        ...
+        string $category,
+   +    /* ?PayPalBillingPlan $billingPlan = null, */
+    ): PayPalItem;
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface
+   -public function provide(OrderInterface $order): array;
+   +public function provide(OrderInterface $order /* , ?PayPalVaultRequest $vaultRequest = null */): array;
+   ```
+
+   The arguments are passed positionally, so a custom implementation or decorator declares them as trailing optional
+   parameters or reads them with `func_get_args()`, and forwards them to the decorated service. A purchase unit, item
+   or item data decorator that does not forward them loses the billing plan of the items. They will be added to the
+   signatures in 4.0.
+
 1. #### The following constructors have gained new optional arguments.
 
    ```diff

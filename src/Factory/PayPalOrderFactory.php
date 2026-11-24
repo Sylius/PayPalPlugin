@@ -58,16 +58,20 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider->provide() : null,
         );
 
+        /** @phpstan-ignore arguments.count */
+        $purchaseUnit = $this->payPalPurchaseUnitFactory->create(
+            $payment,
+            $referenceId,
+            null,
+            !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
+            $customId,
+            PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource
+                ? $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest()
+                : null,
+        );
+
         return new PayPalOrder(
-            payPalPurchaseUnit: $this->payPalPurchaseUnitFactory->create(
-                $payment,
-                $referenceId,
-                withItemTaxes: !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
-                customId: $customId,
-                vaultRequest: PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource
-                    ? $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest()
-                    : null,
-            ),
+            payPalPurchaseUnit: $purchaseUnit,
             intent: $this->intent($payment, $paymentSource),
             paymentSource: $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext),
             processingInstruction: null === $redirectPaymentSource

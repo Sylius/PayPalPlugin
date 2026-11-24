@@ -19,7 +19,6 @@ use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactoryInterface;
 use Sylius\PayPalPlugin\Model\PayPalBillingPlan;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
-use Webmozart\Assert\Assert;
 
 final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInterface
 {
@@ -33,11 +32,8 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
     ) {
     }
 
-    public function provide(OrderInterface $order /* , ?PayPalVaultRequest $vaultRequest = null */): array
+    public function provide(OrderInterface $order, ?PayPalVaultRequest $vaultRequest = null): array
     {
-        $vaultRequest = func_get_args()[1] ?? null;
-        Assert::nullOrIsInstanceOf($vaultRequest, PayPalVaultRequest::class);
-
         $itemData = [
             'items' => [],
             'total_item_value' => 0,
@@ -92,6 +88,7 @@ final readonly class PayPalItemDataProvider implements PayPalItemDataProviderInt
         $itemData['total_item_value'] += $unitPrice * $quantity;
         $itemData['total_tax'] += $tax * $quantity;
 
+        /** @phpstan-ignore arguments.count */
         $itemData['items'][] = $this->itemFactory->create(
             $orderItem,
             $quantity,
