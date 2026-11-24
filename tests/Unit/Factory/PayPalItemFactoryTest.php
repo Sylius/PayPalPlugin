@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -20,6 +21,7 @@ use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\ProductInterface;
+use Sylius\Component\Core\Model\ProductTranslationInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
 use Symfony\Component\HttpFoundation\Request;
@@ -90,10 +92,43 @@ final class PayPalItemFactoryTest extends TestCase
         );
     }
 
-    private function orderItemInChannel(?string $hostname): OrderItemInterface
+    #[Test]
+    public function it_links_the_product_by_the_slug_of_the_order_locale_when_there_is_no_request(): void
     {
+        $this->requestStack->pop();
+        $this->urlGenerator
+            ->method('generate')
+            ->with('sylius_shop_product_show', ['slug' => 'produkt-eins', '_locale' => 'de_DE'], UrlGeneratorInterface::ABSOLUTE_PATH)
+            ->willReturn('/de_DE/products/produkt-eins')
+        ;
+
+        self::assertSame(
+            'https://shop.example.com/de_DE/products/produkt-eins',
+            $this->factory->create($this->orderItemInChannel('shop.example.com', 'produkt-eins'), 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray()['url'] ?? null,
+        );
+    }
+
+    #[Test]
+    public function it_omits_the_url_when_the_product_has_no_translation_in_the_order_locale_and_there_is_no_request(): void
+    {
+        $this->requestStack->pop();
+        $this->urlGenerator->expects(self::never())->method('generate');
+
+        self::assertArrayNotHasKey(
+            'url',
+            $this->factory->create($this->orderItemInChannel('shop.example.com', null), 1, 2000, 0, 'PLN', 'PHYSICAL_GOODS')->toArray(),
+        );
+    }
+
+    private function orderItemInChannel(?string $hostname, ?string $orderLocaleSlug = 'product-one'): OrderItemInterface
+    {
+        $translation = $this->createStub(ProductTranslationInterface::class);
+        $translation->method('getSlug')->willReturn($orderLocaleSlug);
+
         $product = $this->createStub(ProductInterface::class);
         $product->method('getSlug')->willReturn('product-one');
+        $product->method('getTranslations')->willReturn(new ArrayCollection(null === $orderLocaleSlug ? [] : ['de_DE' => $translation]));
+        $product->method('getTranslation')->willThrowException(new \LogicException('A missing translation must not be created.'));
 
         $variant = $this->createStub(ProductVariantInterface::class);
         $variant->method('getProduct')->willReturn($product);
