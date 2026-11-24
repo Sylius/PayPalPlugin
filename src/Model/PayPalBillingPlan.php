@@ -35,10 +35,17 @@ final readonly class PayPalBillingPlan
 
         $trialCycles = array_slice($billingCycles, 0, -1);
         Assert::maxCount($trialCycles, self::MAX_TRIAL_CYCLES);
+
+        /** @var PayPalBillingCycle $trialCycle */
         foreach ($trialCycles as $trialCycle) {
             Assert::same($trialCycle->tenure(), PayPalBillingCycleTenure::Trial, 'Only trial billing cycles can come before the regular one.');
         }
         Assert::same(end($billingCycles)->tenure(), PayPalBillingCycleTenure::Regular, 'A billing plan ends with exactly one regular billing cycle.');
+
+        /** @var PayPalBillingCycle $laterCycle */
+        foreach (array_slice($billingCycles, 1) as $laterCycle) {
+            Assert::true($laterCycle->hasStartDate(), 'Only the first billing cycle can start at checkout; every later one needs a start date.');
+        }
 
         Assert::nullOrGreaterThanEq($setupFee, 0);
     }

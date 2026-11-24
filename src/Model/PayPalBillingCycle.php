@@ -43,6 +43,11 @@ final readonly class PayPalBillingCycle
         return $this->tenure;
     }
 
+    public function hasStartDate(): bool
+    {
+        return null !== $this->startDate;
+    }
+
     /** @return array<string, mixed> */
     public function toArray(string $currencyCode, int $sequence): array
     {

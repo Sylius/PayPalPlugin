@@ -52,7 +52,7 @@ final class PayPalBillingPlanTest extends TestCase
     {
         $billingPlan = new PayPalBillingPlan([
             new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Week, intervalCount: 2),
-            new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Month, totalCycles: 3, price: 500),
+            new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Month, totalCycles: 3, price: 500, startDate: new \DateTimeImmutable('2026-09-01')),
             new PayPalBillingCycle(
                 PayPalBillingCycleTenure::Regular,
                 PayPalBillingIntervalUnit::Month,
@@ -80,6 +80,7 @@ final class PayPalBillingPlanTest extends TestCase
                         'pricing_model' => 'FIXED',
                         'price' => ['value' => '5.00', 'currency_code' => 'EUR'],
                     ],
+                    'start_date' => '2026-09-01',
                 ],
                 [
                     'tenure_type' => 'REGULAR',
@@ -161,6 +162,16 @@ final class PayPalBillingPlanTest extends TestCase
             new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Week),
             new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Week),
             new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Week),
+            new PayPalBillingCycle(PayPalBillingCycleTenure::Regular, PayPalBillingIntervalUnit::Month, price: 100),
+        ]);
+    }
+
+    public function test_it_needs_a_start_date_on_every_billing_cycle_after_the_first(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new PayPalBillingPlan([
+            new PayPalBillingCycle(PayPalBillingCycleTenure::Trial, PayPalBillingIntervalUnit::Month),
             new PayPalBillingCycle(PayPalBillingCycleTenure::Regular, PayPalBillingIntervalUnit::Month, price: 100),
         ]);
     }
