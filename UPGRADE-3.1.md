@@ -200,10 +200,18 @@
    +public function provide(OrderInterface $order /* , ?PayPalVaultRequest $vaultRequest = null */): array;
    ```
 
+   ```diff
+    // Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface
+   -public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext): array;
+   +public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext /* , ?PayPalVaultRequest $vaultRequest = null */): array;
+   ```
+
    The arguments are passed positionally, so a custom implementation or decorator declares them as trailing optional
    parameters or reads them with `func_get_args()`, and forwards them to the decorated service. A purchase unit, item
-   or item data decorator that does not forward them loses the billing plan of the items. They will be added to the
-   signatures in 4.0.
+   or item data decorator that does not forward them loses the billing plan of the items; a payment source decorator
+   that does not only makes the decorated provider resolve the vault request again. They will be added to the
+   signatures in 4.0. `PayPalOrderFactory` resolves the vault request once and passes it to both the
+   purchase unit and the payment source; `PayPalPaymentSourceProvider` resolves it itself only when it is not passed.
 
 1. #### The following constructors have gained new optional arguments.
 
@@ -212,6 +220,7 @@
     // Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromCartAction
     // Sylius\PayPalPlugin\Controller\PayPalButtonsController
     // Sylius\PayPalPlugin\CommandHandler\CreatePayPalOrderPaymentRequestHandler
+    // Sylius\PayPalPlugin\Factory\PayPalOrderFactory
     // Sylius\PayPalPlugin\Provider\PaymentSdkConfigurationProvider
     // Sylius\PayPalPlugin\Twig\PayPalExtension
     public function __construct(

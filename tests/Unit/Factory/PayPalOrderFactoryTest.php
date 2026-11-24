@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Unit\Factory;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
@@ -465,16 +466,64 @@ final class PayPalOrderFactoryTest extends TestCase
         );
     }
 
-    public function test_it_lets_the_items_of_a_wallet_order_recur_on_the_vault_request(): void
+    #[DataProvider('vaultablePaymentSources')]
+    public function test_it_lets_the_items_of_an_order_paid_with_a_vaultable_payment_source_recur_on_the_vault_request(string $paymentSource): void
     {
         $vaultRequest = new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID);
         $vaultRequestProvider = $this->createStub(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider->method('provide')->willReturn(PayPalVaultRequirement::met($vaultRequest));
 
-        self::assertSame($vaultRequest, $this->vaultRequestHandedToThePurchaseUnit($vaultRequestProvider, PayPalPaymentSourceProviderInterface::PAYPAL));
+        self::assertSame($vaultRequest, $this->vaultRequestHandedToThePurchaseUnit($vaultRequestProvider, $paymentSource));
     }
 
-    public function test_it_lets_no_item_recur_on_an_order_paid_otherwise_than_with_the_wallet(): void
+    /** @return iterable<string, array{string}> */
+    public static function vaultablePaymentSources(): iterable
+    {
+        yield 'wallet' => [PayPalPaymentSourceProviderInterface::PAYPAL];
+        yield 'card' => [PayPalPaymentSourceProviderInterface::CARD];
+    }
+
+    public function test_it_resolves_the_vault_request_once_and_hands_it_to_both_the_items_and_the_payment_source(): void
+    {
+        $vaultRequest = new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID);
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::once())->method('provide')->willReturn(PayPalVaultRequirement::met($vaultRequest));
+
+        $paymentSourceProvider = $this->createMock(PayPalPaymentSourceProviderInterface::class);
+        $paymentSourceProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->willReturnCallback(static function (...$arguments) use ($vaultRequest): array {
+                self::assertSame($vaultRequest, $arguments[3] ?? null);
+
+                return [];
+            })
+        ;
+
+        self::assertSame(
+            $vaultRequest,
+            $this->vaultRequestHandedToThePurchaseUnit($vaultRequestProvider, PayPalPaymentSourceProviderInterface::PAYPAL, $paymentSourceProvider),
+        );
+    }
+
+    public function test_it_tells_the_payment_source_there_is_no_vault_request_on_an_order_paid_otherwise(): void
+    {
+        $paymentSourceProvider = $this->createMock(PayPalPaymentSourceProviderInterface::class);
+        $paymentSourceProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->willReturnCallback(static function (...$arguments): array {
+                self::assertCount(4, $arguments);
+                self::assertNull($arguments[3]);
+
+                return [];
+            })
+        ;
+
+        $this->vaultRequestHandedToThePurchaseUnit($this->createStub(PayPalVaultRequestProviderInterface::class), PayPalPaymentSourceProviderInterface::VENMO, $paymentSourceProvider);
+    }
+
+    public function test_it_lets_no_item_recur_on_an_order_paid_with_a_payment_source_that_cannot_be_vaulted(): void
     {
         $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
         $vaultRequestProvider->expects(self::never())->method('provide');
@@ -482,8 +531,27 @@ final class PayPalOrderFactoryTest extends TestCase
         self::assertNull($this->vaultRequestHandedToThePurchaseUnit($vaultRequestProvider, PayPalPaymentSourceProviderInterface::VENMO));
     }
 
-    private function vaultRequestHandedToThePurchaseUnit(PayPalVaultRequestProviderInterface $vaultRequestProvider, string $paymentSource): ?PayPalVaultRequest
+    public function test_it_lets_the_payment_source_resolve_the_vault_request_itself_without_its_own_vault_request_provider(): void
     {
+        $paymentSourceProvider = $this->createMock(PayPalPaymentSourceProviderInterface::class);
+        $paymentSourceProvider
+            ->expects(self::once())
+            ->method('provide')
+            ->willReturnCallback(static function (...$arguments): array {
+                self::assertCount(3, $arguments);
+
+                return [];
+            })
+        ;
+
+        $this->createFactory(paymentSourceProvider: $paymentSourceProvider)->create($this->payment, 'REFERENCE_ID');
+    }
+
+    private function vaultRequestHandedToThePurchaseUnit(
+        PayPalVaultRequestProviderInterface $vaultRequestProvider,
+        string $paymentSource,
+        ?PayPalPaymentSourceProviderInterface $paymentSourceProvider = null,
+    ): ?PayPalVaultRequest {
         $handedVaultRequest = null;
         $payPalPurchaseUnitFactory = $this->createMock(PurchaseUnitFactoryInterface::class);
         $payPalPurchaseUnitFactory
@@ -495,7 +563,9 @@ final class PayPalOrderFactoryTest extends TestCase
             })
         ;
 
-        $this->createFactory($payPalPurchaseUnitFactory, vaultRequestProvider: $vaultRequestProvider)->create($this->payment, 'REFERENCE_ID', $paymentSource);
+        $this->createFactory($payPalPurchaseUnitFactory, paymentSourceProvider: $paymentSourceProvider ?? $this->createStub(PayPalPaymentSourceProviderInterface::class), vaultRequestProvider: $vaultRequestProvider)
+            ->create($this->payment, 'REFERENCE_ID', $paymentSource)
+        ;
 
         return $handedVaultRequest;
     }

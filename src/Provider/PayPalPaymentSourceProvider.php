@@ -22,6 +22,7 @@ use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Exception\UnsupportedPayPalPaymentSourceException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
 use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
@@ -40,19 +41,27 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
         }
     }
 
-    public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext): array
-    {
+    public function provide(
+        PaymentInterface $payment,
+        string $paymentSource,
+        array $experienceContext,
+        ?PayPalVaultRequest $vaultRequest = null,
+    ): array {
         /** @var OrderInterface $order */
         $order = $payment->getOrder();
 
+        if (3 === func_num_args()) {
+            $vaultRequest = $this->vaultRequest($order, $payment, $paymentSource);
+        }
+
         return match ($paymentSource) {
-            self::PAYPAL => [self::PAYPAL => $this->paypal($order, $payment, $experienceContext)],
+            self::PAYPAL => [self::PAYPAL => $this->paypal($experienceContext, $vaultRequest)],
             self::GOOGLE_PAY => [self::GOOGLE_PAY => [
                 'attributes' => ['verification' => ['method' => PayPalOrder::VERIFICATION_METHOD_SCA_WHEN_REQUIRED]],
             ]],
             self::APPLE_PAY => [],
             self::TRUSTLY => [self::TRUSTLY => $this->trustly($order, $experienceContext)],
-            self::CARD => [self::CARD => $this->card($order, $payment, $experienceContext)],
+            self::CARD => [self::CARD => $this->card($payment, $experienceContext, $vaultRequest)],
             self::VENMO => [self::VENMO => [
                 'experience_context' => array_filter([
                     PayPalOrder::KEY_SHIPPING_PREFERENCE => $experienceContext[PayPalOrder::KEY_SHIPPING_PREFERENCE] ?? null,
@@ -78,11 +87,10 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
      *
      * @return array<string, mixed>
      */
-    private function paypal(OrderInterface $order, PaymentInterface $payment, array $experienceContext): array
+    private function paypal(array $experienceContext, ?PayPalVaultRequest $vaultRequest): array
     {
         $paypal = ['experience_context' => $experienceContext];
 
-        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest();
         if (null !== $vaultRequest) {
             $paypal['attributes'] = ['vault' => $vaultRequest->toArray()];
         }
@@ -95,11 +103,10 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
      *
      * @return array<string, mixed>
      */
-    private function card(OrderInterface $order, PaymentInterface $payment, array $experienceContext): array
+    private function card(PaymentInterface $payment, array $experienceContext, ?PayPalVaultRequest $vaultRequest): array
     {
         $card = ['attributes' => ['verification' => ['method' => $this->cardVerificationMethod($payment)]]];
 
-        $vaultRequest = $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest();
         if (null !== $vaultRequest) {
             $card['attributes']['vault'] = $vaultRequest->toCardArray();
             $card['stored_credential'] = PayPalVaultRequest::CARD_STORED_CREDENTIAL;
@@ -111,6 +118,15 @@ final readonly class PayPalPaymentSourceProvider implements PayPalPaymentSourceP
         ]);
 
         return $card;
+    }
+
+    private function vaultRequest(OrderInterface $order, PaymentInterface $payment, string $paymentSource): ?PayPalVaultRequest
+    {
+        if (!in_array($paymentSource, PayPalVaultedCredential::PAYMENT_SOURCES, true)) {
+            return null;
+        }
+
+        return $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest();
     }
 
     /**

@@ -16,7 +16,10 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Checker\PaymentAuthorizationCheckerInterface;
+use Sylius\PayPalPlugin\Exception\InvalidPayerDataException;
 use Sylius\PayPalPlugin\Model\PayPalOrder;
+use Sylius\PayPalPlugin\Model\PayPalVaultedCredential;
+use Sylius\PayPalPlugin\Model\PayPalVaultRequest;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\ExperienceContextProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -36,6 +39,15 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
         private PaymentAuthorizationCheckerInterface $paymentAuthorizationChecker,
         private ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
     ) {
+        if (null === $this->vaultRequestProvider) {
+            trigger_deprecation(
+                'sylius/paypal-plugin',
+                '3.1',
+                'Not passing an instance of %s to %s constructor is deprecated and will be required in 4.0.',
+                PayPalVaultRequestProviderInterface::class,
+                self::class,
+            );
+        }
     }
 
     public function create(
@@ -58,6 +70,8 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             null === $redirectPaymentSource ? $this->shippingCallbackUrlProvider->provide() : null,
         );
 
+        $vaultRequest = $this->vaultRequest($order, $payment, $paymentSource);
+
         /** @phpstan-ignore arguments.count */
         $purchaseUnit = $this->payPalPurchaseUnitFactory->create(
             $payment,
@@ -65,19 +79,47 @@ final readonly class PayPalOrderFactory implements PayPalOrderFactoryInterface
             null,
             !isset($experienceContext[PayPalOrder::KEY_ORDER_UPDATE_CALLBACK_CONFIG]),
             $customId,
-            PayPalPaymentSourceProviderInterface::PAYPAL === $paymentSource
-                ? $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest()
-                : null,
+            $vaultRequest,
         );
 
         return new PayPalOrder(
             payPalPurchaseUnit: $purchaseUnit,
             intent: $this->intent($payment, $paymentSource),
-            paymentSource: $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext),
+            paymentSource: $this->paymentSource($payment, $paymentSource, $experienceContext, $vaultRequest),
             processingInstruction: null === $redirectPaymentSource
                 ? null
                 : PayPalOrder::PROCESSING_INSTRUCTION_ORDER_COMPLETE_ON_PAYMENT_APPROVAL,
         );
+    }
+
+    private function vaultRequest(OrderInterface $order, PaymentInterface $payment, string $paymentSource): ?PayPalVaultRequest
+    {
+        if (!in_array($paymentSource, PayPalVaultedCredential::PAYMENT_SOURCES, true)) {
+            return null;
+        }
+
+        return $this->vaultRequestProvider?->provide($order, $payment->getMethod())->vaultRequest();
+    }
+
+    /**
+     * @param array<string, mixed> $experienceContext
+     *
+     * @return array<string, mixed>
+     *
+     * @throws InvalidPayerDataException
+     */
+    private function paymentSource(
+        PaymentInterface $payment,
+        string $paymentSource,
+        array $experienceContext,
+        ?PayPalVaultRequest $vaultRequest,
+    ): array {
+        if (null === $this->vaultRequestProvider) {
+            return $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext);
+        }
+
+        /** @phpstan-ignore arguments.count */
+        return $this->paymentSourceProvider->provide($payment, $paymentSource, $experienceContext, $vaultRequest);
     }
 
     private function intent(PaymentInterface $payment, string $paymentSource): string

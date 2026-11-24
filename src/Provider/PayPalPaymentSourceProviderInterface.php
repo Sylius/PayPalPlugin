@@ -51,7 +51,7 @@ interface PayPalPaymentSourceProviderInterface
      * @throws UnsupportedPayPalPaymentSourceException
      * @throws InvalidPayerDataException
      */
-    public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext): array;
+    public function provide(PaymentInterface $payment, string $paymentSource, array $experienceContext /* , ?PayPalVaultRequest $vaultRequest = null */): array;
 
     public function supports(string $paymentSource): bool;
 }

@@ -95,6 +95,41 @@ final class PayPalPaymentSourceProviderTest extends TestCase
         );
     }
 
+    public function test_it_vaults_the_wallet_with_the_vault_request_it_is_given_without_resolving_its_own(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::never())->method('provide');
+
+        self::assertSame(
+            ['store_in_vault' => 'ON_SUCCESS', 'usage_type' => 'MERCHANT', 'customer_type' => 'CONSUMER', 'usage_pattern' => 'SUBSCRIPTION_PREPAID', 'permit_multiple_payment_tokens' => false],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide(
+                $this->payment,
+                PayPalPaymentSourceProviderInterface::PAYPAL,
+                [],
+                new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID),
+            )['paypal']['attributes']['vault'],
+        );
+    }
+
+    public function test_it_does_not_vault_the_wallet_when_it_is_told_there_is_no_vault_request(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::never())->method('provide');
+
+        self::assertSame(
+            ['paypal' => ['experience_context' => []]],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::PAYPAL, [], null),
+        );
+    }
+
+    public function test_it_does_not_resolve_a_vault_request_for_a_payment_source_that_cannot_be_vaulted(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::never())->method('provide');
+
+        (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::GOOGLE_PAY, []);
+    }
+
     public function test_it_asks_for_regulatory_authentication_on_google_pay(): void
     {
         self::assertSame(
@@ -275,6 +310,22 @@ final class PayPalPaymentSourceProviderTest extends TestCase
                 'experience_context' => [],
             ]],
             (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide($this->payment, PayPalPaymentSourceProviderInterface::CARD, []),
+        );
+    }
+
+    public function test_it_vaults_the_card_with_the_vault_request_it_is_given_without_resolving_its_own(): void
+    {
+        $vaultRequestProvider = $this->createMock(PayPalVaultRequestProviderInterface::class);
+        $vaultRequestProvider->expects(self::never())->method('provide');
+
+        self::assertSame(
+            ['store_in_vault' => 'ON_SUCCESS'],
+            (new PayPalPaymentSourceProvider($vaultRequestProvider))->provide(
+                $this->payment,
+                PayPalPaymentSourceProviderInterface::CARD,
+                [],
+                new PayPalVaultRequest(PayPalVaultRequest::USAGE_PATTERN_SUBSCRIPTION_PREPAID),
+            )['card']['attributes']['vault'],
         );
     }
 
