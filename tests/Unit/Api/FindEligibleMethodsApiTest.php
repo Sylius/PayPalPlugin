@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\FindEligibleMethodsApi;
 use Sylius\PayPalPlugin\Api\FindEligibleMethodsApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -25,6 +26,8 @@ use Sylius\PayPalPlugin\Client\PayPalClientInterface;
 final class FindEligibleMethodsApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $client;
+
+    private PaymentMethodInterface&MockObject $paymentMethod;
 
     private PaymentInterface&MockObject $payment;
 
@@ -34,6 +37,7 @@ final class FindEligibleMethodsApiTest extends TestCase
     {
         parent::setUp();
         $this->client = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
 
         $billingAddress = $this->createMock(AddressInterface::class);
         $billingAddress->method('getCountryCode')->willReturn('NL');
@@ -59,7 +63,7 @@ final class FindEligibleMethodsApiTest extends TestCase
         $this->client
             ->expects(self::once())
             ->method('post')
-            ->with('v2/payments/find-eligible-methods', 'TOKEN', [
+            ->with($this->paymentMethod, 'v2/payments/find-eligible-methods', [
                 'customer' => ['country_code' => 'NL'],
                 'purchase_units' => [
                     ['amount' => ['currency_code' => 'EUR', 'value' => '120.00']],
@@ -76,7 +80,7 @@ final class FindEligibleMethodsApiTest extends TestCase
 
         self::assertSame(
             ['eligible_methods' => ['trustly' => []]],
-            $this->api->find('TOKEN', $this->payment, ['TRUSTLY']),
+            $this->api->find($this->paymentMethod, $this->payment, ['TRUSTLY']),
         );
     }
 }

@@ -14,8 +14,9 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Verifier;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 interface PaymentAmountVerifierInterface
 {
-    public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void;
+    public function verify(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null): void;
 }

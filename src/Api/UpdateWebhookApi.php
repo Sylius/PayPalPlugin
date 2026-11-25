@@ -13,42 +13,29 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Api;
 
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Client\PayPalClientInterface;
+use Sylius\PayPalPlugin\Model\WebhookEventTypes;
 
 final readonly class UpdateWebhookApi implements UpdateWebhookApiInterface
 {
-    public function __construct(
-        private ClientInterface $client,
-        private string $baseUrl,
-        private RequestFactoryInterface $requestFactory,
-        private StreamFactoryInterface $streamFactory,
-    ) {
+    public function __construct(private PayPalClientInterface $client)
+    {
     }
 
-    public function updateEventTypes(string $token, string $webhookId, array $eventTypes): array
+    public function update(PaymentMethodInterface $paymentMethod, string $webhookId, string $webhookUrl, WebhookEventTypes $eventTypes): array
     {
-        $request = $this->requestFactory
-            ->createRequest('PATCH', sprintf('%sv1/notifications/webhooks/%s', $this->baseUrl, $webhookId))
-            ->withHeader('Authorization', 'Bearer ' . $token)
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Accept', 'application/json')
-        ;
-
-        $request = $request->withBody($this->streamFactory->createStream((string) json_encode([
+        return $this->client->patch($paymentMethod, sprintf('v1/notifications/webhooks/%s', $webhookId), [
+            [
+                'op' => 'replace',
+                'path' => '/url',
+                'value' => $webhookUrl,
+            ],
             [
                 'op' => 'replace',
                 'path' => '/event_types',
-                'value' => array_map(
-                    static fn (string $eventType): array => ['name' => $eventType],
-                    $eventTypes,
-                ),
+                'value' => $eventTypes->toPayPal(),
             ],
-        ])));
-
-        $response = $this->client->sendRequest($request);
-
-        return (array) json_decode($response->getBody()->getContents(), true);
+        ]);
     }
 }

@@ -16,31 +16,36 @@ namespace Sylius\PayPalPlugin\Factory;
 use Sylius\Component\Core\Factory\AddressFactoryInterface;
 use Sylius\Component\Core\Model\AddressInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
 
 final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFactoryInterface
 {
     /** @param AddressFactoryInterface<AddressInterface> $addressFactory */
     public function __construct(
         private AddressFactoryInterface $addressFactory,
-        private ?PayPalShippingAddressFactoryInterface $shippingAddressFactory,
+        private PayPalShippingAddressFactoryInterface $shippingAddressFactory,
     ) {
     }
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function createFromPurchaseUnit(array $purchaseUnit, ?string $phoneNumber): AddressInterface
+    public function createFromPayPalOrder(PayPalOrderDetails $payPalOrder): AddressInterface
     {
-        $address = $this->addressFactory->createNew();
-        $address->setPhoneNumber($phoneNumber);
+        $shipping = $payPalOrder->shipping();
+        $payPalAddress = $shipping?->address() ?? new PayPalAddress();
 
-        $name = explode(' ', $purchaseUnit['shipping']['name']['full_name']);
+        $address = $this->addressFactory->createNew();
+        $address->setPhoneNumber($payPalOrder->phoneNumber());
+
+        $name = explode(' ', (string) $shipping?->fullName());
         /** @phpstan-ignore-next-line false positive */
         $address->setLastName(array_pop($name) ?? '');
         $address->setFirstName(implode(' ', $name));
-        $address->setStreet($purchaseUnit['shipping']['address']['address_line_1']);
-        $address->setCity($purchaseUnit['shipping']['address']['admin_area_2']);
-        $address->setPostcode($purchaseUnit['shipping']['address']['postal_code']);
-        $address->setCountryCode($purchaseUnit['shipping']['address']['country_code']);
-        $this->applyProvince($address, (array) $purchaseUnit['shipping']['address']);
+
+        $address->setStreet($payPalAddress->addressLine1());
+        $address->setCity($payPalAddress->adminArea2());
+        $address->setPostcode($payPalAddress->postalCode());
+        $address->setCountryCode($payPalAddress->countryCode());
+        $this->applyProvince($address, $payPalAddress);
 
         return $address;
     }
@@ -65,13 +70,8 @@ final readonly class ExpressOrderAddressFactory implements ExpressOrderAddressFa
         return $address;
     }
 
-    /** @param array<string, mixed> $payPalAddress */
-    private function applyProvince(AddressInterface $address, array $payPalAddress): void
+    private function applyProvince(AddressInterface $address, PayPalAddress $payPalAddress): void
     {
-        if (null === $this->shippingAddressFactory) {
-            return;
-        }
-
         $payPalShippingAddress = $this->shippingAddressFactory->create($payPalAddress);
 
         $address->setProvinceCode($payPalShippingAddress->getProvinceCode());

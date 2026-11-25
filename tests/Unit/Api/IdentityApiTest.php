@@ -16,6 +16,7 @@ namespace Tests\Sylius\PayPalPlugin\Unit\Api;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Api\IdentityApi;
 use Sylius\PayPalPlugin\Api\IdentityApiInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
@@ -24,12 +25,15 @@ final class IdentityApiTest extends TestCase
 {
     private PayPalClientInterface&MockObject $payPalClient;
 
+    private PaymentMethodInterface&MockObject $paymentMethod;
+
     private IdentityApi $identityApi;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->payPalClient = $this->createMock(PayPalClientInterface::class);
+        $this->paymentMethod = $this->createMock(PaymentMethodInterface::class);
         $this->identityApi = new IdentityApi($this->payPalClient);
     }
 
@@ -45,10 +49,10 @@ final class IdentityApiTest extends TestCase
         $this->payPalClient
             ->expects(self::once())
             ->method('post')
-            ->with('v1/identity/generate-token', 'TOKEN')
+            ->with($this->paymentMethod, 'v1/identity/generate-token')
             ->willReturn(['client_token' => 'CLIENT-TOKEN']);
 
-        $result = $this->identityApi->generateToken('TOKEN');
+        $result = $this->identityApi->generateToken($this->paymentMethod);
 
         self::assertEquals('CLIENT-TOKEN', $result);
     }

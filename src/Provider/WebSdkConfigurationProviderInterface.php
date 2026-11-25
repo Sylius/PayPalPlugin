@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Provider;
 
-use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 
 interface WebSdkConfigurationProviderInterface
 {
     public const DEFAULT_COMPONENTS = ['paypal-payments'];
 
-    public function getScriptUrl(): string;
+    public function getScriptUrl(PaymentMethodInterface $paymentMethod): string;
 
     /**
      * @param array<int, string> $components
@@ -27,7 +27,7 @@ interface WebSdkConfigurationProviderInterface
      * @return array<string, mixed>
      */
     public function getInstanceConfig(
-        ChannelInterface $channel,
+        PaymentMethodInterface $paymentMethod,
         string $pageType,
         array $components = self::DEFAULT_COMPONENTS,
         ?string $locale = null,

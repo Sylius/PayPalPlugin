@@ -25,6 +25,8 @@ use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Exception\ShippingMethodNotAvailableException;
 use Sylius\PayPalPlugin\Factory\PayPalShippingAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\ShippingCallbackResponseFactoryInterface;
+use Sylius\PayPalPlugin\Mapper\PayPalOrderDetailsMapper;
+use Sylius\PayPalPlugin\Model\PayPalAddress;
 use Sylius\PayPalPlugin\Model\PayPalShippingOption;
 use Sylius\PayPalPlugin\Model\PayPalShippingOptions;
 use Sylius\PayPalPlugin\Provider\ChannelAvailableCountriesProviderInterface;
@@ -101,6 +103,7 @@ final class ShippingCallbackActionTest extends TestCase
             $this->signatureVerifier,
             $this->paypalPaymentQuery,
             $this->availableCountriesProvider,
+            new PayPalOrderDetailsMapper(),
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
@@ -114,7 +117,7 @@ final class ShippingCallbackActionTest extends TestCase
         $this->shippingAddressFactory
             ->expects(self::once())
             ->method('create')
-            ->with(self::SHIPPING_ADDRESS)
+            ->with(new PayPalAddress(adminArea1: 'TX', adminArea2: 'Dallas', postalCode: '75001', countryCode: 'US'))
             ->willReturn($address = $this->createMock(AddressInterface::class));
         $this->shippingOptionsResolver
             ->expects(self::once())
@@ -196,15 +199,6 @@ final class ShippingCallbackActionTest extends TestCase
         self::assertUnprocessableWithIssue('ADDRESS_ERROR', $response);
     }
 
-    public function test_it_refuses_an_order_id_it_does_not_know(): void
-    {
-        $this->availableCountriesProvider->expects(self::never())->method('provideForChannel');
-
-        $response = ($this->action)($this->callbackRequest(['id' => 'UNKNOWN']));
-
-        self::assertUnprocessableWithIssue('ADDRESS_ERROR', $response);
-    }
-
     public function test_it_refuses_an_order_whose_payment_lookup_fails(): void
     {
         $paypalPaymentQuery = $this->createMock(PaypalPaymentQueryInterface::class);
@@ -214,6 +208,7 @@ final class ShippingCallbackActionTest extends TestCase
             $this->signatureVerifier,
             $paypalPaymentQuery,
             $this->availableCountriesProvider,
+            new PayPalOrderDetailsMapper(),
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,
@@ -274,6 +269,7 @@ final class ShippingCallbackActionTest extends TestCase
             $signatureVerifier,
             $this->paypalPaymentQuery,
             $this->availableCountriesProvider,
+            new PayPalOrderDetailsMapper(),
             $this->shippingAddressFactory,
             $this->shippingOptionsResolver,
             $this->responseFactory,

@@ -2,7 +2,8 @@
 
 {% if payment_method.gatewayConfig.factoryName|default('') == constant('Sylius\\PayPalPlugin\\DependencyInjection\\SyliusPayPalExtension::PAYPAL_FACTORY_NAME') %}
     {% set paypal_account_connected = payment_method.enabled and hookable_metadata.context.form.gatewayConfig.config.merchant_id.vars.value is not empty %}
-    {% set paypal_account_url = sylius_is_paypal_sandbox() ? 'https://www.sandbox.paypal.com/businessmanage/account/aboutBusiness' : 'https://www.paypal.com/businessmanage/account/aboutBusiness' %}
+    {% set paypal_account_sandbox = payment_method.gatewayConfig.config[constant('Sylius\\PayPalPlugin\\Model\\PayPalGatewayConfig::SANDBOX')]|default(false) %}
+    {% set paypal_account_url = paypal_account_sandbox ? 'https://www.sandbox.paypal.com/businessmanage/account/aboutBusiness' : 'https://www.paypal.com/businessmanage/account/aboutBusiness' %}
 
     <div class="card mb-3" {{ sylius_test_html_attribute('paypal-account') }}>
         <div class="card-header">

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Checker;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 
 final readonly class PayerActionChecker implements PayerActionCheckerInterface
@@ -24,34 +25,11 @@ final readonly class PayerActionChecker implements PayerActionCheckerInterface
             return false;
         }
 
-        $details = $payment->getDetails();
+        $details = PayPalPaymentDetails::fromPayment($payment);
 
         return
-            isset($details['payer_action_url']) &&
-            null !== RedirectPaymentSource::tryFrom((string) ($details['payment_source'] ?? ''))
+            null !== $details->payerActionUrl() &&
+            null !== RedirectPaymentSource::tryFrom($details->paymentSource())
         ;
-    }
-
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function matchesPayerActionReturnNonce(PaymentInterface $payment, string $nonce): bool
-    {
-        return $this->matchesNonce($payment, 'payer_action_return_nonce', $nonce);
-    }
-
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function matchesPayerActionCancelNonce(PaymentInterface $payment, string $nonce): bool
-    {
-        return $this->matchesNonce($payment, 'payer_action_cancel_nonce', $nonce);
-    }
-
-    private function matchesNonce(PaymentInterface $payment, string $key, string $nonce): bool
-    {
-        $expectedNonce = $payment->getDetails()[$key] ?? null;
-
-        if (!is_string($expectedNonce) || '' === $expectedNonce || '' === $nonce) {
-            return false;
-        }
-
-        return hash_equals($expectedNonce, $nonce);
     }
 }

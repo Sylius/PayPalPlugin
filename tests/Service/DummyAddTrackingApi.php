@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Tests\Sylius\PayPalPlugin\Service;
 
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\PackageTracking\Api\AddTrackingApiInterface;
 
 final class DummyAddTrackingApi implements AddTrackingApiInterface
@@ -29,7 +30,7 @@ final class DummyAddTrackingApi implements AddTrackingApiInterface
         self::$requests = [];
     }
 
-    public function add(string $token, string $orderId, array $body): array
+    public function add(PaymentMethodInterface $paymentMethod, string $orderId, array $body): array
     {
         self::$requests[] = ['orderId' => $orderId, 'body' => $body];
 

@@ -24,23 +24,19 @@ final readonly class PayPalGatewayConfig
 
     public const MERCHANT_ID = 'merchant_id';
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public const SYLIUS_MERCHANT_ID = 'sylius_merchant_id';
-
     public const PARTNER_ATTRIBUTION_ID = 'partner_attribution_id';
+
+    public const ONBOARDING_SCOPE = 'onboarding_scope';
+
+    public const SANDBOX = 'sandbox';
 
     public const USE_AUTHORIZE = 'use_authorize';
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public const ONBOARDING_ID = 'onboarding_id';
-
     public const WEBHOOK_ID = 'webhook_id';
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public const REPORTS_SFTP_USERNAME = 'reports_sftp_username';
+    public const WEBHOOK_URL = 'webhook_url';
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public const REPORTS_SFTP_PASSWORD = 'reports_sftp_password';
+    public const WEBHOOK_EVENT_TYPES = 'webhook_event_types';
 
     public const EXPRESS_CHECKOUT_ENABLED = 'express_checkout_enabled';
 
@@ -92,18 +88,6 @@ final readonly class PayPalGatewayConfig
         return $this->required(self::MERCHANT_ID);
     }
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function syliusMerchantId(): string
-    {
-        return $this->required(self::SYLIUS_MERCHANT_ID);
-    }
-
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function hasSyliusMerchantId(): bool
-    {
-        return isset($this->config[self::SYLIUS_MERCHANT_ID]);
-    }
-
     public function partnerAttributionId(): string
     {
         return $this->required(self::PARTNER_ATTRIBUTION_ID);
@@ -114,21 +98,21 @@ final readonly class PayPalGatewayConfig
         return isset($this->config[self::PARTNER_ATTRIBUTION_ID]);
     }
 
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function reportsSftpUsername(): ?string
-    {
-        return $this->optional(self::REPORTS_SFTP_USERNAME);
-    }
-
-    /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
-    public function reportsSftpPassword(): ?string
-    {
-        return $this->optional(self::REPORTS_SFTP_PASSWORD);
-    }
-
     public function webhookId(): ?string
     {
         return $this->optional(self::WEBHOOK_ID);
+    }
+
+    public function webhookUrl(): ?string
+    {
+        return $this->optional(self::WEBHOOK_URL);
+    }
+
+    public function webhookEventTypes(): ?WebhookEventTypes
+    {
+        $eventTypes = $this->config[self::WEBHOOK_EVENT_TYPES] ?? null;
+
+        return is_array($eventTypes) ? WebhookEventTypes::fromNames($eventTypes) : null;
     }
 
     public function isExpressCheckoutEnabled(): bool
@@ -161,6 +145,16 @@ final readonly class PayPalGatewayConfig
         return $this->flag(self::APPLE_PAY_ENABLED, false);
     }
 
+    public function isAuthorizeEnabled(): bool
+    {
+        return $this->flag(self::USE_AUTHORIZE, false);
+    }
+
+    public function isSandbox(): bool
+    {
+        return $this->flag(self::SANDBOX, false);
+    }
+
     public function isCardThreeDSecureAlways(): bool
     {
         return $this->flag(self::CARD_THREE_D_SECURE_ALWAYS, false);
@@ -169,6 +163,13 @@ final readonly class PayPalGatewayConfig
     public function isRedirectPaymentSourceEnabled(RedirectPaymentSource $paymentSource): bool
     {
         return $this->flag($paymentSource->configurationKey(), false);
+    }
+
+    public function onboardingScope(): ?OnboardingScope
+    {
+        $scope = $this->config[self::ONBOARDING_SCOPE] ?? null;
+
+        return is_array($scope) ? OnboardingScope::fromArray($scope) : null;
     }
 
     private function required(string $key): string

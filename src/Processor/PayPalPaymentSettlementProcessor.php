@@ -19,17 +19,18 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\PaymentTransitions;
-use Sylius\PayPalPlugin\Api\CacheAuthorizeClientApiInterface;
 use Sylius\PayPalPlugin\Api\OrderDetailsApiInterface;
+use Sylius\PayPalPlugin\Model\PayPalAuthorization;
 use Sylius\PayPalPlugin\Model\PayPalCapture;
-use Sylius\PayPalPlugin\Payum\Action\StatusAction;
+use Sylius\PayPalPlugin\Model\PayPalOrderDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentDetails;
+use Sylius\PayPalPlugin\Model\PayPalPaymentStatus;
 
 final readonly class PayPalPaymentSettlementProcessor implements PaymentSettlementProcessorInterface
 {
     public const LATE_CAPTURE = 'paypal_late_capture';
 
     public function __construct(
-        private CacheAuthorizeClientApiInterface $authorizeClientApi,
         private OrderDetailsApiInterface $orderDetailsApi,
         private StateMachineInterface $stateMachine,
         private ObjectManager $paymentManager,
@@ -37,12 +38,11 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
     ) {
     }
 
-    public function settle(PaymentInterface $payment, ?array $payPalOrderDetails = null): void
+    public function settle(PaymentInterface $payment, ?PayPalOrderDetails $payPalOrderDetails = null, ?string $payPalOrderId = null): void
     {
-        $details = $payment->getDetails();
-        $payPalOrderId = $details['paypal_order_id'] ?? null;
-
-        if (!is_string($payPalOrderId) || '' === $payPalOrderId) {
+        $details = PayPalPaymentDetails::fromPayment($payment);
+        $payPalOrderId ??= $details->payPalOrderId();
+        if (null === $payPalOrderId || '' === $payPalOrderId) {
             $this->logger->warning(sprintf(
                 'Payment #%s cannot be settled: it carries no PayPal order id.',
                 (string) $payment->getId(),
@@ -52,11 +52,31 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         }
 
         $payPalOrderDetails ??= $this->fetchOrderDetails($payment, $payPalOrderId);
-        $capture = PayPalCapture::fromPayPalOrder($payPalOrderDetails);
-        if (null === $capture) {
-            return;
+        $capture = $payPalOrderDetails->capture();
+
+        $authorization = $payPalOrderDetails->authorization();
+        $authorizationRecorded = null !== $authorization && $payPalOrderId === $details->payPalOrderId();
+        if ($authorizationRecorded) {
+            $details = $details->withAuthorization($authorization);
+            if (null !== $capture) {
+                $details = $details->withCaptureStatus($capture->status());
+            }
+            $payment->setDetails($details->toArray());
         }
 
+        $settled = match (true) {
+            null !== $capture => $this->settleCapture($payment, $details, $payPalOrderId, $capture),
+            $authorizationRecorded => $this->settleAuthorization($payment, $authorization),
+            default => false,
+        };
+
+        if ($settled || $authorizationRecorded) {
+            $this->paymentManager->flush();
+        }
+    }
+
+    private function settleCapture(PaymentInterface $payment, PayPalPaymentDetails $details, string $payPalOrderId, PayPalCapture $capture): bool
+    {
         $transition = match ($capture->status()) {
             PayPalCapture::STATUS_COMPLETED => PaymentTransitions::TRANSITION_COMPLETE,
             PayPalCapture::STATUS_DECLINED, PayPalCapture::STATUS_FAILED => PaymentTransitions::TRANSITION_FAIL,
@@ -64,7 +84,19 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         };
 
         if (null === $transition) {
-            return;
+            return false;
+        }
+
+        if ($details->isSupersededPayPalOrder($payPalOrderId)) {
+            if (PaymentTransitions::TRANSITION_COMPLETE !== $transition) {
+                return false;
+            }
+
+            if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+                return $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, PaymentInterface::STATE_COMPLETED);
+            }
+
+            $details = $details->withSupersededPayPalOrderRestored($payPalOrderId);
         }
 
         $state = PaymentTransitions::TRANSITION_COMPLETE === $transition
@@ -72,34 +104,56 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             : PaymentInterface::STATE_FAILED;
 
         if ($state === $payment->getState()) {
-            return;
+            return false;
         }
 
         if (!$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
             if (PaymentTransitions::TRANSITION_FAIL === $transition && PaymentInterface::STATE_CANCELLED === $payment->getState()) {
-                return;
+                return false;
             }
 
-            $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, $state);
-
-            return;
+            return $this->keepLateCapture($payment, $payPalOrderId, $capture, $transition, $state);
         }
 
-        $settled = array_filter([
-            'status' => PaymentTransitions::TRANSITION_COMPLETE === $transition
-                ? StatusAction::STATUS_COMPLETED
-                : StatusAction::STATUS_PROCESSING,
-            'transaction_id' => $capture->id(),
-        ], static fn (mixed $value): bool => null !== $value);
+        $settledDetails = $details
+            ->clearPayerAction()
+            ->withStatus(PaymentTransitions::TRANSITION_COMPLETE === $transition
+                ? PayPalPaymentStatus::Completed
+                : PayPalPaymentStatus::Processing)
+        ;
+        if (null !== $capture->id()) {
+            $settledDetails = $settledDetails->withTransactionId($capture->id());
+        }
 
-        $payment->setDetails(array_merge(
-            $this->withoutPayerAction($details),
-            $settled,
-            $this->mismatchedCaptureDetails($payment, $payPalOrderId, $capture),
-        ));
+        $payment->setDetails(
+            $this->withMismatchedCapture($settledDetails, $payment, $payPalOrderId, $capture)->toArray(),
+        );
 
         $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
-        $this->paymentManager->flush();
+
+        return true;
+    }
+
+    private function settleAuthorization(PaymentInterface $payment, PayPalAuthorization $authorization): bool
+    {
+        $transition = match (true) {
+            $authorization->isStatus(PayPalAuthorization::STATUS_CREATED) => PaymentTransitions::TRANSITION_AUTHORIZE,
+            $authorization->isStatus(PayPalAuthorization::STATUS_DENIED) => PaymentTransitions::TRANSITION_FAIL,
+            $authorization->isReleased() && PaymentInterface::STATE_AUTHORIZED === $payment->getState() => PaymentTransitions::TRANSITION_CANCEL,
+            default => null,
+        };
+
+        if (null === $transition || !$this->stateMachine->can($payment, PaymentTransitions::GRAPH, $transition)) {
+            return false;
+        }
+
+        if (PaymentTransitions::TRANSITION_AUTHORIZE === $transition) {
+            $payment->setDetails(PayPalPaymentDetails::fromPayment($payment)->withStatus(PayPalPaymentStatus::Authorized)->toArray());
+        }
+
+        $this->stateMachine->apply($payment, PaymentTransitions::GRAPH, $transition);
+
+        return true;
     }
 
     private function keepLateCapture(
@@ -108,11 +162,11 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
         PayPalCapture $capture,
         string $transition,
         string $state,
-    ): void {
+    ): bool {
         $details = $payment->getDetails();
         $lateCapture = $details[self::LATE_CAPTURE] ?? null;
         if (is_array($lateCapture) && ($lateCapture['id'] ?? null) === $capture->id()) {
-            return;
+            return false;
         }
 
         $kept = PaymentTransitions::TRANSITION_COMPLETE === $transition &&
@@ -120,7 +174,7 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             null !== $capture->amount() &&
             null !== $capture->currencyCode();
 
-        $this->logger->error(sprintf(
+        $message = sprintf(
             'PayPal order %s settled as %s, but payment #%s is %s and cannot be %s. %s',
             $payPalOrderId,
             $capture->status(),
@@ -128,48 +182,43 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             (string) $payment->getState(),
             $state,
             $kept ? 'The capture is kept on the payment to be refunded from the admin panel.' : 'Reconcile it by hand.',
-        ));
+        );
 
         if (!$kept) {
-            return;
+            $this->logger->error($message);
+
+            return false;
         }
+
+        $this->logger->warning($message);
 
         $details[self::LATE_CAPTURE] = [
             'id' => $capture->id(),
+            'order_id' => $payPalOrderId,
             'amount' => $capture->amount(),
             'currency_code' => $capture->currencyCode(),
         ];
         $payment->setDetails($details);
-        $this->paymentManager->flush();
+
+        return true;
     }
 
-    /**
-     * @param array<string, mixed> $details
-     *
-     * @return array<string, mixed>
-     */
-    private function withoutPayerAction(array $details): array
-    {
-        return array_diff_key($details, array_flip(['payer_action_url', 'payer_action_return_nonce', 'payer_action_cancel_nonce']));
-    }
-
-    /** @return array<string, mixed> */
-    private function fetchOrderDetails(PaymentInterface $payment, string $payPalOrderId): array
+    private function fetchOrderDetails(PaymentInterface $payment, string $payPalOrderId): PayPalOrderDetails
     {
         /** @var PaymentMethodInterface $paymentMethod */
         $paymentMethod = $payment->getMethod();
 
-        return $this->orderDetailsApi->get($this->authorizeClientApi->authorize($paymentMethod), $payPalOrderId);
+        return $this->orderDetailsApi->get($paymentMethod, $payPalOrderId);
     }
 
-    /** @return array<string, mixed> */
-    private function mismatchedCaptureDetails(
+    private function withMismatchedCapture(
+        PayPalPaymentDetails $details,
         PaymentInterface $payment,
         string $payPalOrderId,
         PayPalCapture $capture,
-    ): array {
+    ): PayPalPaymentDetails {
         if ($capture->amount() === $payment->getAmount() && $capture->currencyCode() === $payment->getCurrencyCode()) {
-            return [];
+            return $details;
         }
 
         $this->logger->error(sprintf(
@@ -182,9 +231,6 @@ final readonly class PayPalPaymentSettlementProcessor implements PaymentSettleme
             (string) $payment->getCurrencyCode(),
         ));
 
-        return [
-            'captured_amount' => $capture->amount(),
-            'captured_currency_code' => $capture->currencyCode(),
-        ];
+        return $details->withCapturedAmount($capture->amount(), $capture->currencyCode());
     }
 }

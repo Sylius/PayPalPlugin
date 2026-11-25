@@ -14,42 +14,30 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Api;
 
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\Client\PayPalClientInterface;
-use Sylius\PayPalPlugin\Factory\PurchaseUnitFactory;
 use Sylius\PayPalPlugin\Factory\PurchaseUnitFactoryInterface;
-use Sylius\PayPalPlugin\Provider\PaymentReferenceNumberProviderInterface;
-use Sylius\PayPalPlugin\Provider\PayPalItemDataProviderInterface;
 
 final readonly class UpdateOrderApi implements UpdateOrderApiInterface
 {
     public function __construct(
         private PayPalClientInterface $client,
-        private PaymentReferenceNumberProviderInterface $paymentReferenceNumberProvider,
-        private PayPalItemDataProviderInterface $payPalItemsDataProvider,
-        private ?PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory = null,
+        private PurchaseUnitFactoryInterface $payPalPurchaseUnitFactory,
     ) {
-        if (null === $this->payPalPurchaseUnitFactory) {
-            trigger_deprecation(
-                'sylius/paypal-plugin',
-                '2.2',
-                'Not passing $payPalPurchaseUnitFactory to "%s" constructor is deprecated and will be prohibited in 3.0',
-                self::class,
-            );
-        }
     }
 
     public function update(
-        string $token,
+        PaymentMethodInterface $paymentMethod,
         string $orderId,
         PaymentInterface $payment,
         string $referenceId,
         string $merchantId,
     ): array {
-        $payPalPurchaseUnit = $this->getPayPalPurchaseUnitFactory()->create($payment, $referenceId, $merchantId);
+        $payPalPurchaseUnit = $this->payPalPurchaseUnitFactory->create($payment, $referenceId, $merchantId);
 
         return $this->client->patch(
+            $paymentMethod,
             sprintf('v2/checkout/orders/%s', $orderId),
-            $token,
             [
                 [
                     'op' => 'replace',
@@ -57,14 +45,6 @@ final readonly class UpdateOrderApi implements UpdateOrderApiInterface
                     'value' => $payPalPurchaseUnit->toArray(),
                 ],
             ],
-        );
-    }
-
-    private function getPayPalPurchaseUnitFactory(): PurchaseUnitFactoryInterface
-    {
-        return $this->payPalPurchaseUnitFactory ?? new PurchaseUnitFactory(
-            $this->paymentReferenceNumberProvider,
-            $this->payPalItemsDataProvider,
         );
     }
 }
