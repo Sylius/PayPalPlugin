@@ -21,7 +21,9 @@ use Sylius\PayPalPlugin\Model\PermissionsVerification;
 interface PermissionsVerifierInterface
 {
     /**
-     * Reads the merchant integration status of the payment method from PayPal and verifies it through verifyStatus().
+     * Requires the consent without asking PayPal when no onboarding scope is stored in the payment method or it misses
+     * the product, a secondary product or a feature of the current one, as PayPal does not report them. Otherwise reads
+     * the merchant integration status from PayPal and verifies it through verifyStatus().
      *
      * @throws MerchantIntegrationStatusUnavailableException
      */

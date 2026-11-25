@@ -88,9 +88,9 @@
    6. Update the PayPal permissions of every PayPal payment method in the admin.
 
       A PayPal payment method connected on 2.x is flagged with "PayPal permissions unknown" on the payment method list.
-      On its edit page, click "Update PayPal permissions" in that alert. When Apple Pay and Google Pay are already
-      active in its PayPal account, the plugin only stores the permissions; otherwise the seller logs in to PayPal with
-      that account and consents to them. The payment method keeps its credentials and webhook.
+      On its edit page, click "Update PayPal permissions" in that alert. The seller logs in to PayPal with that account
+      and consents to the permissions, as 2.x never asked for the vaulting features. The payment method keeps its
+      credentials and webhook.
 
       This step cannot be scripted, as PayPal asks the seller for the consent in the window opened from the payment
       method. Until then, the payment methods keep working with the permissions they had, but Apple Pay and Google Pay
@@ -1233,9 +1233,9 @@
    scope is stored. It returns a `Sylius\PayPalPlugin\Model\PermissionsVerification` whose `outcome()` is a
    `Sylius\PayPalPlugin\Model\PermissionsVerificationOutcome`:
 
-   - `UpToDate`: every capability of the current scope is `ACTIVE`, and the verifier stores the current scope in the
-     payment method through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface`
-     (`sylius_paypal.updater.onboarding_scope`),
+   - `UpToDate`: every capability of the current scope is `ACTIVE` and, for `verify()`, the stored scope covers its
+     product, secondary products and features, and the verifier stores the current scope in the payment method
+     through `Sylius\PayPalPlugin\Updater\OnboardingScopeUpdaterInterface` (`sylius_paypal.updater.onboarding_scope`),
    - `AwaitingPayPal`: PayPal has not activated some of them, and a consent would not change it
      (`pendingCapabilities()`, e.g. `PENDING` or `NEED_DATA`),
    - `ConsentRequired`: the account lacks some of them, PayPal enables them on a request (`capabilitiesToRequest()`,
