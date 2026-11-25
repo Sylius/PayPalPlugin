@@ -19,6 +19,8 @@ use Sylius\PayPalPlugin\Checker\VaultingCapabilityCheckerInterface;
 use Sylius\PayPalPlugin\Console\Command\RefreshVaultingCapabilityCommand;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProvider;
 use Sylius\PayPalPlugin\Provider\PayPalVaultRequestProviderInterface;
+use Sylius\PayPalPlugin\Provider\ProductVariantVaultRequestProvider;
+use Sylius\PayPalPlugin\Provider\ProductVariantVaultRequestProviderInterface;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresher;
 use Sylius\PayPalPlugin\Refresher\VaultingCapabilityRefresherInterface;
 use Sylius\PayPalPlugin\Repository\Query\PayPalPaymentMethodQuery;
@@ -55,6 +57,16 @@ return static function (ContainerConfigurator $container): void {
         ]);
 
     $services->alias(PayPalVaultRequestProviderInterface::class, 'sylius_paypal.provider.vault_request');
+
+    $services->set('sylius_paypal.provider.product_variant_vault_request', ProductVariantVaultRequestProvider::class)
+        ->args([
+            service('sylius.factory.order'),
+            service('sylius.factory.order_item'),
+            service('sylius.modifier.order_item_quantity'),
+            service('sylius_paypal.provider.vault_request'),
+        ]);
+
+    $services->alias(ProductVariantVaultRequestProviderInterface::class, 'sylius_paypal.provider.product_variant_vault_request');
 
     $services->set('sylius_paypal.checker.vaulting_capability', VaultingCapabilityChecker::class)
         ->args([

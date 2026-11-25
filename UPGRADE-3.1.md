@@ -49,6 +49,12 @@
      takes the order as a new optional second argument; pass it if you override
      `@SyliusPayPalPlugin/shop/cart/index/content/form/sections/general/paypal_messaging.html.twig` or
      `@SyliusPayPalPlugin/shop/checkout/select_payment/content/form/select_payment/payment/choice/details/paypal_messaging.html.twig`;
+   - Pay Later messages are hidden on the page of a product variant that needs vaulting.
+     `sylius_paypal_is_messaging_enabled()` takes the product variant as a new optional third argument; pass it if you
+     override `@SyliusPayPalPlugin/shop/product/show/content/info/summary/paypal_messaging.html.twig`. The decision is
+     made by `sylius_paypal.provider.product_variant_vault_request`
+     (`Sylius\PayPalPlugin\Provider\ProductVariantVaultRequestProviderInterface`), which asks
+     `sylius_paypal.provider.vault_request` about a new, unsaved cart holding one unit of the variant;
    - a `capture` or `authorize` Payment Request creating the PayPal order fails when the merchant cannot vault or the
      payment source is neither `paypal` nor `card`;
    - the PayPal buttons on the cart and the select payment step render nothing when the merchant cannot vault, and show
@@ -186,6 +192,15 @@
     public function __construct(
         ...
    +    ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
+    )
+   ```
+
+   ```diff
+    // Sylius\PayPalPlugin\Twig\PayPalExtension
+    public function __construct(
+        ...
+        ?PayPalVaultRequestProviderInterface $vaultRequestProvider = null,
+   +    ?ProductVariantVaultRequestProviderInterface $productVariantVaultRequestProvider = null,
     )
    ```
 

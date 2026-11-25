@@ -18,6 +18,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\ProductInterface as CoreProductInterface;
 use Sylius\Component\Product\Model\ProductInterface;
+use Sylius\Component\Product\Model\ProductTranslationInterface;
 use Sylius\PayPalPlugin\Model\PayPalItem;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -83,18 +84,25 @@ final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
 
     private function resolveProductUrl(?ProductInterface $product, ?OrderInterface $order): ?string
     {
-        $slug = $product?->getSlug();
-        if (null === $slug || '' === $slug) {
+        if (null === $product) {
             return null;
         }
 
         if (!$this->isOutsideOfRequest()) {
-            return $this->generateProductUrl(['slug' => $slug], UrlGeneratorInterface::ABSOLUTE_URL);
+            $slug = $product->getSlug();
+
+            return null === $slug || '' === $slug ? null : $this->generateProductUrl(['slug' => $slug], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+
+        $localeCode = $order?->getLocaleCode();
+        $hasLocale = null !== $localeCode && '' !== $localeCode;
+        $slug = $hasLocale ? $this->slugInLocale($product, $localeCode) : $product->getSlug();
+        if (null === $slug || '' === $slug) {
+            return null;
         }
 
         $parameters = ['slug' => $slug];
-        $localeCode = $order?->getLocaleCode();
-        if (null !== $localeCode && '' !== $localeCode) {
+        if ($hasLocale) {
             $parameters['_locale'] = $localeCode;
         }
 
@@ -106,6 +114,13 @@ final readonly class PayPalItemFactory implements PayPalItemFactoryInterface
         $path = $this->generateProductUrl($parameters, UrlGeneratorInterface::ABSOLUTE_PATH);
 
         return null === $path ? null : $channelBaseUrl . $path;
+    }
+
+    private function slugInLocale(ProductInterface $product, string $localeCode): ?string
+    {
+        $translation = $product->getTranslations()->get($localeCode);
+
+        return $translation instanceof ProductTranslationInterface ? $translation->getSlug() : null;
     }
 
     /** @param array<string, string> $parameters */
