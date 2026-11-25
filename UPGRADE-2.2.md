@@ -69,7 +69,8 @@
 
 1. **Re-register the webhook event types.**
 
-   Set `sylius_paypal.webhook_base_url` to the shop's public base URL first. From the CLI there is no request
+   Set the `SYLIUS_PAYPAL_WEBHOOK_BASE_URL` environment variable, which the plugin reads into
+   `sylius_paypal.webhook_base_url`, to the shop's public base URL first. From the CLI there is no request
    to build an absolute URL from, so the router falls back to `http://localhost/…`. Then run:
 
    ```bash
@@ -955,8 +956,8 @@ Everything below will be removed or required in 3.0:
 1. The routes `sylius_paypal_shop_cancel_last_payment` and `sylius_paypal_shop_update_paypal_order`.
 1. The old JSON keys `orderID` and `order_id` of the create and capture endpoints.
 1. Not passing a constructor argument added in 2.2 to a class that 3.0 keeps (see [Constructors](#constructors)).
-1. Passing the five unused arguments of `PayWithPayPalFormAction`, and the four unused arguments of
-   `CompletePaidPaymentsCommand`.
+1. Passing the five unused arguments of `PayWithPayPalFormAction`, and every argument of
+   `CompletePaidPaymentsCommand`: the four unused ones, `$paymentRepository` and `$paymentSettlementProcessor`.
 1. Not passing a `$paymentSource` to `PayPalOrder`, and its `$order` argument.
 1. `CreateOrderApi::PAYPAL_INTENT_CAPTURE`, in favour of `PayPalOrder::INTENT_CAPTURE`.
 1. `Controller\Webhook\RefundOrderAction` and the `sylius_paypal.controller.webhook.refund_order` service. The
@@ -1053,7 +1054,6 @@ Everything below will be removed or required in 3.0:
    in 3.0.
 1. `ApiPlatform\PayPalPayment` and the exceptions `PayPalApiTimeoutException`, `PayPalAuthorizationException`,
    `PayPalOrderUpdateException` and `PayPalApiErrorException`.
-1. The `$paymentRepository` and `$paymentSettlementProcessor` arguments of `CompletePaidPaymentsCommand`.
 
 ## Known limitations
 
