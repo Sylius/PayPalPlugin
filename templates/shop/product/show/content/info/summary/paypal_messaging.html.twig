@@ -1,6 +1,9 @@
 {% set variant = hookable_metadata.context.variant|default(null) %}
 
-{% if variant is not null and sylius_paypal_is_messaging_enabled() %}
+{% set product = hookable_metadata.context.product %}
+{% set available = not (product.enabledVariants.empty() or product.simple and not sylius_inventory_is_available(product.enabledVariants.first)) %}
+
+{% if variant is not null and available and sylius_paypal_is_messaging_enabled() %}
     <paypal-message
         class="mb-3"
         {{ stimulus_controller('@sylius/paypal-plugin/paypal-message', {
