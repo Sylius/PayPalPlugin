@@ -1,6 +1,7 @@
 sylius:
     ui:
         capture_authorization: 'Capturer l''autorisation'
+        charge_vaulted: 'Débiter le moyen de paiement enregistré'
         refund_late_capture: 'Rembourser la capture tardive'
         void_authorization: 'Annuler l''autorisation'
 sylius_paypal:
