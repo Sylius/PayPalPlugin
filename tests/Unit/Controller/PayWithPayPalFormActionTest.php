@@ -17,6 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
@@ -26,6 +27,8 @@ use Sylius\PayPalPlugin\Provider\PayPalPaymentPageContextProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -94,6 +97,17 @@ final class PayWithPayPalFormActionTest extends TestCase
 
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertSame('sylius_shop_order_thank_you', $response->getTargetUrl());
+    }
+
+    public function test_it_remembers_the_order_in_the_session_for_the_thank_you_page(): void
+    {
+        $this->payment(PaymentInterface::STATE_NEW);
+        $this->twig->method('render')->willReturn(self::RENDERED);
+
+        $request = $this->request();
+        ($this->action)($request);
+
+        self::assertSame(42, $request->getSession()->get('sylius_order_id'));
     }
 
     public function test_it_answers_with_not_found_when_the_payment_does_not_exist(): void
@@ -167,9 +181,13 @@ final class PayWithPayPalFormActionTest extends TestCase
         $paymentMethod = $this->createStub(PaymentMethodInterface::class);
         $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
 
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getId')->willReturn(42);
+
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getState')->willReturn($state);
         $payment->method('getMethod')->willReturn($paymentMethod);
+        $payment->method('getOrder')->willReturn($order);
 
         $this->paymentRepository->method('findOneByOrderToken')->willReturn($payment);
 
@@ -180,6 +198,7 @@ final class PayWithPayPalFormActionTest extends TestCase
     {
         $request = new Request(attributes: ['orderToken' => 'ORDER_TOKEN', 'paymentId' => '1']);
         $request->setLocale('en_US');
+        $request->setSession(new Session(new MockArraySessionStorage()));
 
         return $request;
     }

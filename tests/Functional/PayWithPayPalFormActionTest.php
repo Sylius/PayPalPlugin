@@ -38,6 +38,15 @@ final class PayWithPayPalFormActionTest extends JsonApiTestCase
         );
     }
 
+    public function test_it_shows_the_thank_you_page_to_a_payer_who_opened_the_payment_page_in_another_session(): void
+    {
+        $this->requestPaymentPage();
+
+        $this->client->request('GET', '/en_US/order/thank-you');
+
+        self::assertSame(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+    }
+
     public function test_it_tells_the_payer_that_paypal_processes_their_data(): void
     {
         $this->requestPaymentPage();

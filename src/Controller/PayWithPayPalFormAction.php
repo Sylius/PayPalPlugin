@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sylius\PayPalPlugin\Controller;
 
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Core\Repository\PaymentRepositoryInterface;
@@ -71,6 +72,10 @@ final readonly class PayWithPayPalFormAction
         if (null === $payment || !$this->isPayPalPayment($payment)) {
             throw new NotFoundHttpException(sprintf('There is no PayPal payment for order "%s".', $orderToken));
         }
+
+        /** @var OrderInterface $order */
+        $order = $payment->getOrder();
+        $request->getSession()->set('sylius_order_id', $order->getId());
 
         if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
             return new RedirectResponse(
