@@ -23,6 +23,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\PayPalPlugin\Controller\CancelPayPalPaymentAction;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -103,6 +104,19 @@ final class CancelPayPalPaymentActionTest extends TestCase
         $this->objectManager->expects(self::never())->method('flush');
 
         ($this->action)($this->request());
+    }
+
+    public function test_it_does_nothing_when_no_payment_of_the_paypal_order_can_be_cancelled(): void
+    {
+        $this->paypalPaymentQuery->method('getForCancellationByOrderId')->willThrowException(new PaymentNotFoundException());
+
+        $this->stateMachine->expects(self::never())->method('apply');
+        $this->objectManager->expects(self::never())->method('flush');
+
+        $response = ($this->action)($this->request());
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame([], $this->session->getFlashBag()->peek('success'));
     }
 
     private function order(bool $canBeProcessed): OrderInterface
