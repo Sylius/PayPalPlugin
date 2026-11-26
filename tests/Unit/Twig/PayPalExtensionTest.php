@@ -203,6 +203,13 @@ final class PayPalExtensionTest extends TestCase
         self::assertSame([], $extension->getWebSdkInstanceConfig('cart'));
     }
 
+    #[Test]
+    public function it_formats_an_amount_with_the_decimals_paypal_expects_for_the_currency(): void
+    {
+        self::assertSame('39.51', $this->extension->getPayPalAmount(3951, 'USD'));
+        self::assertSame('40', $this->extension->getPayPalAmount(3951, 'JPY'));
+    }
+
     public function test_it_tells_a_template_when_the_payer_is_still_finishing_off_site(): void
     {
         $payment = $this->createMock(PaymentInterface::class);

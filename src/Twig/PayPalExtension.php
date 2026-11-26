@@ -18,6 +18,7 @@ use Sylius\Component\Channel\Context\ChannelContextInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\AmountUtils;
 use Sylius\PayPalPlugin\Checker\PayerActionChecker;
 use Sylius\PayPalPlugin\Checker\PayerActionCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -78,6 +79,7 @@ final class PayPalExtension extends AbstractExtension
             new TwigFunction('sylius_paypal_web_sdk_instance_config', [$this, 'getWebSdkInstanceConfig']),
             new TwigFunction('sylius_paypal_is_awaiting_payer_action', [$this, 'isAwaitingPayerAction']),
             new TwigFunction('sylius_paypal_is_refunded_to_paypal_wallet', [$this, 'isRefundedToPayPalWallet']),
+            new TwigFunction('sylius_paypal_amount', [$this, 'getPayPalAmount']),
         ];
     }
 
@@ -132,6 +134,11 @@ final class PayPalExtension extends AbstractExtension
         } catch (\InvalidArgumentException) {
             return [];
         }
+    }
+
+    public function getPayPalAmount(int $amount, string $currencyCode): string
+    {
+        return AmountUtils::toPayPalValue($amount, $currencyCode);
     }
 
     public function isAwaitingPayerAction(PaymentInterface $payment): bool
