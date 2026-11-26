@@ -18,6 +18,7 @@ use Sylius\Abstraction\StateMachine\StateMachineInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Provider\FlashBagProvider;
 use Sylius\PayPalPlugin\Provider\PaymentProviderInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
@@ -43,10 +44,14 @@ final readonly class CancelPayPalPaymentAction
         $payload = $request->getPayload();
         $paypalOrderId = $payload->getString('payPalOrderId');
 
-        if (null !== $this->paypalPaymentQuery) {
-            $payment = $this->paypalPaymentQuery->getForCancellationByOrderId($paypalOrderId);
-        } else {
-            $payment = $this->paymentProvider->getByPayPalOrderId($paypalOrderId);
+        try {
+            if (null !== $this->paypalPaymentQuery) {
+                $payment = $this->paypalPaymentQuery->getForCancellationByOrderId($paypalOrderId);
+            } else {
+                $payment = $this->paymentProvider->getByPayPalOrderId($paypalOrderId);
+            }
+        } catch (PaymentNotFoundException) {
+            return new Response('', Response::HTTP_NO_CONTENT);
         }
 
         /** @var OrderInterface $order */

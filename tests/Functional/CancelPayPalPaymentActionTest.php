@@ -51,4 +51,23 @@ final class CancelPayPalPaymentActionTest extends JsonApiTestCase
             static fn (PaymentInterface $payment): bool => PaymentInterface::STATE_CART === $payment->getState(),
         )->count());
     }
+
+    public function test_it_answers_with_no_content_when_the_payment_was_already_cancelled(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/addressed_cart.yaml']);
+
+        /** @var OrderInterface $order */
+        $order = $fixtures['addressed_cart'];
+        $order->getLastPayment()?->setState(PaymentInterface::STATE_CANCELLED);
+        $this->getEntityManager()->flush();
+
+        $this->client->request(
+            'POST',
+            '/en_US/cancel-pay-pal-payment',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['payPalOrderId' => 'PAYPAL_ORDER_ID'], \JSON_THROW_ON_ERROR),
+        );
+
+        self::assertSame(204, $this->client->getResponse()->getStatusCode());
+    }
 }

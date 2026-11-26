@@ -17,6 +17,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\PayPalPlugin\Controller\CancelPayPalCheckoutPaymentAction;
+use Sylius\PayPalPlugin\Exception\PaymentNotFoundException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Repository\Query\PaypalPaymentQueryInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -58,6 +59,19 @@ final class CancelPayPalCheckoutPaymentActionTest extends TestCase
         self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
         self::assertSame(['sylius_paypal.payment_cancelled'], $request->getSession()->getBag('flashes')->get('success'));
         self::assertSame([], $request->getSession()->getBag('flashes')->get('error'));
+    }
+
+    public function test_it_does_nothing_when_no_payment_of_the_paypal_order_can_be_cancelled(): void
+    {
+        $this->paypalPaymentQuery->method('getForCancellationByOrderId')->willThrowException(new PaymentNotFoundException());
+
+        $this->paymentStateManager->expects(self::never())->method('cancel');
+
+        $request = $this->request();
+        $response = ($this->action)($request);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame([], $request->getSession()->getBag('flashes')->get('success'));
     }
 
     private function request(): Request
