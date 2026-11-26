@@ -71,6 +71,8 @@ export default class extends Controller {
             return;
         }
 
+        this.errorReported = false;
+
         try {
             await paymentSession.start({ presentationMode: 'auto' }, session.startAttempt(paymentSource));
         } catch (error) {
@@ -83,6 +85,7 @@ export default class extends Controller {
             }
 
             console.error('paymentSession.start() failed:', error);
+            await this.onError(error);
         }
     }
 
@@ -113,6 +116,11 @@ export default class extends Controller {
     }
 
     async onError(error) {
+        if (this.errorReported) {
+            return;
+        }
+        this.errorReported = true;
+
         await fetch(this.errorUrlValue, {
             method: 'post',
             headers: { 'content-type': 'application/json' },

@@ -143,10 +143,13 @@ export default class extends Controller {
                 return;
             }
 
+            this.errorReported = false;
+
             try {
                 await paymentSession.start({ presentationMode: 'auto' }, this.createOrder(paymentSource));
             } catch (error) {
                 console.error('paymentSession.start() failed:', error);
+                await this.onError(error);
             }
         });
     }
@@ -182,6 +185,7 @@ export default class extends Controller {
         }
 
         if (!response.ok) {
+            this.errorReported = true;
             window.location.reload();
 
             return;
@@ -239,6 +243,11 @@ export default class extends Controller {
     }
 
     async onError(error) {
+        if (this.errorReported) {
+            return;
+        }
+        this.errorReported = true;
+
         if (this.validationFailed) {
             this.validationFailed = false;
 
