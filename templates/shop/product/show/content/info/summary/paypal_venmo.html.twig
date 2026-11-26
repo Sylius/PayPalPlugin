@@ -1,7 +1,11 @@
-<venmo-button
-    class="mb-4"
-    data-sylius-paypal-venmo-button
-    data-live-ignore
-    style="display: block; width: 100%"
-    hidden
-></venmo-button>
+{% set product = hookable_metadata.context.product %}
+
+{% if not (product.enabledVariants.empty() or product.simple and not sylius_inventory_is_available(product.enabledVariants.first)) %}
+    <venmo-button
+        class="mb-4"
+        data-sylius-paypal-venmo-button
+        data-live-ignore
+        style="display: block; width: 100%"
+        hidden
+    ></venmo-button>
+{% endif %}

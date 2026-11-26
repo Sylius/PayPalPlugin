@@ -156,7 +156,7 @@ export default class extends Controller {
             return true;
         }
 
-        return document.querySelector(this.addToCartFormSelectorValue)?.reportValidity() ?? true;
+        return document.querySelector(this.addToCartFormSelectorValue)?.reportValidity() ?? false;
     }
 
     async createOrder(paymentSource = null) {
