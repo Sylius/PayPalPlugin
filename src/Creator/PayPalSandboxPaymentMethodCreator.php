@@ -15,6 +15,8 @@ namespace Sylius\PayPalPlugin\Creator;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Channel\Model\ChannelInterface;
+use Sylius\Component\Channel\Repository\ChannelRepositoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
@@ -23,10 +25,12 @@ use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxPaymentMethodCreatorInterface
 {
+    /** @param ChannelRepositoryInterface<ChannelInterface>|null $channelRepository */
     public function __construct(
         private FactoryInterface $gatewayFactory,
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
+        private ?ChannelRepositoryInterface $channelRepository = null,
     ) {
     }
 
@@ -73,6 +77,10 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         $paymentMethod->setName(self::PAYMENT_METHOD_NAME);
         $paymentMethod->setDescription(self::PAYMENT_METHOD_DESCRIPTION);
         $paymentMethod->setPosition(0);
+
+        foreach ($this->channelRepository?->findAll() ?? [] as $channel) {
+            $paymentMethod->addChannel($channel);
+        }
 
         return $paymentMethod;
     }
