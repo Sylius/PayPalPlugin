@@ -72,7 +72,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
 
     public function test_it_completes_the_payment_when_the_amount_matches(): void
     {
-        $payment = $this->processingPayment();
+        $payment = $this->processingPayment(PaymentInterface::STATE_COMPLETED);
 
         $this->paymentStateManager->expects(self::once())->method('complete')->with($payment);
         $this->paymentStateManager->expects(self::never())->method('cancel');
@@ -173,6 +173,20 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
     }
 
     /** @return array<string, mixed> */
+    public function test_it_sends_the_buyer_to_the_order_page_when_paypal_does_not_capture_the_payment(): void
+    {
+        $payment = $this->processingPayment();
+        $this->order->method('getTokenValue')->willReturn('ORDER_TOKEN');
+
+        $this->paymentStateManager->expects(self::once())->method('complete')->with($payment);
+        $this->orderManager->expects(self::once())->method('flush');
+        $this->flashBag->expects(self::once())->method('add')->with('error', 'sylius_paypal.something_went_wrong');
+
+        $content = $this->invoke();
+
+        self::assertSame('ORDER_URL', $content['return_url']);
+    }
+
     private function invoke(): array
     {
         return (array) json_decode((string) ($this->action())($this->request())->getContent(), true);
@@ -217,6 +231,7 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends TestCase
         $router->method('generate')->willReturnCallback(static fn (string $route): string => match ($route) {
             'sylius_shop_order_thank_you' => 'THANK_YOU_URL',
             'sylius_shop_checkout_complete' => 'CHECKOUT_COMPLETE_URL',
+            'sylius_shop_order_show' => 'ORDER_URL',
             default => 'UNKNOWN_URL',
         });
 

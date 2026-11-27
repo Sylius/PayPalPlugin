@@ -22,6 +22,7 @@ use Sylius\Component\Core\Storage\CartStorageInterface;
 use Sylius\PayPalPlugin\Api\UpdateOrderApiInterface;
 use Sylius\PayPalPlugin\Payum\Action\StatusAction;
 use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
+use Sylius\PayPalPlugin\Verifier\PaymentAmountVerifierInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -238,6 +239,49 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
         $this->assertSame($this->generateUrl('sylius_shop_checkout_complete'), $content['return_url']);
         $this->assertNotSame('completed', $order->getCheckoutState());
         $this->assertSame([], $updateOrderApi->updates);
+    }
+
+    public function test_it_sends_the_buyer_to_the_order_page_when_paypal_does_not_capture_the_payment(): void
+    {
+        $fixtures = $this->loadFixturesFromFiles(['resources/shop.yaml', 'resources/new_cart.yaml']);
+        /** @var OrderInterface $order */
+        $order = $fixtures['new_cart'];
+
+        $this->mockOrderDetailsApi([
+            'payer' => [
+                'email_address' => 'oliver.queen@star-city.com',
+                'name' => ['given_name' => 'Oliver', 'surname' => 'Queen'],
+                'address' => ['country_code' => 'US'],
+            ],
+            'purchase_units' => [[
+                'amount' => ['value' => '0.60'],
+                'shipping' => [
+                    'name' => ['full_name' => 'Oliver Queen'],
+                    'address' => [
+                        'address_line_1' => '1 Star City Plaza',
+                        'admin_area_2' => 'Star City',
+                        'postal_code' => '10001',
+                        'country_code' => 'US',
+                    ],
+                ],
+            ]],
+        ]);
+        $this->mockPaymentCompleteProcessor(StatusAction::STATUS_PROCESSING);
+        self::getContainer()->set('sylius_paypal.verifier.payment_amount', new class() implements PaymentAmountVerifierInterface {
+            public function verify(PaymentInterface $payment, array $paypalOrderDetails = []): void
+            {
+            }
+        });
+
+        $orderId = $order->getId();
+        $this->seedCurrentCart($order);
+        $content = $this->processPayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        $this->assertSame($this->generateUrl('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]), $content['return_url']);
+        $this->assertSame(['sylius_paypal.something_went_wrong'], $this->client->getRequest()->getSession()->getBag('flashes')->peek('error'));
+        $this->assertSame('completed', $order->getCheckoutState());
+        $this->assertNull($order->getLastPayment(PaymentInterface::STATE_COMPLETED));
     }
 
     public function test_it_tells_the_buyer_why_the_payment_was_not_taken(): void
@@ -646,19 +690,29 @@ final class ProcessPayPalOrderActionTest extends JsonApiTestCase
 
     private function mockSuccessfulPaymentCompleteProcessor(): void
     {
-        self::getContainer()->set('sylius_paypal.processor.payment_complete', new class() implements PaymentCompleteProcessorInterface {
+        $this->mockPaymentCompleteProcessor(StatusAction::STATUS_COMPLETED);
+    }
+
+    private function mockPaymentCompleteProcessor(string $status): void
+    {
+        self::getContainer()->set('sylius_paypal.processor.payment_complete', new class($status) implements PaymentCompleteProcessorInterface {
+            public function __construct(private readonly string $status)
+            {
+            }
+
             public function completePayment(PaymentInterface $payment): void
             {
-                $payment->setDetails(['status' => StatusAction::STATUS_COMPLETED]);
+                $payment->setDetails(['status' => $this->status]);
             }
         });
     }
 
-    private function generateUrl(string $route): string
+    /** @param array<string, mixed> $parameters */
+    private function generateUrl(string $route, array $parameters = []): string
     {
         /** @var UrlGeneratorInterface $router */
         $router = self::getContainer()->get('router');
 
-        return $router->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        return $router->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
     }
 }
