@@ -61,16 +61,21 @@ export default class extends Controller {
     }
 
     async start() {
-        if (this.session.isBusy()) {
+        if (this.sheetOpen || this.session.isBusy()) {
             return;
         }
+
+        this.sheetOpen = true;
 
         try {
             const sheet = new window.ApplePaySession(APPLE_PAY_VERSION, this.paymentRequest());
 
             sheet.onvalidatemerchant = (event) => this.validateMerchant(sheet, event);
             sheet.onpaymentauthorized = (event) => this.authorize(sheet, event);
-            sheet.oncancel = () => this.session.release();
+            sheet.oncancel = () => {
+                this.sheetOpen = false;
+                this.session.release();
+            };
 
             sheet.begin();
         } catch (error) {
@@ -167,6 +172,7 @@ export default class extends Controller {
             });
         }
 
+        this.sheetOpen = false;
         this.session.release();
         window.location.reload();
     }
