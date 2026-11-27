@@ -1,0 +1,6 @@
+sylius_paypal:
+    shipment_tracking:
+        carrier_invalid: 'Dieser Versanddienstleister wird nicht unterstützt.'
+        carrier_name_other_required: 'Bitte geben Sie den Namen des Versanddienstleisters an, wenn „Andere“ ausgewählt ist.'
+        tracking_code_required: 'Bitte geben Sie die Sendungsnummer an, wenn ein Versanddienstleister ausgewählt ist.'
+        tracking_code_too_long: 'Die Sendungsnummer darf höchstens {{ limit }} Zeichen lang sein, um an PayPal gesendet zu werden.'
