@@ -592,6 +592,7 @@ return static function (ContainerConfigurator $container) {
             service('sylius.factory.payment_method'),
             service('doctrine.orm.entity_manager'),
             service('sylius.repository.channel'),
+            service('sylius.repository.locale'),
         ]);
 
     $services->set('sylius_paypal.twig.extension.paypal', PayPalExtension::class)

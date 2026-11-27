@@ -18,19 +18,25 @@ use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Channel\Model\ChannelInterface;
 use Sylius\Component\Channel\Repository\ChannelRepositoryInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Locale\Model\LocaleInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
+use Sylius\Resource\Doctrine\Persistence\RepositoryInterface;
 
 /** @deprecated since Sylius/PayPalPlugin 2.2 and will be removed in Sylius/PayPalPlugin 3.0. */
 final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxPaymentMethodCreatorInterface
 {
-    /** @param ChannelRepositoryInterface<ChannelInterface>|null $channelRepository */
+    /**
+     * @param ChannelRepositoryInterface<ChannelInterface>|null $channelRepository
+     * @param RepositoryInterface<LocaleInterface>|null $localeRepository
+     */
     public function __construct(
         private FactoryInterface $gatewayFactory,
         private FactoryInterface $paymentMethodFactory,
         private EntityManagerInterface $entityManager,
         private ?ChannelRepositoryInterface $channelRepository = null,
+        private ?RepositoryInterface $localeRepository = null,
     ) {
     }
 
@@ -77,6 +83,13 @@ final readonly class PayPalSandboxPaymentMethodCreator implements PayPalSandboxP
         $paymentMethod->setName(self::PAYMENT_METHOD_NAME);
         $paymentMethod->setDescription(self::PAYMENT_METHOD_DESCRIPTION);
         $paymentMethod->setPosition(0);
+
+        foreach ($this->localeRepository?->findAll() ?? [] as $locale) {
+            $paymentMethod->setCurrentLocale((string) $locale->getCode());
+            $paymentMethod->setFallbackLocale((string) $locale->getCode());
+            $paymentMethod->setName(self::PAYMENT_METHOD_NAME);
+            $paymentMethod->setDescription(self::PAYMENT_METHOD_DESCRIPTION);
+        }
 
         foreach ($this->channelRepository?->findAll() ?? [] as $channel) {
             $paymentMethod->addChannel($channel);
