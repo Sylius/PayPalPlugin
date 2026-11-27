@@ -23,6 +23,7 @@ use Sylius\PayPalPlugin\Processor\PaymentCompleteProcessorInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\SessionFactoryInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -41,6 +42,20 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
         self::assertSame($this->generateUrl('sylius_shop_order_thank_you'), $content['return_url']);
         self::assertSame('completed', $order->getCheckoutState());
         self::assertSame(PaymentInterface::STATE_COMPLETED, $order->getLastPayment()->getState());
+    }
+
+    public function test_it_sends_the_buyer_to_the_order_page_when_paypal_does_not_capture_the_payment(): void
+    {
+        [$orderId] = $this->loadPaymentPageOrder(amountMatches: true);
+        $this->mockPaymentCompleteProcessor(StatusAction::STATUS_PROCESSING);
+
+        $content = $this->completePayPalOrder($orderId);
+        $order = $this->refreshOrder($orderId);
+
+        self::assertSame($this->generateUrl('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]), $content['return_url']);
+        self::assertSame(['sylius_paypal.something_went_wrong'], $this->clientFlashes('error'));
+        self::assertSame('completed', $order->getCheckoutState());
+        self::assertNull($order->getLastPayment(PaymentInterface::STATE_COMPLETED));
     }
 
     public function test_it_recreates_a_cart_payment_when_the_amount_does_not_match(): void
@@ -171,19 +186,42 @@ final class CompletePayPalOrderFromPaymentPageActionTest extends JsonApiTestCase
 
     private function mockSuccessfulPaymentCompleteProcessor(): void
     {
-        self::getContainer()->set('sylius_paypal.processor.payment_complete', new class() implements PaymentCompleteProcessorInterface {
+        $this->mockPaymentCompleteProcessor(StatusAction::STATUS_COMPLETED);
+    }
+
+    private function mockPaymentCompleteProcessor(string $status): void
+    {
+        self::getContainer()->set('sylius_paypal.processor.payment_complete', new class($status) implements PaymentCompleteProcessorInterface {
+            public function __construct(private readonly string $status)
+            {
+            }
+
             public function completePayment(PaymentInterface $payment): void
             {
-                $payment->setDetails(array_merge($payment->getDetails(), ['status' => StatusAction::STATUS_COMPLETED]));
+                $payment->setDetails(array_merge($payment->getDetails(), ['status' => $this->status]));
             }
         });
     }
 
-    private function generateUrl(string $route): string
+    /** @return list<string> */
+    private function clientFlashes(string $type): array
+    {
+        /** @var SessionFactoryInterface $sessionFactory */
+        $sessionFactory = self::getContainer()->get('session.factory');
+        /** @var Session $session */
+        $session = $sessionFactory->createSession();
+        $session->setId((string) $this->client->getCookieJar()->get($session->getName())?->getValue());
+        $session->start();
+
+        return $session->getFlashBag()->peek($type);
+    }
+
+    /** @param array<string, mixed> $parameters */
+    private function generateUrl(string $route, array $parameters = []): string
     {
         /** @var UrlGeneratorInterface $router */
         $router = self::getContainer()->get('router');
 
-        return $router->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        return $router->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
     }
 }

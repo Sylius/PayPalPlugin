@@ -98,6 +98,18 @@ final readonly class CompletePayPalOrderFromPaymentPageAction
 
         $request->getSession()->set('sylius_order_id', $order->getId());
 
+        if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+
+            return new JsonResponse([
+                'orderId' => $payPalOrderId,
+                'status' => $payment->getState(),
+                'return_url' => $this->router->generate('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()], UrlGeneratorInterface::ABSOLUTE_URL),
+            ]);
+        }
+
         return new JsonResponse([
             'orderId' => $payPalOrderId,
             'status' => $payment->getState(),

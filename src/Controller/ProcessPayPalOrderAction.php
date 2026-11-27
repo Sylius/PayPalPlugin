@@ -195,6 +195,20 @@ final readonly class ProcessPayPalOrderAction
 
         $request->getSession()->set('sylius_order_id', $order->getId());
 
+        if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+
+            return new JsonResponse([
+                'syliusOrderId' => $orderId,
+                'orderId' => $payPalOrderId,
+                'status' => $payment->getState(),
+                'return_url' => $this->generateReturnUrl('sylius_shop_order_show', ['tokenValue' => $order->getTokenValue()]),
+                'orderID' => $orderId, // BC with 2.1. Deprecated in 2.2; use "syliusOrderId" instead.
+            ]);
+        }
+
         return new JsonResponse([
             'syliusOrderId' => $orderId,
             'orderId' => $payPalOrderId,
@@ -291,13 +305,13 @@ final readonly class ProcessPayPalOrderAction
         $this->orderManager->flush();
     }
 
-    private function generateReturnUrl(string $route): string
+    private function generateReturnUrl(string $route, array $parameters = []): string
     {
         if (null === $this->router) {
             throw new \RuntimeException('A router is required to generate the return URL.');
         }
 
-        return $this->router->generate($route, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        return $this->router->generate($route, $parameters, UrlGeneratorInterface::ABSOLUTE_URL);
     }
 
     private function getOrderCustomer(array $customerData): CustomerInterface
