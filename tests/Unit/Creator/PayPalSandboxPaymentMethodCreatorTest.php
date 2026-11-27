@@ -17,6 +17,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Channel\Repository\ChannelRepositoryInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
@@ -99,5 +101,34 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $result = $creator->create($clientId, $clientSecret, $merchantId);
 
         self::assertSame($paymentMethod, $result);
+    }
+
+    public function test_it_makes_the_payment_method_available_in_every_channel(): void
+    {
+        $gatewayFactory = $this->createStub(FactoryInterface::class);
+        $gatewayFactory->method('createNew')->willReturn($this->createStub(GatewayConfigInterface::class));
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethodFactory = $this->createStub(FactoryInterface::class);
+        $paymentMethodFactory->method('createNew')->willReturn($paymentMethod);
+        $firstChannel = $this->createStub(ChannelInterface::class);
+        $secondChannel = $this->createStub(ChannelInterface::class);
+        $channelRepository = $this->createStub(ChannelRepositoryInterface::class);
+        $channelRepository->method('findAll')->willReturn([$firstChannel, $secondChannel]);
+
+        $added = [];
+        $paymentMethod->expects(self::exactly(2))->method('addChannel')->willReturnCallback(
+            static function (ChannelInterface $channel) use (&$added): void {
+                $added[] = $channel;
+            },
+        );
+
+        (new PayPalSandboxPaymentMethodCreator(
+            $gatewayFactory,
+            $paymentMethodFactory,
+            $this->createStub(EntityManagerInterface::class),
+            $channelRepository,
+        ))->create('CLIENT_ID', 'CLIENT_SECRET', 'MERCHANT_ID');
+
+        self::assertSame([$firstChannel, $secondChannel], $added);
     }
 }
