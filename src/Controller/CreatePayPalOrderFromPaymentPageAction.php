@@ -26,6 +26,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker;
 use Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
@@ -88,7 +89,16 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         try {
             $this->capturePaymentResolver->resolve($payment);
-        } catch (GuzzleException $exception) {
+        } catch (GuzzleException|PayPalApiTimeoutException) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        $payPalOrderId = $payment->getDetails()['paypal_order_id'] ?? null;
+        if (null === $payPalOrderId) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.something_went_wrong');
@@ -98,8 +108,6 @@ final readonly class CreatePayPalOrderFromPaymentPageAction
 
         $this->paymentStateManager->create($payment);
         $this->paymentStateManager->process($payment);
-
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
 
         return new JsonResponse([
             'id' => $order->getId(),

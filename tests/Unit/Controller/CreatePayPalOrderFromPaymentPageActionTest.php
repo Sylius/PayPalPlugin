@@ -27,6 +27,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Controller\CreatePayPalOrderFromPaymentPageAction;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
@@ -103,6 +104,33 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $this->paymentStateManager->expects(self::once())->method('process')->with($payment);
 
         self::assertSame(Response::HTTP_OK, ($this->action)($this->request())->getStatusCode());
+    }
+
+    public function test_it_answers_with_bad_request_and_leaves_the_payment_in_the_cart_when_paypal_creates_no_order(): void
+    {
+        $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME, withPayPalOrder: false);
+        $this->payments(processing: null, cart: $payment);
+
+        $this->paymentStateManager->expects(self::never())->method('create');
+        $this->paymentStateManager->expects(self::never())->method('process');
+
+        $request = $this->request();
+        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($request)->getStatusCode());
+        self::assertSame(['sylius_paypal.something_went_wrong'], $request->getSession()->getBag('flashes')->get('error'));
+    }
+
+    public function test_it_answers_with_bad_request_and_leaves_the_payment_in_the_cart_when_paypal_does_not_answer(): void
+    {
+        $payment = $this->payment(SyliusPayPalExtension::PAYPAL_FACTORY_NAME);
+        $this->payments(processing: null, cart: $payment);
+        $this->capturePaymentResolver->method('resolve')->willThrowException(new PayPalApiTimeoutException());
+
+        $this->paymentStateManager->expects(self::never())->method('create');
+        $this->paymentStateManager->expects(self::never())->method('process');
+
+        $request = $this->request();
+        self::assertSame(Response::HTTP_BAD_REQUEST, ($this->action)($request)->getStatusCode());
+        self::assertSame(['sylius_paypal.something_went_wrong'], $request->getSession()->getBag('flashes')->get('error'));
     }
 
     public function test_it_answers_with_the_paypal_order_id_under_both_the_new_and_the_legacy_key(): void
@@ -296,7 +324,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         );
     }
 
-    private function payment(string $factoryName): PaymentInterface&Stub
+    private function payment(string $factoryName, bool $withPayPalOrder = true): PaymentInterface&Stub
     {
         $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
         $gatewayConfig->method('getFactoryName')->willReturn($factoryName);
@@ -307,7 +335,7 @@ final class CreatePayPalOrderFromPaymentPageActionTest extends TestCase
         $payment = $this->createStub(PaymentInterface::class);
         $payment->method('getMethod')->willReturn($paymentMethod);
         $payment->method('getState')->willReturn(PaymentInterface::STATE_CART);
-        $payment->method('getDetails')->willReturn(['paypal_order_id' => 'PAYPAL_ORDER_ID']);
+        $payment->method('getDetails')->willReturn($withPayPalOrder ? ['paypal_order_id' => 'PAYPAL_ORDER_ID'] : []);
         $payment->method('setDetails')->willReturnCallback(function (array $details): void {
             $this->recordedDetails = $details;
         });

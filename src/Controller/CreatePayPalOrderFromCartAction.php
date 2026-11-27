@@ -24,6 +24,7 @@ use Sylius\Component\Order\Processor\OrderProcessorInterface;
 use Sylius\PayPalPlugin\Checker\ExpressCheckoutChecker;
 use Sylius\PayPalPlugin\Checker\ExpressCheckoutCheckerInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalFundingSourcesConfigurationProviderInterface;
 use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
@@ -106,9 +107,20 @@ final readonly class CreatePayPalOrderFromCartAction
 
         try {
             $payment = $this->getPayment($order);
-            $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
+            $details = $payment->getDetails();
+            unset($details['paypal_order_id']);
+            $payment->setDetails(array_merge($details, ['payment_source' => $paymentSource]));
             $this->capturePaymentResolver->resolve($payment);
-        } catch (\DomainException|GuzzleException) {
+        } catch (\DomainException|GuzzleException|PayPalApiTimeoutException) {
+            /** @var FlashBagInterface $flashBag */
+            $flashBag = $request->getSession()->getBag('flashes');
+            $flashBag->add('error', 'sylius_paypal.something_went_wrong');
+
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        $payPalOrderId = $payment->getDetails()['paypal_order_id'] ?? null;
+        if (null === $payPalOrderId) {
             /** @var FlashBagInterface $flashBag */
             $flashBag = $request->getSession()->getBag('flashes');
             $flashBag->add('error', 'sylius_paypal.something_went_wrong');
@@ -117,8 +129,6 @@ final readonly class CreatePayPalOrderFromCartAction
         }
 
         $this->paymentManager->flush();
-
-        $payPalOrderId = $payment->getDetails()['paypal_order_id'];
 
         return new JsonResponse([
             'id' => $order->getId(),

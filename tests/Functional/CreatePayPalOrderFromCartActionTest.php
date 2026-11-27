@@ -18,6 +18,8 @@ use Payum\Core\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Storage\CartStorageInterface;
+use Sylius\PayPalPlugin\Api\CreateOrderApiInterface;
+use Sylius\PayPalPlugin\Provider\PayPalPaymentSourceProviderInterface;
 use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -133,6 +135,30 @@ final class CreatePayPalOrderFromCartActionTest extends JsonApiTestCase
         $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
         $this->assertSame(['sylius_paypal.payment_source_not_available'], $this->clientSession()->getFlashBag()->peek('error'));
         $this->assertNull($this->recordedPaymentSource($order));
+    }
+
+    public function test_it_answers_with_bad_request_instead_of_an_earlier_paypal_order_when_paypal_rejects_the_order(): void
+    {
+        $order = $this->seededCart();
+        $order->getLastPayment(PaymentInterface::STATE_CART)?->setDetails(['paypal_order_id' => 'EARLIER_PAYPAL_ORDER_ID']);
+        $this->getEntityManager()->flush();
+        self::getContainer()->set('sylius_paypal.api.create_order', new class() implements CreateOrderApiInterface {
+            public function create(
+                string $token,
+                PaymentInterface $payment,
+                string $referenceId,
+                string $paymentSource = PayPalPaymentSourceProviderInterface::PAYPAL,
+                ?string $payerActionReturnNonce = null,
+                ?string $payerActionCancelNonce = null,
+            ): array {
+                return ['name' => 'UNPROCESSABLE_ENTITY', 'debug_id' => 'DEBUG_ID'];
+            }
+        });
+
+        $this->client->request('POST', '/en_US/create-pay-pal-order-from-cart/' . $order->getId());
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
+        $this->assertSame(['sylius_paypal.something_went_wrong'], $this->clientSession()->getFlashBag()->peek('error'));
     }
 
     private function seededCart(bool $venmoEnabled = false, bool $expressCheckoutEnabled = true): OrderInterface
