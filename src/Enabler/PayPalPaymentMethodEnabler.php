@@ -18,7 +18,9 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreatorInterface;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Model\PayPalGatewayConfig;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
@@ -39,6 +41,21 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         $gatewayConfig = $paymentMethod->getGatewayConfig();
         $config = PayPalGatewayConfig::fromGatewayConfig($gatewayConfig);
 
+        if (!$this->isCreatedWithSandboxCredentials($config)) {
+            $this->verifyPermissions($config);
+        }
+
+        try {
+            $this->sellerWebhookRegistrar->register($paymentMethod);
+        } catch (PayPalWebhookAlreadyRegisteredException) {
+        }
+
+        $paymentMethod->setEnabled(true);
+        $this->paymentMethodManager->flush();
+    }
+
+    private function verifyPermissions(PayPalGatewayConfig $config): void
+    {
         $response = $this->client->sendRequest(
             $this->requestFactory->createRequest(
                 'GET',
@@ -54,10 +71,13 @@ final readonly class PayPalPaymentMethodEnabler implements PaymentMethodEnablerI
         if (!((bool) ($content['permissionsGranted'] ?? false))) {
             throw new PaymentMethodCouldNotBeEnabledException();
         }
+    }
 
-        $this->sellerWebhookRegistrar->register($paymentMethod);
-
-        $paymentMethod->setEnabled(true);
-        $this->paymentMethodManager->flush();
+    private function isCreatedWithSandboxCredentials(PayPalGatewayConfig $config): bool
+    {
+        return
+            $config->hasSyliusMerchantId() &&
+            PayPalSandboxPaymentMethodCreatorInterface::SYLIUS_SANDBOX_MERCHANT_ID === $config->syliusMerchantId()
+        ;
     }
 }
