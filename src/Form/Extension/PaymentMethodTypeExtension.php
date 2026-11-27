@@ -18,7 +18,7 @@ use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
 use Symfony\Component\Form\AbstractTypeExtension;
-use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -38,11 +38,11 @@ final class PaymentMethodTypeExtension extends AbstractTypeExtension
                 return;
             }
 
-            if ($gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME) {
-                $form->add('enabled', HiddenType::class, [
+            if ($gatewayConfig->getFactoryName() === SyliusPayPalExtension::PAYPAL_FACTORY_NAME && !$data->isEnabled()) {
+                $form->add('enabled', CheckboxType::class, [
                     'required' => false,
                     'label' => 'sylius.form.payment_method.enabled',
-                    'data' => $data->isEnabled(),
+                    'disabled' => true,
                 ]);
             }
         });
