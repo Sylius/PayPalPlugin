@@ -20,6 +20,7 @@ use Sylius\PayPalPlugin\Downloader\ReportDownloaderInterface;
 use Sylius\PayPalPlugin\Downloader\SftpPayoutsReportDownloader;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
+use Sylius\PayPalPlugin\EventListener\Doctrine\RemovePayPalCredentialsListener;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactory;
 use Sylius\PayPalPlugin\Factory\ExpressOrderAddressFactoryInterface;
 use Sylius\PayPalPlugin\Factory\PayPalItemFactory;
@@ -183,6 +184,9 @@ return static function (ContainerConfigurator $container) {
             '%sylius_paypal.sandbox%',
         ])
         ->tag('kernel.event_listener', ['event' => 'sylius.payment_method.initialize_create', 'method' => 'initializeCreate']);
+
+    $services->set('sylius_paypal.listener.remove_paypal_credentials', RemovePayPalCredentialsListener::class)
+        ->tag('doctrine.event_listener', ['event' => 'preRemove']);
 
     $services->set('sylius_paypal.manager.payment_state', PaymentStateManager::class)
         ->args([
