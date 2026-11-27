@@ -17,9 +17,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
+use Sylius\Component\Channel\Repository\ChannelRepositoryInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
+use Sylius\Component\Core\Model\PaymentMethod;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
+use Sylius\Component\Locale\Model\Locale;
+use Sylius\Component\Locale\Model\LocaleInterface;
 use Sylius\Component\Resource\Factory\FactoryInterface;
 use Sylius\PayPalPlugin\Creator\PayPalSandboxPaymentMethodCreator;
+use Sylius\Resource\Doctrine\Persistence\RepositoryInterface;
 
 final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
 {
@@ -99,5 +105,69 @@ final class PayPalSandboxPaymentMethodCreatorTest extends TestCase
         $result = $creator->create($clientId, $clientSecret, $merchantId);
 
         self::assertSame($paymentMethod, $result);
+    }
+
+    public function test_it_makes_the_payment_method_available_in_every_channel(): void
+    {
+        $gatewayFactory = $this->createStub(FactoryInterface::class);
+        $gatewayFactory->method('createNew')->willReturn($this->createStub(GatewayConfigInterface::class));
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethodFactory = $this->createStub(FactoryInterface::class);
+        $paymentMethodFactory->method('createNew')->willReturn($paymentMethod);
+        $firstChannel = $this->createStub(ChannelInterface::class);
+        $secondChannel = $this->createStub(ChannelInterface::class);
+        $channelRepository = $this->createStub(ChannelRepositoryInterface::class);
+        $channelRepository->method('findAll')->willReturn([$firstChannel, $secondChannel]);
+
+        $added = [];
+        $paymentMethod->expects(self::exactly(2))->method('addChannel')->willReturnCallback(
+            static function (ChannelInterface $channel) use (&$added): void {
+                $added[] = $channel;
+            },
+        );
+
+        (new PayPalSandboxPaymentMethodCreator(
+            $gatewayFactory,
+            $paymentMethodFactory,
+            $this->createStub(EntityManagerInterface::class),
+            $channelRepository,
+        ))->create('CLIENT_ID', 'CLIENT_SECRET', 'MERCHANT_ID');
+
+        self::assertSame([$firstChannel, $secondChannel], $added);
+    }
+
+    public function test_it_names_the_payment_method_in_every_locale(): void
+    {
+        $gatewayFactory = $this->createStub(FactoryInterface::class);
+        $gatewayFactory->method('createNew')->willReturn($this->createStub(GatewayConfigInterface::class));
+        $paymentMethod = new PaymentMethod();
+        $paymentMethod->setCurrentLocale('en_US');
+        $paymentMethod->setFallbackLocale('en_US');
+        $paymentMethodFactory = $this->createStub(FactoryInterface::class);
+        $paymentMethodFactory->method('createNew')->willReturn($paymentMethod);
+        $localeRepository = $this->createStub(RepositoryInterface::class);
+        $localeRepository->method('findAll')->willReturn([$this->locale('en_US'), $this->locale('pl_PL')]);
+
+        (new PayPalSandboxPaymentMethodCreator(
+            $gatewayFactory,
+            $paymentMethodFactory,
+            $this->createStub(EntityManagerInterface::class),
+            localeRepository: $localeRepository,
+        ))->create('CLIENT_ID', 'CLIENT_SECRET', 'MERCHANT_ID');
+
+        self::assertSame(['en_US', 'pl_PL'], $paymentMethod->getTranslations()->getKeys());
+
+        $paymentMethod->setCurrentLocale('pl_PL');
+        $paymentMethod->setFallbackLocale('pl_PL');
+        self::assertSame('PayPal', $paymentMethod->getName());
+        self::assertSame('Pay with PayPal', $paymentMethod->getDescription());
+    }
+
+    private function locale(string $code): LocaleInterface
+    {
+        $locale = new Locale();
+        $locale->setCode($code);
+
+        return $locale;
     }
 }
