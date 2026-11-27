@@ -13,12 +13,14 @@ declare(strict_types=1);
 
 namespace Sylius\PayPalPlugin\Controller;
 
+use GuzzleHttp\Exception\GuzzleException;
 use Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Sylius\Component\Core\Model\PaymentMethodInterface;
 use Sylius\PayPalPlugin\DependencyInjection\SyliusPayPalExtension;
+use Sylius\PayPalPlugin\Exception\PayPalApiTimeoutException;
 use Sylius\PayPalPlugin\Manager\PaymentStateManagerInterface;
 use Sylius\PayPalPlugin\Model\RedirectPaymentSource;
 use Sylius\PayPalPlugin\Provider\OrderProviderInterface;
@@ -70,12 +72,19 @@ final readonly class CreatePayPalOrderAction
 
         $payment->setDetails(array_merge($payment->getDetails(), ['payment_source' => $paymentSource]));
 
-        $this->capturePaymentResolver->resolve($payment);
-
-        $this->paymentStateManager->process($payment);
+        try {
+            $this->capturePaymentResolver->resolve($payment);
+        } catch (GuzzleException|PayPalApiTimeoutException) {
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
 
         $details = $payment->getDetails();
-        $payPalOrderId = $details['paypal_order_id'];
+        $payPalOrderId = $details['paypal_order_id'] ?? null;
+        if (null === $payPalOrderId) {
+            return new JsonResponse([], Response::HTTP_BAD_REQUEST);
+        }
+
+        $this->paymentStateManager->process($payment);
 
         return new JsonResponse(array_filter([
             'orderId' => $payPalOrderId,
