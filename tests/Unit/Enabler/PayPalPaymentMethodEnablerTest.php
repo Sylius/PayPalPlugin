@@ -27,6 +27,7 @@ use Sylius\Component\Payment\Model\GatewayConfigInterface;
 use Sylius\PayPalPlugin\Enabler\PaymentMethodEnablerInterface;
 use Sylius\PayPalPlugin\Enabler\PayPalPaymentMethodEnabler;
 use Sylius\PayPalPlugin\Exception\PaymentMethodCouldNotBeEnabledException;
+use Sylius\PayPalPlugin\Exception\PayPalWebhookAlreadyRegisteredException;
 use Sylius\PayPalPlugin\Registrar\SellerWebhookRegistrarInterface;
 
 final class PayPalPaymentMethodEnablerTest extends TestCase
@@ -178,5 +179,52 @@ final class PayPalPaymentMethodEnablerTest extends TestCase
         $this->expectException(PaymentMethodCouldNotBeEnabledException::class);
 
         $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    #[Test]
+    public function it_enables_a_payment_method_created_with_sandbox_credentials_without_asking_the_facilitator(): void
+    {
+        $paymentMethod = $this->paymentMethod([
+            'merchant_id' => '123123',
+            'client_id' => 'CLIENT-ID',
+            'client_secret' => 'SECRET',
+            'sylius_merchant_id' => 'SYLIUS_SANDBOX_MERCHANT_ID',
+        ]);
+
+        $this->client->expects(self::never())->method('sendRequest');
+        $this->sellerWebhookRegistrar->expects(self::once())->method('register')->with($paymentMethod);
+        $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $this->paymentMethodManager->expects(self::once())->method('flush');
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    #[Test]
+    public function it_enables_a_payment_method_whose_webhook_is_already_registered(): void
+    {
+        $paymentMethod = $this->paymentMethod([
+            'merchant_id' => '123123',
+            'client_id' => 'CLIENT-ID',
+            'client_secret' => 'SECRET',
+            'sylius_merchant_id' => 'SYLIUS_SANDBOX_MERCHANT_ID',
+        ]);
+
+        $this->sellerWebhookRegistrar->method('register')->willThrowException(new PayPalWebhookAlreadyRegisteredException());
+        $paymentMethod->expects(self::once())->method('setEnabled')->with(true);
+        $this->paymentMethodManager->expects(self::once())->method('flush');
+
+        $this->payPalPaymentMethodEnabler->enable($paymentMethod);
+    }
+
+    /** @param array<string, mixed> $config */
+    private function paymentMethod(array $config): PaymentMethodInterface&MockObject
+    {
+        $gatewayConfig = $this->createStub(GatewayConfigInterface::class);
+        $gatewayConfig->method('getConfig')->willReturn($config);
+
+        $paymentMethod = $this->createMock(PaymentMethodInterface::class);
+        $paymentMethod->method('getGatewayConfig')->willReturn($gatewayConfig);
+
+        return $paymentMethod;
     }
 }
