@@ -28,7 +28,7 @@ jobs:
                         target_branch: "3.0"
                     -
                         base_branch: "3.0"
-                        target_branch: "phase-3"
+                        target_branch: "3.1"
 
         steps:
             -
